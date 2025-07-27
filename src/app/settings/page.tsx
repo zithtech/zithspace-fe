@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useSession } from 'next-auth/react';
 import MainLayout from '@/components/layout/MainLayout';
 import {
   Card,
@@ -9,147 +9,171 @@ import {
   Input,
   Button,
   Space,
+  Form,
+  Alert,
+  Divider,
+  Row,
+  Col,
+  Avatar,
+  Tag,
+  Descriptions,
   Spin,
-  message,
 } from 'antd';
 import {
   SaveOutlined,
   LockOutlined,
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  CalendarOutlined,
+  TeamOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
+interface UserProfile {
+  _id: string;
+  name: string;
+  phone: string;
+  personalEmail: string;
+  workEmail: string;
+  role: string;
+  position: string;
+  reportsTo?: {
+    _id: string;
+    name: string;
+    position: string;
+  };
+  dateOfBirth?: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+interface ProfileFormData {
+  name: string;
+  phone: string;
+  personalEmail: string;
+  workEmail: string;
+  dateOfBirth: string;
+}
+
+interface PasswordFormData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export default function SettingsPage() {
-  const { user, updateUser } = useAuth();
-  
-  // Profile form state
-  const [profileData, setProfileData] = useState({
-    personalEmail: '',
-    workEmail: '',
-    dateOfBirth: '',
-  });
-  
-  // Password form state
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  
+  const { data: session } = useSession();
+  const [profileForm] = Form.useForm();
+  const [passwordForm] = Form.useForm();
+
+  // State management
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   // Load user profile data
   useEffect(() => {
     const loadProfile = async () => {
+      if (!session?.user) return;
+
       try {
-        // Only access localStorage on client side
-        if (typeof window === 'undefined') return;
-        
-        const token = localStorage.getItem('accessToken');
-        if (!token) return;
+        setLoading(true);
+        const response = await fetch('/api/user/profile');
+        const data = await response.json();
 
-        const response = await fetch('/api/user/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setProfileData({
+        if (data.success) {
+          setUserProfile(data.data);
+          
+          // Pre-fill the form with current data
+          profileForm.setFieldsValue({
+            name: data.data.name || '',
+            phone: data.data.phone || '',
             personalEmail: data.data.personalEmail || '',
             workEmail: data.data.workEmail || '',
-            dateOfBirth: data.data.dateOfBirth ? data.data.dateOfBirth.split('T')[0] : '',
+            dateOfBirth: data.data.dateOfBirth ? dayjs(data.data.dateOfBirth).format('YYYY-MM-DD') : '',
           });
+        } else {
+          setError(data.error || 'Failed to load profile');
         }
       } catch (error) {
         console.error('Failed to load profile:', error);
+        setError('Failed to load profile');
+      } finally {
+        setLoading(false);
       }
     };
 
     loadProfile();
-  }, []);
+  }, [session, profileForm]);
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setProfileLoading(true);
-
+  // Handle profile form submission
+  const handleProfileSubmit = async (values: ProfileFormData) => {
     try {
-      // Only access localStorage on client side
-      if (typeof window === 'undefined') {
-        message.error('Client-side operation required');
-        setProfileLoading(false);
-        return;
-      }
-
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        message.error('Authentication token not found');
-        setProfileLoading(false);
-        return;
-      }
+      setProfileLoading(true);
+      setError('');
+      setSuccess('');
 
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          personalEmail: profileData.personalEmail,
-          workEmail: profileData.workEmail,
-          dateOfBirth: profileData.dateOfBirth || null,
+          name: values.name,
+          phone: values.phone,
+          personalEmail: values.personalEmail,
+          workEmail: values.workEmail,
+          dateOfBirth: values.dateOfBirth || null,
         }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        message.success('Profile updated successfully!');
-        // Update user context if work email changed
-        if (user && profileData.workEmail !== user.email) {
-          updateUser({ email: profileData.workEmail });
-        }
+      if (data.success) {
+        setSuccess('Profile updated successfully!');
+        setUserProfile(data.data);
+        
+        // Update the form with the latest data
+        profileForm.setFieldsValue({
+          name: data.data.name || '',
+          phone: data.data.phone || '',
+          personalEmail: data.data.personalEmail || '',
+          workEmail: data.data.workEmail || '',
+          dateOfBirth: data.data.dateOfBirth ? dayjs(data.data.dateOfBirth).format('YYYY-MM-DD') : '',
+        });
       } else {
-        message.error(data.error || 'Failed to update profile');
+        setError(data.error || 'Failed to update profile');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to update profile:', error);
-      message.error('An error occurred while updating profile');
+      setError('An error occurred while updating profile');
     } finally {
       setProfileLoading(false);
     }
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordLoading(true);
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      message.error('New passwords do not match');
-      setPasswordLoading(false);
-      return;
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      message.error('New password must be at least 6 characters long');
-      setPasswordLoading(false);
-      return;
-    }
-
+  // Handle password form submission
+  const handlePasswordSubmit = async (values: PasswordFormData) => {
     try {
-      // Only access localStorage on client side
-      if (typeof window === 'undefined') {
-        message.error('Client-side operation required');
-        setPasswordLoading(false);
+      setPasswordLoading(true);
+      setError('');
+      setSuccess('');
+
+      if (values.newPassword !== values.confirmPassword) {
+        setError('New passwords do not match');
         return;
       }
 
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        message.error('Authentication token not found');
-        setPasswordLoading(false);
+      if (values.newPassword.length < 6) {
+        setError('New password must be at least 6 characters long');
         return;
       }
 
@@ -157,153 +181,379 @@ export default function SettingsPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
         }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        message.success('Password changed successfully!');
-        setPasswordData({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-        });
+      if (data.success) {
+        setSuccess('Password changed successfully!');
+        passwordForm.resetFields();
       } else {
-        message.error(data.error || 'Failed to change password');
+        setError(data.error || 'Failed to change password');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to change password:', error);
-      message.error('An error occurred while changing password');
+      setError('An error occurred while changing password');
     } finally {
       setPasswordLoading(false);
     }
   };
 
+  // Get role color
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'super admin':
+        return '#ff4d4f';
+      case 'admin':
+        return '#faad14';
+      default:
+        return '#52c41a';
+    }
+  };
+
+  // Clear messages after 5 seconds
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess('');
+        setError('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <Spin size="large" />
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
-      <div style={{ maxWidth: 800, margin: '0 auto' }}>
-        <Title level={2}>Settings</Title>
-        
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {/* Profile Settings */}
-          <Card>
-            <Title level={4}>Profile Information</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
-              Update your personal information. Note: You cannot change your role or position from here.
-            </Text>
+      <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <Space align="center">
+            <UserOutlined style={{ fontSize: 24, color: '#1677ff' }} />
+            <Title level={2} style={{ margin: 0 }}>
+              Profile & Settings
+            </Title>
+          </Space>
+        </div>
 
-            <form onSubmit={handleProfileSubmit}>
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <div>
-                  <Text strong>Personal Email</Text>
-                  <Input
-                    type="email"
-                    value={profileData.personalEmail}
-                    onChange={(e) => setProfileData({ ...profileData, personalEmail: e.target.value })}
-                    disabled={profileLoading}
-                    style={{ marginTop: '4px' }}
-                  />
-                </div>
-                
-                <div>
-                  <Text strong>Work Email</Text>
-                  <Input
-                    type="email"
-                    value={profileData.workEmail}
-                    onChange={(e) => setProfileData({ ...profileData, workEmail: e.target.value })}
-                    disabled={profileLoading}
-                    style={{ marginTop: '4px' }}
-                  />
-                </div>
-                
-                <div>
-                  <Text strong>Date of Birth</Text>
-                  <Input
-                    type="date"
-                    value={profileData.dateOfBirth}
-                    onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
-                    disabled={profileLoading}
-                    style={{ marginTop: '4px' }}
-                  />
-                </div>
+        {/* Alerts */}
+        {error && (
+          <Alert
+            message={error}
+            type="error"
+            showIcon
+            closable
+            style={{ marginBottom: 16, fontSize: 13 }}
+            onClose={() => setError('')}
+          />
+        )}
+        {success && (
+          <Alert
+            message={success}
+            type="success"
+            showIcon
+            closable
+            style={{ marginBottom: 16, fontSize: 13 }}
+            onClose={() => setSuccess('')}
+          />
+        )}
 
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={profileLoading ? <Spin size="small" /> : <SaveOutlined />}
-                  loading={profileLoading}
-                  style={{ alignSelf: 'flex-start' }}
+        <Row gutter={[24, 24]}>
+          {/* Profile Information Display */}
+          <Col xs={24} lg={8}>
+            <Card
+              title={
+                <Space>
+                  <IdcardOutlined style={{ color: '#1677ff' }} />
+                  <span>Profile Information</span>
+                </Space>
+              }
+              size="small"
+            >
+              {userProfile && (
+                <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                  {/* Avatar and Basic Info */}
+                  <div style={{ textAlign: 'center' }}>
+                    <Avatar
+                      size={80}
+                      style={{
+                        backgroundColor: getRoleColor(userProfile.role),
+                        fontSize: 32,
+                        fontWeight: 600,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {userProfile.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <div>
+                      <Title level={4} style={{ margin: 0 }}>
+                        {userProfile.name}
+                      </Title>
+                      <Text type="secondary">{userProfile.position}</Text>
+                    </div>
+                  </div>
+
+                  <Divider style={{ margin: '12px 0' }} />
+
+                  {/* Detailed Information */}
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item 
+                      label={<><TeamOutlined /> Role</>}
+                    >
+                      <Tag color={getRoleColor(userProfile.role)} style={{ fontSize: 11 }}>
+                        {userProfile.role.toUpperCase()}
+                      </Tag>
+                    </Descriptions.Item>
+                    
+                    <Descriptions.Item 
+                      label={<><PhoneOutlined /> Phone</>}
+                    >
+                      {userProfile.phone}
+                    </Descriptions.Item>
+                    
+                    <Descriptions.Item 
+                      label={<><MailOutlined /> Work Email</>}
+                    >
+                      {userProfile.workEmail}
+                    </Descriptions.Item>
+                    
+                    <Descriptions.Item 
+                      label={<><MailOutlined /> Personal Email</>}
+                    >
+                      {userProfile.personalEmail}
+                    </Descriptions.Item>
+                    
+                    {userProfile.reportsTo && (
+                      <Descriptions.Item 
+                        label={<><UserOutlined /> Reports To</>}
+                      >
+                        {userProfile.reportsTo.name}
+                        <br />
+                        <Text type="secondary" style={{ fontSize: 11 }}>
+                          {userProfile.reportsTo.position}
+                        </Text>
+                      </Descriptions.Item>
+                    )}
+                    
+                    {userProfile.dateOfBirth && (
+                      <Descriptions.Item 
+                        label={<><CalendarOutlined /> Date of Birth</>}
+                      >
+                        {dayjs(userProfile.dateOfBirth).format('MMM DD, YYYY')}
+                      </Descriptions.Item>
+                    )}
+                    
+                    <Descriptions.Item 
+                      label={<><CalendarOutlined /> Joined</>}
+                    >
+                      {dayjs(userProfile.createdAt).format('MMM DD, YYYY')}
+                    </Descriptions.Item>
+                    
+                    <Descriptions.Item label="Status">
+                      <Tag color={userProfile.isActive ? 'green' : 'red'} style={{ fontSize: 11 }}>
+                        {userProfile.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      </Tag>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Space>
+              )}
+            </Card>
+          </Col>
+
+          {/* Settings Forms */}
+          <Col xs={24} lg={16}>
+            <Space direction="vertical" size={24} style={{ width: '100%' }}>
+              {/* Profile Settings Form */}
+              <Card
+                title={
+                  <Space>
+                    <SaveOutlined style={{ color: '#52c41a' }} />
+                    <span>Edit Profile</span>
+                  </Space>
+                }
+                size="small"
+              >
+                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                  Update your personal information. Note: You cannot change your role or position from here.
+                </Text>
+
+                <Form
+                  form={profileForm}
+                  layout="vertical"
+                  onFinish={handleProfileSubmit}
+                  size="middle"
                 >
-                  {profileLoading ? 'Saving...' : 'Save Profile'}
-                </Button>
-              </Space>
-            </form>
-          </Card>
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="name"
+                        label="Full Name"
+                        rules={[
+                          { required: true, message: 'Please enter your full name' },
+                          { min: 2, message: 'Name must be at least 2 characters' },
+                        ]}
+                      >
+                        <Input placeholder="Enter your full name" />
+                      </Form.Item>
+                    </Col>
+                    
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="phone"
+                        label="Phone Number"
+                        rules={[
+                          { required: true, message: 'Please enter your phone number' },
+                        ]}
+                      >
+                        <Input placeholder="Enter your phone number" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-          {/* Password Settings */}
-          <Card>
-            <Title level={4}>Change Password</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
-              Update your password to keep your account secure.
-            </Text>
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="personalEmail"
+                        label="Personal Email"
+                        rules={[
+                          { required: true, message: 'Please enter your personal email' },
+                          { type: 'email', message: 'Please enter a valid email address' },
+                        ]}
+                      >
+                        <Input placeholder="Enter your personal email" />
+                      </Form.Item>
+                    </Col>
+                    
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="workEmail"
+                        label="Work Email"
+                        rules={[
+                          { required: true, message: 'Please enter your work email' },
+                          { type: 'email', message: 'Please enter a valid email address' },
+                        ]}
+                      >
+                        <Input placeholder="Enter your work email" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-            <form onSubmit={handlePasswordSubmit}>
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <div>
-                  <Text strong>Current Password</Text>
-                  <Input.Password
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    disabled={passwordLoading}
-                    required
-                    style={{ marginTop: '4px' }}
-                  />
-                </div>
-                
-                <div>
-                  <Text strong>New Password</Text>
-                  <Input.Password
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    disabled={passwordLoading}
-                    required
-                    style={{ marginTop: '4px' }}
-                  />
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    Password must be at least 6 characters long
-                  </Text>
-                </div>
-                
-                <div>
-                  <Text strong>Confirm New Password</Text>
-                  <Input.Password
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                    disabled={passwordLoading}
-                    required
-                    style={{ marginTop: '4px' }}
-                  />
-                </div>
+                  <Form.Item
+                    name="dateOfBirth"
+                    label="Date of Birth"
+                  >
+                    <Input type="date" />
+                  </Form.Item>
 
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={passwordLoading ? <Spin size="small" /> : <LockOutlined />}
-                  loading={passwordLoading}
-                  style={{ alignSelf: 'flex-start' }}
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      icon={<SaveOutlined />}
+                      loading={profileLoading}
+                      size="middle"
+                    >
+                      {profileLoading ? 'Saving...' : 'Save Profile'}
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+
+              {/* Password Change Form */}
+              <Card
+                title={
+                  <Space>
+                    <LockOutlined style={{ color: '#faad14' }} />
+                    <span>Change Password</span>
+                  </Space>
+                }
+                size="small"
+              >
+                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                  Update your password to keep your account secure. All fields are required.
+                </Text>
+
+                <Form
+                  form={passwordForm}
+                  layout="vertical"
+                  onFinish={handlePasswordSubmit}
+                  size="middle"
                 >
-                  {passwordLoading ? 'Changing...' : 'Change Password'}
-                </Button>
-              </Space>
-            </form>
-          </Card>
-        </Space>
+                  <Form.Item
+                    name="currentPassword"
+                    label="Current Password"
+                    rules={[
+                      { required: true, message: 'Please enter your current password' },
+                    ]}
+                  >
+                    <Input.Password placeholder="Enter your current password" />
+                  </Form.Item>
+
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="newPassword"
+                        label="New Password"
+                        rules={[
+                          { required: true, message: 'Please enter your new password' },
+                          { min: 6, message: 'Password must be at least 6 characters long' },
+                        ]}
+                      >
+                        <Input.Password placeholder="Enter your new password" />
+                      </Form.Item>
+                    </Col>
+                    
+                    <Col xs={24} sm={12}>
+                      <Form.Item
+                        name="confirmPassword"
+                        label="Confirm New Password"
+                        rules={[
+                          { required: true, message: 'Please confirm your new password' },
+                          ({ getFieldValue }) => ({
+                            validator(_, value) {
+                              if (!value || getFieldValue('newPassword') === value) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject(new Error('Passwords do not match'));
+                            },
+                          }),
+                        ]}
+                      >
+                        <Input.Password placeholder="Confirm your new password" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      icon={<LockOutlined />}
+                      loading={passwordLoading}
+                      size="middle"
+                    >
+                      {passwordLoading ? 'Changing...' : 'Change Password'}
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+            </Space>
+          </Col>
+        </Row>
       </div>
     </MainLayout>
   );

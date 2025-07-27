@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import { User, CreateUserData, UpdateUserData } from "@/types";
 import { api } from "@/lib/api";
 import type { ColumnsType } from "antd/es/table";
+import { useRBAC } from "@/lib/rbac";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -80,9 +81,9 @@ export default function MembersPage() {
   // Available managers for dropdown
   const [managers, setManagers] = useState<User[]>([]);
 
-  // Check permissions
+  // Check permissions - Allow all users to view, but redirect if no access
   useEffect(() => {
-    if (user && user.role === "user") {
+    if (user && !['super admin', 'admin', 'user'].includes(user.role)) {
       router.push("/dashboard");
     }
   }, [user, router]);
@@ -135,7 +136,7 @@ export default function MembersPage() {
   };
 
   useEffect(() => {
-    if (user && user.role !== "user") {
+    if (user) {
       fetchMembers();
       fetchManagers();
     }
@@ -346,9 +347,7 @@ export default function MembersPage() {
       width: 80,
       align: "center",
       render: (_, record: User) => {
-        const canManage = user?.role === "super admin";
-
-        if (!canManage) return null;
+        if (!rbac.canManageMembers) return null;
 
         const menuItems = [
           {
@@ -395,12 +394,14 @@ export default function MembersPage() {
     }
   }, [success, error]);
 
-  // Don't render for users without permission
-  if (!user || user.role === "user") {
+  // Don't render if no user
+  if (!user) {
     return null;
   }
 
-  const canManage = user.role === "super admin";
+  // RBAC permissions
+  const rbac = useRBAC(user.role as any);
+  const canManage = rbac.canManageMembers;
 
   return (
     <MainLayout>

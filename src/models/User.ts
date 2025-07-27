@@ -7,7 +7,7 @@ export interface IUser extends Document {
   personalEmail: string;
   workEmail: string;
   role: 'super admin' | 'admin' | 'user';
-  position: 'Developer' | 'DevOps' | 'Project Manager' | 'Product Manager' | 'UI/UX' | 'Business Management';
+  position: 'Developer' | 'CEO' | 'DevOps' | 'Project Manager' | 'Product Manager' | 'UI/UX' | 'Business Management';
   reportsTo?: mongoose.Types.ObjectId;
   password: string;
   dateOfBirth?: Date;
@@ -60,7 +60,7 @@ const UserSchema: Schema = new Schema(
       type: String,
       required: [true, 'Position is required'],
       enum: {
-        values: ['Developer', 'DevOps', 'Project Manager', 'Product Manager', 'UI/UX', 'Business Management'],
+        values: ['Developer', 'CEO', 'DevOps', 'Project Manager', 'Product Manager', 'UI/UX', 'Business Management'],
         message: 'Position must be one of the predefined values',
       },
     },

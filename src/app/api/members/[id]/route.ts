@@ -4,9 +4,7 @@ import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import authConfig from '@/lib/auth.config';
 import { UpdateUserData } from '@/types';
-
-const canViewMembers = (role: string) => ['super admin', 'admin'].includes(role);
-const canManageMembers = (role: string) => role === 'super admin';
+import { RBAC, type Role } from '@/lib/rbac';
 
 export async function GET(
   request: NextRequest,
@@ -20,8 +18,14 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
 
-    if (!canViewMembers(session.user.role)) {
-      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
+    // Check permissions using RBAC
+    try {
+      RBAC.validateApiAccess(session.user.role as Role, 'members', 'read');
+    } catch (error) {
+      return NextResponse.json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Insufficient permissions' 
+      }, { status: 403 });
     }
 
     const { id } = await params;
@@ -50,8 +54,14 @@ export async function PUT(
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
 
-    if (!canManageMembers(session.user.role)) {
-      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
+    // Check permissions using RBAC
+    try {
+      RBAC.validateApiAccess(session.user.role as Role, 'members', 'update');
+    } catch (error) {
+      return NextResponse.json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Insufficient permissions' 
+      }, { status: 403 });
     }
 
     const { id } = await params;
@@ -115,8 +125,14 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
 
-    if (!canManageMembers(session.user.role)) {
-      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
+    // Check permissions using RBAC
+    try {
+      RBAC.validateApiAccess(session.user.role as Role, 'members', 'delete');
+    } catch (error) {
+      return NextResponse.json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Insufficient permissions' 
+      }, { status: 403 });
     }
 
     const { id } = await params;

@@ -65,6 +65,66 @@ export interface PaginatedResponse<T> {
   };
 }
 
+// Transaction interfaces
+export interface Transaction {
+  _id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  member: User | string;
+  category: 'salary' | 'expense' | 'client_payment' | 'office_expense' | 'bonus' | 'investment' | 'refund' | 'other';
+  description: string;
+  notes?: string;
+  date: Date;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy?: User | string;
+  attachments?: string[];
+  createdBy: User | string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateTransactionData {
+  type: 'credit' | 'debit';
+  amount: number;
+  member: string;
+  category: 'salary' | 'expense' | 'client_payment' | 'office_expense' | 'bonus' | 'investment' | 'refund' | 'other';
+  description: string;
+  notes?: string;
+  date: Date;
+  attachments?: string[];
+}
+
+export interface UpdateTransactionData {
+  type?: 'credit' | 'debit';
+  amount?: number;
+  member?: string;
+  category?: 'salary' | 'expense' | 'client_payment' | 'office_expense' | 'bonus' | 'investment' | 'refund' | 'other';
+  description?: string;
+  notes?: string;
+  date?: Date;
+  status?: 'pending' | 'approved' | 'rejected';
+  attachments?: string[];
+}
+
+export interface AccountBalance {
+  credits: number;
+  debits: number;
+  balance: number;
+}
+
+export interface TransactionSummary {
+  totalCredits: number;
+  totalDebits: number;
+  netBalance: number;
+  transactionCount: number;
+  categoryBreakdown: {
+    category: string;
+    credits: number;
+    debits: number;
+    total: number;
+  }[];
+}
+
 declare module 'next-auth' {
   interface Session {
     user: {

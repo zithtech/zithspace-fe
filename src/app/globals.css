@@ -303,9 +303,9 @@ body {
 
 /* Animation improvements */
 .ant-modal-mask {
-  backdrop-filter: blur(4px);
+  backdrop-filter: none;
 }
 
 .ant-drawer-mask {
-  backdrop-filter: blur(4px);
+  backdrop-filter: none;
 }

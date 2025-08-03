@@ -25,7 +25,7 @@ export async function PUT(
       );
     }
 
-    // Check permissions using RBAC
+    // Check permissions using RBAC //
     try {
       RBAC.validateApiAccess(session.user.role as Role, 'shifts', 'update');
     } catch (error) {

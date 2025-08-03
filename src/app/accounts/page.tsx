@@ -116,8 +116,8 @@ export default function AccountsPage() {
       if (categoryFilter) params.append('category', categoryFilter);
       if (memberFilter) params.append('member', memberFilter);
       if (dateRange) {
-        params.append('startDate', dateRange[0].toISOString());
-        params.append('endDate', dateRange[1].toISOString());
+        params.append('startDate', dateRange[0]?.toISOString());
+        params.append('endDate', dateRange[1]?.toISOString());
       }
 
       const response = await fetch(`/api/transactions?${params}`);
@@ -147,8 +147,8 @@ export default function AccountsPage() {
       
       const params = new URLSearchParams();
       if (dateRange) {
-        params.append('startDate', dateRange[0].toISOString());
-        params.append('endDate', dateRange[1].toISOString());
+        params.append('startDate', dateRange[0]?.toISOString());
+        params.append('endDate', dateRange[1]?.toISOString());
       }
 
       const response = await fetch(`/api/transactions/summary?${params}`);

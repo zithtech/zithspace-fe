@@ -11,6 +11,10 @@ export interface IUser extends Document {
   reportsTo?: mongoose.Types.ObjectId;
   password: string;
   dateOfBirth?: Date;
+  assignedShift?: mongoose.Types.ObjectId;
+  workDays: number[];
+  shiftAssignedBy?: mongoose.Types.ObjectId;
+  shiftAssignedDate?: Date;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -75,6 +79,30 @@ const UserSchema: Schema = new Schema(
       minlength: [6, 'Password must be at least 6 characters long'],
     },
     dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    assignedShift: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Shift',
+      default: null,
+    },
+    workDays: {
+      type: [Number],
+      default: [1, 2, 3, 4, 5], // Monday to Friday by default
+      validate: {
+        validator: function(days: number[]) {
+          return days.every(day => day >= 0 && day <= 6);
+        },
+        message: 'Work days must be between 0 (Sunday) and 6 (Saturday)',
+      },
+    },
+    shiftAssignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    shiftAssignedDate: {
       type: Date,
       default: null,
     },

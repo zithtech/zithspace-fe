@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Check permissions - users can only see their own transactions
-    if (session.user.role === 'user' && transaction.member._id.toString() !== session.user.id) {
+    if (session.user.role === 'user' && transaction.member?._id?.toString() !== session.user.id) {
       return NextResponse.json(
         {
           success: false,

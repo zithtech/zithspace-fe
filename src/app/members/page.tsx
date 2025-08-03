@@ -16,6 +16,7 @@ import {
   Form,
   Alert,
   Dropdown,
+  Checkbox,
 } from "antd";
 import {
   PlusOutlined,
@@ -26,7 +27,7 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { User, CreateUserData, UpdateUserData } from "@/types";
+import { User, CreateUserData, UpdateUserData, Shift } from "@/types";
 import { api } from "@/lib/api";
 import type { ColumnsType } from "antd/es/table";
 import { useRBAC } from "@/lib/rbac";
@@ -80,6 +81,9 @@ export default function MembersPage() {
 
   // Available managers for dropdown
   const [managers, setManagers] = useState<User[]>([]);
+  
+  // Available shifts for dropdown
+  const [shifts, setShifts] = useState<Shift[]>([]);
 
   // Check permissions - Allow all users to view, but redirect if no access
   useEffect(() => {
@@ -135,10 +139,24 @@ export default function MembersPage() {
     }
   };
 
+  // Fetch shifts for dropdown
+  const fetchShifts = async () => {
+    try {
+      const response = await api.get("/api/shifts");
+      const data = await response.json();
+      if (data.success) {
+        setShifts(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch shifts:", error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchMembers();
       fetchManagers();
+      fetchShifts();
     }
   }, [
     user,
@@ -150,12 +168,12 @@ export default function MembersPage() {
   ]);
 
   // Handle form submission
-  const handleSubmit = async (values: MemberFormData) => {
+  const handleSubmit = async (values: any) => {
     try {
       setFormLoading(true);
       setError("");
 
-      const payload: CreateUserData | UpdateUserData = {
+      const payload: any = {
         name: values.name,
         phone: values.phone,
         personalEmail: values.personalEmail,
@@ -163,6 +181,8 @@ export default function MembersPage() {
         role: values.role,
         position: values.position,
         reportsTo: values.reportsTo || undefined,
+        assignedShift: values.assignedShift || 'flexible',
+        workDays: values.workDays || [1, 2, 3, 4, 5],
       };
 
       const response =
@@ -231,16 +251,18 @@ export default function MembersPage() {
     setModalType("edit");
     setSelectedMember(member);
     form.setFieldsValue({
-      name: member.name,
-      phone: member.phone,
-      personalEmail: member.personalEmail,
-      workEmail: member.workEmail,
-      role: member.role,
-      position: member.position,
+      name: member?.name,
+      phone: member?.phone,
+      personalEmail: member?.personalEmail,
+      workEmail: member?.workEmail,
+      role: member?.role,
+      position: member?.position,
       reportsTo:
         typeof member.reportsTo === "object"
-          ? member.reportsTo._id
-          : member.reportsTo || "",
+          ? member?.reportsTo?._id
+          : member?.reportsTo || "",
+      assignedShift: member?.assignedShift || 'flexible',
+      workDays: member?.workDays || [1, 2, 3, 4, 5],
     });
     setIsModalVisible(true);
   };
@@ -287,7 +309,7 @@ export default function MembersPage() {
             </Text>
             <br />
             <Text type="secondary" style={{ fontSize: 11 }}>
-              {record.position}
+              {record?.position}
             </Text>
           </div>
         </Space>
@@ -302,7 +324,7 @@ export default function MembersPage() {
           <Text style={{ fontSize: 12 }}>{record.workEmail}</Text>
           <br />
           <Text type="secondary" style={{ fontSize: 11 }}>
-            {record.phone}
+            {record?.phone}
           </Text>
         </div>
       ),
@@ -323,7 +345,7 @@ export default function MembersPage() {
           }
           style={{ fontSize: 11, fontWeight: 500 }}
         >
-          {role.toUpperCase()}
+          {role?.toUpperCase()}
         </Tag>
       ),
     },
@@ -333,9 +355,9 @@ export default function MembersPage() {
       width: 120,
       render: (_, record: User) => (
         <Text style={{ fontSize: 12 }}>
-          {record.reportsTo
-            ? typeof record.reportsTo === "object"
-              ? record.reportsTo.name
+          {record?.reportsTo
+            ? typeof record?.reportsTo === "object"
+              ? record?.reportsTo?.name
               : "-"
             : "-"}
         </Text>
@@ -347,7 +369,7 @@ export default function MembersPage() {
       width: 80,
       align: "center",
       render: (_, record: User) => {
-        if (!rbac.canManageMembers) return null;
+        if (!rbac?.canManageMembers) return null;
 
         const menuItems = [
           {
@@ -401,7 +423,7 @@ export default function MembersPage() {
 
   // RBAC permissions
   const rbac = useRBAC(user.role as any);
-  const canManage = rbac.canManageMembers;
+  const canManage = rbac?.canManageMembers;
 
   return (
     <MainLayout>
@@ -690,6 +712,39 @@ export default function MembersPage() {
                     ))}
                 </Select>
               </Form.Item>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                }}
+              >
+                <Form.Item name="assignedShift" label="Assigned Shift">
+                  <Select placeholder="Select shift (optional)" allowClear>
+                    <Option value="flexible">Flexible Shift (Default)</Option>
+                    {shifts.map((shift) => (
+                      <Option key={shift._id} value={shift._id}>
+                        {shift.name} ({shift.startTime} - {shift.endTime})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item name="workDays" label="Work Days" initialValue={[1, 2, 3, 4, 5]}>
+                  <Checkbox.Group>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      <Checkbox value={1}>Mon</Checkbox>
+                      <Checkbox value={2}>Tue</Checkbox>
+                      <Checkbox value={3}>Wed</Checkbox>
+                      <Checkbox value={4}>Thu</Checkbox>
+                      <Checkbox value={5}>Fri</Checkbox>
+                      <Checkbox value={6}>Sat</Checkbox>
+                      <Checkbox value={0}>Sun</Checkbox>
+                    </div>
+                  </Checkbox.Group>
+                </Form.Item>
+              </div>
 
               <div style={{ textAlign: "right", marginTop: 20 }}>
                 <Space>

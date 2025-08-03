@@ -2,7 +2,7 @@
 // Centralized permission management for scalable access control
 
 export type Role = 'super admin' | 'admin' | 'user';
-export type Resource = 'members' | 'transactions' | 'profile' | 'settings' | 'dashboard' | 'reports';
+export type Resource = 'members' | 'transactions' | 'profile' | 'settings' | 'dashboard' | 'reports' | 'attendance' | 'shifts';
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'manage' | 'view';
 
 // Permission matrix defining what each role can do with each resource
@@ -10,6 +10,8 @@ const PERMISSION_MATRIX: Record<Role, Record<Resource, Action[]>> = {
   'super admin': {
     members: ['create', 'read', 'update', 'delete', 'manage', 'view'],
     transactions: ['create', 'read', 'update', 'delete', 'manage', 'view'],
+    attendance: ['create', 'read', 'update', 'delete', 'manage', 'view'],
+    shifts: ['create', 'read', 'update', 'delete', 'manage', 'view'],
     profile: ['read', 'update', 'view'],
     settings: ['read', 'update', 'view'],
     dashboard: ['read', 'view'],
@@ -18,6 +20,8 @@ const PERMISSION_MATRIX: Record<Role, Record<Resource, Action[]>> = {
   'admin': {
     members: ['read', 'view'],
     transactions: ['read', 'view'],
+    attendance: ['read', 'update', 'view'], // Can manage team attendance
+    shifts: ['create', 'read', 'update', 'delete', 'manage', 'view'], // Can manage shifts
     profile: ['read', 'update', 'view'],
     settings: ['read', 'update', 'view'],
     dashboard: ['read', 'view'],
@@ -26,6 +30,8 @@ const PERMISSION_MATRIX: Record<Role, Record<Resource, Action[]>> = {
   'user': {
     members: ['read', 'view'],
     transactions: ['read', 'view'], // Can only view own transactions (handled in data filtering)
+    attendance: ['read', 'update', 'view'], // Can clock in/out and view own attendance
+    shifts: ['read', 'view'], // Can only view shifts
     profile: ['read', 'update', 'view'],
     settings: ['read', 'update', 'view'],
     dashboard: ['read', 'view'],
@@ -168,6 +174,12 @@ export const canCreateTransactions = (role: Role) => RBAC.canCreate(role, 'trans
 export const canUpdateTransactions = (role: Role) => RBAC.canUpdate(role, 'transactions');
 export const canDeleteTransactions = (role: Role) => RBAC.canDelete(role, 'transactions');
 
+export const canManageAttendance = (role: Role) => RBAC.canManage(role, 'attendance');
+export const canViewAttendance = (role: Role) => RBAC.canView(role, 'attendance');
+export const canCreateAttendance = (role: Role) => RBAC.canCreate(role, 'attendance');
+export const canUpdateAttendance = (role: Role) => RBAC.canUpdate(role, 'attendance');
+export const canDeleteAttendance = (role: Role) => RBAC.canDelete(role, 'attendance');
+
 export const canManageProfile = (role: Role) => RBAC.canUpdate(role, 'profile');
 export const canViewProfile = (role: Role) => RBAC.canView(role, 'profile');
 
@@ -187,6 +199,13 @@ export const useRBAC = (role: Role) => {
     canCreateTransactions: canCreateTransactions(role),
     canUpdateTransactions: canUpdateTransactions(role),
     canDeleteTransactions: canDeleteTransactions(role),
+    
+    // Attendance permissions
+    canManageAttendance: canManageAttendance(role),
+    canViewAttendance: canViewAttendance(role),
+    canCreateAttendance: canCreateAttendance(role),
+    canUpdateAttendance: canUpdateAttendance(role),
+    canDeleteAttendance: canDeleteAttendance(role),
     
     // Profile permissions
     canManageProfile: canManageProfile(role),

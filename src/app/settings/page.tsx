@@ -2,221 +2,297 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
+import ComingSoon from '@/components/common/ComingSoon';
 import {
   Card,
   Typography,
-  Input,
-  Button,
+  Tabs,
   Space,
-  Form,
   Alert,
-  Divider,
-  Row,
-  Col,
-  Avatar,
-  Tag,
-  Descriptions,
-  Spin,
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  TimePicker,
+  InputNumber,
+  Switch,
+  Popconfirm,
 } from 'antd';
 import {
-  SaveOutlined,
-  LockOutlined,
-  UserOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  CalendarOutlined,
+  SettingOutlined,
   TeamOutlined,
-  IdcardOutlined,
+  ClockCircleOutlined,
+  DollarOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
+import { Shift } from '@/types';
+import { api } from '@/lib/api';
+import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
-interface UserProfile {
-  _id: string;
+interface ShiftFormData {
   name: string;
-  phone: string;
-  personalEmail: string;
-  workEmail: string;
-  role: string;
-  position: string;
-  reportsTo?: {
-    _id: string;
-    name: string;
-    position: string;
-  };
-  dateOfBirth?: string;
-  createdAt: string;
-  updatedAt: string;
-  isActive: boolean;
-}
-
-interface ProfileFormData {
-  name: string;
-  phone: string;
-  personalEmail: string;
-  workEmail: string;
-  dateOfBirth: string;
-}
-
-interface PasswordFormData {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
+  code: string;
+  startTime: dayjs.Dayjs;
+  endTime: dayjs.Dayjs;
+  graceMinutes: number;
+  lunchBreakMinutes: number;
+  overtimeThreshold: number;
+  isFlexible: boolean;
 }
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const [profileForm] = Form.useForm();
-  const [passwordForm] = Form.useForm();
+  const router = useRouter();
+  const [form] = Form.useForm();
 
   // State management
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('attendance');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Load user profile data
+  // Shift management state
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [isShiftModalVisible, setIsShiftModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<'add' | 'edit'>('add');
+  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
+
+  // Check permissions - Only admins and super admins can access settings
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!session?.user) return;
+    if (session?.user && !['super admin', 'admin'].includes(session.user.role)) {
+      router.push('/dashboard');
+    }
+  }, [session, router]);
 
-      try {
-        setLoading(true);
-        const response = await fetch('/api/user/profile');
-        const data = await response.json();
-
-        if (data.success) {
-          setUserProfile(data.data);
-          
-          // Pre-fill the form with current data
-          profileForm.setFieldsValue({
-            name: data.data.name || '',
-            phone: data.data.phone || '',
-            personalEmail: data.data.personalEmail || '',
-            workEmail: data.data.workEmail || '',
-            dateOfBirth: data.data.dateOfBirth ? dayjs(data.data.dateOfBirth).format('YYYY-MM-DD') : '',
-          });
-        } else {
-          setError(data.error || 'Failed to load profile');
-        }
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-        setError('Failed to load profile');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [session, profileForm]);
-
-  // Handle profile form submission
-  const handleProfileSubmit = async (values: ProfileFormData) => {
+  // Fetch shifts
+  const fetchShifts = async () => {
     try {
-      setProfileLoading(true);
-      setError('');
-      setSuccess('');
+      setLoading(true);
+      const response = await api.get('/api/shifts');
+      const data = await response.json();
 
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: values.name,
-          phone: values.phone,
-          personalEmail: values.personalEmail,
-          workEmail: values.workEmail,
-          dateOfBirth: values.dateOfBirth || null,
-        }),
-      });
+      if (data.success) {
+        setShifts(data.data);
+      } else {
+        setError(data.error || 'Failed to fetch shifts');
+      }
+    } catch (error) {
+      console.error('Failed to fetch shifts:', error);
+      setError('Failed to fetch shifts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load shifts when attendance tab is active
+  useEffect(() => {
+    if (session?.user && activeTab === 'attendance') {
+      fetchShifts();
+    }
+  }, [session, activeTab]);
+
+  // Handle shift form submission
+  const handleShiftSubmit = async (values: ShiftFormData) => {
+    try {
+      setFormLoading(true);
+      setError('');
+
+      const payload = {
+        name: values.name,
+        code: values.code.toUpperCase(),
+        startTime: values.startTime.format('HH:mm'),
+        endTime: values.endTime.format('HH:mm'),
+        graceMinutes: values.graceMinutes,
+        lunchBreakMinutes: values.lunchBreakMinutes,
+        overtimeThreshold: values.overtimeThreshold,
+        isFlexible: values.isFlexible,
+        // Calculate working minutes
+        workingMinutes: values.endTime.diff(values.startTime, 'minutes') - values.lunchBreakMinutes,
+      };
+
+      const response = modalType === 'edit' && editingShift
+        ? await api.put(`/api/shifts/${editingShift._id}`, payload)
+        : await api.post('/api/shifts', payload);
 
       const data = await response.json();
 
       if (data.success) {
-        setSuccess('Profile updated successfully!');
-        setUserProfile(data.data);
-        
-        // Update the form with the latest data
-        profileForm.setFieldsValue({
-          name: data.data.name || '',
-          phone: data.data.phone || '',
-          personalEmail: data.data.personalEmail || '',
-          workEmail: data.data.workEmail || '',
-          dateOfBirth: data.data.dateOfBirth ? dayjs(data.data.dateOfBirth).format('YYYY-MM-DD') : '',
-        });
+        setSuccess(
+          modalType === 'edit' 
+            ? 'Shift updated successfully!' 
+            : 'Shift created successfully!'
+        );
+        setIsShiftModalVisible(false);
+        form.resetFields();
+        setEditingShift(null);
+        fetchShifts();
       } else {
-        setError(data.error || 'Failed to update profile');
+        setError(data.error || 'Operation failed');
       }
     } catch (error) {
-      console.error('Failed to update profile:', error);
-      setError('An error occurred while updating profile');
+      console.error('Failed to submit shift form:', error);
+      setError('Operation failed');
     } finally {
-      setProfileLoading(false);
+      setFormLoading(false);
     }
   };
 
-  // Handle password form submission
-  const handlePasswordSubmit = async (values: PasswordFormData) => {
+  // Handle shift deletion
+  const handleDeleteShift = async (shiftId: string) => {
     try {
-      setPasswordLoading(true);
-      setError('');
-      setSuccess('');
-
-      if (values.newPassword !== values.confirmPassword) {
-        setError('New passwords do not match');
-        return;
-      }
-
-      if (values.newPassword.length < 6) {
-        setError('New password must be at least 6 characters long');
-        return;
-      }
-
-      const response = await fetch('/api/user/password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: values.currentPassword,
-          newPassword: values.newPassword,
-        }),
-      });
-
+      setFormLoading(true);
+      const response = await api.delete(`/api/shifts/${shiftId}`);
       const data = await response.json();
 
       if (data.success) {
-        setSuccess('Password changed successfully!');
-        passwordForm.resetFields();
+        setSuccess('Shift deleted successfully!');
+        fetchShifts();
       } else {
-        setError(data.error || 'Failed to change password');
+        setError(data.error || 'Failed to delete shift');
       }
     } catch (error) {
-      console.error('Failed to change password:', error);
-      setError('An error occurred while changing password');
+      console.error('Failed to delete shift:', error);
+      setError('Failed to delete shift');
     } finally {
-      setPasswordLoading(false);
+      setFormLoading(false);
     }
   };
 
-  // Get role color
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'super admin':
-        return '#ff4d4f';
-      case 'admin':
-        return '#faad14';
-      default:
-        return '#52c41a';
-    }
+  // Modal handlers
+  const showAddShiftModal = () => {
+    setModalType('add');
+    form.resetFields();
+    setEditingShift(null);
+    setIsShiftModalVisible(true);
   };
 
-  // Clear messages after 5 seconds
+  const showEditShiftModal = (shift: Shift) => {
+    setModalType('edit');
+    setEditingShift(shift);
+    form.setFieldsValue({
+      name: shift.name,
+      code: shift.code,
+      startTime: dayjs(shift.startTime, 'HH:mm'),
+      endTime: dayjs(shift.endTime, 'HH:mm'),
+      graceMinutes: shift.graceMinutes,
+      lunchBreakMinutes: shift.lunchBreakMinutes,
+      overtimeThreshold: shift.overtimeThreshold,
+      isFlexible: shift.isFlexible,
+    });
+    setIsShiftModalVisible(true);
+  };
+
+  // Shift table columns
+  const shiftColumns: ColumnsType<Shift> = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      width: 150,
+    },
+    {
+      title: 'Code',
+      dataIndex: 'code',
+      key: 'code',
+      width: 80,
+      render: (code: string) => (
+        <Text strong style={{ fontSize: 12 }}>{code}</Text>
+      ),
+    },
+    {
+      title: 'Time',
+      key: 'time',
+      width: 120,
+      render: (_, record: Shift) => (
+        <Text style={{ fontSize: 12 }}>
+          {record.startTime} - {record.endTime}
+        </Text>
+      ),
+    },
+    {
+      title: 'Working Hours',
+      dataIndex: 'workingMinutes',
+      key: 'workingMinutes',
+      width: 100,
+      render: (minutes: number) => (
+        <Text style={{ fontSize: 12 }}>
+          {Math.floor(minutes / 60)}h {minutes % 60}m
+        </Text>
+      ),
+    },
+    {
+      title: 'Grace Period',
+      dataIndex: 'graceMinutes',
+      key: 'graceMinutes',
+      width: 100,
+      render: (minutes: number) => (
+        <Text style={{ fontSize: 12 }}>{minutes} min</Text>
+      ),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'isFlexible',
+      key: 'isFlexible',
+      width: 80,
+      render: (isFlexible: boolean) => (
+        <Text style={{ fontSize: 12, color: isFlexible ? '#722ed1' : '#52c41a' }}>
+          {isFlexible ? 'Flexible' : 'Fixed'}
+        </Text>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      width: 80,
+      render: (isActive: boolean) => (
+        <Text style={{ fontSize: 12, color: isActive ? '#52c41a' : '#ff4d4f' }}>
+          {isActive ? 'Active' : 'Inactive'}
+        </Text>
+      ),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 100,
+      render: (_, record: Shift) => (
+        <Space size="small">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => showEditShiftModal(record)}
+            style={{ color: '#1677ff' }}
+          />
+          <Popconfirm
+            title="Delete shift?"
+            description="Are you sure you want to delete this shift?"
+            onConfirm={() => handleDeleteShift(record._id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<DeleteOutlined />}
+              style={{ color: '#ff4d4f' }}
+            />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  // Clear messages
   useEffect(() => {
     if (success || error) {
       const timer = setTimeout(() => {
@@ -227,25 +303,20 @@ export default function SettingsPage() {
     }
   }, [success, error]);
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <Spin size="large" />
-        </div>
-      </MainLayout>
-    );
+  // Don't render if no user or insufficient permissions
+  if (!session?.user || !['super admin', 'admin'].includes(session.user.role)) {
+    return null;
   }
 
   return (
     <MainLayout>
-      <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: 20 }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <Space align="center">
-            <UserOutlined style={{ fontSize: 24, color: '#1677ff' }} />
+            <SettingOutlined style={{ fontSize: 24, color: '#1677ff' }} />
             <Title level={2} style={{ margin: 0 }}>
-              Profile & Settings
+              System Settings
             </Title>
           </Space>
         </div>
@@ -272,288 +343,195 @@ export default function SettingsPage() {
           />
         )}
 
-        <Row gutter={[24, 24]}>
-          {/* Profile Information Display */}
-          <Col xs={24} lg={8}>
+        {/* Settings Tabs */}
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          size="large"
+        >
+          <Tabs.TabPane
+            tab={
+              <Space>
+                <TeamOutlined />
+                Members Settings
+              </Space>
+            }
+            key="members"
+          >
+            <ComingSoon title="Members Settings" />
+          </Tabs.TabPane>
+
+          <Tabs.TabPane
+            tab={
+              <Space>
+                <ClockCircleOutlined />
+                Attendance Settings
+              </Space>
+            }
+            key="attendance"
+          >
             <Card
               title={
                 <Space>
-                  <IdcardOutlined style={{ color: '#1677ff' }} />
-                  <span>Profile Information</span>
+                  <ClockCircleOutlined style={{ color: '#1677ff' }} />
+                  <span>Shift Management</span>
                 </Space>
+              }
+              extra={
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={showAddShiftModal}
+                >
+                  Add Shift
+                </Button>
               }
               size="small"
             >
-              {userProfile && (
-                <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                  {/* Avatar and Basic Info */}
-                  <div style={{ textAlign: 'center' }}>
-                    <Avatar
-                      size={80}
-                      style={{
-                        backgroundColor: getRoleColor(userProfile.role),
-                        fontSize: 32,
-                        fontWeight: 600,
-                        marginBottom: 12,
-                      }}
-                    >
-                      {userProfile.name.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <div>
-                      <Title level={4} style={{ margin: 0 }}>
-                        {userProfile.name}
-                      </Title>
-                      <Text type="secondary">{userProfile.position}</Text>
-                    </div>
-                  </div>
-
-                  <Divider style={{ margin: '12px 0' }} />
-
-                  {/* Detailed Information */}
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item 
-                      label={<><TeamOutlined /> Role</>}
-                    >
-                      <Tag color={getRoleColor(userProfile.role)} style={{ fontSize: 11 }}>
-                        {userProfile.role.toUpperCase()}
-                      </Tag>
-                    </Descriptions.Item>
-                    
-                    <Descriptions.Item 
-                      label={<><PhoneOutlined /> Phone</>}
-                    >
-                      {userProfile.phone}
-                    </Descriptions.Item>
-                    
-                    <Descriptions.Item 
-                      label={<><MailOutlined /> Work Email</>}
-                    >
-                      {userProfile.workEmail}
-                    </Descriptions.Item>
-                    
-                    <Descriptions.Item 
-                      label={<><MailOutlined /> Personal Email</>}
-                    >
-                      {userProfile.personalEmail}
-                    </Descriptions.Item>
-                    
-                    {userProfile.reportsTo && (
-                      <Descriptions.Item 
-                        label={<><UserOutlined /> Reports To</>}
-                      >
-                        {userProfile.reportsTo.name}
-                        <br />
-                        <Text type="secondary" style={{ fontSize: 11 }}>
-                          {userProfile.reportsTo.position}
-                        </Text>
-                      </Descriptions.Item>
-                    )}
-                    
-                    {userProfile.dateOfBirth && (
-                      <Descriptions.Item 
-                        label={<><CalendarOutlined /> Date of Birth</>}
-                      >
-                        {dayjs(userProfile.dateOfBirth).format('MMM DD, YYYY')}
-                      </Descriptions.Item>
-                    )}
-                    
-                    <Descriptions.Item 
-                      label={<><CalendarOutlined /> Joined</>}
-                    >
-                      {dayjs(userProfile.createdAt).format('MMM DD, YYYY')}
-                    </Descriptions.Item>
-                    
-                    <Descriptions.Item label="Status">
-                      <Tag color={userProfile.isActive ? 'green' : 'red'} style={{ fontSize: 11 }}>
-                        {userProfile.isActive ? 'ACTIVE' : 'INACTIVE'}
-                      </Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Space>
-              )}
+              <Table
+                columns={shiftColumns}
+                dataSource={shifts}
+                rowKey="_id"
+                loading={loading}
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: false,
+                  showQuickJumper: false,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} shifts`,
+                  size: 'small',
+                }}
+                size="small"
+                scroll={{ x: 800 }}
+              />
             </Card>
-          </Col>
+          </Tabs.TabPane>
 
-          {/* Settings Forms */}
-          <Col xs={24} lg={16}>
-            <Space direction="vertical" size={24} style={{ width: '100%' }}>
-              {/* Profile Settings Form */}
-              <Card
-                title={
-                  <Space>
-                    <SaveOutlined style={{ color: '#52c41a' }} />
-                    <span>Edit Profile</span>
-                  </Space>
-                }
-                size="small"
+          <Tabs.TabPane
+            tab={
+              <Space>
+                <DollarOutlined />
+                Accounts Settings
+              </Space>
+            }
+            key="accounts"
+          >
+            <ComingSoon title="Accounts Settings" />
+          </Tabs.TabPane>
+        </Tabs>
+
+        {/* Add/Edit Shift Modal */}
+        <Modal
+          title={modalType === 'add' ? 'Add New Shift' : 'Edit Shift'}
+          open={isShiftModalVisible}
+          onCancel={() => {
+            setIsShiftModalVisible(false);
+            form.resetFields();
+            setEditingShift(null);
+          }}
+          footer={null}
+          width={600}
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleShiftSubmit}
+            size="middle"
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <Form.Item
+                name="name"
+                label="Shift Name"
+                rules={[{ required: true, message: 'Please enter shift name' }]}
               >
-                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                  Update your personal information. Note: You cannot change your role or position from here.
-                </Text>
+                <Input placeholder="e.g., Morning Shift" />
+              </Form.Item>
 
-                <Form
-                  form={profileForm}
-                  layout="vertical"
-                  onFinish={handleProfileSubmit}
-                  size="middle"
-                >
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="name"
-                        label="Full Name"
-                        rules={[
-                          { required: true, message: 'Please enter your full name' },
-                          { min: 2, message: 'Name must be at least 2 characters' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your full name" />
-                      </Form.Item>
-                    </Col>
-                    
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="phone"
-                        label="Phone Number"
-                        rules={[
-                          { required: true, message: 'Please enter your phone number' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your phone number" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="personalEmail"
-                        label="Personal Email"
-                        rules={[
-                          { required: true, message: 'Please enter your personal email' },
-                          { type: 'email', message: 'Please enter a valid email address' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your personal email" />
-                      </Form.Item>
-                    </Col>
-                    
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="workEmail"
-                        label="Work Email"
-                        rules={[
-                          { required: true, message: 'Please enter your work email' },
-                          { type: 'email', message: 'Please enter a valid email address' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your work email" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Form.Item
-                    name="dateOfBirth"
-                    label="Date of Birth"
-                  >
-                    <Input type="date" />
-                  </Form.Item>
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      icon={<SaveOutlined />}
-                      loading={profileLoading}
-                      size="middle"
-                    >
-                      {profileLoading ? 'Saving...' : 'Save Profile'}
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Card>
-
-              {/* Password Change Form */}
-              <Card
-                title={
-                  <Space>
-                    <LockOutlined style={{ color: '#faad14' }} />
-                    <span>Change Password</span>
-                  </Space>
-                }
-                size="small"
+              <Form.Item
+                name="code"
+                label="Shift Code"
+                rules={[{ required: true, message: 'Please enter shift code' }]}
               >
-                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                  Update your password to keep your account secure. All fields are required.
-                </Text>
+                <Input placeholder="e.g., MS" maxLength={5} />
+              </Form.Item>
+            </div>
 
-                <Form
-                  form={passwordForm}
-                  layout="vertical"
-                  onFinish={handlePasswordSubmit}
-                  size="middle"
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <Form.Item
+                name="startTime"
+                label="Start Time"
+                rules={[{ required: true, message: 'Please select start time' }]}
+              >
+                <TimePicker format="HH:mm" style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="endTime"
+                label="End Time"
+                rules={[{ required: true, message: 'Please select end time' }]}
+              >
+                <TimePicker format="HH:mm" style={{ width: '100%' }} />
+              </Form.Item>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+              <Form.Item
+                name="graceMinutes"
+                label="Grace Period (minutes)"
+                initialValue={30}
+                rules={[{ required: true, message: 'Please enter grace period' }]}
+              >
+                <InputNumber min={0} max={120} style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="lunchBreakMinutes"
+                label="Lunch Break (minutes)"
+                initialValue={60}
+                rules={[{ required: true, message: 'Please enter lunch break' }]}
+              >
+                <InputNumber min={0} max={180} style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="overtimeThreshold"
+                label="Overtime Threshold (minutes)"
+                initialValue={480}
+                rules={[{ required: true, message: 'Please enter overtime threshold' }]}
+              >
+                <InputNumber min={0} max={720} style={{ width: '100%' }} />
+              </Form.Item>
+            </div>
+
+            <Form.Item
+              name="isFlexible"
+              label="Flexible Shift"
+              valuePropName="checked"
+              initialValue={false}
+            >
+              <Switch />
+            </Form.Item>
+
+            <div style={{ textAlign: 'right', marginTop: 20 }}>
+              <Space>
+                <Button onClick={() => {
+                  setIsShiftModalVisible(false);
+                  form.resetFields();
+                  setEditingShift(null);
+                }}>
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={formLoading}
                 >
-                  <Form.Item
-                    name="currentPassword"
-                    label="Current Password"
-                    rules={[
-                      { required: true, message: 'Please enter your current password' },
-                    ]}
-                  >
-                    <Input.Password placeholder="Enter your current password" />
-                  </Form.Item>
-
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="newPassword"
-                        label="New Password"
-                        rules={[
-                          { required: true, message: 'Please enter your new password' },
-                          { min: 6, message: 'Password must be at least 6 characters long' },
-                        ]}
-                      >
-                        <Input.Password placeholder="Enter your new password" />
-                      </Form.Item>
-                    </Col>
-                    
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="confirmPassword"
-                        label="Confirm New Password"
-                        rules={[
-                          { required: true, message: 'Please confirm your new password' },
-                          ({ getFieldValue }) => ({
-                            validator(_, value) {
-                              if (!value || getFieldValue('newPassword') === value) {
-                                return Promise.resolve();
-                              }
-                              return Promise.reject(new Error('Passwords do not match'));
-                            },
-                          }),
-                        ]}
-                      >
-                        <Input.Password placeholder="Confirm your new password" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      icon={<LockOutlined />}
-                      loading={passwordLoading}
-                      size="middle"
-                    >
-                      {passwordLoading ? 'Changing...' : 'Change Password'}
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Card>
-            </Space>
-          </Col>
-        </Row>
+                  {modalType === 'add' ? 'Add Shift' : 'Update Shift'}
+                </Button>
+              </Space>
+            </div>
+          </Form>
+        </Modal>
       </div>
     </MainLayout>
   );

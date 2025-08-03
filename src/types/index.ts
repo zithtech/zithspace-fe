@@ -9,6 +9,10 @@ export interface User {
   reportsTo?: string | { _id: string; name: string };
   password: string;
   dateOfBirth?: Date;
+  assignedShift?: Shift | string;
+  workDays: number[];
+  shiftAssignedBy?: User | string;
+  shiftAssignedDate?: Date;
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
@@ -166,6 +170,181 @@ declare module '@auth/core/jwt' {
     reportsTo: string | null;
     isActive: boolean;
   }
+}
+
+// Attendance interfaces
+export interface Shift {
+  _id: string;
+  name: string;
+  code: string;
+  startTime: string; // "09:00"
+  endTime: string; // "18:00"
+  workingMinutes: number;
+  graceMinutes: number;
+  lunchBreakMinutes: number;
+  overtimeThreshold: number;
+  isFlexible: boolean;
+  flexibleStartRange?: number;
+  flexibleEndRange?: number;
+  isActive: boolean;
+  isDefault: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AttendanceBreak {
+  type: 'lunch' | 'tea' | 'other';
+  startTime: Date;
+  endTime?: Date;
+  duration?: number; // in minutes
+}
+
+export interface Attendance {
+  _id: string;
+  member: User | string;
+  date: Date;
+  clockIn?: Date;
+  clockOut?: Date;
+  breaks: AttendanceBreak[];
+  totalWorkMinutes: number;
+  totalBreakMinutes: number;
+  effectiveWorkMinutes: number;
+  overtimeMinutes: number;
+  status: 'present' | 'absent' | 'late' | 'half-day' | 'wfh';
+  shift: Shift | string;
+  isManualEntry: boolean;
+  enteredBy?: User | string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AttendanceSettings {
+  _id: string;
+  companyName: string;
+  timezone: string;
+  weekStartDay: number;
+  workingDays: number[];
+  defaultShift: Shift | string;
+  defaultGraceMinutes: number;
+  defaultLunchBreakMinutes: number;
+  overtimeEnabled: boolean;
+  overtimeMultiplier: number;
+  maxOvertimePerDay: number;
+  maxBreaksPerDay: number;
+  maxBreakDuration: number;
+  minWorkingMinutes: number;
+  maxWorkingMinutes: number;
+  allowWFH: boolean;
+  allowBreakTracking: boolean;
+  allowManualEntry: boolean;
+  lastUpdatedBy: User | string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateAttendanceData {
+  member: string;
+  date: Date;
+  clockIn?: Date;
+  clockOut?: Date;
+  status: 'present' | 'absent' | 'late' | 'half-day' | 'wfh';
+  shift: string;
+  notes?: string;
+}
+
+export interface UpdateAttendanceData {
+  clockIn?: Date;
+  clockOut?: Date;
+  status?: 'present' | 'absent' | 'late' | 'half-day' | 'wfh';
+  notes?: string;
+}
+
+export interface ClockInData {
+  member: string;
+  shift?: string;
+  notes?: string;
+}
+
+export interface ClockOutData {
+  attendanceId: string;
+  notes?: string;
+}
+
+export interface BreakData {
+  attendanceId: string;
+  type: 'lunch' | 'tea' | 'other';
+}
+
+export interface AttendanceSummary {
+  totalPresent: number;
+  totalAbsent: number;
+  totalLate: number;
+  totalWFH: number;
+  totalWorkHours: number;
+  totalOvertimeHours: number;
+  attendancePercentage: number;
+  punctualityPercentage: number;
+}
+
+export interface TodayAttendanceStatus {
+  isClockIn: boolean;
+  clockInTime?: Date;
+  clockOutTime?: Date;
+  currentBreak?: AttendanceBreak;
+  totalWorkMinutes: number;
+  totalBreakMinutes: number;
+  status: 'present' | 'absent' | 'late' | 'half-day' | 'wfh';
+  shift?: Shift;
+}
+
+// Dashboard Analytics interfaces
+export interface DashboardSummary {
+  totalMembers: number;
+  expectedToday: number;
+  presentToday: number;
+  absentToday: number;
+  attendanceRate: number;
+  lateToday: number;
+  wfhToday: number;
+}
+
+export interface PresentEmployee {
+  _id: string;
+  name: string;
+  position: string;
+  clockInTime: Date;
+  shift: Shift;
+  workHours: number;
+  status: 'present' | 'late' | 'wfh';
+}
+
+export interface WorkHoursAnalytics {
+  period: 'week' | 'month' | 'custom';
+  startDate: Date;
+  endDate: Date;
+  totalWorkHours: number;
+  averageWorkHours: number;
+  totalOvertimeHours: number;
+  attendanceRate: number;
+  employeeStats: {
+    employeeId: string;
+    employeeName: string;
+    totalHours: number;
+    overtimeHours: number;
+    attendanceDays: number;
+    expectedDays: number;
+  }[];
+}
+
+export interface AttendanceTrend {
+  date: string;
+  present: number;
+  absent: number;
+  late: number;
+  wfh: number;
+  total: number;
 }
 
 declare global {

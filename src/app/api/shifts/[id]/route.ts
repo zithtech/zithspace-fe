@@ -9,7 +9,7 @@ import { RBAC, type Role } from '@/lib/rbac';
 // PUT /api/shifts/[id] - Update shift
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -38,7 +38,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const {
       name,
@@ -120,7 +120,7 @@ export async function PUT(
 // DELETE /api/shifts/[id] - Delete shift
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -149,7 +149,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Find the shift
     const shift = await Shift.findById(id);

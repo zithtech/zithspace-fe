@@ -11,7 +11,7 @@ import { RBAC, type Role } from '@/lib/rbac';
 // PUT /api/attendance/[id] - Update attendance record
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -40,7 +40,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { date, clockIn, clockOut } = body;
 
@@ -149,7 +149,7 @@ export async function PUT(
 // DELETE /api/attendance/[id] - Delete attendance record
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
@@ -178,7 +178,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Find and delete the attendance record
     const attendance = await Attendance.findByIdAndDelete(id);

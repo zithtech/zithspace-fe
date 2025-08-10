@@ -664,7 +664,7 @@ export default function AccountsPage() {
             </Card>
 
             {/* Transactions Table */}
-            <Card size="small" bodyStyle={{ padding: 0 }} className="compact-table">
+            <Card size="small" styles={{ body: { padding: 0 } }} className="compact-table">
               <Table
                 columns={columns}
                 dataSource={transactions}
@@ -705,7 +705,7 @@ export default function AccountsPage() {
               }
               size="small"
               style={{ marginBottom: 16 }}
-              bodyStyle={{ padding: 16 }}
+              styles={{ body: { padding: 16 } }}
             >
               {summary?.categoryBreakdown?.length > 0 ? (
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -749,7 +749,7 @@ export default function AccountsPage() {
                 </Space>
               }
               size="small"
-              bodyStyle={{ padding: 0 }}
+              styles={{ body: { padding: 0 } }}
             >
               {summary?.recentTransactions?.length > 0 ? (
                 <List

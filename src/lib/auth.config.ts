@@ -1,16 +1,16 @@
-import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
-import User from '@/models/User';
-import connectDB from '@/lib/mongodb';
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import User from "@/models/User";
+import connectDB from "@/lib/mongodb";
 
 const authConfig: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'credentials',
+      name: "credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -19,16 +19,22 @@ const authConfig: NextAuthOptions = {
 
         try {
           await connectDB();
-          
+
           const user = await User.findOne({
             $or: [
               { personalEmail: (credentials.email as string).toLowerCase() },
-              { workEmail: (credentials.email as string).toLowerCase() }
+              { workEmail: (credentials.email as string).toLowerCase() },
             ],
-            isActive: true
+            isActive: true,
           });
 
-          if (!user || !await bcrypt.compare(credentials.password as string, user.password)) {
+          if (
+            !user ||
+            !(await bcrypt.compare(
+              credentials.password as string,
+              user.password
+            ))
+          ) {
             return null;
           }
 
@@ -45,15 +51,16 @@ const authConfig: NextAuthOptions = {
             isActive: user.isActive,
           };
         } catch (error) {
-          console.error('Authentication failed:', error);
+          console.error("Authentication failed:", error);
           return null;
         }
-      }
-    })
+      },
+    }),
   ],
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
     maxAge: 24 * 60 * 60,
+    updateAge: 60 * 60, // Update session every 1 hour instead of every request
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -72,7 +79,7 @@ const authConfig: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.role = token.role as 'super admin' | 'admin' | 'user';
+        session.user.role = token.role as "super admin" | "admin" | "user";
         session.user.position = token.position as string;
         session.user.personalEmail = token.personalEmail as string;
         session.user.workEmail = token.workEmail as string;
@@ -84,7 +91,7 @@ const authConfig: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

@@ -284,6 +284,7 @@ export default function TicketList() {
               type="primary"
               icon={<PlusCircleOutlined />}
               onClick={handleCreateTicket}
+              disabled
             >
               Create Ticket
             </Button>

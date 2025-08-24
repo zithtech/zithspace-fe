@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/public/')
+    pathname.startsWith('/public/') 
   ) {
     return NextResponse.next();
   }
@@ -19,23 +19,57 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
-  // Check for JWT refresh token in cookies (our backend sets this)
-  const accessToken = localStorage.get('accessToken');
-  
-  // Also check for access token in localStorage (handled client-side)
-  // Since middleware runs server-side, we'll primarily rely on refresh token
-  const isAuthenticated = !!accessToken;
+  // If it's not a protected route or auth route, allow access
+  if (!isProtectedRoute && !isAuthRoute) {
+    return NextResponse.next();
+  }
 
-  // Redirect unauthenticated users from protected routes
+  // Check for JWT refresh token in cookies
+  const refreshToken = request.cookies.get('refreshToken');
+  const refreshTokenValue = refreshToken?.value;
+  
+  // Enhanced authentication check
+  const isAuthenticated = !!(refreshTokenValue && refreshTokenValue.length > 10);
+  
+  // Add debug logging for production troubleshooting
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Middleware Debug:', {
+      pathname,
+      isProtectedRoute,
+      isAuthRoute,
+      hasRefreshToken: !!refreshTokenValue,
+      tokenLength: refreshTokenValue?.length || 0,
+      isAuthenticated,
+      userAgent: request.headers.get('user-agent')?.substring(0, 50)
+    });
+  }
+
+  // Handle protected routes
   if (isProtectedRoute && !isAuthenticated) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/login', request.url);
+    // Add the attempted URL as a query parameter for post-login redirect
+    loginUrl.searchParams.set('redirect', pathname);
+    
+    const response = NextResponse.redirect(loginUrl);
+    
+    // Clear any potentially corrupted cookies
+    response.cookies.delete('refreshToken');
+    
+    return response;
   }
   
-  // Redirect authenticated users from auth routes
+  // Handle auth routes (prevent authenticated users from accessing login)
   if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // Check if there's a redirect parameter
+    const redirectUrl = request.nextUrl.searchParams.get('redirect');
+    const targetUrl = redirectUrl && protectedRoutes.some(route => redirectUrl.startsWith(route)) 
+      ? redirectUrl 
+      : '/dashboard';
+    
+    return NextResponse.redirect(new URL(targetUrl, request.url));
   }
 
+  // For all other cases, allow the request to proceed
   return NextResponse.next();
 }
 

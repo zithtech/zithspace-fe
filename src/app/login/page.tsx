@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
   Card,
@@ -27,15 +27,20 @@ interface LoginFormData {
 export default function LoginPage() {
   const { login, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Get the redirect URL from query parameters
+  const redirectUrl = searchParams.get('redirect') || '/dashboard';
+
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      // If user is already authenticated, redirect to the intended page
+      router.push(redirectUrl);
     }
-  }, [user, router]);
+  }, [user, router, redirectUrl]);
 
   const handleSubmit = async (values: LoginFormData) => {
     try {
@@ -43,7 +48,9 @@ export default function LoginPage() {
       setError('');
       
       await login(values.email, values.password);
-      router.push('/dashboard');
+      
+      // Redirect to the intended page after successful login
+      router.push(redirectUrl);
     } catch (error: any) {
       setError(error.message || 'Login failed');
     } finally {

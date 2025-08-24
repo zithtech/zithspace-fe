@@ -79,12 +79,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: 'Projects',
           onClick: () => handleNavigation('/projects/manage'),
         },
-        {
-          key: '/projects/dashboard',
-          icon: <FileTextOutlined />,
-          label: 'Ticket Dashboard',
-          onClick: () => handleNavigation('/projects/dashboard'),
-        },
+        // {
+        //   key: '/projects/dashboard',
+        //   icon: <FileTextOutlined />,
+        //   label: 'Ticket Dashboard',
+        //   onClick: () => handleNavigation('/projects/dashboard'),
+        // },
         {
           key: '/projects/create',
           icon: <PlusCircleOutlined />,

@@ -30,29 +30,10 @@ import {
   IdcardOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { AuthService, UpdateProfileData, ChangePasswordData } from '@/services/authService';
+import { AuthService, UpdateProfileData, ChangePasswordData, UserProfile } from '@/services/authService';
 import { ApiError } from '@/lib/axios';
 
 const { Title, Text } = Typography;
-
-interface UserProfile {
-  _id: string;
-  name: string;
-  phone: string;
-  personalEmail: string;
-  workEmail: string;
-  role: string;
-  position: string;
-  reportsTo?: {
-    _id: string;
-    name: string;
-    position: string;
-  };
-  dateOfBirth?: string;
-  createdAt: string;
-  updatedAt: string;
-  isActive: boolean;
-}
 
 interface ProfileFormData {
   name: string;

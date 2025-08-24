@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Card,
   Table,
@@ -27,8 +28,9 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { User, CreateUserData, UpdateUserData, Shift } from "@/types";
-import { api } from "@/lib/api";
+import { MembersService, Member, CreateMemberData, UpdateMemberData } from '@/services/membersService';
+import { SettingsService, Shift } from '@/services/settingsService';
+import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from "antd/es/table";
 import { useRBAC } from "@/lib/rbac";
 
@@ -53,12 +55,17 @@ interface MemberFormData {
 }
 
 export default function MembersPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  // Show loading spinner while authentication is being checked
+  if (isLoading) {
+    return <LoadingSpinner message="Loading members..." />;
+  }
   const router = useRouter();
   const [form] = Form.useForm();
 
   // State management
-  const [members, setMembers] = useState<User[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -76,11 +83,11 @@ export default function MembersPage() {
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalType, setModalType] = useState<"add" | "edit" | "delete">("add");
-  const [selectedMember, setSelectedMember] = useState<User | null>(null);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
   // Available managers for dropdown
-  const [managers, setManagers] = useState<User[]>([]);
+  const [managers, setManagers] = useState<Member[]>([]);
   
   // Available shifts for dropdown
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -97,30 +104,26 @@ export default function MembersPage() {
     try {
       setLoading(true);
 
-      const params = new URLSearchParams({
-        page: pagination.current.toString(),
-        limit: pagination.pageSize.toString(),
+      const response = await MembersService.getMembers({
+        page: pagination.current,
+        limit: pagination.pageSize,
+        search: searchTerm,
+        role: roleFilter,
+        position: positionFilter,
       });
 
-      if (searchTerm) params.append("search", searchTerm);
-      if (roleFilter) params.append("role", roleFilter);
-      if (positionFilter) params.append("position", positionFilter);
-
-      const response = await api.get(`/api/members?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setMembers(data.data.data);
-        setPagination((prev) => ({
-          ...prev,
-          total: data.data.pagination.total,
-        }));
-      } else {
-        setError(data.error || "Failed to fetch members");
-      }
+      setMembers(response.data);
+      setPagination((prev) => ({
+        ...prev,
+        total: response.pagination.total,
+      }));
     } catch (error) {
-      console.log("🚨 MEMBERS PAGE: Fetch error:", error);
-      setError("Failed to fetch members");
+      console.error("Failed to fetch members:", error);
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError("Failed to fetch members");
+      }
     } finally {
       setLoading(false);
     }
@@ -129,11 +132,12 @@ export default function MembersPage() {
   // Fetch managers for dropdown
   const fetchManagers = async () => {
     try {
-      const response = await api.get("/api/members?limit=100");
-      const data = await response.json();
-      if (data.success) {
-        setManagers(data.data.data);
-      }
+      const managers = await MembersService.getMembersForSelect();
+      setManagers(managers.map(m => ({
+        _id: m.value,
+        name: m.label,
+        position: m.position,
+      } as Member)));
     } catch (error) {
       console.error("Failed to fetch managers:", error);
     }
@@ -142,13 +146,11 @@ export default function MembersPage() {
   // Fetch shifts for dropdown
   const fetchShifts = async () => {
     try {
-      const response = await api.get("/api/shifts");
-      const data = await response.json();
-      if (data.success) {
-        setShifts(data.data);
-      }
+      const shifts = await SettingsService.getAllShifts();
+      setShifts(shifts || []);
     } catch (error) {
       console.error("Failed to fetch shifts:", error);
+      setShifts([]); // Set empty array on error
     }
   };
 
@@ -173,41 +175,45 @@ export default function MembersPage() {
       setFormLoading(true);
       setError("");
 
-      const payload: any = {
-        name: values.name,
-        phone: values.phone,
-        personalEmail: values.personalEmail,
-        workEmail: values.workEmail,
-        role: values.role,
-        position: values.position,
-        reportsTo: values.reportsTo || undefined,
-        assignedShift: values.assignedShift || 'flexible',
-        workDays: values.workDays || [1, 2, 3, 4, 5],
-      };
-
-      const response =
-        modalType === "edit" && selectedMember
-          ? await api.put(`/api/members/${selectedMember._id}`, payload)
-          : await api.post("/api/members", payload);
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess(
-          modalType === "edit"
-            ? "Member updated successfully"
-            : "Member created successfully"
-        );
-        setIsModalVisible(false);
-        form.resetFields();
-        setSelectedMember(null);
-        fetchMembers();
+      if (modalType === "edit" && selectedMember) {
+        const updatePayload: UpdateMemberData = {
+          name: values.name,
+          phone: values.phone,
+          personalEmail: values.personalEmail,
+          workEmail: values.workEmail,
+          role: values.role,
+          position: values.position,
+          reportsTo: values.reportsTo || null,
+          isActive: true, // Keep existing members active
+        };
+        await MembersService.updateMember(selectedMember._id, updatePayload);
+        setSuccess("Member updated successfully");
       } else {
-        setError(data.error || "Operation failed");
+        const createPayload: CreateMemberData = {
+          name: values.name,
+          phone: values.phone,
+          personalEmail: values.personalEmail,
+          workEmail: values.workEmail,
+          role: values.role,
+          position: values.position,
+          password: 'temp123', // Default password - should be changed on first login
+          reportsTo: values.reportsTo || null,
+        };
+        await MembersService.createMember(createPayload);
+        setSuccess("Member created successfully");
       }
+
+      setIsModalVisible(false);
+      form.resetFields();
+      setSelectedMember(null);
+      fetchMembers();
     } catch (error: any) {
       console.error("Failed to submit member form:", error);
-      setError("Operation failed");
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError("Operation failed");
+      }
     } finally {
       setFormLoading(false);
     }
@@ -219,21 +225,18 @@ export default function MembersPage() {
 
     try {
       setFormLoading(true);
-
-      const response = await api.delete(`/api/members/${selectedMember._id}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess("Member deleted successfully");
-        setIsModalVisible(false);
-        setSelectedMember(null);
-        fetchMembers();
-      } else {
-        setError(data.error || "Delete failed");
-      }
+      await MembersService.deleteMember(selectedMember._id);
+      setSuccess("Member deleted successfully");
+      setIsModalVisible(false);
+      setSelectedMember(null);
+      fetchMembers();
     } catch (error: any) {
       console.error("Failed to delete member:", error);
-      setError("Delete failed");
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError("Delete failed");
+      }
     } finally {
       setFormLoading(false);
     }
@@ -247,7 +250,7 @@ export default function MembersPage() {
     setIsModalVisible(true);
   };
 
-  const showEditModal = (member: User) => {
+  const showEditModal = (member: Member) => {
     setModalType("edit");
     setSelectedMember(member);
     form.setFieldsValue({
@@ -261,26 +264,24 @@ export default function MembersPage() {
         typeof member.reportsTo === "object"
           ? member?.reportsTo?._id
           : member?.reportsTo || "",
-      assignedShift: member?.assignedShift || 'flexible',
-      workDays: member?.workDays || [1, 2, 3, 4, 5],
     });
     setIsModalVisible(true);
   };
 
-  const showDeleteModal = (member: User) => {
+  const showDeleteModal = (member: Member) => {
     setModalType("delete");
     setSelectedMember(member);
     setIsModalVisible(true);
   };
 
   // Table columns
-  const columns: ColumnsType<User> = [
+  const columns: ColumnsType<Member> = [
     {
       title: "Name",
       dataIndex: "name",
       key: "name",
       width: 180,
-      render: (text: string, record: User) => (
+      render: (text: string, record: Member) => (
         <Space>
           <div
             style={{
@@ -319,7 +320,7 @@ export default function MembersPage() {
       title: "Contact",
       key: "contact",
       width: 200,
-      render: (_, record: User) => (
+      render: (_, record: Member) => (
         <div>
           <Text style={{ fontSize: 12 }}>{record.workEmail}</Text>
           <br />
@@ -353,7 +354,7 @@ export default function MembersPage() {
       title: "Reports To",
       key: "reportsTo",
       width: 120,
-      render: (_, record: User) => (
+      render: (_, record: Member) => (
         <Text style={{ fontSize: 12 }}>
           {record?.reportsTo
             ? typeof record?.reportsTo === "object"
@@ -368,7 +369,7 @@ export default function MembersPage() {
       key: "actions",
       width: 80,
       align: "center",
-      render: (_, record: User) => {
+      render: (_, record: Member) => {
         if (!rbac?.canManageMembers) return null;
 
         const menuItems = [

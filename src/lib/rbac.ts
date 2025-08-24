@@ -2,7 +2,7 @@
 // Centralized permission management for scalable access control
 
 export type Role = 'super admin' | 'admin' | 'user';
-export type Resource = 'members' | 'transactions' | 'profile' | 'settings' | 'dashboard' | 'reports' | 'attendance' | 'shifts';
+export type Resource = 'members' | 'transactions' | 'profile' | 'settings' | 'dashboard' | 'reports' | 'attendance' | 'shifts' | 'projects' | 'tickets';
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'manage' | 'view';
 
 // Permission matrix defining what each role can do with each resource
@@ -12,6 +12,8 @@ const PERMISSION_MATRIX: Record<Role, Record<Resource, Action[]>> = {
     transactions: ['create', 'read', 'update', 'delete', 'manage', 'view'],
     attendance: ['create', 'read', 'update', 'delete', 'manage', 'view'],
     shifts: ['create', 'read', 'update', 'delete', 'manage', 'view'],
+    projects: ['create', 'read', 'update', 'delete', 'manage', 'view'],
+    tickets: ['create', 'read', 'update', 'delete', 'manage', 'view'],
     profile: ['read', 'update', 'view'],
     settings: ['read', 'update', 'view'],
     dashboard: ['read', 'view'],
@@ -22,6 +24,8 @@ const PERMISSION_MATRIX: Record<Role, Record<Resource, Action[]>> = {
     transactions: ['read', 'view'],
     attendance: ['read', 'update', 'view'], // Can manage team attendance
     shifts: ['create', 'read', 'update', 'delete', 'manage', 'view'], // Can manage shifts
+    projects: ['create', 'read', 'update', 'delete', 'manage', 'view'], // Can manage projects
+    tickets: ['create', 'read', 'update', 'delete', 'manage', 'view'], // Can manage tickets
     profile: ['read', 'update', 'view'],
     settings: ['read', 'update', 'view'],
     dashboard: ['read', 'view'],
@@ -32,6 +36,8 @@ const PERMISSION_MATRIX: Record<Role, Record<Resource, Action[]>> = {
     transactions: ['read', 'view'], // Can only view own transactions (handled in data filtering)
     attendance: ['read', 'update', 'view'], // Can clock in/out and view own attendance
     shifts: ['read', 'view'], // Can only view shifts
+    projects: ['read', 'view'], // Can view projects
+    tickets: ['create', 'read', 'update', 'view'], // Can create and update own tickets
     profile: ['read', 'update', 'view'],
     settings: ['read', 'update', 'view'],
     dashboard: ['read', 'view'],

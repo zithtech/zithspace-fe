@@ -1,5 +1,5 @@
 export interface User {
-  _id: string;
+  id: string;
   name: string;
   phone: string;
   personalEmail: string;
@@ -129,48 +129,6 @@ export interface TransactionSummary {
   }[];
 }
 
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-      name: string;
-      email: string;
-      role: 'super admin' | 'admin' | 'user';
-      position: string;
-      personalEmail: string;
-      workEmail: string;
-      phone: string;
-      reportsTo: string | null;
-      isActive: boolean;
-    };
-  }
-
-  interface User {
-    id: string;
-    name: string;
-    email: string;
-    role: 'super admin' | 'admin' | 'user';
-    position: string;
-    personalEmail: string;
-    workEmail: string;
-    phone: string;
-    reportsTo: string | null;
-    isActive: boolean;
-  }
-}
-
-declare module '@auth/core/jwt' {
-  interface JWT {
-    id: string;
-    role: string;
-    position: string;
-    personalEmail: string;
-    workEmail: string;
-    phone: string;
-    reportsTo: string | null;
-    isActive: boolean;
-  }
-}
 
 // Attendance interfaces
 export interface Shift {

@@ -13,11 +13,14 @@ async function checkAuthentication(request: NextRequest): Promise<boolean> {
 
     const cookieHeader = request.headers.get('cookie') || '';
 
-    console.log("TOKEN TOKEN TOKEN",cookieHeader);
+    console.log("1111111",request);
+    console.log("222222222",request.headers);
+    console.log("33333333333",request.cookies);
+    console.log("44444444444",cookieHeader);
    
-    const token = cookieHeader.split("=")[1];
+    const token = cookieHeader;
     
-    return true;
+    return Boolean(token);
   } catch (error) {
     console.error('Auth check failed:', error);
     // On error, assume not authenticated for security

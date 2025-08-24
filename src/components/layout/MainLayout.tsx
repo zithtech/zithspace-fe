@@ -26,6 +26,11 @@ import {
   SettingOutlined,
   LogoutOutlined,
   BellOutlined,
+  FileTextOutlined,
+  PlusCircleOutlined,
+  UnorderedListOutlined,
+  CalendarOutlined,
+  ControlOutlined,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -42,37 +47,87 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   // Navigation items with modern icons
-  const navigationItems = [
+  const getNavigationItems = () => [
     {
       key: '/dashboard',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
+      onClick: () => handleNavigation('/dashboard'),
     },
     {
       key: '/members',
       icon: <TeamOutlined />,
       label: 'Members',
       disabled: user?.role === 'user',
+      onClick: () => handleNavigation('/members'),
+      style: user?.role === 'user' ? { color: '#bfbfbf' } : undefined,
     },
     {
-      key: '/projects',
+      key: 'projects-group',
       icon: <ProjectOutlined />,
-      label: 'Projects',
+      label: 'Projects & Tickets',
+      children: [
+        {
+          key: '/projects',
+          icon: <ProjectOutlined />,
+          label: 'Overview',
+          onClick: () => handleNavigation('/projects'),
+        },
+        {
+          key: '/projects/manage',
+          icon: <ProjectOutlined />,
+          label: 'Projects',
+          onClick: () => handleNavigation('/projects/manage'),
+        },
+        {
+          key: '/projects/dashboard',
+          icon: <FileTextOutlined />,
+          label: 'Ticket Dashboard',
+          onClick: () => handleNavigation('/projects/dashboard'),
+        },
+        {
+          key: '/projects/create',
+          icon: <PlusCircleOutlined />,
+          label: 'Create Ticket',
+          onClick: () => handleNavigation('/projects/create'),
+        },
+        {
+          key: '/projects/tickets',
+          icon: <UnorderedListOutlined />,
+          label: 'Tickets',
+          onClick: () => handleNavigation('/projects/tickets'),
+        },
+        {
+          key: '/projects/release-plan',
+          icon: <CalendarOutlined />,
+          label: 'Release Plan',
+          onClick: () => handleNavigation('/projects/release-plan'),
+        },
+        {
+          key: '/projects/settings',
+          icon: <ControlOutlined />,
+          label: 'Settings',
+          onClick: () => handleNavigation('/projects/settings'),
+        },
+      ],
     },
     {
       key: '/clients',
       icon: <UserOutlined />,
       label: 'Clients',
+      onClick: () => handleNavigation('/clients'),
     },
     {
       key: '/attendance',
       icon: <ClockCircleOutlined />,
       label: 'Attendance',
+      onClick: () => handleNavigation('/attendance'),
     },
     {
       key: '/accounts',
       icon: <DollarOutlined />,
       label: 'Accounts',
+      onClick: () => handleNavigation('/accounts'),
     },
   ];
 
@@ -190,11 +245,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             border: 'none',
             marginTop: 8,
           }}
-          items={navigationItems.map((item) => ({
-            ...item,
-            onClick: () => handleNavigation(item.key),
-            style: item.disabled ? { color: '#bfbfbf' } : undefined,
-          }))}
+          items={getNavigationItems()}
         />
 
         {/* User info in sidebar (when expanded) */}

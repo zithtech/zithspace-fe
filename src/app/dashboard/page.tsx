@@ -3,6 +3,7 @@
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import {
   Card,
   Row,
@@ -33,7 +34,17 @@ import {
 const { Title, Text } = Typography;
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  // Show loading spinner while authentication is being checked
+  if (isLoading) {
+    return <LoadingSpinner message="Loading dashboard..." />;
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return null; // Let middleware handle redirect
+  }
 
   // Mock data - in real app, this would come from APIs
   const stats = [

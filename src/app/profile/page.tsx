@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import {
   Card,
@@ -30,6 +30,8 @@ import {
   IdcardOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { AuthService, UpdateProfileData, ChangePasswordData } from '@/services/authService';
+import { ApiError } from '@/lib/axios';
 
 const { Title, Text } = Typography;
 
@@ -67,7 +69,7 @@ interface PasswordFormData {
 }
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { user, isLoading } = useAuth();
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
 
@@ -82,37 +84,36 @@ export default function ProfilePage() {
   // Load user profile data
   useEffect(() => {
     const loadProfile = async () => {
-      if (!session?.user) return;
+      if (!user) return;
 
       try {
         setLoading(true);
-        const response = await fetch('/api/user/profile');
-        const data = await response.json();
-
-        if (data.success) {
-          setUserProfile(data.data);
-          
-          // Pre-fill the form with current data
-          profileForm.setFieldsValue({
-            name: data.data.name || '',
-            phone: data.data.phone || '',
-            personalEmail: data.data.personalEmail || '',
-            workEmail: data.data.workEmail || '',
-            dateOfBirth: data.data.dateOfBirth ? dayjs(data.data.dateOfBirth).format('YYYY-MM-DD') : '',
-          });
-        } else {
-          setError(data.error || 'Failed to load profile');
-        }
+        const userProfile = await AuthService.getProfile();
+        
+        setUserProfile(userProfile);
+        
+        // Pre-fill the form with current data
+        profileForm.setFieldsValue({
+          name: userProfile.name || '',
+          phone: userProfile.phone || '',
+          personalEmail: userProfile.personalEmail || '',
+          workEmail: userProfile.workEmail || '',
+          dateOfBirth: userProfile.dateOfBirth ? dayjs(userProfile.dateOfBirth).format('YYYY-MM-DD') : '',
+        });
       } catch (error) {
         console.error('Failed to load profile:', error);
-        setError('Failed to load profile');
+        if (error instanceof ApiError) {
+          setError(error.message);
+        } else {
+          setError('Failed to load profile');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadProfile();
-  }, [session, profileForm]);
+  }, [user, profileForm]);
 
   // Handle profile form submission
   const handleProfileSubmit = async (values: ProfileFormData) => {
@@ -121,40 +122,34 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: values.name,
-          phone: values.phone,
-          personalEmail: values.personalEmail,
-          workEmail: values.workEmail,
-          dateOfBirth: values.dateOfBirth || null,
-        }),
+      const updateData: UpdateProfileData = {
+        name: values.name,
+        phone: values.phone,
+        personalEmail: values.personalEmail,
+        workEmail: values.workEmail,
+        dateOfBirth: values.dateOfBirth || null,
+      };
+
+      const updatedProfile = await AuthService.updateProfile(updateData);
+      
+      setSuccess('Profile updated successfully!');
+      setUserProfile(updatedProfile);
+      
+      // Update the form with the latest data
+      profileForm.setFieldsValue({
+        name: updatedProfile.name || '',
+        phone: updatedProfile.phone || '',
+        personalEmail: updatedProfile.personalEmail || '',
+        workEmail: updatedProfile.workEmail || '',
+        dateOfBirth: updatedProfile.dateOfBirth ? dayjs(updatedProfile.dateOfBirth).format('YYYY-MM-DD') : '',
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess('Profile updated successfully!');
-        setUserProfile(data.data);
-        
-        // Update the form with the latest data
-        profileForm.setFieldsValue({
-          name: data.data.name || '',
-          phone: data.data.phone || '',
-          personalEmail: data.data.personalEmail || '',
-          workEmail: data.data.workEmail || '',
-          dateOfBirth: data.data.dateOfBirth ? dayjs(data.data.dateOfBirth).format('YYYY-MM-DD') : '',
-        });
-      } else {
-        setError(data.error || 'Failed to update profile');
-      }
     } catch (error) {
       console.error('Failed to update profile:', error);
-      setError('An error occurred while updating profile');
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('An error occurred while updating profile');
+      }
     } finally {
       setProfileLoading(false);
     }
@@ -177,28 +172,23 @@ export default function ProfilePage() {
         return;
       }
 
-      const response = await fetch('/api/user/password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: values.currentPassword,
-          newPassword: values.newPassword,
-        }),
-      });
+      const passwordData: ChangePasswordData = {
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      };
 
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess('Password changed successfully!');
-        passwordForm.resetFields();
-      } else {
-        setError(data.error || 'Failed to change password');
-      }
+      await AuthService.changePassword(passwordData);
+      
+      setSuccess('Password changed successfully!');
+      passwordForm.resetFields();
     } catch (error) {
       console.error('Failed to change password:', error);
-      setError('An error occurred while changing password');
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('An error occurred while changing password');
+      }
     } finally {
       setPasswordLoading(false);
     }

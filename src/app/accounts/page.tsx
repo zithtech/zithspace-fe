@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import {
   Card,
@@ -44,7 +44,9 @@ import {
   CreditCardOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { Transaction, CreateTransactionData, UpdateTransactionData, User } from '@/types';
+import { TransactionsService, Transaction, CreateTransactionData, UpdateTransactionData, TransactionSummary } from '@/services/transactionsService';
+import { MembersService, Member } from '@/services/membersService';
+import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useRBAC } from '@/lib/rbac';
@@ -65,12 +67,12 @@ interface TransactionFormData {
 }
 
 export default function AccountsPage() {
-  const { data: session } = useSession();
+  const { user, isLoading } = useAuth();
   const [form] = Form.useForm();
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [members, setMembers] = useState<User[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -98,43 +100,38 @@ export default function AccountsPage() {
   const [formLoading, setFormLoading] = useState(false);
 
   // RBAC permissions
-  const rbac = useRBAC(session?.user?.role as any);
-  const canManage = rbac.canManageTransactions;
+  const rbac = useRBAC(user?.role as any);
+  const canManage = rbac?.canManageTransactions;
 
   // Fetch transactions
   const fetchTransactions = async () => {
     try {
       setLoading(true);
       
-      const params = new URLSearchParams({
-        page: pagination.current.toString(),
-        limit: pagination.pageSize.toString(),
-      });
+      const filters = {
+        page: pagination.current,
+        limit: pagination.pageSize,
+        search: searchTerm || undefined,
+        type: typeFilter as 'credit' | 'debit' | undefined,
+        category: categoryFilter || undefined,
+        member: memberFilter || undefined,
+        startDate: dateRange?.[0]?.toISOString(),
+        endDate: dateRange?.[1]?.toISOString(),
+      };
 
-      if (searchTerm) params.append('search', searchTerm);
-      if (typeFilter) params.append('type', typeFilter);
-      if (categoryFilter) params.append('category', categoryFilter);
-      if (memberFilter) params.append('member', memberFilter);
-      if (dateRange) {
-        params.append('startDate', dateRange[0]?.toISOString());
-        params.append('endDate', dateRange[1]?.toISOString());
-      }
-
-      const response = await fetch(`/api/transactions?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setTransactions(data.data.data);
-        setPagination(prev => ({
-          ...prev,
-          total: data.data.pagination.total,
-        }));
-      } else {
-        setError(data.error || 'Failed to fetch transactions');
-      }
+      const response = await TransactionsService.getTransactions(filters);
+      setTransactions(response.data);
+      setPagination(prev => ({
+        ...prev,
+        total: response.pagination.total,
+      }));
     } catch (error) {
       console.error('Fetch transactions error:', error);
-      setError('Failed to fetch transactions');
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to fetch transactions');
+      }
     } finally {
       setLoading(false);
     }
@@ -145,20 +142,16 @@ export default function AccountsPage() {
     try {
       setSummaryLoading(true);
       
-      const params = new URLSearchParams();
-      if (dateRange) {
-        params.append('startDate', dateRange[0]?.toISOString());
-        params.append('endDate', dateRange[1]?.toISOString());
-      }
+      const startDate = dateRange?.[0]?.toISOString();
+      const endDate = dateRange?.[1]?.toISOString();
 
-      const response = await fetch(`/api/transactions/summary?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setSummary(data.data);
-      }
+      const summary = await TransactionsService.getSummary(startDate, endDate);
+      setSummary(summary);
     } catch (error) {
       console.error('Fetch summary error:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      }
     } finally {
       setSummaryLoading(false);
     }
@@ -167,23 +160,23 @@ export default function AccountsPage() {
   // Fetch members
   const fetchMembers = async () => {
     try {
-      const response = await fetch('/api/members?limit=100');
-      const data = await response.json();
-      if (data.success) {
-        setMembers(data.data.data);
-      }
+      const response = await MembersService.getMembers({ limit: 100 });
+      setMembers(response.data);
     } catch (error) {
       console.error('Failed to fetch members:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      }
     }
   };
 
   useEffect(() => {
-    if (session?.user) {
+    if (user) {
       fetchTransactions();
       fetchSummary();
       fetchMembers();
     }
-  }, [session, pagination.current, pagination.pageSize, searchTerm, typeFilter, categoryFilter, memberFilter, dateRange]);
+  }, [user, pagination.current, pagination.pageSize, searchTerm, typeFilter, categoryFilter, memberFilter, dateRange]);
 
   // Handle form submission
   const handleSubmit = async (values: TransactionFormData) => {
@@ -201,32 +194,26 @@ export default function AccountsPage() {
         date: values.date.toDate(),
       };
 
-      const response = modalType === 'edit' && selectedTransaction
-        ? await fetch(`/api/transactions/${selectedTransaction._id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          })
-        : await fetch('/api/transactions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess(modalType === 'edit' ? 'Transaction updated successfully' : 'Transaction created successfully');
-        setIsModalVisible(false);
-        form.resetFields();
-        setSelectedTransaction(null);
-        fetchTransactions();
-        fetchSummary();
+      if (modalType === 'edit' && selectedTransaction) {
+        await TransactionsService.updateTransaction(selectedTransaction._id, payload as UpdateTransactionData);
+        setSuccess('Transaction updated successfully');
       } else {
-        setError(data.error || 'Operation failed');
+        await TransactionsService.createTransaction(payload as CreateTransactionData);
+        setSuccess('Transaction created successfully');
       }
+
+      setIsModalVisible(false);
+      form.resetFields();
+      setSelectedTransaction(null);
+      fetchTransactions();
+      fetchSummary();
     } catch (error) {
-      setError('Operation failed');
+      console.error('Transaction operation error:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Operation failed');
+      }
     } finally {
       setFormLoading(false);
     }
@@ -239,22 +226,19 @@ export default function AccountsPage() {
     try {
       setFormLoading(true);
 
-      const response = await fetch(`/api/transactions/${selectedTransaction._id}`, {
-        method: 'DELETE',
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess('Transaction deleted successfully');
-        setIsModalVisible(false);
-        setSelectedTransaction(null);
-        fetchTransactions();
-        fetchSummary();
-      } else {
-        setError(data.error || 'Delete failed');
-      }
+      await TransactionsService.deleteTransaction(selectedTransaction._id);
+      setSuccess('Transaction deleted successfully');
+      setIsModalVisible(false);
+      setSelectedTransaction(null);
+      fetchTransactions();
+      fetchSummary();
     } catch (error) {
-      setError('Delete failed');
+      console.error('Delete transaction error:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Delete failed');
+      }
     } finally {
       setFormLoading(false);
     }
@@ -445,7 +429,7 @@ export default function AccountsPage() {
           },
         ];
 
-        if (rbac.canDeleteTransactions) {
+        if (rbac?.canDeleteTransactions) {
           menuItems.push({
             key: 'delete',
             icon: <DeleteOutlined />,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import ComingSoon from '@/components/common/ComingSoon';
@@ -30,8 +30,8 @@ import {
   EditOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { Shift } from '@/types';
-import { api } from '@/lib/api';
+import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
+import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -49,7 +49,7 @@ interface ShiftFormData {
 }
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
 
@@ -68,26 +68,24 @@ export default function SettingsPage() {
 
   // Check permissions - Only admins and super admins can access settings
   useEffect(() => {
-    if (session?.user && !['super admin', 'admin'].includes(session.user.role)) {
+    if (user && !['super admin', 'admin'].includes(user.role)) {
       router.push('/dashboard');
     }
-  }, [session, router]);
+  }, [user, router]);
 
   // Fetch shifts
   const fetchShifts = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/shifts');
-      const data = await response.json();
-
-      if (data.success) {
-        setShifts(data.data);
-      } else {
-        setError(data.error || 'Failed to fetch shifts');
-      }
+      const shifts = await SettingsService.getAllShifts();
+      setShifts(shifts);
     } catch (error) {
       console.error('Failed to fetch shifts:', error);
-      setError('Failed to fetch shifts');
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('Failed to fetch shifts');
+      }
     } finally {
       setLoading(false);
     }
@@ -95,10 +93,10 @@ export default function SettingsPage() {
 
   // Load shifts when attendance tab is active
   useEffect(() => {
-    if (session?.user && activeTab === 'attendance') {
+    if (user && activeTab === 'attendance') {
       fetchShifts();
     }
-  }, [session, activeTab]);
+  }, [user, activeTab]);
 
   // Handle shift form submission
   const handleShiftSubmit = async (values: ShiftFormData) => {
@@ -106,7 +104,7 @@ export default function SettingsPage() {
       setFormLoading(true);
       setError('');
 
-      const payload = {
+      const payload: CreateShiftData | UpdateShiftData = {
         name: values.name,
         code: values.code.toUpperCase(),
         startTime: values.startTime.format('HH:mm'),
@@ -119,28 +117,25 @@ export default function SettingsPage() {
         workingMinutes: values.endTime.diff(values.startTime, 'minutes') - values.lunchBreakMinutes,
       };
 
-      const response = modalType === 'edit' && editingShift
-        ? await api.put(`/api/shifts/${editingShift._id}`, payload)
-        : await api.post('/api/shifts', payload);
-
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess(
-          modalType === 'edit' 
-            ? 'Shift updated successfully!' 
-            : 'Shift created successfully!'
-        );
-        setIsShiftModalVisible(false);
-        form.resetFields();
-        setEditingShift(null);
-        fetchShifts();
+      if (modalType === 'edit' && editingShift) {
+        await SettingsService.updateShift(editingShift._id, payload as UpdateShiftData);
+        setSuccess('Shift updated successfully!');
       } else {
-        setError(data.error || 'Operation failed');
+        await SettingsService.createShift(payload as CreateShiftData);
+        setSuccess('Shift created successfully!');
       }
+
+      setIsShiftModalVisible(false);
+      form.resetFields();
+      setEditingShift(null);
+      fetchShifts();
     } catch (error) {
       console.error('Failed to submit shift form:', error);
-      setError('Operation failed');
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('Operation failed');
+      }
     } finally {
       setFormLoading(false);
     }
@@ -150,18 +145,16 @@ export default function SettingsPage() {
   const handleDeleteShift = async (shiftId: string) => {
     try {
       setFormLoading(true);
-      const response = await api.delete(`/api/shifts/${shiftId}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setSuccess('Shift deleted successfully!');
-        fetchShifts();
-      } else {
-        setError(data.error || 'Failed to delete shift');
-      }
+      await SettingsService.deleteShift(shiftId);
+      setSuccess('Shift deleted successfully!');
+      fetchShifts();
     } catch (error) {
       console.error('Failed to delete shift:', error);
-      setError('Failed to delete shift');
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('Failed to delete shift');
+      }
     } finally {
       setFormLoading(false);
     }
@@ -304,7 +297,7 @@ export default function SettingsPage() {
   }, [success, error]);
 
   // Don't render if no user or insufficient permissions
-  if (!session?.user || !['super admin', 'admin'].includes(session.user.role)) {
+  if (!user || !['super admin', 'admin'].includes(user.role)) {
     return null;
   }
 

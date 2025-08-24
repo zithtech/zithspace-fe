@@ -6,9 +6,9 @@ const authRoutes = ['/login'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for static files and API auth routes
+  // Skip middleware for static files and API routes
   if (
-    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon.ico') ||
     pathname.startsWith('/public/')
@@ -19,11 +19,12 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
-  // Check for session token in cookies
-  const sessionToken = request.cookies.get('next-auth.session-token') || 
-                      request.cookies.get('__Secure-next-auth.session-token');
-
-  const isAuthenticated = !!sessionToken;
+  // Check for JWT refresh token in cookies (our backend sets this)
+  const refreshToken = request.cookies.get('refreshToken');
+  
+  // Also check for access token in localStorage (handled client-side)
+  // Since middleware runs server-side, we'll primarily rely on refresh token
+  const isAuthenticated = !!refreshToken;
 
   // Redirect unauthenticated users from protected routes
   if (isProtectedRoute && !isAuthenticated) {

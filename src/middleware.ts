@@ -3,6 +3,26 @@ import { NextRequest, NextResponse } from 'next/server';
 const protectedRoutes = ['/dashboard', '/members', '/settings', '/projects', '/clients', '/attendance', '/accounts'];
 const authRoutes = ['/login'];
 
+// Get backend URL from environment or use default
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL
+
+
+async function checkAuthentication(request: NextRequest): Promise<boolean> {
+  try {
+    console.log('SSSSSSSSSSSSSSSS');
+
+    const cookieHeader = request.headers.get('cookie') || '';
+   
+    const token = cookieHeader.split("=")[1];
+    
+    return Boolean(token);
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    // On error, assume not authenticated for security
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -11,7 +31,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/public/') 
+    pathname.startsWith('/public/') ||
+    pathname.includes('.')
   ) {
     return NextResponse.next();
   }
@@ -24,26 +45,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for JWT refresh token in cookies
-  const refreshToken = request.cookies.get('refreshToken');
-  const refreshTokenValue = refreshToken?.value;
-  console.log({refreshToken});
+
+  const isAuthenticated = await checkAuthentication(request);
   
-  // Enhanced authentication check
-  const isAuthenticated = !!(refreshTokenValue && refreshTokenValue.length > 10);
-  
-  // Add debug logging for production troubleshooting
-  // if (process.env.NODE_ENV === 'production') {
-    console.log('Middleware Debug:', {
-      pathname,
-      isProtectedRoute,
-      isAuthRoute,
-      hasRefreshToken: !!refreshTokenValue,
-      tokenLength: refreshTokenValue?.length || 0,
-      isAuthenticated,
-      userAgent: request.headers.get('user-agent')?.substring(0, 50)
-    });
-  // }
+  console.log('Middleware Debug:', {
+    pathname,
+    isProtectedRoute,
+    isAuthRoute,
+    isAuthenticated,
+    backendUrl: BACKEND_URL,
+    userAgent: request.headers.get('user-agent')?.substring(0, 50)
+  });
 
   // Handle protected routes
   if (isProtectedRoute && !isAuthenticated) {
@@ -51,12 +63,7 @@ export async function middleware(request: NextRequest) {
     // Add the attempted URL as a query parameter for post-login redirect
     loginUrl.searchParams.set('redirect', pathname);
     
-    const response = NextResponse.redirect(loginUrl);
-    
-    // Clear any potentially corrupted cookies
-    response.cookies.delete('refreshToken');
-    
-    return response;
+    return NextResponse.redirect(loginUrl);
   }
   
   // Handle auth routes (prevent authenticated users from accessing login)

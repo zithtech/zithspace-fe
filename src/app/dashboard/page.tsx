@@ -4,6 +4,7 @@ import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import ProtectedRoute from '@/components/common/ProtectedRoute';
 import {
   Card,
   Row,
@@ -34,17 +35,7 @@ import {
 const { Title, Text } = Typography;
 
 export default function DashboardPage() {
-  const { user, isLoading } = useAuth();
-
-  // Show loading spinner while authentication is being checked
-  if (isLoading) {
-    return <LoadingSpinner message="Loading dashboard..." />;
-  }
-
-  // Redirect to login if not authenticated
-  if (!user) {
-    return null; // Let middleware handle redirect
-  }
+  const { user } = useAuth();
 
   // Mock data - in real app, this would come from APIs
   const stats = [
@@ -190,7 +181,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <MainLayout>
+    <ProtectedRoute>
+      <MainLayout>
       <div style={{ padding: 20 }}>
         {/* Welcome Header */}
         <div style={{ marginBottom: 24 }}>
@@ -459,6 +451,7 @@ export default function DashboardPage() {
           </Col>
         </Row>
       </div>
-    </MainLayout>
+      </MainLayout>
+    </ProtectedRoute>
   );
 }

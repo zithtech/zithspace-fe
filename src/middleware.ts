@@ -20,11 +20,11 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
   // Check for JWT refresh token in cookies (our backend sets this)
-  const refreshToken = request.cookies.get('refreshToken');
+  const accessToken = localStorage.get('accessToken');
   
   // Also check for access token in localStorage (handled client-side)
   // Since middleware runs server-side, we'll primarily rely on refresh token
-  const isAuthenticated = !!refreshToken;
+  const isAuthenticated = !!accessToken;
 
   // Redirect unauthenticated users from protected routes
   if (isProtectedRoute && !isAuthenticated) {

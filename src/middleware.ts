@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
   const isAuthenticated = !!(refreshTokenValue && refreshTokenValue.length > 10);
   
   // Add debug logging for production troubleshooting
-  if (process.env.NODE_ENV === 'production') {
+  // if (process.env.NODE_ENV === 'production') {
     console.log('Middleware Debug:', {
       pathname,
       isProtectedRoute,
@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
       isAuthenticated,
       userAgent: request.headers.get('user-agent')?.substring(0, 50)
     });
-  }
+  // }
 
   // Handle protected routes
   if (isProtectedRoute && !isAuthenticated) {

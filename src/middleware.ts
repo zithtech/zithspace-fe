@@ -12,6 +12,8 @@ async function checkAuthentication(request: NextRequest): Promise<boolean> {
     console.log('SSSSSSSSSSSSSSSS');
 
     const cookieHeader = request.headers.get('cookie') || '';
+
+    console.log(cookieHeader);
    
     const token = cookieHeader.split("=")[1];
     

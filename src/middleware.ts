@@ -27,6 +27,7 @@ export async function middleware(request: NextRequest) {
   // Check for JWT refresh token in cookies
   const refreshToken = request.cookies.get('refreshToken');
   const refreshTokenValue = refreshToken?.value;
+  console.log({refreshToken});
   
   // Enhanced authentication check
   const isAuthenticated = !!(refreshTokenValue && refreshTokenValue.length > 10);

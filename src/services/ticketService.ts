@@ -75,7 +75,12 @@ export interface Ticket {
   title: string;
   description: string;
   platform: string;
-  project: string;
+  project: {
+    _id: string;
+    name: string;
+    code: string;
+    description?: string;
+  } | string;
   priority: string;
   taskLevel: string;
   taskType: string;
@@ -85,6 +90,11 @@ export interface Ticket {
     name: string;
     email: string;
   };
+  reportTo: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string;
   createdBy: {
     _id: string;
     name: string;
@@ -92,6 +102,20 @@ export interface Ticket {
   };
   createdAt: string;
   updatedAt: string;
+  storyPoint?: number;
+  estimateHours?: number;
+  startDate?: string;
+  endDate?: string;
+  comments?: Array<{
+    _id: string;
+    userId: {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    comment: string;
+    timestamp: string;
+  }>;
 }
 
 export interface TicketListResponse {

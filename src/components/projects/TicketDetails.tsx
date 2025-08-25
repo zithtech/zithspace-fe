@@ -29,12 +29,18 @@ import {
   EditOutlined,
   SaveOutlined,
   CloseOutlined,
-  SendOutlined
+  SendOutlined,
+  CalendarOutlined,
+  UserOutlined,
+  FlagOutlined,
+  ProjectOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import TicketService from '@/services/ticketService';
 import { ProjectService } from '@/services/projectService';
+import { MembersService } from '@/services/membersService';
+import { SettingsService, TicketConfigurations } from '@/services/settingsService';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -85,8 +91,12 @@ interface TicketDetails {
   releasePlan?: string;
   comments?: Array<{
     _id: string;
-    userId: string;
-    userName: string;
+    userId: string | {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    userName?: string;
     comment: string;
     timestamp: string;
   }>;
@@ -108,13 +118,64 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [projects, setProjects] = useState<Array<{ value: string; label: string; code: string }>>([]);
+  const [members, setMembers] = useState<Array<{ value: string; label: string; position: string }>>([]);
+  const [ticketConfig, setTicketConfig] = useState<TicketConfigurations | null>(null);
+  const [dataLoading, setDataLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [addingComment, setAddingComment] = useState(false);
 
+  // Dynamic dropdown options loaded from API
+  const [platforms, setPlatforms] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
+  const [priorities, setPriorities] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
+  const [taskLevels, setTaskLevels] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
+  const [taskTypes, setTaskTypes] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
+
   useEffect(() => {
     fetchTicket();
-    fetchProjects();
+    loadDropdownData();
   }, [ticketId]);
+
+  // Load dropdown data when editing mode is enabled
+  useEffect(() => {
+    if (editing && (!members.length || !ticketConfig)) {
+      loadDropdownData();
+    }
+  }, [editing]);
+
+  const loadDropdownData = async () => {
+    try {
+      setDataLoading(true);
+      
+      // Load projects, members, and ticket configurations in parallel
+      const [projectsData, membersData, ticketConfigData] = await Promise.all([
+        ProjectService.getUserProjects(),
+        MembersService.getMembersForSelect(),
+        SettingsService.getTicketConfigurations()
+      ]);
+
+      setProjects(projectsData || []);
+      setMembers(membersData || []);
+      setTicketConfig(ticketConfigData);
+
+      // Set dropdown options from the configuration with fallbacks
+      setPlatforms(ticketConfigData?.platforms || []);
+      setPriorities(ticketConfigData?.priorities || []);
+      setTaskLevels(ticketConfigData?.taskLevels || []);
+      setTaskTypes(ticketConfigData?.taskTypes || []);
+
+    } catch (error) {
+      console.error('Error loading dropdown data:', error);
+      message.error('Failed to load form data. Please refresh the page.');
+      
+      // Set empty arrays as fallbacks to prevent map errors
+      setPlatforms([]);
+      setPriorities([]);
+      setTaskLevels([]);
+      setTaskTypes([]);
+    } finally {
+      setDataLoading(false);
+    }
+  };
 
   const fetchTicket = async () => {
     try {
@@ -151,24 +212,28 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
       };
       setTicket(ticketData);
       
-      // Populate form with ticket data
+      // Populate form with ticket data - CRITICAL: Use ObjectIds for relational fields
       if (ticketData) {
         form.setFieldsValue({
-          title: ticketData.title,
-          description: ticketData.description,
-          platform: ticketData.platform,
-          project: ticketData.project._id,
-          priority: ticketData.priority,
-          taskType: ticketData.taskType,
-          taskLevel: ticketData.taskLevel,
-          status: ticketData.status,
-          assignee: ticketData.assignee.name,
-          reportTo: ticketData.reportTo,
-          storyPoint: ticketData.storyPoint,
-          estimateHours: ticketData.estimateHours,
-          startDate: ticketData.startDate ? dayjs(ticketData.startDate) : null,
-          endDate: ticketData.endDate ? dayjs(ticketData.endDate) : null,
-          releasePlan: ticketData.releasePlan
+          title: ticketData?.title || '',
+          description: ticketData?.description || '',
+          platform: ticketData?.platform || '',
+          project: ticketData?.project?._id || '',
+          priority: ticketData?.priority || '',
+          taskType: ticketData?.taskType || '',
+          taskLevel: ticketData?.taskLevel || '',
+          status: ticketData?.status || '',
+          // FIXED: Use ObjectId instead of name for assignee
+          assignee: ticketData?.assignee?._id || '',
+          // FIXED: Use ObjectId instead of name for reportTo
+          reportTo: typeof ticketData?.reportTo === 'string' 
+            ? ticketData.reportTo 
+            : ticketData?.reportTo?._id || '',
+          storyPoint: ticketData?.storyPoint || 0,
+          estimateHours: ticketData?.estimateHours || 0,
+          startDate: ticketData?.startDate ? dayjs(ticketData.startDate) : null,
+          endDate: ticketData?.endDate ? dayjs(ticketData.endDate) : null,
+          releasePlan: ticketData?.releasePlan || ''
         });
       }
     } catch (error) {
@@ -193,11 +258,25 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
       setSaving(true);
       const values = await form.validateFields();
       
+      // CRITICAL FIX: Sanitize empty strings for optional ObjectId fields
       const updateData = {
         ...values,
         startDate: values.startDate ? values.startDate.toISOString() : null,
         endDate: values.endDate ? values.endDate.toISOString() : null
       };
+
+      // Remove empty strings for optional ObjectId fields to prevent casting errors
+      if (updateData.releasePlan === '' || updateData.releasePlan === null) {
+        delete updateData.releasePlan;
+      }
+
+      // Handle parentTickets array - remove empty strings
+      if (updateData.parentTickets && Array.isArray(updateData.parentTickets)) {
+        updateData.parentTickets = updateData.parentTickets.filter((id: any) => id && id !== '');
+        if (updateData.parentTickets.length === 0) {
+          delete updateData.parentTickets;
+        }
+      }
 
       await TicketService.updateTicket(ticketId, updateData);
       message.success('Ticket updated successfully');
@@ -211,6 +290,20 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
     }
   };
 
+  const fetchComments = async () => {
+    try {
+      const response = await TicketService.getTicketById(ticketId);
+      if (ticket) {
+        setTicket(prev => prev ? {
+          ...prev,
+          comments: (response as any).comments || []
+        } : null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    }
+  };
+
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
@@ -219,7 +312,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
       await TicketService.addComment(ticketId, newComment);
       setNewComment('');
       message.success('Comment added successfully');
-      fetchTicket(); // Refresh to get new comment
+      fetchComments(); // Only refresh comments section
     } catch (error) {
       console.error('Failed to add comment:', error);
       message.error('Failed to add comment');
@@ -309,39 +402,6 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
             </Title>
           </Space>
         </Col>
-        <Col>
-          <Space>
-            {editing ? (
-              <>
-                <Button
-                  icon={<CloseOutlined />}
-                  onClick={() => {
-                    setEditing(false);
-                    form.resetFields();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  loading={saving}
-                  onClick={handleSave}
-                >
-                  Save Changes
-                </Button>
-              </>
-            ) : (
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={() => setEditing(true)}
-              >
-                Edit Ticket
-              </Button>
-            )}
-          </Space>
-        </Col>
       </Row>
 
       <Row gutter={24}>
@@ -349,30 +409,74 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         <Col xs={24} lg={16}>
           <Card>
             {editing ? (
-              <Form form={form} layout="vertical">
-                <Row gutter={16}>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      label="Title"
-                      name="title"
-                      rules={[{ required: true, message: 'Please enter title' }]}
+              <div style={{ position: 'relative' }}>
+                {/* Save/Cancel Buttons - Top Right */}
+                <div style={{ 
+                  position: 'absolute',
+                  top: '0px',
+                  right: '0px',
+                  zIndex: 10
+                }}>
+                  <Space>
+                    <Button
+                      icon={<CloseOutlined />}
+                      onClick={() => {
+                        setEditing(false);
+                        form.resetFields();
+                      }}
+                      size="small"
                     >
-                      <Input />
-                    </Form.Item>
-                  </Col>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="primary"
+                      icon={<SaveOutlined />}
+                      loading={saving}
+                      onClick={handleSave}
+                      size="small"
+                    >
+                      Save Changes
+                    </Button>
+                  </Space>
+                </div>
+
+                <Form form={form} layout="vertical" style={{ paddingTop: '40px' }}>
+                  <Form.Item
+                    label="Title"
+                    name="title"
+                    rules={[{ required: true, message: 'Please enter title' }]}
+                  >
+                    <Input placeholder="Enter ticket title..." />
+                  </Form.Item>
+
+                <Row gutter={16}>
                   <Col xs={24} md={12}>
                     <Form.Item
                       label="Platform"
                       name="platform"
                       rules={[{ required: true, message: 'Please select platform' }]}
                     >
-                      <Select>
-                        <Select.Option value="Development">Development</Select.Option>
-                        <Select.Option value="UI/UX">UI/UX</Select.Option>
-                        <Select.Option value="PM">PM</Select.Option>
-                        <Select.Option value="Business Team">Business Team</Select.Option>
-                        <Select.Option value="DevOps">DevOps</Select.Option>
-                        <Select.Option value="Testing">Testing</Select.Option>
+                      <Select loading={dataLoading}>
+                        {platforms.map(platform => (
+                          <Select.Option key={platform.value} value={platform.value}>
+                            {platform.label}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      label="Project"
+                      name="project"
+                      rules={[{ required: true, message: 'Please select project' }]}
+                    >
+                      <Select loading={dataLoading}>
+                        {projects.map(project => (
+                          <Select.Option key={project.value} value={project.value}>
+                            {project.label}
+                          </Select.Option>
+                        ))}
                       </Select>
                     </Form.Item>
                   </Col>
@@ -389,29 +493,16 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                 <Row gutter={16}>
                   <Col xs={24} md={8}>
                     <Form.Item
-                      label="Project"
-                      name="project"
-                      rules={[{ required: true, message: 'Please select project' }]}
-                    >
-                      <Select>
-                        {projects.map(project => (
-                          <Select.Option key={project.value} value={project.value}>
-                            {project.label}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={8}>
-                    <Form.Item
                       label="Priority"
                       name="priority"
                       rules={[{ required: true, message: 'Please select priority' }]}
                     >
-                      <Select>
-                        <Select.Option value="P1">High (P1)</Select.Option>
-                        <Select.Option value="P2">Medium (P2)</Select.Option>
-                        <Select.Option value="P3">Lite (P3)</Select.Option>
+                      <Select loading={dataLoading}>
+                        {priorities.map(priority => (
+                          <Select.Option key={priority.value} value={priority.value}>
+                            {priority.label}
+                          </Select.Option>
+                        ))}
                       </Select>
                     </Form.Item>
                   </Col>
@@ -421,13 +512,16 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                       name="status"
                       rules={[{ required: true, message: 'Please select status' }]}
                     >
-                      <Select>
+                      <Select loading={dataLoading}>
                         <Select.Option value="not_started">Not Started</Select.Option>
                         <Select.Option value="in_progress">In Progress</Select.Option>
                         <Select.Option value="in_testing">In Testing</Select.Option>
                         <Select.Option value="completed">Completed</Select.Option>
                       </Select>
                     </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    {/* Empty column for better spacing */}
                   </Col>
                 </Row>
 
@@ -438,11 +532,12 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                       name="taskType"
                       rules={[{ required: true, message: 'Please select task type' }]}
                     >
-                      <Select>
-                        <Select.Option value="Bug">Bug</Select.Option>
-                        <Select.Option value="Task">Task</Select.Option>
-                        <Select.Option value="Feat">Feature</Select.Option>
-                        <Select.Option value="Overwrite">Overwrite</Select.Option>
+                      <Select loading={dataLoading}>
+                        {taskTypes.map(taskType => (
+                          <Select.Option key={taskType.value} value={taskType.value}>
+                            {taskType.label}
+                          </Select.Option>
+                        ))}
                       </Select>
                     </Form.Item>
                   </Col>
@@ -452,11 +547,12 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                       name="taskLevel"
                       rules={[{ required: true, message: 'Please select task level' }]}
                     >
-                      <Select>
-                        <Select.Option value="Easy">Easy</Select.Option>
-                        <Select.Option value="Lite">Lite</Select.Option>
-                        <Select.Option value="Medium">Medium</Select.Option>
-                        <Select.Option value="Hard">Hard</Select.Option>
+                      <Select loading={dataLoading}>
+                        {taskLevels.map(taskLevel => (
+                          <Select.Option key={taskLevel.value} value={taskLevel.value}>
+                            {taskLevel.label}
+                          </Select.Option>
+                        ))}
                       </Select>
                     </Form.Item>
                   </Col>
@@ -476,18 +572,52 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     <Form.Item
                       label="Assignee"
                       name="assignee"
-                      rules={[{ required: true, message: 'Please enter assignee' }]}
+                      rules={[{ required: true, message: 'Please select assignee' }]}
                     >
-                      <Input />
+                      <Select 
+                        placeholder="Select assignee" 
+                        loading={dataLoading}
+                        showSearch
+                        filterOption={(input, option) => {
+                          const member = members.find(m => m.value === option?.value);
+                          return member ? (
+                            member.label.toLowerCase().includes(input.toLowerCase()) ||
+                            member.position.toLowerCase().includes(input.toLowerCase())
+                          ) : false;
+                        }}
+                      >
+                        {members.map(member => (
+                          <Select.Option key={member.value} value={member.value}>
+                            {member.label} - {member.position}
+                          </Select.Option>
+                        ))}
+                      </Select>
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={8}>
                     <Form.Item
                       label="Report To"
                       name="reportTo"
-                      rules={[{ required: true, message: 'Please enter report to' }]}
+                      rules={[{ required: true, message: 'Please select report to' }]}
                     >
-                      <Input />
+                      <Select 
+                        placeholder="Select manager" 
+                        loading={dataLoading}
+                        showSearch
+                        filterOption={(input, option) => {
+                          const member = members.find(m => m.value === option?.value);
+                          return member ? (
+                            member.label.toLowerCase().includes(input.toLowerCase()) ||
+                            member.position.toLowerCase().includes(input.toLowerCase())
+                          ) : false;
+                        }}
+                      >
+                        {members.map(member => (
+                          <Select.Option key={member.value} value={member.value}>
+                            {member.label} - {member.position}
+                          </Select.Option>
+                        ))}
+                      </Select>
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={8}>
@@ -526,16 +656,99 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                 >
                   <Input />
                 </Form.Item>
-              </Form>
+                </Form>
+              </div>
             ) : (
               <div>
-                <Alert
-                  message={ticket.title}
-                  description={ticket.description}
-                  type="info"
-                  showIcon
-                  style={{ marginBottom: 24 }}
-                />
+                {/* Simple Ticket Header Section */}
+                <div style={{ 
+                  background: '#fafafa',
+                  borderRadius: '8px',
+                  padding: '20px',
+                  marginBottom: '24px',
+                  border: '1px solid #e8e8e8',
+                  position: 'relative'
+                }}>
+                  {/* Edit Button - Top Right */}
+                  <div style={{ 
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px'
+                  }}>
+                    <Button
+                      type="primary"
+                      icon={<EditOutlined />}
+                      onClick={() => setEditing(true)}
+                      size="small"
+                    >
+                      Edit Ticket
+                    </Button>
+                  </div>
+
+                  {/* Ticket Number */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <Tag 
+                      color="blue" 
+                      style={{ 
+                        fontSize: '13px', 
+                        fontWeight: '600',
+                        padding: '4px 10px',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      {ticket.ticketNumber}
+                    </Tag>
+                  </div>
+
+                  {/* Title */}
+                  <Title 
+                    level={3} 
+                    style={{ 
+                      margin: '0 0 16px 0',
+                      color: '#262626',
+                      fontSize: '22px',
+                      fontWeight: '600',
+                      lineHeight: '1.4',
+                      paddingRight: '120px' // Add padding to avoid overlap with button
+                    }}
+                  >
+                    {ticket.title}
+                  </Title>
+
+                  {/* Description */}
+                  <div style={{
+                    background: '#ffffff',
+                    borderRadius: '6px',
+                    padding: '16px',
+                    border: '1px solid #e8e8e8'
+                  }}>
+                    <Text strong style={{ 
+                      color: '#8c8c8c', 
+                      fontSize: '12px', 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.5px',
+                      display: 'block',
+                      marginBottom: '8px'
+                    }}>
+                      Description
+                    </Text>
+                    <Paragraph 
+                      style={{ 
+                        margin: '0',
+                        fontSize: '14px',
+                        lineHeight: '1.6',
+                        color: '#595959'
+                      }}
+                      ellipsis={{ 
+                        rows: 4, 
+                        expandable: true, 
+                        symbol: 'Show more' 
+                      }}
+                    >
+                      {ticket.description}
+                    </Paragraph>
+                  </div>
+                </div>
 
                 <Descriptions title="Ticket Information" bordered column={2}>
                   <Descriptions.Item label="Status">
@@ -549,53 +762,53 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     </Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Project">
-                    <Tag color="blue">{ticket.project.name}</Tag>
+                    <Tag color="blue">{ticket?.project?.name || 'Unknown'}</Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Platform">
-                    {ticket.platform}
+                    {ticket?.platform || 'Not specified'}
                   </Descriptions.Item>
                   <Descriptions.Item label="Task Type">
-                    <Tag color={getTaskTypeColor(ticket.taskType)}>
-                      {ticket.taskType}
+                    <Tag color={getTaskTypeColor(ticket?.taskType || '')}>
+                      {ticket?.taskType || 'Not specified'}
                     </Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Task Level">
-                    {ticket.taskLevel}
+                    {ticket?.taskLevel || 'Not specified'}
                   </Descriptions.Item>
                   <Descriptions.Item label="Story Points">
-                    {ticket.storyPoint}/5
+                    {ticket?.storyPoint || 0}/5
                   </Descriptions.Item>
                   <Descriptions.Item label="Estimate Hours">
-                    {ticket.estimateHours}h
+                    {ticket?.estimateHours || 0}h
                   </Descriptions.Item>
                   <Descriptions.Item label="Assignee">
                     <Space>
                       <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
-                        {ticket.assignee.name.charAt(0)}
+                        {ticket?.assignee?.name?.charAt(0) || 'U'}
                       </Avatar>
-                      {ticket.assignee.name}
+                      {ticket?.assignee?.name || 'Unassigned'}
                     </Space>
                   </Descriptions.Item>
                   <Descriptions.Item label="Report To">
-                    {typeof ticket.reportTo === 'string' 
+                    {typeof ticket?.reportTo === 'string' 
                       ? ticket.reportTo 
-                      : ticket.reportTo?.name || 'Not assigned'
+                      : ticket?.reportTo?.name || 'Not assigned'
                     }
                   </Descriptions.Item>
                   <Descriptions.Item label="Created By">
-                    {ticket.createdBy.name}
+                    {ticket?.createdBy?.name || 'Unknown'}
                   </Descriptions.Item>
                   <Descriptions.Item label="Created At">
-                    {dayjs(ticket.createdAt).format('MMMM DD, YYYY HH:mm')}
+                    {ticket?.createdAt ? dayjs(ticket.createdAt).format('MMMM DD, YYYY HH:mm') : 'Unknown'}
                   </Descriptions.Item>
                   <Descriptions.Item label="Duration" span={2}>
-                    {ticket.startDate && ticket.endDate ? (
+                    {ticket?.startDate && ticket?.endDate ? (
                       `${dayjs(ticket.startDate).format('MMM DD')} - ${dayjs(ticket.endDate).format('MMM DD, YYYY')}`
                     ) : (
                       'Not set'
                     )}
                   </Descriptions.Item>
-                  {ticket.releasePlan && (
+                  {ticket?.releasePlan && (
                     <Descriptions.Item label="Release Plan" span={2}>
                       <Tag color="purple">{ticket.releasePlan}</Tag>
                     </Descriptions.Item>
@@ -631,26 +844,33 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
             <List
               dataSource={ticket.comments}
-              renderItem={(comment) => (
-                <List.Item>
-                  <div style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                      <Avatar style={{ backgroundColor: '#1677ff', marginRight: 8 }}>
-                        {comment?.userName?.charAt(0)}
-                      </Avatar>
-                      <div>
-                        <Text strong>{comment.userName}</Text>
-                        <div style={{ fontSize: 12, color: '#999' }}>
-                          {dayjs(comment?.timestamp).format('MMMM DD, YYYY HH:mm')}
+              renderItem={(comment) => {
+                // Handle both populated user object and userName string
+                const userName = comment.userName || 
+                  (typeof comment.userId === 'object' && comment.userId?.name) || 
+                  'Unknown User';
+                
+                return (
+                  <List.Item>
+                    <div style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                        <Avatar style={{ backgroundColor: '#1677ff', marginRight: 8 }}>
+                          {userName.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <div>
+                          <Text strong>{userName}</Text>
+                          <div style={{ fontSize: 12, color: '#999' }}>
+                            {dayjs(comment?.timestamp).format('MMMM DD, YYYY HH:mm')}
+                          </div>
                         </div>
                       </div>
+                      <Paragraph style={{ marginLeft: 40, marginBottom: 0 }}>
+                        {comment?.comment}
+                      </Paragraph>
                     </div>
-                    <Paragraph style={{ marginLeft: 40, marginBottom: 0 }}>
-                      {comment?.comment}
-                    </Paragraph>
-                  </div>
-                </List.Item>
-              )}
+                  </List.Item>
+                );
+              }}
               locale={{ emptyText: 'No comments yet' }}
             />
           </Card>

@@ -911,11 +911,11 @@ export default function AttendancePage() {
             {dashboardSummary && (
               <div style={{ textAlign: 'center' }}>
                 <Statistic
-                  value={dashboardSummary.attendanceRate}
+                  value={dashboardSummary?.attendanceRate}
                   suffix="%"
                   valueStyle={{ 
-                    color: dashboardSummary.attendanceRate >= 90 ? '#52c41a' : 
-                           dashboardSummary.attendanceRate >= 75 ? '#faad14' : '#ff4d4f',
+                    color: dashboardSummary?.attendanceRate >= 90 ? '#52c41a' : 
+                           dashboardSummary?.attendanceRate >= 75 ? '#faad14' : '#ff4d4f',
                     fontSize: 32
                   }}
                 />
@@ -933,11 +933,11 @@ export default function AttendancePage() {
               <Space direction="vertical" style={{ width: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Text>Late Today:</Text>
-                  <Tag color="orange">{dashboardSummary.lateToday}</Tag>
+                  <Tag color="orange">{dashboardSummary?.lateToday}</Tag>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Text>Work from Home:</Text>
-                  <Tag color="purple">{dashboardSummary.wfhToday}</Tag>
+                  <Tag color="purple">{dashboardSummary?.wfhToday}</Tag>
                 </div>
               </Space>
             )}
@@ -965,7 +965,7 @@ export default function AttendancePage() {
                 avatar={
                   <Avatar 
                     style={{ 
-                      backgroundColor: getStatusColor(employee.status),
+                      backgroundColor: getStatusColor(employee?.status),
                       fontSize: 14,
                       fontWeight: 600
                     }}
@@ -975,10 +975,10 @@ export default function AttendancePage() {
                 }
                 title={
                   <Space>
-                    <Text strong>{employee.name}</Text>
+                    <Text strong>{employee?.name}</Text>
                     <Tag 
-                      color={getStatusColor(employee.status)}
-                      icon={getStatusIcon(employee.status)}
+                      color={getStatusColor(employee?.status)}
+                      icon={getStatusIcon(employee?.status)}
                     >
                       {employee.status.toUpperCase()}
                     </Tag>
@@ -986,15 +986,15 @@ export default function AttendancePage() {
                 }
                 description={
                   <Space split={<Divider type="vertical" />}>
-                    <Text type="secondary">{employee.position}</Text>
+                    <Text type="secondary">{employee?.position}</Text>
                     <Text type="secondary">
-                      Clock In: {dayjs(employee.clockInTime).format('HH:mm')}
+                      Clock In: {dayjs(employee?.clockInTime).format('HH:mm')}
                     </Text>
                     <Text type="secondary">
-                      Shift: {employee.shift.name}
+                      Shift: {employee?.shift?.name}
                     </Text>
                     <Text type="secondary">
-                      Work Hours: {formatDuration(employee.workHours)}
+                      Work Hours: {formatDuration(employee?.workHours)}
                     </Text>
                   </Space>
                 }
@@ -1106,9 +1106,9 @@ export default function AttendancePage() {
                   <Text type="secondary" style={{ fontSize: 12 }}>Current Shift</Text>
                   <br />
                   <Text strong style={{ fontSize: 16 }}>
-                    {todayStatus.shift.name} ({todayStatus.shift.startTime} - {todayStatus.shift.endTime})
+                    {todayStatus?.shift?.name} ({todayStatus?.shift?.startTime} - {todayStatus?.shift?.endTime})
                   </Text>
-                  {todayStatus.shift.isFlexible && (
+                  {todayStatus?.shift?.isFlexible && (
                     <Tag color="blue" style={{ marginLeft: 8 }}>Flexible</Tag>
                   )}
                 </div>
@@ -1129,7 +1129,7 @@ export default function AttendancePage() {
                   >
                     Clock In
                   </Button>
-                ) : !todayStatus.clockOutTime ? (
+                ) : !todayStatus?.clockOutTime ? (
                   <Button
                     danger
                     size="large"
@@ -1161,34 +1161,34 @@ export default function AttendancePage() {
                     value={todayStatus.status.toUpperCase().replace('-', ' ')}
                     valueStyle={{ 
                       fontSize: 16, 
-                      color: getStatusColor(todayStatus.status) 
+                      color: getStatusColor(todayStatus?.status) 
                     }}
                   />
                 </Col>
                 <Col span={12}>
                   <Statistic
                     title="Work Hours"
-                    value={formatDuration(todayStatus.totalWorkMinutes)}
+                    value={formatDuration(todayStatus?.totalWorkMinutes)}
                     valueStyle={{ fontSize: 16 }}
                   />
                 </Col>
               </Row>
 
-              {todayStatus.clockInTime && (
+              {todayStatus?.clockInTime && (
                 <Row gutter={16}>
                   <Col span={12}>
                     <Text type="secondary" style={{ fontSize: 11 }}>Clock In</Text>
                     <br />
                     <Text strong style={{ fontSize: 14 }}>
-                      {dayjs(todayStatus.clockInTime).format('HH:mm')}
+                      {dayjs(todayStatus?.clockInTime).format('HH:mm')}
                     </Text>
                   </Col>
                   <Col span={12}>
                     <Text type="secondary" style={{ fontSize: 11 }}>Clock Out</Text>
                     <br />
                     <Text strong style={{ fontSize: 14 }}>
-                      {todayStatus.clockOutTime 
-                        ? dayjs(todayStatus.clockOutTime).format('HH:mm')
+                      {todayStatus?.clockOutTime 
+                        ? dayjs(todayStatus?.clockOutTime).format('HH:mm')
                         : '-'
                       }
                     </Text>
@@ -1214,20 +1214,20 @@ export default function AttendancePage() {
             <Space direction="vertical" style={{ width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Text>This Week:</Text>
-                <Text strong>{workHoursSummary.thisWeek.workHours}</Text>
+                <Text strong>{workHoursSummary?.thisWeek?.workHours}</Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Text>This Month:</Text>
-                <Text strong>{workHoursSummary.thisMonth.workHours}</Text>
+                <Text strong>{workHoursSummary?.thisMonth?.workHours}</Text>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Text type="secondary">Average/Day:</Text>
-                <Text>{workHoursSummary.thisWeek.averagePerDay}</Text>
+                <Text>{workHoursSummary?.thisWeek?.averagePerDay}</Text>
               </div>
-              {workHoursSummary.thisWeek.overtimeMinutes > 0 && (
+              {workHoursSummary?.thisWeek?.overtimeMinutes > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Text type="secondary">Overtime (Week):</Text>
-                  <Text style={{ color: '#faad14' }}>{workHoursSummary.thisWeek.overtimeHours}</Text>
+                  <Text style={{ color: '#faad14' }}>{workHoursSummary?.thisWeek?.overtimeHours}</Text>
                 </div>
               )}
               <Divider style={{ margin: '12px 0' }} />

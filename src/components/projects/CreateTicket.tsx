@@ -43,6 +43,7 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 interface TicketFormData {
+  title: string;
   platform: string;
   project: string;
   parentTickets: string[];
@@ -168,7 +169,7 @@ export default function CreateTicket() {
       
       // Prepare ticket data for API
       const ticketData = {
-        title: values.description.split('\n')[0] || 'New Ticket', // Use first line as title
+        title: values.title || 'New Ticket',
         description: values.description,
         platform: values.platform,
         project: values.project,
@@ -189,7 +190,7 @@ export default function CreateTicket() {
       // Create ticket using API
       const createdTicket = await TicketService.createTicket(ticketData);
       
-      message.success(`Ticket ${createdTicket.ticketNumber || ticketId} created successfully!`);
+      message.success(`Ticket ${createdTicket?.ticketNumber || ticketId} created successfully!`);
       
       // Reset form and selected project
       form.resetFields();
@@ -197,7 +198,7 @@ export default function CreateTicket() {
       
     } catch (error: any) {
       console.error('Error creating ticket:', error);
-      message.error(error.message || 'Failed to create ticket');
+      message.error(error?.message || 'Failed to create ticket');
     } finally {
       setLoading(false);
     }
@@ -239,6 +240,17 @@ export default function CreateTicket() {
                 </Space>
               }
             >
+              <Form.Item
+                name="title"
+                label="Title *"
+                rules={[{ required: true, message: 'Please enter a title' }]}
+              >
+                <Input
+                  placeholder="Enter ticket title..."
+                  size="large"
+                />
+              </Form.Item>
+
               <Row gutter={16}>
                 <Col xs={24} md={12}>
                   <Form.Item

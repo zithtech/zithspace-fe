@@ -21,8 +21,10 @@ import {
 import {
   PlusCircleOutlined,
   EyeOutlined,
+  DeleteOutlined,
   SearchOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -122,7 +124,30 @@ export default function TicketList() {
   };
 
   const handleCreateTicket = () => {
-    router.push('/tickets/create');
+    router.push('/projects/create');
+  };
+
+  const handleDeleteTicket = async (ticket: Ticket) => {
+    const { Modal } = await import('antd');
+    
+    Modal.confirm({
+      title: 'Delete Ticket',
+      icon: <ExclamationCircleOutlined />,
+      content: `Are you sure you want to delete ticket ${ticket.ticketNumber}? This action cannot be undone.`,
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await TicketService.deleteTicket(ticket._id);
+          message.success('Ticket deleted successfully');
+          fetchTickets(); // Refresh the list
+        } catch (error) {
+          console.error('Failed to delete ticket:', error);
+          message.error('Failed to delete ticket');
+        }
+      }
+    });
   };
 
   // Table columns
@@ -146,10 +171,10 @@ export default function TicketList() {
       render: (text: string, record: Ticket) => (
         <div>
           <Text strong>{text}</Text>
-          <br />
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          {/* <br /> */}
+          {/* <Text type="secondary" style={{ fontSize: 12 }}>
             {record.description.substring(0, 50)}...
-          </Text>
+          </Text> */}
         </div>
       )
     },
@@ -190,10 +215,17 @@ export default function TicketList() {
       title: 'Project',
       dataIndex: 'project',
       key: 'project',
-      width: 100,
-      render: (project: any) => (
-        <Tag color="blue">{typeof project === 'string' ? project : project.name}</Tag>
-      )
+      width: 150,
+      render: (project: any) => {
+        if (typeof project === 'string') {
+          return <Tag color="blue">{project}</Tag>;
+        }
+        return (
+          <Tag color="blue">
+            {project.name} ({project.code})
+          </Tag>
+        );
+      }
     },
     {
       title: 'Assignee',
@@ -226,16 +258,27 @@ export default function TicketList() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 80,
+      width: 120,
       render: (_: any, record: Ticket) => (
-        <Button
-          type="text"
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={() => handleViewTicket(record)}
-        >
-          View
-        </Button>
+        <Space>
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleViewTicket(record)}
+          >
+            View
+          </Button>
+          <Button
+            type="text"
+            size="small"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteTicket(record)}
+          >
+            Delete
+          </Button>
+        </Space>
       )
     }
   ];

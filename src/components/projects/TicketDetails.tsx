@@ -397,9 +397,6 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
             >
               Back
             </Button>
-            <Title level={3} style={{ margin: 0 ,marginLeft:10}}>
-              {ticket.ticketNumber} - {ticket.title}
-            </Title>
           </Space>
         </Col>
       </Row>
@@ -422,7 +419,6 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                       icon={<CloseOutlined />}
                       onClick={() => {
                         setEditing(false);
-                        form.resetFields();
                       }}
                       size="small"
                     >

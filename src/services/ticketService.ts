@@ -69,6 +69,20 @@ export interface ParentTicket {
   project: string;
 }
 
+export interface RelatedLink {
+  _id?: string;
+  type: 'ui_design' | 'scope_doc' | 'sample_response' | 'dev_doc';
+  title: string;
+  description: string;
+  url: string;
+  addedBy: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  addedAt: string;
+}
+
 export interface Ticket {
   _id: string;
   ticketNumber: string;
@@ -106,6 +120,7 @@ export interface Ticket {
   estimateHours?: number;
   startDate?: string;
   endDate?: string;
+  relatedLinks?: RelatedLink[];
   comments?: Array<{
     _id: string;
     userId: {
@@ -402,6 +417,68 @@ class TicketService {
     } catch (error) {
       console.error('Error fetching release plans:', error);
       throw new Error('Failed to fetch release plans');
+    }
+  }
+
+  /**
+   * Get related links for a ticket
+   */
+  static async getRelatedLinks(ticketId: string): Promise<RelatedLink[]> {
+    try {
+      const response = await apiClient.get(`/api/tickets/${ticketId}/links`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching related links:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to fetch related links';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Add related link to ticket
+   */
+  static async addRelatedLink(ticketId: string, linkData: {
+    type: 'ui_design' | 'scope_doc' | 'sample_response' | 'dev_doc';
+    description: string;
+    url: string;
+  }): Promise<RelatedLink> {
+    try {
+      const response = await apiClient.post(`/api/tickets/${ticketId}/links`, linkData);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error adding related link:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to add related link';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Update related link
+   */
+  static async updateRelatedLink(ticketId: string, linkId: string, updates: {
+    description: string;
+    url: string;
+  }): Promise<RelatedLink> {
+    try {
+      const response = await apiClient.put(`/api/tickets/${ticketId}/links/${linkId}`, updates);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error updating related link:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to update related link';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Delete related link
+   */
+  static async deleteRelatedLink(ticketId: string, linkId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/tickets/${ticketId}/links/${linkId}`);
+    } catch (error: any) {
+      console.error('Error deleting related link:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to delete related link';
+      throw new Error(errorMessage);
     }
   }
 }

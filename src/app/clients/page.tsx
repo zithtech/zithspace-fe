@@ -518,7 +518,7 @@ export default function ClientsPage() {
   // RBAC permissions
   const rbac = useRBAC(user.role as any);
   const canManage = rbac?.canManageMembers; // Using same permission as members for now
-
+//comment added
   return (
     <MainLayout>
       <div style={{ padding: 20 }}>

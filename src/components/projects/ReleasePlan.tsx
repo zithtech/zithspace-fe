@@ -41,7 +41,6 @@ import { ProjectService } from '@/services/projectService';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
-const { RangePicker } = DatePicker;
 
 export default function ReleasePlanComponent() {
   const router = useRouter();
@@ -75,7 +74,7 @@ export default function ReleasePlanComponent() {
     try {
       setLoading(true);
       const data = await ReleasePlanService.getReleasePlans();
-      setReleasePlans(data.data);
+      setReleasePlans(data?.data || []);
     } catch (error) {
       console.error('Failed to load release plans:', error);
       message.error('Failed to load release plans');
@@ -103,7 +102,7 @@ export default function ReleasePlanComponent() {
         limit: search ? 20 : 5,
         excludeReleasePlan: editingPlan?._id
       });
-      setAvailableTickets(tickets);
+      setAvailableTickets(tickets || []);
     } catch (error) {
       console.error('Failed to load tickets:', error);
       message.error('Failed to load tickets');
@@ -132,14 +131,13 @@ export default function ReleasePlanComponent() {
       setSaving(true);
 
       const formData: ReleasePlanFormData = {
-        name: values.name,
-        description: values.description,
-        project: values.project,
-        startDate: values.dateRange[0].toISOString(),
-        endDate: values.dateRange[1].toISOString(),
-        priority: values.priority || 'Medium',
-        tickets: selectedTickets,
-        notes: values.notes
+        name: values?.name || '',
+        description: values?.description || '',
+        project: values?.project || '',
+        deadline: values?.deadline?.toISOString() || '',
+        priority: values?.priority || 'Medium',
+        tickets: selectedTickets || [],
+        notes: values?.notes || ''
       };
 
       if (editingPlan) {
@@ -162,19 +160,19 @@ export default function ReleasePlanComponent() {
 
   const handleEdit = (plan: ReleasePlan) => {
     setEditingPlan(plan);
-    setSelectedProject(typeof plan.project === 'string' ? plan.project : plan.project._id);
-    setSelectedTickets(plan.tickets.map(t => t._id));
+    setSelectedProject(typeof plan?.project === 'string' ? plan.project : plan?.project?._id || '');
+    setSelectedTickets(plan?.tickets?.map(t => t?._id) || []);
     
     form.setFieldsValue({
-      name: plan.name,
-      description: plan.description,
-      project: typeof plan.project === 'string' ? plan.project : plan.project._id,
-      dateRange: [dayjs(plan.startDate), dayjs(plan.endDate)],
-      priority: plan.priority,
-      notes: plan.notes
+      name: plan?.name,
+      description: plan?.description,
+      project: typeof plan?.project === 'string' ? plan.project : plan?.project?._id,
+      deadline: plan?.deadline ? dayjs(plan.deadline) : null,
+      priority: plan?.priority,
+      notes: plan?.notes
     });
     
-    loadTicketsByProject(typeof plan.project === 'string' ? plan.project : plan.project._id);
+    loadTicketsByProject(typeof plan?.project === 'string' ? plan.project : plan?.project?._id || '');
     setShowCreateModal(true);
   };
 
@@ -234,7 +232,9 @@ export default function ReleasePlanComponent() {
           <Text strong>{text}</Text>
           <br />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {typeof record.project === 'string' ? record.project : record.project.name}
+            {record.description?.length > 50 
+              ? `${record.description.substring(0, 50)}...` 
+              : record.description}
           </Text>
         </div>
       )
@@ -246,12 +246,12 @@ export default function ReleasePlanComponent() {
       width: 200,
       render: (progress: number, record: ReleasePlan) => (
         <div>
-          <Progress percent={progress} size="small" />
+          <Progress percent={progress || 0} size="small" />
           <Text 
             style={{ fontSize: 12, cursor: 'pointer', color: '#1677ff' }}
             onClick={() => handleViewTickets(record)}
           >
-            {record.completedTickets}/{record.totalTickets} tickets completed
+            {record?.completedTickets || 0}/{record?.totalTickets || 0} tickets completed
           </Text>
         </div>
       )
@@ -275,13 +275,13 @@ export default function ReleasePlanComponent() {
       )
     },
     {
-      title: 'Timeline',
-      dataIndex: 'startDate',
-      key: 'timeline',
-      render: (startDate: string, record: ReleasePlan) => (
+      title: 'Deadline',
+      dataIndex: 'deadline',
+      key: 'deadline',
+      render: (deadline: string) => (
         <div>
           <Text style={{ fontSize: 12 }}>
-            {dayjs(startDate).format('MMM DD')} - {dayjs(record.endDate).format('MMM DD, YYYY')}
+            {dayjs(deadline).format('MMM DD, YYYY')}
           </Text>
         </div>
       )
@@ -367,11 +367,13 @@ export default function ReleasePlanComponent() {
       <Modal
         title={editingPlan ? 'Edit Release Plan' : 'Create Release Plan'}
         open={showCreateModal}
-        onOk={handleCreateOrUpdate}
         onCancel={handleCloseModal}
-        confirmLoading={saving}
         width={800}
         maskClosable={false}
+        footer={null}
+        styles={{
+          body: { maxHeight: '60vh', overflowY: 'auto' },
+        }}
       >
         <Form
           form={form}
@@ -419,11 +421,15 @@ export default function ReleasePlanComponent() {
           <Row gutter={16}>
             <Col xs={24} md={16}>
               <Form.Item
-                label="Timeline"
-                name="dateRange"
-                rules={[{ required: true, message: 'Please select timeline' }]}
+                label="Deadline"
+                name="deadline"
+                rules={[{ required: true, message: 'Please select deadline' }]}
               >
-                <RangePicker style={{ width: '100%' }} />
+                <DatePicker 
+                  style={{ width: '100%' }} 
+                  placeholder="Select deadline"
+                  showTime={false}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
@@ -486,16 +492,16 @@ export default function ReleasePlanComponent() {
                             }
                             title={
                               <Text style={{ cursor: 'pointer' }}>
-                                {ticket.ticketNumber} - {ticket.title}
+                                {ticket?.ticketNumber} - {ticket?.title}
                               </Text>
                             }
                             description={
                               <Space>
-                                <Tag color="blue">{ticket.status}</Tag>
-                                <Tag color="orange">{ticket.priority}</Tag>
-                                {ticket.assignee && (
+                                <Tag color="blue">{ticket?.status}</Tag>
+                                <Tag color="orange">{ticket?.priority}</Tag>
+                                {ticket?.assignee && (
                                   <Text type="secondary">
-                                    Assigned to: {ticket.assignee.name}
+                                    Assigned to: {ticket?.assignee?.name}
                                   </Text>
                                 )}
                               </Space>
@@ -522,6 +528,30 @@ export default function ReleasePlanComponent() {
             <TextArea rows={2} placeholder="Additional notes..." />
           </Form.Item>
         </Form>
+
+        {/* Fixed footer with action buttons */}
+        <div style={{ 
+          borderTop: '1px solid #f0f0f0', 
+          padding: '16px 0', 
+          marginTop: '16px',
+          position: 'sticky',
+          bottom: 0,
+          backgroundColor: 'white'
+        }}>
+          <Space style={{ float: 'right' }}>
+            <Button onClick={handleCloseModal}>
+              Cancel
+            </Button>
+            <Button 
+              type="primary" 
+              loading={saving} 
+              onClick={handleCreateOrUpdate}
+            >
+              {editingPlan ? 'Update' : 'Create'}
+            </Button>
+          </Space>
+          <div style={{ clear: 'both' }}></div>
+        </div>
       </Modal>
 
       {/* Ticket Details Drawer */}
@@ -536,17 +566,17 @@ export default function ReleasePlanComponent() {
           <div>
             <div style={{ marginBottom: 16 }}>
               <Progress 
-                percent={drawerReleasePlan.progress} 
+                percent={drawerReleasePlan?.progress || 0} 
                 status="active"
                 style={{ marginBottom: 8 }}
               />
               <Text type="secondary">
-                {drawerReleasePlan.completedTickets} of {drawerReleasePlan.totalTickets} tickets completed
+                {drawerReleasePlan?.completedTickets || 0} of {drawerReleasePlan?.totalTickets || 0} tickets completed
               </Text>
             </div>
 
             <List
-              dataSource={drawerReleasePlan.tickets}
+              dataSource={drawerReleasePlan?.tickets || []}
               renderItem={(ticket) => (
                 <List.Item
                   actions={[
@@ -554,28 +584,28 @@ export default function ReleasePlanComponent() {
                       key="view"
                       type="link"
                       size="small"
-                      onClick={() => router.push(`/tickets/${ticket._id}`)}
+                      onClick={() => router.push(`/tickets/${ticket?._id}`)}
                     >
                       View
                     </Button>
                   ]}
                 >
                   <List.Item.Meta
-                    avatar={<Avatar style={{ backgroundColor: '#1677ff' }}>{ticket.ticketNumber}</Avatar>}
-                    title={ticket.title}
+                    avatar={<Avatar style={{ backgroundColor: '#1677ff' }}>{ticket?.ticketNumber}</Avatar>}
+                    title={ticket?.title}
                     description={
                       <Space>
-                        <Tag color={ticket.status === 'completed' ? 'success' : 
-                                   ticket.status === 'in_progress' ? 'processing' : 'default'}>
-                          {ticket.status.replace('_', ' ')}
+                        <Tag color={ticket?.status === 'completed' ? 'success' : 
+                                   ticket?.status === 'in_progress' ? 'processing' : 'default'}>
+                          {ticket?.status?.replace('_', ' ')}
                         </Tag>
-                        <Tag color={ticket.priority === 'P1' ? 'red' : 
-                                   ticket.priority === 'P2' ? 'orange' : 'green'}>
-                          {ticket.priority}
+                        <Tag color={ticket?.priority === 'P1' ? 'red' : 
+                                   ticket?.priority === 'P2' ? 'orange' : 'green'}>
+                          {ticket?.priority}
                         </Tag>
-                        {ticket.assignee && (
+                        {ticket?.assignee && (
                           <Text type="secondary">
-                            {ticket.assignee.name}
+                            {ticket?.assignee?.name}
                           </Text>
                         )}
                       </Space>

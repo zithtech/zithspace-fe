@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card,
   Typography,
@@ -23,7 +23,9 @@ import {
   Spin,
   Empty,
   Popconfirm,
-  Tooltip
+  Tooltip,
+  Divider,
+  Alert
 } from 'antd';
 import {
   PlusOutlined,
@@ -32,7 +34,10 @@ import {
   EyeOutlined,
   CalendarOutlined,
   TeamOutlined,
-  SearchOutlined
+  SearchOutlined,
+  CloseOutlined,
+  LoadingOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
@@ -58,17 +63,41 @@ export default function ReleasePlanComponent() {
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [availableTickets, setAvailableTickets] = useState<ProjectTicket[]>([]);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
+  const [selectedTicketDetails, setSelectedTicketDetails] = useState<ProjectTicket[]>([]);
   const [ticketSearch, setTicketSearch] = useState('');
   const [ticketLoading, setTicketLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   
   // Drawer state for ticket details
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [drawerReleasePlan, setDrawerReleasePlan] = useState<ReleasePlan | null>(null);
 
+  // Search debounce timer
+  const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     loadData();
     loadProjects();
   }, []);
+
+  // Cleanup search timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimer) {
+        clearTimeout(searchTimer);
+      }
+    };
+  }, [searchTimer]);
+
+  // Update selected ticket details when selection changes
+  useEffect(() => {
+    if (selectedTickets.length > 0 && availableTickets.length > 0) {
+      const details = availableTickets.filter(ticket => selectedTickets.includes(ticket._id));
+      setSelectedTicketDetails(details);
+    } else {
+      setSelectedTicketDetails([]);
+    }
+  }, [selectedTickets, availableTickets]);
 
   const loadData = async () => {
     try {
@@ -92,38 +121,90 @@ export default function ReleasePlanComponent() {
     }
   };
 
-  const loadTicketsByProject = async (projectId: string, search?: string) => {
+  const loadTicketsByProject = useCallback(async (projectId: string, search?: string, isSearching?: boolean) => {
     if (!projectId) return;
     
     try {
-      setTicketLoading(true);
+      if (isSearching) {
+        setSearchLoading(true);
+      } else {
+        setTicketLoading(true);
+      }
+      
       const tickets = await ReleasePlanService.getTicketsByProject(projectId, {
-        search,
-        limit: search ? 20 : 5,
+        search: search || undefined,
+        limit: search ? 50 : 20,
         excludeReleasePlan: editingPlan?._id
       });
+      
       setAvailableTickets(tickets || []);
     } catch (error) {
       console.error('Failed to load tickets:', error);
       message.error('Failed to load tickets');
+      setAvailableTickets([]);
     } finally {
       setTicketLoading(false);
+      setSearchLoading(false);
     }
-  };
+  }, [editingPlan]);
 
-  const handleProjectChange = (projectId: string) => {
+  const handleProjectChange = useCallback((projectId: string) => {
+    // Clear search timer
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+      setSearchTimer(null);
+    }
+
+    // Reset all related states
     setSelectedProject(projectId);
     setSelectedTickets([]);
+    setSelectedTicketDetails([]);
     setTicketSearch('');
-    loadTicketsByProject(projectId);
-  };
+    setAvailableTickets([]);
+    setSearchLoading(false);
 
-  const handleTicketSearch = (value: string) => {
-    setTicketSearch(value);
-    if (selectedProject) {
-      loadTicketsByProject(selectedProject, value);
+    // Load tickets for new project
+    if (projectId) {
+      loadTicketsByProject(projectId);
     }
-  };
+  }, [loadTicketsByProject, searchTimer]);
+
+  const handleTicketSearch = useCallback((value: string) => {
+    setTicketSearch(value);
+
+    // Clear existing timer
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+    }
+
+    // Set new timer for debounced search
+    const newTimer = setTimeout(() => {
+      if (selectedProject) {
+        loadTicketsByProject(selectedProject, value.trim() || undefined, true);
+      }
+    }, 300);
+
+    setSearchTimer(newTimer);
+  }, [selectedProject, loadTicketsByProject, searchTimer]);
+
+  const handleTicketSelection = useCallback((ticketId: string) => {
+    setSelectedTickets(prev => {
+      const isSelected = prev.includes(ticketId);
+      if (isSelected) {
+        return prev.filter(id => id !== ticketId);
+      } else {
+        return [...prev, ticketId];
+      }
+    });
+  }, []);
+
+  const handleRemoveSelectedTicket = useCallback((ticketId: string) => {
+    setSelectedTickets(prev => prev.filter(id => id !== ticketId));
+    // Refetch tickets to potentially show the removed ticket in available list
+    if (selectedProject) {
+      loadTicketsByProject(selectedProject, ticketSearch || undefined);
+    }
+  }, [selectedProject, ticketSearch, loadTicketsByProject]);
 
   const handleCreateOrUpdate = async () => {
     try {
@@ -160,19 +241,38 @@ export default function ReleasePlanComponent() {
 
   const handleEdit = (plan: ReleasePlan) => {
     setEditingPlan(plan);
-    setSelectedProject(typeof plan?.project === 'string' ? plan.project : plan?.project?._id || '');
-    setSelectedTickets(plan?.tickets?.map(t => t?._id) || []);
+    const projectId = typeof plan?.project === 'string' ? plan.project : plan?.project?._id || '';
+    setSelectedProject(projectId);
+    
+    // Set selected tickets and their details
+    const ticketIds = plan?.tickets?.map(t => t?._id) || [];
+    setSelectedTickets(ticketIds);
+    
+    // Map existing tickets to ProjectTicket format for selectedTicketDetails
+    const existingTicketDetails: ProjectTicket[] = plan?.tickets?.map(ticket => ({
+      _id: ticket._id,
+      ticketNumber: ticket.ticketNumber,
+      title: ticket.title,
+      status: ticket.status,
+      priority: ticket.priority,
+      assignee: ticket.assignee,
+      createdBy: ticket.assignee || { _id: '', name: '', email: '' }, // Fallback if needed
+      createdAt: new Date().toISOString() // Fallback if needed
+    })) || [];
+    
+    setSelectedTicketDetails(existingTicketDetails);
     
     form.setFieldsValue({
       name: plan?.name,
       description: plan?.description,
-      project: typeof plan?.project === 'string' ? plan.project : plan?.project?._id,
+      project: projectId,
       deadline: plan?.deadline ? dayjs(plan.deadline) : null,
       priority: plan?.priority,
       notes: plan?.notes
     });
     
-    loadTicketsByProject(typeof plan?.project === 'string' ? plan.project : plan?.project?._id || '');
+    // Load available tickets (excluding current release plan tickets)
+    loadTicketsByProject(projectId);
     setShowCreateModal(true);
   };
 
@@ -188,12 +288,21 @@ export default function ReleasePlanComponent() {
   };
 
   const handleCloseModal = () => {
+    // Clear search timer
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+      setSearchTimer(null);
+    }
+
     setShowCreateModal(false);
     setEditingPlan(null);
     setSelectedProject('');
     setSelectedTickets([]);
+    setSelectedTicketDetails([]);
     setTicketSearch('');
     setAvailableTickets([]);
+    setTicketLoading(false);
+    setSearchLoading(false);
     form.resetFields();
   };
 
@@ -399,6 +508,7 @@ export default function ReleasePlanComponent() {
                 <Select
                   placeholder="Select project"
                   onChange={handleProjectChange}
+                  disabled={!!editingPlan} // Disable project field in edit mode
                 >
                   {projects.map(project => (
                     <Select.Option key={project.value} value={project.value}>
@@ -451,35 +561,112 @@ export default function ReleasePlanComponent() {
           {selectedProject && (
             <>
               <Form.Item label="Select Tickets">
+                {/* Selected Tickets Display */}
+                {selectedTickets.length > 0 && (
+                  <div style={{ 
+                    marginBottom: 12, 
+                    padding: '8px 12px', 
+                    backgroundColor: '#f6f8fa', 
+                    border: '1px solid #e1e8ed',
+                    borderRadius: 6 
+                  }}>
+                    <div style={{ marginBottom: 6 }}>
+                      <Text strong style={{ fontSize: 13, color: '#666' }}>
+                        Selected Tickets ({selectedTickets.length})
+                      </Text>
+                    </div>
+                    <div style={{ maxHeight: 120, overflowY: 'auto' }}>
+                      <Space size={[4, 4]} wrap>
+                        {selectedTicketDetails.map((ticket) => (
+                          <Tag
+                            key={ticket._id}
+                            closable
+                            onClose={(e) => {
+                              e.preventDefault();
+                              handleRemoveSelectedTicket(ticket._id);
+                            }}
+                            color="blue"
+                            style={{ 
+                              marginBottom: 4,
+                              maxWidth: 300,
+                              cursor: 'default'
+                            }}
+                          >
+                            <Tooltip title={`${ticket.ticketNumber} - ${ticket.title}`}>
+                              <span style={{ fontSize: 11 }}>
+                                {ticket.ticketNumber} - {ticket.title?.length > 25 ? `${ticket.title.substring(0, 25)}...` : ticket.title}
+                              </span>
+                            </Tooltip>
+                          </Tag>
+                        ))}
+                        {/* Show remaining tickets by ID if details not available */}
+                        {selectedTickets.filter(id => !selectedTicketDetails.find(t => t._id === id)).map((ticketId) => (
+                          <Tag
+                            key={ticketId}
+                            closable
+                            onClose={(e) => {
+                              e.preventDefault();
+                              handleRemoveSelectedTicket(ticketId);
+                            }}
+                            color="blue"
+                            style={{ marginBottom: 4 }}
+                          >
+                            <span style={{ fontSize: 11 }}>
+                              {ticketId.substring(0, 8)}...
+                            </span>
+                          </Tag>
+                        ))}
+                      </Space>
+                    </div>
+                  </div>
+                )}
+
                 <Input.Search
                   placeholder="Search tickets by number or title..."
                   value={ticketSearch}
                   onChange={(e) => handleTicketSearch(e.target.value)}
                   style={{ marginBottom: 12 }}
-                  suffix={<SearchOutlined />}
+                  loading={searchLoading}
+                  suffix={searchLoading ? <LoadingOutlined /> : <SearchOutlined />}
                 />
                 
-                <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, maxHeight: 300, overflowY: 'auto' }}>
+                <div style={{ 
+                  border: '1px solid #d9d9d9', 
+                  borderRadius: 6, 
+                  maxHeight: 280, 
+                  overflowY: 'auto',
+                  backgroundColor: '#fafafa'
+                }}>
                   {ticketLoading ? (
                     <div style={{ padding: 20, textAlign: 'center' }}>
-                      <Spin />
+                      <Spin size="small" />
+                      <div style={{ marginTop: 8, color: '#666', fontSize: 13 }}>
+                        Loading tickets...
+                      </div>
                     </div>
                   ) : availableTickets.length === 0 ? (
                     <div style={{ padding: 20, textAlign: 'center' }}>
-                      <Empty description="No tickets found" />
+                      <Empty 
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description={
+                          <span style={{ color: '#999', fontSize: 13 }}>
+                            {ticketSearch ? 'No tickets found matching your search' : 'No available tickets'}
+                          </span>
+                        }
+                      />
                     </div>
                   ) : (
                     <List
                       dataSource={availableTickets}
                       renderItem={(ticket) => (
                         <List.Item
-                          style={{ padding: '8px 16px' }}
-                          onClick={() => {
-                            const newSelection = selectedTickets.includes(ticket._id)
-                              ? selectedTickets.filter(id => id !== ticket._id)
-                              : [...selectedTickets, ticket._id];
-                            setSelectedTickets(newSelection);
+                          style={{ 
+                            padding: '4px 12px',
+                            cursor: 'pointer',
+                            backgroundColor: selectedTickets.includes(ticket._id) ? '#e6f7ff' : 'transparent',
+                            borderBottom: '1px solid #f0f0f0'
                           }}
+                          onClick={() => handleTicketSelection(ticket._id)}
                         >
                           <List.Item.Meta
                             avatar={
@@ -487,24 +674,51 @@ export default function ReleasePlanComponent() {
                                 type="checkbox"
                                 checked={selectedTickets.includes(ticket._id)}
                                 onChange={() => {}}
-                                style={{ cursor: 'pointer' }}
+                                style={{ cursor: 'pointer', transform: 'scale(0.9)' }}
                               />
                             }
                             title={
-                              <Text style={{ cursor: 'pointer' }}>
-                                {ticket?.ticketNumber} - {ticket?.title}
-                              </Text>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Text 
+                                  style={{ 
+                                    cursor: 'pointer', 
+                                    fontSize: 13,
+                                    fontWeight: selectedTickets.includes(ticket._id) ? 600 : 400
+                                  }}
+                                >
+                                  {ticket?.ticketNumber}
+                                </Text>
+                                <Text 
+                                  style={{ 
+                                    cursor: 'pointer', 
+                                    fontSize: 13,
+                                    color: '#666',
+                                    flex: 1,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {ticket?.title}
+                                </Text>
+                              </div>
                             }
                             description={
-                              <Space>
-                                <Tag color="blue">{ticket?.status}</Tag>
-                                <Tag color="orange">{ticket?.priority}</Tag>
-                                {ticket?.assignee && (
-                                  <Text type="secondary">
-                                    Assigned to: {ticket?.assignee?.name}
-                                  </Text>
-                                )}
-                              </Space>
+                              <div style={{ marginTop: 2 }}>
+                                <Space size={4}>
+                                  <Tag color="blue" style={{ fontSize: 10, lineHeight: '16px', margin: 0, padding: '0 6px', height: '18px' }}>
+                                    {ticket?.status?.replace('_', ' ')}
+                                  </Tag>
+                                  <Tag color="orange" style={{ fontSize: 10, lineHeight: '16px', margin: 0, padding: '0 6px', height: '18px' }}>
+                                    {ticket?.priority}
+                                  </Tag>
+                                  {ticket?.assignee && (
+                                    <Text type="secondary" style={{ fontSize: 11 }}>
+                                      • {ticket.assignee.name}
+                                    </Text>
+                                  )}
+                                </Space>
+                              </div>
                             }
                           />
                         </List.Item>
@@ -513,13 +727,18 @@ export default function ReleasePlanComponent() {
                   )}
                 </div>
                 
-                {selectedTickets.length > 0 && (
-                  <div style={{ marginTop: 8 }}>
-                    <Text type="secondary">
-                      {selectedTickets.length} ticket(s) selected
+                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {availableTickets.length > 0 && (
+                      `${availableTickets.length} ticket${availableTickets.length !== 1 ? 's' : ''} available`
+                    )}
+                  </Text>
+                  {selectedTickets.length > 0 && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {selectedTickets.length} selected
                     </Text>
-                  </div>
-                )}
+                  )}
+                </div>
               </Form.Item>
             </>
           )}

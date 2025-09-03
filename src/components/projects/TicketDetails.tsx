@@ -1291,7 +1291,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                 style={{ marginLeft: "4px", fontSize: "12px" }}
                               />
                             </a>
-                            <Tag
+                            {/* <Tag
                               color={
                                 link.type === "ui_design"
                                   ? "blue"
@@ -1309,7 +1309,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                 : link.type === "sample_response"
                                 ? "Sample Response"
                                 : "Dev Doc"}
-                            </Tag>
+                            </Tag> */}
                           </Space>
                         }
                         description={link.description}

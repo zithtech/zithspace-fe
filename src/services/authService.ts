@@ -7,33 +7,41 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
   user: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
     workEmail: string;
     personalEmail: string;
-    role: 'super admin' | 'admin' | 'user';
+    role: string; // Flexible string instead of enum
     position: string;
     phone: string;
     reportsTo?: string | null;
     isActive: boolean;
+    tenantId: string; // Add tenant context
+    tenantName: string; // Add tenant name
   };
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string; // Optional since it's in cookies
 }
 
 export interface UserProfile {
-  id: string; // Backend returns "id", not "_id"
+  id: string; // Backend returns "id", not "id"
   name: string;
   phone: string;
   personalEmail: string;
   workEmail: string;
   role: string;
   position: string;
+  tenantId: string; // Add tenant context
   reportsTo?: {
-    _id: string;
+    id: string; // Updated to use "id" instead of "id"
     name: string;
     position: string;
+  };
+  tenant?: {
+    id: string;
+    name: string;
+    subdomain: string;
   };
   dateOfBirth?: string;
   createdAt: string;

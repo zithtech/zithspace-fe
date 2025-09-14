@@ -85,11 +85,11 @@ async function seedShifts() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Find a super admin user to use as creator
-    const superAdmin = await User.findOne({ role: 'super admin' });
+    // Find a super_admin user to use as creator
+    const superAdmin = await User.findOne({ role: 'super_admin' });
     
     if (!superAdmin) {
-      console.error('No super admin user found. Please run seed-admin.js first.');
+      console.error('No super_admin user found. Please run seed-admin.js first.');
       process.exit(1);
     }
 
@@ -114,7 +114,7 @@ async function seedShifts() {
         isFlexible: false,
         isActive: true,
         isDefault: true,
-        createdBy: superAdmin._id,
+        createdBy: superAdmin.id,
       },
       {
         name: 'Evening Shift',
@@ -128,7 +128,7 @@ async function seedShifts() {
         isFlexible: false,
         isActive: true,
         isDefault: false,
-        createdBy: superAdmin._id,
+        createdBy: superAdmin.id,
       },
       {
         name: 'Night Shift',
@@ -142,7 +142,7 @@ async function seedShifts() {
         isFlexible: false,
         isActive: true,
         isDefault: false,
-        createdBy: superAdmin._id,
+        createdBy: superAdmin.id,
       },
       {
         name: 'Flexible Shift',
@@ -158,7 +158,7 @@ async function seedShifts() {
         flexibleEndRange: 120,
         isActive: true,
         isDefault: false,
-        createdBy: superAdmin._id,
+        createdBy: superAdmin.id,
       },
     ];
 

@@ -142,7 +142,7 @@ const ProjectsManagePage: React.FC = () => {
   const handleProjectManagerFilter = (projectManager: string) => {
     setFilters(prev => ({
       ...prev,
-      projectManager: projectManager || undefined,
+      projectManagerId: projectManager || undefined,
       page: 1,
     }));
   };
@@ -177,7 +177,7 @@ const ProjectsManagePage: React.FC = () => {
       };
 
       if (editingProject) {
-        await ProjectService.updateProject(editingProject._id, projectData as UpdateProjectData);
+        await ProjectService.updateProject(editingProject.id, projectData as UpdateProjectData);
         setSuccess('Project updated successfully');
       } else {
         await ProjectService.createProject(projectData as CreateProjectData);
@@ -212,8 +212,8 @@ const ProjectsManagePage: React.FC = () => {
       ...project,
       startDate: dayjs(project.startDate),
       endDate: project.endDate ? dayjs(project.endDate) : null,
-      projectManager: project.projectManager._id,
-      teamMembers: project.teamMembers.map(member => member._id),
+      projectManager: project.projectManager.id,
+      teamMembers: project.members.map(member => member.user.id),
     });
     setModalVisible(true);
   };
@@ -303,7 +303,7 @@ const ProjectsManagePage: React.FC = () => {
       render: (_, record) => (
         <div className="flex items-center space-x-1">
           <TeamOutlined />
-          <span>{record?.teamMembers?.length} members</span>
+          <span>{record?.members?.length || 0} members</span>
         </div>
       ),
     },
@@ -354,7 +354,7 @@ const ProjectsManagePage: React.FC = () => {
               }}
             />
           </Tooltip>
-          {user?.role && RBAC.hasPermission(user.role, 'projects', 'update') && (
+          {user?.role && RBAC.hasPermission(user.role as any, 'projects', 'update') && (
             <Tooltip title="Edit">
               <Button
                 type="text"
@@ -363,11 +363,11 @@ const ProjectsManagePage: React.FC = () => {
               />
             </Tooltip>
           )}
-          {user?.role && RBAC.hasPermission(user.role, 'projects', 'delete') && (
+          {user?.role && RBAC.hasPermission(user.role as any, 'projects', 'delete') && (
             <Popconfirm
               title="Are you sure you want to delete this project?"
               description="This action cannot be undone and may affect related tickets."
-              onConfirm={() => handleDelete(record._id)}
+              onConfirm={() => handleDelete(record.id)}
               okText="Yes"
               cancelText="No"
             >
@@ -385,7 +385,7 @@ const ProjectsManagePage: React.FC = () => {
     },
   ];
 
-  if (!user?.role || !RBAC.hasPermission(user.role, 'projects', 'read')) {
+  if (!user?.role || !RBAC.hasPermission(user.role as any, 'projects', 'read')) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -422,7 +422,7 @@ const ProjectsManagePage: React.FC = () => {
                 Projects Management
               </Title>
             </Space>
-            {user?.role && RBAC.hasPermission(user.role, 'projects', 'create') && (
+            {user?.role && RBAC.hasPermission(user.role as any, 'projects', 'create') && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -489,7 +489,7 @@ const ProjectsManagePage: React.FC = () => {
 
             <Select
               placeholder="Filter by project manager"
-              value={filters.projectManager}
+              value={filters.projectManagerId}
               onChange={handleProjectManagerFilter}
               style={{ width: 250 }}
               allowClear
@@ -521,7 +521,7 @@ const ProjectsManagePage: React.FC = () => {
           <Table
             columns={columns}
             dataSource={projects}
-            rowKey="_id"
+            rowKey="id"
             loading={loading}
             pagination={{
               current: pagination.current,

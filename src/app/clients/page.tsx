@@ -43,7 +43,7 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 interface Manager {
-  _id: string;
+  id: string;
   name: string;
   position: string;
 }
@@ -87,7 +87,7 @@ export default function ClientsPage() {
 
   // Check permissions - Allow all users to view, but redirect if no access
   useEffect(() => {
-    if (user && !['super admin', 'admin', 'user'].includes(user.role)) {
+    if (user && !['super_admin', 'admin', 'user'].includes(user.role)) {
       router.push("/dashboard");
     }
   }, [user, router]);
@@ -128,7 +128,7 @@ export default function ClientsPage() {
     try {
       const managers = await MembersService.getMembersForSelect();
       setManagers(managers.map(m => ({
-        _id: m.value,
+        id: m.value,
         name: m.label,
         position: m.position,
       })));
@@ -223,7 +223,7 @@ export default function ClientsPage() {
       };
 
       if (modalType === "edit" && selectedClient) {
-        await ClientService.updateClient(selectedClient._id, formData as UpdateClientData);
+        await ClientService.updateClient(selectedClient.id, formData as UpdateClientData);
         setSuccess("Client updated successfully");
       } else {
         await ClientService.createClient(formData as CreateClientData);
@@ -252,7 +252,7 @@ export default function ClientsPage() {
 
     try {
       setFormLoading(true);
-      await ClientService.deleteClient(selectedClient._id);
+      await ClientService.deleteClient(selectedClient.id);
       setSuccess("Client deleted successfully");
       setIsModalVisible(false);
       setSelectedClient(null);
@@ -310,7 +310,7 @@ export default function ClientsPage() {
       taxId: client.taxInfo?.taxId,
       paymentTerms: client.paymentTerms,
       status: client.status,
-      assignedManager: client.assignedManager._id,
+      assignedManager: client.assignedManager.id,
       leadSource: client.leadSource,
       tags: client.tags,
       contractStartDate: client.contractDetails?.startDate,
@@ -629,7 +629,7 @@ export default function ClientsPage() {
           <Table
             columns={columns}
             dataSource={clients}
-            rowKey="_id"
+            rowKey="id"
             loading={loading}
             pagination={{
               current: pagination.current,
@@ -987,7 +987,7 @@ export default function ClientsPage() {
                   >
                     <Select placeholder="Select assigned manager">
                       {managers.map((manager) => (
-                        <Option key={manager._id} value={manager._id}>
+                        <Option key={manager.id} value={manager.id}>
                           {manager.name} ({manager.position})
                         </Option>
                       ))}

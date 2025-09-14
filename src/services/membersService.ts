@@ -1,20 +1,20 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Member {
-  _id: string;
+  id: string; // Changed from id
   name: string;
-  email: string;
-  workEmail: string;
+  workEmail: string; // Changed from email
   personalEmail: string;
-  role: 'super admin' | 'admin' | 'user';
-  position: string;
+  role: string; // Changed from enum to flexible string
+  position: string; // Changed from enum to flexible string
   phone: string;
   reportsTo?: {
-    _id: string;
+    id: string; // Changed from id
     name: string;
     position: string;
   } | null;
   isActive: boolean;
+  lastLoginAt?: string; // Added field from backend
   createdAt: string;
   updatedAt: string;
 }
@@ -23,22 +23,26 @@ export interface CreateMemberData {
   name: string;
   workEmail: string;
   personalEmail: string;
-  role: 'super admin' | 'admin' | 'user';
-  position: string;
+  role: string; // Changed from enum to flexible string
+  position: string; // Changed from enum to flexible string
   phone: string;
   password: string;
-  reportsTo?: string | null;
+  reportsToId?: string | null; // Changed from reportsTo to reportsToId
+  dateOfBirth?: string; // Added optional field
+  workDays?: number[]; // Added optional field
 }
 
 export interface UpdateMemberData {
   name: string;
   workEmail: string;
   personalEmail: string;
-  role: 'super admin' | 'admin' | 'user';
-  position: string;
+  role: string; // Changed from enum to flexible string
+  position: string; // Changed from enum to flexible string
   phone: string;
-  reportsTo?: string | null;
+  reportsToId?: string | null; // Changed from reportsTo to reportsToId
   isActive: boolean;
+  dateOfBirth?: string; // Added optional field
+  workDays?: number[]; // Added optional field
 }
 
 export interface MembersFilters {
@@ -47,7 +51,7 @@ export interface MembersFilters {
   search?: string;
   role?: string;
   position?: string;
-  isActive?: boolean;
+  isActive?: boolean | string; // Backend accepts 'true'/'false'/'all'
 }
 
 export class MembersService {
@@ -108,7 +112,7 @@ export class MembersService {
   }
 
   /**
-   * Delete a member
+   * Delete a member (soft delete)
    */
   static async deleteMember(id: string): Promise<void> {
     try {
@@ -122,16 +126,31 @@ export class MembersService {
   }
 
   /**
+   * Activate a member
+   */
+  static async activateMember(id: string): Promise<Member> {
+    try {
+      return await api.patch<Member>(`/api/members/${id}/activate`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to activate member');
+    }
+  }
+
+  /**
    * Get members for dropdown/select options
    */
-  static async getMembersForSelect(): Promise<Array<{ value: string; label: string; position: string }>> {
+  static async getMembersForSelect(filters?: { role?: string; position?: string }): Promise<Array<{ 
+    value: string; 
+    label: string; 
+    email: string;
+    position: string;
+    role: string;
+  }>> {
     try {
-      const response = await this.getMembers({ limit: 100 });
-      return response.data.map(member => ({
-        value: member._id,
-        label: member.name,
-        position: member.position,
-      }));
+      return await api.get('/api/members/select', { params: filters });
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

@@ -1,7 +1,7 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Shift {
-  _id: string;
+  id: string;
   name: string;
   code: string;
   startTime: string;
@@ -17,7 +17,7 @@ export interface Shift {
 }
 
 export interface DropdownOption {
-  _id: string;
+  id: string; // Changed from _id to id for PostgreSQL compatibility
   type: 'platform' | 'stack' | 'priority' | 'taskLevel' | 'taskType' | 'status';
   value: string;
   label: string;
@@ -184,7 +184,7 @@ export class SettingsService {
       return shifts
         .filter(shift => shift.isActive)
         .map(shift => ({
-          value: shift._id,
+          value: shift.id,
           label: `${shift.name} (${shift.code})`,
           code: shift.code,
         }));

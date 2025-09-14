@@ -4,15 +4,17 @@ export interface User {
   phone: string;
   personalEmail: string;
   workEmail: string;
-  role: 'super admin' | 'admin' | 'user';
-  position: 'Developer' | 'CEO' |'DevOps' | 'Project Manager' | 'Product Manager' | 'UI/UX' | 'Business Management';
-  reportsTo?: string | { _id: string; name: string };
+  role: string; // Flexible string instead of enum
+  position: string; // Flexible string instead of enum
+  reportsTo?: string | { id: string; name: string }; // Updated to use 'id' instead of 'id'
   password: string;
   dateOfBirth?: Date;
   assignedShift?: Shift | string;
   workDays: number[];
   shiftAssignedBy?: User | string;
   shiftAssignedDate?: Date;
+  tenantId: string; // Add tenant context
+  tenantName?: string; // Optional tenant name
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
@@ -23,8 +25,8 @@ export interface CreateUserData {
   phone: string;
   personalEmail: string;
   workEmail: string;
-  role: 'super admin' | 'admin' | 'user';
-  position: 'Developer'| 'CEO' | 'DevOps' | 'Project Manager' | 'Product Manager' | 'UI/UX' | 'Business Management';
+  role: string; // Flexible string instead of enum
+  position: string; // Flexible string instead of enum
   reportsTo?: string;
 }
 
@@ -33,8 +35,8 @@ export interface UpdateUserData {
   phone?: string;
   personalEmail?: string;
   workEmail?: string;
-  role?: 'super admin' | 'admin' | 'user';
-  position?: 'Developer'| 'CEO' | 'DevOps' | 'Project Manager' | 'Product Manager' | 'UI/UX' | 'Business Management';
+  role?: string; // Flexible string instead of enum
+  position?: string; // Flexible string instead of enum
   reportsTo?: string;
   isActive?: boolean;
 }
@@ -71,7 +73,7 @@ export interface PaginatedResponse<T> {
 
 // Transaction interfaces
 export interface Transaction {
-  _id: string;
+  id: string;
   type: 'credit' | 'debit';
   amount: number;
   member: User | string;
@@ -132,7 +134,7 @@ export interface TransactionSummary {
 
 // Attendance interfaces
 export interface Shift {
-  _id: string;
+  id: string;
   name: string;
   code: string;
   startTime: string; // "09:00"
@@ -159,7 +161,7 @@ export interface AttendanceBreak {
 }
 
 export interface Attendance {
-  _id: string;
+  id: string;
   member: User | string;
   date: Date;
   clockIn?: Date;
@@ -179,7 +181,7 @@ export interface Attendance {
 }
 
 export interface AttendanceSettings {
-  _id: string;
+  id: string;
   companyName: string;
   timezone: string;
   weekStartDay: number;
@@ -269,7 +271,7 @@ export interface DashboardSummary {
 }
 
 export interface PresentEmployee {
-  _id: string;
+  id: string;
   name: string;
   position: string;
   clockInTime: Date;

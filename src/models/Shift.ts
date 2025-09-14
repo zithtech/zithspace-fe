@@ -115,7 +115,7 @@ ShiftSchema.index({ isDefault: 1 });
 ShiftSchema.pre<IShift>('save', async function (next) {
   if (this.isDefault) {
     await mongoose.model('Shift').updateMany(
-      { _id: { $ne: this._id } },
+      { id: { $ne: this.id } },
       { isDefault: false }
     );
   }

@@ -1,13 +1,13 @@
 // Role-Based Access Control (RBAC) System
 // Centralized permission management for scalable access control
 
-export type Role = 'super admin' | 'admin' | 'user';
+export type Role = 'super_admin' | 'admin' | 'user';
 export type Resource = 'members' | 'transactions' | 'profile' | 'settings' | 'dashboard' | 'reports' | 'attendance' | 'shifts' | 'projects' | 'tickets';
 export type Action = 'create' | 'read' | 'update' | 'delete' | 'manage' | 'view';
 
 // Permission matrix defining what each role can do with each resource
 const PERMISSION_MATRIX: Record<Role, Record<Resource, Action[]>> = {
-  'super admin': {
+  'super_admin': {
     members: ['create', 'read', 'update', 'delete', 'manage', 'view'],
     transactions: ['create', 'read', 'update', 'delete', 'manage', 'view'],
     attendance: ['create', 'read', 'update', 'delete', 'manage', 'view'],

@@ -100,7 +100,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const handleDelete = async (option: DropdownOption) => {
     try {
       setLoading(true);
-      await SettingsService.deleteDropdownOption(option._id);
+      await SettingsService.deleteDropdownOption(option.id);
       message.success('Option deleted successfully');
       await loadDropdownOptions();
       onDataChange?.();
@@ -115,7 +115,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
   const handleToggleStatus = async (option: DropdownOption) => {
     try {
       setLoading(true);
-      await SettingsService.updateDropdownOption(option._id, { isActive: !option.isActive });
+      await SettingsService.updateDropdownOption(option.id, { isActive: !option.isActive });
       message.success(`Option ${option.isActive ? 'disabled' : 'enabled'} successfully`);
       await loadDropdownOptions();
       onDataChange?.();
@@ -131,14 +131,14 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     try {
       setLoading(true);
       const currentOptions = dropdownOptions[option.type] || [];
-      const currentIndex = currentOptions.findIndex(opt => opt._id === option._id);
+      const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
       
       if (direction === 'up' && currentIndex > 0) {
         const newOrder = currentOptions[currentIndex - 1].order;
-        await SettingsService.updateDropdownOption(option._id, { order: newOrder });
+        await SettingsService.updateDropdownOption(option.id, { order: newOrder });
       } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
         const newOrder = currentOptions[currentIndex + 1].order;
-        await SettingsService.updateDropdownOption(option._id, { order: newOrder });
+        await SettingsService.updateDropdownOption(option.id, { order: newOrder });
       }
       
       message.success('Order updated successfully');
@@ -167,7 +167,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       };
 
       if (editingOption) {
-        await SettingsService.updateDropdownOption(editingOption._id, data);
+        await SettingsService.updateDropdownOption(editingOption.id, data);
         message.success('Option updated successfully');
       } else {
         await SettingsService.createDropdownOption(data as CreateDropdownOptionData);
@@ -345,7 +345,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               <Table
                 columns={columns}
                 dataSource={dropdownOptions[type.key] || []}
-                rowKey="_id"
+                rowKey="id"
                 loading={dataLoading}
                 pagination={false}
                 size="small"

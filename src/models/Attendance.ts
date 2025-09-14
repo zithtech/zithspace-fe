@@ -43,7 +43,7 @@ const AttendanceBreakSchema = new Schema({
     type: Number,
     min: 0,
   },
-}, { _id: false });
+}, { id: false });
 
 const AttendanceSchema: Schema = new Schema(
   {

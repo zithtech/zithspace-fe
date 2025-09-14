@@ -1,7 +1,7 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Client {
-  _id: string;
+  id: string;
   clientId: string;
   companyName: string;
   contactPerson: {
@@ -47,7 +47,7 @@ export interface Client {
   paymentTerms?: 'Net 15' | 'Net 30' | 'Net 45' | 'Net 60' | 'Due on Receipt' | 'Custom';
   status: 'Active' | 'Inactive' | 'Prospect' | 'Lead' | 'Suspended';
   assignedManager: {
-    _id: string;
+    id: string;
     name: string;
     position: string;
     email: string;
@@ -70,11 +70,11 @@ export interface Client {
   notes?: string;
   isActive: boolean;
   createdBy: {
-    _id: string;
+    id: string;
     name: string;
   };
   updatedBy: {
-    _id: string;
+    id: string;
     name: string;
   };
   createdAt: string;
@@ -172,11 +172,11 @@ export interface ClientStats {
     inactiveClients: number;
   };
   clientTypes: Array<{
-    _id: string;
+    id: string;
     count: number;
   }>;
   countries: Array<{
-    _id: string;
+    id: string;
     count: number;
   }>;
 }

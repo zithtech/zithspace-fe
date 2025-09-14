@@ -172,7 +172,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Get role badge color
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'super admin':
+      case 'super_admin':
         return '#ff4d4f';
       case 'admin':
         return '#faad14';

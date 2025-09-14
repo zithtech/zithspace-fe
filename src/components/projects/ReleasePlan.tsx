@@ -92,7 +92,7 @@ export default function ReleasePlanComponent() {
   // Update selected ticket details when selection changes
   useEffect(() => {
     if (selectedTickets.length > 0 && availableTickets.length > 0) {
-      const details = availableTickets.filter(ticket => selectedTickets.includes(ticket._id));
+      const details = availableTickets.filter(ticket => selectedTickets.includes(ticket.id));
       setSelectedTicketDetails(details);
     } else {
       setSelectedTicketDetails([]);
@@ -134,7 +134,7 @@ export default function ReleasePlanComponent() {
       const tickets = await ReleasePlanService.getTicketsByProject(projectId, {
         search: search || undefined,
         limit: search ? 50 : 20,
-        excludeReleasePlan: editingPlan?._id
+        excludeReleasePlan: editingPlan?.id
       });
       
       setAvailableTickets(tickets || []);
@@ -222,7 +222,7 @@ export default function ReleasePlanComponent() {
       };
 
       if (editingPlan) {
-        await ReleasePlanService.updateReleasePlan(editingPlan._id, formData);
+        await ReleasePlanService.updateReleasePlan(editingPlan.id, formData);
         message.success('Release plan updated successfully');
       } else {
         await ReleasePlanService.createReleasePlan(formData);
@@ -241,22 +241,22 @@ export default function ReleasePlanComponent() {
 
   const handleEdit = (plan: ReleasePlan) => {
     setEditingPlan(plan);
-    const projectId = typeof plan?.project === 'string' ? plan.project : plan?.project?._id || '';
+    const projectId = typeof plan?.project === 'string' ? plan.project : plan?.project?.id || '';
     setSelectedProject(projectId);
     
     // Set selected tickets and their details
-    const ticketIds = plan?.tickets?.map(t => t?._id) || [];
+    const ticketIds = plan?.tickets?.map(t => t?.id) || [];
     setSelectedTickets(ticketIds);
     
     // Map existing tickets to ProjectTicket format for selectedTicketDetails
     const existingTicketDetails: ProjectTicket[] = plan?.tickets?.map(ticket => ({
-      _id: ticket._id,
+      id: ticket.id,
       ticketNumber: ticket.ticketNumber,
       title: ticket.title,
       status: ticket.status,
       priority: ticket.priority,
       assignee: ticket.assignee,
-      createdBy: ticket.assignee || { _id: '', name: '', email: '' }, // Fallback if needed
+      createdBy: ticket.assignee || { id: '', name: '', email: '' }, // Fallback if needed
       createdAt: new Date().toISOString() // Fallback if needed
     })) || [];
     
@@ -420,7 +420,7 @@ export default function ReleasePlanComponent() {
           <Popconfirm
             title="Delete Release Plan"
             description="Are you sure you want to delete this release plan?"
-            onConfirm={() => handleDelete(record._id)}
+            onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
           >
@@ -461,7 +461,7 @@ export default function ReleasePlanComponent() {
         <Table
           columns={columns}
           dataSource={releasePlans}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           pagination={{
             pageSize: 10,
@@ -579,11 +579,11 @@ export default function ReleasePlanComponent() {
                       <Space size={[4, 4]} wrap>
                         {selectedTicketDetails.map((ticket) => (
                           <Tag
-                            key={ticket._id}
+                            key={ticket.id}
                             closable
                             onClose={(e) => {
                               e.preventDefault();
-                              handleRemoveSelectedTicket(ticket._id);
+                              handleRemoveSelectedTicket(ticket.id);
                             }}
                             color="blue"
                             style={{ 
@@ -600,7 +600,7 @@ export default function ReleasePlanComponent() {
                           </Tag>
                         ))}
                         {/* Show remaining tickets by ID if details not available */}
-                        {selectedTickets.filter(id => !selectedTicketDetails.find(t => t._id === id)).map((ticketId) => (
+                        {selectedTickets.filter(id => !selectedTicketDetails.find(t => t.id === id)).map((ticketId) => (
                           <Tag
                             key={ticketId}
                             closable
@@ -663,16 +663,16 @@ export default function ReleasePlanComponent() {
                           style={{ 
                             padding: '4px 12px',
                             cursor: 'pointer',
-                            backgroundColor: selectedTickets.includes(ticket._id) ? '#e6f7ff' : 'transparent',
+                            backgroundColor: selectedTickets.includes(ticket.id) ? '#e6f7ff' : 'transparent',
                             borderBottom: '1px solid #f0f0f0'
                           }}
-                          onClick={() => handleTicketSelection(ticket._id)}
+                          onClick={() => handleTicketSelection(ticket.id)}
                         >
                           <List.Item.Meta
                             avatar={
                               <input
                                 type="checkbox"
-                                checked={selectedTickets.includes(ticket._id)}
+                                checked={selectedTickets.includes(ticket.id)}
                                 onChange={() => {}}
                                 style={{ cursor: 'pointer', transform: 'scale(0.9)' }}
                               />
@@ -683,7 +683,7 @@ export default function ReleasePlanComponent() {
                                   style={{ 
                                     cursor: 'pointer', 
                                     fontSize: 13,
-                                    fontWeight: selectedTickets.includes(ticket._id) ? 600 : 400
+                                    fontWeight: selectedTickets.includes(ticket.id) ? 600 : 400
                                   }}
                                 >
                                   {ticket?.ticketNumber}
@@ -803,7 +803,7 @@ export default function ReleasePlanComponent() {
                       key="view"
                       type="link"
                       size="small"
-                      onClick={() => router.push(`/tickets/${ticket?._id}`)}
+                      onClick={() => router.push(`/tickets/${ticket?.id}`)}
                     >
                       View
                     </Button>

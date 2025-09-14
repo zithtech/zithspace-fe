@@ -1,37 +1,42 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Project {
-  _id: string;
+  id: string; // Changed from id
   name: string;
   code: string;
   description: string;
   status: string; // Dynamic status
   startDate: string;
   endDate?: string;
+  projectManagerId: string; // Added for backend compatibility
   projectManager: {
-    _id: string;
+    id: string; // Changed from id
     name: string;
+    workEmail: string; // Changed from email
     position: string;
   };
-  teamMembers: Array<{
-    _id: string;
-    name: string;
-    position: string;
-    role: string;
+  members: Array<{ // Changed from teamMembers
+    user: {
+      id: string; // Changed from id
+      name: string;
+      workEmail: string; // Changed from email
+      position: string;
+    };
   }>;
   repositories: Array<{
     name: string;
     url: string;
     branch: string;
   }>;
-  workflowTemplate: string;
+  workflowTemplate: string[];
   defaultPriority: string; // Dynamic priority
-  statistics: {
-    totalTickets: number;
-    completedTickets: number;
-    inProgressTickets: number;
-    pendingTickets: number;
-    lastUpdated: string;
+  totalTickets: number;
+  completedTickets: number;
+  inProgressTickets: number;
+  createdBy: {
+    id: string; // Changed from id
+    name: string;
+    workEmail: string; // Changed from email
   };
   createdAt: string;
   updatedAt: string;
@@ -44,8 +49,8 @@ export interface CreateProjectData {
   status?: string; // Dynamic status
   startDate: string;
   endDate?: string;
-  projectManager: string;
-  teamMembers?: string[];
+  projectManagerId: string; // Changed from projectManager
+  teamMemberIds?: string[]; // Changed from teamMembers
   repositories?: Array<{
     name: string;
     url: string;
@@ -61,14 +66,14 @@ export interface UpdateProjectData {
   status: string; // Dynamic status
   startDate: string;
   endDate?: string;
-  projectManager: string;
-  teamMembers?: string[];
+  projectManagerId: string; // Changed from projectManager
+  teamMemberIds?: string[]; // Changed from teamMembers
   repositories?: Array<{
     name: string;
     url: string;
     branch: string;
   }>;
-  workflowTemplate?: string;
+  workflowTemplate?: string[];
   defaultPriority?: string; // Dynamic priority
 }
 
@@ -77,7 +82,7 @@ export interface ProjectsFilters {
   limit?: number;
   search?: string;
   status?: string;
-  projectManager?: string;
+  projectManagerId?: string; // Changed from projectManager
   startDate?: string;
   endDate?: string;
 }
@@ -167,12 +172,7 @@ export class ProjectService {
    */
   static async getProjectsForSelect(): Promise<Array<{ value: string; label: string; code: string }>> {
     try {
-      const response = await api.get('/api/projects/select');
-      return response.map((project: any) => ({
-        value: project._id,
-        label: project.name,
-        code: project.code
-      }));
+      return await api.get<Array<{ value: string; label: string; code: string; description: string }>>('/api/projects/select');
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -186,13 +186,7 @@ export class ProjectService {
    */
   static async getUserProjects(): Promise<Array<{ value: string; label: string; code: string }>> {
     try {
-      const response = await api.get('/api/projects/user-projects');
-      console.log({response})
-      return response.map((project: any) => ({
-        value: project.value,
-        label: project.label,
-        code: project.code
-      }));
+      return await api.get<Array<{ value: string; label: string; code: string; description: string }>>('/api/projects/user-projects');
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -218,9 +212,9 @@ export class ProjectService {
   /**
    * Add team member to project
    */
-  static async addTeamMember(projectId: string, memberId: string): Promise<Project> {
+  static async addTeamMember(projectId: string, userId: string): Promise<Project> { // Changed from memberId to userId
     try {
-      return await api.post<Project>(`/api/projects/${projectId}/members`, { memberId });
+      return await api.post<Project>(`/api/projects/${projectId}/team-members`, { userId }); // Changed from memberId to userId
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -232,14 +226,28 @@ export class ProjectService {
   /**
    * Remove team member from project
    */
-  static async removeTeamMember(projectId: string, memberId: string): Promise<Project> {
+  static async removeTeamMember(projectId: string, userId: string): Promise<Project> { // Changed from memberId to userId
     try {
-      return await api.delete<Project>(`/api/projects/${projectId}/members/${memberId}`);
+      return await api.delete<Project>(`/api/projects/${projectId}/team-members/${userId}`); // Changed from members to team-members
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
       throw new Error('Failed to remove team member');
+    }
+  }
+
+  /**
+   * Get project statistics by ID
+   */
+  static async getProjectStatsById(id: string): Promise<any> {
+    try {
+      return await api.get(`/api/projects/${id}/stats`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to fetch project statistics');
     }
   }
 }

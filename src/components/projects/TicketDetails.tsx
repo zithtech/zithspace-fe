@@ -61,13 +61,13 @@ interface TicketDetailsProps {
 }
 
 interface TicketDetails {
-  _id: string;
+  id: string;
   ticketNumber: string;
   title: string;
   description: string;
   platform: string;
   project: {
-    _id: string;
+    id: string;
     name: string;
     code: string;
   };
@@ -76,13 +76,13 @@ interface TicketDetails {
   taskLevel: string;
   status: string;
   assignee: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
   reportTo:
     | {
-        _id: string;
+        id: string;
         name: string;
         position?: string;
       }
@@ -90,7 +90,7 @@ interface TicketDetails {
   storyPoint: number;
   estimateHours: number;
   createdBy: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
@@ -103,11 +103,11 @@ interface TicketDetails {
   totalSteps?: number;
   releasePlan?: string;
   comments?: Array<{
-    _id: string;
+    id: string;
     userId:
       | string
       | {
-          _id: string;
+          id: string;
           name: string;
           email: string;
         };
@@ -118,7 +118,7 @@ interface TicketDetails {
 }
 
 interface TicketComment {
-  _id: string;
+  id: string;
   userId: string;
   userName: string;
   comment: string;
@@ -244,14 +244,14 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
       const response = await TicketService.getTicketById(ticketId);
       // Transform the response to match our interface
       const ticketData: TicketDetails = {
-        _id: response._id,
+        id: response.id,
         ticketNumber: response.ticketNumber,
         title: response.title,
         description: response.description,
         platform: response.platform,
         project:
           typeof response.project === "string"
-            ? { _id: response.project, name: "Unknown", code: "UNK" }
+            ? { id: response.project, name: "Unknown", code: "UNK" }
             : response.project,
         priority: response.priority as "P1" | "P2" | "P3",
         taskType: response.taskType,
@@ -259,7 +259,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         status: response.status,
         assignee:
           typeof response.assignee === "string"
-            ? { _id: "", name: response.assignee, email: "" }
+            ? { id: "", name: response.assignee, email: "" }
             : response.assignee,
         reportTo: (response as any).reportTo || "",
         storyPoint: (response as any).storyPoint || 0,
@@ -284,18 +284,18 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
           title: ticketData?.title || "",
           description: ticketData?.description || "",
           platform: ticketData?.platform || "",
-          project: ticketData?.project?._id || "",
+          project: ticketData?.project?.id || "",
           priority: ticketData?.priority || "",
           taskType: ticketData?.taskType || "",
           taskLevel: ticketData?.taskLevel || "",
           status: ticketData?.status || "",
           // FIXED: Use ObjectId instead of name for assignee
-          assignee: ticketData?.assignee?._id || "",
+          assignee: ticketData?.assignee?.id || "",
           // FIXED: Use ObjectId instead of name for reportTo
           reportTo:
             typeof ticketData?.reportTo === "string"
               ? ticketData.reportTo
-              : ticketData?.reportTo?._id || "",
+              : ticketData?.reportTo?.id || "",
           storyPoint: ticketData?.storyPoint || 0,
           estimateHours: ticketData?.estimateHours || 0,
           startDate: ticketData?.startDate ? dayjs(ticketData.startDate) : null,
@@ -1216,7 +1216,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                     description: link.description,
                                     url: link.url,
                                   });
-                                  setEditingLinkId(link._id || "");
+                                  setEditingLinkId(link.id || "");
                                   setShowAddLinkForm(true);
                                 }}
                               >
@@ -1234,7 +1234,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                     setLinkOperationLoading(true);
                                     await TicketService.deleteRelatedLink(
                                       ticketId,
-                                      link._id || ""
+                                      link.id || ""
                                     );
                                     message.success(
                                       "Link deleted successfully"

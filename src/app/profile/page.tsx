@@ -178,7 +178,7 @@ export default function ProfilePage() {
   // Get role color
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'super admin':
+      case 'super_admin':
         return '#ff4d4f';
       case 'admin':
         return '#faad14';

@@ -37,11 +37,11 @@ async function assignDefaultShifts() {
 
     console.log(`Found default shift: ${defaultShift.name} (${defaultShift.code})`);
 
-    // Find a super admin to use as the assigner
-    const superAdmin = await User.findOne({ role: 'super admin' });
+    // Find a super_admin to use as the assigner
+    const superAdmin = await User.findOne({ role: 'super_admin' });
     
     if (!superAdmin) {
-      console.error('No super admin user found.');
+      console.error('No super_admin user found.');
       process.exit(1);
     }
 
@@ -70,9 +70,9 @@ async function assignDefaultShifts() {
       },
       {
         $set: {
-          assignedShift: defaultShift._id,
+          assignedShift: defaultShift.id,
           workDays: [1, 2, 3, 4, 5], // Monday to Friday
-          shiftAssignedBy: superAdmin._id,
+          shiftAssignedBy: superAdmin.id,
           shiftAssignedDate: new Date(),
         }
       }
@@ -85,8 +85,8 @@ async function assignDefaultShifts() {
 
     // List updated users
     const updatedUsers = await User.find({
-      assignedShift: defaultShift._id,
-      shiftAssignedBy: superAdmin._id,
+      assignedShift: defaultShift.id,
+      shiftAssignedBy: superAdmin.id,
     }).select('name');
 
     console.log('\n📋 Users assigned to default shift:');

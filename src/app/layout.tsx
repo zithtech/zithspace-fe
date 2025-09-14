@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider } from 'antd';
 import { AuthProvider } from '@/context/AuthContext';
+import { TenantProvider } from '@/context/TenantContext';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -90,9 +91,11 @@ export default function RootLayout({
       <body>
         <AntdRegistry>
           <ConfigProvider theme={theme}>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+            <TenantProvider>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+            </TenantProvider>
           </ConfigProvider>
         </AntdRegistry>
       </body>

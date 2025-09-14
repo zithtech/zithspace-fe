@@ -42,7 +42,7 @@ interface MemberFormData {
   phone: string;
   personalEmail: string;
   workEmail: string;
-  role: "super admin" | "admin" | "user";
+  role: "super_admin" | "admin" | "user";
   position:
     | "Developer"
     | "CEO"
@@ -94,7 +94,7 @@ export default function MembersPage() {
 
   // Check permissions - Allow all users to view, but redirect if no access
   useEffect(() => {
-    if (user && !['super admin', 'admin', 'user'].includes(user.role)) {
+    if (user && !['super_admin', 'admin', 'user'].includes(user.role)) {
       router.push("/dashboard");
     }
   }, [user, router]);
@@ -134,7 +134,7 @@ export default function MembersPage() {
     try {
       const managers = await MembersService.getMembersForSelect();
       setManagers(managers.map(m => ({
-        _id: m.value,
+        id: m.value,
         name: m.label,
         position: m.position,
       } as Member)));
@@ -183,10 +183,10 @@ export default function MembersPage() {
           workEmail: values.workEmail,
           role: values.role,
           position: values.position,
-          reportsTo: values.reportsTo || null,
+          reportsToId: values.reportsTo || null,
           isActive: true, // Keep existing members active
         };
-        await MembersService.updateMember(selectedMember._id, updatePayload);
+        await MembersService.updateMember(selectedMember.id, updatePayload);
         setSuccess("Member updated successfully");
       } else {
         const createPayload: CreateMemberData = {
@@ -197,7 +197,7 @@ export default function MembersPage() {
           role: values.role,
           position: values.position,
           password: 'temp123', // Default password - should be changed on first login
-          reportsTo: values.reportsTo || null,
+          reportsToId: values.reportsTo || null,
         };
         await MembersService.createMember(createPayload);
         setSuccess("Member created successfully");
@@ -225,7 +225,7 @@ export default function MembersPage() {
 
     try {
       setFormLoading(true);
-      await MembersService.deleteMember(selectedMember._id);
+      await MembersService.deleteMember(selectedMember.id);
       setSuccess("Member deleted successfully");
       setIsModalVisible(false);
       setSelectedMember(null);
@@ -262,7 +262,7 @@ export default function MembersPage() {
       position: member?.position,
       reportsTo:
         typeof member.reportsTo === "object"
-          ? member?.reportsTo?._id
+          ? member?.reportsTo?.id
           : member?.reportsTo || "",
     });
     setIsModalVisible(true);
@@ -289,7 +289,7 @@ export default function MembersPage() {
               height: 32,
               borderRadius: 16,
               background:
-                record.role === "super admin"
+                record.role === "super_admin"
                   ? "#ff4d4f"
                   : record.role === "admin"
                   ? "#faad14"
@@ -338,7 +338,7 @@ export default function MembersPage() {
       render: (role: string) => (
         <Tag
           color={
-            role === "super admin"
+            role === "super_admin"
               ? "red"
               : role === "admin"
               ? "orange"
@@ -500,7 +500,7 @@ export default function MembersPage() {
               style={{ width: 200 }}
               allowClear
             >
-              <Option value="super admin">Super Admin</Option>
+              <Option value="super_admin">super_admin</Option>
               <Option value="admin">Admin</Option>
               <Option value="user">User</Option>
             </Select>
@@ -532,7 +532,7 @@ export default function MembersPage() {
           <Table
             columns={columns}
             dataSource={members}
-            rowKey="_id"
+            rowKey="id"
             loading={loading}
             pagination={{
               current: pagination.current,
@@ -677,7 +677,7 @@ export default function MembersPage() {
                   <Select placeholder="Select role">
                     <Option value="user">User</Option>
                     <Option value="admin">Admin</Option>
-                    <Option value="super admin">Super Admin</Option>
+                    <Option value="super_admin">super_admin</Option>
                   </Select>
                 </Form.Item>
 
@@ -705,9 +705,9 @@ export default function MembersPage() {
               <Form.Item name="reportsTo" label="Reports To">
                 <Select placeholder="Select manager (optional)" allowClear>
                   {managers
-                    .filter((m) => m._id !== selectedMember?._id)
+                    .filter((m) => m.id !== selectedMember?.id)
                     .map((manager) => (
-                      <Option key={manager._id} value={manager._id}>
+                      <Option key={manager.id} value={manager.id}>
                         {manager.name} ({manager.position})
                       </Option>
                     ))}
@@ -725,7 +725,7 @@ export default function MembersPage() {
                   <Select placeholder="Select shift (optional)" allowClear>
                     <Option value="flexible">Flexible Shift (Default)</Option>
                     {shifts.map((shift) => (
-                      <Option key={shift._id} value={shift._id}>
+                      <Option key={shift.id} value={shift.id}>
                         {shift.name} ({shift.startTime} - {shift.endTime})
                       </Option>
                     ))}

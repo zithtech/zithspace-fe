@@ -9,13 +9,15 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'super admin' | 'admin' | 'user';
-  position: 'Developer' | 'CEO' | 'DevOps' | 'Project Manager' | 'Product Manager' | 'UI/UX' | 'Business Management';
+  role: string; // Flexible string instead of enum
+  position: string; // Flexible string instead of enum
   personalEmail: string;
   workEmail: string;
   phone: string;
   reportsTo?: string | null;
   isActive: boolean;
+  tenantId: string; // Add tenant context
+  tenantName?: string; // Optional tenant name
 }
 
 interface AuthContextType {
@@ -61,16 +63,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Transform the response to match our User interface
       const userData: User = {
-        id: response.user._id,
+        id: response.user.id,
         name: response.user.name,
         email: response.user.workEmail || response.user.personalEmail,
         role: response.user.role,
-        position: response.user.position as User['position'],
+        position: response.user.position,
         personalEmail: response.user.personalEmail,
         workEmail: response.user.workEmail,
         phone: response.user.phone,
         reportsTo: response.user.reportsTo,
         isActive: response.user.isActive,
+        tenantId: response.user.tenantId,
+        tenantName: response.user.tenantName,
       };
 
       setUser(userData);
@@ -142,13 +146,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: userProfile.id, // Backend returns "id"
         name: userProfile.name,
         email: userProfile.workEmail || userProfile.personalEmail,
-        role: userProfile.role as User['role'],
-        position: userProfile.position as User['position'],
+        role: userProfile.role,
+        position: userProfile.position,
         personalEmail: userProfile.personalEmail,
         workEmail: userProfile.workEmail,
         phone: userProfile.phone,
-        reportsTo: userProfile.reportsTo?._id || null, // reportsTo still uses _id structure
+        reportsTo: userProfile.reportsTo?.id || null, // Updated to use 'id' instead of 'id'
         isActive: userProfile.isActive,
+        tenantId: userProfile.tenantId,
+        tenantName: userProfile.tenant?.name,
       };
 
       setUser(userData);

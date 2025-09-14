@@ -51,7 +51,7 @@ import { ApiError } from '@/lib/axios';
 // Define missing types locally
 interface TodayAttendanceStatus extends TodayAttendance {
   shift?: {
-    _id: string;
+    id: string;
     name: string;
     startTime: string;
     endTime: string;
@@ -74,7 +74,7 @@ interface DashboardSummary {
 }
 
 interface PresentEmployee {
-  _id: string;
+  id: string;
   name: string;
   position: string;
   status: string;
@@ -90,7 +90,7 @@ interface PresentEmployee {
 // Extended Attendance interface to match actual API response
 interface ExtendedAttendance extends Attendance {
   member?: {
-    _id: string;
+    id: string;
     name: string;
     position: string;
   };
@@ -588,7 +588,7 @@ export default function AttendancePage() {
           <Popconfirm
             title="Delete attendance record?"
             description="Are you sure you want to delete this attendance record?"
-            onConfirm={() => handleDeleteAttendance(record._id)}
+            onConfirm={() => handleDeleteAttendance(record.id)}
             okText="Yes"
             cancelText="No"
           >
@@ -771,7 +771,7 @@ export default function AttendancePage() {
             optionFilterProp="children"
           >
             {members.map((member) => (
-              <Option key={member._id} value={member._id}>
+              <Option key={member.id} value={member.id}>
                 {member.name}
               </Option>
             ))}
@@ -791,7 +791,7 @@ export default function AttendancePage() {
         <Table
           columns={manageColumns}
           dataSource={attendanceRecords}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           pagination={{
             current: pagination.current,
@@ -1039,7 +1039,7 @@ export default function AttendancePage() {
               optionFilterProp="children"
             >
               {members.map((member) => (
-                <Option key={member._id} value={member._id}>
+                <Option key={member.id} value={member.id}>
                   {member.name}
                 </Option>
               ))}
@@ -1057,7 +1057,7 @@ export default function AttendancePage() {
         <Table
           columns={columns}
           dataSource={attendanceRecords}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           pagination={{
             current: pagination.current,
@@ -1273,7 +1273,7 @@ export default function AttendancePage() {
         <Table
           columns={columns}
           dataSource={myAttendanceRecords}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           pagination={{
             pageSize: 10,
@@ -1396,7 +1396,7 @@ export default function AttendancePage() {
                 optionFilterProp="children"
               >
                 {members.map((member) => (
-                  <Option key={member._id} value={member._id}>
+                  <Option key={member.id} value={member.id}>
                     {member.name} - {member.position}
                   </Option>
                 ))}

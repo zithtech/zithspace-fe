@@ -1,9 +1,9 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Attendance {
-  _id: string;
+  id: string;
   userId: {
-    _id: string;
+    id: string;
     name: string;
     position: string;
   };
@@ -15,7 +15,7 @@ export interface Attendance {
   overtimeMinutes?: number;
   lateMinutes?: number;
   shift?: {
-    _id: string;
+    id: string;
     name: string;
     code: string;
     startTime: string;
@@ -64,7 +64,7 @@ export interface DashboardSummary {
 }
 
 export interface TodayAttendance {
-  _id: string;
+  id: string;
   userId: string;
   date: string;
   clockIn?: string;
@@ -184,7 +184,7 @@ export class AttendanceService {
    * Get present members for today (admin only)
    */
   static async getPresentMembers(): Promise<Array<{
-    _id: string;
+    id: string;
     name: string;
     position: string;
     clockIn: string;

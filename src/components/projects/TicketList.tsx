@@ -120,7 +120,7 @@ export default function TicketList() {
   };
 
   const handleViewTicket = (ticket: Ticket) => {
-    router.push(`/tickets/${ticket._id}`);
+    router.push(`/tickets/${ticket.id}`);
   };
 
   const handleCreateTicket = () => {
@@ -139,7 +139,7 @@ export default function TicketList() {
       cancelText: 'Cancel',
       onOk: async () => {
         try {
-          await TicketService.deleteTicket(ticket._id);
+          await TicketService.deleteTicket(ticket.id);
           message.success('Ticket deleted successfully');
           fetchTickets(); // Refresh the list
         } catch (error) {
@@ -406,7 +406,7 @@ export default function TicketList() {
         <Table
           columns={columns}
           dataSource={tickets}
-          rowKey="_id"
+          rowKey="id"
           loading={loading}
           pagination={{
             pageSize: 10,

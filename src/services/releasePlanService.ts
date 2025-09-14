@@ -13,11 +13,11 @@ export interface ReleasePlanFormData {
 }
 
 export interface ReleasePlan {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   project: {
-    _id: string;
+    id: string;
     name: string;
     code: string;
     description?: string;
@@ -26,13 +26,13 @@ export interface ReleasePlan {
   status: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
   progress: number;
   tickets: Array<{
-    _id: string;
+    id: string;
     ticketNumber: string;
     title: string;
     status: string;
     priority: string;
     assignee?: {
-      _id: string;
+      id: string;
       name: string;
       email: string;
     };
@@ -42,12 +42,12 @@ export interface ReleasePlan {
   inProgressTickets: number;
   notStartedTickets: number;
   createdBy: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
   assignedTo: Array<{
-    _id: string;
+    id: string;
     name: string;
     email: string;
   }>;
@@ -72,18 +72,18 @@ export interface ReleasePlanListResponse {
 }
 
 export interface ProjectTicket {
-  _id: string;
+  id: string;
   ticketNumber: string;
   title: string;
   status: string;
   priority: string;
   assignee?: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
   createdBy: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };

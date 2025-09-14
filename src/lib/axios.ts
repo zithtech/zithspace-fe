@@ -7,6 +7,46 @@ declare module 'axios' {
   }
 }
 
+// Tenant utilities
+const TenantUtils = {
+  getTenantId(): string | null {
+    if (typeof window === 'undefined') return null;
+    
+    try {
+      const savedTenant = localStorage.getItem('currentTenant');
+      if (savedTenant) {
+        const tenant = JSON.parse(savedTenant);
+        return tenant.tenantId || null;
+      }
+    } catch (error) {
+      console.error('Error getting tenant ID:', error);
+    }
+    return null;
+  },
+
+  getSubdomain(): string | null {
+    if (typeof window === 'undefined') return null;
+    
+    const hostname = window.location.hostname;
+    
+    // For localhost development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return localStorage.getItem('devTenantSubdomain') || null;
+    }
+
+    // Production subdomain detection
+    const parts = hostname.split('.');
+    if (parts.length >= 3) {
+      const subdomain = parts[0];
+      if (!['www', 'api', 'admin', 'app', 'mail'].includes(subdomain)) {
+        return subdomain;
+      }
+    }
+    
+    return null;
+  },
+};
+
 // Types for our API responses
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -69,7 +109,7 @@ const TokenManager = {
 // Create Axios instance with base configuration
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
     timeout: 30000, // 30 seconds
     withCredentials: true,
     headers: {
@@ -77,20 +117,46 @@ const createApiClient = (): AxiosInstance => {
     },
   });
 
-  // Request interceptor - Add JWT token to all requests
+  // Request interceptor - Add JWT token and tenant headers to all requests
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
+      // Add Authorization header
       const token = TokenManager.getAccessToken();
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
 
-      // Log request in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-          data: config.data,
-          params: config.params,
-        });
+      // Add Tenant headers (critical for multi-tenant API)
+      if (config.headers) {
+        const tenantId = TenantUtils.getTenantId();
+        const subdomain = TenantUtils.getSubdomain();
+        
+        // Always try to add tenant headers when available
+        if (tenantId) {
+          config.headers['X-Tenant-ID'] = tenantId;
+        }
+        
+        if (subdomain) {
+          config.headers['X-Tenant-Subdomain'] = subdomain;
+        }
+
+        // For development mode, add query parameter fallback for critical endpoints
+        if (process.env.NODE_ENV === 'development' && subdomain && !tenantId) {
+          // For login and other auth endpoints, add tenant as query parameter
+          if (config.url?.includes('/auth/')) {
+            const separator = config.url.includes('?') ? '&' : '?';
+            config.url = `${config.url}${separator}tenant=${subdomain}`;
+          }
+        }
+
+        // Log tenant context in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🏢 API Request [${config.method?.toUpperCase()} ${config.url}]:`, {
+            tenantId: tenantId || 'None',
+            subdomain: subdomain || 'None',
+            hasAuth: !!token,
+          });
+        }
       }
 
       return config;
@@ -132,7 +198,7 @@ const createApiClient = (): AxiosInstance => {
         try {
           // Attempt to refresh token - no body needed, refresh token sent via cookies
           const refreshResponse = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/refresh`,
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/auth/refresh`,
             {}, // Empty body - refresh token is in cookies
             { withCredentials: true }
           );

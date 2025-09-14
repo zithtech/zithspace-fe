@@ -6,7 +6,7 @@ export interface IUser extends Document {
   phone: string;
   personalEmail: string;
   workEmail: string;
-  role: 'super admin' | 'admin' | 'user';
+  role: 'super_admin' | 'admin' | 'user';
   position: 'Developer' | 'CEO' | 'DevOps' | 'Project Manager' | 'Product Manager' | 'UI/UX' | 'Business Management';
   reportsTo?: mongoose.Types.ObjectId;
   password: string;
@@ -55,8 +55,8 @@ const UserSchema: Schema = new Schema(
       type: String,
       required: [true, 'Role is required'],
       enum: {
-        values: ['super admin', 'admin', 'user'],
-        message: 'Role must be either super admin, admin, or user',
+        values: ['super_admin', 'admin', 'user'],
+        message: 'Role must be either super_admin, admin, or user',
       },
       default: 'user',
     },

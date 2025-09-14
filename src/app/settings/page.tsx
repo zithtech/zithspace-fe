@@ -66,9 +66,9 @@ export default function SettingsPage() {
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
-  // Check permissions - Only admins and super admins can access settings
+  // Check permissions - Only admins and super_admins can access settings
   useEffect(() => {
-    if (user && !['super admin', 'admin'].includes(user.role)) {
+    if (user && !['super_admin', 'admin'].includes(user.role)) {
       router.push('/dashboard');
     }
   }, [user, router]);
@@ -118,7 +118,7 @@ export default function SettingsPage() {
       };
 
       if (modalType === 'edit' && editingShift) {
-        await SettingsService.updateShift(editingShift._id, payload as UpdateShiftData);
+        await SettingsService.updateShift(editingShift.id, payload as UpdateShiftData);
         setSuccess('Shift updated successfully!');
       } else {
         await SettingsService.createShift(payload as CreateShiftData);
@@ -269,7 +269,7 @@ export default function SettingsPage() {
           <Popconfirm
             title="Delete shift?"
             description="Are you sure you want to delete this shift?"
-            onConfirm={() => handleDeleteShift(record._id)}
+            onConfirm={() => handleDeleteShift(record.id)}
             okText="Yes"
             cancelText="No"
           >
@@ -297,7 +297,7 @@ export default function SettingsPage() {
   }, [success, error]);
 
   // Don't render if no user or insufficient permissions
-  if (!user || !['super admin', 'admin'].includes(user.role)) {
+  if (!user || !['super_admin', 'admin'].includes(user.role)) {
     return null;
   }
 
@@ -384,7 +384,7 @@ export default function SettingsPage() {
               <Table
                 columns={shiftColumns}
                 dataSource={shifts}
-                rowKey="_id"
+                rowKey="id"
                 loading={loading}
                 pagination={{
                   pageSize: 10,

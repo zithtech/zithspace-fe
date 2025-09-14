@@ -195,7 +195,7 @@ export default function AccountsPage() {
       };
 
       if (modalType === 'edit' && selectedTransaction) {
-        await TransactionsService.updateTransaction(selectedTransaction._id, payload as UpdateTransactionData);
+        await TransactionsService.updateTransaction(selectedTransaction.id, payload as UpdateTransactionData);
         setSuccess('Transaction updated successfully');
       } else {
         await TransactionsService.createTransaction(payload as CreateTransactionData);
@@ -226,7 +226,7 @@ export default function AccountsPage() {
     try {
       setFormLoading(true);
 
-      await TransactionsService.deleteTransaction(selectedTransaction._id);
+      await TransactionsService.deleteTransaction(selectedTransaction.id);
       setSuccess('Transaction deleted successfully');
       setIsModalVisible(false);
       setSelectedTransaction(null);
@@ -259,7 +259,7 @@ export default function AccountsPage() {
     form.setFieldsValue({
       type: transaction.type,
       amount: transaction.amount,
-      member: typeof transaction.member === 'object' ? transaction.member._id : transaction.member,
+      member: typeof transaction.member === 'object' ? transaction.member.id : transaction.member,
       category: transaction.category,
       description: transaction.description,
       notes: transaction.notes,
@@ -631,7 +631,7 @@ export default function AccountsPage() {
                     optionFilterProp="children"
                   >
                     {members.map((member) => (
-                      <Option key={member._id} value={member._id}>
+                      <Option key={member.id} value={member.id}>
                         {member.name}
                       </Option>
                     ))}
@@ -652,7 +652,7 @@ export default function AccountsPage() {
               <Table
                 columns={columns}
                 dataSource={transactions}
-                rowKey="_id"
+                rowKey="id"
                 loading={loading}
                 pagination={{
                   current: pagination.current,
@@ -893,7 +893,7 @@ export default function AccountsPage() {
                     optionFilterProp="children"
                   >
                     {members.map((member) => (
-                      <Option key={member._id} value={member._id}>
+                      <Option key={member.id} value={member.id}>
                         <Space>
                           <Avatar size={20} style={{ fontSize: 10 }}>
                             {member.name.charAt(0)}

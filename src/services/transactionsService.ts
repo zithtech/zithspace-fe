@@ -1,11 +1,11 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Transaction {
-  _id: string;
+  id: string;
   type: 'credit' | 'debit';
   amount: number;
   member: {
-    _id: string;
+    id: string;
     name: string;
     position: string;
   } | string;

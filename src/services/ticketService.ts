@@ -70,13 +70,13 @@ export interface ParentTicket {
 }
 
 export interface RelatedLink {
-  _id?: string;
+  id?: string;
   type: 'ui_design' | 'scope_doc' | 'sample_response' | 'dev_doc';
   title: string;
   description: string;
   url: string;
   addedBy: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
@@ -84,13 +84,13 @@ export interface RelatedLink {
 }
 
 export interface Ticket {
-  _id: string;
+  id: string;
   ticketNumber: string;
   title: string;
   description: string;
   platform: string;
   project: {
-    _id: string;
+    id: string;
     name: string;
     code: string;
     description?: string;
@@ -100,17 +100,17 @@ export interface Ticket {
   taskType: string;
   status: string;
   assignee: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
   reportTo: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   } | string;
   createdBy: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
@@ -122,9 +122,9 @@ export interface Ticket {
   endDate?: string;
   relatedLinks?: RelatedLink[];
   comments?: Array<{
-    _id: string;
+    id: string;
     userId: {
-      _id: string;
+      id: string;
       name: string;
       email: string;
     };
@@ -155,7 +155,7 @@ export interface DashboardStats {
     blocked: number;
   };
   projectStats: Array<{
-    _id: string;
+    id: string;
     statuses: Array<{
       status: string;
       count: number;
@@ -163,12 +163,12 @@ export interface DashboardStats {
     total: number;
   }>;
   priorityStats: Array<{
-    _id: string;
+    id: string;
     count: number;
   }>;
   recentActivity: Ticket[];
   teamStats: Array<{
-    _id: string;
+    id: string;
     user: {
       name: string;
       email: string;

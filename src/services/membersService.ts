@@ -30,6 +30,8 @@ export interface CreateMemberData {
   reportsToId?: string | null; // Changed from reportsTo to reportsToId
   dateOfBirth?: string; // Added optional field
   workDays?: number[]; // Added optional field
+  assignedShiftId?: string | null; // ADDED: Missing shift assignment field
+  isActive?: boolean; // ADDED: Missing isActive field
 }
 
 export interface UpdateMemberData {
@@ -43,6 +45,7 @@ export interface UpdateMemberData {
   isActive: boolean;
   dateOfBirth?: string; // Added optional field
   workDays?: number[]; // Added optional field
+  assignedShiftId?: string | null; // ADDED: Missing shift assignment field
 }
 
 export interface MembersFilters {
@@ -156,6 +159,20 @@ export class MembersService {
         throw new Error(error.message);
       }
       throw new Error('Failed to fetch members for selection');
+    }
+  }
+
+  /**
+   * Assign shift to member - RESTORED MISSING FUNCTIONALITY
+   */
+  static async assignShift(id: string, shiftId: string): Promise<Member> {
+    try {
+      return await api.patch<Member>(`/api/members/${id}/assign-shift`, { shiftId });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to assign shift to member');
     }
   }
 }

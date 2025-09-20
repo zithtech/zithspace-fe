@@ -117,7 +117,7 @@ export const devHelpers = {
   
   // Show admin credentials
   adminCredentials: () => {
-    console.log('👤 Admin Credentials for Development:', DEV_ADMIN);
+    console.log('👤 admin Credentials for Development:', DEV_ADMIN);
     return DEV_ADMIN;
   },
 };

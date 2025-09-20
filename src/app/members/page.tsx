@@ -184,7 +184,9 @@ export default function MembersPage() {
           role: values.role,
           position: values.position,
           reportsToId: values.reportsTo || null,
-          isActive: true, // Keep existing members active
+          isActive: values.isActive !== undefined ? values.isActive : true,
+          workDays: values.workDays || [1, 2, 3, 4, 5], // FIXED: Include workDays
+          assignedShiftId: values.assignedShift || null, // FIXED: Include shift assignment
         };
         await MembersService.updateMember(selectedMember.id, updatePayload);
         setSuccess("Member updated successfully");
@@ -198,6 +200,9 @@ export default function MembersPage() {
           position: values.position,
           password: 'temp123', // Default password - should be changed on first login
           reportsToId: values.reportsTo || null,
+          workDays: values.workDays || [1, 2, 3, 4, 5], // FIXED: Include workDays
+          assignedShiftId: values.assignedShift || null, // FIXED: Include shift assignment
+          isActive: true, // FIXED: Set default active status
         };
         await MembersService.createMember(createPayload);
         setSuccess("Member created successfully");
@@ -264,6 +269,9 @@ export default function MembersPage() {
         typeof member.reportsTo === "object"
           ? member?.reportsTo?.id
           : member?.reportsTo || "",
+      assignedShift: (member as any)?.assignedShift?.id || (member as any)?.assignedShiftId || null, // FIXED: Populate shift
+      workDays: (member as any)?.workDays || [1, 2, 3, 4, 5], // FIXED: Populate work days
+      isActive: member?.isActive !== undefined ? member?.isActive : true, // FIXED: Populate isActive
     });
     setIsModalVisible(true);
   };
@@ -501,7 +509,7 @@ export default function MembersPage() {
               allowClear
             >
               <Option value="super_admin">super_admin</Option>
-              <Option value="admin">Admin</Option>
+              <Option value="admin">admin</Option>
               <Option value="user">User</Option>
             </Select>
 
@@ -677,7 +685,7 @@ export default function MembersPage() {
                   <Select placeholder="Select role">
                     <Option value="user">User</Option>
                     <Option value="admin">Admin</Option>
-                    <Option value="super_admin">super_admin</Option>
+                    <Option value="super_admin">Super Admin</Option>
                   </Select>
                 </Form.Item>
 

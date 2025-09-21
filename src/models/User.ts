@@ -20,7 +20,7 @@ export interface IUser extends Document {
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
-
+//comment added
 const UserSchema: Schema = new Schema(
   {
     name: {

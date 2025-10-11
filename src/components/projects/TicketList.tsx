@@ -233,7 +233,7 @@ export default function TicketList() {
       key: 'assignee',
       width: 150,
       render: (assignee: any) => {
-        const name = typeof assignee === 'string' ? assignee : assignee.name;
+        const name = assignee && typeof assignee === 'string' ? assignee : assignee ? assignee?.name : 'Unassigned';
         return (
           <Space>
             <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
@@ -282,7 +282,7 @@ export default function TicketList() {
       )
     }
   ];
-
+console.log('Projects:', tickets);
   // Show empty state if user has no projects
   if (!loading && projects.length === 0) {
     return (

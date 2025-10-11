@@ -196,6 +196,20 @@ export class ProjectService {
   }
 
   /**
+   * Get projects where user is a member or project manager (for ticket creation)
+   */
+  static async getUserProjectsForTickets(): Promise<Array<{ value: string; label: string; code: string }>> {
+    try {
+      return await api.get<Array<{ value: string; label: string; code: string; description: string }>>('/api/projects/user-projects-for-tickets');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to fetch user projects for tickets');
+    }
+  }
+
+  /**
    * Get project statistics
    */
   static async getProjectStats(): Promise<ProjectStats> {

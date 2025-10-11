@@ -28,9 +28,14 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { MembersService, Member, CreateMemberData, UpdateMemberData } from '@/services/membersService';
-import { SettingsService, Shift } from '@/services/settingsService';
-import { ApiError } from '@/lib/axios';
+import {
+  MembersService,
+  Member,
+  CreateMemberData,
+  UpdateMemberData,
+} from "@/services/membersService";
+import { SettingsService, Shift } from "@/services/settingsService";
+import { ApiError } from "@/lib/axios";
 import type { ColumnsType } from "antd/es/table";
 import { useRBAC } from "@/lib/rbac";
 
@@ -78,7 +83,9 @@ export default function MembersPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
-  const [positionFilter, setPositionFilter] = useState<string | undefined>(undefined);
+  const [positionFilter, setPositionFilter] = useState<string | undefined>(
+    undefined
+  );
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -88,13 +95,13 @@ export default function MembersPage() {
 
   // Available managers for dropdown
   const [managers, setManagers] = useState<Member[]>([]);
-  
+
   // Available shifts for dropdown
   const [shifts, setShifts] = useState<Shift[]>([]);
 
   // Check permissions - Allow all users to view, but redirect if no access
   useEffect(() => {
-    if (user && !['super_admin', 'admin', 'user'].includes(user.role)) {
+    if (user && !["super_admin", "admin", "user"].includes(user.role)) {
       router.push("/dashboard");
     }
   }, [user, router]);
@@ -133,11 +140,16 @@ export default function MembersPage() {
   const fetchManagers = async () => {
     try {
       const managers = await MembersService.getMembersForSelect();
-      setManagers(managers.map(m => ({
-        id: m.value,
-        name: m.label,
-        position: m.position,
-      } as Member)));
+      setManagers(
+        managers.map(
+          (m) =>
+            ({
+              id: m.value,
+              name: m.label,
+              position: m.position,
+            } as Member)
+        )
+      );
     } catch (error) {
       console.error("Failed to fetch managers:", error);
     }
@@ -198,7 +210,7 @@ export default function MembersPage() {
           workEmail: values.workEmail,
           role: values.role,
           position: values.position,
-          password: 'temp123', // Default password - should be changed on first login
+          password: "temp123", // Default password - should be changed on first login
           reportsToId: values.reportsTo || null,
           workDays: values.workDays || [1, 2, 3, 4, 5], // FIXED: Include workDays
           assignedShiftId: values.assignedShift || null, // FIXED: Include shift assignment
@@ -269,7 +281,10 @@ export default function MembersPage() {
         typeof member.reportsTo === "object"
           ? member?.reportsTo?.id
           : member?.reportsTo || "",
-      assignedShift: (member as any)?.assignedShift?.id || (member as any)?.assignedShiftId || null, // FIXED: Populate shift
+      assignedShift:
+        (member as any)?.assignedShift?.id ||
+        (member as any)?.assignedShiftId ||
+        null, // FIXED: Populate shift
       workDays: (member as any)?.workDays || [1, 2, 3, 4, 5], // FIXED: Populate work days
       isActive: member?.isActive !== undefined ? member?.isActive : true, // FIXED: Populate isActive
     });
@@ -339,7 +354,17 @@ export default function MembersPage() {
       ),
     },
     {
-      title: "Role",
+      title: "Position",
+      key: "position",
+      width: 200,
+      render: (_, record: Member) => (
+        <div>
+          <Text style={{ fontSize: 12 }}>{record?.position}</Text>
+        </div>
+      ),
+    },
+    {
+      title: "User Role",
       dataIndex: "role",
       key: "role",
       width: 100,
@@ -508,8 +533,8 @@ export default function MembersPage() {
               style={{ width: 200 }}
               allowClear
             >
-              <Option value="super_admin">super_admin</Option>
-              <Option value="admin">admin</Option>
+              <Option value="super_admin">Super Admin</Option>
+              <Option value="admin">Admin</Option>
               <Option value="user">User</Option>
             </Select>
 
@@ -731,7 +756,7 @@ export default function MembersPage() {
               >
                 <Form.Item name="assignedShift" label="Assigned Shift">
                   <Select placeholder="Select shift (optional)" allowClear>
-                    <Option value="flexible">Flexible Shift (Default)</Option>
+                    {/* <Option value="flexible">Flexible Shift (Default)</Option> */}
                     {shifts.map((shift) => (
                       <Option key={shift.id} value={shift.id}>
                         {shift.name} ({shift.startTime} - {shift.endTime})
@@ -740,9 +765,19 @@ export default function MembersPage() {
                   </Select>
                 </Form.Item>
 
-                <Form.Item name="workDays" label="Work Days" initialValue={[1, 2, 3, 4, 5]}>
+                <Form.Item
+                  name="workDays"
+                  label="Work Days"
+                  initialValue={[1, 2, 3, 4, 5]}
+                >
                   <Checkbox.Group>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: 8,
+                      }}
+                    >
                       <Checkbox value={1}>Mon</Checkbox>
                       <Checkbox value={2}>Tue</Checkbox>
                       <Checkbox value={3}>Wed</Checkbox>

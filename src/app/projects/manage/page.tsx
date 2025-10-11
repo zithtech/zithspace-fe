@@ -608,7 +608,7 @@ const ProjectsManagePage: React.FC = () => {
           <Row gutter={16}>
             <Col xs={24} sm={12}>
               <Form.Item
-                name="projectManager"
+                name="projectManagerId"
                 label="Project Manager"
                 rules={[{ required: true, message: 'Please select project manager' }]}
               >
@@ -646,7 +646,7 @@ const ProjectsManagePage: React.FC = () => {
           </Row>
 
           <Form.Item
-            name="teamMembers"
+            name="teamMemberIds"
             label="Team Members"
           >
             <Select

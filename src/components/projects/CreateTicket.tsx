@@ -97,7 +97,7 @@ export default function CreateTicket() {
         
         // Load user projects, members, and ticket configurations in parallel
         const [projectsData, membersData, ticketConfigData] = await Promise.all([
-          ProjectService.getUserProjects(),
+          ProjectService.getUserProjectsForTickets(),
           MembersService.getMembersForSelect(),
           SettingsService.getTicketConfigurations()
         ]);

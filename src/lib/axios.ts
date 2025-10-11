@@ -109,7 +109,7 @@ const TokenManager = {
 // Create Axios instance with base configuration
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
+    baseURL: 'http://localhost:5000',
     timeout: 30000, // 30 seconds
     withCredentials: true,
     headers: {
@@ -198,7 +198,7 @@ const createApiClient = (): AxiosInstance => {
         try {
           // Attempt to refresh token - no body needed, refresh token sent via cookies
           const refreshResponse = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/auth/refresh`,
+            `${'http://localhost:5000'}/api/auth/refresh`,
             {}, // Empty body - refresh token is in cookies
             { withCredentials: true }
           );

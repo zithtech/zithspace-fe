@@ -100,12 +100,15 @@ function ViewDailyUpdatesContent() {
           projectId: selectedProject,
           userId: selectedUser,
         });
+        console.log("ssss",{teamUpdates})
         setUpdates(teamUpdates);
       } else {
         // Fetch only own updates
         const myUpdates = await DailyUpdateService.getMyUpdates({
           date: dateStr,
         });
+        console.log("ssssss",{myUpdates})
+
         setUpdates(myUpdates);
       }
     } catch (error) {

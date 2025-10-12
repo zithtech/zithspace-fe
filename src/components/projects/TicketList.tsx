@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Button,
@@ -16,20 +16,21 @@ import {
   Table,
   Empty,
   Progress,
-  message
-} from 'antd';
+  message,
+  Modal,
+} from "antd";
 import {
   PlusCircleOutlined,
   EyeOutlined,
   DeleteOutlined,
   SearchOutlined,
   ReloadOutlined,
-  ExclamationCircleOutlined
-} from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
-import dayjs from 'dayjs';
-import TicketService, { Ticket } from '@/services/ticketService';
-import { ProjectService } from '@/services/projectService';
+  ExclamationCircleOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
+import TicketService, { Ticket } from "@/services/ticketService";
+import { ProjectService } from "@/services/projectService";
 
 const { Title, Text } = Typography;
 
@@ -43,21 +44,31 @@ interface FilterState {
 
 export default function TicketList() {
   const router = useRouter();
+  const [modal, contextHolder] = Modal.useModal();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [projects, setProjects] = useState<Array<{ value: string; label: string; code: string }>>([]);
+  const [projects, setProjects] = useState<
+    Array<{ value: string; label: string; code: string }>
+  >([]);
   const [filters, setFilters] = useState<FilterState>({
     status: [],
     priority: [],
     project: [],
     assignee: [],
-    search: ''
+    search: "",
   });
 
   // Inline editing state
-  const [editingField, setEditingField] = useState<{ ticketId: string; field: 'status' | 'assignee' } | null>(null);
-  const [members, setMembers] = useState<Array<{ value: string; label: string; position: string }>>([]);
-  const [updatingTickets, setUpdatingTickets] = useState<Set<string>>(new Set());
+  const [editingField, setEditingField] = useState<{
+    ticketId: string;
+    field: "status" | "assignee";
+  } | null>(null);
+  const [members, setMembers] = useState<
+    Array<{ value: string; label: string; position: string }>
+  >([]);
+  const [updatingTickets, setUpdatingTickets] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     fetchTickets();
@@ -73,14 +84,15 @@ export default function TicketList() {
         limit: 50,
         status: filters.status.length > 0 ? filters.status[0] : undefined,
         priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
-        project: filters.project.length > 0 ? filters.project[0] : undefined,
-        assignee: filters.assignee.length > 0 ? filters.assignee[0] : undefined,
-        search: filters.search || undefined
+        projectId: filters.project.length > 0 ? filters.project[0] : undefined,
+        assigneeId:
+          filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
+        search: filters.search || undefined,
       });
       setTickets(response.data || []);
     } catch (error) {
-      console.error('Failed to fetch tickets:', error);
-      message.error('Failed to load tickets');
+      console.error("Failed to fetch tickets:", error);
+      message.error("Failed to load tickets");
       setTickets([]);
     } finally {
       setLoading(false);
@@ -92,47 +104,53 @@ export default function TicketList() {
       const projectsData = await ProjectService.getUserProjects();
       setProjects(projectsData);
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error("Failed to fetch projects:", error);
     }
   };
 
   const fetchMembers = async () => {
     try {
-      const { MembersService } = await import('@/services/membersService');
+      const { MembersService } = await import("@/services/membersService");
       const membersData = await MembersService.getMembersForSelect();
       setMembers(membersData || []);
     } catch (error) {
-      console.error('Failed to fetch members:', error);
+      console.error("Failed to fetch members:", error);
     }
   };
 
-  const handleUpdateTicket = async (ticketId: string, field: 'status' | 'assignee', value: string) => {
+  const handleUpdateTicket = async (
+    ticketId: string,
+    field: "status" | "assignee",
+    value: string
+  ) => {
     // Add to updating set
-    setUpdatingTickets(prev => new Set(prev).add(ticketId));
+    setUpdatingTickets((prev) => new Set(prev).add(ticketId));
 
     try {
       // Prepare update data
       const updateData: any = {};
-      if (field === 'status') {
+      if (field === "status") {
         updateData.status = value;
-      } else if (field === 'assignee') {
+      } else if (field === "assignee") {
         updateData.assignee = value;
       }
 
       // Update ticket
       await TicketService.updateTicket(ticketId, updateData);
-      
+
       // Update local state optimistically
-      setTickets(prevTickets =>
-        prevTickets.map(ticket => {
+      setTickets((prevTickets) =>
+        prevTickets.map((ticket) => {
           if (ticket.id === ticketId) {
-            if (field === 'status') {
+            if (field === "status") {
               return { ...ticket, status: value };
-            } else if (field === 'assignee') {
-              const member = members.find(m => m.value === value);
+            } else if (field === "assignee") {
+              const member = members.find((m) => m.value === value);
               return {
                 ...ticket,
-                assignee: member ? { id: value, name: member.label, email: '' } : ticket.assignee
+                assignee: member
+                  ? { id: value, name: member.label, email: "" }
+                  : ticket.assignee,
               };
             }
           }
@@ -140,7 +158,9 @@ export default function TicketList() {
         })
       );
 
-      message.success(`${field === 'status' ? 'Status' : 'Assignee'} updated successfully`);
+      message.success(
+        `${field === "status" ? "Status" : "Assignee"} updated successfully`
+      );
       setEditingField(null);
     } catch (error) {
       console.error(`Failed to update ${field}:`, error);
@@ -149,7 +169,7 @@ export default function TicketList() {
       fetchTickets();
     } finally {
       // Remove from updating set
-      setUpdatingTickets(prev => {
+      setUpdatingTickets((prev) => {
         const newSet = new Set(prev);
         newSet.delete(ticketId);
         return newSet;
@@ -159,30 +179,44 @@ export default function TicketList() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'success';
-      case 'in_progress': return 'processing';
-      case 'in_testing': return 'warning';
-      case 'not_started': return 'default';
-      default: return 'default';
+      case "completed":
+        return "success";
+      case "in_progress":
+        return "processing";
+      case "in_testing":
+        return "warning";
+      case "not_started":
+        return "default";
+      default:
+        return "default";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return 'red';
-      case 'P2': return 'orange';
-      case 'P3': return 'green';
-      default: return 'default';
+      case "P1":
+        return "red";
+      case "P2":
+        return "orange";
+      case "P3":
+        return "green";
+      default:
+        return "default";
     }
   };
 
   const getTaskTypeColor = (taskType: string) => {
     switch (taskType) {
-      case 'Bug': return 'red';
-      case 'Task': return 'blue';
-      case 'Feat': return 'green';
-      case 'Overwrite': return 'orange';
-      default: return 'default';
+      case "Bug":
+        return "red";
+      case "Task":
+        return "blue";
+      case "Feat":
+        return "green";
+      case "Overwrite":
+        return "orange";
+      default:
+        return "default";
     }
   };
 
@@ -191,49 +225,49 @@ export default function TicketList() {
   };
 
   const handleCreateTicket = () => {
-    router.push('/projects/create');
+    router.push("/projects/create");
   };
 
-  const handleDeleteTicket = async (ticket: Ticket) => {
-    const { Modal } = await import('antd');
-    
-    Modal.confirm({
-      title: 'Delete Ticket',
-      icon: <ExclamationCircleOutlined />,
-      content: `Are you sure you want to delete ticket ${ticket.ticketNumber}? This action cannot be undone.`,
-      okText: 'Yes, Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: async () => {
-        try {
-          await TicketService.deleteTicket(ticket.id);
-          message.success('Ticket deleted successfully');
-          fetchTickets(); // Refresh the list
-        } catch (error) {
-          console.error('Failed to delete ticket:', error);
-          message.error('Failed to delete ticket');
-        }
+  const handleDeleteTicket = async(ticket: Ticket, event?: React.MouseEvent) => {
+    console.log({ ticket });
+    try {
+      await TicketService.deleteTicket(ticket.id);
+      message.success("Ticket deleted successfully");
+      fetchTickets(); // Refresh the list
+    } catch (error: any) {
+      console.error("Failed to delete ticket:", error);
+
+      // Check if it's a permission error
+      const errorMessage = error?.message || "Failed to delete ticket";
+      if (
+        errorMessage.includes("permission") ||
+        errorMessage.includes("admin") ||
+        errorMessage.includes("403")
+      ) {
+        message.error("Only administrators can delete tickets");
+      } else {
+        message.error(errorMessage);
       }
-    });
+    }
   };
 
   // Table columns
   const columns = [
     {
-      title: 'Ticket',
-      dataIndex: 'ticketNumber',
-      key: 'ticketNumber',
+      title: "Ticket",
+      dataIndex: "ticketNumber",
+      key: "ticketNumber",
       width: 100,
       render: (text: string) => (
-        <Text strong style={{ color: '#1677ff' }}>
+        <Text strong style={{ color: "#1677ff" }}>
           {text}
         </Text>
-      )
+      ),
     },
     {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
+      title: "Title",
+      dataIndex: "title",
+      key: "title",
       width: 250,
       render: (text: string, record: Ticket) => (
         <div>
@@ -243,31 +277,35 @@ export default function TicketList() {
             {record.description.substring(0, 50)}...
           </Text> */}
         </div>
-      )
+      ),
     },
     {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
       width: 150,
       render: (status: string, record: Ticket) => {
-        const isEditing = editingField?.ticketId === record.id && editingField?.field === 'status';
+        const isEditing =
+          editingField?.ticketId === record.id &&
+          editingField?.field === "status";
         const isUpdating = updatingTickets.has(record.id);
 
         if (isEditing) {
           return (
             <Select
               value={status}
-              style={{ width: '100%' }}
-              onChange={(value) => handleUpdateTicket(record.id, 'status', value)}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                handleUpdateTicket(record.id, "status", value)
+              }
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
               options={[
-                { label: 'Not Started', value: 'not_started' },
-                { label: 'In Progress', value: 'in_progress' },
-                { label: 'In Testing', value: 'in_testing' },
-                { label: 'Completed', value: 'completed' }
+                { label: "Not Started", value: "not_started" },
+                { label: "In Progress", value: "in_progress" },
+                { label: "In Testing", value: "in_testing" },
+                { label: "Completed", value: "completed" },
               ]}
             />
           );
@@ -276,48 +314,44 @@ export default function TicketList() {
         return (
           <Tag
             color={getStatusColor(status)}
-            style={{ cursor: 'pointer' }}
-            onClick={() => setEditingField({ ticketId: record.id, field: 'status' })}
+            style={{ cursor: "pointer" }}
+            onClick={() =>
+              setEditingField({ ticketId: record.id, field: "status" })
+            }
           >
-            {status.replace('_', ' ').toUpperCase()}
+            {status.replace("_", " ").toUpperCase()}
           </Tag>
         );
-      }
+      },
     },
     {
-      title: 'Priority',
-      dataIndex: 'priority',
-      key: 'priority',
+      title: "Priority",
+      dataIndex: "priority",
+      key: "priority",
       width: 100,
       render: (priority: string) => (
-        <Tag color={getPriorityColor(priority)}>
-          {priority}
-        </Tag>
-      )
+        <Tag color={getPriorityColor(priority)}>{priority}</Tag>
+      ),
     },
     {
-      title: 'Type',
-      key: 'type',
+      title: "Type",
+      key: "type",
       width: 100,
-      render: (_:any, record: any) => {
-        const taskType = record?.type || '';
+      render: (_: any, record: any) => {
+        const taskType = record?.type || "";
         if (!taskType) {
           return <Text type="secondary">-</Text>;
         }
-        return (
-          <Tag color={getTaskTypeColor(taskType)}>
-            {taskType}
-          </Tag>
-        );
-      }
+        return <Tag color={getTaskTypeColor(taskType)}>{taskType}</Tag>;
+      },
     },
     {
-      title: 'Project',
-      dataIndex: 'project',
-      key: 'project',
+      title: "Project",
+      dataIndex: "project",
+      key: "project",
       width: 150,
       render: (project: any) => {
-        if (typeof project === 'string') {
+        if (typeof project === "string") {
           return <Tag color="blue">{project}</Tag>;
         }
         return (
@@ -325,40 +359,52 @@ export default function TicketList() {
             {project.name} ({project.code})
           </Tag>
         );
-      }
+      },
     },
     {
-      title: 'Assignee',
-      dataIndex: 'assignee',
-      key: 'assignee',
+      title: "Assignee",
+      dataIndex: "assignee",
+      key: "assignee",
       width: 200,
       render: (assignee: any, record: Ticket) => {
-        const isEditing = editingField?.ticketId === record.id && editingField?.field === 'assignee';
+        const isEditing =
+          editingField?.ticketId === record.id &&
+          editingField?.field === "assignee";
         const isUpdating = updatingTickets.has(record.id);
-        const assigneeId = typeof assignee === 'string' ? assignee : assignee?.id || '';
-        const name = assignee && typeof assignee === 'string' ? assignee : assignee ? assignee?.name : 'Unassigned';
+        const assigneeId =
+          typeof assignee === "string" ? assignee : assignee?.id || "";
+        const name =
+          assignee && typeof assignee === "string"
+            ? assignee
+            : assignee
+            ? assignee?.name
+            : "Unassigned";
 
         if (isEditing) {
           return (
             <Select
               value={assigneeId}
-              style={{ width: '100%' }}
-              onChange={(value) => handleUpdateTicket(record.id, 'assignee', value)}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                handleUpdateTicket(record.id, "assignee", value)
+              }
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
               showSearch
               placeholder="Select assignee"
               filterOption={(input, option) => {
-                const member = members.find(m => m.value === option?.value);
+                const member = members.find((m) => m.value === option?.value);
                 return member
                   ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                    member.position.toLowerCase().includes(input.toLowerCase())
+                      member.position
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
                   : false;
               }}
-              options={members.map(member => ({
+              options={members.map((member) => ({
                 label: `${member.label} - ${member.position}`,
-                value: member.value
+                value: member.value,
               }))}
             />
           );
@@ -366,31 +412,31 @@ export default function TicketList() {
 
         return (
           <Space
-            style={{ cursor: 'pointer' }}
-            onClick={() => setEditingField({ ticketId: record.id, field: 'assignee' })}
+            style={{ cursor: "pointer" }}
+            onClick={() =>
+              setEditingField({ ticketId: record.id, field: "assignee" })
+            }
           >
-            <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
+            <Avatar size="small" style={{ backgroundColor: "#1677ff" }}>
               {name.charAt(0)}
             </Avatar>
             <Text>{name}</Text>
           </Space>
         );
-      }
+      },
     },
     {
-      title: 'Created',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      title: "Created",
+      dataIndex: "createdAt",
+      key: "createdAt",
       width: 120,
       render: (createdAt: string) => (
-        <Text type="secondary">
-          {dayjs(createdAt).format('MMM DD, YYYY')}
-        </Text>
-      )
+        <Text type="secondary">{dayjs(createdAt).format("MMM DD, YYYY")}</Text>
+      ),
     },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: "Actions",
+      key: "actions",
       width: 120,
       render: (_: any, record: Ticket) => (
         <Space>
@@ -412,15 +458,20 @@ export default function TicketList() {
             Delete
           </Button>
         </Space>
-      )
-    }
+      ),
+    },
   ];
-console.log('Projects:', tickets);
+  console.log("Projects:", tickets);
   // Show empty state if user has no projects
   if (!loading && projects.length === 0) {
     return (
       <div>
-        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        {contextHolder}
+        <Row
+          justify="space-between"
+          align="middle"
+          style={{ marginBottom: 24 }}
+        >
           <Col>
             <Title level={3}>Tickets</Title>
           </Col>
@@ -430,9 +481,13 @@ console.log('Projects:', tickets);
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <div>
-                <Text type="secondary">You are not a member of any projects yet.</Text>
+                <Text type="secondary">
+                  You are not a member of any projects yet.
+                </Text>
                 <br />
-                <Text type="secondary">Contact your project manager to be added to a project.</Text>
+                <Text type="secondary">
+                  Contact your project manager to be added to a project.
+                </Text>
               </div>
             }
           />
@@ -476,7 +531,9 @@ console.log('Projects:', tickets);
               placeholder="Search tickets..."
               prefix={<SearchOutlined />}
               value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
               allowClear
             />
           </Col>
@@ -484,14 +541,16 @@ console.log('Projects:', tickets);
             <Select
               mode="multiple"
               placeholder="Status"
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
               value={filters.status}
-              onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+              onChange={(value) =>
+                setFilters((prev) => ({ ...prev, status: value }))
+              }
               options={[
-                { label: 'Not Started', value: 'not_started' },
-                { label: 'In Progress', value: 'in_progress' },
-                { label: 'In Testing', value: 'in_testing' },
-                { label: 'Completed', value: 'completed' }
+                { label: "Not Started", value: "not_started" },
+                { label: "In Progress", value: "in_progress" },
+                { label: "In Testing", value: "in_testing" },
+                { label: "Completed", value: "completed" },
               ]}
             />
           </Col>
@@ -499,13 +558,15 @@ console.log('Projects:', tickets);
             <Select
               mode="multiple"
               placeholder="Priority"
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
               value={filters.priority}
-              onChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}
+              onChange={(value) =>
+                setFilters((prev) => ({ ...prev, priority: value }))
+              }
               options={[
-                { label: 'High (P1)', value: 'P1' },
-                { label: 'Medium (P2)', value: 'P2' },
-                { label: 'Lite (P3)', value: 'P3' }
+                { label: "High (P1)", value: "P1" },
+                { label: "Medium (P2)", value: "P2" },
+                { label: "Lite (P3)", value: "P3" },
               ]}
             />
           </Col>
@@ -513,21 +574,44 @@ console.log('Projects:', tickets);
             <Select
               mode="multiple"
               placeholder="Project"
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
               value={filters.project}
-              onChange={(value) => setFilters(prev => ({ ...prev, project: value }))}
-              options={projects.map(project => ({
+              onChange={(value) =>
+                setFilters((prev) => ({ ...prev, project: value }))
+              }
+              options={projects.map((project) => ({
                 label: project.label,
-                value: project.value
+                value: project.value,
               }))}
             />
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
-            <Button
-              type="primary"
-              onClick={fetchTickets}
-              loading={loading}
-            >
+            <Select
+              mode="multiple"
+              placeholder="Assignee"
+              style={{ width: "100%" }}
+              value={filters.assignee}
+              onChange={(value) =>
+                setFilters((prev) => ({ ...prev, assignee: value }))
+              }
+              showSearch
+              filterOption={(input, option) => {
+                const member = members.find((m) => m.value === option?.value);
+                return member
+                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                      member.position
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                  : false;
+              }}
+              options={members.map((member) => ({
+                label: `${member.label} - ${member.position}`,
+                value: member.value,
+              }))}
+            />
+          </Col>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Button type="primary" onClick={fetchTickets} loading={loading}>
               Apply Filters
             </Button>
           </Col>
@@ -550,12 +634,13 @@ console.log('Projects:', tickets);
           }}
           scroll={{ x: 1000 }}
           locale={{
-            emptyText: tickets.length === 0 && !loading ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No tickets found for your projects"
-              />
-            ) : undefined
+            emptyText:
+              tickets.length === 0 && !loading ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No tickets found for your projects"
+                />
+              ) : undefined,
           }}
         />
       </Card>

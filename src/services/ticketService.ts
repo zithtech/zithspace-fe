@@ -250,9 +250,9 @@ class TicketService {
     limit?: number;
     status?: string;
     priority?: string;
-    project?: string;
-    assignee?: string;
-    createdBy?: string;
+    projectId?: string;
+    assigneeId?: string;
+    createdById?: string;
     search?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';

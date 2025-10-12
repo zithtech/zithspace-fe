@@ -16,6 +16,7 @@ import {
   Spin,
   message,
   Divider,
+  Flex,
 } from 'antd';
 import {
   PlusCircleOutlined,
@@ -277,7 +278,7 @@ function ViewDailyUpdatesContent() {
           </Empty>
         </Card>
       ) : (
-        <Space direction="vertical" style={{ width: '100%' }} size="large">
+        <Space direction="vertical" style={{ width: '100%'}} size="large">
           {updates.map((update) => (
             <Card key={update.id} style={{ borderLeft: '4px solid #1890ff' }}>
               {/* User Header */}

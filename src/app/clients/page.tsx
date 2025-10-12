@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import {
   Card,
   Table,
@@ -17,10 +16,9 @@ import {
   Form,
   Alert,
   Dropdown,
-  Checkbox,
   Row,
   Col,
-  Divider,
+  Statistic,
 } from "antd";
 import {
   PlusOutlined,
@@ -30,32 +28,22 @@ import {
   MoreOutlined,
   ShopOutlined,
   EyeOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { ClientService, Client, CreateClientData, UpdateClientData } from '@/services/clientService';
-import { MembersService } from '@/services/membersService';
-import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from "antd/es/table";
 import { useRBAC } from "@/lib/rbac";
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
-interface Manager {
-  id: string;
-  name: string;
-  position: string;
-}
-
 export default function ClientsPage() {
   const { user, isLoading } = useAuth();
-
-  // Show loading spinner while authentication is being checked
-  if (isLoading) {
-    return <LoadingSpinner message="Loading clients..." />;
-  }
-
   const router = useRouter();
   const [form] = Form.useForm();
 
@@ -64,6 +52,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [stats, setStats] = useState<any>(null);
 
   // Pagination and filtering
   const [pagination, setPagination] = useState({
@@ -73,8 +62,6 @@ export default function ClientsPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [clientTypeFilter, setClientTypeFilter] = useState<string | undefined>(undefined);
-  const [countryFilter, setCountryFilter] = useState<string | undefined>(undefined);
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -82,10 +69,11 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
-  // Available managers for dropdown
-  const [managers, setManagers] = useState<Manager[]>([]);
+  // RBAC permissions
+  const rbac = useRBAC(user?.role as any);
+  const canManage = rbac?.canManageMembers;
 
-  // Check permissions - Allow all users to view, but redirect if no access
+  // Check permissions
   useEffect(() => {
     if (user && !['super_admin', 'admin', 'user'].includes(user.role)) {
       router.push("/dashboard");
@@ -102,8 +90,6 @@ export default function ClientsPage() {
         limit: pagination.pageSize,
         search: searchTerm,
         status: statusFilter,
-        clientType: clientTypeFilter,
-        country: countryFilter,
       });
 
       setClients(response.data);
@@ -113,7 +99,7 @@ export default function ClientsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch clients:", error);
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         setError(error.message);
       } else {
         setError("Failed to fetch clients");
@@ -123,34 +109,22 @@ export default function ClientsPage() {
     }
   };
 
-  // Fetch managers for dropdown
-  const fetchManagers = async () => {
+  // Fetch stats
+  const fetchStats = async () => {
     try {
-      const managers = await MembersService.getMembersForSelect();
-      setManagers(managers.map(m => ({
-        id: m.value,
-        name: m.label,
-        position: m.position,
-      })));
+      const data = await ClientService.getClientStats();
+      setStats(data);
     } catch (error) {
-      console.error("Failed to fetch managers:", error);
+      console.error("Failed to fetch stats:", error);
     }
   };
 
   useEffect(() => {
     if (user) {
       fetchClients();
-      fetchManagers();
+      fetchStats();
     }
-  }, [
-    user,
-    pagination.current,
-    pagination.pageSize,
-    searchTerm,
-    statusFilter,
-    clientTypeFilter,
-    countryFilter,
-  ]);
+  }, [user, pagination.current, pagination.pageSize, searchTerm, statusFilter]);
 
   // Handle form submission
   const handleSubmit = async (values: any) => {
@@ -158,75 +132,21 @@ export default function ClientsPage() {
       setFormLoading(true);
       setError("");
 
-      // Prepare form data
-      const formData = {
-        companyName: values.companyName,
-        contactPerson: {
-          firstName: values.firstName,
-          lastName: values.lastName,
-        },
-        clientType: values.clientType,
-        email: {
-          primary: values.primaryEmail,
-          alternate: values.alternateEmail || undefined,
-        },
-        phone: {
-          primary: values.primaryPhone,
-          alternate: values.alternatePhone || undefined,
-        },
-        website: values.website || undefined,
-        socialLinks: {
-          linkedin: values.linkedin || undefined,
-          twitter: values.twitter || undefined,
-          facebook: values.facebook || undefined,
-        },
-        address: {
-          street: values.street,
-          city: values.city,
-          state: values.state,
-          country: values.country,
-          postalCode: values.postalCode,
-        },
-        billingAddress: values.sameBillingAddress ? undefined : {
-          street: values.billingStreet,
-          city: values.billingCity,
-          state: values.billingState,
-          country: values.billingCountry,
-          postalCode: values.billingPostalCode,
-        },
-        industry: values.industry,
-        businessType: values.businessType,
-        taxInfo: {
-          gstNumber: values.gstNumber || undefined,
-          vatNumber: values.vatNumber || undefined,
-          taxId: values.taxId || undefined,
-        },
-        paymentTerms: values.paymentTerms || undefined,
-        status: values.status || 'Active',
-        assignedManager: values.assignedManager,
-        leadSource: values.leadSource || undefined,
-        tags: values.tags || [],
-        contractDetails: {
-          startDate: values.contractStartDate || undefined,
-          endDate: values.contractEndDate || undefined,
-          renewalDate: values.contractRenewalDate || undefined,
-          value: values.contractValue || undefined,
-          currency: values.contractCurrency || undefined,
-        },
-        communicationPreferences: {
-          email: values.prefEmail !== false,
-          phone: values.prefPhone !== false,
-          whatsapp: values.prefWhatsapp !== false,
-          sms: values.prefSms !== false,
-        },
-        notes: values.notes || undefined,
+      const formData: CreateClientData = {
+        name: values.name,
+        email: values.email,
+        phone: values.phone,
+        company: values.company,
+        address: values.address,
+        contactPerson: values.contactPerson,
+        notes: values.notes,
       };
 
       if (modalType === "edit" && selectedClient) {
         await ClientService.updateClient(selectedClient.id, formData as UpdateClientData);
         setSuccess("Client updated successfully");
       } else {
-        await ClientService.createClient(formData as CreateClientData);
+        await ClientService.createClient(formData);
         setSuccess("Client created successfully");
       }
 
@@ -234,9 +154,10 @@ export default function ClientsPage() {
       form.resetFields();
       setSelectedClient(null);
       fetchClients();
+      fetchStats();
     } catch (error: any) {
       console.error("Failed to submit client form:", error);
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         setError(error.message);
       } else {
         setError("Operation failed");
@@ -257,9 +178,10 @@ export default function ClientsPage() {
       setIsModalVisible(false);
       setSelectedClient(null);
       fetchClients();
+      fetchStats();
     } catch (error: any) {
       console.error("Failed to delete client:", error);
-      if (error instanceof ApiError) {
+      if (error instanceof Error) {
         setError(error.message);
       } else {
         setError("Delete failed");
@@ -281,47 +203,12 @@ export default function ClientsPage() {
     setModalType("edit");
     setSelectedClient(client);
     form.setFieldsValue({
-      companyName: client.companyName,
-      firstName: client.contactPerson.firstName,
-      lastName: client.contactPerson.lastName,
-      clientType: client.clientType,
-      primaryEmail: client.email.primary,
-      alternateEmail: client.email.alternate,
-      primaryPhone: client.phone.primary,
-      alternatePhone: client.phone.alternate,
-      website: client.website,
-      linkedin: client.socialLinks?.linkedin,
-      twitter: client.socialLinks?.twitter,
-      facebook: client.socialLinks?.facebook,
-      street: client.address.street,
-      city: client.address.city,
-      state: client.address.state,
-      country: client.address.country,
-      postalCode: client.address.postalCode,
-      billingStreet: client.billingAddress?.street,
-      billingCity: client.billingAddress?.city,
-      billingState: client.billingAddress?.state,
-      billingCountry: client.billingAddress?.country,
-      billingPostalCode: client.billingAddress?.postalCode,
-      industry: client.industry,
-      businessType: client.businessType,
-      gstNumber: client.taxInfo?.gstNumber,
-      vatNumber: client.taxInfo?.vatNumber,
-      taxId: client.taxInfo?.taxId,
-      paymentTerms: client.paymentTerms,
-      status: client.status,
-      assignedManager: client.assignedManager.id,
-      leadSource: client.leadSource,
-      tags: client.tags,
-      contractStartDate: client.contractDetails?.startDate,
-      contractEndDate: client.contractDetails?.endDate,
-      contractRenewalDate: client.contractDetails?.renewalDate,
-      contractValue: client.contractDetails?.value,
-      contractCurrency: client.contractDetails?.currency,
-      prefEmail: client.communicationPreferences?.email,
-      prefPhone: client.communicationPreferences?.phone,
-      prefWhatsapp: client.communicationPreferences?.whatsapp,
-      prefSms: client.communicationPreferences?.sms,
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      company: client.company,
+      address: client.address,
+      contactPerson: client.contactPerson,
       notes: client.notes,
     });
     setIsModalVisible(true);
@@ -349,35 +236,30 @@ export default function ClientsPage() {
         <Space>
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              background:
-                record.status === "Active"
-                  ? "#52c41a"
-                  : record.status === "Prospect"
-                  ? "#1677ff"
-                  : record.status === "Lead"
-                  ? "#faad14"
-                  : "#ff4d4f",
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              background: record.isActive ? "#52c41a" : "#ff4d4f",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "#fff",
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: 600,
             }}
           >
-            {record.companyName.charAt(0).toUpperCase()}
+            {record.name.charAt(0).toUpperCase()}
           </div>
           <div>
             <Text strong style={{ fontSize: 13 }}>
-              {record.companyName}
+              {record.name}
             </Text>
             <br />
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              {record.contactPerson.firstName} {record.contactPerson.lastName}
-            </Text>
+            {record.company && (
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {record.company}
+              </Text>
+            )}
           </div>
         </Space>
       ),
@@ -385,66 +267,59 @@ export default function ClientsPage() {
     {
       title: "Contact",
       key: "contact",
-      width: 180,
+      width: 200,
       render: (_, record: Client) => (
         <div>
-          <Text style={{ fontSize: 12 }}>{record.email.primary}</Text>
+          <Space size={4}>
+            <MailOutlined style={{ fontSize: 11, color: '#8c8c8c' }} />
+            <Text style={{ fontSize: 12 }}>{record.email}</Text>
+          </Space>
           <br />
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            {record.phone.primary}
-          </Text>
+          {record.phone && (
+            <Space size={4}>
+              <PhoneOutlined style={{ fontSize: 11, color: '#8c8c8c' }} />
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {record.phone}
+              </Text>
+            </Space>
+          )}
         </div>
       ),
     },
     {
-      title: "Type",
-      dataIndex: "clientType",
-      key: "clientType",
-      width: 120,
-      render: (type: string) => (
-        <Tag
-          color={
-            type === "Enterprise"
-              ? "purple"
-              : type === "Small Business"
-              ? "blue"
-              : "green"
-          }
-          style={{ fontSize: 11, fontWeight: 500 }}
-        >
-          {type}
-        </Tag>
+      title: "Contact Person",
+      dataIndex: "contactPerson",
+      key: "contactPerson",
+      width: 150,
+      render: (contactPerson: string) => (
+        <Space size={4}>
+          <UserOutlined style={{ fontSize: 11, color: '#8c8c8c' }} />
+          <Text style={{ fontSize: 12 }}>{contactPerson || "-"}</Text>
+        </Space>
       ),
     },
     {
       title: "Status",
-      dataIndex: "status",
-      key: "status",
+      dataIndex: "isActive",
+      key: "isActive",
       width: 100,
-      render: (status: string) => (
+      render: (isActive: boolean) => (
         <Tag
-          color={
-            status === "Active"
-              ? "green"
-              : status === "Prospect"
-              ? "blue"
-              : status === "Lead"
-              ? "orange"
-              : "red"
-          }
+          color={isActive ? "green" : "red"}
           style={{ fontSize: 11, fontWeight: 500 }}
         >
-          {status}
+          {isActive ? "ACTIVE" : "INACTIVE"}
         </Tag>
       ),
     },
     {
-      title: "Manager",
-      key: "assignedManager",
+      title: "Created",
+      dataIndex: "createdAt",
+      key: "createdAt",
       width: 120,
-      render: (_, record: Client) => (
-        <Text style={{ fontSize: 12 }}>
-          {record.assignedManager?.name || "-"}
+      render: (date: string) => (
+        <Text type="secondary" style={{ fontSize: 11 }}>
+          {dayjs(date).format('MMM DD, YYYY')}
         </Text>
       ),
     },
@@ -453,10 +328,8 @@ export default function ClientsPage() {
       key: "actions",
       width: 80,
       align: "center",
+      fixed: 'right',
       render: (_, record: Client) => {
-        const rbac = useRBAC(user?.role as any);
-        const canManage = rbac?.canManageMembers; // Using same permission as members for now
-
         const menuItems = [
           {
             key: "view",
@@ -491,7 +364,6 @@ export default function ClientsPage() {
               type="text"
               icon={<MoreOutlined />}
               size="small"
-              style={{ width: 24, height: 24 }}
             />
           </Dropdown>
         );
@@ -510,15 +382,10 @@ export default function ClientsPage() {
     }
   }, [success, error]);
 
-  // Don't render if no user
   if (!user) {
     return null;
   }
 
-  // RBAC permissions
-  const rbac = useRBAC(user.role as any);
-  const canManage = rbac?.canManageMembers; // Using same permission as members for now
-//comment added
   return (
     <MainLayout>
       <div style={{ padding: 20 }}>
@@ -569,13 +436,42 @@ export default function ClientsPage() {
           />
         )}
 
+        {/* Stats Cards */}
+        {stats && (
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={8}>
+              <Card size="small">
+                <Statistic
+                  title="Total Clients"
+                  value={stats.overview.totalClients}
+                  valueStyle={{ color: '#1677ff' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card size="small">
+                <Statistic
+                  title="Active Clients"
+                  value={stats.overview.activeClients}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card size="small">
+                <Statistic
+                  title="Inactive Clients"
+                  value={stats.overview.inactiveClients}
+                  valueStyle={{ color: '#ff4d4f' }}
+                />
+              </Card>
+            </Col>
+          </Row>
+        )}
+
         {/* Filters Card */}
-        <Card
-          size="small"
-          style={{ marginBottom: 16 }}
-          styles={{ body: { padding: 16 } }}
-        >
-          <div className="flex items-center gap-2">
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Space wrap size={12}>
             <Input
               placeholder="Search clients..."
               prefix={<SearchOutlined />}
@@ -592,36 +488,10 @@ export default function ClientsPage() {
               style={{ width: 150 }}
               allowClear
             >
-              <Option value="Active">Active</Option>
-              <Option value="Inactive">Inactive</Option>
-              <Option value="Prospect">Prospect</Option>
-              <Option value="Lead">Lead</Option>
-              <Option value="Suspended">Suspended</Option>
+              <Option value="active">Active</Option>
+              <Option value="inactive">Inactive</Option>
             </Select>
-
-            <Select
-              placeholder="Filter by type"
-              value={clientTypeFilter}
-              onChange={setClientTypeFilter}
-              style={{ width: 150 }}
-              allowClear
-            >
-              <Option value="Individual">Individual</Option>
-              <Option value="Small Business">Small Business</Option>
-              <Option value="Enterprise">Enterprise</Option>
-            </Select>
-
-            <Select
-              placeholder="Filter by country"
-              value={countryFilter}
-              onChange={setCountryFilter}
-              style={{ width: 120 }}
-              allowClear
-            >
-              <Option value="India">India</Option>
-              <Option value="US">US</Option>
-            </Select>
-          </div>
+          </Space>
         </Card>
 
         {/* Clients Table */}
@@ -638,7 +508,7 @@ export default function ClientsPage() {
               showSizeChanger: true,
               showQuickJumper: true,
               showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total}`,
+                `${range[0]}-${range[1]} of ${total} clients`,
               onChange: (page, pageSize) => {
                 setPagination((prev) => ({
                   ...prev,
@@ -646,8 +516,10 @@ export default function ClientsPage() {
                   pageSize: pageSize || 10,
                 }));
               },
+              size: 'small',
             }}
-            scroll={{ x: 800 }}
+            size="small"
+            scroll={{ x: 900 }}
           />
         </Card>
 
@@ -673,13 +545,13 @@ export default function ClientsPage() {
               Close
             </Button>
           ] : null}
-          width={modalType === "delete" ? 400 : modalType === "view" ? 800 : 900}
+          width={modalType === "delete" ? 400 : modalType === "view" ? 600 : 700}
         >
           {modalType === "delete" ? (
             <div>
               <Text>
                 Are you sure you want to delete{" "}
-                <strong>{selectedClient?.companyName}</strong>? This action will
+                <strong>{selectedClient?.name}</strong>? This action will
                 deactivate the client account.
               </Text>
               <div style={{ marginTop: 20, textAlign: "right" }}>
@@ -704,49 +576,69 @@ export default function ClientsPage() {
                 <div>
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
-                      <Text strong>Company:</Text>
+                      <Text strong>Name:</Text>
                       <br />
-                      <Text>{selectedClient.companyName}</Text>
-                    </Col>
-                    <Col span={12}>
-                      <Text strong>Contact Person:</Text>
-                      <br />
-                      <Text>{selectedClient.contactPerson.firstName} {selectedClient.contactPerson.lastName}</Text>
+                      <Text>{selectedClient.name}</Text>
                     </Col>
                     <Col span={12}>
                       <Text strong>Email:</Text>
                       <br />
-                      <Text>{selectedClient.email.primary}</Text>
+                      <Text>{selectedClient.email}</Text>
                     </Col>
-                    <Col span={12}>
-                      <Text strong>Phone:</Text>
-                      <br />
-                      <Text>{selectedClient.phone.primary}</Text>
-                    </Col>
-                    <Col span={12}>
-                      <Text strong>Type:</Text>
-                      <br />
-                      <Tag color="blue">{selectedClient.clientType}</Tag>
-                    </Col>
+                    {selectedClient.phone && (
+                      <Col span={12}>
+                        <Text strong>Phone:</Text>
+                        <br />
+                        <Text>{selectedClient.phone}</Text>
+                      </Col>
+                    )}
+                    {selectedClient.company && (
+                      <Col span={12}>
+                        <Text strong>Company:</Text>
+                        <br />
+                        <Text>{selectedClient.company}</Text>
+                      </Col>
+                    )}
+                    {selectedClient.contactPerson && (
+                      <Col span={12}>
+                        <Text strong>Contact Person:</Text>
+                        <br />
+                        <Text>{selectedClient.contactPerson}</Text>
+                      </Col>
+                    )}
                     <Col span={12}>
                       <Text strong>Status:</Text>
                       <br />
-                      <Tag color={selectedClient.status === "Active" ? "green" : "red"}>
-                        {selectedClient.status}
+                      <Tag color={selectedClient.isActive ? "green" : "red"}>
+                        {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
                       </Tag>
                     </Col>
-                    <Col span={24}>
-                      <Text strong>Address:</Text>
-                      <br />
-                      <Text>
-                        {selectedClient.address.street}, {selectedClient.address.city}, {selectedClient.address.state}, {selectedClient.address.country} - {selectedClient.address.postalCode}
-                      </Text>
-                    </Col>
+                    {selectedClient.address && (
+                      <Col span={24}>
+                        <Text strong>Address:</Text>
+                        <br />
+                        <Text>{selectedClient.address}</Text>
+                      </Col>
+                    )}
                     {selectedClient.notes && (
                       <Col span={24}>
                         <Text strong>Notes:</Text>
                         <br />
                         <Text>{selectedClient.notes}</Text>
+                      </Col>
+                    )}
+                    <Col span={12}>
+                      <Text strong>Created:</Text>
+                      <br />
+                      <Text type="secondary">
+                        {dayjs(selectedClient.createdAt).format('MMM DD, YYYY HH:mm')}
+                      </Text>
+                    </Col>
+                    {selectedClient.createdBy && (
+                      <Col span={12}>
+                        <Text strong>Created By:</Text>
+                        <br />
+                        <Text type="secondary">{selectedClient.createdBy.name}</Text>
                       </Col>
                     )}
                   </Row>
@@ -760,241 +652,64 @@ export default function ClientsPage() {
               onFinish={handleSubmit}
               size="middle"
             >
-              <Title level={5}>Basic Information</Title>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="companyName"
-                    label="Company Name"
+                    name="name"
+                    label="Client Name"
                     rules={[
-                      { required: true, message: "Please enter company name" },
+                      { required: true, message: "Please enter client name" },
                     ]}
+                  >
+                    <Input placeholder="Enter client name" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[
+                      { required: true, message: "Please enter email" },
+                      { type: "email", message: "Please enter valid email" },
+                    ]}
+                  >
+                    <Input placeholder="Enter email address" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="phone"
+                    label="Phone"
+                  >
+                    <Input placeholder="Enter phone number" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="company"
+                    label="Company"
                   >
                     <Input placeholder="Enter company name" />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="clientType"
-                    label="Client Type"
-                    rules={[
-                      { required: true, message: "Please select client type" },
-                    ]}
-                  >
-                    <Select placeholder="Select client type">
-                      <Option value="Individual">Individual</Option>
-                      <Option value="Small Business">Small Business</Option>
-                      <Option value="Enterprise">Enterprise</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
               </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="firstName"
-                    label="Contact First Name"
-                    rules={[
-                      { required: true, message: "Please enter first name" },
-                    ]}
-                  >
-                    <Input placeholder="Enter first name" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="lastName"
-                    label="Contact Last Name"
-                    rules={[
-                      { required: true, message: "Please enter last name" },
-                    ]}
-                  >
-                    <Input placeholder="Enter last name" />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="contactPerson"
+                label="Contact Person"
+              >
+                <Input placeholder="Enter contact person name" />
+              </Form.Item>
 
-              <Divider />
-              <Title level={5}>Contact Information</Title>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="primaryEmail"
-                    label="Primary Email"
-                    rules={[
-                      { required: true, message: "Please enter primary email" },
-                      { type: "email", message: "Please enter valid email" },
-                    ]}
-                  >
-                    <Input placeholder="Enter primary email" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="alternateEmail"
-                    label="Alternate Email"
-                    rules={[
-                      { type: "email", message: "Please enter valid email" },
-                    ]}
-                  >
-                    <Input placeholder="Enter alternate email" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="primaryPhone"
-                    label="Primary Phone"
-                    rules={[
-                      { required: true, message: "Please enter primary phone" },
-                    ]}
-                  >
-                    <Input placeholder="Enter primary phone" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="alternatePhone"
-                    label="Alternate Phone"
-                  >
-                    <Input placeholder="Enter alternate phone" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Divider />
-              <Title level={5}>Address Information</Title>
-              <Row gutter={16}>
-                <Col span={24}>
-                  <Form.Item
-                    name="street"
-                    label="Street Address"
-                    rules={[
-                      { required: true, message: "Please enter street address" },
-                    ]}
-                  >
-                    <Input placeholder="Enter street address" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item
-                    name="city"
-                    label="City"
-                    rules={[
-                      { required: true, message: "Please enter city" },
-                    ]}
-                  >
-                    <Input placeholder="Enter city" />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    name="state"
-                    label="State"
-                    rules={[
-                      { required: true, message: "Please enter state" },
-                    ]}
-                  >
-                    <Input placeholder="Enter state" />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item
-                    name="country"
-                    label="Country"
-                    rules={[
-                      { required: true, message: "Please select country" },
-                    ]}
-                  >
-                    <Select placeholder="Select country">
-                      <Option value="India">India</Option>
-                      <Option value="US">US</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="postalCode"
-                    label="Postal Code"
-                    rules={[
-                      { required: true, message: "Please enter postal code" },
-                    ]}
-                  >
-                    <Input placeholder="Enter postal code" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Divider />
-              <Title level={5}>Business Information</Title>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="industry"
-                    label="Industry"
-                    rules={[
-                      { required: true, message: "Please enter industry" },
-                    ]}
-                  >
-                    <Input placeholder="Enter industry" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="businessType"
-                    label="Business Type"
-                    rules={[
-                      { required: true, message: "Please enter business type" },
-                    ]}
-                  >
-                    <Input placeholder="Enter business type" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="status"
-                    label="Status"
-                    initialValue="Active"
-                  >
-                    <Select placeholder="Select status">
-                      <Option value="Active">Active</Option>
-                      <Option value="Inactive">Inactive</Option>
-                      <Option value="Prospect">Prospect</Option>
-                      <Option value="Lead">Lead</Option>
-                      <Option value="Suspended">Suspended</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="assignedManager"
-                    label="Assigned Manager"
-                    rules={[
-                      { required: true, message: "Please select assigned manager" },
-                    ]}
-                  >
-                    <Select placeholder="Select assigned manager">
-                      {managers.map((manager) => (
-                        <Option key={manager.id} value={manager.id}>
-                          {manager.name} ({manager.position})
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+              <Form.Item
+                name="address"
+                label="Address"
+              >
+                <TextArea rows={2} placeholder="Enter full address" />
+              </Form.Item>
 
               <Form.Item name="notes" label="Notes">
                 <TextArea rows={3} placeholder="Enter any additional notes" />

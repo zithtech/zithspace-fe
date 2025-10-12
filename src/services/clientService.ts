@@ -1,192 +1,59 @@
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
+// Simplified Client interface to match backend
 export interface Client {
   id: string;
-  clientId: string;
-  companyName: string;
-  contactPerson: {
-    firstName: string;
-    lastName: string;
-  };
-  clientType: 'Individual' | 'Small Business' | 'Enterprise';
-  email: {
-    primary: string;
-    alternate?: string;
-  };
-  phone: {
-    primary: string;
-    alternate?: string;
-  };
-  website?: string;
-  socialLinks?: {
-    linkedin?: string;
-    twitter?: string;
-    facebook?: string;
-  };
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    country: 'India' | 'US';
-    postalCode: string;
-  };
-  billingAddress?: {
-    street: string;
-    city: string;
-    state: string;
-    country: 'India' | 'US';
-    postalCode: string;
-  };
-  industry: string;
-  businessType: string;
-  taxInfo?: {
-    gstNumber?: string;
-    vatNumber?: string;
-    taxId?: string;
-  };
-  paymentTerms?: 'Net 15' | 'Net 30' | 'Net 45' | 'Net 60' | 'Due on Receipt' | 'Custom';
-  status: 'Active' | 'Inactive' | 'Prospect' | 'Lead' | 'Suspended';
-  assignedManager: {
-    id: string;
-    name: string;
-    position: string;
-    email: string;
-  };
-  leadSource?: 'Referral' | 'Website' | 'Ads' | 'Cold Call' | 'Social Media' | 'Trade Show' | 'Other';
-  tags?: string[];
-  contractDetails?: {
-    startDate?: string;
-    endDate?: string;
-    renewalDate?: string;
-    value?: number;
-    currency?: 'INR' | 'USD';
-  };
-  communicationPreferences?: {
-    email: boolean;
-    phone: boolean;
-    whatsapp: boolean;
-    sms: boolean;
-  };
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  contactPerson?: string;
   notes?: string;
   isActive: boolean;
-  createdBy: {
+  createdBy?: {
     id: string;
     name: string;
-  };
-  updatedBy: {
-    id: string;
-    name: string;
+    workEmail: string;
   };
   createdAt: string;
   updatedAt: string;
-  // Virtual fields
-  contactPersonName?: string;
-  fullAddress?: string;
 }
 
 export interface CreateClientData {
-  companyName: string;
-  contactPerson: {
-    firstName: string;
-    lastName: string;
-  };
-  clientType: 'Individual' | 'Small Business' | 'Enterprise';
-  email: {
-    primary: string;
-    alternate?: string;
-  };
-  phone: {
-    primary: string;
-    alternate?: string;
-  };
-  website?: string;
-  socialLinks?: {
-    linkedin?: string;
-    twitter?: string;
-    facebook?: string;
-  };
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    country: 'India' | 'US';
-    postalCode: string;
-  };
-  billingAddress?: {
-    street: string;
-    city: string;
-    state: string;
-    country: 'India' | 'US';
-    postalCode: string;
-  };
-  industry: string;
-  businessType: string;
-  taxInfo?: {
-    gstNumber?: string;
-    vatNumber?: string;
-    taxId?: string;
-  };
-  paymentTerms?: 'Net 15' | 'Net 30' | 'Net 45' | 'Net 60' | 'Due on Receipt' | 'Custom';
-  status?: 'Active' | 'Inactive' | 'Prospect' | 'Lead' | 'Suspended';
-  assignedManager: string;
-  leadSource?: 'Referral' | 'Website' | 'Ads' | 'Cold Call' | 'Social Media' | 'Trade Show' | 'Other';
-  tags?: string[];
-  contractDetails?: {
-    startDate?: string;
-    endDate?: string;
-    renewalDate?: string;
-    value?: number;
-    currency?: 'INR' | 'USD';
-  };
-  communicationPreferences?: {
-    email: boolean;
-    phone: boolean;
-    whatsapp: boolean;
-    sms: boolean;
-  };
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  contactPerson?: string;
   notes?: string;
 }
 
-export interface UpdateClientData extends CreateClientData {
-  // All fields from CreateClientData are available for updates
-}
+export interface UpdateClientData extends Partial<CreateClientData> {}
 
 export interface ClientsFilters {
   page?: number;
   limit?: number;
   search?: string;
   status?: string;
-  clientType?: string;
-  country?: string;
-  assignedManager?: string;
-  leadSource?: string;
-  tags?: string;
 }
 
 export interface ClientStats {
   overview: {
     totalClients: number;
     activeClients: number;
-    prospects: number;
-    leads: number;
     inactiveClients: number;
   };
-  clientTypes: Array<{
-    id: string;
-    count: number;
-  }>;
-  countries: Array<{
-    id: string;
-    count: number;
-  }>;
+  recentClients: Client[];
 }
 
 export interface ClientSelectOption {
   value: string;
   label: string;
-  contactPerson: string;
   email: string;
-  clientId: string;
+  company?: string;
+  contactPerson?: string;
 }
 
 export class ClientService {
@@ -291,11 +158,11 @@ export class ClientService {
   /**
    * Bulk update client status
    */
-  static async bulkUpdateClientStatus(clientIds: string[], status: string): Promise<{ modifiedCount: number }> {
+  static async bulkUpdateClientStatus(clientIds: string[], isActive: boolean): Promise<{ modifiedCount: number }> {
     try {
       return await api.put<{ modifiedCount: number }>('/api/clients/bulk/status', {
         clientIds,
-        status
+        isActive
       });
     } catch (error) {
       if (error instanceof ApiError) {
@@ -306,21 +173,16 @@ export class ClientService {
   }
 
   /**
-   * Get clients for dropdown with simplified data
+   * Search clients
    */
-  static async getClientsForDropdown(): Promise<Array<{ value: string; label: string; clientId: string }>> {
+  static async searchClients(query: string, limit: number = 10): Promise<Client[]> {
     try {
-      const clients = await this.getClientsForSelect();
-      return clients.map(client => ({
-        value: client.value,
-        label: client.label,
-        clientId: client.clientId,
-      }));
+      return await api.get<Client[]>(`/api/clients/search?q=${encodeURIComponent(query)}&limit=${limit}`);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch clients for dropdown');
+      throw new Error('Failed to search clients');
     }
   }
 }

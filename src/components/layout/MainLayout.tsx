@@ -112,6 +112,25 @@ export default function MainLayout({ children }: MainLayoutProps) {
       ],
     },
     {
+      key: 'daily-updates-group',
+      icon: <FileTextOutlined />,
+      label: 'Daily Updates',
+      children: [
+        {
+          key: '/daily-updates/submit',
+          icon: <PlusCircleOutlined />,
+          label: 'Submit Update',
+          onClick: () => handleNavigation('/daily-updates/submit'),
+        },
+        {
+          key: '/daily-updates/view',
+          icon: <UnorderedListOutlined />,
+          label: 'View Updates',
+          onClick: () => handleNavigation('/daily-updates/view'),
+        },
+      ],
+    },
+    {
       key: '/clients',
       icon: <UserOutlined />,
       label: 'Clients',

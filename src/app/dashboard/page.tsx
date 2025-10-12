@@ -35,7 +35,21 @@ import {
 const { Title, Text } = Typography;
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  // Show loading spinner while authentication is being checked
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <LoadingSpinner message="Loading dashboard..." />
+      </MainLayout>
+    );
+  }
+
+  // Don't render if no user
+  if (!user) {
+    return null;
+  }
 
   // Mock data - in real app, this would come from APIs
   const stats = [
@@ -181,8 +195,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <MainLayout>
+    <MainLayout>
       <div style={{ padding: 20 }}>
         {/* Welcome Header */}
         <div style={{ marginBottom: 24 }}>
@@ -451,7 +464,6 @@ export default function DashboardPage() {
           </Col>
         </Row>
       </div>
-      </MainLayout>
-    </ProtectedRoute>
+    </MainLayout>
   );
 }

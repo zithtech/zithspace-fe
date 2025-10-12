@@ -32,7 +32,11 @@ export default function ProjectsPage() {
 
   // Show loading spinner while authentication is being checked
   if (isLoading) {
-    return <LoadingSpinner message="Loading projects..." />;
+    return (
+      <MainLayout>
+        <LoadingSpinner message="Loading projects..." />
+      </MainLayout>
+    );
   }
 
   // Don't render if no user

@@ -134,7 +134,7 @@ export default function AttendancePage() {
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
 
   // Clock In/Out data
-  const [todayStatus, setTodayStatus] = useState<TodayAttendanceStatus | null>(null);
+  const [todayStatus, setTodayStatus] = useState<TodayAttendanceStatus | null>();
   const [myAttendanceRecords, setMyAttendanceRecords] = useState<Attendance[]>([]);
   const [workHoursSummary, setWorkHoursSummary] = useState<any>(null);
 
@@ -197,12 +197,17 @@ export default function AttendancePage() {
   const fetchTodayStatus = async () => {
     try {
       const status = await AttendanceService.getTodayAttendance();
+      console.log({status})
       setTodayStatus(status as any);
     } catch (error) {
       console.error('Failed to fetch today status:', error);
       if (error instanceof ApiError) {
         setError(error.message);
+      } else {
+        setError('Failed to load today\'s status. Please try again.');
       }
+      // Set to null so we can show error state instead of loading
+      setTodayStatus(null);
     }
   };
 
@@ -1198,7 +1203,7 @@ export default function AttendancePage() {
             </Space>
           ) : (
             <div style={{ textAlign: 'center', padding: 20 }}>
-              <Text type="secondary">Loading today's status...</Text>
+              <Text type="secondary">No records found</Text>
             </div>
           )}
         </Card>

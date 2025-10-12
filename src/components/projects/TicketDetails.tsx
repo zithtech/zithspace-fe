@@ -145,6 +145,12 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const [newComment, setNewComment] = useState("");
   const [addingComment, setAddingComment] = useState(false);
 
+  // Comments state
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [savingCommentId, setSavingCommentId] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+
   // Related Links state
   const [relatedLinks, setRelatedLinks] = useState<RelatedLink[]>([]);
   const [showAddLinkForm, setShowAddLinkForm] = useState(false);
@@ -156,7 +162,8 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
     url: "",
   });
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
-  const [linkOperationLoading, setLinkOperationLoading] = useState(false);
+  const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
+  const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
 
   // Dynamic dropdown options loaded from API
   const [platforms, setPlatforms] = useState<
@@ -1116,7 +1123,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     <Button
                       type="primary"
                       size="small"
-                      loading={linkOperationLoading}
+                      loading={savingLinkId !== null}
                       onClick={async () => {
                         if (
                           !linkFormData.description.trim() ||
@@ -1133,7 +1140,8 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                         // }
 
                         try {
-                          setLinkOperationLoading(true);
+                          const linkId = editingLinkId || 'new';
+                          setSavingLinkId(linkId);
 
                           if (editingLinkId) {
                             // Update existing link
@@ -1141,6 +1149,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                               ticketId,
                               editingLinkId,
                               {
+                                title: linkFormData.description.trim().substring(0, 100), // Use description as title (first 100 chars)
                                 description: linkFormData.description.trim(),
                                 url: linkFormData.url.trim(),
                               }
@@ -1149,7 +1158,8 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                           } else {
                             // Add new link
                             await TicketService.addRelatedLink(ticketId, {
-                              type: selectedLinkType,
+                              linkType: selectedLinkType,
+                              title: linkFormData.description.trim().substring(0, 100), // Use description as title (first 100 chars)
                               description: linkFormData.description.trim(),
                               url: linkFormData.url.trim(),
                             });
@@ -1168,7 +1178,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                           console.error("Failed to save link:", error);
                           message.error("Failed to save link");
                         } finally {
-                          setLinkOperationLoading(false);
+                          setSavingLinkId(null);
                         }
                       }}
                     >
@@ -1194,128 +1204,190 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
               ) : (
                 <List
                   dataSource={relatedLinks}
-                  renderItem={(link) => (
-                    <List.Item
-                      actions={
-                        !editing
-                          ? [
-                              <Button
-                                key="edit"
-                                type="link"
-                                size="small"
-                                icon={<EditOutlined />}
-                                onClick={() => {
-                                  setSelectedLinkType(
-                                    link.type as
-                                      | "ui_design"
-                                      | "scope_doc"
-                                      | "sample_response"
-                                      | "dev_doc"
-                                  );
-                                  setLinkFormData({
-                                    description: link.description,
-                                    url: link.url,
-                                  });
-                                  setEditingLinkId(link.id || "");
-                                  setShowAddLinkForm(true);
-                                }}
-                              >
-                                Edit
-                              </Button>,
-                              <Button
-                                key="delete"
-                                type="link"
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                loading={linkOperationLoading}
-                                onClick={async () => {
-                                  try {
-                                    setLinkOperationLoading(true);
-                                    await TicketService.deleteRelatedLink(
-                                      ticketId,
-                                      link.id || ""
-                                    );
-                                    message.success(
-                                      "Link deleted successfully"
-                                    );
-                                    // Refresh only related links section to avoid full page reload
-                                    fetchRelatedLinks();
-                                  } catch (error) {
-                                    console.error(
-                                      "Failed to delete link:",
-                                      error
-                                    );
-                                    message.error("Failed to delete link");
-                                  } finally {
-                                    setLinkOperationLoading(false);
-                                  }
-                                }}
-                              >
-                                Delete
-                              </Button>,
-                            ]
-                          : []
-                      }
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          link.type === "ui_design" ? (
-                            <BgColorsOutlined
-                              style={{ fontSize: "16px", color: "#1677ff" }}
-                            />
-                          ) : link.type === "scope_doc" ? (
-                            <FileTextOutlined
-                              style={{ fontSize: "16px", color: "#52c41a" }}
-                            />
-                          ) : link.type === "sample_response" ? (
-                            <ApiOutlined
-                              style={{ fontSize: "16px", color: "#fa8c16" }}
-                            />
-                          ) : (
-                            <CodeOutlined
-                              style={{ fontSize: "16px", color: "#722ed1" }}
-                            />
-                          )
-                        }
-                        title={
-                          <Space>
-                            <a
-                              href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ fontWeight: 500 }}
-                            >
-                              {link.title}
-                              <ExportOutlined
-                                style={{ marginLeft: "4px", fontSize: "12px" }}
+                  renderItem={(link) => {
+                    // Check if this link is being edited
+                    const isEditing = editingLinkId === link.id;
+                    
+                    if (isEditing) {
+                      // Show inline edit form
+                      return (
+                        <List.Item>
+                          <div style={{ width: "100%", padding: "12px", background: "#fafafa", borderRadius: "8px" }}>
+                            <div style={{ marginBottom: "12px" }}>
+                              <Text strong>Edit Link</Text>
+                            </div>
+                            <div style={{ marginBottom: "12px" }}>
+                              <Text>Description</Text>
+                              <Input
+                                placeholder="Enter description..."
+                                value={linkFormData.description}
+                                onChange={(e) =>
+                                  setLinkFormData((prev) => ({
+                                    ...prev,
+                                    description: e.target.value,
+                                  }))
+                                }
+                                style={{ marginTop: "4px" }}
                               />
-                            </a>
-                            {/* <Tag
-                              color={
-                                link.type === "ui_design"
-                                  ? "blue"
-                                  : link.type === "scope_doc"
-                                  ? "green"
-                                  : link.type === "sample_response"
-                                  ? "orange"
-                                  : "purple"
-                              }
-                            >
-                              {link.type === "ui_design"
-                                ? "UI Design"
-                                : link.type === "scope_doc"
-                                ? "Scope Doc"
-                                : link.type === "sample_response"
-                                ? "Sample Response"
-                                : "Dev Doc"}
-                            </Tag> */}
-                          </Space>
+                            </div>
+                            <div style={{ marginBottom: "12px" }}>
+                              <Text>URL</Text>
+                              <Input
+                                placeholder="https://..."
+                                value={linkFormData.url}
+                                onChange={(e) =>
+                                  setLinkFormData((prev) => ({
+                                    ...prev,
+                                    url: e.target.value,
+                                  }))
+                                }
+                                style={{ marginTop: "4px" }}
+                              />
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <Space>
+                                <Button
+                                  size="small"
+                                  onClick={() => {
+                                    setEditingLinkId(null);
+                                    setLinkFormData({ description: "", url: "" });
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  loading={savingLinkId === link.id}
+                                  onClick={async () => {
+                                    if (!linkFormData.description.trim() || !linkFormData.url.trim()) {
+                                      message.error("Please fill in all fields");
+                                      return;
+                                    }
+                                    
+                                    try {
+                                      setSavingLinkId(link.id || "");
+                                      await TicketService.updateRelatedLink(
+                                        ticketId,
+                                        link.id || "",
+                                        {
+                                          title: linkFormData.description.trim().substring(0, 100),
+                                          description: linkFormData.description.trim(),
+                                          url: linkFormData.url.trim(),
+                                        }
+                                      );
+                                      message.success("Link updated successfully");
+                                      setEditingLinkId(null);
+                                      setLinkFormData({ description: "", url: "" });
+                                      fetchRelatedLinks();
+                                    } catch (error) {
+                                      console.error("Failed to update link:", error);
+                                      message.error("Failed to update link");
+                                    } finally {
+                                      setSavingLinkId(null);
+                                    }
+                                  }}
+                                >
+                                  Save
+                                </Button>
+                              </Space>
+                            </div>
+                          </div>
+                        </List.Item>
+                      );
+                    }
+                    
+                    // Show normal link display
+                    return (
+                      <List.Item
+                        actions={
+                          !editing
+                            ? [
+                                <Button
+                                  key="edit"
+                                  type="link"
+                                  size="small"
+                                  icon={<EditOutlined />}
+                                  onClick={() => {
+                                    setEditingLinkId(link.id || "");
+                                    setLinkFormData({
+                                      description: link.description,
+                                      url: link.url,
+                                    });
+                                  }}
+                                >
+                                  Edit
+                                </Button>,
+                                <Button
+                                  key="delete"
+                                  type="link"
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  loading={deletingLinkId === link.id}
+                                  onClick={async () => {
+                                    try {
+                                      setDeletingLinkId(link.id || "");
+                                      await TicketService.deleteRelatedLink(
+                                        ticketId,
+                                        link.id || ""
+                                      );
+                                      message.success("Link deleted successfully");
+                                      fetchRelatedLinks();
+                                    } catch (error) {
+                                      console.error("Failed to delete link:", error);
+                                      message.error("Failed to delete link");
+                                    } finally {
+                                      setDeletingLinkId(null);
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </Button>,
+                              ]
+                            : []
                         }
-                        description={link.description}
-                      />
-                    </List.Item>
-                  )}
+                      >
+                        <List.Item.Meta
+                          avatar={
+                            link.type === "ui_design" ? (
+                              <BgColorsOutlined
+                                style={{ fontSize: "16px", color: "#1677ff" }}
+                              />
+                            ) : link.type === "scope_doc" ? (
+                              <FileTextOutlined
+                                style={{ fontSize: "16px", color: "#52c41a" }}
+                              />
+                            ) : link.type === "sample_response" ? (
+                              <ApiOutlined
+                                style={{ fontSize: "16px", color: "#fa8c16" }}
+                              />
+                            ) : (
+                              <CodeOutlined
+                                style={{ fontSize: "16px", color: "#722ed1" }}
+                              />
+                            )
+                          }
+                          title={
+                            <Space>
+                              <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontWeight: 500 }}
+                              >
+                                {link.title}
+                                <ExportOutlined
+                                  style={{ marginLeft: "4px", fontSize: "12px" }}
+                                />
+                              </a>
+                            </Space>
+                          }
+                          description={link.description}
+                        />
+                      </List.Item>
+                    );
+                  }}
                 />
               )}
             </div>
@@ -1351,12 +1423,120 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                 // Handle both populated user object and userName string
                 const userName =
                   comment.userName ||
-                  (typeof comment.userId === "object" &&
-                    comment.userId?.name) ||
+                  (typeof comment.userId === "object" && comment.userId?.name) ||
+                  ((comment as any).user?.name) ||
                   "Unknown User";
 
+                const isEditing = editingCommentId === comment.id;
+
+                if (isEditing) {
+                  // Show inline edit form
+                  return (
+                    <List.Item>
+                      <div style={{ width: "100%", padding: "12px", background: "#fafafa", borderRadius: "8px" }}>
+                        <div style={{ marginBottom: "12px" }}>
+                          <Text strong>Edit Comment</Text>
+                        </div>
+                        <TextArea
+                          rows={3}
+                          value={editCommentText}
+                          onChange={(e) => setEditCommentText(e.target.value)}
+                          style={{ marginBottom: "12px" }}
+                        />
+                        <div style={{ textAlign: "right" }}>
+                          <Space>
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                setEditingCommentId(null);
+                                setEditCommentText("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="primary"
+                              size="small"
+                              loading={savingCommentId === comment.id}
+                              onClick={async () => {
+                                if (!editCommentText.trim()) {
+                                  message.error("Comment cannot be empty");
+                                  return;
+                                }
+
+                                try {
+                                  setSavingCommentId(comment.id);
+                                  await TicketService.updateComment(
+                                    ticketId,
+                                    comment.id,
+                                    editCommentText.trim()
+                                  );
+                                  message.success("Comment updated successfully");
+                                  setEditingCommentId(null);
+                                  setEditCommentText("");
+                                  fetchComments();
+                                } catch (error) {
+                                  console.error("Failed to update comment:", error);
+                                  message.error("Failed to update comment");
+                                } finally {
+                                  setSavingCommentId(null);
+                                }
+                              }}
+                            >
+                              Save
+                            </Button>
+                          </Space>
+                        </div>
+                      </div>
+                    </List.Item>
+                  );
+                }
+
+                // Show normal comment display
                 return (
-                  <List.Item>
+                  <List.Item
+                    actions={
+                      !editing
+                        ? [
+                            <Button
+                              key="edit"
+                              type="link"
+                              size="small"
+                              icon={<EditOutlined />}
+                              onClick={() => {
+                                setEditingCommentId(comment.id);
+                                setEditCommentText(comment.comment);
+                              }}
+                            >
+                              Edit
+                            </Button>,
+                            <Button
+                              key="delete"
+                              type="link"
+                              size="small"
+                              danger
+                              icon={<DeleteOutlined />}
+                              loading={deletingCommentId === comment.id}
+                              onClick={async () => {
+                                try {
+                                  setDeletingCommentId(comment.id);
+                                  await TicketService.deleteComment(ticketId, comment.id);
+                                  message.success("Comment deleted successfully");
+                                  fetchComments();
+                                } catch (error) {
+                                  console.error("Failed to delete comment:", error);
+                                  message.error("Failed to delete comment");
+                                } finally {
+                                  setDeletingCommentId(null);
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>,
+                          ]
+                        : []
+                    }
+                  >
                     <div style={{ width: "100%" }}>
                       <div
                         style={{

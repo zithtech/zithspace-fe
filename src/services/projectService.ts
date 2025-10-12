@@ -264,4 +264,18 @@ export class ProjectService {
       throw new Error('Failed to fetch project statistics');
     }
   }
+
+  /**
+   * Get project members for dropdown/select options
+   */
+  static async getProjectMembers(projectId: string): Promise<Array<{ value: string; label: string; position: string; workEmail: string; isProjectManager: boolean }>> {
+    try {
+      return await api.get<Array<{ value: string; label: string; position: string; workEmail: string; isProjectManager: boolean }>>(`/api/projects/${projectId}/members`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to fetch project members');
+    }
+  }
 }

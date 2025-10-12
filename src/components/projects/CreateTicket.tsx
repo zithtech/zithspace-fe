@@ -70,6 +70,7 @@ export default function CreateTicket() {
   // State for dynamic data
   const [projects, setProjects] = useState<Array<{ value: string; label: string; code: string }>>([]);
   const [members, setMembers] = useState<Array<{ value: string; label: string; position: string }>>([]);
+  const [projectMembers, setProjectMembers] = useState<Array<{ value: string; label: string; position: string }>>([]);
   const [ticketConfig, setTicketConfig] = useState<TicketConfigurations | null>(null);
   const [parentTickets, setParentTickets] = useState<Array<{ value: string; label: string }>>([]);
   const [releasePlans, setReleasePlans] = useState<Array<{ value: string; label: string }>>([]);
@@ -138,10 +139,26 @@ export default function CreateTicket() {
       if (!selectedProject) {
         setParentTickets([]);
         setReleasePlans([]);
+        setProjectMembers([]);
+        // Clear assignee and reportTo when project is cleared
+        form.setFieldsValue({
+          assignee: undefined,
+          reportTo: undefined
+        });
         return;
       }
 
       try {
+        // Load project members
+        const membersData = await ProjectService.getProjectMembers(selectedProject);
+        setProjectMembers(membersData || []);
+        
+        // Clear assignee and reportTo when project changes
+        form.setFieldsValue({
+          assignee: undefined,
+          reportTo: undefined
+        });
+
         // TODO: Load parent tickets and release plans for selected project
         // const [parentTicketsData, releasePlansData] = await Promise.all([
         //   TicketService.getParentTickets(selectedProject),
@@ -157,11 +174,12 @@ export default function CreateTicket() {
       } catch (error) {
         console.error('Error loading project data:', error);
         message.error('Failed to load project-specific data.');
+        setProjectMembers([]);
       }
     };
 
     loadProjectData();
-  }, [selectedProject]);
+  }, [selectedProject, form]);
 
   const handleCreateTicket = async (values: TicketFormData) => {
     try {
@@ -444,21 +462,23 @@ export default function CreateTicket() {
                     name="reportTo"
                     label="Report To *"
                     rules={[{ required: true, message: 'Please select report to' }]}
+                    help={!selectedProject ? "Please select a project first" : "Only project members are shown"}
                   >
                     <Select 
-                      placeholder="Select manager" 
+                      placeholder={selectedProject ? "Select manager" : "Select a project first"}
                       size="large"
                       loading={dataLoading}
+                      disabled={!selectedProject}
                       showSearch
                       filterOption={(input, option) => {
-                        const member = members.find(m => m.value === option?.value);
+                        const member = projectMembers.find(m => m.value === option?.value);
                         return member ? (
                           member.label.toLowerCase().includes(input.toLowerCase()) ||
                           member.position.toLowerCase().includes(input.toLowerCase())
                         ) : false;
                       }}
                     >
-                      {members.map(member => (
+                      {projectMembers.map(member => (
                         <Option key={member.value} value={member.value}>
                           {member.label} - {member.position}
                         </Option>
@@ -471,21 +491,23 @@ export default function CreateTicket() {
                     name="assignee"
                     label="Assignee *"
                     rules={[{ required: true, message: 'Please select assignee' }]}
+                    help={!selectedProject ? "Please select a project first" : "Only project members are shown"}
                   >
                     <Select 
-                      placeholder="Select assignee" 
+                      placeholder={selectedProject ? "Select assignee" : "Select a project first"}
                       size="large"
                       loading={dataLoading}
+                      disabled={!selectedProject}
                       showSearch
                       filterOption={(input, option) => {
-                        const member = members.find(m => m.value === option?.value);
+                        const member = projectMembers.find(m => m.value === option?.value);
                         return member ? (
                           member.label.toLowerCase().includes(input.toLowerCase()) ||
                           member.position.toLowerCase().includes(input.toLowerCase())
                         ) : false;
                       }}
                     >
-                      {members.map(member => (
+                      {projectMembers.map(member => (
                         <Option key={member.value} value={member.value}>
                           {member.label} - {member.position}
                         </Option>

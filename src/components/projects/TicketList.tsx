@@ -54,9 +54,15 @@ export default function TicketList() {
     search: ''
   });
 
+  // Inline editing state
+  const [editingField, setEditingField] = useState<{ ticketId: string; field: 'status' | 'assignee' } | null>(null);
+  const [members, setMembers] = useState<Array<{ value: string; label: string; position: string }>>([]);
+  const [updatingTickets, setUpdatingTickets] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     fetchTickets();
     fetchProjects();
+    fetchMembers();
   }, []);
 
   const fetchTickets = async () => {
@@ -87,6 +93,67 @@ export default function TicketList() {
       setProjects(projectsData);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
+    }
+  };
+
+  const fetchMembers = async () => {
+    try {
+      const { MembersService } = await import('@/services/membersService');
+      const membersData = await MembersService.getMembersForSelect();
+      setMembers(membersData || []);
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+    }
+  };
+
+  const handleUpdateTicket = async (ticketId: string, field: 'status' | 'assignee', value: string) => {
+    // Add to updating set
+    setUpdatingTickets(prev => new Set(prev).add(ticketId));
+
+    try {
+      // Prepare update data
+      const updateData: any = {};
+      if (field === 'status') {
+        updateData.status = value;
+      } else if (field === 'assignee') {
+        updateData.assignee = value;
+      }
+
+      // Update ticket
+      await TicketService.updateTicket(ticketId, updateData);
+      
+      // Update local state optimistically
+      setTickets(prevTickets =>
+        prevTickets.map(ticket => {
+          if (ticket.id === ticketId) {
+            if (field === 'status') {
+              return { ...ticket, status: value };
+            } else if (field === 'assignee') {
+              const member = members.find(m => m.value === value);
+              return {
+                ...ticket,
+                assignee: member ? { id: value, name: member.label, email: '' } : ticket.assignee
+              };
+            }
+          }
+          return ticket;
+        })
+      );
+
+      message.success(`${field === 'status' ? 'Status' : 'Assignee'} updated successfully`);
+      setEditingField(null);
+    } catch (error) {
+      console.error(`Failed to update ${field}:`, error);
+      message.error(`Failed to update ${field}`);
+      // Refresh to get correct data
+      fetchTickets();
+    } finally {
+      // Remove from updating set
+      setUpdatingTickets(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(ticketId);
+        return newSet;
+      });
     }
   };
 
@@ -182,12 +249,40 @@ export default function TicketList() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 120,
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>
-          {status.replace('_', ' ').toUpperCase()}
-        </Tag>
-      )
+      width: 150,
+      render: (status: string, record: Ticket) => {
+        const isEditing = editingField?.ticketId === record.id && editingField?.field === 'status';
+        const isUpdating = updatingTickets.has(record.id);
+
+        if (isEditing) {
+          return (
+            <Select
+              value={status}
+              style={{ width: '100%' }}
+              onChange={(value) => handleUpdateTicket(record.id, 'status', value)}
+              onBlur={() => setEditingField(null)}
+              autoFocus
+              loading={isUpdating}
+              options={[
+                { label: 'Not Started', value: 'not_started' },
+                { label: 'In Progress', value: 'in_progress' },
+                { label: 'In Testing', value: 'in_testing' },
+                { label: 'Completed', value: 'completed' }
+              ]}
+            />
+          );
+        }
+
+        return (
+          <Tag
+            color={getStatusColor(status)}
+            style={{ cursor: 'pointer' }}
+            onClick={() => setEditingField({ ticketId: record.id, field: 'status' })}
+          >
+            {status.replace('_', ' ').toUpperCase()}
+          </Tag>
+        );
+      }
     },
     {
       title: 'Priority',
@@ -202,14 +297,19 @@ export default function TicketList() {
     },
     {
       title: 'Type',
-      dataIndex: 'taskType',
-      key: 'taskType',
+      key: 'type',
       width: 100,
-      render: (taskType: string) => (
-        <Tag color={getTaskTypeColor(taskType)}>
-          {taskType}
-        </Tag>
-      )
+      render: (_:any, record: any) => {
+        const taskType = record?.type || '';
+        if (!taskType) {
+          return <Text type="secondary">-</Text>;
+        }
+        return (
+          <Tag color={getTaskTypeColor(taskType)}>
+            {taskType}
+          </Tag>
+        );
+      }
     },
     {
       title: 'Project',
@@ -231,11 +331,44 @@ export default function TicketList() {
       title: 'Assignee',
       dataIndex: 'assignee',
       key: 'assignee',
-      width: 150,
-      render: (assignee: any) => {
+      width: 200,
+      render: (assignee: any, record: Ticket) => {
+        const isEditing = editingField?.ticketId === record.id && editingField?.field === 'assignee';
+        const isUpdating = updatingTickets.has(record.id);
+        const assigneeId = typeof assignee === 'string' ? assignee : assignee?.id || '';
         const name = assignee && typeof assignee === 'string' ? assignee : assignee ? assignee?.name : 'Unassigned';
+
+        if (isEditing) {
+          return (
+            <Select
+              value={assigneeId}
+              style={{ width: '100%' }}
+              onChange={(value) => handleUpdateTicket(record.id, 'assignee', value)}
+              onBlur={() => setEditingField(null)}
+              autoFocus
+              loading={isUpdating}
+              showSearch
+              placeholder="Select assignee"
+              filterOption={(input, option) => {
+                const member = members.find(m => m.value === option?.value);
+                return member
+                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                    member.position.toLowerCase().includes(input.toLowerCase())
+                  : false;
+              }}
+              options={members.map(member => ({
+                label: `${member.label} - ${member.position}`,
+                value: member.value
+              }))}
+            />
+          );
+        }
+
         return (
-          <Space>
+          <Space
+            style={{ cursor: 'pointer' }}
+            onClick={() => setEditingField({ ticketId: record.id, field: 'assignee' })}
+          >
             <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
               {name.charAt(0)}
             </Avatar>

@@ -53,7 +53,7 @@ interface Member {
 }
 
 const ProjectsManagePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [form] = Form.useForm();
 
   // State management
@@ -110,6 +110,31 @@ const ProjectsManagePage: React.FC = () => {
     loadProjects();
     loadMembers();
   }, [filters]);
+
+  // Handle project manager change - automatically add to team members
+  const handleProjectManagerChange = (projectManagerId: string) => {
+    const teamMemberIds = form.getFieldValue('teamMemberIds') || [];
+    
+    if (projectManagerId && !teamMemberIds.includes(projectManagerId)) {
+      // Add project manager to team members if not already included
+      form.setFieldsValue({
+        teamMemberIds: [...teamMemberIds, projectManagerId]
+      });
+    }
+  };
+
+  // Handle team members change - prevent removing project manager
+  const handleTeamMembersChange = (selectedIds: string[]) => {
+    const projectManagerId = form.getFieldValue('projectManagerId');
+    
+    if (projectManagerId && !selectedIds.includes(projectManagerId)) {
+      // If project manager was removed, add them back
+      message.warning('Project Manager must be included in the team');
+      form.setFieldsValue({
+        teamMemberIds: [...selectedIds, projectManagerId]
+      });
+    }
+  };
 
   // Handle table pagination
   const handleTableChange = (pagination: any) => {
@@ -173,7 +198,9 @@ const ProjectsManagePage: React.FC = () => {
       const projectData = {
         ...values,
         startDate: values.startDate.format('YYYY-MM-DD'),
-        endDate: values.endDate ? values.endDate.format('YYYY-MM-DD') : undefined,
+        endDate: values.endDate ? values.endDate.format('YYYY-MM-DD') : null,
+        code: values.code || null,
+        repositories: values.repositories || null,
       };
 
       if (editingProject) {
@@ -212,8 +239,8 @@ const ProjectsManagePage: React.FC = () => {
       ...project,
       startDate: dayjs(project.startDate),
       endDate: project.endDate ? dayjs(project.endDate) : null,
-      projectManager: project.projectManager.id,
-      teamMembers: project.members.map(member => member.user.id),
+      projectManagerId: project.projectManager.id,
+      teamMemberIds: project.members.map(member => member.user.id),
     });
     setModalVisible(true);
   };
@@ -385,17 +412,6 @@ const ProjectsManagePage: React.FC = () => {
     },
   ];
 
-  if (!user?.role || !RBAC.hasPermission(user.role as any, 'projects', 'read')) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
-          <p className="text-gray-500">You don't have permission to view projects.</p>
-        </div>
-      </div>
-    );
-  }
-
   // Clear messages
   useEffect(() => {
     if (success || error) {
@@ -406,6 +422,23 @@ const ProjectsManagePage: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [success, error]);
+
+  // Show loading spinner while checking authentication (after all hooks)
+  if (loading || isLoading) {
+    return <LoadingSpinner message="Loading..." />;
+  }
+
+  // Check permissions after loading is complete
+  if (!user?.role || !RBAC.hasPermission(user.role as any, 'projects', 'read')) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
+          <p className="text-gray-500">You don't have permission to view projects.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <MainLayout>
@@ -614,6 +647,7 @@ const ProjectsManagePage: React.FC = () => {
               >
                 <Select
                   placeholder="Select project manager"
+                  onChange={handleProjectManagerChange}
                   showSearch
                   filterOption={(input, option) => {
                     const member = members.find(m => m.value === option?.value);
@@ -648,10 +682,12 @@ const ProjectsManagePage: React.FC = () => {
           <Form.Item
             name="teamMemberIds"
             label="Team Members"
+            help="Project Manager will be automatically included in the team"
           >
             <Select
               mode="multiple"
               placeholder="Select team members"
+              onChange={handleTeamMembersChange}
               showSearch
               filterOption={(input, option) => {
                 const member = members.find(m => m.value === option?.value);

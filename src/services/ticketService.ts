@@ -120,6 +120,17 @@ export interface Ticket {
   estimateHours?: number;
   startDate?: string;
   endDate?: string;
+  metadata?: {
+    platform?: string;
+    stack?: string;
+    taskLevel?: string;
+    taskType?: string;
+    storyPoint?: number;
+    estimateHours?: number;
+    parentTickets?: string[];
+    releasePlan?: string;
+    [key: string]: any;
+  };
   relatedLinks?: RelatedLink[];
   comments?: Array<{
     id: string;
@@ -364,6 +375,35 @@ class TicketService {
   }
 
   /**
+   * Update comment
+   */
+  static async updateComment(ticketId: string, commentId: string, comment: string): Promise<any> {
+    try {
+      const response = await apiClient.put(`/api/tickets/${ticketId}/comments/${commentId}`, {
+        comment
+      });
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error updating comment:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to update comment';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Delete comment
+   */
+  static async deleteComment(ticketId: string, commentId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/tickets/${ticketId}/comments/${commentId}`);
+    } catch (error: any) {
+      console.error('Error deleting comment:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to delete comment';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Get dashboard statistics
    */
   static async getDashboardStats(): Promise<DashboardStats> {
@@ -438,7 +478,8 @@ class TicketService {
    * Add related link to ticket
    */
   static async addRelatedLink(ticketId: string, linkData: {
-    type: 'ui_design' | 'scope_doc' | 'sample_response' | 'dev_doc';
+    linkType: 'ui_design' | 'scope_doc' | 'sample_response' | 'dev_doc';
+    title: string;
     description: string;
     url: string;
   }): Promise<RelatedLink> {
@@ -456,6 +497,7 @@ class TicketService {
    * Update related link
    */
   static async updateRelatedLink(ticketId: string, linkId: string, updates: {
+    title?: string;
     description: string;
     url: string;
   }): Promise<RelatedLink> {

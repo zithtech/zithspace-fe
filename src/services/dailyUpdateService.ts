@@ -6,6 +6,7 @@ import {
   DailyUpdateFilters,
   SubmissionStats,
   CheckTodayResponse,
+  WorkEntry,
 } from '@/types/dailyUpdate';
 
 export class DailyUpdateService {
@@ -16,7 +17,7 @@ export class DailyUpdateService {
     return await api.post('/api/daily-updates', data);
   }
 
-  /**
+  /** 
    * Get current user's daily updates
    */
   static async getMyUpdates(filters?: DailyUpdateFilters): Promise<DailyStatusUpdate[]> {

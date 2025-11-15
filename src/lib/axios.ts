@@ -109,7 +109,7 @@ const TokenManager = {
 // Create Axios instance with base configuration
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: 'https://z-tickets-be-v2.onrender.com',
+    baseURL: process.env.NEXT_PUBLIC_API_URL,
     timeout: 30000, // 30 seconds
     withCredentials: true,
     headers: {
@@ -198,7 +198,7 @@ const createApiClient = (): AxiosInstance => {
         try {
           // Attempt to refresh token - no body needed, refresh token sent via cookies
           const refreshResponse = await axios.post(
-            `${'https://z-tickets-be-v2.onrender.com'}/api/auth/refresh`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
             {}, // Empty body - refresh token is in cookies
             { withCredentials: true }
           );

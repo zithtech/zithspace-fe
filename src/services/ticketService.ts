@@ -334,6 +334,26 @@ class TicketService {
   }
 
   /**
+   * Get all tickets for a specific project (for daily updates)
+   * Returns tickets that user has access to
+   */
+  static async getProjectTickets(projectId: string): Promise<Array<{
+    id: string;
+    ticketNumber: string;
+    title: string;
+    status: string;
+    priority: string;
+  }>> {
+    try {
+      const response = await apiClient.get(`/api/projects/${projectId}/tickets`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching project tickets:', error);
+      throw new Error('Failed to fetch project tickets');
+    }
+  }
+
+  /**
    * Update ticket
    */
   static async updateTicket(id: string, updates: Partial<TicketFormData>): Promise<Ticket> {

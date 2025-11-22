@@ -32,17 +32,50 @@ export interface WorkEntry {
 }
 
 // ==========================================
-// LEGACY: Project Update Types (for backward compatibility)
+// TASK TYPES (NEW)
+// ==========================================
+
+export interface Task {
+  type: 'ticket' | 'manual';
+  
+  // If type === 'ticket'
+  ticketId?: string;
+  ticketNumber?: string;
+  ticketTitle?: string;
+  
+  // If type === 'manual'
+  description?: string;
+  
+  // Status per task (REQUIRED)
+  status: WorkStatus;
+}
+
+// ==========================================
+// PROJECT UPDATE TYPES (UPDATED)
 // ==========================================
 
 export interface ProjectUpdate {
   projectId: string;
   projectName: string;
-  completedTasks: string[];
-  plannedTasks?: string[];
-  blockers?: string[];
-  hoursSpent?: number;
+  
+  // Time tracking (REQUIRED)
+  startTime: string;  // ISO datetime
+  endTime: string;    // ISO datetime
+  hoursWorked: number;  // Auto-calculated
+  
+  // Work summary - array of tasks (REQUIRED - at least 1)
+  tasks: Task[];
+  
+  // Optional fields (project-level)
+  blockers?: string;
   notes?: string;
+  imageAttachments?: string[];
+  fileAttachments?: string[];
+  
+  // LEGACY fields (for backward compatibility - will be removed)
+  completedTasks?: string[];
+  plannedTasks?: string[];
+  hoursSpent?: number;
   linkedTickets?: string[];
 }
 
@@ -76,12 +109,14 @@ export interface DailyStatusUpdate {
 
 export interface CreateDailyUpdateRequest {
   mood?: 'happy' | 'neutral' | 'stressed' | 'blocked';
-  workEntries: WorkEntry[];  // Changed from projectUpdates
+  projectUpdates: ProjectUpdate[];  // Using new ProjectUpdate structure
+  generalNotes?: string;
 }
 
 export interface UpdateDailyUpdateRequest {
   mood?: 'happy' | 'neutral' | 'stressed' | 'blocked';
-  workEntries?: WorkEntry[];  // Changed from projectUpdates
+  projectUpdates?: ProjectUpdate[];  // Using new ProjectUpdate structure
+  generalNotes?: string;
 }
 
 export interface DailyUpdateFilters {

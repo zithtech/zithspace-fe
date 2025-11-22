@@ -14,7 +14,7 @@ import {
   Select,
   DatePicker,
   Modal,
-  message,
+  notification,
   Progress,
   Tag,
   Drawer,
@@ -27,6 +27,7 @@ import {
   Divider,
   Alert
 } from 'antd';
+import type { NotificationArgsProps } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
@@ -47,9 +48,12 @@ import { ProjectService } from '@/services/projectService';
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
+type NotificationPlacement = NotificationArgsProps['placement'];
+
 export default function ReleasePlanComponent() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [api, contextHolder] = notification.useNotification();
   
   // State management
   const [releasePlans, setReleasePlans] = useState<ReleasePlan[]>([]);
@@ -106,7 +110,12 @@ export default function ReleasePlanComponent() {
       setReleasePlans(data?.data || []);
     } catch (error) {
       console.error('Failed to load release plans:', error);
-      message.error('Failed to load release plans');
+      api.error({
+        message: 'Error',
+        description: 'Failed to load release plans',
+        placement: 'bottomRight',
+        duration: 4,
+      });
     } finally {
       setLoading(false);
     }
@@ -140,13 +149,18 @@ export default function ReleasePlanComponent() {
       setAvailableTickets(tickets || []);
     } catch (error) {
       console.error('Failed to load tickets:', error);
-      message.error('Failed to load tickets');
+      api.error({
+        message: 'Error',
+        description: 'Failed to load tickets',
+        placement: 'bottomRight',
+        duration: 4,
+      });
       setAvailableTickets([]);
     } finally {
       setTicketLoading(false);
       setSearchLoading(false);
     }
-  }, [editingPlan]);
+  }, [editingPlan, api]);
 
   const handleProjectChange = useCallback((projectId: string) => {
     // Clear search timer
@@ -211,29 +225,45 @@ export default function ReleasePlanComponent() {
       const values = await form.validateFields();
       setSaving(true);
 
+      // Transform form values to match backend API expectations
       const formData: ReleasePlanFormData = {
-        name: values?.name || '',
+        version: values?.name || '',              // Map 'name' to 'version'
         description: values?.description || '',
-        project: values?.project || '',
-        deadline: values?.deadline?.toISOString() || '',
-        priority: values?.priority || 'Medium',
-        tickets: selectedTickets || [],
-        notes: values?.notes || ''
+        projectId: values?.project || '',         // Map 'project' to 'projectId'
+        releaseDate: values?.deadline?.toISOString() || '',  // Map 'deadline' to 'releaseDate'
+        status: 'planning',                       // Default status
+        tickets: selectedTickets || []
       };
 
       if (editingPlan) {
         await ReleasePlanService.updateReleasePlan(editingPlan.id, formData);
-        message.success('Release plan updated successfully');
+        api.success({
+          message: 'Success',
+          description: 'Release plan updated successfully',
+          placement: 'bottomRight',
+          duration: 3,
+        });
       } else {
         await ReleasePlanService.createReleasePlan(formData);
-        message.success('Release plan created successfully');
+        api.success({
+          message: 'Success',
+          description: 'Release plan created successfully',
+          placement: 'bottomRight',
+          duration: 3,
+        });
       }
 
       handleCloseModal();
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save release plan:', error);
-      message.error('Failed to save release plan');
+      const errorMessage = error?.message || 'Failed to save release plan';
+      api.error({
+        message: 'Error',
+        description: errorMessage,
+        placement: 'bottomRight',
+        duration: 4,
+      });
     } finally {
       setSaving(false);
     }
@@ -279,11 +309,21 @@ export default function ReleasePlanComponent() {
   const handleDelete = async (planId: string) => {
     try {
       await ReleasePlanService.deleteReleasePlan(planId);
-      message.success('Release plan deleted successfully');
+      api.success({
+        message: 'Success',
+        description: 'Release plan deleted successfully',
+        placement: 'bottomRight',
+        duration: 3,
+      });
       loadData();
     } catch (error) {
       console.error('Failed to delete release plan:', error);
-      message.error('Failed to delete release plan');
+      api.error({
+        message: 'Error',
+        description: 'Failed to delete release plan',
+        placement: 'bottomRight',
+        duration: 4,
+      });
     }
   };
 
@@ -440,6 +480,7 @@ export default function ReleasePlanComponent() {
 
   return (
     <div>
+      {contextHolder}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <Title level={3} style={{ margin: 0 }}>
@@ -627,7 +668,7 @@ export default function ReleasePlanComponent() {
                   onChange={(e) => handleTicketSearch(e.target.value)}
                   style={{ marginBottom: 12 }}
                   loading={searchLoading}
-                  suffix={searchLoading ? <LoadingOutlined /> : <SearchOutlined />}
+                  // suffix={searchLoading ? <LoadingOutlined /> : <SearchOutlined />}
                 />
                 
                 <div style={{ 

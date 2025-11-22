@@ -1,14 +1,11 @@
 import { apiClient } from '@/lib/axios';
 
 export interface ReleasePlanFormData {
-  name: string;
+  version: string;        // Changed from 'name' to match backend
   description: string;
-  project: string;
-  deadline: string;
-  assignedTo?: string[];
-  notes?: string;
-  tags?: string[];
-  priority: 'High' | 'Medium' | 'Low';
+  projectId: string;      // Changed from 'project' to match backend
+  releaseDate: string;    // Changed from 'deadline' to match backend
+  status?: 'planning' | 'active' | 'completed' | 'cancelled';
   tickets?: string[];
 }
 
@@ -102,7 +99,7 @@ class ReleasePlanService {
     } catch (error: any) {
       console.error('Error creating release plan:', error);
       const errorMessage = error?.response?.data?.error || 'Failed to create release plan';
-      throw new Error(errorMessage);
+      throw new Error(error);
     }
   }
 
@@ -158,7 +155,7 @@ class ReleasePlanService {
     } catch (error: any) {
       console.error('Error updating release plan:', error);
       const errorMessage = error?.response?.data?.error || 'Failed to update release plan';
-      throw new Error(errorMessage);
+      throw new Error(error);
     }
   }
 
@@ -171,7 +168,7 @@ class ReleasePlanService {
     } catch (error: any) {
       console.error('Error deleting release plan:', error);
       const errorMessage = error?.response?.data?.error || 'Failed to delete release plan';
-      throw new Error(errorMessage);
+      throw new Error(error);
     }
   }
 

@@ -14,7 +14,18 @@ export class DailyUpdateService {
    * Create a new daily status update
    */
   static async createUpdate(data: CreateDailyUpdateRequest): Promise<DailyStatusUpdate> {
-    return await api.post('/api/daily-updates', data);
+    try {
+      return await api.post('/api/daily-updates', data);
+    } catch (error: any) {
+      // Extract error message from different error types
+      const errorMessage = 
+        error?.message || 
+        error?.response?.data?.error || 
+        error?.response?.data?.message ||
+        'Failed to create daily update';
+      
+      throw new Error(errorMessage);
+    }
   }
 
   /** 
@@ -70,14 +81,36 @@ export class DailyUpdateService {
     id: string,
     data: UpdateDailyUpdateRequest
   ): Promise<DailyStatusUpdate> {
-    return await api.put(`/api/daily-updates/${id}`, data);
+    try {
+      return await api.put(`/api/daily-updates/${id}`, data);
+    } catch (error: any) {
+      // Extract error message from different error types
+      const errorMessage = 
+        error?.message || 
+        error?.response?.data?.error || 
+        error?.response?.data?.message ||
+        'Failed to update daily update';
+      
+      throw new Error(errorMessage);
+    }
   }
 
   /**
    * Delete daily status update
    */
   static async deleteUpdate(id: string): Promise<void> {
-    await api.delete(`/api/daily-updates/${id}`);
+    try {
+      await api.delete(`/api/daily-updates/${id}`);
+    } catch (error: any) {
+      // Extract error message from different error types
+      const errorMessage = 
+        error?.message || 
+        error?.response?.data?.error || 
+        error?.response?.data?.message ||
+        'Failed to delete daily update';
+      
+      throw new Error(errorMessage);
+    }
   }
 
   /**

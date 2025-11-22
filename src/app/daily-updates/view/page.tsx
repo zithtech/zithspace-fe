@@ -16,7 +16,7 @@ import {
   Spin,
   message,
   Divider,
-  Flex,
+  Statistic,
 } from 'antd';
 import {
   PlusCircleOutlined,
@@ -26,6 +26,11 @@ import {
   CheckCircleOutlined,
   ScheduleOutlined,
   ExclamationCircleOutlined,
+  FieldTimeOutlined,
+  FileTextOutlined,
+  BugOutlined,
+  RocketOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dayjs, { Dayjs } from 'dayjs';
@@ -33,7 +38,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import DailyUpdateService from '@/services/dailyUpdateService';
 import { ProjectService } from '@/services/projectService';
-import { DailyStatusUpdate, ProjectUpdate } from '@/types/dailyUpdate';
+import { DailyStatusUpdate, ProjectUpdate, Task, WorkStatus, formatHours } from '@/types/dailyUpdate';
 import { useAuth } from '@/context/AuthContext';
 
 const { Title, Text } = Typography;
@@ -41,7 +46,6 @@ const { Title, Text } = Typography;
 export default function ViewDailyUpdatesPage() {
   const { user, isLoading } = useAuth();
 
-  // Show loading spinner while authentication is being checked
   if (isLoading) {
     return (
       <MainLayout>
@@ -50,7 +54,6 @@ export default function ViewDailyUpdatesPage() {
     );
   }
 
-  // Don't render if no user
   if (!user) {
     return null;
   }
@@ -72,7 +75,6 @@ function ViewDailyUpdatesContent() {
   const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
   const [selectedUser, setSelectedUser] = useState<string | undefined>(undefined);
 
-  // Determine if user can view team updates
   const canViewTeam = user?.role === 'super_admin' || user?.position === 'Project Manager';
 
   useEffect(() => {
@@ -95,21 +97,16 @@ function ViewDailyUpdatesContent() {
       const dateStr = selectedDate.format('YYYY-MM-DD');
 
       if (canViewTeam) {
-        // Fetch team updates
         const teamUpdates = await DailyUpdateService.getTeamUpdates({
           date: dateStr,
           projectId: selectedProject,
           userId: selectedUser,
         });
-        console.log("ssss",{teamUpdates})
         setUpdates(teamUpdates);
       } else {
-        // Fetch only own updates
         const myUpdates = await DailyUpdateService.getMyUpdates({
           date: dateStr,
         });
-        console.log("ssssss",{myUpdates})
-
         setUpdates(myUpdates);
       }
     } catch (error) {
@@ -150,6 +147,46 @@ function ViewDailyUpdatesContent() {
     }
   };
 
+  const getStatusConfig = (status: WorkStatus) => {
+    const configs = {
+      pending: { label: 'Pending', color: 'default', icon: '⏳' },
+      in_progress: { label: 'In Progress', color: 'processing', icon: '⚙️' },
+      dev_complete: { label: 'Dev Complete', color: 'success', icon: '✅' },
+      in_testing: { label: 'In Testing', color: 'warning', icon: '🧪' },
+      pushed_to_staging: { label: 'Pushed to Staging', color: 'cyan', icon: '🚀' },
+      pushed_to_production: { label: 'Pushed to Production', color: 'purple', icon: '🎉' },
+    };
+    return configs[status] || configs.pending;
+  };
+
+  const formatTime = (isoString: string) => {
+    return dayjs(isoString).format('h:mm A');
+  };
+
+  const calculateTotalHours = (projectUpdates: ProjectUpdate[]) => {
+    return projectUpdates.reduce((sum, project) => sum + (project.hoursWorked || 0), 0);
+  };
+
+  const getTaskStats = (tasks: Task[]) => {
+    const stats = {
+      total: tasks.length,
+      pending: 0,
+      in_progress: 0,
+      dev_complete: 0,
+      in_testing: 0,
+      pushed_to_staging: 0,
+      pushed_to_production: 0,
+    };
+
+    tasks.forEach((task) => {
+      if (task.status in stats) {
+        stats[task.status as keyof typeof stats]++;
+      }
+    });
+
+    return stats;
+  };
+
   const handleDateChange = (date: Dayjs | null) => {
     if (date) {
       setSelectedDate(date);
@@ -164,7 +201,6 @@ function ViewDailyUpdatesContent() {
     router.push('/daily-updates/submit');
   };
 
-  // Get unique users from updates for filtering
   const uniqueUsers = Array.from(
     new Set(updates.map((update) => update.user?.name).filter(Boolean))
   ).map((name) => {
@@ -176,12 +212,14 @@ function ViewDailyUpdatesContent() {
   });
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
-          <Title level={3}>Daily Status Updates</Title>
-          <Text type="secondary">
+          <Title level={3} style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>
+            Daily Status Updates
+          </Title>
+          <Text type="secondary" style={{ fontSize: 14 }}>
             {canViewTeam ? 'Team Updates' : 'My Updates'}
           </Text>
         </Col>
@@ -198,11 +236,11 @@ function ViewDailyUpdatesContent() {
       </Row>
 
       {/* Filters */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style={{ marginBottom: 20, boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}>
         <Row gutter={16} align="middle">
           <Col xs={24} sm={12} md={6}>
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Text strong>Date</Text>
+            <Space direction="vertical" style={{ width: '100%' }} size={4}>
+              <Text strong style={{ fontSize: 13 }}>Date</Text>
               <DatePicker
                 value={selectedDate}
                 onChange={handleDateChange}
@@ -215,8 +253,8 @@ function ViewDailyUpdatesContent() {
           {canViewTeam && (
             <>
               <Col xs={24} sm={12} md={6}>
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <Text strong>Project</Text>
+                <Space direction="vertical" style={{ width: '100%' }} size={4}>
+                  <Text strong style={{ fontSize: 13 }}>Project</Text>
                   <Select
                     placeholder="All Projects"
                     style={{ width: '100%' }}
@@ -229,8 +267,8 @@ function ViewDailyUpdatesContent() {
               </Col>
 
               <Col xs={24} sm={12} md={6}>
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <Text strong>User</Text>
+                <Space direction="vertical" style={{ width: '100%' }} size={4}>
+                  <Text strong style={{ fontSize: 13 }}>User</Text>
                   <Select
                     placeholder="All Users"
                     style={{ width: '100%' }}
@@ -249,10 +287,10 @@ function ViewDailyUpdatesContent() {
       {/* Updates List */}
       {loading ? (
         <Card>
-          <div style={{ textAlign: 'center', padding: 40 }}>
+          <div style={{ textAlign: 'center', padding: 60 }}>
             <Spin size="large" />
             <div style={{ marginTop: 16 }}>
-              <Text>Loading updates...</Text>
+              <Text type="secondary">Loading updates...</Text>
             </div>
           </div>
         </Card>
@@ -262,9 +300,9 @@ function ViewDailyUpdatesContent() {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <div>
-                <Text type="secondary">No updates found for this date</Text>
+                <Text type="secondary" style={{ fontSize: 14 }}>No updates found for this date</Text>
                 <br />
-                <Text type="secondary">
+                <Text type="secondary" style={{ fontSize: 13 }}>
                   {canViewTeam
                     ? 'No team members have submitted updates yet'
                     : 'You haven\'t submitted an update for this date'}
@@ -272,149 +310,348 @@ function ViewDailyUpdatesContent() {
               </div>
             }
           >
-            <Button type="primary" onClick={handleSubmitNew}>
+            <Button type="primary" onClick={handleSubmitNew} style={{ marginTop: 16 }}>
               Submit Update
             </Button>
           </Empty>
         </Card>
       ) : (
-        <Space direction="vertical" style={{ width: '100%'}} size="large">
-          {updates.map((update) => (
-            <Card key={update.id} style={{ borderLeft: '4px solid #1890ff' }}>
-              {/* User Header */}
-              <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                <Col>
-                  <Space>
-                    <Avatar size="large" icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }}>
-                      {update.user?.name.charAt(0)}
-                    </Avatar>
-                    <div>
-                      <Text strong style={{ fontSize: 16 }}>
-                        {update.user?.name}
-                      </Text>
-                      <br />
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {update.user?.position}
-                      </Text>
-                    </div>
-                  </Space>
-                </Col>
-                <Col>
-                  <Space>
-                    {update.mood && (
-                      <Tag color={getMoodColor(update.mood)}>
-                        {getMoodEmoji(update.mood)} {update.mood.charAt(0).toUpperCase() + update.mood.slice(1)}
-                      </Tag>
-                    )}
-                    {update.totalHoursWorked && (
-                      <Tag icon={<ClockCircleOutlined />} color="blue">
-                        {update.totalHoursWorked} hours
-                      </Tag>
-                    )}
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      Submitted: {dayjs(update.submittedAt).format('h:mm A')}
-                    </Text>
-                  </Space>
-                </Col>
-              </Row>
+        <Space direction="vertical" style={{ width: '100%' }} size={20}>
+          {updates.map((update) => {
+            const projectUpdates = update.projectUpdates as ProjectUpdate[];
+            const totalHours = calculateTotalHours(projectUpdates);
 
-              <Divider style={{ margin: '12px 0' }} />
-
-              {/* Project Updates */}
-              {(update.projectUpdates as ProjectUpdate[]).map((projectUpdate, index) => (
-                <Card
-                  key={index}
-                  type="inner"
-                  title={
-                    <Space>
-                      <Text strong>{projectUpdate.projectName}</Text>
-                      {projectUpdate.hoursSpent && (
-                        <Tag color="cyan">{projectUpdate.hoursSpent} hrs</Tag>
-                      )}
+            return (
+              <Card 
+                key={update.id} 
+                style={{ 
+                  borderLeft: '4px solid #1890ff',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  borderRadius: 8,
+                }}
+                bodyStyle={{ padding: 24 }}
+              >
+                {/* User Header */}
+                <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+                  <Col>
+                    <Space size={12}>
+                      <Avatar 
+                        size={48} 
+                        style={{ backgroundColor: '#1890ff', fontSize: 20 }}
+                      >
+                        {update.user?.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <div>
+                        <Text strong style={{ fontSize: 16, display: 'block', lineHeight: 1.3 }}>
+                          {update.user?.name}
+                        </Text>
+                        <Text type="secondary" style={{ fontSize: 13 }}>
+                          {update.user?.position}
+                        </Text>
+                      </div>
                     </Space>
-                  }
-                  style={{ marginBottom: 12 }}
-                >
-                  {/* Completed Tasks */}
-                  {projectUpdate.completedTasks && projectUpdate.completedTasks.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <Space align="start">
-                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16, marginTop: 4 }} />
-                        <div style={{ flex: 1 }}>
-                          <Text strong>Completed:</Text>
-                          <ul style={{ marginTop: 4, marginBottom: 0, paddingLeft: 20 }}>
-                            {projectUpdate.completedTasks.map((task, taskIndex) => (
-                              <li key={taskIndex}>
-                                <Text>{task}</Text>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </Space>
-                    </div>
-                  )}
-
-                  {/* Planned Tasks */}
-                  {projectUpdate.plannedTasks && projectUpdate.plannedTasks.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <Space align="start">
-                        <ScheduleOutlined style={{ color: '#1890ff', fontSize: 16, marginTop: 4 }} />
-                        <div style={{ flex: 1 }}>
-                          <Text strong>Planned:</Text>
-                          <ul style={{ marginTop: 4, marginBottom: 0, paddingLeft: 20 }}>
-                            {projectUpdate.plannedTasks.map((task, taskIndex) => (
-                              <li key={taskIndex}>
-                                <Text>{task}</Text>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </Space>
-                    </div>
-                  )}
-
-                  {/* Blockers */}
-                  {projectUpdate.blockers && projectUpdate.blockers.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <Space align="start">
-                        <ExclamationCircleOutlined style={{ color: '#ff4d4f', fontSize: 16, marginTop: 4 }} />
-                        <div style={{ flex: 1 }}>
-                          <Text strong style={{ color: '#ff4d4f' }}>
-                            Blockers:
-                          </Text>
-                          <ul style={{ marginTop: 4, marginBottom: 0, paddingLeft: 20 }}>
-                            {projectUpdate.blockers.map((blocker, blockerIndex) => (
-                              <li key={blockerIndex}>
-                                <Text>{blocker}</Text>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </Space>
-                    </div>
-                  )}
-
-                  {/* Notes */}
-                  {projectUpdate.notes && (
-                    <div style={{ marginTop: 12, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
+                  </Col>
+                  <Col>
+                    <Space wrap size={8}>
+                      {update.mood && (
+                        <Tag color={getMoodColor(update.mood)} style={{ fontSize: 13, padding: '4px 12px' }}>
+                          {getMoodEmoji(update.mood)} {update.mood.charAt(0).toUpperCase() + update.mood.slice(1)}
+                        </Tag>
+                      )}
+                      <Tag icon={<ClockCircleOutlined />} color="blue" style={{ fontSize: 13, padding: '4px 12px' }}>
+                        {formatHours(totalHours)} total
+                      </Tag>
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        <strong>Notes:</strong> {projectUpdate.notes}
+                        Submitted: {dayjs(update.submittedAt).format('h:mm A')}
                       </Text>
-                    </div>
-                  )}
-                </Card>
-              ))}
+                    </Space>
+                  </Col>
+                </Row>
 
-              {/* General Notes */}
-              {update.generalNotes && (
-                <div style={{ marginTop: 12, padding: 12, backgroundColor: '#e6f7ff', borderRadius: 4 }}>
-                  <Text>
-                    <strong>💬 General Notes:</strong> {update.generalNotes}
-                  </Text>
-                </div>
-              )}
-            </Card>
-          ))}
+                {/* General Notes - TOP LEVEL */}
+                {update.generalNotes && (
+                  <>
+                    <div style={{ 
+                      padding: 16, 
+                      backgroundColor: '#e6f7ff', 
+                      borderRadius: 6,
+                      borderLeft: '3px solid #1890ff',
+                      marginBottom: 20
+                    }}>
+                      <Space align="start" size={12}>
+                        <FileTextOutlined style={{ fontSize: 16, color: '#1890ff', marginTop: 2 }} />
+                        <div style={{ flex: 1 }}>
+                          <Text strong style={{ display: 'block', marginBottom: 6, color: '#1890ff', fontSize: 14 }}>
+                            General Notes
+                          </Text>
+                          <Text style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6 }}>
+                            {update.generalNotes}
+                          </Text>
+                        </div>
+                      </Space>
+                    </div>
+                    <Divider style={{ margin: '20px 0' }} />
+                  </>
+                )}
+
+                {/* Project Updates */}
+                <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                  {projectUpdates.map((projectUpdate, index) => {
+                    const taskStats = getTaskStats(projectUpdate.tasks);
+                    
+                    return (
+                      <Card
+                        key={index}
+                        type="inner"
+                        style={{ 
+                          backgroundColor: '#fafafa',
+                          border: '1px solid #e8e8e8',
+                          borderRadius: 8,
+                        }}
+                        bodyStyle={{ padding: 20 }}
+                        title={
+                          <Row justify="space-between" align="middle">
+                            <Col>
+                              <Space>
+                                <Text strong style={{ fontSize: 15 }}>
+                                  📦 {projectUpdate.projectName}
+                                </Text>
+                              </Space>
+                            </Col>
+                            <Col>
+                              <Tag icon={<FieldTimeOutlined />} color="cyan" style={{ fontSize: 13 }}>
+                                {formatHours(projectUpdate.hoursWorked)}
+                              </Tag>
+                            </Col>
+                          </Row>
+                        }
+                      >
+                        {/* Two Column Layout */}
+                        <Row gutter={24}>
+                          {/* Left Column - Tasks (60%) */}
+                          <Col xs={24} lg={14}>
+                            <div style={{ marginBottom: 16 }}>
+                              <Text strong style={{ fontSize: 14, display: 'block', marginBottom: 12 }}>
+                                📝 Work Summary ({taskStats.total} {taskStats.total === 1 ? 'task' : 'tasks'})
+                              </Text>
+                              <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                                {projectUpdate.tasks.map((task: Task, taskIndex: number) => {
+                                  const statusConfig = getStatusConfig(task.status);
+                                  
+                                  return (
+                                    <div
+                                      key={taskIndex}
+                                      style={{
+                                        padding: 12,
+                                        backgroundColor: '#fff',
+                                        borderRadius: 6,
+                                        border: '1px solid #e8e8e8',
+                                      }}
+                                    >
+                                      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                        <Space wrap>
+                                          <Text strong style={{ fontSize: 13, color: '#595959' }}>
+                                            {taskIndex + 1}.
+                                          </Text>
+                                          {task.type === 'ticket' ? (
+                                            <>
+                                              <Tag color="blue" style={{ fontSize: 11, margin: 0 }}>
+                                                🎫 Ticket
+                                              </Tag>
+                                              <Text strong style={{ fontSize: 13 }}>
+                                                {task.ticketNumber}
+                                              </Text>
+                                            </>
+                                          ) : (
+                                            <Tag color="green" style={{ fontSize: 11, margin: 0 }}>
+                                              ✍️ Manual
+                                            </Tag>
+                                          )}
+                                        </Space>
+                                        <Text style={{ fontSize: 13, display: 'block', paddingLeft: 24 }}>
+                                          {task.type === 'ticket' ? task.ticketTitle : task.description}
+                                        </Text>
+                                        <div style={{ paddingLeft: 24 }}>
+                                          <Tag color={statusConfig.color} style={{ fontSize: 12 }}>
+                                            {statusConfig.icon} {statusConfig.label}
+                                          </Tag>
+                                        </div>
+                                      </Space>
+                                    </div>
+                                  );
+                                })}
+                              </Space>
+                            </div>
+                          </Col>
+
+                          {/* Right Column - Time & Stats (40%) */}
+                          <Col xs={24} lg={10}>
+                            {/* Time Tracking */}
+                            <div style={{ 
+                              marginBottom: 16, 
+                              padding: 16, 
+                              backgroundColor: '#fff',
+                              borderRadius: 6,
+                              border: '1px solid #e8e8e8'
+                            }}>
+                              <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 12 }}>
+                                ⏰ Time Tracking
+                              </Text>
+                              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                <Row justify="space-between">
+                                  <Text type="secondary" style={{ fontSize: 12 }}>Start:</Text>
+                                  <Text strong style={{ fontSize: 13 }}>{formatTime(projectUpdate.startTime)}</Text>
+                                </Row>
+                                <Row justify="space-between">
+                                  <Text type="secondary" style={{ fontSize: 12 }}>End:</Text>
+                                  <Text strong style={{ fontSize: 13 }}>{formatTime(projectUpdate.endTime)}</Text>
+                                </Row>
+                                <Divider style={{ margin: '8px 0' }} />
+                                <Row justify="space-between">
+                                  <Text strong style={{ fontSize: 12 }}>Total:</Text>
+                                  <Text strong style={{ fontSize: 14, color: '#1890ff' }}>
+                                    {formatHours(projectUpdate.hoursWorked)}
+                                  </Text>
+                                </Row>
+                              </Space>
+                            </div>
+
+                            {/* Task Summary Stats */}
+                            <div style={{ 
+                              padding: 16, 
+                              backgroundColor: '#fff',
+                              borderRadius: 6,
+                              border: '1px solid #e8e8e8'
+                            }}>
+                              <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 12 }}>
+                                📊 Task Summary
+                              </Text>
+                              <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                {taskStats.pushed_to_production > 0 && (
+                                  <Row justify="space-between">
+                                    <Space size={4}>
+                                      <span style={{ fontSize: 12 }}>🎉</span>
+                                      <Text style={{ fontSize: 12 }}>Production</Text>
+                                    </Space>
+                                    <Tag color="purple" style={{ fontSize: 11, margin: 0 }}>
+                                      {taskStats.pushed_to_production}
+                                    </Tag>
+                                  </Row>
+                                )}
+                                {taskStats.pushed_to_staging > 0 && (
+                                  <Row justify="space-between">
+                                    <Space size={4}>
+                                      <span style={{ fontSize: 12 }}>🚀</span>
+                                      <Text style={{ fontSize: 12 }}>Staging</Text>
+                                    </Space>
+                                    <Tag color="cyan" style={{ fontSize: 11, margin: 0 }}>
+                                      {taskStats.pushed_to_staging}
+                                    </Tag>
+                                  </Row>
+                                )}
+                                {taskStats.in_testing > 0 && (
+                                  <Row justify="space-between">
+                                    <Space size={4}>
+                                      <span style={{ fontSize: 12 }}>🧪</span>
+                                      <Text style={{ fontSize: 12 }}>Testing</Text>
+                                    </Space>
+                                    <Tag color="warning" style={{ fontSize: 11, margin: 0 }}>
+                                      {taskStats.in_testing}
+                                    </Tag>
+                                  </Row>
+                                )}
+                                {taskStats.dev_complete > 0 && (
+                                  <Row justify="space-between">
+                                    <Space size={4}>
+                                      <span style={{ fontSize: 12 }}>✅</span>
+                                      <Text style={{ fontSize: 12 }}>Complete</Text>
+                                    </Space>
+                                    <Tag color="success" style={{ fontSize: 11, margin: 0 }}>
+                                      {taskStats.dev_complete}
+                                    </Tag>
+                                  </Row>
+                                )}
+                                {taskStats.in_progress > 0 && (
+                                  <Row justify="space-between">
+                                    <Space size={4}>
+                                      <span style={{ fontSize: 12 }}>⚙️</span>
+                                      <Text style={{ fontSize: 12 }}>In Progress</Text>
+                                    </Space>
+                                    <Tag color="processing" style={{ fontSize: 11, margin: 0 }}>
+                                      {taskStats.in_progress}
+                                    </Tag>
+                                  </Row>
+                                )}
+                                {taskStats.pending > 0 && (
+                                  <Row justify="space-between">
+                                    <Space size={4}>
+                                      <span style={{ fontSize: 12 }}>⏳</span>
+                                      <Text style={{ fontSize: 12 }}>Pending</Text>
+                                    </Space>
+                                    <Tag style={{ fontSize: 11, margin: 0 }}>
+                                      {taskStats.pending}
+                                    </Tag>
+                                  </Row>
+                                )}
+                              </Space>
+                            </div>
+                          </Col>
+                        </Row>
+
+                        {/* Full Width Sections - Blockers & Notes */}
+                        {(projectUpdate.blockers || projectUpdate.notes) && (
+                          <div style={{ marginTop: 16 }}>
+                            {projectUpdate.blockers && (
+                              <div style={{ 
+                                marginBottom: 12, 
+                                padding: 12, 
+                                backgroundColor: '#fff2e8',
+                                borderRadius: 6,
+                                borderLeft: '3px solid #fa8c16'
+                              }}>
+                                <Space align="start" size={8}>
+                                  <ExclamationCircleOutlined style={{ color: '#fa8c16', fontSize: 14, marginTop: 2 }} />
+                                  <div style={{ flex: 1 }}>
+                                    <Text strong style={{ color: '#fa8c16', display: 'block', marginBottom: 4, fontSize: 13 }}>
+                                      Blockers
+                                    </Text>
+                                    <Text style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>
+                                      {projectUpdate.blockers}
+                                    </Text>
+                                  </div>
+                                </Space>
+                              </div>
+                            )}
+
+                            {projectUpdate.notes && (
+                              <div style={{ 
+                                padding: 12, 
+                                backgroundColor: '#f6ffed',
+                                borderRadius: 6,
+                                borderLeft: '3px solid #52c41a'
+                              }}>
+                                <Space align="start" size={8}>
+                                  <FileTextOutlined style={{ color: '#52c41a', fontSize: 14, marginTop: 2 }} />
+                                  <div style={{ flex: 1 }}>
+                                    <Text strong style={{ color: '#52c41a', display: 'block', marginBottom: 4, fontSize: 13 }}>
+                                      Notes
+                                    </Text>
+                                    <Text style={{ whiteSpace: 'pre-wrap', fontSize: 13 }}>
+                                      {projectUpdate.notes}
+                                    </Text>
+                                  </div>
+                                </Space>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </Space>
+              </Card>
+            );
+          })}
         </Space>
       )}
     </div>

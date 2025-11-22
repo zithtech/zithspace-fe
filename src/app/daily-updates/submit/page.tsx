@@ -10,14 +10,18 @@ import {
   Space,
   Typography,
   message,
-  InputNumber,
   Tag,
+  DatePicker,
+  Radio,
+  Row,
+  Col,
 } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -25,7 +29,9 @@ import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { ProjectService } from '@/services/projectService';
 import DailyUpdateService from '@/services/dailyUpdateService';
-import { ProjectUpdate } from '@/types/dailyUpdate';
+import TicketService from '@/services/ticketService';
+import { ProjectUpdate, Task, WorkStatus, calculateHours, formatHours } from '@/types/dailyUpdate';
+import dayjs, { Dayjs } from 'dayjs';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -35,6 +41,23 @@ interface ProjectOption {
   label: string;
   code: string;
 }
+
+interface TicketOption {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  status: string;
+  priority: string;
+}
+
+const STATUS_OPTIONS = [
+  { label: '⏳ Pending', value: 'pending' },
+  { label: '⚙️ In Progress', value: 'in_progress' },
+  { label: '✅ Dev Complete', value: 'dev_complete' },
+  { label: '🧪 In Testing', value: 'in_testing' },
+  { label: '🚀 Pushed to Staging', value: 'pushed_to_staging' },
+  { label: '🎉 Pushed to Production', value: 'pushed_to_production' },
+];
 
 export default function SubmitDailyUpdatePage() {
   const { user, isLoading } = useAuth();
@@ -66,14 +89,22 @@ function SubmitDailyUpdateContent() {
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [existingUpdate, setExistingUpdate] = useState<any>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [projectTickets, setProjectTickets] = useState<Record<string, TicketOption[]>>({});
   const [projectUpdates, setProjectUpdates] = useState<ProjectUpdate[]>([
     {
       projectId: '',
       projectName: '',
-      completedTasks: [''],
-      plannedTasks: [],
-      blockers: [],
-      hoursSpent: undefined,
+      startTime: '',
+      endTime: '',
+      hoursWorked: 0,
+      tasks: [
+        {
+          type: 'manual',
+          description: '',
+          status: 'in_progress',
+        },
+      ],
+      blockers: '',
       notes: '',
     },
   ]);
@@ -93,6 +124,21 @@ function SubmitDailyUpdateContent() {
     }
   };
 
+  const fetchProjectTickets = async (projectId: string) => {
+    if (projectTickets[projectId]) return; // Already fetched
+
+    try {
+      const tickets = await TicketService.getProjectTickets(projectId);
+      setProjectTickets((prev) => ({
+        ...prev,
+        [projectId]: tickets,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error);
+      message.error('Failed to load tickets for this project');
+    }
+  };
+
   const checkTodaySubmission = async () => {
     try {
       setCheckingSubmission(true);
@@ -107,7 +153,6 @@ function SubmitDailyUpdateContent() {
         
         form.setFieldsValue({
           mood: result.data.mood,
-          totalHoursWorked: result.data.totalHoursWorked,
           generalNotes: result.data.generalNotes,
         });
       }
@@ -124,10 +169,17 @@ function SubmitDailyUpdateContent() {
       {
         projectId: '',
         projectName: '',
-        completedTasks: [''],
-        plannedTasks: [],
-        blockers: [],
-        hoursSpent: undefined,
+        startTime: '',
+        endTime: '',
+        hoursWorked: 0,
+        tasks: [
+          {
+            type: 'manual',
+            description: '',
+            status: 'in_progress',
+          },
+        ],
+        blockers: '',
         notes: '',
       },
     ]);
@@ -142,51 +194,108 @@ function SubmitDailyUpdateContent() {
     setProjectUpdates(newUpdates);
   };
 
-  const handleProjectChange = (index: number, projectId: string) => {
+  const handleProjectChange = async (index: number, projectId: string) => {
     const project = projects.find((p) => p.value === projectId);
     const newUpdates = [...projectUpdates];
     newUpdates[index].projectId = projectId;
     newUpdates[index].projectName = project?.label || '';
     setProjectUpdates(newUpdates);
+
+    // Fetch tickets for this project
+    await fetchProjectTickets(projectId);
   };
 
-  const handleTaskChange = (
-    projectIndex: number,
-    taskType: 'completedTasks' | 'plannedTasks' | 'blockers',
-    taskIndex: number,
-    value: string
-  ) => {
+  const handleTimeChange = (index: number, field: 'startTime' | 'endTime', value: Dayjs | null) => {
     const newUpdates = [...projectUpdates];
-    newUpdates[projectIndex][taskType]![taskIndex] = value;
+    newUpdates[index][field] = value ? value.toISOString() : '';
+
+    // Auto-calculate hours if both times are set
+    if (newUpdates[index].startTime && newUpdates[index].endTime) {
+      const hours = calculateHours(newUpdates[index].startTime, newUpdates[index].endTime);
+      newUpdates[index].hoursWorked = hours;
+    }
+
     setProjectUpdates(newUpdates);
   };
 
-  const handleAddTask = (
-    projectIndex: number,
-    taskType: 'completedTasks' | 'plannedTasks' | 'blockers'
-  ) => {
+  const handleAddTask = (projectIndex: number) => {
     const newUpdates = [...projectUpdates];
-    newUpdates[projectIndex][taskType]!.push('');
+    newUpdates[projectIndex].tasks.push({
+      type: 'manual',
+      description: '',
+      status: 'in_progress',
+    });
     setProjectUpdates(newUpdates);
   };
 
-  const handleRemoveTask = (
-    projectIndex: number,
-    taskType: 'completedTasks' | 'plannedTasks' | 'blockers',
-    taskIndex: number
-  ) => {
+  const handleRemoveTask = (projectIndex: number, taskIndex: number) => {
     const newUpdates = [...projectUpdates];
-    if (taskType === 'completedTasks' && newUpdates[projectIndex][taskType]!.length === 1) {
-      message.warning('At least one completed task is required');
+    if (newUpdates[projectIndex].tasks.length === 1) {
+      message.warning('At least one task is required');
       return;
     }
-    newUpdates[projectIndex][taskType]!.splice(taskIndex, 1);
+    newUpdates[projectIndex].tasks.splice(taskIndex, 1);
     setProjectUpdates(newUpdates);
   };
 
-  const handleHoursChange = (projectIndex: number, value: number | null) => {
+  const handleTaskTypeChange = (projectIndex: number, taskIndex: number, type: 'ticket' | 'manual') => {
     const newUpdates = [...projectUpdates];
-    newUpdates[projectIndex].hoursSpent = value || undefined;
+    const task = newUpdates[projectIndex].tasks[taskIndex];
+    
+    if (type === 'ticket') {
+      newUpdates[projectIndex].tasks[taskIndex] = {
+        type: 'ticket',
+        ticketId: '',
+        ticketNumber: '',
+        ticketTitle: '',
+        status: task.status,
+      };
+    } else {
+      newUpdates[projectIndex].tasks[taskIndex] = {
+        type: 'manual',
+        description: '',
+        status: task.status,
+      };
+    }
+    
+    setProjectUpdates(newUpdates);
+  };
+
+  const handleTicketSelect = (projectIndex: number, taskIndex: number, ticketId: string) => {
+    const newUpdates = [...projectUpdates];
+    const projectId = newUpdates[projectIndex].projectId;
+    const ticket = projectTickets[projectId]?.find((t) => t.id === ticketId);
+    
+    if (ticket) {
+      newUpdates[projectIndex].tasks[taskIndex] = {
+        type: 'ticket',
+        ticketId: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        ticketTitle: ticket.title,
+        status: newUpdates[projectIndex].tasks[taskIndex].status,
+      };
+    }
+    
+    setProjectUpdates(newUpdates);
+  };
+
+  const handleTaskDescriptionChange = (projectIndex: number, taskIndex: number, value: string) => {
+    const newUpdates = [...projectUpdates];
+    if (newUpdates[projectIndex].tasks[taskIndex].type === 'manual') {
+      (newUpdates[projectIndex].tasks[taskIndex] as any).description = value;
+    }
+    setProjectUpdates(newUpdates);
+  };
+
+  const handleTaskStatusChange = (projectIndex: number, taskIndex: number, status: WorkStatus) => {
+    const newUpdates = [...projectUpdates];
+    newUpdates[projectIndex].tasks[taskIndex].status = status;
+    setProjectUpdates(newUpdates);
+  };
+
+  const handleBlockersChange = (projectIndex: number, value: string) => {
+    const newUpdates = [...projectUpdates];
+    newUpdates[projectIndex].blockers = value;
     setProjectUpdates(newUpdates);
   };
 
@@ -204,17 +313,46 @@ function SubmitDailyUpdateContent() {
     return projects.filter((project) => !selectedProjectIds.includes(project.value));
   };
 
+  const getTotalHours = () => {
+    return projectUpdates.reduce((sum, update) => sum + (update.hoursWorked || 0), 0);
+  };
+
   const validateForm = () => {
     for (let i = 0; i < projectUpdates.length; i++) {
-      if (!projectUpdates[i].projectId) {
+      const update = projectUpdates[i];
+      
+      if (!update.projectId) {
         message.error(`Please select a project for update #${i + 1}`);
         return false;
       }
 
-      const completedTasks = projectUpdates[i].completedTasks.filter((task) => task.trim() !== '');
-      if (completedTasks.length === 0) {
-        message.error(`Please add at least one completed task for ${projectUpdates[i].projectName}`);
+      if (!update.startTime || !update.endTime) {
+        message.error(`Please set start and end time for ${update.projectName}`);
         return false;
+      }
+
+      if (update.tasks.length === 0) {
+        message.error(`Please add at least one task for ${update.projectName}`);
+        return false;
+      }
+
+      for (let j = 0; j < update.tasks.length; j++) {
+        const task = update.tasks[j];
+        
+        if (task.type === 'ticket' && !task.ticketId) {
+          message.error(`Task #${j + 1} in ${update.projectName}: Please select a ticket`);
+          return false;
+        }
+
+        if (task.type === 'manual' && !task.description?.trim()) {
+          message.error(`Task #${j + 1} in ${update.projectName}: Please provide a description`);
+          return false;
+        }
+
+        if (!task.status) {
+          message.error(`Task #${j + 1} in ${update.projectName}: Please select a status`);
+          return false;
+        }
       }
     }
 
@@ -237,17 +375,9 @@ function SubmitDailyUpdateContent() {
       setLoading(true);
       const values = form.getFieldsValue();
 
-      const cleanedProjectUpdates = projectUpdates.map((update) => ({
-        ...update,
-        completedTasks: update.completedTasks.filter((task) => task.trim() !== ''),
-        plannedTasks: update.plannedTasks?.filter((task) => task.trim() !== '') || [],
-        blockers: update.blockers?.filter((blocker) => blocker.trim() !== '') || [],
-      }));
-
       const data = {
         mood: values.mood,
-        totalHoursWorked: values.totalHoursWorked,
-        projectUpdates: cleanedProjectUpdates,
+        projectUpdates: projectUpdates,
         generalNotes: values.generalNotes,
       };
 
@@ -262,7 +392,28 @@ function SubmitDailyUpdateContent() {
       router.push('/daily-updates/view');
     } catch (error: any) {
       console.error('Failed to submit update:', error);
-      message.error(error.message || 'Failed to submit daily update');
+      
+      // Extract error message from various error formats
+      let errorMessage = 'Failed to submit daily update';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Display error message as toast notification
+      message.error({
+        content: errorMessage,
+        duration: 5,
+        style: {
+          marginTop: '20vh',
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -279,6 +430,8 @@ function SubmitDailyUpdateContent() {
       </div>
     );
   }
+
+  const totalHours = getTotalHours();
 
   return (
     <div style={{ 
@@ -336,10 +489,6 @@ function SubmitDailyUpdateContent() {
                 icon={<span style={{ fontSize: 16 }}>😊</span>}
                 onClick={() => form.setFieldsValue({ mood: 'happy' })}
                 type={form.getFieldValue('mood') === 'happy' ? 'primary' : 'default'}
-                style={{ 
-                  backgroundColor: form.getFieldValue('mood') === 'happy' ? '#5B68F4' : undefined,
-                  borderColor: form.getFieldValue('mood') === 'happy' ? '#5B68F4' : undefined
-                }}
               >
                 Happy
               </Button>
@@ -347,10 +496,6 @@ function SubmitDailyUpdateContent() {
                 icon={<span style={{ fontSize: 16 }}>😐</span>}
                 onClick={() => form.setFieldsValue({ mood: 'neutral' })}
                 type={form.getFieldValue('mood') === 'neutral' ? 'primary' : 'default'}
-                style={{ 
-                  backgroundColor: form.getFieldValue('mood') === 'neutral' ? '#5B68F4' : undefined,
-                  borderColor: form.getFieldValue('mood') === 'neutral' ? '#5B68F4' : undefined
-                }}
               >
                 Neutral
               </Button>
@@ -358,10 +503,6 @@ function SubmitDailyUpdateContent() {
                 icon={<span style={{ fontSize: 16 }}>😰</span>}
                 onClick={() => form.setFieldsValue({ mood: 'stressed' })}
                 type={form.getFieldValue('mood') === 'stressed' ? 'primary' : 'default'}
-                style={{ 
-                  backgroundColor: form.getFieldValue('mood') === 'stressed' ? '#5B68F4' : undefined,
-                  borderColor: form.getFieldValue('mood') === 'stressed' ? '#5B68F4' : undefined
-                }}
               >
                 Stressed
               </Button>
@@ -369,33 +510,10 @@ function SubmitDailyUpdateContent() {
                 icon={<span style={{ fontSize: 16 }}>🚫</span>}
                 onClick={() => form.setFieldsValue({ mood: 'blocked' })}
                 type={form.getFieldValue('mood') === 'blocked' ? 'primary' : 'default'}
-                style={{ 
-                  backgroundColor: form.getFieldValue('mood') === 'blocked' ? '#5B68F4' : undefined,
-                  borderColor: form.getFieldValue('mood') === 'blocked' ? '#5B68F4' : undefined
-                }}
               >
                 Blocked
               </Button>
             </Space>
-          </Form.Item>
-
-          {/* Total Hours */}
-          <Form.Item 
-            label={
-              <span style={{ fontSize: 14, fontWeight: 500 }}>
-                Total Hours Worked <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
-              </span>
-            }
-            name="totalHoursWorked"
-            style={{ marginBottom: 24 }}
-          >
-            <InputNumber
-              min={0}
-              max={24}
-              step={0.5}
-              placeholder="e.g., 8"
-              style={{ width: 200 }}
-            />
           </Form.Item>
 
           {/* Project Updates Section */}
@@ -424,7 +542,7 @@ function SubmitDailyUpdateContent() {
                   marginBottom: 16
                 }}>
                   <Text strong style={{ fontSize: 14 }}>
-                    Project Update #{projectIndex + 1}
+                    Project Entry #{projectIndex + 1}
                   </Text>
                   {projectUpdates.length > 1 && (
                     <Button
@@ -466,153 +584,164 @@ function SubmitDailyUpdateContent() {
                   />
                 </Form.Item>
 
-                {/* Completed Tasks */}
-                <Form.Item
-                  label={
-                    <span style={{ fontSize: 13 }}>
-                      What did you complete today? <span style={{ color: '#ff4d4f' }}>*</span>
-                    </span>
-                  }
-                  required={false}
-                  style={{ marginBottom: 16 }}
-                >
-                  <Space direction="vertical" style={{ width: '100%' }} size="small">
-                    {update.completedTasks.map((task, taskIndex) => (
-                      <div key={taskIndex} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <Input
-                          placeholder="Describe completed task..."
-                          value={task}
-                          onChange={(e) =>
-                            handleTaskChange(projectIndex, 'completedTasks', taskIndex, e.target.value)
-                          }
-                          style={{ flex: 1 }}
+                {/* Time Tracking */}
+                <div style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 8 }}>
+                    ⏰ Time Tracking <span style={{ color: '#ff4d4f' }}>*</span>
+                  </Text>
+                  <Row gutter={16}>
+                    <Col span={8}>
+                      <Form.Item
+                        label={<span style={{ fontSize: 12 }}>Start Time</span>}
+                        required={false}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <DatePicker
+                          showTime
+                          format="DD-MM-YYYY HH:mm"
+                          placeholder="dd-mm-yyyy --:--"
+                          value={update.startTime ? dayjs(update.startTime) : null}
+                          onChange={(value) => handleTimeChange(projectIndex, 'startTime', value)}
+                          style={{ width: '100%' }}
                         />
-                        {update.completedTasks.length > 1 && (
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item
+                        label={<span style={{ fontSize: 12 }}>End Time</span>}
+                        required={false}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <DatePicker
+                          showTime
+                          format="DD-MM-YYYY HH:mm"
+                          placeholder="dd-mm-yyyy --:--"
+                          value={update.endTime ? dayjs(update.endTime) : null}
+                          onChange={(value) => handleTimeChange(projectIndex, 'endTime', value)}
+                          style={{ width: '100%' }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item
+                        label={<span style={{ fontSize: 12 }}>Total Hours</span>}
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input
+                          value={update.hoursWorked > 0 ? formatHours(update.hoursWorked) : '0h 0m'}
+                          disabled
+                          prefix={<ClockCircleOutlined />}
+                          style={{ backgroundColor: '#f5f5f5' }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+
+                {/* Work Summary - Tasks */}
+                <div style={{ marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 8 }}>
+                    📝 Work Summary <span style={{ color: '#ff4d4f' }}>*</span>
+                  </Text>
+
+                  {update.tasks.map((task, taskIndex) => (
+                    <div
+                      key={taskIndex}
+                      style={{
+                        border: '1px solid #d9d9d9',
+                        borderRadius: 6,
+                        padding: 12,
+                        marginBottom: 12,
+                        backgroundColor: '#fff',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={{ fontSize: 12, fontWeight: 500 }}>Task #{taskIndex + 1}</Text>
+                        {update.tasks.length > 1 && (
                           <Button
                             type="text"
                             danger
                             size="small"
-                            icon={<CloseCircleOutlined />}
-                            onClick={() => handleRemoveTask(projectIndex, 'completedTasks', taskIndex)}
+                            icon={<DeleteOutlined />}
+                            onClick={() => handleRemoveTask(projectIndex, taskIndex)}
                           />
                         )}
                       </div>
-                    ))}
-                    <Button
-                      type="link"
-                      icon={<PlusOutlined />}
-                      onClick={() => handleAddTask(projectIndex, 'completedTasks')}
-                      size="small"
-                      style={{ padding: 0, height: 'auto', fontSize: 13 }}
-                    >
-                      Add Task
-                    </Button>
-                  </Space>
-                </Form.Item>
 
-                {/* Planned Tasks */}
-                <Form.Item
-                  label={
-                    <span style={{ fontSize: 13 }}>
-                      What will you do tomorrow? <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
-                    </span>
-                  }
-                  style={{ marginBottom: 16 }}
-                >
-                  <Space direction="vertical" style={{ width: '100%' }} size="small">
-                    {update.plannedTasks && update.plannedTasks.length > 0 && (
-                      update.plannedTasks.map((task, taskIndex) => (
-                        <div key={taskIndex} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <Input
-                            placeholder="Describe planned task..."
-                            value={task}
-                            onChange={(e) =>
-                              handleTaskChange(projectIndex, 'plannedTasks', taskIndex, e.target.value)
-                            }
-                            style={{ flex: 1 }}
-                          />
-                          <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<CloseCircleOutlined />}
-                            onClick={() => handleRemoveTask(projectIndex, 'plannedTasks', taskIndex)}
-                          />
-                        </div>
-                      ))
-                    )}
-                    <Button
-                      type="link"
-                      icon={<PlusOutlined />}
-                      onClick={() => handleAddTask(projectIndex, 'plannedTasks')}
-                      size="small"
-                      style={{ padding: 0, height: 'auto', fontSize: 13 }}
-                    >
-                      Add Planned Task
-                    </Button>
-                  </Space>
-                </Form.Item>
+                      {/* Task Type Selector */}
+                      <Radio.Group
+                        value={task.type}
+                        onChange={(e) => handleTaskTypeChange(projectIndex, taskIndex, e.target.value)}
+                        style={{ marginBottom: 8 }}
+                        size="small"
+                      >
+                        <Radio value="ticket">Ticket</Radio>
+                        <Radio value="manual">Manual Description</Radio>
+                      </Radio.Group>
+
+                      {/* Conditional Input */}
+                      {task.type === 'ticket' ? (
+                        <Select
+                          placeholder="Select ticket"
+                          value={task.ticketId || undefined}
+                          onChange={(value) => handleTicketSelect(projectIndex, taskIndex, value)}
+                          options={projectTickets[update.projectId]?.map((ticket) => ({
+                            label: `${ticket.ticketNumber} - ${ticket.title}`,
+                            value: ticket.id,
+                          })) || []}
+                          showSearch
+                          filterOption={(input, option) =>
+                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                          }
+                          style={{ width: '100%', marginBottom: 8 }}
+                          disabled={!update.projectId}
+                        />
+                      ) : (
+                        <TextArea
+                          placeholder="Describe what you worked on..."
+                          value={task.description || ''}
+                          onChange={(e) => handleTaskDescriptionChange(projectIndex, taskIndex, e.target.value)}
+                          rows={2}
+                          style={{ marginBottom: 8 }}
+                        />
+                      )}
+
+                      {/* Status Selector */}
+                      <Select
+                        placeholder="Select status"
+                        value={task.status}
+                        onChange={(value) => handleTaskStatusChange(projectIndex, taskIndex, value as WorkStatus)}
+                        options={STATUS_OPTIONS}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  ))}
+
+                  <Button
+                    type="link"
+                    icon={<PlusOutlined />}
+                    onClick={() => handleAddTask(projectIndex)}
+                    size="small"
+                    style={{ padding: 0, height: 'auto', fontSize: 13 }}
+                  >
+                    Add Task
+                  </Button>
+                </div>
 
                 {/* Blockers */}
                 <Form.Item
                   label={
                     <span style={{ fontSize: 13 }}>
-                      Any blockers or issues? <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
+                      🚫 Blockers <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
                     </span>
                   }
                   style={{ marginBottom: 16 }}
                 >
-                  <Space direction="vertical" style={{ width: '100%' }} size="small">
-                    {update.blockers && update.blockers.length > 0 && (
-                      update.blockers.map((blocker, blockerIndex) => (
-                        <div key={blockerIndex} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <Input
-                            placeholder="Describe blocker..."
-                            value={blocker}
-                            onChange={(e) =>
-                              handleTaskChange(projectIndex, 'blockers', blockerIndex, e.target.value)
-                            }
-                            style={{ flex: 1 }}
-                          />
-                          <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<CloseCircleOutlined />}
-                            onClick={() => handleRemoveTask(projectIndex, 'blockers', blockerIndex)}
-                          />
-                        </div>
-                      ))
-                    )}
-                    <Button
-                      type="link"
-                      icon={<PlusOutlined />}
-                      onClick={() => handleAddTask(projectIndex, 'blockers')}
-                      size="small"
-                      style={{ padding: 0, height: 'auto', fontSize: 13 }}
-                    >
-                      Add Blocker
-                    </Button>
-                  </Space>
-                </Form.Item>
-
-                {/* Hours Spent */}
-                <Form.Item
-                  label={
-                    <span style={{ fontSize: 13 }}>
-                      Hours Spent <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
-                    </span>
-                  }
-                  style={{ marginBottom: 16 }}
-                >
-                  <InputNumber
-                    min={0}
-                    max={24}
-                    step={0.5}
-                    value={update.hoursSpent}
-                    onChange={(value) => handleHoursChange(projectIndex, value)}
-                    placeholder="e.g., 5"
-                    style={{ width: 200 }}
+                  <TextArea
+                    rows={2}
+                    placeholder="Any blockers or dependencies..."
+                    value={update.blockers}
+                    onChange={(e) => handleBlockersChange(projectIndex, e.target.value)}
                   />
                 </Form.Item>
 
@@ -620,14 +749,14 @@ function SubmitDailyUpdateContent() {
                 <Form.Item
                   label={
                     <span style={{ fontSize: 13 }}>
-                      Additional Notes <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
+                      💬 Comments / Notes <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
                     </span>
                   }
                   style={{ marginBottom: 0 }}
                 >
                   <TextArea
                     rows={2}
-                    placeholder="Any additional notes for this project..."
+                    placeholder="Additional notes or clarifications..."
                     value={update.notes}
                     onChange={(e) => handleNotesChange(projectIndex, e.target.value)}
                   />
@@ -642,7 +771,7 @@ function SubmitDailyUpdateContent() {
               disabled={projectUpdates.length >= projects.length}
               style={{ padding: 0, height: 'auto', fontSize: 13 }}
             >
-              Add Another Project Update
+              Add Another Project Entry
             </Button>
           </div>
 
@@ -654,13 +783,29 @@ function SubmitDailyUpdateContent() {
               </span>
             }
             name="generalNotes"
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 16 }}
           >
             <TextArea
               rows={3}
               placeholder="Any other updates not related to specific projects..."
             />
           </Form.Item>
+
+          {/* Total Hours Display */}
+          <div style={{ 
+            padding: 16, 
+            backgroundColor: '#f0f5ff', 
+            borderRadius: 6, 
+            marginBottom: 24,
+            border: '1px solid #adc6ff'
+          }}>
+            <Text strong style={{ fontSize: 14 }}>
+              ⏱️ Total Hours Today: <span style={{ color: '#1890ff', fontSize: 16 }}>{formatHours(totalHours)}</span>
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+              Auto-calculated from all project entries
+            </Text>
+          </div>
 
           {/* Submit Buttons */}
           <Form.Item style={{ marginBottom: 0 }}>
@@ -669,17 +814,13 @@ function SubmitDailyUpdateContent() {
                 type="primary" 
                 onClick={handleSubmit} 
                 loading={loading}
-                // style={{ 
-                //   minWidth: 140,
-                //   backgroundColor: '#5B68F4',
-                //   borderColor: '#5B68F4'
-                // }}
+                size="large"
               >
                 {alreadySubmitted ? 'Update Daily Status' : 'Submit Daily Status'}
               </Button>
               <Button 
                 onClick={() => router.push('/daily-updates/view')}
-                style={{ minWidth: 100 }}
+                size="large"
               >
                 Cancel
               </Button>

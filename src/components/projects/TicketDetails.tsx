@@ -52,6 +52,10 @@ import {
   SettingsService,
   TicketConfigurations,
 } from "@/services/settingsService";
+import TiptapEditor from '@/components/common/TiptapEditor';
+import TiptapViewer from '@/components/common/TiptapViewer';
+import AttachmentUploader from '@/components/common/AttachmentUploader';
+import AttachmentList from '@/components/common/AttachmentList';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -165,6 +169,23 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
   const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
 
+  // Attachments state
+  const [attachments, setAttachments] = useState<Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileSize: number;
+    fileType: string;
+    uploadedAt: string;
+    uploadedBy: {
+      id: string;
+      name: string;
+      workEmail: string;
+      position: string;
+    };
+  }>>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+
   // Dynamic dropdown options loaded from API
   const [platforms, setPlatforms] = useState<
     Array<{
@@ -202,6 +223,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   useEffect(() => {
     fetchTicket();
     loadDropdownData();
+    fetchAttachments();
   }, [ticketId]);
 
   // Load dropdown data when editing mode is enabled
@@ -325,6 +347,41 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
     } catch (error) {
       console.error("Failed to fetch related links:", error);
       message.error("Failed to load related links");
+    }
+  };
+
+  const fetchAttachments = async () => {
+    try {
+      setAttachmentsLoading(true);
+      const attachmentsData = await TicketService.getAttachments(ticketId);
+      setAttachments(attachmentsData);
+    } catch (error) {
+      console.error("Failed to fetch attachments:", error);
+      message.error("Failed to load attachments");
+    } finally {
+      setAttachmentsLoading(false);
+    }
+  };
+
+  const handleUploadAttachment = async (file: string, fileName: string) => {
+    try {
+      await TicketService.uploadAttachment(ticketId, file, fileName);
+      message.success("Attachment uploaded successfully");
+      fetchAttachments(); // Refresh attachments list
+    } catch (error: any) {
+      console.error("Failed to upload attachment:", error);
+      throw error; // Re-throw to let AttachmentUploader handle the error message
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    try {
+      await TicketService.deleteAttachment(ticketId, attachmentId);
+      message.success("Attachment deleted successfully");
+      fetchAttachments(); // Refresh attachments list
+    } catch (error) {
+      console.error("Failed to delete attachment:", error);
+      message.error("Failed to delete attachment");
     }
   };
 
@@ -506,6 +563,13 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         {/* Main Content */}
         <Col xs={24} lg={16}>
           <Card>
+            {/* Hidden form to prevent useForm warning - always keeps form connected */}
+            {!editing && (
+              <Form form={form} style={{ display: 'none' }}>
+                <Form.Item name="title"><Input /></Form.Item>
+              </Form>
+            )}
+            
             {editing ? (
               <div style={{ position: "relative" }}>
                 {/* Save/Cancel Buttons - Top Right */}
@@ -602,7 +666,12 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                       { required: true, message: "Please enter description" },
                     ]}
                   >
-                    <TextArea rows={4} />
+                    <TiptapEditor
+                      content={form.getFieldValue('description')}
+                      onChange={(html) => form.setFieldValue('description', html)}
+                      minHeight={200}
+                      maxHeight={400}
+                    />
                   </Form.Item>
 
                   <Row gutter={16}>
@@ -917,21 +986,10 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     >
                       Description
                     </Text>
-                    <Paragraph
-                      style={{
-                        margin: "0",
-                        fontSize: "14px",
-                        lineHeight: "1.6",
-                        color: "#595959",
-                      }}
-                      ellipsis={{
-                        rows: 4,
-                        expandable: true,
-                        symbol: "Show more",
-                      }}
-                    >
-                      {ticket.description}
-                    </Paragraph>
+                    <TiptapViewer
+                      content={ticket.description}
+                      minHeight={100}
+                    />
                   </div>
                 </div>
 
@@ -1391,6 +1449,35 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                 />
               )}
             </div>
+          </Card>
+
+          {/* Attachments Section */}
+          <Card
+            title={
+              <Space>
+                <span>Attachments</span>
+                {attachments.length > 0 && (
+                  <Tag color="blue">{attachments.length}</Tag>
+                )}
+              </Space>
+            }
+            style={{ marginTop: 16 }}
+          >
+            {!editing && (
+              <div style={{ marginBottom: 16 }}>
+                <AttachmentUploader
+                  onUpload={handleUploadAttachment}
+                  maxSize={5}
+                  disabled={editing}
+                />
+              </div>
+            )}
+
+            <AttachmentList
+              attachments={attachments}
+              onDelete={handleDeleteAttachment}
+              loading={attachmentsLoading}
+            />
           </Card>
 
           {/* Comments Section */}

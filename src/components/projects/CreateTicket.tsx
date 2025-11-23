@@ -37,6 +37,7 @@ import { ProjectService } from '@/services/projectService';
 import { MembersService } from '@/services/membersService';
 import TicketService from '@/services/ticketService';
 import { SettingsService, TicketConfigurations } from '@/services/settingsService';
+import TiptapEditor from '@/components/common/TiptapEditor';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -346,10 +347,11 @@ export default function CreateTicket() {
                 label="Description *"
                 rules={[{ required: true, message: 'Please provide a description' }]}
               >
-                <TextArea
-                  rows={4}
+                <TiptapEditor
                   placeholder="Provide a detailed explanation of the task..."
-                  style={{ fontSize: 14 }}
+                  minHeight={200}
+                  maxHeight={400}
+                  onChange={(html) => form.setFieldValue('description', html)}
                 />
               </Form.Item>
             </Card>

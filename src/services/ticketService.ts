@@ -563,6 +563,63 @@ class TicketService {
       throw new Error(errorMessage);
     }
   }
+
+  /**
+   * Upload attachment to ticket
+   */
+  static async uploadAttachment(ticketId: string, file: string, fileName: string): Promise<any> {
+    try {
+      const response = await apiClient.post(`/api/tickets/${ticketId}/attachments`, {
+        file,
+        fileName
+      });
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error uploading attachment:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to upload attachment';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Get attachments for a ticket
+   */
+  static async getAttachments(ticketId: string): Promise<Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileSize: number;
+    fileType: string;
+    uploadedAt: string;
+    uploadedBy: {
+      id: string;
+      name: string;
+      workEmail: string;
+      position: string;
+    };
+  }>> {
+    try {
+      const response = await apiClient.get(`/api/tickets/${ticketId}/attachments`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching attachments:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to fetch attachments';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Delete attachment
+   */
+  static async deleteAttachment(ticketId: string, attachmentId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/tickets/${ticketId}/attachments/${attachmentId}`);
+    } catch (error: any) {
+      console.error('Error deleting attachment:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to delete attachment';
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 export default TicketService;

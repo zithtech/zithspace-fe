@@ -1,5 +1,3 @@
-'use client';
-
 import TicketDetails from '@/components/projects/TicketDetails';
 import MainLayout from '@/components/layout/MainLayout';
 

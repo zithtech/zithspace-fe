@@ -34,7 +34,14 @@ export class DailyUpdateService {
   static async getMyUpdates(filters?: DailyUpdateFilters): Promise<DailyStatusUpdate[]> {
     const params = new URLSearchParams();
     
-    if (filters?.date) params.append('date', filters.date);
+    // Date range has priority over single date
+    if (filters?.startDate && filters?.endDate) {
+      params.append('startDate', filters.startDate);
+      params.append('endDate', filters.endDate);
+    } else if (filters?.date) {
+      params.append('date', filters.date);
+    }
+    
     if (filters?.limit) params.append('limit', filters.limit.toString());
 
     return await api.get(`/api/daily-updates/my?${params.toString()}`);
@@ -46,7 +53,14 @@ export class DailyUpdateService {
   static async getTeamUpdates(filters?: DailyUpdateFilters): Promise<DailyStatusUpdate[]> {
     const params = new URLSearchParams();
     
-    if (filters?.date) params.append('date', filters.date);
+    // Date range has priority over single date
+    if (filters?.startDate && filters?.endDate) {
+      params.append('startDate', filters.startDate);
+      params.append('endDate', filters.endDate);
+    } else if (filters?.date) {
+      params.append('date', filters.date);
+    }
+    
     if (filters?.projectId) params.append('projectId', filters.projectId);
     if (filters?.userId) params.append('userId', filters.userId);
 

@@ -120,7 +120,9 @@ export interface UpdateDailyUpdateRequest {
 }
 
 export interface DailyUpdateFilters {
-  date?: string;
+  date?: string;           // Single date (backward compatible)
+  startDate?: string;      // Start date for range filter
+  endDate?: string;        // End date for range filter
   projectId?: string;
   userId?: string;
   status?: WorkStatus;

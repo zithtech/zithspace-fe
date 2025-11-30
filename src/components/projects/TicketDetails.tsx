@@ -70,6 +70,7 @@ interface TicketDetails {
   title: string;
   description: string;
   platform: string;
+  stack?: string;
   project: {
     id: string;
     name: string;
@@ -77,6 +78,7 @@ interface TicketDetails {
   };
   priority: "P1" | "P2" | "P3";
   taskType: string;
+  type?: string;
   taskLevel: string;
   status: string;
   assignee: {
@@ -195,6 +197,14 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
       description?: string;
     }>
   >([]);
+  const [stacks, setStacks] = useState<
+    Array<{
+      value: string;
+      label: string;
+      color?: string;
+      description?: string;
+    }>
+  >([]);
   const [priorities, setPriorities] = useState<
     Array<{
       value: string;
@@ -250,6 +260,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
       // Set dropdown options from the configuration with fallbacks
       setPlatforms(ticketConfigData?.platforms || []);
+      setStacks(ticketConfigData?.stacks || []);
       setPriorities(ticketConfigData?.priorities || []);
       setTaskLevels(ticketConfigData?.taskLevels || []);
       setTaskTypes(ticketConfigData?.taskTypes || []);
@@ -278,12 +289,14 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         title: response.title,
         description: response.description,
         platform: response.platform,
+        stack: (response as any).stack,
         project:
           typeof response.project === "string"
             ? { id: response.project, name: "Unknown", code: "UNK" }
             : response.project,
         priority: response.priority as "P1" | "P2" | "P3",
-        taskType: response.taskType,
+        taskType: (response as any).type || response.taskType,
+        type: (response as any).type,
         taskLevel: response.taskLevel,
         status: response.status,
         assignee:
@@ -313,9 +326,10 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
           title: ticketData?.title || "",
           description: ticketData?.description || "",
           platform: ticketData?.platform || "",
+          stack: ticketData?.stack || "",
           project: ticketData?.project?.id || "",
           priority: ticketData?.priority || "",
-          taskType: ticketData?.taskType || "",
+          taskType: ticketData?.type || ticketData?.taskType || "",
           taskLevel: ticketData?.taskLevel || "",
           status: ticketData?.status || "",
           // FIXED: Use ObjectId instead of name for assignee
@@ -399,27 +413,34 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
       setSaving(true);
       const values = await form.validateFields();
 
-      // CRITICAL FIX: Sanitize empty strings for optional ObjectId fields
+      // CRITICAL FIX: Map field names to match backend expectations
       const updateData = {
-        ...values,
+        title: values.title,
+        description: values.description,
+        platform: values.platform,
+        projectId: values.project,
+        stack: values.stack,
+        priority: values.priority,
+        taskLevel: values.taskLevel,
+        taskType: values.taskType,
+        storyPoint: values.storyPoint,
+        estimateHours: values.estimateHours,
+        assigneeId: values.assignee,
+        reportToId: values.reportTo,
+        status: values.status,
         startDate: values.startDate ? values.startDate.toISOString() : null,
         endDate: values.endDate ? values.endDate.toISOString() : null,
+        releasePlan: values.releasePlan || undefined,
       };
 
-      // Remove empty strings for optional ObjectId fields to prevent casting errors
-      if (updateData.releasePlan === "" || updateData.releasePlan === null) {
-        delete updateData.releasePlan;
-      }
-
-      // Handle parentTickets array - remove empty strings
-      if (updateData.parentTickets && Array.isArray(updateData.parentTickets)) {
-        updateData.parentTickets = updateData.parentTickets.filter(
-          (id: any) => id && id !== ""
-        );
-        if (updateData.parentTickets.length === 0) {
-          delete updateData.parentTickets;
+      // Remove undefined/null/empty values to prevent validation errors
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key as keyof typeof updateData] === undefined ||
+            updateData[key as keyof typeof updateData] === null ||
+            updateData[key as keyof typeof updateData] === '') {
+          delete updateData[key as keyof typeof updateData];
         }
-      }
+      });
 
       await TicketService.updateTicket(ticketId, updateData);
       message.success("Ticket updated successfully");
@@ -658,6 +679,36 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                       </Form.Item>
                     </Col>
                   </Row>
+
+                  <Form.Item
+                    noStyle
+                    shouldUpdate={(prevValues, currentValues) =>
+                      prevValues.platform !== currentValues.platform
+                    }
+                  >
+                    {({ getFieldValue }) =>
+                      getFieldValue("platform") === "Development" ? (
+                        <Form.Item
+                          label="Stack"
+                          name="stack"
+                          rules={[
+                            { required: true, message: "Please select a stack" },
+                          ]}
+                        >
+                          <Select loading={dataLoading}>
+                            {stacks.map((stack) => (
+                              <Select.Option
+                                key={stack.value}
+                                value={stack.value}
+                              >
+                                {stack.label}
+                              </Select.Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      ) : null
+                    }
+                  </Form.Item>
 
                   <Form.Item
                     label="Description"
@@ -1011,8 +1062,8 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     {ticket?.platform || "Not specified"}
                   </Descriptions.Item>
                   <Descriptions.Item label="Task Type">
-                    <Tag color={getTaskTypeColor(ticket?.taskType || "")}>
-                      {ticket?.taskType || "Not specified"}
+                    <Tag color={getTaskTypeColor(ticket?.type || "")}>
+                      {ticket?.type || "Not specified"}
                     </Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Task Level">

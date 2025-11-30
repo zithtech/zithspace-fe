@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Form,
@@ -14,13 +14,14 @@ import {
   Space,
   Tag,
   InputNumber,
-  message,
+  notification,
   Divider,
   List,
   Badge,
   Avatar,
-  Spin
-} from 'antd';
+  Spin,
+} from "antd";
+import type { NotificationArgsProps } from "antd";
 import {
   FileTextOutlined,
   SettingOutlined,
@@ -30,14 +31,17 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   SaveOutlined,
-  CloseOutlined
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
-import { ProjectService } from '@/services/projectService';
-import { MembersService } from '@/services/membersService';
-import TicketService from '@/services/ticketService';
-import { SettingsService, TicketConfigurations } from '@/services/settingsService';
-import TiptapEditor from '@/components/common/TiptapEditor';
+  CloseOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import { ProjectService } from "@/services/projectService";
+import { MembersService } from "@/services/membersService";
+import TicketService from "@/services/ticketService";
+import {
+  SettingsService,
+  TicketConfigurations,
+} from "@/services/settingsService";
+import TiptapEditor from "@/components/common/TiptapEditor";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -64,31 +68,79 @@ interface TicketFormData {
 
 export default function CreateTicket() {
   const [form] = Form.useForm();
+  const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [ticketId] = useState(`TKT-${Date.now().toString().slice(-6)}`);
 
   // State for dynamic data
-  const [projects, setProjects] = useState<Array<{ value: string; label: string; code: string }>>([]);
-  const [members, setMembers] = useState<Array<{ value: string; label: string; position: string }>>([]);
-  const [projectMembers, setProjectMembers] = useState<Array<{ value: string; label: string; position: string }>>([]);
-  const [ticketConfig, setTicketConfig] = useState<TicketConfigurations | null>(null);
-  const [parentTickets, setParentTickets] = useState<Array<{ value: string; label: string }>>([]);
-  const [releasePlans, setReleasePlans] = useState<Array<{ value: string; label: string }>>([]);
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [projects, setProjects] = useState<
+    Array<{ value: string; label: string; code: string }>
+  >([]);
+  const [members, setMembers] = useState<
+    Array<{ value: string; label: string; position: string }>
+  >([]);
+  const [projectMembers, setProjectMembers] = useState<
+    Array<{ value: string; label: string; position: string }>
+  >([]);
+  const [ticketConfig, setTicketConfig] = useState<TicketConfigurations | null>(
+    null
+  );
+  const [parentTickets, setParentTickets] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [releasePlans, setReleasePlans] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [selectedProject, setSelectedProject] = useState<string>("");
 
   // Dynamic dropdown options loaded from API
-  const [platforms, setPlatforms] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
-  const [stacks, setStacks] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
-  const [priorities, setPriorities] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
-  const [taskLevels, setTaskLevels] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
-  const [taskTypes, setTaskTypes] = useState<Array<{ value: string; label: string; color?: string; description?: string }>>([]);
+  const [platforms, setPlatforms] = useState<
+    Array<{
+      value: string;
+      label: string;
+      color?: string;
+      description?: string;
+    }>
+  >([]);
+  const [stacks, setStacks] = useState<
+    Array<{
+      value: string;
+      label: string;
+      color?: string;
+      description?: string;
+    }>
+  >([]);
+  const [priorities, setPriorities] = useState<
+    Array<{
+      value: string;
+      label: string;
+      color?: string;
+      description?: string;
+    }>
+  >([]);
+  const [taskLevels, setTaskLevels] = useState<
+    Array<{
+      value: string;
+      label: string;
+      color?: string;
+      description?: string;
+    }>
+  >([]);
+  const [taskTypes, setTaskTypes] = useState<
+    Array<{
+      value: string;
+      label: string;
+      color?: string;
+      description?: string;
+    }>
+  >([]);
 
   const recentActivities = [
-    { user: 'John Doe', action: 'created ticket #TKT-001', time: '2 mins ago' },
-    { user: 'Jane Smith', action: 'updated priority', time: '5 mins ago' },
-    { user: 'Mike Johnson', action: 'assigned to Sarah', time: '10 mins ago' },
-    { user: 'David Brown', action: 'completed testing', time: '15 mins ago' }
+    { user: "John Doe", action: "created ticket #TKT-001", time: "2 mins ago" },
+    { user: "Jane Smith", action: "updated priority", time: "5 mins ago" },
+    { user: "Mike Johnson", action: "assigned to Sarah", time: "10 mins ago" },
+    { user: "David Brown", action: "completed testing", time: "15 mins ago" },
   ];
 
   // Load initial data
@@ -96,14 +148,20 @@ export default function CreateTicket() {
     const loadInitialData = async () => {
       try {
         setDataLoading(true);
-        
+
         // Load user projects, members, and ticket configurations in parallel
-        const [projectsData, membersData, ticketConfigData] = await Promise.all([
-          ProjectService.getUserProjectsForTickets(),
-          MembersService.getMembersForSelect(),
-          SettingsService.getTicketConfigurations()
-        ]);
-        console.log("EEEEEEEEEEEEEE",{projectsData,membersData,ticketConfigData});
+        const [projectsData, membersData, ticketConfigData] = await Promise.all(
+          [
+            ProjectService.getUserProjectsForTickets(),
+            MembersService.getMembersForSelect(),
+            SettingsService.getTicketConfigurations(),
+          ]
+        );
+        console.log("EEEEEEEEEEEEEE", {
+          projectsData,
+          membersData,
+          ticketConfigData,
+        });
 
         setProjects(projectsData || []);
         setMembers(membersData || []);
@@ -115,11 +173,15 @@ export default function CreateTicket() {
         setPriorities(ticketConfigData?.priorities || []);
         setTaskLevels(ticketConfigData?.taskLevels || []);
         setTaskTypes(ticketConfigData?.taskTypes || []);
-
       } catch (error) {
-        console.error('Error loading initial data:', error);
-        message.error('Failed to load form data. Please refresh the page.');
-        
+        console.error("Error loading initial data:", error);
+        api.error({
+          message: "Error",
+          description: "Failed to load form data. Please refresh the page.",
+          placement: "bottomRight",
+          duration: 4,
+        });
+
         // Set empty arrays as fallbacks to prevent map errors
         setPlatforms([]);
         setStacks([]);
@@ -144,20 +206,22 @@ export default function CreateTicket() {
         // Clear assignee and reportTo when project is cleared
         form.setFieldsValue({
           assignee: undefined,
-          reportTo: undefined
+          reportTo: undefined,
         });
         return;
       }
 
       try {
         // Load project members
-        const membersData = await ProjectService.getProjectMembers(selectedProject);
+        const membersData = await ProjectService.getProjectMembers(
+          selectedProject
+        );
         setProjectMembers(membersData || []);
-        
+
         // Clear assignee and reportTo when project changes
         form.setFieldsValue({
           assignee: undefined,
-          reportTo: undefined
+          reportTo: undefined,
         });
 
         // TODO: Load parent tickets and release plans for selected project
@@ -165,7 +229,7 @@ export default function CreateTicket() {
         //   TicketService.getParentTickets(selectedProject),
         //   TicketService.getReleasePlansByProject(selectedProject)
         // ]);
-        
+
         // setParentTickets(parentTicketsData);
         // setReleasePlans(releasePlansData);
 
@@ -173,8 +237,13 @@ export default function CreateTicket() {
         setParentTickets([]);
         setReleasePlans([]);
       } catch (error) {
-        console.error('Error loading project data:', error);
-        message.error('Failed to load project-specific data.');
+        console.error("Error loading project data:", error);
+        api.error({
+          message: "Error",
+          description: "Failed to load project-specific data.",
+          placement: "bottomRight",
+          duration: 4,
+        });
         setProjectMembers([]);
       }
     };
@@ -185,10 +254,10 @@ export default function CreateTicket() {
   const handleCreateTicket = async (values: TicketFormData) => {
     try {
       setLoading(true);
-      
+
       // Prepare ticket data for API
       const ticketData = {
-        title: values.title || 'New Ticket',
+        title: values.title || "New Ticket",
         description: values.description,
         platform: values.platform,
         project: values.project,
@@ -201,35 +270,49 @@ export default function CreateTicket() {
         estimateHours: values.estimateHours,
         reportTo: values.reportTo,
         assignee: values.assignee,
-        startDate: values.startDate?.format('YYYY-MM-DD') || '',
-        endDate: values.endDate?.format('YYYY-MM-DD') || '',
+        startDate: values.startDate?.format("YYYY-MM-DD") || "",
+        endDate: values.endDate?.format("YYYY-MM-DD") || "",
         releasePlan: values.releasePlan,
       };
 
       // Create ticket using API
       const createdTicket = await TicketService.createTicket(ticketData);
-      
-      message.success(`Ticket ${createdTicket?.ticketNumber || ticketId} created successfully!`);
-      
+
+      api.success({
+        message: "Success",
+        description: `Ticket ${
+          createdTicket?.ticketNumber || ticketId
+        } created successfully!`,
+        placement: "bottomRight",
+        duration: 4,
+      });
+
       // Reset form and selected project
       form.resetFields();
-      setSelectedProject('');
-      
+      setSelectedProject("");
     } catch (error: any) {
-      console.error('Error creating ticket:', error);
-      message.error(error?.message || 'Failed to create ticket');
+      console.error("Error creating ticket:", error);
+      api.error({
+        message: "Error",
+        description: error?.message || "Failed to create ticket",
+        placement: "bottomRight",
+        duration: 4,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-
   const handleCancel = () => {
     form.resetFields();
-    message.info('Form cleared');
+    api.info({
+      message: "Form cleared",
+      placement: "bottomRight",
+      duration: 2,
+    });
   };
 
-  console.log("SSS",{projects});
+  console.log("SSS", { projects });
 
   return (
     <div>
@@ -246,11 +329,11 @@ export default function CreateTicket() {
             onFinish={handleCreateTicket}
             initialValues={{
               storyPoint: 2,
-              estimateHours: 8
+              estimateHours: 8,
             }}
           >
             {/* Basic Information Section */}
-            <Card 
+            <Card
               style={{ marginBottom: 24 }}
               title={
                 <Space>
@@ -262,12 +345,9 @@ export default function CreateTicket() {
               <Form.Item
                 name="title"
                 label="Title *"
-                rules={[{ required: true, message: 'Please enter a title' }]}
+                rules={[{ required: true, message: "Please enter a title" }]}
               >
-                <Input
-                  placeholder="Enter ticket title..."
-                  size="large"
-                />
+                <Input placeholder="Enter ticket title..." size="large" />
               </Form.Item>
 
               <Row gutter={16}>
@@ -275,11 +355,15 @@ export default function CreateTicket() {
                   <Form.Item
                     name="platform"
                     label="Platform *"
-                    rules={[{ required: true, message: 'Please select a platform' }]}
+                    rules={[
+                      { required: true, message: "Please select a platform" },
+                    ]}
                   >
                     <Select placeholder="Select platform" size="large">
-                      {platforms.map(platform => (
-                        <Option key={platform.value} value={platform.value}>{platform.label}</Option>
+                      {platforms.map((platform) => (
+                        <Option key={platform.value} value={platform.value}>
+                          {platform.label}
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -288,15 +372,17 @@ export default function CreateTicket() {
                   <Form.Item
                     name="project"
                     label="Project *"
-                    rules={[{ required: true, message: 'Please select a project' }]}
+                    rules={[
+                      { required: true, message: "Please select a project" },
+                    ]}
                   >
-                    <Select 
-                      placeholder="Select project" 
+                    <Select
+                      placeholder="Select project"
                       size="large"
                       loading={dataLoading}
                       onChange={(value) => setSelectedProject(value)}
                     >
-                      {projects.map(project => (
+                      {projects.map((project) => (
                         <Option key={project.value} value={project.value}>
                           {project.label} ({project.code})
                         </Option>
@@ -321,20 +407,24 @@ export default function CreateTicket() {
 
               <Form.Item
                 noStyle
-                shouldUpdate={(prevValues, currentValues) => 
+                shouldUpdate={(prevValues, currentValues) =>
                   prevValues.platform !== currentValues.platform
                 }
               >
                 {({ getFieldValue }) =>
-                  getFieldValue('platform') === 'Development' ? (
+                  getFieldValue("platform") === "Development" ? (
                     <Form.Item
                       name="stack"
                       label="Stack *"
-                      rules={[{ required: true, message: 'Please select a stack' }]}
+                      rules={[
+                        { required: true, message: "Please select a stack" },
+                      ]}
                     >
                       <Select placeholder="Select stack" size="large">
-                        {stacks.map(stack => (
-                          <Option key={stack.value} value={stack.value}>{stack.label}</Option>
+                        {stacks.map((stack) => (
+                          <Option key={stack.value} value={stack.value}>
+                            {stack.label}
+                          </Option>
                         ))}
                       </Select>
                     </Form.Item>
@@ -345,19 +435,21 @@ export default function CreateTicket() {
               <Form.Item
                 name="description"
                 label="Description *"
-                rules={[{ required: true, message: 'Please provide a description' }]}
+                rules={[
+                  { required: true, message: "Please provide a description" },
+                ]}
               >
                 <TiptapEditor
                   placeholder="Provide a detailed explanation of the task..."
                   minHeight={200}
                   maxHeight={400}
-                  onChange={(html) => form.setFieldValue('description', html)}
+                  onChange={(html) => form.setFieldValue("description", html)}
                 />
               </Form.Item>
             </Card>
 
             {/* Task Configuration Section */}
-            <Card 
+            <Card
               style={{ marginBottom: 24 }}
               title={
                 <Space>
@@ -371,10 +463,12 @@ export default function CreateTicket() {
                   <Form.Item
                     name="priority"
                     label="Priority *"
-                    rules={[{ required: true, message: 'Please select priority' }]}
+                    rules={[
+                      { required: true, message: "Please select priority" },
+                    ]}
                   >
                     <Select placeholder="Select priority" size="large">
-                      {priorities.map(priority => (
+                      {priorities.map((priority) => (
                         <Option key={priority.value} value={priority.value}>
                           <Space>
                             <Badge color={priority.color} />
@@ -389,11 +483,15 @@ export default function CreateTicket() {
                   <Form.Item
                     name="taskLevel"
                     label="Task Level *"
-                    rules={[{ required: true, message: 'Please select task level' }]}
+                    rules={[
+                      { required: true, message: "Please select task level" },
+                    ]}
                   >
                     <Select placeholder="Select task level" size="large">
-                      {taskLevels.map(level => (
-                        <Option key={level.value} value={level.value}>{level.label}</Option>
+                      {taskLevels.map((level) => (
+                        <Option key={level.value} value={level.value}>
+                          {level.label}
+                        </Option>
                       ))}
                     </Select>
                   </Form.Item>
@@ -402,10 +500,12 @@ export default function CreateTicket() {
                   <Form.Item
                     name="taskType"
                     label="Task Type *"
-                    rules={[{ required: true, message: 'Please select task type' }]}
+                    rules={[
+                      { required: true, message: "Please select task type" },
+                    ]}
                   >
                     <Select placeholder="Select task type" size="large">
-                      {taskTypes.map(type => (
+                      {taskTypes.map((type) => (
                         <Option key={type.value} value={type.value}>
                           <Tag color={type.color}>{type.label}</Tag>
                         </Option>
@@ -420,13 +520,15 @@ export default function CreateTicket() {
                   <Form.Item
                     name="storyPoint"
                     label="Story Points *"
-                    rules={[{ required: true, message: 'Please set story points' }]}
+                    rules={[
+                      { required: true, message: "Please set story points" },
+                    ]}
                   >
                     <InputNumber
                       min={1}
                       max={5}
                       placeholder="1-5"
-                      style={{ width: '100%' }}
+                      style={{ width: "100%" }}
                       size="large"
                     />
                   </Form.Item>
@@ -435,12 +537,14 @@ export default function CreateTicket() {
                   <Form.Item
                     name="estimateHours"
                     label="Estimate Hours *"
-                    rules={[{ required: true, message: 'Please set estimate hours' }]}
+                    rules={[
+                      { required: true, message: "Please set estimate hours" },
+                    ]}
                   >
                     <InputNumber
                       min={1}
                       placeholder="Hours"
-                      style={{ width: '100%' }}
+                      style={{ width: "100%" }}
                       size="large"
                     />
                   </Form.Item>
@@ -449,7 +553,7 @@ export default function CreateTicket() {
             </Card>
 
             {/* Assignment & Timeline Section */}
-            <Card 
+            <Card
               style={{ marginBottom: 24 }}
               title={
                 <Space>
@@ -463,24 +567,40 @@ export default function CreateTicket() {
                   <Form.Item
                     name="reportTo"
                     label="Report To *"
-                    rules={[{ required: true, message: 'Please select report to' }]}
-                    help={!selectedProject ? "Please select a project first" : "Only project members are shown"}
+                    rules={[
+                      { required: true, message: "Please select report to" },
+                    ]}
+                    help={
+                      !selectedProject
+                        ? "Please select a project first"
+                        : "Only project members are shown"
+                    }
                   >
-                    <Select 
-                      placeholder={selectedProject ? "Select manager" : "Select a project first"}
+                    <Select
+                      placeholder={
+                        selectedProject
+                          ? "Select manager"
+                          : "Select a project first"
+                      }
                       size="large"
                       loading={dataLoading}
                       disabled={!selectedProject}
                       showSearch
                       filterOption={(input, option) => {
-                        const member = projectMembers.find(m => m.value === option?.value);
-                        return member ? (
-                          member.label.toLowerCase().includes(input.toLowerCase()) ||
-                          member.position.toLowerCase().includes(input.toLowerCase())
-                        ) : false;
+                        const member = projectMembers.find(
+                          (m) => m.value === option?.value
+                        );
+                        return member
+                          ? member.label
+                              .toLowerCase()
+                              .includes(input.toLowerCase()) ||
+                              member.position
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                          : false;
                       }}
                     >
-                      {projectMembers.map(member => (
+                      {projectMembers.map((member) => (
                         <Option key={member.value} value={member.value}>
                           {member.label} - {member.position}
                         </Option>
@@ -492,24 +612,40 @@ export default function CreateTicket() {
                   <Form.Item
                     name="assignee"
                     label="Assignee *"
-                    rules={[{ required: true, message: 'Please select assignee' }]}
-                    help={!selectedProject ? "Please select a project first" : "Only project members are shown"}
+                    rules={[
+                      { required: true, message: "Please select assignee" },
+                    ]}
+                    help={
+                      !selectedProject
+                        ? "Please select a project first"
+                        : "Only project members are shown"
+                    }
                   >
-                    <Select 
-                      placeholder={selectedProject ? "Select assignee" : "Select a project first"}
+                    <Select
+                      placeholder={
+                        selectedProject
+                          ? "Select assignee"
+                          : "Select a project first"
+                      }
                       size="large"
                       loading={dataLoading}
                       disabled={!selectedProject}
                       showSearch
                       filterOption={(input, option) => {
-                        const member = projectMembers.find(m => m.value === option?.value);
-                        return member ? (
-                          member.label.toLowerCase().includes(input.toLowerCase()) ||
-                          member.position.toLowerCase().includes(input.toLowerCase())
-                        ) : false;
+                        const member = projectMembers.find(
+                          (m) => m.value === option?.value
+                        );
+                        return member
+                          ? member.label
+                              .toLowerCase()
+                              .includes(input.toLowerCase()) ||
+                              member.position
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                          : false;
                       }}
                     >
-                      {projectMembers.map(member => (
+                      {projectMembers.map((member) => (
                         <Option key={member.value} value={member.value}>
                           {member.label} - {member.position}
                         </Option>
@@ -524,10 +660,12 @@ export default function CreateTicket() {
                   <Form.Item
                     name="startDate"
                     label="Start Date *"
-                    rules={[{ required: true, message: 'Please select start date' }]}
+                    rules={[
+                      { required: true, message: "Please select start date" },
+                    ]}
                   >
-                    <DatePicker 
-                      style={{ width: '100%' }} 
+                    <DatePicker
+                      style={{ width: "100%" }}
                       size="large"
                       placeholder="Pick a date"
                     />
@@ -537,10 +675,12 @@ export default function CreateTicket() {
                   <Form.Item
                     name="endDate"
                     label="End Date *"
-                    rules={[{ required: true, message: 'Please select end date' }]}
+                    rules={[
+                      { required: true, message: "Please select end date" },
+                    ]}
                   >
-                    <DatePicker 
-                      style={{ width: '100%' }} 
+                    <DatePicker
+                      style={{ width: "100%" }}
                       size="large"
                       placeholder="Pick a date"
                     />
@@ -548,18 +688,15 @@ export default function CreateTicket() {
                 </Col>
               </Row>
 
-              <Form.Item
-                name="releasePlan"
-                label="Release Plan (Optional)"
-              >
-                <Select 
-                  placeholder="Select release plan" 
-                  allowClear 
+              <Form.Item name="releasePlan" label="Release Plan (Optional)">
+                <Select
+                  placeholder="Select release plan"
+                  allowClear
                   size="large"
                   loading={dataLoading}
                   disabled={!selectedProject}
                 >
-                  {releasePlans.map(plan => (
+                  {releasePlans.map((plan) => (
                     <Option key={plan.value} value={plan.value}>
                       {plan.label}
                     </Option>
@@ -571,9 +708,9 @@ export default function CreateTicket() {
             {/* Action Buttons */}
             <Card>
               <Space size="middle">
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
+                <Button
+                  type="primary"
+                  htmlType="submit"
                   size="large"
                   loading={loading}
                   icon={<CheckCircleOutlined />}
@@ -581,7 +718,7 @@ export default function CreateTicket() {
                 >
                   Create Ticket
                 </Button>
-                <Button 
+                <Button
                   size="large"
                   onClick={handleCancel}
                   icon={<CloseOutlined />}
@@ -596,21 +733,23 @@ export default function CreateTicket() {
         {/* Right Side - Information Panel (30%) */}
         <Col xs={24} lg={7}>
           {/* Quick Info Card */}
-          <Card 
+          <Card
             style={{ marginBottom: 16 }}
             title={
               <Space>
-                <InfoCircleOutlined style={{ color: '#1677ff' }} />
+                <InfoCircleOutlined style={{ color: "#1677ff" }} />
                 <Text strong>Quick Info</Text>
               </Space>
             }
             size="small"
           >
-            <Space direction="vertical" style={{ width: '100%' }}>
+            <Space direction="vertical" style={{ width: "100%" }}>
               <div>
                 <Text type="secondary">Ticket ID</Text>
                 <br />
-                <Text strong style={{ color: '#1677ff' }}>{ticketId}</Text>
+                <Text strong style={{ color: "#1677ff" }}>
+                  {ticketId}
+                </Text>
               </div>
               <div>
                 <Text type="secondary">Created</Text>
@@ -626,21 +765,26 @@ export default function CreateTicket() {
           </Card>
 
           {/* Priority Guide Card */}
-          <Card 
+          <Card
             style={{ marginBottom: 16 }}
             title={
               <Space>
-                <CalendarOutlined style={{ color: '#faad14' }} />
+                <CalendarOutlined style={{ color: "#faad14" }} />
                 <Text strong>Priority Guide</Text>
               </Space>
             }
             size="small"
           >
-            <Space direction="vertical" style={{ width: '100%' }} size="small">
-              {priorities.map(priority => (
-                <div key={priority.value} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Space direction="vertical" style={{ width: "100%" }} size="small">
+              {priorities.map((priority) => (
+                <div
+                  key={priority.value}
+                  style={{ display: "flex", alignItems: "center", gap: 8 }}
+                >
                   <Badge color={priority.color} />
-                  <Text strong style={{ minWidth: 60 }}>{priority.value}</Text>
+                  <Text strong style={{ minWidth: 60 }}>
+                    {priority.value}
+                  </Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {priority.description}
                   </Text>
@@ -650,10 +794,10 @@ export default function CreateTicket() {
           </Card>
 
           {/* Recent Activity Card */}
-          <Card 
+          <Card
             title={
               <Space>
-                <ClockCircleOutlined style={{ color: '#52c41a' }} />
+                <ClockCircleOutlined style={{ color: "#52c41a" }} />
                 <Text strong>Recent Activity</Text>
               </Space>
             }
@@ -663,10 +807,13 @@ export default function CreateTicket() {
               size="small"
               dataSource={recentActivities}
               renderItem={(item) => (
-                <List.Item style={{ padding: '8px 0', border: 'none' }}>
+                <List.Item style={{ padding: "8px 0", border: "none" }}>
                   <List.Item.Meta
                     avatar={
-                      <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
+                      <Avatar
+                        size="small"
+                        style={{ backgroundColor: "#1677ff" }}
+                      >
                         {item.user.charAt(0)}
                       </Avatar>
                     }
@@ -687,6 +834,7 @@ export default function CreateTicket() {
           </Card>
         </Col>
       </Row>
+      {contextHolder}
     </div>
   );
 }

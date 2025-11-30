@@ -14,10 +14,11 @@ import {
   Avatar,
   Empty,
   Spin,
-  message,
+  notification,
   Divider,
   Statistic,
 } from 'antd';
+import type { NotificationArgsProps } from 'antd';
 import {
   PlusCircleOutlined,
   ReloadOutlined,
@@ -68,6 +69,7 @@ export default function ViewDailyUpdatesPage() {
 function ViewDailyUpdatesContent() {
   const router = useRouter();
   const { user } = useAuth();
+  const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(true);
   const [updates, setUpdates] = useState<DailyStatusUpdate[]>([]);
   const [projects, setProjects] = useState<Array<{ value: string; label: string }>>([]);
@@ -111,7 +113,12 @@ function ViewDailyUpdatesContent() {
       }
     } catch (error) {
       console.error('Failed to fetch updates:', error);
-      message.error('Failed to load daily updates');
+      api.error({
+        message: 'Error',
+        description: 'Failed to load daily updates',
+        placement: 'bottomRight',
+        duration: 4,
+      });
     } finally {
       setLoading(false);
     }

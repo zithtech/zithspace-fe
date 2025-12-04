@@ -58,7 +58,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       key: '/members',
       icon: <TeamOutlined />,
       label: 'Members',
-      disabled: user?.role === 'user',
+      // disabled: user?.role === 'user',
       onClick: () => handleNavigation('/members'),
       style: user?.role === 'user' ? { color: '#bfbfbf' } : undefined,
     },
@@ -146,7 +146,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
       key: '/accounts',
       icon: <DollarOutlined />,
       label: 'Accounts',
+      disabled: user?.role !== 'super_admin',
       onClick: () => handleNavigation('/accounts'),
+      style: user?.role !== 'super_admin' ? { color: '#bfbfbf' } : undefined,
     },
   ];
 

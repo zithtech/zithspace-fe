@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import {
@@ -68,7 +69,15 @@ interface TransactionFormData {
 
 export default function AccountsPage() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [form] = Form.useForm();
+
+  // Protect route - only super_admin can access
+  useEffect(() => {
+    if (!isLoading && user && user.role !== 'super_admin') {
+      router.push('/dashboard');
+    }
+  }, [user, isLoading, router]);
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);

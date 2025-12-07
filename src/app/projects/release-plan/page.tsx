@@ -11,7 +11,7 @@ export default function ProjectsReleasePlanPage() {
 
   // Show loading spinner while authentication is being checked
   if (isLoading) {
-    return <LoadingSpinner message="Loading release plan..." />;
+    return <LoadingSpinner message="Loading Plans..." />;
   }
 
   // Don't render if no user

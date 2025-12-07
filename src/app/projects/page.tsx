@@ -67,10 +67,10 @@ export default function ProjectsPage() {
       color: '#faad14'
     },
     {
-      title: 'Release Plan',
+      title: 'Plans',
       description: 'Plan and track release milestones and deliverables',
       icon: <CalendarOutlined style={{ fontSize: 24, color: '#722ed1' }} />,
-      path: '/projects/release-plan',
+      path: '/projects/plans',
       color: '#722ed1'
     },
     {

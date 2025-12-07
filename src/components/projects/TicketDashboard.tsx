@@ -340,9 +340,9 @@ export default function TicketDashboard() {
         ))}
       </Row>
 
-      {/* Release Plan Cards */}
+      {/* Plans Cards */}
       <Title level={4} style={{ marginBottom: 16 }}>
-        Release Plans
+        Plans
       </Title>
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {releasePlans.map((plan) => (

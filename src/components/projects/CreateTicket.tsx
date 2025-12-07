@@ -688,9 +688,9 @@ export default function CreateTicket() {
                 </Col>
               </Row>
 
-              <Form.Item name="releasePlan" label="Release Plan (Optional)">
+              <Form.Item name="releasePlan" label="Plans (Optional)">
                 <Select
-                  placeholder="Select release plan"
+                  placeholder="Select Plans"
                   allowClear
                   size="large"
                   loading={dataLoading}

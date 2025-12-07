@@ -7,6 +7,7 @@ export interface ReleasePlanFormData {
   releaseDate: string;    // Changed from 'deadline' to match backend
   status?: 'planning' | 'active' | 'completed' | 'cancelled';
   tickets?: string[];
+  type?: 'sprint_plan' | 'demo_plan' | 'release_plan';
 }
 
 export interface ReleasePlan {
@@ -51,6 +52,7 @@ export interface ReleasePlan {
   notes?: string;
   tags?: string[];
   priority: 'High' | 'Medium' | 'Low';
+  type: 'sprint_plan' | 'demo_plan' | 'release_plan';
   createdAt: string;
   updatedAt: string;
 }
@@ -90,15 +92,15 @@ export interface ProjectTicket {
 
 class ReleasePlanService {
   /**
-   * Create a new release plan
+   * Create a new Plans
    */
   static async createReleasePlan(releasePlanData: ReleasePlanFormData): Promise<ReleasePlan> {
     try {
       const response = await apiClient.post('/api/release-plans', releasePlanData);
       return response?.data?.data;
     } catch (error: any) {
-      console.error('Error creating release plan:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to create release plan';
+      console.error('Error creating Plans:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to create Plans';
       throw new Error(error);
     }
   }
@@ -115,6 +117,7 @@ class ReleasePlanService {
     search?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    type?: string;
   } = {}): Promise<ReleasePlanListResponse> {
     try {
       const queryParams = new URLSearchParams();
@@ -133,41 +136,41 @@ class ReleasePlanService {
   }
 
   /**
-   * Get release plan by ID
+   * Get Plans by ID
    */
   static async getReleasePlanById(id: string): Promise<ReleasePlan> {
     try {
       const response = await apiClient.get(`/api/release-plans/${id}`);
       return response?.data?.data;
     } catch (error) {
-      console.error('Error fetching release plan:', error);
-      throw new Error('Failed to fetch release plan');
+      console.error('Error fetching Plans:', error);
+      throw new Error('Failed to fetch Plans');
     }
   }
 
   /**
-   * Update release plan
+   * Update Plans
    */
   static async updateReleasePlan(id: string, updates: Partial<ReleasePlanFormData>): Promise<ReleasePlan> {
     try {
       const response = await apiClient.put(`/api/release-plans/${id}`, updates);
       return response?.data?.data;
     } catch (error: any) {
-      console.error('Error updating release plan:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to update release plan';
+      console.error('Error updating Plans:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to update Plans';
       throw new Error(error);
     }
   }
 
   /**
-   * Delete release plan
+   * Delete Plans
    */
   static async deleteReleasePlan(id: string): Promise<void> {
     try {
       await apiClient.delete(`/api/release-plans/${id}`);
     } catch (error: any) {
-      console.error('Error deleting release plan:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to delete release plan';
+      console.error('Error deleting Plans:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to delete Plans';
       throw new Error(error);
     }
   }
@@ -224,7 +227,7 @@ class ReleasePlanService {
   }
 
   /**
-   * Add ticket to release plan
+   * Add ticket to Plans
    */
   static async addTicketToReleasePlan(releasePlanId: string, ticketId: string): Promise<ReleasePlan> {
     try {
@@ -233,36 +236,36 @@ class ReleasePlanService {
       });
       return response?.data?.data;
     } catch (error: any) {
-      console.error('Error adding ticket to release plan:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to add ticket to release plan';
+      console.error('Error adding ticket to Plans:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to add ticket to Plans';
       throw new Error(errorMessage);
     }
   }
 
   /**
-   * Remove ticket from release plan
+   * Remove ticket from Plans
    */
   static async removeTicketFromReleasePlan(releasePlanId: string, ticketId: string): Promise<ReleasePlan> {
     try {
       const response = await apiClient.delete(`/api/release-plans/${releasePlanId}/tickets/${ticketId}`);
       return response?.data?.data;
     } catch (error: any) {
-      console.error('Error removing ticket from release plan:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to remove ticket from release plan';
+      console.error('Error removing ticket from Plans:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to remove ticket from Plans';
       throw new Error(errorMessage);
     }
   }
 
   /**
-   * Get release plan statistics
+   * Get Plans statistics
    */
   static async getReleasePlanStats(): Promise<any> {
     try {
       const response = await apiClient.get('/api/release-plans/stats');
       return response?.data?.data;
     } catch (error) {
-      console.error('Error fetching release plan statistics:', error);
-      throw new Error('Failed to fetch release plan statistics');
+      console.error('Error fetching Plans statistics:', error);
+      throw new Error('Failed to fetch Plans statistics');
     }
   }
 

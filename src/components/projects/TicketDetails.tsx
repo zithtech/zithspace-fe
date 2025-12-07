@@ -1024,7 +1024,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     </Col>
                   </Row>
 
-                  <Form.Item label="Release Plan" name="releasePlan">
+                  <Form.Item label="Plans" name="releasePlan">
                     <Input />
                   </Form.Item>
                 </Form>
@@ -1182,7 +1182,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                       : "Not set"}
                   </Descriptions.Item>
                   {ticket?.releasePlan && (
-                    <Descriptions.Item label="Release Plan" span={2}>
+                    <Descriptions.Item label="Plans" span={2}>
                       <Tag color="purple">{ticket.releasePlan}</Tag>
                     </Descriptions.Item>
                   )}

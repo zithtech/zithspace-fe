@@ -98,10 +98,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
           onClick: () => handleNavigation('/projects/tickets'),
         },
         {
-          key: '/projects/release-plan',
+          key: '/projects/plans',
           icon: <CalendarOutlined />,
-          label: 'Release Plan',
-          onClick: () => handleNavigation('/projects/release-plan'),
+          label: 'Plans',
+          onClick: () => handleNavigation('/projects/plans'),
         },
         {
           key: '/projects/settings',

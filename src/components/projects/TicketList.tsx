@@ -69,19 +69,35 @@ export default function TicketList() {
   const [updatingTickets, setUpdatingTickets] = useState<Set<string>>(
     new Set()
   );
+  
+  // Pagination state for server-side pagination
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
   useEffect(() => {
-    fetchTickets();
     fetchProjects();
     fetchMembers();
   }, []);
+  
+  // Fetch tickets when pagination changes
+  useEffect(() => {
+    fetchTickets();
+  }, [pagination.current, pagination.pageSize]);
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, current: 1 }));
+  }, [filters]);
 
   const fetchTickets = async () => {
     try {
       setLoading(true);
       const response = await TicketService.getTickets({
-        page: 1,
-        limit: 50,
+        page: pagination.current,
+        limit: pagination.pageSize,
         status: filters.status.length > 0 ? filters.status[0] : undefined,
         priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
         projectId: filters.project.length > 0 ? filters.project[0] : undefined,
@@ -90,6 +106,12 @@ export default function TicketList() {
         search: filters.search || undefined,
       });
       setTickets(response.data || []);
+      
+      // Update total count from backend pagination response
+      setPagination(prev => ({
+        ...prev,
+        total: response.pagination?.total || 0,
+      }));
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
       message.error("Failed to load tickets");
@@ -626,11 +648,21 @@ export default function TicketList() {
           rowKey="id"
           loading={loading}
           pagination={{
-            pageSize: 10,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
             showSizeChanger: true,
             showQuickJumper: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} of ${total} tickets`,
+            onChange: (page, pageSize) => {
+              setPagination({
+                current: page,
+                pageSize: pageSize || pagination.pageSize,
+                total: pagination.total,
+              });
+            },
           }}
           scroll={{ x: 1000 }}
           locale={{

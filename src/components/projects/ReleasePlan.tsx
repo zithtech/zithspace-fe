@@ -35,6 +35,7 @@ import {
   CalendarOutlined,
   PlayCircleOutlined,
   RocketOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -89,6 +90,17 @@ export default function ReleasePlanComponent() {
     loadData();
     loadProjects();
   }, [activeTab]);
+
+  // Auto-refresh when tab becomes visible again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !showCreateModal) {
+        loadData(); // Refresh when user returns to tab
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [showCreateModal]);
 
   // Cleanup search timer on unmount
   useEffect(() => {
@@ -380,9 +392,18 @@ export default function ReleasePlanComponent() {
     form.resetFields();
   };
 
-  const handleViewTickets = (plan: ReleasePlan) => {
-    setDrawerReleasePlan(plan);
+  const handleViewTickets = async (plan: ReleasePlan) => {
     setDrawerVisible(true);
+    setDrawerReleasePlan(plan); // Show cached data first
+    
+    // Fetch fresh data in the background
+    try {
+      const freshPlan = await ReleasePlanService.getReleasePlanById(plan.id);
+      setDrawerReleasePlan(freshPlan); // Update with current ticket statuses
+    } catch (error) {
+      console.error('Failed to fetch fresh plan:', error);
+      // Fallback to cached data (already set above)
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -533,13 +554,23 @@ export default function ReleasePlanComponent() {
           </Title>
         </Col>
         <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            Create Plans
-          </Button>
+          <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => loadData()}
+              loading={loading}
+              title="Refresh to see latest ticket statuses"
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setShowCreateModal(true)}
+            >
+              Create Plans
+            </Button>
+          </Space>
         </Col>
       </Row>
 

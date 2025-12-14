@@ -60,7 +60,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: 'Members',
       // disabled: user?.role === 'user',
       onClick: () => handleNavigation('/members'),
-      style: user?.role === 'user' ? { color: '#bfbfbf' } : undefined,
+      // style: user?.role === 'user' ? { color: '#bfbfbf' } : undefined,
     },
     {
       key: 'projects-group',
@@ -141,6 +141,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       icon: <ClockCircleOutlined />,
       label: 'Attendance',
       onClick: () => handleNavigation('/attendance'),
+    },
+    {
+      key: '/leaves',
+      icon: <FileTextOutlined />,
+      label: 'Leave & Permission',
+      onClick: () => handleNavigation('/leaves'),
     },
     {
       key: '/accounts',

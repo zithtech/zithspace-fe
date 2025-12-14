@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Button,
@@ -20,7 +20,7 @@ import {
   Avatar,
   Typography,
   message,
-} from 'antd';
+} from "antd";
 import {
   PlusOutlined,
   EditOutlined,
@@ -31,15 +31,20 @@ import {
   TeamOutlined,
   CalendarOutlined,
   ProjectOutlined,
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
-import { ProjectService, Project, CreateProjectData, UpdateProjectData, ProjectsFilters } from '@/services/projectService';
-import { MembersService } from '@/services/membersService';
-import { useAuth } from '@/context/AuthContext';
-import { RBAC } from '@/lib/rbac';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import MainLayout from '@/components/layout/MainLayout';
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
+import {
+  ProjectService,
+  Project,
+  CreateProjectData,
+  UpdateProjectData,
+  ProjectsFilters,
+} from "@/services/projectService";
+import { MembersService } from "@/services/membersService";
+import { useAuth } from "@/context/AuthContext";
+import { RBAC } from "@/lib/rbac";
+import MainLayout from "@/components/layout/MainLayout";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -82,15 +87,15 @@ const ProjectsManagePage: React.FC = () => {
       setLoading(true);
       const response = await ProjectService.getProjects(filters);
       setProjects(response.data);
-      console.log({projects:response.data})
+      console.log({ projects: response.data });
       setPagination({
         current: response.pagination.current,
         pageSize: response.pagination.pageSize,
         total: response.pagination.total,
       });
     } catch (error) {
-      message.error('Failed to load projects');
-      console.error('Error loading projects:', error);
+      message.error("Failed to load projects");
+      console.error("Error loading projects:", error);
     } finally {
       setLoading(false);
     }
@@ -101,8 +106,8 @@ const ProjectsManagePage: React.FC = () => {
       const membersList = await MembersService.getMembersForSelect();
       setMembers(membersList);
     } catch (error) {
-      message.error('Failed to load members');
-      console.error('Error loading members:', error);
+      message.error("Failed to load members");
+      console.error("Error loading members:", error);
     }
   };
 
@@ -113,32 +118,32 @@ const ProjectsManagePage: React.FC = () => {
 
   // Handle project manager change - automatically add to team members
   const handleProjectManagerChange = (projectManagerId: string) => {
-    const teamMemberIds = form.getFieldValue('teamMemberIds') || [];
-    
+    const teamMemberIds = form.getFieldValue("teamMemberIds") || [];
+
     if (projectManagerId && !teamMemberIds.includes(projectManagerId)) {
       // Add project manager to team members if not already included
       form.setFieldsValue({
-        teamMemberIds: [...teamMemberIds, projectManagerId]
+        teamMemberIds: [...teamMemberIds, projectManagerId],
       });
     }
   };
 
   // Handle team members change - prevent removing project manager
   const handleTeamMembersChange = (selectedIds: string[]) => {
-    const projectManagerId = form.getFieldValue('projectManagerId');
-    
+    const projectManagerId = form.getFieldValue("projectManagerId");
+
     if (projectManagerId && !selectedIds.includes(projectManagerId)) {
       // If project manager was removed, add them back
-      message.warning('Project Manager must be included in the team');
+      message.warning("Project Manager must be included in the team");
       form.setFieldsValue({
-        teamMemberIds: [...selectedIds, projectManagerId]
+        teamMemberIds: [...selectedIds, projectManagerId],
       });
     }
   };
 
   // Handle table pagination
   const handleTableChange = (pagination: any) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       page: pagination.current,
       limit: pagination.pageSize,
@@ -147,7 +152,7 @@ const ProjectsManagePage: React.FC = () => {
 
   // Handle search
   const handleSearch = (value: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       search: value || undefined,
       page: 1,
@@ -156,7 +161,7 @@ const ProjectsManagePage: React.FC = () => {
 
   // Handle status filter
   const handleStatusFilter = (status: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       status: status || undefined,
       page: 1,
@@ -165,7 +170,7 @@ const ProjectsManagePage: React.FC = () => {
 
   // Handle project manager filter
   const handleProjectManagerFilter = (projectManager: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       projectManagerId: projectManager || undefined,
       page: 1,
@@ -175,14 +180,14 @@ const ProjectsManagePage: React.FC = () => {
   // Handle date range filter
   const handleDateRangeFilter = (dates: any) => {
     if (dates && dates.length === 2) {
-      setFilters(prev => ({
+      setFilters((prev) => ({
         ...prev,
-        startDate: dates[0].format('YYYY-MM-DD'),
-        endDate: dates[1].format('YYYY-MM-DD'),
+        startDate: dates[0].format("YYYY-MM-DD"),
+        endDate: dates[1].format("YYYY-MM-DD"),
         page: 1,
       }));
     } else {
-      setFilters(prev => ({
+      setFilters((prev) => ({
         ...prev,
         startDate: undefined,
         endDate: undefined,
@@ -197,18 +202,21 @@ const ProjectsManagePage: React.FC = () => {
       setError("");
       const projectData = {
         ...values,
-        startDate: values.startDate.format('YYYY-MM-DD'),
-        endDate: values.endDate ? values.endDate.format('YYYY-MM-DD') : null,
+        startDate: values.startDate.format("YYYY-MM-DD"),
+        endDate: values.endDate ? values.endDate.format("YYYY-MM-DD") : null,
         code: values.code || null,
         repositories: values.repositories || null,
       };
 
       if (editingProject) {
-        await ProjectService.updateProject(editingProject.id, projectData as UpdateProjectData);
-        setSuccess('Project updated successfully');
+        await ProjectService.updateProject(
+          editingProject.id,
+          projectData as UpdateProjectData
+        );
+        setSuccess("Project updated successfully");
       } else {
         await ProjectService.createProject(projectData as CreateProjectData);
-        setSuccess('Project created successfully');
+        setSuccess("Project created successfully");
       }
 
       setModalVisible(false);
@@ -216,7 +224,7 @@ const ProjectsManagePage: React.FC = () => {
       form.resetFields();
       loadProjects();
     } catch (error: any) {
-      setError(error.message || 'Failed to save project');
+      setError(error.message || "Failed to save project");
     }
   };
 
@@ -225,10 +233,10 @@ const ProjectsManagePage: React.FC = () => {
     try {
       setError("");
       await ProjectService.deleteProject(id);
-      setSuccess('Project deleted successfully');
+      setSuccess("Project deleted successfully");
       loadProjects();
     } catch (error: any) {
-      setError(error.message || 'Failed to delete project');
+      setError(error.message || "Failed to delete project");
     }
   };
 
@@ -240,7 +248,7 @@ const ProjectsManagePage: React.FC = () => {
       startDate: dayjs(project.startDate),
       endDate: project.endDate ? dayjs(project.endDate) : null,
       projectManagerId: project.projectManager.id,
-      teamMemberIds: project.members.map(member => member.user.id),
+      teamMemberIds: project.members.map((member) => member.user.id),
     });
     setModalVisible(true);
   };
@@ -250,8 +258,8 @@ const ProjectsManagePage: React.FC = () => {
     setEditingProject(null);
     form.resetFields();
     form.setFieldsValue({
-      status: 'planning',
-      defaultPriority: 'medium',
+      status: "planning",
+      defaultPriority: "medium",
     });
     setModalVisible(true);
   };
@@ -259,30 +267,30 @@ const ProjectsManagePage: React.FC = () => {
   // Status color mapping
   const getStatusColor = (status: string) => {
     const colors = {
-      planning: 'blue',
-      active: 'green',
-      'on-hold': 'orange',
-      completed: 'purple',
-      cancelled: 'red',
+      planning: "blue",
+      active: "green",
+      "on-hold": "orange",
+      completed: "purple",
+      cancelled: "red",
     };
-    return colors[status as keyof typeof colors] || 'default';
+    return colors[status as keyof typeof colors] || "default";
   };
 
   // Priority color mapping
   const getPriorityColor = (priority: string) => {
     const colors = {
-      high: 'red',
-      medium: 'orange',
-      low: 'green',
+      high: "red",
+      medium: "orange",
+      low: "green",
     };
-    return colors[priority as keyof typeof colors] || 'default';
+    return colors[priority as keyof typeof colors] || "default";
   };
 
   // Table columns
   const columns: ColumnsType<Project> = [
     {
-      title: 'Project',
-      key: 'project',
+      title: "Project",
+      key: "project",
       render: (_, record) => (
         <div>
           <div className="font-medium">{record.name}</div>
@@ -291,9 +299,9 @@ const ProjectsManagePage: React.FC = () => {
       ),
     },
     {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
       ellipsis: true,
       render: (text) => (
         <Tooltip title={text}>
@@ -302,31 +310,33 @@ const ProjectsManagePage: React.FC = () => {
       ),
     },
     {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
       render: (status) => (
         <Tag color={getStatusColor(status)}>
-          {status.toUpperCase().replace('-', ' ')}
+          {status.toUpperCase().replace("-", " ")}
         </Tag>
       ),
     },
     {
-      title: 'Project Manager',
-      key: 'projectManager',
+      title: "Project Manager",
+      key: "projectManager",
       render: (_, record) => (
         <div className="flex items-center space-x-2">
           <Avatar size="small">{record?.projectManager?.name.charAt(0)}</Avatar>
           <div>
             <div className="font-medium">{record?.projectManager?.name}</div>
-            <div className="text-sm text-gray-500">{record.projectManager?.position}</div>
+            <div className="text-sm text-gray-500">
+              {record.projectManager?.position}
+            </div>
           </div>
         </div>
       ),
     },
     {
-      title: 'Team',
-      key: 'teamMembers',
+      title: "Team",
+      key: "teamMembers",
       render: (_, record) => (
         <div className="flex items-center space-x-1">
           <TeamOutlined />
@@ -335,23 +345,21 @@ const ProjectsManagePage: React.FC = () => {
       ),
     },
     {
-      title: 'Priority',
-      dataIndex: 'defaultPriority',
-      key: 'defaultPriority',
+      title: "Priority",
+      dataIndex: "defaultPriority",
+      key: "defaultPriority",
       render: (priority) => (
-        <Tag color={getPriorityColor(priority)}>
-          {priority.toUpperCase()}
-        </Tag>
+        <Tag color={getPriorityColor(priority)}>{priority.toUpperCase()}</Tag>
       ),
     },
     {
-      title: 'Dates',
-      key: 'dates',
+      title: "Dates",
+      key: "dates",
       render: (_, record) => (
         <div className="text-sm">
-          <div>Start: {dayjs(record?.startDate).format('MMM DD, YYYY')}</div>
+          <div>Start: {dayjs(record?.startDate).format("MMM DD, YYYY")}</div>
           {record.endDate && (
-            <div>End: {dayjs(record?.endDate).format('MMM DD, YYYY')}</div>
+            <div>End: {dayjs(record?.endDate).format("MMM DD, YYYY")}</div>
           )}
         </div>
       ),
@@ -367,8 +375,8 @@ const ProjectsManagePage: React.FC = () => {
     //   ),
     // },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: "Actions",
+      key: "actions",
       render: (_, record) => (
         <Space>
           <Tooltip title="View Details">
@@ -377,36 +385,34 @@ const ProjectsManagePage: React.FC = () => {
               icon={<EyeOutlined />}
               onClick={() => {
                 // Navigate to project details - implement as needed
-                message.info('Project details view - to be implemented');
+                message.info("Project details view - to be implemented");
               }}
             />
           </Tooltip>
-          {user?.role && RBAC.hasPermission(user.role as any, 'projects', 'update') && (
-            <Tooltip title="Edit">
-              <Button
-                type="text"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(record)}
-              />
-            </Tooltip>
-          )}
-          {user?.role && RBAC.hasPermission(user.role as any, 'projects', 'delete') && (
-            <Popconfirm
-              title="Are you sure you want to delete this project?"
-              description="This action cannot be undone and may affect related tickets."
-              onConfirm={() => handleDelete(record.id)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Tooltip title="Delete">
+          {user?.role &&
+            RBAC.hasPermission(user.role as any, "projects", "update") && (
+              <Tooltip title="Edit">
                 <Button
                   type="text"
-                  danger
-                  icon={<DeleteOutlined />}
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record)}
                 />
               </Tooltip>
-            </Popconfirm>
-          )}
+            )}
+          {user?.role &&
+            RBAC.hasPermission(user.role as any, "projects", "delete") && (
+              <Popconfirm
+                title="Are you sure you want to delete this project?"
+                description="This action cannot be undone and may affect related tickets."
+                onConfirm={() => handleDelete(record.id)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Tooltip title="Delete">
+                  <Button type="text" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            )}
         </Space>
       ),
     },
@@ -423,20 +429,31 @@ const ProjectsManagePage: React.FC = () => {
     }
   }, [success, error]);
 
-  // Show loading spinner while checking authentication (after all hooks)
-  if (loading || isLoading) {
-    return <LoadingSpinner message="Loading..." />;
+  // Don't render if no user and not loading
+  if (!user && !isLoading) {
+    return null;
   }
 
-  // Check permissions after loading is complete
-  if (!user?.role || !RBAC.hasPermission(user.role as any, 'projects', 'read')) {
+  // Check permissions
+  if (
+    user &&
+    (!user.role || !RBAC.hasPermission(user.role as any, "projects", "read"))
+  ) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
-          <p className="text-gray-500">You don't have permission to view projects.</p>
+      <MainLayout>
+        <div style={{ padding: 20 }}>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900">
+                Access Denied
+              </h3>
+              <p className="text-gray-500">
+                You don't have permission to view projects.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -455,16 +472,17 @@ const ProjectsManagePage: React.FC = () => {
                 Projects Management
               </Title>
             </Space>
-            {user?.role && RBAC.hasPermission(user.role as any, 'projects', 'create') && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-                size="middle"
-              >
-                Add Project
-              </Button>
-            )}
+            {user?.role &&
+              RBAC.hasPermission(user.role as any, "projects", "create") && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAdd}
+                  size="middle"
+                >
+                  Add Project
+                </Button>
+              )}
           </Space>
         </div>
 
@@ -528,13 +546,16 @@ const ProjectsManagePage: React.FC = () => {
               allowClear
               showSearch
               filterOption={(input, option) => {
-                const member = members.find(m => m.value === option?.value);
-                return member ? 
-                  (member.label.toLowerCase().includes(input.toLowerCase()) || 
-                   member.position.toLowerCase().includes(input.toLowerCase())) : false;
+                const member = members.find((m) => m.value === option?.value);
+                return member
+                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                      member.position
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                  : false;
               }}
             >
-              {members.map(member => (
+              {members.map((member) => (
                 <Option key={member.value} value={member.value}>
                   {member.label} - {member.position}
                 </Option>
@@ -542,7 +563,7 @@ const ProjectsManagePage: React.FC = () => {
             </Select>
 
             <RangePicker
-              placeholder={['Start Date', 'End Date']}
+              placeholder={["Start Date", "End Date"]}
               onChange={handleDateRangeFilter}
               style={{ width: 250 }}
             />
@@ -576,170 +597,191 @@ const ProjectsManagePage: React.FC = () => {
           />
         </Card>
 
-      {/* Create/Edit Modal */}
-      <Modal
-        title={editingProject ? 'Edit Project' : 'Create New Project'}
-        open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          setEditingProject(null);
-          form.resetFields();
-        }}
-        footer={null}
-        width={800}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{
-            status: 'planning',
-            defaultPriority: 'medium',
+        {/* Create/Edit Modal */}
+        <Modal
+          title={editingProject ? "Edit Project" : "Create New Project"}
+          open={modalVisible}
+          onCancel={() => {
+            setModalVisible(false);
+            setEditingProject(null);
+            form.resetFields();
           }}
+          footer={null}
+          width={800}
         >
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="name"
-                label="Project Name"
-                rules={[
-                  { required: true, message: 'Please enter project name' },
-                  { min: 2, message: 'Name must be at least 2 characters' },
-                ]}
-              >
-                <Input placeholder="Enter project name" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="status"
-                label="Status"
-                rules={[{ required: true, message: 'Please select status' }]}
-              >
-                <Select placeholder="Select status">
-                  <Option value="planning">Planning</Option>
-                  <Option value="active">Active</Option>
-                  <Option value="on-hold">On Hold</Option>
-                  <Option value="completed">Completed</Option>
-                  <Option value="cancelled">Cancelled</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            name="description"
-            label="Description"
-            rules={[{ required: true, message: 'Please enter description' }]}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            initialValues={{
+              status: "planning",
+              defaultPriority: "medium",
+            }}
           >
-            <Input.TextArea
-              rows={3}
-              placeholder="Enter project description"
-            />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="projectManagerId"
-                label="Project Manager"
-                rules={[{ required: true, message: 'Please select project manager' }]}
-              >
-                <Select
-                  placeholder="Select project manager"
-                  onChange={handleProjectManagerChange}
-                  showSearch
-                  filterOption={(input, option) => {
-                    const member = members.find(m => m.value === option?.value);
-                    return member ? 
-                      (member.label.toLowerCase().includes(input.toLowerCase()) || 
-                       member.position.toLowerCase().includes(input.toLowerCase())) : false;
-                  }}
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="name"
+                  label="Project Name"
+                  rules={[
+                    { required: true, message: "Please enter project name" },
+                    { min: 2, message: "Name must be at least 2 characters" },
+                  ]}
                 >
-                  {members.map(member => (
-                    <Option key={member.value} value={member.value}>
-                      {member.label} - {member.position}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="defaultPriority"
-                label="Default Priority"
-                rules={[{ required: true, message: 'Please select default priority' }]}
-              >
-                <Select placeholder="Select default priority">
-                  <Option value="high">High</Option>
-                  <Option value="medium">Medium</Option>
-                  <Option value="low">Low</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                  <Input placeholder="Enter project name" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="status"
+                  label="Status"
+                  rules={[{ required: true, message: "Please select status" }]}
+                >
+                  <Select placeholder="Select status">
+                    <Option value="planning">Planning</Option>
+                    <Option value="active">Active</Option>
+                    <Option value="on-hold">On Hold</Option>
+                    <Option value="completed">Completed</Option>
+                    <Option value="cancelled">Cancelled</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Form.Item
-            name="teamMemberIds"
-            label="Team Members"
-            help="Project Manager will be automatically included in the team"
-          >
-            <Select
-              mode="multiple"
-              placeholder="Select team members"
-              onChange={handleTeamMembersChange}
-              showSearch
-              filterOption={(input, option) => {
-                const member = members.find(m => m.value === option?.value);
-                return member ? 
-                  (member.label.toLowerCase().includes(input.toLowerCase()) || 
-                   member.position.toLowerCase().includes(input.toLowerCase())) : false;
-              }}
+            <Form.Item
+              name="description"
+              label="Description"
+              rules={[{ required: true, message: "Please enter description" }]}
             >
-              {members.map(member => (
-                <Option key={member.value} value={member.value}>
-                  {member.label} - {member.position}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+              <Input.TextArea
+                rows={3}
+                placeholder="Enter project description"
+              />
+            </Form.Item>
 
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="startDate"
-                label="Start Date"
-                rules={[{ required: true, message: 'Please select start date' }]}
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="endDate"
-                label="End Date"
-              >
-                <DatePicker style={{ width: '100%' }} />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="projectManagerId"
+                  label="Project Manager"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please select project manager",
+                    },
+                  ]}
+                >
+                  <Select
+                    placeholder="Select project manager"
+                    onChange={handleProjectManagerChange}
+                    showSearch
+                    filterOption={(input, option) => {
+                      const member = members.find(
+                        (m) => m.value === option?.value
+                      );
+                      return member
+                        ? member.label
+                            .toLowerCase()
+                            .includes(input.toLowerCase()) ||
+                            member.position
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                        : false;
+                    }}
+                  >
+                    {members.map((member) => (
+                      <Option key={member.value} value={member.value}>
+                        {member.label} - {member.position}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="defaultPriority"
+                  label="Default Priority"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please select default priority",
+                    },
+                  ]}
+                >
+                  <Select placeholder="Select default priority">
+                    <Option value="high">High</Option>
+                    <Option value="medium">Medium</Option>
+                    <Option value="low">Low</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <div className="flex justify-end space-x-2">
-            <Button
-              onClick={() => {
-                setModalVisible(false);
-                setEditingProject(null);
-                form.resetFields();
-              }}
+            <Form.Item
+              name="teamMemberIds"
+              label="Team Members"
+              help="Project Manager will be automatically included in the team"
             >
-              Cancel
-            </Button>
-            <Button type="primary" htmlType="submit">
-              {editingProject ? 'Update' : 'Create'} Project
-            </Button>
-          </div>
-        </Form>
-      </Modal>
+              <Select
+                mode="multiple"
+                placeholder="Select team members"
+                onChange={handleTeamMembersChange}
+                showSearch
+                filterOption={(input, option) => {
+                  const member = members.find((m) => m.value === option?.value);
+                  return member
+                    ? member.label
+                        .toLowerCase()
+                        .includes(input.toLowerCase()) ||
+                        member.position
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                    : false;
+                }}
+              >
+                {members.map((member) => (
+                  <Option key={member.value} value={member.value}>
+                    {member.label} - {member.position}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="startDate"
+                  label="Start Date"
+                  rules={[
+                    { required: true, message: "Please select start date" },
+                  ]}
+                >
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="endDate" label="End Date">
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => {
+                  setModalVisible(false);
+                  setEditingProject(null);
+                  form.resetFields();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="primary" htmlType="submit">
+                {editingProject ? "Update" : "Create"} Project
+              </Button>
+            </div>
+          </Form>
+        </Modal>
       </div>
     </MainLayout>
   );

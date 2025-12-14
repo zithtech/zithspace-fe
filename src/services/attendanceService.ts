@@ -38,10 +38,12 @@ export interface AttendanceFilters {
   page?: number;
   limit?: number;
   userId?: string;
+  member?: string;  // Alias for userId (used by frontend)
   date?: string;
   startDate?: string;
   endDate?: string;
   status?: string;
+  search?: string;  // Search by member name
 }
 
 export interface AttendanceSummary {

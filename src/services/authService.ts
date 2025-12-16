@@ -128,7 +128,7 @@ export class AuthService {
    */
   static async changePassword(data: ChangePasswordData): Promise<void> {
     try {
-      await api.post('/api/user/change-password', data);
+      await api.post('/api/user/password', data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

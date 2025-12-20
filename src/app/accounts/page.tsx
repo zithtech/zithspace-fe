@@ -193,21 +193,40 @@ export default function AccountsPage() {
       setFormLoading(true);
       setError('');
       
-      const payload: CreateTransactionData | UpdateTransactionData = {
-        type: values.type,
-        amount: values.amount,
-        member: values.member,
-        category: values.category,
-        description: values.description,
-        notes: values.notes || '',
-        date: values.date.toDate(),
-      };
+      // Ensure amount is a valid number
+      const amount = Number(values.amount);
+      if (isNaN(amount) || amount <= 0) {
+        setError('Amount must be a valid number greater than 0');
+        setFormLoading(false);
+        return;
+      }
 
       if (modalType === 'edit' && selectedTransaction) {
-        await TransactionsService.updateTransaction(selectedTransaction.id, payload as UpdateTransactionData);
+        // For edit mode, don't send member field (backend doesn't allow changing it)
+        const updatePayload: UpdateTransactionData = {
+          type: values.type,
+          amount: amount,
+          category: values.category,
+          description: values.description,
+          notes: values.notes || '',
+          date: values.date.toDate(),
+        };
+        
+        await TransactionsService.updateTransaction(selectedTransaction.id, updatePayload);
         setSuccess('Transaction updated successfully');
       } else {
-        await TransactionsService.createTransaction(payload as CreateTransactionData);
+        // For create mode, include member field
+        const createPayload: CreateTransactionData = {
+          type: values.type,
+          amount: amount,
+          member: values.member,
+          category: values.category,
+          description: values.description,
+          notes: values.notes || '',
+          date: values.date.toDate(),
+        };
+        
+        await TransactionsService.createTransaction(createPayload);
         setSuccess('Transaction created successfully');
       }
 
@@ -265,13 +284,15 @@ export default function AccountsPage() {
   const showEditModal = (transaction: Transaction) => {
     setModalType('edit');
     setSelectedTransaction(transaction);
+    
+    // Properly prefill form fields with correct data types
     form.setFieldsValue({
       type: transaction.type,
-      amount: transaction.amount,
+      amount: Number(transaction.amount), // Ensure amount is a number
       member: typeof transaction.member === 'object' ? transaction.member.id : transaction.member,
       category: transaction.category,
       description: transaction.description,
-      notes: transaction.notes,
+      notes: transaction.notes || '',
       date: dayjs(transaction.date),
     });
     setIsModalVisible(true);
@@ -895,11 +916,13 @@ export default function AccountsPage() {
                   name="member"
                   label="Member"
                   rules={[{ required: true, message: 'Please select member' }]}
+                  tooltip={modalType === 'edit' ? 'Member cannot be changed when editing' : undefined}
                 >
                   <Select
                     placeholder="Select member"
                     showSearch
                     optionFilterProp="children"
+                    disabled={modalType === 'edit'}
                   >
                     {members.map((member) => (
                       <Option key={member.id} value={member.id}>

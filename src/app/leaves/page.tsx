@@ -154,10 +154,15 @@ export default function LeavesPage() {
         reason: values.reason,
       };
 
-      await leaveService.applyLeave(data);
+      const response = await leaveService.applyLeave(data);
+      
+      // Optimistic update: Add new leave to state immediately
+      const newLeave = response;
+      setMyLeaves(prev => [newLeave, ...prev]);
+      
       message.success("Leave application submitted successfully");
       form.resetFields();
-      fetchMyLeaves();
+      // Removed fetchMyLeaves() - using optimistic update instead
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to apply for leave");
     } finally {
@@ -171,13 +176,26 @@ export default function LeavesPage() {
     try {
       setApprovingLeaveId(leaveId);
       await leaveService.approveLeave(leaveId);
+      
+      // Optimistic update: Remove from pending approvals immediately
+      setPendingApprovals(prev => prev.filter(l => l.id !== leaveId));
+      
+      // Update status in myLeaves if it exists (for managers viewing their own leaves)
+      setMyLeaves(prev => prev.map(l => 
+        l.id === leaveId 
+          ? { ...l, status: 'approved', approvedAt: new Date().toISOString(), approvedById: user?.id }
+          : l
+      ));
+      
       message.success("Leave approved successfully");
-      fetchPendingApprovals();
-      fetchMyLeaves();
       setApprovalModalVisible(false);
       setSelectedLeave(null);
+      // Removed fetchPendingApprovals() and fetchMyLeaves() - using optimistic updates
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to approve leave");
+      // On error, refetch to restore correct state
+      fetchPendingApprovals();
+      fetchMyLeaves();
     } finally {
       setApprovingLeaveId(null);
     }
@@ -194,14 +212,27 @@ export default function LeavesPage() {
     try {
       setRejectingLeaveId(leaveId);
       await leaveService.rejectLeave(leaveId, rejectionReason);
+      
+      // Optimistic update: Remove from pending approvals immediately
+      setPendingApprovals(prev => prev.filter(l => l.id !== leaveId));
+      
+      // Update status in myLeaves if it exists
+      setMyLeaves(prev => prev.map(l => 
+        l.id === leaveId 
+          ? { ...l, status: 'rejected', rejectionReason, approvedAt: new Date().toISOString(), approvedById: user?.id }
+          : l
+      ));
+      
       message.success("Leave rejected");
-      fetchPendingApprovals();
-      fetchMyLeaves();
       setApprovalModalVisible(false);
       setRejectionReason("");
       setSelectedLeave(null);
+      // Removed fetchPendingApprovals() and fetchMyLeaves() - using optimistic updates
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to reject leave");
+      // On error, refetch to restore correct state
+      fetchPendingApprovals();
+      fetchMyLeaves();
     } finally {
       setRejectingLeaveId(null);
     }
@@ -213,10 +244,18 @@ export default function LeavesPage() {
     try {
       setCancellingLeaveId(leaveId);
       await leaveService.cancelLeave(leaveId);
+      
+      // Optimistic update: Update status immediately
+      setMyLeaves(prev => prev.map(l => 
+        l.id === leaveId ? { ...l, status: 'cancelled' } : l
+      ));
+      
       message.success("Leave cancelled successfully");
-      fetchMyLeaves();
+      // Removed fetchMyLeaves() - using optimistic update instead
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to cancel leave");
+      // On error, refetch to restore correct state
+      fetchMyLeaves();
     } finally {
       setCancellingLeaveId(null);
     }

@@ -49,6 +49,16 @@ export default function LeavesPage() {
   const [selectedDurationType, setSelectedDurationType] = useState<string>("");
   const [dateRange, setDateRange] = useState<any[]>([]);
   const [calculatedDuration, setCalculatedDuration] = useState<number>(0);
+  const [approvingLeaveId, setApprovingLeaveId] = useState<string | null>(null);
+  const [rejectingLeaveId, setRejectingLeaveId] = useState<string | null>(null);
+  const [cancellingLeaveId, setCancellingLeaveId] = useState<string | null>(null);
+
+  // Determine if user has approval rights
+  const hasApprovalRights = user?.role === 'super_admin' || user?.role === 'admin' || pendingApprovals.length > 0;
+  
+  // Calculate personal leave stats
+  const myPendingLeaves = myLeaves.filter((l) => l.status === "pending").length;
+  const myApprovedLeaves = myLeaves.filter((l) => l.status === "approved").length;
 
   const leaveTypes = [
     { label: "Sick Leave", value: "sick_leave" },
@@ -156,14 +166,20 @@ export default function LeavesPage() {
   };
 
   const handleApprove = async (leaveId: string) => {
+    if (approvingLeaveId) return; // Prevent multiple clicks
+    
     try {
+      setApprovingLeaveId(leaveId);
       await leaveService.approveLeave(leaveId);
       message.success("Leave approved successfully");
       fetchPendingApprovals();
       fetchMyLeaves();
       setApprovalModalVisible(false);
+      setSelectedLeave(null);
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to approve leave");
+    } finally {
+      setApprovingLeaveId(null);
     }
   };
 
@@ -173,25 +189,36 @@ export default function LeavesPage() {
       return;
     }
 
+    if (rejectingLeaveId) return; // Prevent multiple clicks
+
     try {
+      setRejectingLeaveId(leaveId);
       await leaveService.rejectLeave(leaveId, rejectionReason);
       message.success("Leave rejected");
       fetchPendingApprovals();
       fetchMyLeaves();
       setApprovalModalVisible(false);
       setRejectionReason("");
+      setSelectedLeave(null);
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to reject leave");
+    } finally {
+      setRejectingLeaveId(null);
     }
   };
 
   const handleCancel = async (leaveId: string) => {
+    if (cancellingLeaveId) return; // Prevent multiple clicks
+
     try {
+      setCancellingLeaveId(leaveId);
       await leaveService.cancelLeave(leaveId);
       message.success("Leave cancelled successfully");
       fetchMyLeaves();
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to cancel leave");
+    } finally {
+      setCancellingLeaveId(null);
     }
   };
 
@@ -260,7 +287,13 @@ export default function LeavesPage() {
       key: "action",
       render: (_: any, record: Leave) =>
         record.status === "pending" && (
-          <Button size="small" danger onClick={() => handleCancel(record.id)}>
+          <Button 
+            size="small" 
+            danger 
+            loading={cancellingLeaveId === record.id}
+            disabled={!!cancellingLeaveId}
+            onClick={() => handleCancel(record.id)}
+          >
             Cancel
           </Button>
         ),
@@ -325,6 +358,7 @@ export default function LeavesPage() {
     },
   ];
 
+  // Build tab items conditionally based on user role
   const tabItems = [
     {
       key: "apply",
@@ -543,7 +577,7 @@ export default function LeavesPage() {
       key: "history",
       label: (
         <span>
-          My Leaves
+          My Leave History
           <Badge count={myLeaves.length} style={{ marginLeft: 8 }} />
         </span>
       ),
@@ -583,41 +617,98 @@ export default function LeavesPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: 24 }}>
-          <h1>Leave & Permission Management</h1>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+            <h1 style={{ margin: 0 }}>Leave & Permission Management</h1>
+            {/* {user && (
+              <Tag 
+                color={hasApprovalRights ? "orange" : "blue"} 
+                style={{ marginLeft: 16, fontSize: 14 }}
+              >
+                {hasApprovalRights ? "Manager/Admin" : "Employee"}
+              </Tag>
+            )} */}
+          </div>
 
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Total Leaves"
-                  value={myLeaves.length}
-                  prefix={<ClockCircleOutlined />}
-                />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Approved"
-                  value={myLeaves.filter((l) => l.status === "approved").length}
-                  prefix={<CheckCircleOutlined />}
-                  valueStyle={{ color: "#3f8600" }}
-                />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Pending Approvals"
-                  value={pendingApprovals.length}
-                  prefix={<ClockCircleOutlined />}
-                  valueStyle={{ color: "#faad14" }}
-                />
-              </Card>
-            </Col>
-          </Row>
+          {/* My Leave Status Section */}
+          <div style={{ marginBottom: 32 }}>
+            <Typography.Title level={4} style={{ marginBottom: 16, color: '#1677ff' }}>
+              My Leave Status
+            </Typography.Title>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Card>
+                  <Statistic
+                    title="My Total Leaves"
+                    value={myLeaves.length}
+                    prefix={<ClockCircleOutlined />}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card>
+                  <Statistic
+                    title="My Approved Leaves"
+                    value={myApprovedLeaves}
+                    prefix={<CheckCircleOutlined />}
+                    valueStyle={{ color: "#3f8600" }}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card>
+                  <Statistic
+                    title="My Pending Leaves"
+                    value={myPendingLeaves}
+                    prefix={<ClockCircleOutlined />}
+                    valueStyle={{ color: "#faad14" }}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          </div>
 
-          <Tabs items={tabItems} />
+          {/* Team Management Section - Only for Managers/Admins */}
+          {hasApprovalRights && (
+            <div style={{ marginBottom: 32 }}>
+              <Typography.Title level={4} style={{ marginBottom: 16, color: '#fa8c16' }}>
+                Team Management
+              </Typography.Title>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Card style={{ borderColor: '#ffa940' }}>
+                    <Statistic
+                      title="Team Pending Approvals"
+                      value={pendingApprovals.length}
+                      prefix={<ClockCircleOutlined />}
+                      valueStyle={{ color: "#fa8c16" }}
+                    />
+                  </Card>
+                </Col>
+                <Col span={8}>
+                  <Card>
+                    <Statistic
+                      title="Approved This Month"
+                      value={0}
+                      prefix={<CheckCircleOutlined />}
+                      valueStyle={{ color: "#52c41a" }}
+                    />
+                  </Card>
+                </Col>
+                <Col span={8}>
+                  <Card>
+                    <Statistic
+                      title="Rejected This Month"
+                      value={0}
+                      prefix={<CloseCircleOutlined />}
+                      valueStyle={{ color: "#ff4d4f" }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </div>
+          )}
+
+          <Tabs items={hasApprovalRights ? tabItems : tabItems.filter(tab => tab.key !== 'approvals')} />
 
           <Modal
             title="Review Leave Application"
@@ -665,6 +756,8 @@ export default function LeavesPage() {
                     <Button
                       type="primary"
                       icon={<CheckCircleOutlined />}
+                      loading={approvingLeaveId === selectedLeave.id}
+                      disabled={!!approvingLeaveId || !!rejectingLeaveId}
                       onClick={() => handleApprove(selectedLeave.id)}
                     >
                       Approve
@@ -672,6 +765,8 @@ export default function LeavesPage() {
                     <Button
                       danger
                       icon={<CloseCircleOutlined />}
+                      loading={rejectingLeaveId === selectedLeave.id}
+                      disabled={!!approvingLeaveId || !!rejectingLeaveId}
                       onClick={() => handleReject(selectedLeave.id)}
                     >
                       Reject

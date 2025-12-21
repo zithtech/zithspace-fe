@@ -335,7 +335,7 @@ export default function TicketList() {
       title: "Ticket",
       dataIndex: "ticketNumber",
       key: "ticketNumber",
-      width: 100,
+      width: 130,
       render: (text: string) => (
         <Text strong style={{ color: "#1677ff" }}>
           {text}
@@ -642,6 +642,7 @@ export default function TicketList() {
     {
       title: "Actions",
       key: "actions",
+      pinned: true,
       width: 120,
       render: (_: any, record: Ticket) => (
         <Space>
@@ -651,7 +652,7 @@ export default function TicketList() {
             icon={<EyeOutlined />}
             onClick={() => handleViewTicket(record)}
           >
-            View
+           
           </Button>
           <Popconfirm
             title="Delete Ticket"
@@ -667,7 +668,7 @@ export default function TicketList() {
             icon={<DeleteOutlined />}
             loading={deleteTicketMutation.isPending && deleteTicketMutation.variables === record.id}
           >
-            Delete
+            
           </Button>
           </Popconfirm>
         </Space>
@@ -858,7 +859,7 @@ export default function TicketList() {
                 });
                 },
             }}
-            scroll={{ x: 1000 }}
+            scroll={{ x: 1200 }}
             onRow={(record) => {
                 return {
                 onMouseEnter: () => setHoveredTicketId(record.id),

@@ -129,7 +129,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
               style={{ width: 150 }}
               value={selectedProject}
               onChange={setSelectedProject}
-              options={projects.map(p => ({ label: p.code, value: p.value }))}
+              options={projects.map(p => ({ label: p?.label, value: p?.value }))}
               size="middle"
             />
           )}

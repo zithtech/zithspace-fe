@@ -244,6 +244,45 @@ class TicketService {
   }
 
   /**
+   * Get tickets optimized for Kanban view
+   * Returns tickets grouped by status with metadata
+   */
+  static async getKanbanTickets(params: {
+    projectId?: string;
+    assigneeId?: string;
+    priority?: string;
+    search?: string;
+    limitPerColumn?: number;
+  }): Promise<{
+    columns: Record<string, {
+      status: string;
+      tickets: Ticket[];
+      total: number;
+      hasMore: boolean;
+      loaded: number;
+    }>;
+    summary: {
+      total: number;
+      loaded: number;
+    };
+  }> {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value.toString());
+        }
+      });
+
+      const response = await apiClient.get(`/api/tickets/kanban?${queryParams.toString()}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching Kanban tickets:', error);
+      throw new Error('Failed to fetch Kanban tickets');
+    }
+  }
+
+  /**
    * Get all tickets with filtering and pagination
    */
   static async getTickets(params: {

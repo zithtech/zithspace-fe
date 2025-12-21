@@ -18,6 +18,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Radio,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -26,14 +27,17 @@ import {
   SearchOutlined,
   ReloadOutlined,
   EditOutlined,
+  AppstoreOutlined,
+  BarsOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
-import { useTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
+import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { InlineCreateTicket } from "./InlineCreateTicket";
+import { TicketKanban } from './kanban/TicketKanban';
 
 const { Title, Text } = Typography;
 
@@ -60,6 +64,8 @@ export default function TicketList() {
     assignee: [],
     search: "",
   });
+  
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
@@ -116,6 +122,52 @@ export default function TicketList() {
     fetchProjects();
     fetchMembers();
   }, []);
+
+  // Dual Query Strategy for Kanban
+  // 1. Fast initial load (20 tickets/column = 80 total)
+  const initialKanbanParams = viewMode === 'board' ? {
+    projectId: filters.project.length > 0 ? filters.project[0] : undefined,
+    assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
+    priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    search: filters.search || undefined,
+    limitPerColumn: 20, // Fast initial load
+  } : null;
+
+  const { 
+    data: initialKanbanData, 
+    isLoading: isInitialKanbanLoading 
+  } = useKanbanTickets(initialKanbanParams);
+
+  // 2. Background complete load (50 tickets/column = 200 total)
+  const backgroundKanbanParams = viewMode === 'board' && initialKanbanData ? {
+    projectId: filters.project.length > 0 ? filters.project[0] : undefined,
+    assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
+    priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    search: filters.search || undefined,
+    limitPerColumn: 50, // Complete load
+  } : null;
+
+  const { 
+    data: backgroundKanbanData,
+    isFetching: isBackgroundKanbanLoading 
+  } = useKanbanTickets(backgroundKanbanParams, {
+    enabled: !!initialKanbanData, // Only after initial load
+  });
+
+  // 3. Use best available data
+  const kanbanData : any= backgroundKanbanData || initialKanbanData;
+  const isKanbanLoading = isInitialKanbanLoading;
+  const isKanbanFetching = isBackgroundKanbanLoading && !isInitialKanbanLoading;
+
+  // Update limit based on view mode
+  useEffect(() => {
+    if (viewMode === 'board') {
+        // Board mode uses Kanban endpoint, no pagination needed
+        setPagination(prev => ({ ...prev, current: 1, pageSize: 10 })); 
+    } else {
+        setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
+    }
+  }, [viewMode]);
   
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -191,6 +243,22 @@ export default function TicketList() {
     // 1. Optimistic UI: Close the editing field IMMEDIATELY
     // We do this AFTER triggering mutate so that 'isPending' becomes true immediately
     setEditingField(null);
+  };
+
+  /* 
+   * Handle updates from Kanban board
+   * Maps partial ticket updates including special fields like assigneeId to handleUpdateTicket
+   */
+  const handleKanbanUpdate = (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => {
+      Object.entries(updates).forEach(([key, value]) => {
+          // Translate backend keys (assigneeId) to frontend keys (assignee) for the optimistic logic
+          const fieldMap: Record<string, string> = {
+              'assigneeId': 'assignee'
+          };
+          const mappedKey = fieldMap[key] || key;
+          
+          handleUpdateTicket(ticketId, mappedKey as any, value as any);
+      });
   };
 
   const getStatusColor = (status: string) => {
@@ -647,7 +715,13 @@ export default function TicketList() {
       {contextHolder}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
-          <Title level={3}>Tickets</Title>
+          <Title level={3} style={{ margin: 0 }}>Tickets</Title>
+        </Col>
+        <Col>
+          <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} buttonStyle="solid" size="middle">
+            <Radio.Button value="list"><BarsOutlined /> List</Radio.Button>
+            <Radio.Button value="board"><AppstoreOutlined /> Board</Radio.Button>
+          </Radio.Group>
         </Col>
       </Row>
 
@@ -752,52 +826,98 @@ export default function TicketList() {
 
       {/* Inline Creation */}
       <InlineCreateTicket 
+        onTicketCreated={() => {
+            refetch();
+        }}
         filters={filters} 
         projects={projects} 
         members={members} 
       />
 
-      {/* Tickets Table */}
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={tickets}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: totalTickets,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} tickets`,
-            onChange: (page, pageSize) => {
-              setPagination({
-                current: page,
-                pageSize: pageSize || pagination.pageSize,
-              });
-            },
-          }}
-          scroll={{ x: 1000 }}
-          onRow={(record) => {
-            return {
-              onMouseEnter: () => setHoveredTicketId(record.id),
-              onMouseLeave: () => setHoveredTicketId(null),
-            };
-          }}
-          locale={{
-            emptyText:
-              tickets.length === 0 && !loading ? (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No tickets found for your projects"
+      {/* Tickets View (List or Board) */}
+      {viewMode === 'list' ? (
+        <Card>
+            <Table
+            columns={columns}
+            dataSource={tickets}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: totalTickets,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                pageSizeOptions: ['10', '20', '50', '100'],
+                showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} tickets`,
+                onChange: (page, pageSize) => {
+                setPagination({
+                    current: page,
+                    pageSize: pageSize || pagination.pageSize,
+                });
+                },
+            }}
+            scroll={{ x: 1000 }}
+            onRow={(record) => {
+                return {
+                onMouseEnter: () => setHoveredTicketId(record.id),
+                onMouseLeave: () => setHoveredTicketId(null),
+                };
+            }}
+            locale={{
+                emptyText:
+                tickets.length === 0 && !loading ? (
+                    <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="No tickets found for your projects"
+                    />
+                ) : undefined,
+            }}
+            />
+        </Card>
+      ) : (
+          <>
+            {isKanbanLoading ? (
+              <Card style={{ textAlign: 'center', padding: '40px' }}>
+                <Space direction="vertical" size="large">
+                  <div style={{ fontSize: '48px' }}>⏳</div>
+                  <Text type="secondary">Loading Kanban board...</Text>
+                </Space>
+              </Card>
+            ) : kanbanData ? (
+              <>
+                {isKanbanFetching && (
+                  <div style={{ 
+                    position: 'fixed', 
+                    top: 70, 
+                    right: 20, 
+                    zIndex: 1000,
+                    background: '#fff',
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                  }}>
+                    <Space>
+                      <ReloadOutlined spin />
+                      <Text type="secondary">Refreshing...</Text>
+                    </Space>
+                  </div>
+                )}
+                <TicketKanban 
+                  tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []} 
+                  projects={projects}
+                  members={members}
+                  onTicketUpdate={handleKanbanUpdate} 
                 />
-              ) : undefined,
-          }}
-        />
-      </Card>
+              </>
+            ) : (
+              <Card>
+                <Empty description="No tickets found" />
+              </Card>
+            )}
+          </>
+      )}
     </div>
   );
 }

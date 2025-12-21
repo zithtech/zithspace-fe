@@ -13,12 +13,14 @@ interface InlineCreateTicketProps {
   };
   projects: Array<{ value: string; label: string; code: string }>;
   members: Array<{ value: string; label: string; position: string }>;
+  onTicketCreated?: () => void;
 }
 
 export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
   filters,
   projects,
   members,
+  onTicketCreated,
 }) => {
   const [api, contextHolder] = notification.useNotification();
   const [isCreating, setIsCreating] = useState(false);
@@ -56,19 +58,15 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     const newTicketData: TicketFormData = {
       title,
       project: selectedProject,
-      status: filters.status.length === 1 ? filters.status[0] : "NOT_STARTED",
-      priority: filters.priority.length === 1 ? filters.priority[0] : "MEDIUM",
+      status: filters.status.length === 1 ? filters.status[0] : "not_started",
+      priority: filters.priority.length === 1 ? filters.priority[0] : "P2",
       assignee: filters.assignee.length === 1 ? filters.assignee[0] : undefined,
-      type: "TASK",
+      type: "Task", // Normalized to Title Case as seen in KanbanCard default
       description: "",
     };
     
     // 1. Optimistic UI: Reset form IMMEDIATELY
     setTitle(""); 
-    // Optional: Keep it open for rapid entry, OR close it. 
-    // User asked: "loading till creation... in component". 
-    // If we want "Jira style" rapid filtering, keeping it open is better, but resetting title.
-    // Let's reset title so they can type the next one.
     
     // 2. Fire mutation
     createTicketMutation.mutate(newTicketData, {
@@ -83,6 +81,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
         },
         onSuccess: () => {
              api.success({ message: "Ticket created", duration: 2 });
+             if (onTicketCreated) onTicketCreated();
         }
     });
   };

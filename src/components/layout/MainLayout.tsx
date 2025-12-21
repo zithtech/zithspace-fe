@@ -44,7 +44,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   // Navigation items with modern icons
   const getNavigationItems = () => [
@@ -212,6 +212,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       {/* Sidebar */}
       <Sider
+       onCollapse={(value) => setCollapsed(value)}
         trigger={null}
         collapsible
         collapsed={collapsed}

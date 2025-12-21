@@ -74,8 +74,7 @@ interface TicketDetails {
     code: string;
   };
   priority: "P1" | "P2" | "P3";
-  taskType: string;
-  type?: string;
+  type: string;
   taskLevel: string;
   status: string;
   assignee: {
@@ -291,8 +290,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
             ? { id: response.project, name: "Unknown", code: "UNK" }
             : response.project,
         priority: response.priority as "P1" | "P2" | "P3",
-        taskType: (response as any).type || response.taskType,
-        type: (response as any).type,
+        type: response.type || "TASK",
         taskLevel: response.taskLevel,
         status: response.status,
         assignee:
@@ -325,7 +323,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
           stack: ticketData?.stack || "",
           project: ticketData?.project?.id || "",
           priority: ticketData?.priority || "",
-          taskType: ticketData?.type || ticketData?.taskType || "",
+          type: ticketData?.type || "",
           taskLevel: ticketData?.taskLevel || "",
           status: ticketData?.status || "",
           // FIXED: Use ObjectId instead of name for assignee
@@ -418,7 +416,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         stack: values.stack,
         priority: values.priority,
         taskLevel: values.taskLevel,
-        taskType: values.taskType,
+        type: values.type,
         storyPoint: values.storyPoint,
         estimateHours: values.estimateHours,
         assigneeId: values.assignee,
@@ -513,8 +511,8 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
     }
   };
 
-  const getTaskTypeColor = (taskType: string) => {
-    switch (taskType) {
+  const getTypeColor = (type: string) => {
+    switch (type) {
       case "Bug":
         return "red";
       case "Task":
@@ -1137,7 +1135,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     {ticket?.platform || "Not specified"}
                   </Descriptions.Item>
                   <Descriptions.Item label="Task Type">
-                    <Tag color={getTaskTypeColor(ticket?.type || "")}>
+                    <Tag color={getTypeColor(ticket?.type || "")}>
                       {ticket?.type || "Not specified"}
                     </Tag>
                   </Descriptions.Item>

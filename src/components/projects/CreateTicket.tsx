@@ -42,6 +42,7 @@ import {
   TicketConfigurations,
 } from "@/services/settingsService";
 import TiptapEditor from "@/components/common/TiptapEditor";
+import { useCreateTicket } from "@/hooks/useTickets";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -56,7 +57,7 @@ interface TicketFormData {
   description: string;
   priority: string;
   taskLevel: string;
-  taskType: string;
+  type: string;
   storyPoint: number;
   estimateHours: number;
   reportTo: string;
@@ -251,6 +252,9 @@ export default function CreateTicket() {
     loadProjectData();
   }, [selectedProject, form]);
 
+  // React Query Mutation
+  const createTicketMutation = useCreateTicket();
+
   const handleCreateTicket = async (values: TicketFormData) => {
     try {
       setLoading(true);
@@ -265,7 +269,7 @@ export default function CreateTicket() {
         stack: values.stack,
         priority: values.priority,
         taskLevel: values.taskLevel,
-        taskType: values.taskType,
+        type: values.type, 
         storyPoint: values.storyPoint,
         estimateHours: values.estimateHours,
         reportTo: values.reportTo,
@@ -275,8 +279,8 @@ export default function CreateTicket() {
         releasePlan: values.releasePlan,
       };
 
-      // Create ticket using API
-      const createdTicket = await TicketService.createTicket(ticketData);
+      // Create ticket using API via Mutation
+      const createdTicket = await createTicketMutation.mutateAsync(ticketData);
 
       api.success({
         message: "Success",

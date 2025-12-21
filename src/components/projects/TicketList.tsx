@@ -10,12 +10,11 @@ import {
   Col,
   Select,
   Input,
+  InputNumber,
   Tag,
   Avatar,
-  Alert,
   Table,
   Empty,
-  Progress,
   message,
   Modal,
 } from "antd";
@@ -25,12 +24,15 @@ import {
   DeleteOutlined,
   SearchOutlined,
   ReloadOutlined,
-  ExclamationCircleOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import TicketService, { Ticket } from "@/services/ticketService";
+import { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
+import { useTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
+import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
+import { InlineCreateTicket } from "./InlineCreateTicket";
 
 const { Title, Text } = Typography;
 
@@ -45,8 +47,8 @@ interface FilterState {
 export default function TicketList() {
   const router = useRouter();
   const [modal, contextHolder] = Modal.useModal();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Local state for filters only
   const [projects, setProjects] = useState<
     Array<{ value: string; label: string; code: string }>
   >([]);
@@ -61,65 +63,63 @@ export default function TicketList() {
   // Inline editing state
   const [editingField, setEditingField] = useState<{
     ticketId: string;
-    field: "status" | "assignee";
+    field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint";
   } | null>(null);
+  
+  // For hover effect on title
+  const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
+
   const [members, setMembers] = useState<
     Array<{ value: string; label: string; position: string }>
   >([]);
-  const [updatingTickets, setUpdatingTickets] = useState<Set<string>>(
-    new Set()
-  );
   
-  // Pagination state for server-side pagination
+  // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
-    total: 0,
   });
+
+  // --- React Query Hooks ---
+
+  // Prepare params for useTickets
+  const queryParams = {
+    page: pagination.current,
+    limit: pagination.pageSize,
+    status: filters.status.length > 0 ? filters.status[0] : undefined,
+    priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    projectId: filters.project.length > 0 ? filters.project[0] : undefined,
+    assigneeId:
+      filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
+    search: filters.search || undefined,
+  };
+
+  const { 
+    data: ticketData, 
+    isLoading: loading, 
+    isFetching: isRefetching,
+    refetch 
+  } = useTickets(queryParams);
+
+  const updateTicketMutation = useUpdateTicket();
+  const deleteTicketMutation = useDeleteTicket();
+
+  // Enable live updates
+  useTicketSocketEvents();
+
+  const tickets = ticketData?.data || [];
+  const totalTickets = ticketData?.pagination?.total || 0;
+
+  // --- Effects ---
 
   useEffect(() => {
     fetchProjects();
     fetchMembers();
   }, []);
   
-  // Fetch tickets when pagination changes
-  useEffect(() => {
-    fetchTickets();
-  }, [pagination.current, pagination.pageSize]);
-  
   // Reset to page 1 when filters change
   useEffect(() => {
     setPagination(prev => ({ ...prev, current: 1 }));
   }, [filters]);
-
-  const fetchTickets = async () => {
-    try {
-      setLoading(true);
-      const response = await TicketService.getTickets({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        status: filters.status.length > 0 ? filters.status[0] : undefined,
-        priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
-        projectId: filters.project.length > 0 ? filters.project[0] : undefined,
-        assigneeId:
-          filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
-        search: filters.search || undefined,
-      });
-      setTickets(response.data || []);
-      
-      // Update total count from backend pagination response
-      setPagination(prev => ({
-        ...prev,
-        total: response.pagination?.total || 0,
-      }));
-    } catch (error) {
-      console.error("Failed to fetch tickets:", error);
-      message.error("Failed to load tickets");
-      setTickets([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchProjects = async () => {
     try {
@@ -142,60 +142,27 @@ export default function TicketList() {
 
   const handleUpdateTicket = async (
     ticketId: string,
-    field: "status" | "assignee",
-    value: string
+    field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint",
+    value: string | number | null
   ) => {
-    // Add to updating set
-    setUpdatingTickets((prev) => new Set(prev).add(ticketId));
-
     try {
       // Prepare update data
       const updateData: any = {};
-      if (field === "status") {
-        updateData.status = value;
-      } else if (field === "assignee") {
-        updateData.assignee = value;
-      }
+      if (field === "status") updateData.status = value;
+      else if (field === "assignee") updateData.assignee = value;
+      else if (field === "title") updateData.title = value;
+      else if (field === "priority") updateData.priority = value;
+      else if (field === "type") updateData.type = value; // OR taskType based on backend? Backend maps type->type usually
+      else if (field === "storyPoint") updateData.storyPoint = value;
 
-      // Update ticket
-      await TicketService.updateTicket(ticketId, updateData);
+      // Use mutation
+      await updateTicketMutation.mutateAsync({ id: ticketId, data: updateData });
 
-      // Update local state optimistically
-      setTickets((prevTickets) =>
-        prevTickets.map((ticket) => {
-          if (ticket.id === ticketId) {
-            if (field === "status") {
-              return { ...ticket, status: value };
-            } else if (field === "assignee") {
-              const member = members.find((m) => m.value === value);
-              return {
-                ...ticket,
-                assignee: member
-                  ? { id: value, name: member.label, email: "" }
-                  : ticket.assignee,
-              };
-            }
-          }
-          return ticket;
-        })
-      );
-
-      message.success(
-        `${field === "status" ? "Status" : "Assignee"} updated successfully`
-      );
+      message.success(`${field} updated successfully`);
       setEditingField(null);
     } catch (error) {
       console.error(`Failed to update ${field}:`, error);
       message.error(`Failed to update ${field}`);
-      // Refresh to get correct data
-      fetchTickets();
-    } finally {
-      // Remove from updating set
-      setUpdatingTickets((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(ticketId);
-        return newSet;
-      });
     }
   };
 
@@ -227,8 +194,8 @@ export default function TicketList() {
     }
   };
 
-  const getTaskTypeColor = (taskType: string) => {
-    switch (taskType) {
+  const getTypeColor = (type: string) => {
+    switch (type) {
       case "Bug":
         return "red";
       case "Task":
@@ -246,16 +213,10 @@ export default function TicketList() {
     router.push(`/tickets/${ticket.id}`);
   };
 
-  const handleCreateTicket = () => {
-    router.push("/projects/create");
-  };
-
   const handleDeleteTicket = async(ticket: Ticket, event?: React.MouseEvent) => {
-    console.log({ ticket });
     try {
-      await TicketService.deleteTicket(ticket.id);
+      await deleteTicketMutation.mutateAsync(ticket.id);
       message.success("Ticket deleted successfully");
-      fetchTickets(); // Refresh the list
     } catch (error: any) {
       console.error("Failed to delete ticket:", error);
 
@@ -290,16 +251,36 @@ export default function TicketList() {
       title: "Title",
       dataIndex: "title",
       key: "title",
-      width: 250,
-      render: (text: string, record: Ticket) => (
-        <div>
-          <Text strong>{text}</Text>
-          {/* <br /> */}
-          {/* <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.description.substring(0, 50)}...
-          </Text> */}
-        </div>
-      ),
+      width: 300,
+      render: (text: string, record: Ticket) => {
+        const isEditing = 
+            editingField?.ticketId === record.id && 
+            editingField?.field === "title";
+        const isHovered = hoveredTicketId === record.id;
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+        if (isEditing) {
+            return (
+                <Input
+                    defaultValue={text}
+                    autoFocus
+                    onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
+                    onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
+                    disabled={isUpdating}
+                />
+            );
+        }
+
+        return (
+          <div 
+             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
+             onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
+          >
+            <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{text}</Text>
+            {isHovered && <EditOutlined style={{ color: '#1677ff', opacity: 0.7 }} />}
+          </div>
+        );
+      },
     },
     {
       title: "Status",
@@ -310,7 +291,7 @@ export default function TicketList() {
         const isEditing =
           editingField?.ticketId === record.id &&
           editingField?.field === "status";
-        const isUpdating = updatingTickets.has(record.id);
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
 
         if (isEditing) {
           return (
@@ -351,21 +332,132 @@ export default function TicketList() {
       dataIndex: "priority",
       key: "priority",
       width: 100,
-      render: (priority: string) => (
-        <Tag color={getPriorityColor(priority)}>{priority}</Tag>
-      ),
+      render: (priority: string, record: Ticket) => {
+          const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "priority";
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+          
+          if (isEditing) {
+              return (
+                <Select
+                  value={priority}
+                  style={{ width: "100%" }}
+                  onChange={(value) =>
+                    handleUpdateTicket(record.id, "priority", value)
+                  }
+                  onBlur={() => setEditingField(null)}
+                  autoFocus
+                  loading={isUpdating}
+                  options={[
+                    { label: "High (P1)", value: "P1" },
+                    { label: "Medium (P2)", value: "P2" },
+                    { label: "Low (P3)", value: "P3" },
+                  ]}
+                />
+              );
+          }
+          return (
+            <Tag color={getPriorityColor(priority)} style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "priority" })}>
+                {priority}
+            </Tag>
+          );
+      },
     },
     {
       title: "Type",
       key: "type",
       width: 100,
-      render: (_: any, record: any) => {
-        const taskType = record?.type || "";
-        if (!taskType) {
-          return <Text type="secondary">-</Text>;
+      render: (_: any, record: Ticket) => {
+        const type = record?.type || "";
+        const isEditing =
+            editingField?.ticketId === record.id &&
+            editingField?.field === "type";
+         const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+        if (isEditing) {
+             return (
+                <Select
+                  value={type}
+                  style={{ width: "100%" }}
+                  onChange={(value) =>
+                    handleUpdateTicket(record.id, "type", value)
+                  }
+                  onBlur={() => setEditingField(null)}
+                  autoFocus
+                  loading={isUpdating}
+                  options={[
+                    { label: "Bug", value: "Bug" },
+                    { label: "Task", value: "Task" },
+                    { label: "Feature", value: "Feat" },
+                    { label: "Overwrite", value: "Overwrite" },
+                  ]}
+                />
+             );
         }
-        return <Tag color={getTaskTypeColor(taskType)}>{taskType}</Tag>;
+
+        if (!type) {
+          return <Text type="secondary" style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "type" })}>-</Text>;
+        }
+        return <Tag color={getTypeColor(type)} style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "type" })}>{type}</Tag>;
       },
+    },
+    {
+        title: "Story Points",
+        dataIndex: "storyPoint",
+        key: "storyPoint",
+        width: 100,
+        render: (storyPoint: number | undefined, record: Ticket) => {
+            const isEditing = 
+              editingField?.ticketId === record.id && 
+              editingField?.field === "storyPoint";
+             const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+            
+            if (isEditing) {
+                return (
+                    <InputNumber
+                        defaultValue={storyPoint}
+                        autoFocus
+                        onBlur={(e) => {
+                            // Antd InputNumber onBlur targets input element, value might need manual retrieval or state
+                            // Using onChange for InputNumber is better for value control, but for inline simple edit, 
+                            // e.target.value is string.
+                            const val = parseFloat(e.target.value);
+                            handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? null : val);
+                        }}
+                        onPressEnter={(e) => {
+                             const val = parseFloat(e.currentTarget.value);
+                             handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? null : val);
+                        }}
+                        style={{ width: '100%' }}
+                        disabled={isUpdating}
+                    />
+                );
+            }
+
+            return (
+                <div 
+                    style={{ cursor: 'pointer', minHeight: 22 }}
+                    onClick={() => setEditingField({ ticketId: record.id, field: "storyPoint" })}
+                >
+                    {storyPoint !== undefined && storyPoint !== null ? (
+                         <div style={{ 
+                             display: 'inline-block', 
+                             background: '#f0f0f0', 
+                             borderRadius: '12px', 
+                             padding: '0 8px',
+                             fontSize: '12px',
+                             fontWeight: 600,
+                             color: '#555' 
+                        }}>
+                            {storyPoint}
+                         </div>
+                    ) : ( 
+                        <Text type="secondary">-</Text> 
+                    )}
+                </div>
+            );
+        }
     },
     {
       title: "Project",
@@ -392,7 +484,7 @@ export default function TicketList() {
         const isEditing =
           editingField?.ticketId === record.id &&
           editingField?.field === "assignee";
-        const isUpdating = updatingTickets.has(record.id);
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
         const assigneeId =
           typeof assignee === "string" ? assignee : assignee?.id || "";
         const name =
@@ -448,15 +540,6 @@ export default function TicketList() {
       },
     },
     {
-      title: "Created",
-      dataIndex: "createdAt",
-      key: "createdAt",
-      width: 120,
-      render: (createdAt: string) => (
-        <Text type="secondary">{dayjs(createdAt).format("MMM DD, YYYY")}</Text>
-      ),
-    },
-    {
       title: "Actions",
       key: "actions",
       width: 120,
@@ -476,6 +559,7 @@ export default function TicketList() {
             danger
             icon={<DeleteOutlined />}
             onClick={() => handleDeleteTicket(record)}
+            loading={deleteTicketMutation.isPending && deleteTicketMutation.variables === record.id}
           >
             Delete
           </Button>
@@ -483,7 +567,7 @@ export default function TicketList() {
       ),
     },
   ];
-  console.log("Projects:", tickets);
+
   // Show empty state if user has no projects
   if (!loading && projects.length === 0) {
     return (
@@ -520,28 +604,11 @@ export default function TicketList() {
 
   return (
     <div>
+      {contextHolder}
+      {contextHolder}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <Title level={3}>Tickets</Title>
-        </Col>
-        <Col>
-          <Space>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={fetchTickets}
-              loading={loading}
-            >
-              Refresh
-            </Button>
-            <Button
-              type="primary"
-              icon={<PlusCircleOutlined />}
-              onClick={handleCreateTicket}
-              disabled
-            >
-              Create Ticket
-            </Button>
-          </Space>
         </Col>
       </Row>
 
@@ -633,12 +700,23 @@ export default function TicketList() {
             />
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
-            <Button type="primary" onClick={fetchTickets} loading={loading}>
-              Apply Filters
-            </Button>
+             <Button 
+               icon={<ReloadOutlined />} 
+               onClick={() => refetch()} 
+               loading={isRefetching && !loading}
+             >
+               Refresh
+             </Button>
           </Col>
         </Row>
       </Card>
+
+      {/* Inline Creation */}
+      <InlineCreateTicket 
+        filters={filters} 
+        projects={projects} 
+        members={members} 
+      />
 
       {/* Tickets Table */}
       <Card>
@@ -650,7 +728,7 @@ export default function TicketList() {
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
-            total: pagination.total,
+            total: totalTickets,
             showSizeChanger: true,
             showQuickJumper: true,
             pageSizeOptions: ['10', '20', '50', '100'],
@@ -660,11 +738,16 @@ export default function TicketList() {
               setPagination({
                 current: page,
                 pageSize: pageSize || pagination.pageSize,
-                total: pagination.total,
               });
             },
           }}
           scroll={{ x: 1000 }}
+          onRow={(record) => {
+            return {
+              onMouseEnter: () => setHoveredTicketId(record.id),
+              onMouseLeave: () => setHoveredTicketId(null),
+            };
+          }}
           locale={{
             emptyText:
               tickets.length === 0 && !loading ? (

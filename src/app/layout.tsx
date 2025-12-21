@@ -3,6 +3,8 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider } from 'antd';
 import { AuthProvider } from '@/context/AuthContext';
 import { TenantProvider } from '@/context/TenantContext';
+import QueryProvider from "@/providers/QueryProvider";
+import { SocketProvider } from '@/providers/SocketProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -93,7 +95,11 @@ export default function RootLayout({
           <ConfigProvider theme={theme}>
             <TenantProvider>
               <AuthProvider>
-                {children}
+                <QueryProvider>
+                 <SocketProvider>
+                  {children}
+                 </SocketProvider>
+                </QueryProvider>
               </AuthProvider>
             </TenantProvider>
           </ConfigProvider>

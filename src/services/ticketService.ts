@@ -2,21 +2,22 @@ import { apiClient } from '@/lib/axios';
 
 export interface TicketFormData {
   title: string;
-  description: string;
-  platform: string;
+  description?: string;
+  platform?: string;
   project: string;
   parentTickets?: string[];
   parentTicketNotes?: string;
   stack?: string;
-  priority: string;
-  taskLevel: string;
-  taskType: string;
-  storyPoint: number;
-  estimateHours: number;
-  reportTo: string;
-  assignee: string;
-  startDate: string;
-  endDate: string;
+  priority?: string;
+  status?: string;
+  taskLevel?: string;
+  type?: string; 
+  storyPoint?: number;
+  estimateHours?: number;
+  reportTo?: string;
+  assignee?: string;
+  startDate?: string;
+  endDate?: string;
   releasePlan?: string;
   selectedWorkflowSteps?: string[];
 }
@@ -97,7 +98,7 @@ export interface Ticket {
   } | string;
   priority: string;
   taskLevel: string;
-  taskType: string;
+  type: string;
   status: string;
   assignee: {
     id: string;
@@ -124,7 +125,7 @@ export interface Ticket {
     platform?: string;
     stack?: string;
     taskLevel?: string;
-    taskType?: string;
+    type?: string;
     storyPoint?: number;
     estimateHours?: number;
     parentTickets?: string[];

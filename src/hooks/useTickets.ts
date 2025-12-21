@@ -45,8 +45,8 @@ export const useCreateTicket = () => {
         // Cancel any outgoing refetches
         await queryClient.cancelQueries({ queryKey: ticketKeys.all });
   
-        // Snapshot the previous value
-        const previousTickets = queryClient.getQueryData<TicketListResponse>(ticketKeys.lists());
+        // Snapshot the previous value (handle all variations of lists)
+        const previousTicketLists = queryClient.getQueriesData({ queryKey: ticketKeys.lists() });
   
         // Create an optimistic ticket object
         const tempId = `temp-${Date.now()}`;
@@ -67,12 +67,12 @@ export const useCreateTicket = () => {
             createdBy: { id: "current-user", name: "Me", email: "" }, // Placeholder
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            storyPoint: 0, 
         };
   
         // Optimistically update to the new value
-        // We use setQueriesData to update ALL valid list queries (fuzzy match)
         queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, (oldData: any) => {
-            if (!oldData) return { data: [optimisticTicket], pagination: {} }; // Initialize if empty
+            if (!oldData) return { data: [optimisticTicket], pagination: {} }; 
             if (!oldData.data) return oldData;
             return {
                 ...oldData,
@@ -81,13 +81,16 @@ export const useCreateTicket = () => {
         });
   
         // Return a context object with the snapshotted value
-        return { previousTickets };
+        return { previousTicketLists };
       },
       onError: (err, newTodo, context) => {
-        // If the mutation fails, use the context returned from onMutate to roll back
-        if (context?.previousTickets) {
-             queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, context.previousTickets);
+        // Rollback
+        if (context?.previousTicketLists) {
+             context.previousTicketLists.forEach(([queryKey, data]) => {
+                  queryClient.setQueryData(queryKey, data);
+             });
         }
+        message.error("Failed to create ticket");
       },
     onSuccess: (savedTicket, variables, context) => {
         // Replace the optimistic ticket with the real one
@@ -103,7 +106,7 @@ export const useCreateTicket = () => {
             };
         });
       // Invalidate list to ensure consistency and trigger refetch
-      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
     },
   });
 };
@@ -112,49 +115,69 @@ export const useUpdateTicket = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<TicketFormData> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<TicketFormData>; optimisticData?: any }) =>
       TicketService.updateTicket(id, data),
-    onMutate: async ({ id, data }) => {
+    onMutate: async ({ id, data, optimisticData }) => {
       // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey: ticketKeys.all });
 
-      // Snapshot the previous value
-      const previousTickets = queryClient.getQueryData<TicketListResponse>(ticketKeys.lists());
+      // Snapshot the previous value (all lists + detail)
+      const previousTicketLists = queryClient.getQueriesData({ queryKey: ticketKeys.lists() });
       const previousTicket = queryClient.getQueryData<Ticket>(ticketKeys.detail(id));
 
-      // Optimistically update to the new value
-      if (previousTickets) {
-        // Iterate over all ticket lists in cache
+      // Determine what data to put in the cache (prefer optimisticData for complex objects like assignee)
+      const cacheUpdatePayload = optimisticData || data;
+
+      // Optimistically update all lists
+      queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, (oldData: any) => {
+            if (!oldData?.data) return oldData;
+            return {
+                ...oldData,
+                data: oldData.data.map((ticket: Ticket) => 
+                    ticket.id === id ? { ...ticket, ...cacheUpdatePayload } : ticket
+                ),
+            };
+      });
+
+      // Update detail view if exists
+      if (previousTicket) {
+        queryClient.setQueryData(ticketKeys.detail(id), (old: any) => ({ ...old, ...cacheUpdatePayload }));
+      }
+
+      // Return a context object with the snapshotted value
+      return { previousTicketLists, previousTicket };
+    },
+    onError: (err, newTodo, context) => {
+      // Rollback detail
+      if (context?.previousTicket) {
+          queryClient.setQueryData(ticketKeys.detail(newTodo.id), context.previousTicket);
+      }
+      // Rollback lists
+      if (context?.previousTicketLists) {
+          context.previousTicketLists.forEach(([queryKey, data]) => {
+               queryClient.setQueryData(queryKey, data);
+          });
+      }
+      message.error("Failed to update ticket");
+    },
+    onSuccess: (savedTicket) => {
+        // Update detail view
+        queryClient.setQueryData(ticketKeys.detail(savedTicket.id), savedTicket);
+
+        // Update all lists
         queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, (oldData: any) => {
             if (!oldData?.data) return oldData;
             return {
                 ...oldData,
                 data: oldData.data.map((ticket: Ticket) => 
-                    ticket.id === id ? { ...ticket, ...data } : ticket
+                    ticket.id === savedTicket.id ? savedTicket : ticket
                 ),
             };
         });
-      }
-
-       // Update detail view if exists
-       if (previousTicket) {
-        queryClient.setQueryData(ticketKeys.detail(id), (old: any) => ({ ...old, ...data }));
-      }
-
-      // Return a context object with the snapshotted value
-      return { previousTickets, previousTicket };
-    },
-    onError: (err, newTodo, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousTicket) {
-          queryClient.setQueryData(ticketKeys.detail(newTodo.id), context.previousTicket);
-      }
-      // Reverting lists is harder without exact keys, but invalidation handles it mostly
-      // For now we just invalidate on error
-    },
-    onSettled: () => {
-      // Always refetch after error or success:
-      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+        
+        // Invalidate to ensure consistency (optional but good for side effects)
+        // User requested NO invalidation here to prevent refetching loop
+        // queryClient.invalidateQueries({ queryKey: ticketKeys.all });
     },
   });
 };
@@ -164,8 +187,41 @@ export const useDeleteTicket = () => {
 
   return useMutation({
     mutationFn: (id: string) => TicketService.deleteTicket(id),
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ticketKeys.all });
+
+      // Snapshot the previous value
+      const previousTicketLists = queryClient.getQueriesData({ queryKey: ticketKeys.lists() });
+
+      // Optimistically delete the ticket from the list
+      queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, (oldData: any) => {
+          if (!oldData?.data) return oldData;
+          return {
+              ...oldData,
+              data: oldData.data.filter((ticket: Ticket) => ticket.id !== id),
+              pagination: {
+                  ...oldData.pagination,
+                  total: Math.max(0, (oldData.pagination?.total || 0) - 1)
+              }
+          };
+      });
+
+      // Return context
+      return { previousTicketLists };
+    },
+    onError: (err, id, context) => {
+      // Rollback on error
+      if (context?.previousTicketLists) {
+          context.previousTicketLists.forEach(([queryKey, data]) => {
+               queryClient.setQueryData(queryKey, data);
+          });
+      }
+      message.error("Failed to delete ticket");
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // Invalidate to ensure consistency
+      // queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
     },
   });
 };

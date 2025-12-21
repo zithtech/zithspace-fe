@@ -17,6 +17,7 @@ import {
   Empty,
   message,
   Modal,
+  Popconfirm,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -140,30 +141,56 @@ export default function TicketList() {
     }
   };
 
-  const handleUpdateTicket = async (
+  const handleUpdateTicket = (
     ticketId: string,
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint",
     value: string | number | null
   ) => {
-    try {
-      // Prepare update data
-      const updateData: any = {};
-      if (field === "status") updateData.status = value;
-      else if (field === "assignee") updateData.assignee = value;
-      else if (field === "title") updateData.title = value;
-      else if (field === "priority") updateData.priority = value;
-      else if (field === "type") updateData.type = value; // OR taskType based on backend? Backend maps type->type usually
-      else if (field === "storyPoint") updateData.storyPoint = value;
+    // Prepare update data
+    const updateData: any = {};
+    // Prepare optimistic cache data (optional override)
+    let optimisticData: any = null;
 
-      // Use mutation
-      await updateTicketMutation.mutateAsync({ id: ticketId, data: updateData });
-
-      message.success(`${field} updated successfully`);
-      setEditingField(null);
-    } catch (error) {
-      console.error(`Failed to update ${field}:`, error);
-      message.error(`Failed to update ${field}`);
+    if (field === "status") updateData.status = value;
+    else if (field === "assignee") {
+        updateData.assignee = value;
+        // Find full member object for seamless optimistic update
+        const member = members.find(m => m.value === value);
+        if (member) {
+            optimisticData = { 
+                assignee: { 
+                    id: member.value, 
+                    name: member.label, 
+                    email: "" // Email might not be in the lightweight members list, empty string satisfies type
+                } 
+            };
+        }
     }
+    else if (field === "title") updateData.title = value;
+    else if (field === "priority") updateData.priority = value;
+    else if (field === "type") updateData.type = value; 
+    else if (field === "storyPoint") {
+        updateData.storyPoint = value; // Assumed to be number or null
+    }
+
+    // 2. Fire-and-forget mutation (errors handled by hook queries rollback)
+    updateTicketMutation.mutate(
+      { id: ticketId, data: updateData, optimisticData },
+      {
+        onError: (error) => {
+          console.error(`Failed to update ${field}:`, error);
+          message.error(`Failed to update ${field}`);
+          // Note: The optimistic update hook will handle rolling back the data in the cache
+        },
+        onSuccess: () => {
+             message.success(`${field} updated`);
+        }
+      }
+    );
+
+    // 1. Optimistic UI: Close the editing field IMMEDIATELY
+    // We do this AFTER triggering mutate so that 'isPending' becomes true immediately
+    setEditingField(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -271,12 +298,15 @@ export default function TicketList() {
             );
         }
 
+        const displayText = text.length > 40 ? `${text.slice(0, 40)} ...` : text;
+
         return (
           <div 
              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
              onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
+             title={text} // Show full text on native tooltip as well
           >
-            <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{text}</Text>
+            <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{displayText}</Text>
             {isHovered && <EditOutlined style={{ color: '#1677ff', opacity: 0.7 }} />}
           </div>
         );
@@ -357,6 +387,7 @@ export default function TicketList() {
                 />
               );
           }
+          
           return (
             <Tag color={getPriorityColor(priority)} style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "priority" })}>
                 {priority}
@@ -415,19 +446,20 @@ export default function TicketList() {
             
             if (isEditing) {
                 return (
-                    <InputNumber
+                    <Input
+                        type="number"
                         defaultValue={storyPoint}
-                        autoFocus
+                        autoFocus={true}
                         onBlur={(e) => {
-                            // Antd InputNumber onBlur targets input element, value might need manual retrieval or state
-                            // Using onChange for InputNumber is better for value control, but for inline simple edit, 
-                            // e.target.value is string.
                             const val = parseFloat(e.target.value);
-                            handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? null : val);
+                            // Default to 0 if invalid/empty, as DB requires non-nullable Int
+                            // If empty string (""), parseFloat returns NaN -> 0.
+                            // If "3", returns 3.
+                            handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
                         }}
                         onPressEnter={(e) => {
                              const val = parseFloat(e.currentTarget.value);
-                             handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? null : val);
+                             handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
                         }}
                         style={{ width: '100%' }}
                         disabled={isUpdating}
@@ -553,16 +585,23 @@ export default function TicketList() {
           >
             View
           </Button>
-          <Button
+          <Popconfirm
+            title="Delete Ticket"
+            description="Are you sure you want to delete this ticket?"
+            onConfirm={() => handleDeleteTicket(record)}
+            okText="Yes"
+            cancelText="No"
+          >
+           <Button
             type="text"
             size="small"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDeleteTicket(record)}
             loading={deleteTicketMutation.isPending && deleteTicketMutation.variables === record.id}
           >
             Delete
           </Button>
+          </Popconfirm>
         </Space>
       ),
     },

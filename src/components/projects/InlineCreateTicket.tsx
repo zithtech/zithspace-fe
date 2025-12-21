@@ -36,7 +36,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     }
   }, [filters.project]);
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     console.log("handleCreate CALLED", { title, selectedProject, filters });
     
     if (!title.trim()) {
@@ -45,7 +45,6 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     }
 
     if (!selectedProject) {
-      // Try to fallback to the first project if available
       if (projects.length > 0) {
           api.error({ message: "Validation Error", description: "Please select a project" });
           return;
@@ -54,32 +53,38 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
       return;
     }
 
-    try {
-      const newTicketData: TicketFormData = {
-        title,
-        project: selectedProject,
-        status: filters.status.length === 1 ? filters.status[0] : "NOT_STARTED",
-        priority: filters.priority.length === 1 ? filters.priority[0] : "MEDIUM",
-        assignee: filters.assignee.length === 1 ? filters.assignee[0] : undefined,
-        type: "TASK",
-        description: "",
-      };
-      
-      console.log("Mutating with data:", newTicketData);
-
-      await createTicketMutation.mutateAsync(newTicketData);
-      
-      console.log("Mutation Success");
-      api.success({ message: "Ticket created successfully" });
-      setTitle(""); 
-      setIsCreating(false); 
-    } catch (error: any) {
-      console.error("Failed to create ticket:", error);
-      api.error({ 
-          message: "Creation Failed", 
-          description: error?.message || "Failed to create ticket. Check console." 
-      });
-    }
+    const newTicketData: TicketFormData = {
+      title,
+      project: selectedProject,
+      status: filters.status.length === 1 ? filters.status[0] : "NOT_STARTED",
+      priority: filters.priority.length === 1 ? filters.priority[0] : "MEDIUM",
+      assignee: filters.assignee.length === 1 ? filters.assignee[0] : undefined,
+      type: "TASK",
+      description: "",
+    };
+    
+    // 1. Optimistic UI: Reset form IMMEDIATELY
+    setTitle(""); 
+    // Optional: Keep it open for rapid entry, OR close it. 
+    // User asked: "loading till creation... in component". 
+    // If we want "Jira style" rapid filtering, keeping it open is better, but resetting title.
+    // Let's reset title so they can type the next one.
+    
+    // 2. Fire mutation
+    createTicketMutation.mutate(newTicketData, {
+        onError: (error: any) => {
+            console.error("Failed to create ticket:", error);
+            api.error({ 
+                message: "Creation Failed", 
+                description: error?.message || "Failed to create ticket." 
+            });
+            // Ideally restore the title here if it failed so user doesn't lose text
+            setTitle(newTicketData.title); 
+        },
+        onSuccess: () => {
+             api.success({ message: "Ticket created", duration: 2 });
+        }
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -157,7 +162,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
                 { label: "P3", value: "P3" },
                ]}
              />
-             <Button type="primary" onClick={handleCreate} loading={createTicketMutation.isPending}>
+             <Button type="primary" onClick={handleCreate} loading={false}>
                Create
              </Button>
              <Button onClick={() => setIsCreating(false)}>

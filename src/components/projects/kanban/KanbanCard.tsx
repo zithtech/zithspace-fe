@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, Tag, Typography, Avatar, Space, Select, Input } from 'antd';
 import { Ticket } from '@/services/ticketService';
-import { getPriorityColor, getTypeColor } from '@/utils/ticketUtils';
+import { getPriorityColor, getTypeColor, PRIORITY_OPTIONS, TYPE_OPTIONS } from '@/utils/ticketUtils';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -117,11 +117,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
                 handleSave(val);
             }}
             onBlur={cleanup}
-            options={[
-                { label: "High", value: "P1" },
-                { label: "Medium", value: "P2" },
-                { label: "Lite", value: "P3" },
-            ]}
+            options={PRIORITY_OPTIONS}
             />
         </div>
       );
@@ -236,10 +232,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
                         value={activeValue}
                         onChange={(val) => handleSave(val)}
                         onBlur={cleanup}
-                        options={[
-                            { label: "Bug", value: "Bug" },
-                            { label: "Task", value: "Task" },
-                        ]}
+                        options={TYPE_OPTIONS}
                      />
                  </div>
              ) : (

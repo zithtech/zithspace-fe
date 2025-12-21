@@ -3,6 +3,7 @@ import { Input, Button, Select, message, Space, Card, Tag, notification } from "
 import { PlusOutlined, LoadingOutlined } from "@ant-design/icons";
 import { useCreateTicket } from "@/hooks/useTickets";
 import { TicketFormData } from "@/services/ticketService";
+import { PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 
 interface InlineCreateTicketProps {
   filters: {
@@ -67,6 +68,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     
     // 1. Optimistic UI: Reset form IMMEDIATELY
     setTitle(""); 
+    setIsCreating(false);
     
     // 2. Fire mutation
     createTicketMutation.mutate(newTicketData, {
@@ -155,11 +157,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
                style={{ width: 60 }}
                variant="borderless"
                suffixIcon={null}
-               options={[
-                { label: "P1", value: "P1" },
-                { label: "P2", value: "medium" }, // Fixed visual label?
-                { label: "P3", value: "P3" },
-               ]}
+               options={PRIORITY_OPTIONS}
              />
              <Button type="primary" onClick={handleCreate} loading={false}>
                Create

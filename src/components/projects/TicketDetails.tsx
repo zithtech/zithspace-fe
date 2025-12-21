@@ -56,6 +56,7 @@ import AttachmentList from '@/components/common/AttachmentList';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
+import { STATUS_OPTIONS, PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
 
 interface TicketDetailsProps {
   ticketId: string;
@@ -265,9 +266,10 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
       // Set empty arrays as fallbacks to prevent map errors
       setPlatforms([]);
-      setPriorities([]);
+      // Map standard options to the shape expected by the component state
+      setPriorities(PRIORITY_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
       setTaskLevels([]);
-      setTaskTypes([]);
+      setTaskTypes(TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
     } finally {
       setDataLoading(false);
     }
@@ -828,18 +830,11 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                         ]}
                       >
                         <Select loading={dataLoading}>
-                          <Select.Option value="not_started">
-                            Not Started
-                          </Select.Option>
-                          <Select.Option value="in_progress">
-                            In Progress
-                          </Select.Option>
-                          <Select.Option value="in_testing">
-                            In Testing
-                          </Select.Option>
-                          <Select.Option value="completed">
-                            Completed
-                          </Select.Option>
+                          {STATUS_OPTIONS.map((status) => (
+                            <Select.Option key={status.value} value={status.value}>
+                              {status.label}
+                            </Select.Option>
+                          ))}
                         </Select>
                       </Form.Item>
                     </Col>

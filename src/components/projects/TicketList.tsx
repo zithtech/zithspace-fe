@@ -34,6 +34,7 @@ import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
+import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { InlineCreateTicket } from "./InlineCreateTicket";
@@ -749,12 +750,7 @@ export default function TicketList() {
               onChange={(value) =>
                 setFilters((prev) => ({ ...prev, status: value }))
               }
-              options={[
-                { label: "Not Started", value: "not_started" },
-                { label: "In Progress", value: "in_progress" },
-                { label: "In Testing", value: "in_testing" },
-                { label: "Completed", value: "completed" },
-              ]}
+              options={STATUS_OPTIONS}
             />
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
@@ -766,11 +762,7 @@ export default function TicketList() {
               onChange={(value) =>
                 setFilters((prev) => ({ ...prev, priority: value }))
               }
-              options={[
-                { label: "High (P1)", value: "P1" },
-                { label: "Medium (P2)", value: "P2" },
-                { label: "Lite (P3)", value: "P3" },
-              ]}
+              options={PRIORITY_OPTIONS}
             />
           </Col>
           <Col xs={24} sm={12} md={6} lg={4}>
@@ -828,7 +820,7 @@ export default function TicketList() {
       {/* Inline Creation */}
       <InlineCreateTicket 
         onTicketCreated={() => {
-            refetch();
+            // Optimistic update handles the UI, no need to refetch
         }}
         filters={filters} 
         projects={projects} 

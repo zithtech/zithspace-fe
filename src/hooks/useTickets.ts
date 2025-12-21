@@ -59,6 +59,7 @@ export const useCreateTicket = () => {
   
         // Snapshot the previous value (handle all variations of lists)
         const previousTicketLists = queryClient.getQueriesData({ queryKey: ticketKeys.lists() });
+        const previousKanbanData = queryClient.getQueriesData({ queryKey: ['tickets', 'kanban'] });
   
         // Create an optimistic ticket object
         const tempId = `temp-${Date.now()}`;
@@ -82,7 +83,7 @@ export const useCreateTicket = () => {
             storyPoint: 0, 
         };
   
-        // Optimistically update to the new value
+        // Optimistically update to the new value (Lists)
         queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, (oldData: any) => {
             if (!oldData) return { data: [optimisticTicket], pagination: {} }; 
             if (!oldData.data) return oldData;
@@ -91,21 +92,43 @@ export const useCreateTicket = () => {
                 data: [optimisticTicket, ...oldData.data],
             };
         });
+
+        // Optimistically update to the new value (Kanban)
+        queryClient.setQueriesData({ queryKey: ['tickets', 'kanban'] }, (oldData: any) => {
+            if (!oldData?.columns) return oldData;
+            const updatedColumns = { ...oldData.columns };
+            const status = optimisticTicket.status;
+
+            if (updatedColumns[status]) {
+                updatedColumns[status] = {
+                    ...updatedColumns[status],
+                    tickets: [optimisticTicket, ...updatedColumns[status].tickets],
+                    total: updatedColumns[status].total + 1
+                };
+            }
+            return { ...oldData, columns: updatedColumns };
+        });
   
         // Return a context object with the snapshotted value
-        return { previousTicketLists };
+        return { previousTicketLists, previousKanbanData };
       },
       onError: (err, newTodo, context) => {
-        // Rollback
+        // Rollback List
         if (context?.previousTicketLists) {
              context.previousTicketLists.forEach(([queryKey, data]) => {
                   queryClient.setQueryData(queryKey, data);
              });
         }
+        // Rollback Kanban
+        if (context?.previousKanbanData) {
+            context.previousKanbanData.forEach(([queryKey, data]) => {
+                 queryClient.setQueryData(queryKey, data);
+            });
+        }
         message.error("Failed to create ticket");
       },
     onSuccess: (savedTicket, variables, context) => {
-        // Replace the optimistic ticket with the real one
+        // Replace the optimistic ticket with the real one (Lists)
         queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, (oldData: any) => {
             if (!oldData?.data) return oldData;
              return {
@@ -117,6 +140,26 @@ export const useCreateTicket = () => {
                 ),
             };
         });
+
+        // Replace the optimistic ticket with the real one (Kanban)
+        queryClient.setQueriesData({ queryKey: ['tickets', 'kanban'] }, (oldData: any) => {
+             if (!oldData?.columns) return oldData;
+             const updatedColumns = { ...oldData.columns };
+             const status = savedTicket.status;
+
+             if (updatedColumns[status]) {
+                 updatedColumns[status] = {
+                     ...updatedColumns[status],
+                     tickets: updatedColumns[status].tickets.map((t: Ticket) => 
+                         t.id.startsWith('temp-') && t.title === savedTicket.title 
+                             ? savedTicket 
+                             : t
+                     ),
+                 };
+             }
+             return { ...oldData, columns: updatedColumns };
+        });
+
       // Invalidate list to ensure consistency and trigger refetch
       // queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
     },

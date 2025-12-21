@@ -41,3 +41,23 @@ export const getTypeColor = (type: string) => {
       return "default";
   }
 };
+
+export const STATUS_OPTIONS = [
+  { label: "Not Started", value: "not_started" },
+  { label: "In Progress", value: "in_progress" },
+  { label: "In Testing", value: "in_testing" },
+  { label: "Completed", value: "completed" },
+];
+
+export const PRIORITY_OPTIONS = [
+  { label: "High (P1)", value: "P1" },
+  { label: "Medium (P2)", value: "P2" },
+  { label: "Lite (P3)", value: "P3" },
+];
+
+export const TYPE_OPTIONS = [
+  { label: "Bug", value: "Bug" },
+  { label: "Task", value: "Task" },
+  { label: "Feature", value: "Feat" },
+  { label: "Overwrite", value: "Overwrite" },
+];

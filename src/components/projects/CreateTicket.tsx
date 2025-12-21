@@ -43,6 +43,7 @@ import {
 } from "@/services/settingsService";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { useCreateTicket } from "@/hooks/useTickets";
+import { PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -183,12 +184,13 @@ export default function CreateTicket() {
           duration: 4,
         });
 
-        // Set empty arrays as fallbacks to prevent map errors
+        // Set empty arrays as fallbacks to prevent map errors - ENHANCED with standard defaults
         setPlatforms([]);
         setStacks([]);
-        setPriorities([]);
+        // Map standard options to the shape expected by the component state
+        setPriorities(PRIORITY_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
         setTaskLevels([]);
-        setTaskTypes([]);
+        setTaskTypes(TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
       } finally {
         setDataLoading(false);
       }

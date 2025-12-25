@@ -1,8 +1,9 @@
 'use client';
-
-import React, { useState } from 'react';
+import { dashboardService, DashboardData } from "@/services/dashboardService";
+import React, { useState,useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+
 import {
   Layout,
   Menu,
@@ -13,6 +14,10 @@ import {
   Space,
   Divider,
   Badge,
+  Drawer,
+  List,
+  Card,
+
 } from 'antd';
 import {
   MenuFoldOutlined,
@@ -41,10 +46,47 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
+  
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
+   const [open, setOpen] = useState(false);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+      null
+    );
+      const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+        null
+      );
+      const [mounted, setMounted] = useState(false);
+
+useEffect(() => {
+  setMounted(true);
+}, []);
+
+      useEffect(() => {
+        if (
+          dashboardData?.projectProgress &&
+          dashboardData.projectProgress.length > 0 &&
+          !selectedProjectId
+        ) {
+          setSelectedProjectId(dashboardData.projectProgress[0].id);
+        }
+      }, [dashboardData,selectedProjectId]);
+
+      useEffect(() => {
+  const fetchDashboard = async () => {
+    try {
+      const res = await dashboardService.getDashboardSummary();
+      setDashboardData(res);
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+    }
+  };
+
+  fetchDashboard();
+}, []);
+
 
   // Navigation items with modern icons
   const getNavigationItems = () => [
@@ -156,6 +198,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation('/accounts'),
       style: user?.role !== 'super_admin' ? { color: '#bfbfbf' } : undefined,
     },
+    
   ];
 
   const handleNavigation = (path: string) => {
@@ -207,6 +250,28 @@ export default function MainLayout({ children }: MainLayoutProps) {
         return '#52c41a';
     }
   };
+   const showDrawer = () => {
+    setOpen(true);
+  };
+
+  const onClose = () => {
+    setOpen(false);
+  };
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 60)
+      return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+    return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  };
+if (!mounted) return null;
 
   return (
     <Layout style={{ height: '100vh', overflow: 'hidden' }}>
@@ -227,6 +292,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           bottom: 0,
           height: '100vh',
           zIndex: 100,
+          overflow: "hidden"
         }}
       >
         {/* Logo/Brand */}
@@ -251,6 +317,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             >
               Z
             </Text>
+            
           ) : (
             <Text
               strong
@@ -262,12 +329,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
             >
               Z
             </Text>
+            
           )}
         </div>
 
         {/* Navigation Menu */}
         <Menu
           mode="inline"
+          inlineCollapsed={collapsed} 
           selectedKeys={[pathname]}
           style={{
             border: 'none',
@@ -308,7 +377,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </Sider>
 
       {/* Main Layout */}
-      <Layout style={{ marginLeft: collapsed ? 80 : 240, transition: 'margin-left 0.2s' }}>
+      <Layout style={{ marginLeft: collapsed ? 80 : 240 }}>
         {/* Header */}
         <Header
           style={{
@@ -318,7 +387,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            height: 64,
+            height: 75,
             position: 'fixed',
             top: 0,
             right: 0,
@@ -326,23 +395,28 @@ export default function MainLayout({ children }: MainLayoutProps) {
             zIndex: 99,
             transition: 'left 0.2s',
           }}
+          
         >
           {/* Left side - Collapse button */}
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              fontSize: 16,
-              width: 40,
-              height: 40,
-            }}
-          />
+         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+  <Button
+    type="text"
+    icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+    onClick={() => setCollapsed(!collapsed)}
+    style={{
+      fontSize: 16,
+      width: 40,
+      height: 40,
+    }}
+  />
+</div>
+
 
           {/* Right side - User actions */}
           <Space size={16} align="center">
             {/* Notifications */}
             <Button
+            onClick={showDrawer}
               type="text"
               icon={<BellOutlined />}
               style={{
@@ -350,7 +424,105 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
+            /> 
+  <Drawer
+  title={
+    <Space>
+      <BellOutlined style={{ color: "#1677ff" }} />
+      <Text strong>Notifications</Text>
+    </Space>
+  }
+  placement="right"
+  onClose={onClose}
+  open={open}
+  width={380}
+  
+  style={{
+    marginTop:70   }}
+>
+  {/* Recent Activities */}
+  
+
+  <Card
+  style={{ borderColor: "#8ac1ebff",
+        borderRadius: 5,}}
+    title={
+      <Space>
+        <ClockCircleOutlined style={{ color: "#52c41a" }} />
+        <Text>Recent Activities</Text>
+      </Space>
+    }
+    size="small"
+   
+    extra={
+      <Button type="link" size="small">
+        View All
+      </Button>
+    }
+    styles={{
+      body: {
+        padding: 0,
+        maxHeight: "calc(100vh - 180px)",
+        overflowY: "auto",
+
+      },
+    }}
+  >
+    {dashboardData?.recentActivities?.length ? (
+      <List
+     
+        size="small"
+        itemLayout="horizontal"
+        dataSource={dashboardData.recentActivities}
+        renderItem={(item) => (
+          <List.Item
+            style={{
+              padding: "12px 16px",
+              borderBottom: "1px solid #f0f0f0",
+             
+            }}
+          >
+            <List.Item.Meta
+              avatar={
+                <Avatar
+                  size={32}
+                  style={{
+                    backgroundColor: "#1677ff",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    
+                  }}
+                >
+                  {item.avatar}
+                </Avatar>
+              }
+              title={
+                <Text style={{ fontSize: 13 }}>
+                  <Text strong>{item.user}</Text> {item.action}{" "}
+                  <Text strong>{item.target}</Text>
+                </Text>
+              }
+              description={
+                <Text type="secondary" style={{ fontSize: 11 }}>
+                  {formatTimeAgo(item.time)}
+                </Text>
+              }
             />
+          </List.Item>
+        )}
+      />
+    ) : (
+      <div
+        style={{
+          padding: 32,
+          textAlign: "center",
+        }}
+      >
+        <Text type="secondary">No recent activities</Text>
+      </div>
+    )}
+  </Card>
+</Drawer>
 
             <Divider type="vertical" />
 
@@ -402,9 +574,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
             margin: 0,
             padding: 0,
             background: '#f5f5f5',
-            height: 'calc(100vh - 64px)',
+            height: 'calc(100vh - 75px)', 
             marginTop: 64,
-            overflow: 'auto',
+             overflow: 'hidden',
           }}
         >
           {children}

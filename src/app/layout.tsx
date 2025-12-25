@@ -4,7 +4,6 @@ import { ConfigProvider } from 'antd';
 import { AuthProvider } from '@/context/AuthContext';
 import { TenantProvider } from '@/context/TenantContext';
 import './globals.css';
-
 export const metadata: Metadata = {
   title: 'Z Internal App',
   description: 'Internal management application for Z',

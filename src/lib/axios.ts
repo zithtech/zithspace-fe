@@ -119,9 +119,32 @@ const createApiClient = (): AxiosInstance => {
 
   // Request interceptor - Add JWT token and tenant headers to all requests
   client.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
+    async (config: InternalAxiosRequestConfig) => {
       // Add Authorization header
-      const token = TokenManager.getAccessToken();
+      let token = TokenManager.getAccessToken();
+      
+      // If no token exists, try to refresh from cookie before making request
+      if (!token && !config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/login')) {
+        console.log('🔄 No access token found, attempting proactive refresh...');
+        try {
+          const refreshResponse = await axios.post(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
+            {},
+            { withCredentials: true }
+          );
+          
+          if (refreshResponse.data.success && refreshResponse.data.accessToken) {
+            token = refreshResponse.data.accessToken;
+            if (token) {
+              TokenManager.setAccessToken(token);
+            }
+            console.log('✅ Proactive token refresh successful');
+          }
+        } catch (error) {
+          console.log('❌ Proactive token refresh failed');
+        }
+      }
+      
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -205,10 +228,12 @@ const createApiClient = (): AxiosInstance => {
 
           if (refreshResponse.data.success) {
             const { accessToken } = refreshResponse.data;
-            TokenManager.setAccessToken(accessToken);
+            if (accessToken) {
+              TokenManager.setAccessToken(accessToken);
+            }
 
             // Retry original request with new token
-            if (originalRequest.headers) {
+            if (originalRequest.headers && accessToken) {
               originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             }
 

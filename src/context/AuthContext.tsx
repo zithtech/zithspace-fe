@@ -134,8 +134,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const hasToken = AuthService.isAuthenticated();
       
       if (!hasToken) {
-        setUser(null);
-        return;
+        // No access token found - try to refresh from cookie before giving up
+        console.log('🔄 No access token found, attempting to refresh from cookie...');
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          console.log('❌ Token refresh failed, user not authenticated');
+          setUser(null);
+          return;
+        }
+        console.log('✅ Token refreshed successfully from cookie');
       }
 
       // Try to get user profile - axios interceptor will handle token refresh automatically
@@ -159,14 +166,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setUser(userData);
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('❌ Auth check failed:', error);
       
       // Only clear tokens on actual authentication errors (401), not parsing errors
       if (error instanceof ApiError && error.status === 401) {
+        console.log('🔒 Authentication error (401), clearing tokens and redirecting to login');
         setUser(null);
         AuthService.clearAuth();
+        
+        // Redirect to login if not already there
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          router.push('/login?error=session_expired');
+        }
       } else {
         // Keep tokens but clear user for non-auth errors (like parsing errors)
+        console.log('⚠️ Non-auth error, clearing user but keeping tokens for retry');
         setUser(null);
       }
     } finally {

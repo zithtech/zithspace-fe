@@ -5,7 +5,7 @@ import { Row, Col, Card, Skeleton, Divider } from "antd";
 
 export default function TicketDetailsLoading() {
   return (
-    <div className="">
+    <div className="p-10">
       {/* Header Skeleton */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>

@@ -43,6 +43,7 @@ import {
 } from "@/services/settingsService";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { useCreateTicket } from "@/hooks/useTickets";
+import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
 
 const { Title, Text, Paragraph } = Typography;
@@ -72,22 +73,17 @@ export default function CreateTicket() {
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
   const [ticketId] = useState(`TKT-${Date.now().toString().slice(-6)}`);
 
-  // State for dynamic data
-  const [projects, setProjects] = useState<
-    Array<{ value: string; label: string; code: string }>
-  >([]);
-  const [members, setMembers] = useState<
-    Array<{ value: string; label: string; position: string }>
-  >([]);
+  // Use cached global data hooks
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
+  const { data: members = [], isLoading: membersLoading } = useMembers();
+  const { data: ticketConfig, isLoading: configLoading } = useTicketConfig();
+
+  // Local state for project-specific data
   const [projectMembers, setProjectMembers] = useState<
     Array<{ value: string; label: string; position: string }>
   >([]);
-  const [ticketConfig, setTicketConfig] = useState<TicketConfigurations | null>(
-    null
-  );
   const [parentTickets, setParentTickets] = useState<
     Array<{ value: string; label: string }>
   >([]);
@@ -96,47 +92,15 @@ export default function CreateTicket() {
   >([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
 
-  // Dynamic dropdown options loaded from API
-  const [platforms, setPlatforms] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [stacks, setStacks] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [priorities, setPriorities] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [taskLevels, setTaskLevels] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [taskTypes, setTaskTypes] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
+  // Extract dropdown options from cached config
+  const platforms = ticketConfig?.platforms || [];
+  const stacks = ticketConfig?.stacks || [];
+  const priorities = ticketConfig?.priorities || PRIORITY_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default', description: undefined }));
+  const taskLevels = ticketConfig?.taskLevels || [];
+  const taskTypes = ticketConfig?.taskTypes || TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' }));
+
+  // Combined loading state
+  const dataLoading = projectsLoading || membersLoading || configLoading;
 
   const recentActivities = [
     { user: "John Doe", action: "created ticket #TKT-001", time: "2 mins ago" },
@@ -144,60 +108,6 @@ export default function CreateTicket() {
     { user: "Mike Johnson", action: "assigned to Sarah", time: "10 mins ago" },
     { user: "David Brown", action: "completed testing", time: "15 mins ago" },
   ];
-
-  // Load initial data
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setDataLoading(true);
-
-        // Load user projects, members, and ticket configurations in parallel
-        const [projectsData, membersData, ticketConfigData] = await Promise.all(
-          [
-            ProjectService.getUserProjectsForTickets(),
-            MembersService.getMembersForSelect(),
-            SettingsService.getTicketConfigurations(),
-          ]
-        );
-        console.log("EEEEEEEEEEEEEE", {
-          projectsData,
-          membersData,
-          ticketConfigData,
-        });
-
-        setProjects(projectsData || []);
-        setMembers(membersData || []);
-        setTicketConfig(ticketConfigData);
-
-        // Set dropdown options from the configuration with fallbacks
-        setPlatforms(ticketConfigData?.platforms || []);
-        setStacks(ticketConfigData?.stacks || []);
-        setPriorities(ticketConfigData?.priorities || []);
-        setTaskLevels(ticketConfigData?.taskLevels || []);
-        setTaskTypes(ticketConfigData?.taskTypes || []);
-      } catch (error) {
-        console.error("Error loading initial data:", error);
-        api.error({
-          message: "Error",
-          description: "Failed to load form data. Please refresh the page.",
-          placement: "bottomRight",
-          duration: 4,
-        });
-
-        // Set empty arrays as fallbacks to prevent map errors - ENHANCED with standard defaults
-        setPlatforms([]);
-        setStacks([]);
-        // Map standard options to the shape expected by the component state
-        setPriorities(PRIORITY_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
-        setTaskLevels([]);
-        setTaskTypes(TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
-      } finally {
-        setDataLoading(false);
-      }
-    };
-
-    loadInitialData();
-  }, []);
 
   // Load project-dependent data when project changes
   useEffect(() => {
@@ -318,7 +228,6 @@ export default function CreateTicket() {
     });
   };
 
-  console.log("SSS", { projects });
 
   return (
     <div>
@@ -791,9 +700,11 @@ export default function CreateTicket() {
                   <Text strong style={{ minWidth: 60 }}>
                     {priority.value}
                   </Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {priority.description}
-                  </Text>
+                  {priority.description && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {priority.description}
+                    </Text>
+                  )}
                 </div>
               ))}
             </Space>

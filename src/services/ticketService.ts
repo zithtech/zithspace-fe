@@ -438,6 +438,30 @@ class TicketService {
   }
 
   /**
+   * Get comments for a ticket
+   */
+  static async getComments(ticketId: string): Promise<Array<{
+    id: string;
+    comment: string;
+    timestamp: string;
+    user: {
+      id: string;
+      name: string;
+      workEmail: string;
+      position?: string;
+    };
+  }>> {
+    try {
+      const response = await apiClient.get(`/api/tickets/${ticketId}/comments`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching comments:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to fetch comments';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Add comment to ticket
    */
   static async addComment(id: string, comment: string, attachments?: any[]): Promise<any> {

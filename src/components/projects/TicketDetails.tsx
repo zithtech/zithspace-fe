@@ -53,6 +53,21 @@ import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
 import AttachmentUploader from '@/components/common/AttachmentUploader';
 import AttachmentList from '@/components/common/AttachmentList';
+import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
+import {
+  useTicketDetails,
+  useTicketComments,
+  useTicketLinks,
+  useTicketAttachments,
+  useUpdateTicket,
+  useAddComment,
+  useDeleteComment,
+  useAddRelatedLink,
+  useUpdateRelatedLink,
+  useDeleteRelatedLink,
+  useUploadAttachment,
+  useDeleteAttachment,
+} from "@/hooks/useTicketDetails";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -131,31 +146,32 @@ interface TicketComment {
 export default function TicketDetails({ ticketId }: TicketDetailsProps) {
   const router = useRouter();
   const [form] = Form.useForm();
-  const [ticket, setTicket] = useState<TicketDetails | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // React Query hooks for data fetching (parallel loading)
+  const { data: ticket, isLoading: ticketLoading } = useTicketDetails(ticketId);
+  const { data: comments = [], isLoading: commentsLoading } = useTicketComments(ticketId);
+  const { data: relatedLinks = [], isLoading: linksLoading } = useTicketLinks(ticketId);
+  const { data: attachments = [], isLoading: attachmentsLoading } = useTicketAttachments(ticketId);
+
+  // Mutation hooks
+  const updateTicketMutation = useUpdateTicket();
+  const addCommentMutation = useAddComment();
+  const deleteCommentMutation = useDeleteComment();
+  const addLinkMutation = useAddRelatedLink();
+  const updateLinkMutation = useUpdateRelatedLink();
+  const deleteLinkMutation = useDeleteRelatedLink();
+  const uploadAttachmentMutation = useUploadAttachment();
+  const deleteAttachmentMutation = useDeleteAttachment();
+
+  // UI state
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [projects, setProjects] = useState<
-    Array<{ value: string; label: string; code: string }>
-  >([]);
-  const [members, setMembers] = useState<
-    Array<{ value: string; label: string; position: string }>
-  >([]);
-  const [ticketConfig, setTicketConfig] = useState<TicketConfigurations | null>(
-    null
-  );
-  const [dataLoading, setDataLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
-  const [addingComment, setAddingComment] = useState(false);
 
   // Comments state
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState("");
-  const [savingCommentId, setSavingCommentId] = useState<string | null>(null);
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   // Related Links state
-  const [relatedLinks, setRelatedLinks] = useState<RelatedLink[]>([]);
   const [showAddLinkForm, setShowAddLinkForm] = useState(false);
   const [selectedLinkType, setSelectedLinkType] = useState<
     "ui_design" | "scope_doc" | "sample_response" | "dev_doc" | null
@@ -165,271 +181,91 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
     url: "",
   });
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
-  const [savingLinkId, setSavingLinkId] = useState<string | null>(null);
-  const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
 
-  // Attachments state
-  const [attachments, setAttachments] = useState<Array<{
-    id: string;
-    fileName: string;
-    fileUrl: string;
-    fileSize: number;
-    fileType: string;
-    uploadedAt: string;
-    uploadedBy: {
-      id: string;
-      name: string;
-      workEmail: string;
-      position: string;
-    };
-  }>>([]);
-  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  // Use cached global data hooks - only fetch when editing
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects({ enabled: editing });
+  const { data: members = [], isLoading: membersLoading } = useMembers({ enabled: editing });
+  const { data: ticketConfig, isLoading: configLoading } = useTicketConfig({ enabled: editing });
 
-  // Dynamic dropdown options loaded from API
-  const [platforms, setPlatforms] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [stacks, setStacks] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [priorities, setPriorities] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [taskLevels, setTaskLevels] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
-  const [taskTypes, setTaskTypes] = useState<
-    Array<{
-      value: string;
-      label: string;
-      color?: string;
-      description?: string;
-    }>
-  >([]);
+  // Extract dropdown options from cached config
+  const platforms = ticketConfig?.platforms || [];
+  const stacks = ticketConfig?.stacks || [];
+  const priorities = ticketConfig?.priorities || PRIORITY_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' }));
+  const taskLevels = ticketConfig?.taskLevels || [];
+  const taskTypes = ticketConfig?.taskTypes || TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' }));
 
+  // Combined loading states
+  const dataLoading = projectsLoading || membersLoading || configLoading;
+  const loading = ticketLoading || commentsLoading || linksLoading || attachmentsLoading;
+
+  // Populate form when ticket data is loaded
   useEffect(() => {
-    fetchTicket();
-    fetchAttachments();
-  }, [ticketId]);
-
-  // OPTIMIZED: Load dropdown data ONLY when editing mode is enabled
-  useEffect(() => {
-    if (editing) {
-      loadDropdownData();
+    if (ticket && editing) {
+      form.setFieldsValue({
+        title: ticket.title || "",
+        description: ticket.description || "",
+        platform: ticket.platform || "",
+        stack: (ticket as any).stack || "",
+        project: typeof ticket.project === 'string' ? ticket.project : ticket.project?.id || "",
+        priority: ticket.priority || "",
+        type: ticket.type || "",
+        taskLevel: ticket.taskLevel || "",
+        status: ticket.status || "",
+        assignee: ticket.assignee?.id || "",
+        reportTo: typeof ticket.reportTo === "string" ? ticket.reportTo : ticket.reportTo?.id || "",
+        storyPoint: (ticket as any).storyPoint || 0,
+        estimateHours: (ticket as any).estimateHours || 0,
+        startDate: (ticket as any).startDate ? dayjs((ticket as any).startDate) : null,
+        endDate: (ticket as any).endDate ? dayjs((ticket as any).endDate) : null,
+        releasePlan: (ticket as any).releasePlan || "",
+      });
     }
-  }, [editing]);
-
-  const loadDropdownData = async () => {
-    try {
-      setDataLoading(true);
-
-      // Load projects, members, and ticket configurations in parallel
-      const [projectsData, membersData, ticketConfigData] = await Promise.all([
-        ProjectService.getUserProjects(),
-        MembersService.getMembersForSelect(),
-        SettingsService.getTicketConfigurations(),
-      ]);
-
-      setProjects(projectsData || []);
-      setMembers(membersData || []);
-      setTicketConfig(ticketConfigData);
-
-      // Set dropdown options from the configuration with fallbacks
-      setPlatforms(ticketConfigData?.platforms || []);
-      setStacks(ticketConfigData?.stacks || []);
-      setPriorities(ticketConfigData?.priorities || []);
-      setTaskLevels(ticketConfigData?.taskLevels || []);
-      setTaskTypes(ticketConfigData?.taskTypes || []);
-    } catch (error) {
-      console.error("Error loading dropdown data:", error);
-      message.error("Failed to load form data. Please refresh the page.");
-
-      // Set empty arrays as fallbacks to prevent map errors
-      setPlatforms([]);
-      // Map standard options to the shape expected by the component state
-      setPriorities(PRIORITY_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
-      setTaskLevels([]);
-      setTaskTypes(TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label, color: 'default' })));
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
-  const fetchTicket = async () => {
-    try {
-      setLoading(true);
-      const response = await TicketService.getTicketById(ticketId);
-      // Transform the response to match our interface
-      const ticketData: TicketDetails = {
-        id: response.id,
-        ticketNumber: response.ticketNumber,
-        title: response.title,
-        description: response.description,
-        platform: response.platform,
-        stack: (response as any).stack,
-        project:
-          typeof response.project === "string"
-            ? { id: response.project, name: "Unknown", code: "UNK" }
-            : response.project,
-        priority: response.priority as "P1" | "P2" | "P3",
-        type: response.type || "TASK",
-        taskLevel: response.taskLevel,
-        status: response.status,
-        assignee:
-          typeof response.assignee === "string"
-            ? { id: "", name: response.assignee, email: "" }
-            : response.assignee,
-        reportTo: (response as any).reportTo || "",
-        storyPoint: (response as any).storyPoint || 0,
-        estimateHours: (response as any).estimateHours || 0,
-        createdBy: response.createdBy,
-        createdAt: response.createdAt,
-        updatedAt: response.updatedAt,
-        startDate: (response as any).startDate,
-        endDate: (response as any).endDate,
-        completedSteps: (response as any).completedSteps || 0,
-        totalSteps: (response as any).totalSteps || 11,
-        comments: (response as any).comments || [],
-      };
-      setTicket(ticketData);
-
-      // Set related links from response
-      setRelatedLinks((response as any).relatedLinks || []);
-
-      // Populate form with ticket data - CRITICAL: Use ObjectIds for relational fields
-      if (ticketData) {
-        form.setFieldsValue({
-          title: ticketData?.title || "",
-          description: ticketData?.description || "",
-          platform: ticketData?.platform || "",
-          stack: ticketData?.stack || "",
-          project: ticketData?.project?.id || "",
-          priority: ticketData?.priority || "",
-          type: ticketData?.type || "",
-          taskLevel: ticketData?.taskLevel || "",
-          status: ticketData?.status || "",
-          // FIXED: Use ObjectId instead of name for assignee
-          assignee: ticketData?.assignee?.id || "",
-          // FIXED: Use ObjectId instead of name for reportTo
-          reportTo:
-            typeof ticketData?.reportTo === "string"
-              ? ticketData.reportTo
-              : ticketData?.reportTo?.id || "",
-          storyPoint: ticketData?.storyPoint || 0,
-          estimateHours: ticketData?.estimateHours || 0,
-          startDate: ticketData?.startDate ? dayjs(ticketData.startDate) : null,
-          endDate: ticketData?.endDate ? dayjs(ticketData.endDate) : null,
-          releasePlan: ticketData?.releasePlan || "",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to fetch ticket:", error);
-      message.error("Failed to load ticket details");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRelatedLinks = async () => {
-    try {
-      const links = await TicketService.getRelatedLinks(ticketId);
-      setRelatedLinks(links);
-    } catch (error) {
-      console.error("Failed to fetch related links:", error);
-      message.error("Failed to load related links");
-    }
-  };
-
-  const fetchAttachments = async () => {
-    try {
-      setAttachmentsLoading(true);
-      const attachmentsData = await TicketService.getAttachments(ticketId);
-      setAttachments(attachmentsData);
-    } catch (error) {
-      console.error("Failed to fetch attachments:", error);
-      message.error("Failed to load attachments");
-    } finally {
-      setAttachmentsLoading(false);
-    }
-  };
+  }, [ticket, editing, form]);
 
   const handleUploadAttachment = async (file: string, fileName: string) => {
     try {
-      await TicketService.uploadAttachment(ticketId, file, fileName);
+      await uploadAttachmentMutation.mutateAsync({ ticketId, file, fileName });
       message.success("Attachment uploaded successfully");
-      fetchAttachments(); // Refresh attachments list
     } catch (error: any) {
       console.error("Failed to upload attachment:", error);
-      throw error; // Re-throw to let AttachmentUploader handle the error message
+      throw error;
     }
   };
 
   const handleDeleteAttachment = async (attachmentId: string) => {
     try {
-      await TicketService.deleteAttachment(ticketId, attachmentId);
+      await deleteAttachmentMutation.mutateAsync({ ticketId, attachmentId });
       message.success("Attachment deleted successfully");
-      fetchAttachments(); // Refresh attachments list
     } catch (error) {
       console.error("Failed to delete attachment:", error);
       message.error("Failed to delete attachment");
     }
   };
 
-  const fetchProjects = async () => {
-    try {
-      const projectsData = await ProjectService.getUserProjects();
-      setProjects(projectsData);
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-    }
-  };
-
   const handleSave = async () => {
     try {
-      setSaving(true);
       const values = await form.validateFields();
 
-      // CRITICAL FIX: Map field names to match backend expectations
       const updateData = {
         title: values.title,
         description: values.description,
         platform: values.platform,
-        projectId: values.project,
+        project: values.project,
         stack: values.stack,
         priority: values.priority,
         taskLevel: values.taskLevel,
         type: values.type,
         storyPoint: values.storyPoint,
         estimateHours: values.estimateHours,
-        assigneeId: values.assignee,
-        reportToId: values.reportTo,
+        assignee: values.assignee,
+        reportTo: values.reportTo,
         status: values.status,
         startDate: values.startDate ? values.startDate.toISOString() : null,
         endDate: values.endDate ? values.endDate.toISOString() : null,
         releasePlan: values.releasePlan || undefined,
       };
 
-      // Remove undefined/null/empty values to prevent validation errors
+      // Remove undefined/null/empty values
       Object.keys(updateData).forEach(key => {
         if (updateData[key as keyof typeof updateData] === undefined ||
             updateData[key as keyof typeof updateData] === null ||
@@ -438,33 +274,12 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
         }
       });
 
-      await TicketService.updateTicket(ticketId, updateData);
+      await updateTicketMutation.mutateAsync({ ticketId, updates: updateData });
       message.success("Ticket updated successfully");
       setEditing(false);
-      fetchTicket(); // Refresh ticket data
     } catch (error) {
       console.error("Failed to update ticket:", error);
       message.error("Failed to update ticket");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const fetchComments = async () => {
-    try {
-      const response = await TicketService.getTicketById(ticketId);
-      if (ticket) {
-        setTicket((prev) =>
-          prev
-            ? {
-                ...prev,
-                comments: (response as any).comments || [],
-              }
-            : null
-        );
-      }
-    } catch (error) {
-      console.error("Failed to fetch comments:", error);
     }
   };
 
@@ -472,16 +287,12 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
     if (!newComment.trim()) return;
 
     try {
-      setAddingComment(true);
-      await TicketService.addComment(ticketId, newComment);
+      await addCommentMutation.mutateAsync({ ticketId, comment: newComment });
       setNewComment("");
       message.success("Comment added successfully");
-      fetchComments(); // Only refresh comments section
     } catch (error) {
       console.error("Failed to add comment:", error);
       message.error("Failed to add comment");
-    } finally {
-      setAddingComment(false);
     }
   };
 
@@ -690,7 +501,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     <Button
                       type="primary"
                       icon={<SaveOutlined />}
-                      loading={saving}
+                      loading={updateTicketMutation.isPending}
                       onClick={handleSave}
                       size="small"
                     >
@@ -1124,7 +935,9 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     </Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Project">
-                    <Tag color="blue">{ticket?.project?.name || "Unknown"}</Tag>
+                    <Tag color="blue">
+                      {typeof ticket.project === 'string' ? ticket.project : ticket.project?.name || "Unknown"}
+                    </Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Platform">
                     {ticket?.platform || "Not specified"}
@@ -1174,9 +987,9 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                         ).format("MMM DD, YYYY")}`
                       : "Not set"}
                   </Descriptions.Item>
-                  {ticket?.releasePlan && (
+                  {(ticket as any)?.releasePlan && (
                     <Descriptions.Item label="Plans" span={2}>
-                      <Tag color="purple">{ticket.releasePlan}</Tag>
+                      <Tag color="purple">{(ticket as any).releasePlan}</Tag>
                     </Descriptions.Item>
                   )}
                 </Descriptions>
@@ -1300,7 +1113,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                     <Button
                       type="primary"
                       size="small"
-                      loading={savingLinkId !== null}
+                      loading={addLinkMutation.isPending || updateLinkMutation.isPending}
                       onClick={async () => {
                         if (
                           !linkFormData.description.trim() ||
@@ -1317,28 +1130,26 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                         // }
 
                         try {
-                          const linkId = editingLinkId || 'new';
-                          setSavingLinkId(linkId);
-
                           if (editingLinkId) {
-                            // Update existing link
-                            await TicketService.updateRelatedLink(
+                            await updateLinkMutation.mutateAsync({
                               ticketId,
-                              editingLinkId,
-                              {
-                                title: linkFormData.description.trim().substring(0, 100), // Use description as title (first 100 chars)
+                              linkId: editingLinkId,
+                              linkData: {
+                                title: linkFormData.description.trim().substring(0, 100),
                                 description: linkFormData.description.trim(),
                                 url: linkFormData.url.trim(),
                               }
-                            );
+                            });
                             message.success("Link updated successfully");
                           } else {
-                            // Add new link
-                            await TicketService.addRelatedLink(ticketId, {
-                              linkType: selectedLinkType,
-                              title: linkFormData.description.trim().substring(0, 100), // Use description as title (first 100 chars)
-                              description: linkFormData.description.trim(),
-                              url: linkFormData.url.trim(),
+                            await addLinkMutation.mutateAsync({
+                              ticketId,
+                              linkData: {
+                                linkType: selectedLinkType!,
+                                title: linkFormData.description.trim().substring(0, 100),
+                                description: linkFormData.description.trim(),
+                                url: linkFormData.url.trim(),
+                              }
                             });
                             message.success("Link added successfully");
                           }
@@ -1348,14 +1159,9 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                           setSelectedLinkType(null);
                           setLinkFormData({ description: "", url: "" });
                           setEditingLinkId(null);
-
-                          // Refresh only related links section to avoid full page reload
-                          fetchRelatedLinks();
                         } catch (error) {
                           console.error("Failed to save link:", error);
                           message.error("Failed to save link");
-                        } finally {
-                          setSavingLinkId(null);
                         }
                       }}
                     >
@@ -1435,7 +1241,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                 <Button
                                   type="primary"
                                   size="small"
-                                  loading={savingLinkId === link.id}
+                                  loading={updateLinkMutation.isPending}
                                   onClick={async () => {
                                     if (!linkFormData.description.trim() || !linkFormData.url.trim()) {
                                       message.error("Please fill in all fields");
@@ -1443,25 +1249,21 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                     }
                                     
                                     try {
-                                      setSavingLinkId(link.id || "");
-                                      await TicketService.updateRelatedLink(
+                                      await updateLinkMutation.mutateAsync({
                                         ticketId,
-                                        link.id || "",
-                                        {
+                                        linkId: link.id || "",
+                                        linkData: {
                                           title: linkFormData.description.trim().substring(0, 100),
                                           description: linkFormData.description.trim(),
                                           url: linkFormData.url.trim(),
                                         }
-                                      );
+                                      });
                                       message.success("Link updated successfully");
                                       setEditingLinkId(null);
                                       setLinkFormData({ description: "", url: "" });
-                                      fetchRelatedLinks();
                                     } catch (error) {
                                       console.error("Failed to update link:", error);
                                       message.error("Failed to update link");
-                                    } finally {
-                                      setSavingLinkId(null);
                                     }
                                   }}
                                 >
@@ -1501,21 +1303,17 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                   size="small"
                                   danger
                                   icon={<DeleteOutlined />}
-                                  loading={deletingLinkId === link.id}
+                                  loading={deleteLinkMutation.isPending}
                                   onClick={async () => {
                                     try {
-                                      setDeletingLinkId(link.id || "");
-                                      await TicketService.deleteRelatedLink(
+                                      await deleteLinkMutation.mutateAsync({
                                         ticketId,
-                                        link.id || ""
-                                      );
+                                        linkId: link.id || ""
+                                      });
                                       message.success("Link deleted successfully");
-                                      fetchRelatedLinks();
                                     } catch (error) {
                                       console.error("Failed to delete link:", error);
                                       message.error("Failed to delete link");
-                                    } finally {
-                                      setDeletingLinkId(null);
                                     }
                                   }}
                                 >
@@ -1612,7 +1410,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                 <Button
                   type="primary"
                   icon={<SendOutlined />}
-                  loading={addingComment}
+                  loading={addCommentMutation.isPending}
                   onClick={handleAddComment}
                   disabled={!newComment.trim()}
                 >
@@ -1624,14 +1422,10 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
             <Divider />
 
             <List
-              dataSource={ticket.comments}
+              dataSource={comments}
               renderItem={(comment) => {
-                // Handle both populated user object and userName string
-                const userName =
-                  comment.userName ||
-                  (typeof comment.userId === "object" && comment.userId?.name) ||
-                  ((comment as any).user?.name) ||
-                  "Unknown User";
+                // Handle user data from React Query response
+                const userName = (comment as any).user?.name || "Unknown User";
 
                 const isEditing = editingCommentId === comment.id;
 
@@ -1663,7 +1457,7 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                             <Button
                               type="primary"
                               size="small"
-                              loading={savingCommentId === comment.id}
+                              loading={updateTicketMutation.isPending}
                               onClick={async () => {
                                 if (!editCommentText.trim()) {
                                   message.error("Comment cannot be empty");
@@ -1671,21 +1465,16 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                                 }
 
                                 try {
-                                  setSavingCommentId(comment.id);
-                                  await TicketService.updateComment(
+                                  await updateTicketMutation.mutateAsync({
                                     ticketId,
-                                    comment.id,
-                                    editCommentText.trim()
-                                  );
+                                    updates: { comment: editCommentText.trim() }
+                                  });
                                   message.success("Comment updated successfully");
                                   setEditingCommentId(null);
                                   setEditCommentText("");
-                                  fetchComments();
                                 } catch (error) {
                                   console.error("Failed to update comment:", error);
                                   message.error("Failed to update comment");
-                                } finally {
-                                  setSavingCommentId(null);
                                 }
                               }}
                             >
@@ -1722,18 +1511,17 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
                               size="small"
                               danger
                               icon={<DeleteOutlined />}
-                              loading={deletingCommentId === comment.id}
+                              loading={deleteCommentMutation.isPending}
                               onClick={async () => {
                                 try {
-                                  setDeletingCommentId(comment.id);
-                                  await TicketService.deleteComment(ticketId, comment.id);
+                                  await deleteCommentMutation.mutateAsync({
+                                    ticketId,
+                                    commentId: comment.id
+                                  });
                                   message.success("Comment deleted successfully");
-                                  fetchComments();
                                 } catch (error) {
                                   console.error("Failed to delete comment:", error);
                                   message.error("Failed to delete comment");
-                                } finally {
-                                  setDeletingCommentId(null);
                                 }
                               }}
                             >
@@ -1782,11 +1570,11 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
           <Card title="Workflow Progress">
             <Progress
               percent={Math.round(
-                ((ticket.completedSteps || 0) / (ticket.totalSteps || 11)) * 100
+                (((ticket as any).completedSteps || 0) / ((ticket as any).totalSteps || 11)) * 100
               )}
               format={() =>
-                `${ticket.completedSteps || 0}/${
-                  ticket.totalSteps || 11
+                `${(ticket as any).completedSteps || 0}/${
+                  (ticket as any).totalSteps || 11
                 } steps completed`
               }
               style={{ marginBottom: 16 }}
@@ -1795,17 +1583,17 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
             <Timeline
               items={workflowSteps.map((step, index) => ({
                 color:
-                  index < (ticket.completedSteps || 0)
+                  index < ((ticket as any).completedSteps || 0)
                     ? "green"
-                    : index === (ticket.completedSteps || 0)
+                    : index === ((ticket as any).completedSteps || 0)
                     ? "blue"
                     : "gray",
                 children: (
                   <div>
-                    <Text strong={index === (ticket.completedSteps || 0)}>
+                    <Text strong={index === ((ticket as any).completedSteps || 0)}>
                       {step}
                     </Text>
-                    {index === (ticket.completedSteps || 0) && (
+                    {index === ((ticket as any).completedSteps || 0) && (
                       <Tag color="processing" style={{ marginLeft: 8 }}>
                         Current
                       </Tag>

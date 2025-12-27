@@ -37,6 +37,7 @@ import { ProjectService } from "@/services/projectService";
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
+import { useUserProjects, useMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketKanban } from './kanban/TicketKanban';
 
@@ -55,9 +56,6 @@ export default function TicketList() {
   const [modal, contextHolder] = Modal.useModal();
   
   // Local state for filters only
-  const [projects, setProjects] = useState<
-    Array<{ value: string; label: string; code: string }>
-  >([]);
   const [filters, setFilters] = useState<FilterState>({
     status: [],
     priority: [],
@@ -77,9 +75,9 @@ export default function TicketList() {
   // For hover effect on title
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
 
-  const [members, setMembers] = useState<
-    Array<{ value: string; label: string; position: string }>
-  >([]);
+  // Use cached global data hooks
+  const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
+  const { data: members = [], isLoading: membersLoading } = useMembers();
   
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -118,11 +116,6 @@ export default function TicketList() {
   const totalTickets = ticketData?.pagination?.total || 0;
 
   // --- Effects ---
-
-  useEffect(() => {
-    fetchProjects();
-    fetchMembers();
-  }, []);
 
   // Dual Query Strategy for Kanban
   // 1. Fast initial load (20 tickets/column = 80 total)
@@ -175,24 +168,6 @@ export default function TicketList() {
     setPagination(prev => ({ ...prev, current: 1 }));
   }, [filters]);
 
-  const fetchProjects = async () => {
-    try {
-      const projectsData = await ProjectService.getUserProjects();
-      setProjects(projectsData);
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-    }
-  };
-
-  const fetchMembers = async () => {
-    try {
-      const { MembersService } = await import("@/services/membersService");
-      const membersData = await MembersService.getMembersForSelect();
-      setMembers(membersData || []);
-    } catch (error) {
-      console.error("Failed to fetch members:", error);
-    }
-  };
 
   const handleUpdateTicket = (
     ticketId: string,
@@ -678,7 +653,7 @@ export default function TicketList() {
   ];
 
   // Show empty state if user has no projects
-  if (!loading && projects.length === 0) {
+  if (!loading && !projectsLoading && projects.length === 0) {
     return (
       <div>
         {contextHolder}
@@ -714,7 +689,7 @@ export default function TicketList() {
   return (
     <div>
       {contextHolder}
-      {contextHolder}
+      {/* {contextHolder} */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <Title level={3} style={{ margin: 0 }}>Tickets</Title>

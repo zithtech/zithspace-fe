@@ -387,7 +387,7 @@ if (!mounted) return null;
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            height: 75,
+            height: 65,
             position: 'fixed',
             top: 0,
             right: 0,

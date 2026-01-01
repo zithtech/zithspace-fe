@@ -36,6 +36,8 @@ import {
   PlayCircleOutlined,
   RocketOutlined,
   ReloadOutlined,
+  CheckCircleOutlined,
+  StopOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -272,6 +274,9 @@ export default function ReleasePlanComponent() {
         description: values?.description || "",
         projectId: values?.project || "", // Map 'project' to 'projectId'
         releaseDate: values?.deadline?.toISOString() || "", // Map 'deadline' to 'releaseDate'
+        startDate: values?.startDate?.toISOString() || undefined,
+        endDate: values?.endDate?.toISOString() || undefined,
+        goal: values?.goal || "",
         status: "planning", // Default status
         type: activeTab as any,
         tickets: selectedTickets || [],
@@ -343,6 +348,9 @@ export default function ReleasePlanComponent() {
       description: plan?.description,
       project: projectId,
       deadline: plan?.deadline ? dayjs(plan.deadline) : null,
+      startDate: plan?.startDate ? dayjs(plan.startDate) : null,
+      endDate: plan?.endDate ? dayjs(plan.endDate) : null,
+      goal: plan?.goal,
       priority: plan?.priority,
       notes: plan?.notes,
     });
@@ -369,6 +377,42 @@ export default function ReleasePlanComponent() {
         description: "Failed to delete Plans",
         placement: "bottomRight",
         duration: 4,
+      });
+    }
+  };
+
+  const handleStartSprint = async (plan: ReleasePlan) => {
+    try {
+      await ReleasePlanService.startSprint(plan.id);
+      api.success({
+        message: "Success",
+        description: "Sprint started successfully",
+        placement: "bottomRight",
+      });
+      loadData();
+    } catch (error: any) {
+      api.error({
+        message: "Error",
+        description: error.message || "Failed to start sprint",
+        placement: "bottomRight",
+      });
+    }
+  };
+
+  const handleCompleteSprint = async (plan: ReleasePlan) => {
+    try {
+      await ReleasePlanService.completeSprint(plan.id);
+      api.success({
+        message: "Success",
+        description: "Sprint completed successfully",
+        placement: "bottomRight",
+      });
+      loadData();
+    } catch (error: any) {
+      api.error({
+        message: "Error",
+        description: error.message || "Failed to complete sprint",
+        placement: "bottomRight",
       });
     }
   };
@@ -502,11 +546,69 @@ export default function ReleasePlanComponent() {
       ),
     },
     {
+      title: "Start Date",
+      dataIndex: "startDate",
+      key: "startDate",
+      width: 120,
+      render: (date: string) => (
+        <Text style={{ fontSize: 12 }}>
+          {date ? dayjs(date).format("MMM DD") : "-"}
+        </Text>
+      ),
+    },
+    {
+      title: "End Date",
+      dataIndex: "endDate",
+      key: "endDate",
+      width: 120,
+      render: (date: string) => (
+        <Text style={{ fontSize: 12 }}>
+          {date ? dayjs(date).format("MMM DD") : "-"}
+        </Text>
+      ),
+    },
+
+    {
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 180,
       render: (_: any, record: ReleasePlan) => (
         <Space size="small">
+          {activeTab === 'sprint_plan' && record.status === 'planning' && (
+             <Popconfirm
+                title="Start Sprint"
+                description="Are you sure you want to start this sprint? This will be the active sprint for the project."
+                onConfirm={() => handleStartSprint(record)}
+                okText="Start"
+                cancelText="Cancel"
+              >
+              <Tooltip title="Start Sprint">
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<PlayCircleOutlined style={{ color: '#52c41a' }} />} 
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
+          {activeTab === 'sprint_plan' && record.status === 'active' && (
+             <Popconfirm
+                title="Complete Sprint"
+                description="Are you sure you want to complete this sprint?"
+                onConfirm={() => handleCompleteSprint(record)}
+                okText="Complete"
+                cancelText="Cancel"
+              >
+              <Tooltip title="Complete Sprint">
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<CheckCircleOutlined style={{ color: '#1677ff' }} />} 
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
+
           <Tooltip title="Edit">
             <Button
               type="link"
@@ -682,10 +784,32 @@ export default function ReleasePlanComponent() {
             />
           </Form.Item>
 
+          <Form.Item label="Goal" name="goal">
+            <Input placeholder="Enter Sprint/Plan Goal" />
+          </Form.Item>
+
           <Row gutter={16}>
-            <Col xs={24} md={16}>
+             <Col xs={24} md={8}>
               <Form.Item
-                label="Deadline"
+                label="Start Date"
+                name="startDate"
+                rules={[{ required: false, message: "Select start date" }]}
+              >
+                <DatePicker style={{ width: "100%" }} showTime={false} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item
+                label="End Date"
+                name="endDate"
+                rules={[{ required: false, message: "Select end date" }]}
+              >
+                <DatePicker style={{ width: "100%" }} showTime={false} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item
+                label="Deadline / Release Date"
                 name="deadline"
                 rules={[{ required: true, message: "Please select deadline" }]}
               >
@@ -696,7 +820,10 @@ export default function ReleasePlanComponent() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+          </Row>
+          
+          <Row gutter={16}>
+             <Col xs={24} md={8}>
               <Form.Item label="Priority" name="priority" initialValue="Medium">
                 <Select>
                   <Select.Option value="High">High</Select.Option>

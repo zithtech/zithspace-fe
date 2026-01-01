@@ -5,6 +5,9 @@ export interface ReleasePlanFormData {
   description: string;
   projectId: string;      // Changed from 'project' to match backend
   releaseDate: string;    // Changed from 'deadline' to match backend
+  startDate?: string;
+  endDate?: string;
+  goal?: string;
   status?: 'planning' | 'active' | 'completed' | 'cancelled';
   tickets?: string[];
   type?: 'sprint_plan' | 'demo_plan' | 'release_plan';
@@ -21,6 +24,12 @@ export interface ReleasePlan {
     description?: string;
   } | string;
   deadline: string;
+  releaseDate?: string;
+  startDate?: string;
+  endDate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  goal?: string;
   status: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
   progress: number;
   tickets: Array<{
@@ -280,6 +289,33 @@ class ReleasePlanService {
     } catch (error) {
       console.error('Error searching tickets:', error);
       throw new Error('Failed to search tickets');
+    }
+  }
+  /**
+   * Start a sprint
+   */
+  static async startSprint(id: string): Promise<ReleasePlan> {
+    try {
+      const response = await apiClient.post(`/api/release-plans/${id}/start`);
+      return response?.data?.data;
+    } catch (error: any) {
+      console.error('Error starting sprint:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to start sprint';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Complete a sprint
+   */
+  static async completeSprint(id: string): Promise<ReleasePlan> {
+    try {
+      const response = await apiClient.post(`/api/release-plans/${id}/complete`);
+      return response?.data?.data;
+    } catch (error: any) {
+      console.error('Error completing sprint:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to complete sprint';
+      throw new Error(errorMessage);
     }
   }
 }

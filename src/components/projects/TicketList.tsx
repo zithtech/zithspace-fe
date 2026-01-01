@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   Button,
@@ -40,6 +41,9 @@ import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useUserProjects, useMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketKanban } from './kanban/TicketKanban';
+import ReleasePlanService from "@/services/releasePlanService";
+import { Collapse } from 'antd';
+import { CaretRightOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
@@ -65,6 +69,7 @@ export default function TicketList() {
   });
   
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
+  const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
@@ -99,21 +104,74 @@ export default function TicketList() {
     search: filters.search || undefined,
   };
 
+  // Fetch Active Sprint to get ID for assignments
+  const { data: activeSprints } = useQuery({
+    queryKey: ['activeSprint'],
+    queryFn: () => ReleasePlanService.getActiveReleasePlans(),
+    staleTime: 60 * 1000, 
+  });
+  const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
+
+  // Query Params for Active Sprint List
+  const activeSprintParams = {
+      ...queryParams,
+      releasePlanId: 'active'
+  };
+
+  // Query Params for Backlog List
+  const backlogParams = {
+      ...queryParams,
+      releasePlanId: 'null' 
+  };
+
+  // 1. Fetch Active Sprint Tickets
   const { 
-    data: ticketData, 
-    isLoading: loading, 
-    isFetching: isRefetching,
-    refetch 
-  } = useTickets(queryParams);
+    data: activeSprintData, 
+    isLoading: activeSprintLoading,
+    refetch: refetchActive 
+  } = useTickets(activeSprintParams);
+
+  // 2. Fetch Backlog Tickets
+  const { 
+    data: backlogData, 
+    isLoading: backlogLoading,
+    refetch: refetchBacklog
+  } = useTickets(backlogParams);
+
+  // Default "All Tickets" query (Legacy support or if we toggle off split view? 
+  // User wants SPLIT view. So we might not need the unified query anymore for List view.
+  // But we keep it if we want to support filtering without sprint context?
+  // User asked for specific split. We will use these two data sources.)
+
+  const activeTickets = activeSprintData?.data || [];
+  const backlogTickets = backlogData?.data || [];
+  const totalBacklog = backlogData?.pagination?.total || 0;
 
   const updateTicketMutation = useUpdateTicket();
   const deleteTicketMutation = useDeleteTicket();
 
+  // Handle Add/Remove from Sprint
+  const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
+      if (action === 'add' && !activeSprint) {
+          message.error("No active sprint found to assign tickets to.");
+          return;
+      }
+
+      const releasePlanId = action === 'add' && activeSprint ? activeSprint.id : undefined; // Use undefined instead of null for removal
+      
+      updateTicketMutation.mutate({
+          id: ticketId,
+          data: { releasePlan: releasePlanId },
+          optimisticData: { releasePlan: releasePlanId } // Critical for optimistic move
+      }, {
+          onSuccess: () => {
+              message.success(action === 'add' ? "Added to sprint" : "Removed from sprint");
+          }
+      });
+  };
+
   // Enable live updates
   useTicketSocketEvents();
-
-  const tickets = ticketData?.data || [];
-  const totalTickets = ticketData?.pagination?.total || 0;
 
   // --- Effects ---
 
@@ -125,6 +183,7 @@ export default function TicketList() {
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
     search: filters.search || undefined,
     limitPerColumn: 20, // Fast initial load
+    releasePlanId: kanbanScope === 'active' ? 'active' : 'null',
   } : null;
 
   const { 
@@ -139,6 +198,7 @@ export default function TicketList() {
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
     search: filters.search || undefined,
     limitPerColumn: 50, // Complete load
+    releasePlanId: kanbanScope === 'active' ? 'active' : 'null',
   } : null;
 
   const { 
@@ -305,8 +365,8 @@ export default function TicketList() {
     }
   };
 
-  // Table columns
-  const columns = [
+  // Table columns generator
+  const getColumns = (context: 'active' | 'backlog') => [
     {
       title: "Ticket",
       dataIndex: "ticketNumber",
@@ -319,43 +379,43 @@ export default function TicketList() {
       ),
     },
     {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-      width: 300,
-      render: (text: string, record: Ticket) => {
-        const isEditing = 
-            editingField?.ticketId === record.id && 
-            editingField?.field === "title";
-        const isHovered = hoveredTicketId === record.id;
-        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-
-        if (isEditing) {
-            return (
-                <Input
-                    defaultValue={text}
-                    autoFocus
-                    onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
-                    onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
-                    disabled={isUpdating}
-                />
-            );
-        }
-
-        const displayText = text.length > 40 ? `${text.slice(0, 40)} ...` : text;
-
-        return (
-          <div 
-             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
-             onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
-             title={text} // Show full text on native tooltip as well
-          >
-            <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{displayText}</Text>
-            {isHovered && <EditOutlined style={{ color: '#1677ff', opacity: 0.7 }} />}
-          </div>
-        );
+        title: "Title",
+        dataIndex: "title",
+        key: "title",
+        width: 300,
+        render: (text: string, record: Ticket) => {
+          const isEditing = 
+              editingField?.ticketId === record.id && 
+              editingField?.field === "title";
+          const isHovered = hoveredTicketId === record.id;
+          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+  
+          if (isEditing) {
+              return (
+                  <Input
+                      defaultValue={text}
+                      autoFocus
+                      onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
+                      onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
+                      disabled={isUpdating}
+                  />
+              );
+          }
+  
+          const displayText = text.length > 40 ? `${text.slice(0, 40)} ...` : text;
+  
+          return (
+            <div 
+               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
+               onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
+               title={text} // Show full text on native tooltip as well
+            >
+              <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{displayText}</Text>
+              {isHovered && <EditOutlined style={{ color: '#1677ff', opacity: 0.7 }} />}
+            </div>
+          );
+        },
       },
-    },
     {
       title: "Status",
       dataIndex: "status",
@@ -496,9 +556,6 @@ export default function TicketList() {
                         autoFocus={true}
                         onBlur={(e) => {
                             const val = parseFloat(e.target.value);
-                            // Default to 0 if invalid/empty, as DB requires non-nullable Int
-                            // If empty string (""), parseFloat returns NaN -> 0.
-                            // If "3", returns 3.
                             handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
                         }}
                         onPressEnter={(e) => {
@@ -619,17 +676,38 @@ export default function TicketList() {
       title: "Actions",
       key: "actions",
       pinned: true,
-      width: 120,
+      width: 150,
       render: (_: any, record: Ticket) => (
         <Space>
+           {/* Sprint Assignment Action */}
+           {context === 'backlog' && (
+              <Button
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+                style={{ color: '#52c41a' }}
+                title="Add to Active Sprint"
+                onClick={() => handleSprintAssignment(record.id, 'add')}
+                disabled={!activeSprint}
+              />
+           )}
+           {context === 'active' && (
+              <Button
+                type="text"
+                size="small"
+                icon={<MinusOutlined />}
+                style={{ color: '#faad14' }}
+                title="Remove from Sprint"
+                onClick={() => handleSprintAssignment(record.id, 'remove')}
+              />
+           )}
+
           <Button
             type="text"
             size="small"
             icon={<EyeOutlined />}
             onClick={() => handleViewTicket(record)}
-          >
-           
-          </Button>
+          />
           <Popconfirm
             title="Delete Ticket"
             description="Are you sure you want to delete this ticket?"
@@ -652,8 +730,12 @@ export default function TicketList() {
     },
   ];
 
+  // Helper to get columns based on context
+  const columns = getColumns('backlog'); // Fallback/Default
+
+
   // Show empty state if user has no projects
-  if (!loading && !projectsLoading && projects.length === 0) {
+  if (!activeSprintLoading && !backlogLoading && !projectsLoading && projects.length === 0) {
     return (
       <div>
         {contextHolder}
@@ -689,16 +771,23 @@ export default function TicketList() {
   return (
     <div>
       {contextHolder}
-      {/* {contextHolder} */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <Title level={3} style={{ margin: 0 }}>Tickets</Title>
         </Col>
         <Col>
-          <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} buttonStyle="solid" size="middle">
-            <Radio.Button value="list"><BarsOutlined /> List</Radio.Button>
-            <Radio.Button value="board"><AppstoreOutlined /> Board</Radio.Button>
-          </Radio.Group>
+          <Space>
+             {viewMode === 'board' && (
+                 <Radio.Group value={kanbanScope} onChange={(e) => setKanbanScope(e.target.value as 'active' | 'backlog')} buttonStyle="solid" size="middle">
+                    <Radio.Button value="active">Active Sprint</Radio.Button>
+                    <Radio.Button value="backlog">Backlog</Radio.Button>
+                 </Radio.Group>
+             )}
+            <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} buttonStyle="solid" size="middle">
+                <Radio.Button value="list"><BarsOutlined /> List</Radio.Button>
+                <Radio.Button value="board"><AppstoreOutlined /> Board</Radio.Button>
+            </Radio.Group>
+          </Space>
         </Col>
       </Row>
 
@@ -783,8 +872,8 @@ export default function TicketList() {
           <Col xs={24} sm={12} md={6} lg={4}>
              <Button 
                icon={<ReloadOutlined />} 
-               onClick={() => refetch()} 
-               loading={isRefetching && !loading}
+               onClick={() => { refetchActive(); refetchBacklog(); }} 
+               loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading} // Just simplified loading state
              >
                Refresh
              </Button>
@@ -804,46 +893,86 @@ export default function TicketList() {
 
       {/* Tickets View (List or Board) */}
       {viewMode === 'list' ? (
-        <Card>
-            <Table
-            columns={columns}
-            dataSource={tickets}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: totalTickets,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                pageSizeOptions: ['10', '20', '50', '100'],
-                showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} tickets`,
-                onChange: (page, pageSize) => {
-                setPagination({
-                    current: page,
-                    pageSize: pageSize || pagination.pageSize,
-                });
-                },
-            }}
-            scroll={{ x: 1200 }}
-            onRow={(record) => {
-                return {
-                onMouseEnter: () => setHoveredTicketId(record.id),
-                onMouseLeave: () => setHoveredTicketId(null),
-                };
-            }}
-            locale={{
-                emptyText:
-                tickets.length === 0 && !loading ? (
-                    <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No tickets found for your projects"
-                    />
-                ) : undefined,
-            }}
-            />
-        </Card>
+          <>
+             {/* Active Sprint Section */}
+             {activeSprint && (
+                 <Collapse 
+                    defaultActiveKey={['1']}
+                    expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
+                    items={[{
+                        key: '1',
+                        label: (
+                            <Space>
+                                <Text strong style={{ fontSize: '16px' }}>{activeSprint.name}</Text>
+                                <Tag color="green">ACTIVE</Tag>
+                                <Text type="secondary" style={{ fontSize: '12px' }}>
+                                    {activeSprint.startedAt ? dayjs(activeSprint.startedAt).format('MMM D') : 'Unknown'} - {activeSprint.releaseDate ? dayjs(activeSprint.releaseDate).format('MMM D') : 'Unknown'}
+                                </Text>
+                            </Space>
+                        ),
+                        children: (
+                            <Table 
+                                columns={getColumns('active')}
+                                dataSource={activeTickets}
+                                rowKey="id"
+                                loading={activeSprintLoading}
+                                pagination={false} 
+                                scroll={{ x: 1200 }}
+                                onRow={(record) => {
+                                    return {
+                                    onMouseEnter: () => setHoveredTicketId(record.id),
+                                    onMouseLeave: () => setHoveredTicketId(null),
+                                    };
+                                }}
+                            />
+                        )
+                    }]}
+                    style={{ marginBottom: 24, background: '#fff' }}
+                 />
+             )}
+
+             {/* Backlog Section */}
+             <Card title="Backlog">
+                 <Table 
+                    columns={getColumns('backlog')}
+                    dataSource={backlogTickets}
+                    rowKey="id"
+                    loading={backlogLoading}
+                    pagination={{
+                        current: pagination.current,
+                        pageSize: pagination.pageSize,
+                        total: totalBacklog,
+                        showSizeChanger: true,
+                        showQuickJumper: true,
+                        pageSizeOptions: ['10', '20', '50', '100'],
+                        showTotal: (total, range) =>
+                        `${range[0]}-${range[1]} of ${total} tickets`,
+                        onChange: (page, pageSize) => {
+                            setPagination({
+                                current: page,
+                                pageSize: pageSize || pagination.pageSize,
+                            });
+                        },
+                    }}
+                    scroll={{ x: 1200 }}
+                    onRow={(record) => {
+                        return {
+                        onMouseEnter: () => setHoveredTicketId(record.id),
+                        onMouseLeave: () => setHoveredTicketId(null),
+                        };
+                    }}
+                    locale={{
+                        emptyText:
+                        backlogTickets.length === 0 && !backlogLoading ? (
+                            <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description="No backlog tickets found"
+                            />
+                        ) : undefined,
+                    }}
+                 />
+             </Card>
+          </>
       ) : (
           <>
             {isKanbanLoading ? (
@@ -876,7 +1005,10 @@ export default function TicketList() {
                   tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []} 
                   projects={projects}
                   members={members}
-                  onTicketUpdate={handleKanbanUpdate} 
+                  onTicketUpdate={handleKanbanUpdate}
+                  activeSprint={activeSprint}
+                  kanbanScope={kanbanScope}
+                  onSprintAssignment={handleSprintAssignment}
                 />
               </>
             ) : (
@@ -889,3 +1021,4 @@ export default function TicketList() {
     </div>
   );
 }
+

@@ -31,6 +31,7 @@ import {
   UnorderedListOutlined,
   CalendarOutlined,
   ControlOutlined,
+  ProfileOutlined
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
@@ -156,6 +157,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation('/accounts'),
       style: user?.role !== 'super_admin' ? { color: '#bfbfbf' } : undefined,
     },
+    {
+      key: '/documents',
+      icon: <ProfileOutlined />,
+      label: 'Documents',
+      onClick: () => handleNavigation('/documents'),
+    }
   ];
 
   const handleNavigation = (path: string) => {

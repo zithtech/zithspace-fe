@@ -93,29 +93,67 @@ export const useCreateTicket = () => {
 
       // Optimistically update to the new value (Lists) - ONLY IF NOT A SUBTASK
       if (!newTicketData.parentId) {
-        queryClient.setQueriesData({ queryKey: ticketKeys.lists() }, (oldData: any) => {
-          if (!oldData) return { data: [optimisticTicket], pagination: {} };
-          if (!oldData.data) return oldData;
-          return {
-            ...oldData,
-            data: [optimisticTicket, ...oldData.data],
-          };
+        // Iterate over specific queries instead of a blanket update
+        previousTicketLists.forEach(([queryKey, oldData]: [any, any]) => {
+          const params = queryKey[2] || {};
+
+          // FILTER: Check if this ticket belongs in this list
+          // 1. Project Check
+          if (params.projectId && params.projectId !== newTicketData.project) return;
+
+          // 2. Sprint Check
+          const isBacklogList = params.sprintId === 'null';
+          const isActiveSprintList = params.sprintId === 'active';
+
+          // New tickets (without specific sprint) belong to Backlog
+          // If params.sprintId is strictly 'active' or a specific UUID, and we don't have that sprint ID, skip.
+          if (isActiveSprintList) return;
+          if (params.sprintId && params.sprintId !== 'null' && params.sprintId !== 'active') return; // Specific sprint ID
+
+          // 3. Status/Priority Checks (Basic)
+          if (params.status && params.status !== newTicketData.status) return;
+
+          // Apply update
+          queryClient.setQueryData(queryKey, (old: any) => {
+            if (!old) return { data: [optimisticTicket], pagination: {} };
+            if (!old.data) return old;
+            return {
+              ...old,
+              data: [optimisticTicket, ...old.data],
+            };
+          });
         });
 
         // Optimistically update to the new value (Kanban) - ONLY IF NOT A SUBTASK
-        queryClient.setQueriesData({ queryKey: ['tickets', 'kanban'] }, (oldData: any) => {
-          if (!oldData?.columns) return oldData;
-          const updatedColumns = { ...oldData.columns };
-          const status = optimisticTicket.status;
+        // apply similar filtering if possible, or just add to 'not_started' everywhere?
+        // Kanban usually has sprint filters too.
+        previousKanbanData.forEach(([queryKey, oldData]: [any, any]) => {
+          if (!oldData?.columns) return;
 
-          if (updatedColumns[status]) {
-            updatedColumns[status] = {
-              ...updatedColumns[status],
-              tickets: [optimisticTicket, ...updatedColumns[status].tickets],
-              total: updatedColumns[status].total + 1
-            };
-          }
-          return { ...oldData, columns: updatedColumns };
+          const params = queryKey[2] || {};
+          if (params.projectId && params.projectId !== newTicketData.project) return;
+
+          const isBacklogBoard = params.sprintId === 'null';
+          const isActiveSprintBoard = params.sprintId === 'active';
+
+          // Similar Filter Logic
+          if (isActiveSprintBoard) return;
+          if (params.sprintId && params.sprintId !== 'null' && params.sprintId !== 'active') return;
+
+          queryClient.setQueryData(queryKey, (old: any) => {
+            if (!old?.columns) return old;
+            const updatedColumns = { ...old.columns };
+            const status = optimisticTicket.status;
+
+            if (updatedColumns[status]) {
+              updatedColumns[status] = {
+                ...updatedColumns[status],
+                tickets: [optimisticTicket, ...updatedColumns[status].tickets],
+                total: updatedColumns[status].total + 1
+              };
+            }
+            return { ...old, columns: updatedColumns };
+          });
         });
       } else {
         // OPTIMISTIC UPDATE FOR SUBTASK IN PARENT
@@ -346,6 +384,9 @@ export const useUpdateTicket = () => {
       const ticketLists = queryClient.getQueriesData({ queryKey: ticketKeys.lists() });
       ticketLists.forEach(([queryKey, oldData]: [any, any]) => {
         if (!oldData?.data) return;
+
+        // GUARD: Subtasks shouldn't be in main lists
+        if (savedTicket.parentId) return;
 
         const listParams = queryKey[2] || {};
         const isBacklogList = listParams.sprintId === 'null';

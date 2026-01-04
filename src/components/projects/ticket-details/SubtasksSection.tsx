@@ -79,11 +79,20 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
         const finalAssigneeId = (!assigneeId || assigneeId === '') ? null : assigneeId;
         console.log('Updating assignee:', { ticketId, assigneeId, finalAssigneeId, parentId });
 
+        // Find member for optimistic update
+        const member = members.find(m => m.value === finalAssigneeId);
+        const optimisticAssignee = member ? {
+            id: member.value,
+            name: member.label, // Using label as name
+            email: member.email
+        } : null;
+
         try {
             // Force type assertion to ensure null is passed
             await updateTicketMutation.mutateAsync({
                 id: ticketId,
                 data: { assignee: finalAssigneeId as any },
+                optimisticData: { assignee: optimisticAssignee },
                 parentId
             });
             message.success('Assignee updated');
@@ -129,14 +138,14 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                 onClick: () => handleUpdateAssignee(ticketId, null) // Send null for unassigned
             },
             ...members.map(member => ({
-                key: member.id,
+                key: member.value,
                 label: (
                     <Space>
                         <Avatar size="small" style={{ backgroundColor: '#1890ff' }}>{member?.label?.charAt(0).toUpperCase()}</Avatar>
                         <span>{member?.label}</span>
                     </Space>
                 ),
-                onClick: () => handleUpdateAssignee(ticketId, member.id)
+                onClick: () => handleUpdateAssignee(ticketId, member.value)
             }))
         ]
     });

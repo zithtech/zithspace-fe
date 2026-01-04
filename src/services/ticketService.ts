@@ -6,12 +6,13 @@ export interface TicketFormData {
   platform?: string;
   project: string;
   parentTickets?: string[];
+  parentId?: string;
   parentTicketNotes?: string;
   stack?: string;
   priority?: string;
   status?: string;
   taskLevel?: string;
-  type?: string; 
+  type?: string;
   storyPoint?: number;
   estimateHours?: number;
   reportTo?: string;
@@ -96,6 +97,7 @@ export interface Ticket {
     code: string;
     description?: string;
   } | string;
+  stack?: string;
   priority: string;
   taskLevel: string;
   type: string;
@@ -121,6 +123,9 @@ export interface Ticket {
   estimateHours?: number;
   startDate?: string;
   endDate?: string;
+  releasePlanId?: string; // Mapped from backend
+  sprintPlanId?: string;  // Mapped from backend
+  parentId?: string;      // Hierarchy support (Subtask)
   metadata?: {
     platform?: string;
     stack?: string;
@@ -143,6 +148,7 @@ export interface Ticket {
     comment: string;
     timestamp: string;
   }>;
+  subTasks?: Ticket[];
 }
 
 export interface TicketListResponse {

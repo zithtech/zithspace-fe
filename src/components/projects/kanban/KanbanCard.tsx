@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, Tag, Typography, Avatar, Space, Select, Input } from 'antd';
+import { Card, Tag, Typography, Avatar, Space, Select, Input, Dropdown, MenuProps, Button } from 'antd';
 import { Ticket } from '@/services/ticketService';
 import { getPriorityColor, getTypeColor, PRIORITY_OPTIONS, TYPE_OPTIONS } from '@/utils/ticketUtils';
+import { MoreOutlined, RocketOutlined, CloseCircleOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -14,9 +15,12 @@ interface KanbanCardProps {
   projects?: Array<{ value: string; label: string; code: string }>;
   members?: Array<{ value: string; label: string; position: string }>;
   onUpdate: (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => void;
+  activeSprint?: any; // Replace with ReleasePlan type if available, using any to avoid import cycles for now or just Ticket interactions
+  kanbanScope?: 'active' | 'backlog';
+  onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, members, onUpdate }) => {
+export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, members, onUpdate, activeSprint, kanbanScope, onSprintAssignment }) => {
   const {
     attributes,
     listeners,
@@ -209,8 +213,33 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
       );
   };
     
+  const getMenuItems = (): MenuProps['items'] => {
+      const items: MenuProps['items'] = [];
+      if (kanbanScope === 'backlog' && activeSprint && onSprintAssignment) {
+          items.push({
+              key: 'addToSprint',
+              label: 'Add to Active Sprint',
+              icon: <RocketOutlined />,
+              onClick: () => onSprintAssignment(ticket.id, 'add')
+          });
+      }
+      if (kanbanScope === 'active' && onSprintAssignment) {
+           items.push({
+              key: 'removeFromSprint',
+              label: 'Remove from Sprint',
+              icon: <CloseCircleOutlined />,
+              danger: true,
+              onClick: () => onSprintAssignment(ticket.id, 'remove')
+          });
+      }
+      return items;
+  };
+
+  const menuItems = getMenuItems();
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...(editingField ? {} : listeners)}>
+      <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
       <Card 
         size="small" 
         hoverable 
@@ -221,30 +250,45 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
           {/* Header: ID and Type */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
             <Text type="secondary" style={{ fontSize: 11 }}>{ticket.ticketNumber}</Text>
-            {/* Type Edit */}
-             {editingField === 'type' ? (
-                 <div onPointerDown={stopPropagation}>
-                     <Select
-                        autoFocus
-                        open
-                        size="small"
-                        style={{ width: 70 }}
-                        value={activeValue}
-                        onChange={(val) => handleSave(val)}
-                        onBlur={cleanup}
-                        options={TYPE_OPTIONS}
-                     />
-                 </div>
-             ) : (
-                <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('type', ticket.type)}>
-                    <Tag 
-                        color={getTypeColor(ticket.type)} 
-                        style={{ margin: 0, fontSize: 10, lineHeight: '18px', cursor: 'pointer' }}
-                    >
-                        {ticket.type}
-                    </Tag>
-                </div>
-             )}
+            
+            <div style={{ display: 'flex', gap: 4 }}>
+                {/* Visual indicator for Sprint actions if Context Menu is hidden */}
+                 {menuItems && menuItems.length > 0 && (
+                     <div onPointerDown={stopPropagation} onClick={(e) => {
+                         e.stopPropagation();
+                         // Ideally show dropdown
+                     }}>
+                        <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+                            <Button type="text" size="small" icon={<MoreOutlined rotate={90} />} style={{ width: 20, height: 20, minWidth: 20 }} />
+                        </Dropdown>
+                     </div>
+                 )}
+
+                {/* Type Edit */}
+                 {editingField === 'type' ? (
+                     <div onPointerDown={stopPropagation}>
+                         <Select
+                            autoFocus
+                            open
+                            size="small"
+                            style={{ width: 70 }}
+                            value={activeValue}
+                            onChange={(val) => handleSave(val)}
+                            onBlur={cleanup}
+                            options={TYPE_OPTIONS}
+                         />
+                     </div>
+                 ) : (
+                    <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('type', ticket.type)}>
+                        <Tag 
+                            color={getTypeColor(ticket.type)} 
+                            style={{ margin: 0, fontSize: 10, lineHeight: '18px', cursor: 'pointer' }}
+                        >
+                            {ticket.type}
+                        </Tag>
+                    </div>
+                 )}
+            </div>
           </div>
           
           {/* Title Edit */}
@@ -261,6 +305,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
           </div>
         </Space>
       </Card>
+      </Dropdown>
     </div>
   );
 };

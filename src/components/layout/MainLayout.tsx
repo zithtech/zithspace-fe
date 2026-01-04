@@ -92,10 +92,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
           onClick: () => handleNavigation('/projects/create'),
         },
         {
-          key: '/projects/tickets',
+          key: '/projects/select',
           icon: <UnorderedListOutlined />,
           label: 'Tickets',
-          onClick: () => handleNavigation('/projects/tickets'),
+          onClick: () => handleNavigation('/projects/select'),
         },
         {
           key: '/projects/plans',

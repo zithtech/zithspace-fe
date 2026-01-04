@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Ticket } from '@/services/ticketService';
@@ -15,9 +15,12 @@ interface KanbanColumnProps {
   projects: Array<{ value: string; label: string; code: string }>;
   members: Array<{ value: string; label: string; position: string }>;
   onTicketUpdate: (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => void;
+  activeSprint?: any;
+  kanbanScope?: 'active' | 'backlog';
+  onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
 }
 
-export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, projects, members, onTicketUpdate }) => {
+export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, projects, members, onTicketUpdate, activeSprint, kanbanScope, onSprintAssignment }) => {
   const { setNodeRef } = useDroppable({
     id: id,
   });
@@ -63,7 +66,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
                 ticket={ticket}
                 projects={projects}
                 members={members}
-                onUpdate={onTicketUpdate}
+                onUpdate={onTicketUpdate} // Corrected prop name
+                activeSprint={activeSprint}
+                kanbanScope={kanbanScope}
+                onSprintAssignment={onSprintAssignment}
             />
           ))}
         </SortableContext>

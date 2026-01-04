@@ -182,6 +182,25 @@ export class ProjectService {
   }
 
   /**
+   * Get rich project data for selection screen
+   */
+  static async getSelectionProjects(): Promise<PaginatedResponse<Project>> {
+    try {
+      // The backend returns { success: true, data: [...] } which Axios interceptor likely unwraps to just data
+      // But typically we return a list. Adjust return type if needed based on backend response structure.
+      // Based on controller it returns `enrichedProjects` array directly in `data`.
+      // The `api.get` generic usually matches the response body `data` property or the full response.
+      // Assuming valid Axios setup:
+      return await api.get('/api/projects/selection');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to fetch selection projects');
+    }
+  }
+
+  /**
    * Get projects where user is a member (for ticket creation)
    */
   static async getUserProjects(): Promise<Array<{ value: string; label: string; code: string }>> {

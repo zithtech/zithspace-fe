@@ -1,0 +1,74 @@
+'use client';
+
+import React, { use } from 'react';
+import { Alert, Button, Spin } from 'antd';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import MainLayout from '@/components/layout/MainLayout';
+import TicketList from '@/components/projects/TicketList';
+import { ProjectService } from '@/services/projectService';
+import { useAuth } from '@/context/AuthContext';
+
+interface PageProps {
+  params: Promise<{ projectId: string }>;
+}
+
+export default function ProjectTicketsPage({ params }: PageProps) {
+  const { projectId } = use(params);
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+
+  // Fetch project details
+  const { data: project, isLoading: projectLoading, error } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => ProjectService.getProject(projectId),
+    enabled: !!projectId && !!user,
+  });
+
+  if (authLoading || projectLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 20, textAlign: 'center', paddingTop: 100 }}>
+          <Spin size="large" tip="Loading project..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 20, maxWidth: 600, margin: '60px auto' }}>
+          <Alert
+            message="Project Not Found"
+            description="The project you're looking for doesn't exist or you don't have access to it."
+            type="error"
+            showIcon
+            action={
+              <Button 
+                type="primary" 
+                onClick={() => router.push('/projects/select')}
+              >
+                Back to Projects
+              </Button>
+            }
+          />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <MainLayout>
+      <TicketList 
+        projectId={projectId} 
+        projectName={project.name}
+        projectCode={project.code}
+      />
+    </MainLayout>
+  );
+}

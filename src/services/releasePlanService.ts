@@ -15,7 +15,8 @@ export interface ReleasePlanFormData {
 
 export interface ReleasePlan {
   id: string;
-  name: string;
+  version: string;
+  name?: string;
   description: string;
   project: {
     id: string;
@@ -199,10 +200,14 @@ class ReleasePlanService {
 
   /**
    * Get active release plans
+   * @param projectId - Optional project ID to filter active plans by project
    */
-  static async getActiveReleasePlans(): Promise<ReleasePlan[]> {
+  static async getActiveReleasePlans(projectId?: string): Promise<ReleasePlan[]> {
     try {
-      const response = await apiClient.get('/api/release-plans/active');
+      const url = projectId
+        ? `/api/release-plans/active?projectId=${projectId}`
+        : '/api/release-plans/active';
+      const response = await apiClient.get(url);
       return response?.data?.data || [];
     } catch (error) {
       console.error('Error fetching active release plans:', error);

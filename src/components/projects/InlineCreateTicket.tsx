@@ -6,8 +6,8 @@ import { TicketFormData } from "@/services/ticketService";
 import { PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 
 interface InlineCreateTicketProps {
+  projectId: string;
   filters: {
-    project: string[];
     assignee: string[];
     status: string[];
     priority: string[];
@@ -15,50 +15,47 @@ interface InlineCreateTicketProps {
   projects: Array<{ value: string; label: string; code: string }>;
   members: Array<{ value: string; label: string; position: string }>;
   onTicketCreated?: () => void;
+  visible?: boolean;
+  onClose?: () => void;
 }
 
+
 export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
+  projectId,
   filters,
   projects,
   members,
   onTicketCreated,
+  visible,
+  onClose,
 }) => {
   const [api, contextHolder] = notification.useNotification();
-  const [isCreating, setIsCreating] = useState(false);
+  // Internal state for uncontrolled mode
+  const [internalIsCreating, setInternalIsCreating] = useState(false);
+  
+  // Use prop if provided, otherwise internal state
+  const isCreating = visible !== undefined ? visible : internalIsCreating;
+  
   const [title, setTitle] = useState("");
-  const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
   
   const createTicketMutation = useCreateTicket();
 
-  // Smartly inherit project from filters
-  useEffect(() => {
-    if (filters.project.length === 1) {
-      setSelectedProject(filters.project[0]);
-    } else {
-      setSelectedProject(undefined);
-    }
-  }, [filters.project]);
-
   const handleCreate = () => {
-    console.log("handleCreate CALLED", { title, selectedProject, filters });
+    console.log("handleCreate CALLED", { title, projectId, filters });
     
     if (!title.trim()) {
       api.error({ message: "Validation Error", description: "Please enter a ticket title" });
       return;
     }
 
-    if (!selectedProject) {
-      if (projects.length > 0) {
-          api.error({ message: "Validation Error", description: "Please select a project" });
-          return;
-      }
-      api.error({ message: "Validation Error", description: "No projects available to create ticket" });
+    if (!projectId) {
+      api.error({ message: "Validation Error", description: "Project context is missing" });
       return;
     }
 
     const newTicketData: TicketFormData = {
       title,
-      project: selectedProject,
+      project: projectId,
       status: filters.status.length === 1 ? filters.status[0] : "not_started",
       priority: filters.priority.length === 1 ? filters.priority[0] : "P2",
       assignee: filters.assignee.length === 1 ? filters.assignee[0] : undefined,
@@ -68,7 +65,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
     
     // 1. Optimistic UI: Reset form IMMEDIATELY
     setTitle(""); 
-    setIsCreating(false);
+    if (visible === undefined) setInternalIsCreating(false);
     
     // 2. Fire mutation
     createTicketMutation.mutate(newTicketData, {
@@ -84,6 +81,8 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
         onSuccess: () => {
              api.success({ message: "Ticket created", duration: 2 });
              if (onTicketCreated) onTicketCreated();
+             if (onClose) onClose();
+             if (visible === undefined) setInternalIsCreating(false);
         }
     });
   };
@@ -96,6 +95,9 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
   };
 
   if (!isCreating) {
+    // If controlled (visible is provided) and false, render nothing
+    if (visible !== undefined) return <>{contextHolder}</>;
+
     return (
       <>
         {contextHolder}
@@ -104,7 +106,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
           block 
           style={{ marginBottom: 16, textAlign: "left" }} 
           icon={<PlusOutlined />}
-          onClick={() => setIsCreating(true)}
+          onClick={() => setInternalIsCreating(true)}
         >
           Create Ticket
         </Button>
@@ -125,22 +127,7 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
         bodyStyle={{ padding: "8px 16px" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {!filters.project.length && (
-            <Select
-              placeholder="Select Project"
-              style={{ width: 150 }}
-              value={selectedProject}
-              onChange={setSelectedProject}
-              options={projects.map(p => ({ label: p?.label, value: p?.value }))}
-              size="middle"
-            />
-          )}
-          
-          {filters.project.length === 1 && (
-               <Tag color="blue">{projects.find(p => p.value === filters.project[0])?.code || "Current Project"}</Tag>
-          )}
-
-          <Input 
+          <Input
             placeholder="What needs to be done? (Press Enter to create)" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -162,7 +149,10 @@ export const InlineCreateTicket: React.FC<InlineCreateTicketProps> = ({
              <Button type="primary" onClick={handleCreate} loading={false}>
                Create
              </Button>
-             <Button onClick={() => setIsCreating(false)}>
+             <Button onClick={() => {
+                 if (onClose) onClose();
+                 if (visible === undefined) setInternalIsCreating(false);
+             }}>
                Cancel
              </Button>
           </div>

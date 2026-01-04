@@ -20,6 +20,11 @@ import {
   Modal,
   Popconfirm,
   Radio,
+  Popover,
+  Tooltip,
+  Divider,
+  Collapse,
+  notification,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -30,6 +35,12 @@ import {
   EditOutlined,
   AppstoreOutlined,
   BarsOutlined,
+  FilterOutlined,
+  PlusOutlined,
+  MinusOutlined,
+  CaretRightOutlined,
+  ArrowLeftOutlined,
+  MinusCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -40,50 +51,57 @@ import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
 import { useUserProjects, useMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
+import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
 import ReleasePlanService from "@/services/releasePlanService";
-import { Collapse } from 'antd';
-import { CaretRightOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
+import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
 
 const { Title, Text } = Typography;
 
 interface FilterState {
   status: string[];
   priority: string[];
-  project: string[];
   assignee: string[];
   search: string;
 }
 
-export default function TicketList() {
+interface TicketListProps {
+  projectId: string;
+  projectName: string;
+  projectCode: string;
+}
+
+export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const router = useRouter();
   const [modal, contextHolder] = Modal.useModal();
-  
+
   // Local state for filters only
   const [filters, setFilters] = useState<FilterState>({
     status: [],
     priority: [],
-    project: [],
     assignee: [],
     search: "",
   });
-  
+
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   const [kanbanScope, setKanbanScope] = useState<'active' | 'backlog'>('active');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
     ticketId: string;
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint";
   } | null>(null);
-  
+
   // For hover effect on title
   const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
 
   // Use cached global data hooks
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
   const { data: members = [], isLoading: membersLoading } = useMembers();
-  
+
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
@@ -92,48 +110,50 @@ export default function TicketList() {
 
   // --- React Query Hooks ---
 
-  // Prepare params for useTickets
+  // Prepare params for useTickets - always scoped to projectId
   const queryParams = {
     page: pagination.current,
     limit: pagination.pageSize,
+    projectId, // From props, mandatory project context
     status: filters.status.length > 0 ? filters.status[0] : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
-    projectId: filters.project.length > 0 ? filters.project[0] : undefined,
     assigneeId:
       filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
     search: filters.search || undefined,
   };
 
-  // Fetch Active Sprint to get ID for assignments
+  // Fetch Active Sprint to get ID for assignments (scoped to project)
   const { data: activeSprints } = useQuery({
-    queryKey: ['activeSprint'],
-    queryFn: () => ReleasePlanService.getActiveReleasePlans(),
-    staleTime: 60 * 1000, 
+    queryKey: ['activeSprint', projectId],
+    queryFn: () => ReleasePlanService.getActiveReleasePlans(projectId),
+    staleTime: 60 * 1000,
+    enabled: !!projectId,
   });
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
+  console.log("Active Sprint:", activeSprint);
 
   // Query Params for Active Sprint List
   const activeSprintParams = {
-      ...queryParams,
-      releasePlanId: 'active'
+    ...queryParams,
+    sprintId: 'active'
   };
 
   // Query Params for Backlog List
   const backlogParams = {
-      ...queryParams,
-      releasePlanId: 'null' 
+    ...queryParams,
+    sprintId: 'null'
   };
 
   // 1. Fetch Active Sprint Tickets
-  const { 
-    data: activeSprintData, 
+  const {
+    data: activeSprintData,
     isLoading: activeSprintLoading,
-    refetch: refetchActive 
+    refetch: refetchActive
   } = useTickets(activeSprintParams);
 
   // 2. Fetch Backlog Tickets
-  const { 
-    data: backlogData, 
+  const {
+    data: backlogData,
     isLoading: backlogLoading,
     refetch: refetchBacklog
   } = useTickets(backlogParams);
@@ -151,23 +171,43 @@ export default function TicketList() {
   const deleteTicketMutation = useDeleteTicket();
 
   // Handle Add/Remove from Sprint
-  const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
-      if (action === 'add' && !activeSprint) {
-          message.error("No active sprint found to assign tickets to.");
-          return;
-      }
+  // Handle Add/Remove from Sprint
+  const [notifyApi, notifyContextHolder] = notification.useNotification(); // Use notification hook
 
-      const releasePlanId = action === 'add' && activeSprint ? activeSprint.id : undefined; // Use undefined instead of null for removal
-      
-      updateTicketMutation.mutate({
-          id: ticketId,
-          data: { releasePlan: releasePlanId },
-          optimisticData: { releasePlan: releasePlanId } // Critical for optimistic move
-      }, {
-          onSuccess: () => {
-              message.success(action === 'add' ? "Added to sprint" : "Removed from sprint");
+  // Handle Add/Remove from Sprint
+  // Handle Add/Remove from Sprint
+  const handleSprintAssignment = (ticketId: string, action: 'add' | 'remove') => {
+    if (action === 'add' && !activeSprint) {
+      notifyApi.error({ message: "Action Failed", description: "No active sprint found for this project." });
+      return;
+    }
+
+    // Explicitly set releasePlan to the ID for add, or null for remove
+    const releasePlanId = action === 'add' && activeSprint ? activeSprint.id : (action === 'remove' ? null as any : undefined);
+
+    updateTicketMutation.mutate({
+      id: ticketId,
+      data: { releasePlan: releasePlanId },
+      optimisticData: { releasePlan: releasePlanId } // Critical for optimistic move
+    }, {
+      onSuccess: () => {
+        notifyApi.success({
+          message: action === 'add' ? "Ticket Added to Sprint" : "Ticket Removed from Sprint",
+          description: action === 'add'
+            ? `${activeSprint?.name || 'Sprint'} updated.`
+            : "Ticket returned to backlog.",
+          placement: 'bottomLeft', // Jira style-ish
+          className: 'custom-notification',
+          style: {
+            borderLeft: `4px solid ${action === 'add' ? '#52c41a' : '#ff4d4f'}`,
           }
-      });
+        });
+      },
+      onError: (err) => {
+        console.error(err);
+        notifyApi.error({ message: "Update Failed", description: "Failed to update sprint assignment." });
+      }
+    });
   };
 
   // Enable live updates
@@ -178,55 +218,65 @@ export default function TicketList() {
   // Dual Query Strategy for Kanban
   // 1. Fast initial load (20 tickets/column = 80 total)
   const initialKanbanParams = viewMode === 'board' ? {
-    projectId: filters.project.length > 0 ? filters.project[0] : undefined,
+    projectId, // From props, mandatory project context
     assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
     search: filters.search || undefined,
     limitPerColumn: 20, // Fast initial load
-    releasePlanId: kanbanScope === 'active' ? 'active' : 'null',
+    sprintId: kanbanScope === 'active' ? 'active' : 'null',
   } : null;
 
-  const { 
-    data: initialKanbanData, 
-    isLoading: isInitialKanbanLoading 
+  const {
+    data: initialKanbanData,
+    isLoading: isInitialKanbanLoading
   } = useKanbanTickets(initialKanbanParams);
 
   // 2. Background complete load (50 tickets/column = 200 total)
   const backgroundKanbanParams = viewMode === 'board' && initialKanbanData ? {
-    projectId: filters.project.length > 0 ? filters.project[0] : undefined,
+    projectId, // From props, mandatory project context
     assigneeId: filters.assignee.length > 0 ? filters.assignee.join(',') : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
     search: filters.search || undefined,
     limitPerColumn: 50, // Complete load
-    releasePlanId: kanbanScope === 'active' ? 'active' : 'null',
+    sprintId: kanbanScope === 'active' ? 'active' : 'null',
   } : null;
 
-  const { 
+  const {
     data: backgroundKanbanData,
-    isFetching: isBackgroundKanbanLoading 
+    isFetching: isBackgroundKanbanLoading
   } = useKanbanTickets(backgroundKanbanParams, {
     enabled: !!initialKanbanData, // Only after initial load
   });
 
   // 3. Use best available data
-  const kanbanData : any= backgroundKanbanData || initialKanbanData;
+  const kanbanData: any = backgroundKanbanData || initialKanbanData;
   const isKanbanLoading = isInitialKanbanLoading;
   const isKanbanFetching = isBackgroundKanbanLoading && !isInitialKanbanLoading;
 
   // Update limit based on view mode
   useEffect(() => {
     if (viewMode === 'board') {
-        // Board mode uses Kanban endpoint, no pagination needed
-        setPagination(prev => ({ ...prev, current: 1, pageSize: 10 })); 
+      // Board mode uses Kanban endpoint, no pagination needed
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
     } else {
-        setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
+      setPagination(prev => ({ ...prev, current: 1, pageSize: 10 }));
     }
   }, [viewMode]);
-  
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setPagination(prev => ({ ...prev, current: 1 }));
   }, [filters]);
+
+  // Helper to update individual filter keys
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
+    if (key === 'search') return false;
+    return Array.isArray(value) && value.length > 0;
+  }).length;
 
 
   const handleUpdateTicket = (
@@ -241,24 +291,24 @@ export default function TicketList() {
 
     if (field === "status") updateData.status = value;
     else if (field === "assignee") {
-        updateData.assignee = value;
-        // Find full member object for seamless optimistic update
-        const member = members.find(m => m.value === value);
-        if (member) {
-            optimisticData = { 
-                assignee: { 
-                    id: member.value, 
-                    name: member.label, 
-                    email: "" // Email might not be in the lightweight members list, empty string satisfies type
-                } 
-            };
-        }
+      updateData.assignee = value;
+      // Find full member object for seamless optimistic update
+      const member = members.find(m => m.value === value);
+      if (member) {
+        optimisticData = {
+          assignee: {
+            id: member.value,
+            name: member.label,
+            email: "" // Email might not be in the lightweight members list, empty string satisfies type
+          }
+        };
+      }
     }
     else if (field === "title") updateData.title = value;
     else if (field === "priority") updateData.priority = value;
-    else if (field === "type") updateData.type = value; 
+    else if (field === "type") updateData.type = value;
     else if (field === "storyPoint") {
-        updateData.storyPoint = value; // Assumed to be number or null
+      updateData.storyPoint = value; // Assumed to be number or null
     }
 
     // 2. Fire-and-forget mutation (errors handled by hook queries rollback)
@@ -271,7 +321,7 @@ export default function TicketList() {
           // Note: The optimistic update hook will handle rolling back the data in the cache
         },
         onSuccess: () => {
-             message.success(`${field} updated`);
+          message.success(`${field} updated`);
         }
       }
     );
@@ -286,15 +336,15 @@ export default function TicketList() {
    * Maps partial ticket updates including special fields like assigneeId to handleUpdateTicket
    */
   const handleKanbanUpdate = (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => {
-      Object.entries(updates).forEach(([key, value]) => {
-          // Translate backend keys (assigneeId) to frontend keys (assignee) for the optimistic logic
-          const fieldMap: Record<string, string> = {
-              'assigneeId': 'assignee'
-          };
-          const mappedKey = fieldMap[key] || key;
-          
-          handleUpdateTicket(ticketId, mappedKey as any, value as any);
-      });
+    Object.entries(updates).forEach(([key, value]) => {
+      // Translate backend keys (assigneeId) to frontend keys (assignee) for the optimistic logic
+      const fieldMap: Record<string, string> = {
+        'assigneeId': 'assignee'
+      };
+      const mappedKey = fieldMap[key] || key;
+
+      handleUpdateTicket(ticketId, mappedKey as any, value as any);
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -341,10 +391,10 @@ export default function TicketList() {
   };
 
   const handleViewTicket = (ticket: Ticket) => {
-    router.push(`/tickets/${ticket.id}`);
+    setSelectedTicketId(ticket.id);
   };
 
-  const handleDeleteTicket = async(ticket: Ticket, event?: React.MouseEvent) => {
+  const handleDeleteTicket = async (ticket: Ticket, event?: React.MouseEvent) => {
     try {
       await deleteTicketMutation.mutateAsync(ticket.id);
       message.success("Ticket deleted successfully");
@@ -379,43 +429,43 @@ export default function TicketList() {
       ),
     },
     {
-        title: "Title",
-        dataIndex: "title",
-        key: "title",
-        width: 300,
-        render: (text: string, record: Ticket) => {
-          const isEditing = 
-              editingField?.ticketId === record.id && 
-              editingField?.field === "title";
-          const isHovered = hoveredTicketId === record.id;
-          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-  
-          if (isEditing) {
-              return (
-                  <Input
-                      defaultValue={text}
-                      autoFocus
-                      onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
-                      onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
-                      disabled={isUpdating}
-                  />
-              );
-          }
-  
-          const displayText = text.length > 40 ? `${text.slice(0, 40)} ...` : text;
-  
+      title: "Title",
+      dataIndex: "title",
+      key: "title",
+      width: 300,
+      render: (text: string, record: Ticket) => {
+        const isEditing =
+          editingField?.ticketId === record.id &&
+          editingField?.field === "title";
+        const isHovered = hoveredTicketId === record.id;
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+        if (isEditing) {
           return (
-            <div 
-               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
-               onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
-               title={text} // Show full text on native tooltip as well
-            >
-              <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{displayText}</Text>
-              {isHovered && <EditOutlined style={{ color: '#1677ff', opacity: 0.7 }} />}
-            </div>
+            <Input
+              defaultValue={text}
+              autoFocus
+              onBlur={(e) => handleUpdateTicket(record.id, "title", e.target.value)}
+              onPressEnter={(e) => handleUpdateTicket(record.id, "title", e.currentTarget.value)}
+              disabled={isUpdating}
+            />
           );
-        },
+        }
+
+        const displayText = text.length > 40 ? `${text.slice(0, 40)} ...` : text;
+
+        return (
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
+            onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
+            title={text} // Show full text on native tooltip as well
+          >
+            <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{displayText}</Text>
+            {isHovered && <EditOutlined style={{ color: '#1677ff', opacity: 0.7 }} />}
+          </div>
+        );
       },
+    },
     {
       title: "Status",
       dataIndex: "status",
@@ -467,36 +517,36 @@ export default function TicketList() {
       key: "priority",
       width: 100,
       render: (priority: string, record: Ticket) => {
-          const isEditing =
-            editingField?.ticketId === record.id &&
-            editingField?.field === "priority";
-          const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-          
-          if (isEditing) {
-              return (
-                <Select
-                  value={priority}
-                  style={{ width: "100%" }}
-                  onChange={(value) =>
-                    handleUpdateTicket(record.id, "priority", value)
-                  }
-                  onBlur={() => setEditingField(null)}
-                  autoFocus
-                  loading={isUpdating}
-                  options={[
-                    { label: "High (P1)", value: "P1" },
-                    { label: "Medium (P2)", value: "P2" },
-                    { label: "Low (P3)", value: "P3" },
-                  ]}
-                />
-              );
-          }
-          
+        const isEditing =
+          editingField?.ticketId === record.id &&
+          editingField?.field === "priority";
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+
+        if (isEditing) {
           return (
-            <Tag color={getPriorityColor(priority)} style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "priority" })}>
-                {priority}
-            </Tag>
+            <Select
+              value={priority}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                handleUpdateTicket(record.id, "priority", value)
+              }
+              onBlur={() => setEditingField(null)}
+              autoFocus
+              loading={isUpdating}
+              options={[
+                { label: "High (P1)", value: "P1" },
+                { label: "Medium (P2)", value: "P2" },
+                { label: "Low (P3)", value: "P3" },
+              ]}
+            />
           );
+        }
+
+        return (
+          <Tag color={getPriorityColor(priority)} style={{ cursor: 'pointer' }} onClick={() => setEditingField({ ticketId: record.id, field: "priority" })}>
+            {priority}
+          </Tag>
+        );
       },
     },
     {
@@ -506,29 +556,29 @@ export default function TicketList() {
       render: (_: any, record: Ticket) => {
         const type = record?.type || "";
         const isEditing =
-            editingField?.ticketId === record.id &&
-            editingField?.field === "type";
-         const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
+          editingField?.ticketId === record.id &&
+          editingField?.field === "type";
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
 
         if (isEditing) {
-             return (
-                <Select
-                  value={type}
-                  style={{ width: "100%" }}
-                  onChange={(value) =>
-                    handleUpdateTicket(record.id, "type", value)
-                  }
-                  onBlur={() => setEditingField(null)}
-                  autoFocus
-                  loading={isUpdating}
-                  options={[
-                    { label: "Bug", value: "Bug" },
-                    { label: "Task", value: "Task" },
-                    { label: "Feature", value: "Feat" },
-                    { label: "Overwrite", value: "Overwrite" },
-                  ]}
-                />
-             );
+          return (
+            <Select
+              value={type}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                handleUpdateTicket(record.id, "type", value)
+              }
+              onBlur={() => setEditingField(null)}
+              autoFocus
+              loading={isUpdating}
+              options={[
+                { label: "Bug", value: "Bug" },
+                { label: "Task", value: "Task" },
+                { label: "Feature", value: "Feat" },
+                { label: "Overwrite", value: "Overwrite" },
+              ]}
+            />
+          );
         }
 
         if (!type) {
@@ -538,75 +588,59 @@ export default function TicketList() {
       },
     },
     {
-        title: "Story Points",
-        dataIndex: "storyPoint",
-        key: "storyPoint",
-        width: 100,
-        render: (storyPoint: number | undefined, record: Ticket) => {
-            const isEditing = 
-              editingField?.ticketId === record.id && 
-              editingField?.field === "storyPoint";
-             const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
-            
-            if (isEditing) {
-                return (
-                    <Input
-                        type="number"
-                        defaultValue={storyPoint}
-                        autoFocus={true}
-                        onBlur={(e) => {
-                            const val = parseFloat(e.target.value);
-                            handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
-                        }}
-                        onPressEnter={(e) => {
-                             const val = parseFloat(e.currentTarget.value);
-                             handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
-                        }}
-                        style={{ width: '100%' }}
-                        disabled={isUpdating}
-                    />
-                );
-            }
+      title: "Story Points",
+      dataIndex: "storyPoint",
+      key: "storyPoint",
+      width: 100,
+      render: (storyPoint: number | undefined, record: Ticket) => {
+        const isEditing =
+          editingField?.ticketId === record.id &&
+          editingField?.field === "storyPoint";
+        const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
 
-            return (
-                <div 
-                    style={{ cursor: 'pointer', minHeight: 22 }}
-                    onClick={() => setEditingField({ ticketId: record.id, field: "storyPoint" })}
-                >
-                    {storyPoint !== undefined && storyPoint !== null ? (
-                         <div style={{ 
-                             display: 'inline-block', 
-                             background: '#f0f0f0', 
-                             borderRadius: '12px', 
-                             padding: '0 8px',
-                             fontSize: '12px',
-                             fontWeight: 600,
-                             color: '#555' 
-                        }}>
-                            {storyPoint}
-                         </div>
-                    ) : ( 
-                        <Text type="secondary">-</Text> 
-                    )}
-                </div>
-            );
+        if (isEditing) {
+          return (
+            <Input
+              type="number"
+              defaultValue={storyPoint}
+              autoFocus={true}
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value);
+                handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
+              }}
+              onPressEnter={(e) => {
+                const val = parseFloat(e.currentTarget.value);
+                handleUpdateTicket(record.id, "storyPoint", isNaN(val) ? 0 : val);
+              }}
+              style={{ width: '100%' }}
+              disabled={isUpdating}
+            />
+          );
         }
-    },
-    {
-      title: "Project",
-      dataIndex: "project",
-      key: "project",
-      width: 150,
-      render: (project: any) => {
-        if (typeof project === "string") {
-          return <Tag color="blue">{project}</Tag>;
-        }
+
         return (
-          <Tag color="blue">
-            {project.name} ({project.code})
-          </Tag>
+          <div
+            style={{ cursor: 'pointer', minHeight: 22 }}
+            onClick={() => setEditingField({ ticketId: record.id, field: "storyPoint" })}
+          >
+            {storyPoint !== undefined && storyPoint !== null ? (
+              <div style={{
+                display: 'inline-block',
+                background: '#f0f0f0',
+                borderRadius: '12px',
+                padding: '0 8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#555'
+              }}>
+                {storyPoint}
+              </div>
+            ) : (
+              <Text type="secondary">-</Text>
+            )}
+          </div>
         );
-      },
+      }
     },
     {
       title: "Assignee",
@@ -624,8 +658,8 @@ export default function TicketList() {
           assignee && typeof assignee === "string"
             ? assignee
             : assignee
-            ? assignee?.name
-            : "Unassigned";
+              ? assignee?.name
+              : "Unassigned";
 
         if (isEditing) {
           return (
@@ -644,9 +678,9 @@ export default function TicketList() {
                 const member = members.find((m) => m.value === option?.value);
                 return member
                   ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                      member.position
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
+                  member.position
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                   : false;
               }}
               options={members.map((member) => ({
@@ -679,29 +713,28 @@ export default function TicketList() {
       width: 150,
       render: (_: any, record: Ticket) => (
         <Space>
-           {/* Sprint Assignment Action */}
-           {context === 'backlog' && (
-              <Button
-                type="text"
-                size="small"
-                icon={<PlusOutlined />}
-                style={{ color: '#52c41a' }}
-                title="Add to Active Sprint"
-                onClick={() => handleSprintAssignment(record.id, 'add')}
-                disabled={!activeSprint}
-              />
-           )}
-           {context === 'active' && (
-              <Button
-                type="text"
-                size="small"
-                icon={<MinusOutlined />}
-                style={{ color: '#faad14' }}
-                title="Remove from Sprint"
-                onClick={() => handleSprintAssignment(record.id, 'remove')}
-              />
-           )}
-
+          {/* Sprint Management Actions */}
+          <Space>
+            {context === 'backlog' && (
+              <Tooltip title="Add to Sprint">
+                <Button
+                  type="text"
+                  icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
+                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
+                />
+              </Tooltip>
+            )}
+            {context === 'active' && (
+              <Tooltip title="Remove from Sprint">
+                <Button
+                  type="text"
+                  danger
+                  icon={<MinusCircleOutlined />}
+                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
+                />
+              </Tooltip>
+            )}
+          </Space>
           <Button
             type="text"
             size="small"
@@ -715,15 +748,15 @@ export default function TicketList() {
             okText="Yes"
             cancelText="No"
           >
-           <Button
-            type="text"
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            loading={deleteTicketMutation.isPending && deleteTicketMutation.variables === record.id}
-          >
-            
-          </Button>
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              loading={deleteTicketMutation.isPending && deleteTicketMutation.variables === record.id}
+            >
+
+            </Button>
           </Popconfirm>
         </Space>
       ),
@@ -769,255 +802,247 @@ export default function TicketList() {
   }
 
   return (
-    <div>
+    <div style={{ padding: 20 }}>
       {contextHolder}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+      {notifyContextHolder}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #f0f0f0' }}>
         <Col>
-          <Title level={3} style={{ margin: 0 }}>Tickets</Title>
-        </Col>
-        <Col>
-          <Space>
-             {viewMode === 'board' && (
-                 <Radio.Group value={kanbanScope} onChange={(e) => setKanbanScope(e.target.value as 'active' | 'backlog')} buttonStyle="solid" size="middle">
-                    <Radio.Button value="active">Active Sprint</Radio.Button>
-                    <Radio.Button value="backlog">Backlog</Radio.Button>
-                 </Radio.Group>
-             )}
-            <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} buttonStyle="solid" size="middle">
-                <Radio.Button value="list"><BarsOutlined /> List</Radio.Button>
-                <Radio.Button value="board"><AppstoreOutlined /> Board</Radio.Button>
-            </Radio.Group>
-          </Space>
-        </Col>
-      </Row>
-
-      {/* Filters */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={16} align="middle">
-          <Col xs={24} sm={12} md={6} lg={4}>
+          <Space size="large">
+            {/* Project Name with Back Button */}
+            <Space size="small" className="items-center">
+              <Button
+                type="link"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.push('/projects/select')}
+                style={{ padding: '4px 0', height: 'auto' }}
+              />
+              <Title level={3} style={{ margin: 0 }}>{projectName}</Title>
+              <Tag color="blue">{projectCode}</Tag>
+            </Space>
+            {/* Search in Top Bar */}
             <Input
-              placeholder="Search tickets..."
+              placeholder="Search requests..."
               prefix={<SearchOutlined />}
+              style={{ width: 250 }}
               value={filters.search}
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, search: e.target.value }))
               }
               allowClear
             />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={4}>
-            <Select
-              mode="multiple"
-              placeholder="Status"
-              style={{ width: "100%" }}
-              value={filters.status}
-              onChange={(value) =>
-                setFilters((prev) => ({ ...prev, status: value }))
-              }
-              options={STATUS_OPTIONS}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={4}>
-            <Select
-              mode="multiple"
-              placeholder="Priority"
-              style={{ width: "100%" }}
-              value={filters.priority}
-              onChange={(value) =>
-                setFilters((prev) => ({ ...prev, priority: value }))
-              }
-              options={PRIORITY_OPTIONS}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={4}>
-            <Select
-              mode="multiple"
-              placeholder="Project"
-              style={{ width: "100%" }}
-              value={filters.project}
-              onChange={(value) =>
-                setFilters((prev) => ({ ...prev, project: value }))
-              }
-              options={projects.map((project) => ({
-                label: project.label,
-                value: project.value,
-              }))}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={4}>
-            <Select
-              mode="multiple"
-              placeholder="Assignee"
-              style={{ width: "100%" }}
-              value={filters.assignee}
-              onChange={(value) =>
-                setFilters((prev) => ({ ...prev, assignee: value }))
-              }
-              showSearch
-              filterOption={(input, option) => {
-                const member = members.find((m) => m.value === option?.value);
-                return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                      member.position
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                  : false;
-              }}
-              options={members.map((member) => ({
-                label: `${member.label} - ${member.position}`,
-                value: member.value,
-              }))}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={6} lg={4}>
-             <Button 
-               icon={<ReloadOutlined />} 
-               onClick={() => { refetchActive(); refetchBacklog(); }} 
-               loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading} // Just simplified loading state
-             >
-               Refresh
-             </Button>
-          </Col>
-        </Row>
-      </Card>
+          </Space>
+        </Col>
+        <Col>
+          <Space split={<Divider type="vertical" />}>
+            {/* Action Buttons */}
+            <Space>
+              <Tooltip title="Refresh">
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => { refetchActive(); refetchBacklog(); }}
+                  loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading}
+                  type="text"
+                />
+              </Tooltip>
 
-      {/* Inline Creation */}
-      <InlineCreateTicket 
+              <Popover
+                content={
+                  <TicketFilters
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    members={members}
+                    onReset={() => setFilters({ status: [], priority: [], assignee: [], search: filters.search })}
+                  />
+                }
+                trigger="click"
+                placement="bottomRight"
+                open={isFilterPopoverOpen}
+                onOpenChange={setIsFilterPopoverOpen}
+              >
+                <Button icon={<FilterOutlined />} type={activeFilterCount > 0 ? "primary" : "default"} ghost={activeFilterCount > 0}>
+                  Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                </Button>
+              </Popover>
+
+              <Button
+                type={showCreateForm ? "primary" : "default"}
+                icon={showCreateForm ? <MinusOutlined /> : <PlusOutlined />}
+                onClick={() => setShowCreateForm(!showCreateForm)}
+              >
+                Create
+              </Button>
+            </Space>
+
+            {/* View Toggles */}
+            <Space>
+              {viewMode === 'board' && (
+                <Radio.Group value={kanbanScope} onChange={(e) => setKanbanScope(e.target.value as 'active' | 'backlog')} buttonStyle="solid" size="middle">
+                  <Radio.Button value="active">Active Sprint</Radio.Button>
+                  <Radio.Button value="backlog">Backlog</Radio.Button>
+                </Radio.Group>
+              )}
+              <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} buttonStyle="solid" size="middle">
+                <Radio.Button value="list"><BarsOutlined /> List</Radio.Button>
+                <Radio.Button value="board"><AppstoreOutlined /> Board</Radio.Button>
+              </Radio.Group>
+            </Space>
+          </Space>
+        </Col>
+      </Row>
+
+      {/* Inline Creation - Controlled Visibility */}
+      <InlineCreateTicket
+        visible={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
         onTicketCreated={() => {
-            // Optimistic update handles the UI, no need to refetch
+          // Optimistic update handles the UI, no need to refetch immediately, but we can if we want to be safe
+          // refetchActive(); 
+          // refetchBacklog();
+          setShowCreateForm(false);
         }}
-        filters={filters} 
-        projects={projects} 
-        members={members} 
+        projectId={projectId}
+        filters={filters}
+        projects={projects}
+        members={members}
       />
 
       {/* Tickets View (List or Board) */}
       {viewMode === 'list' ? (
-          <>
-             {/* Active Sprint Section */}
-             {activeSprint && (
-                 <Collapse 
-                    defaultActiveKey={['1']}
-                    expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
-                    items={[{
-                        key: '1',
-                        label: (
-                            <Space>
-                                <Text strong style={{ fontSize: '16px' }}>{activeSprint.name}</Text>
-                                <Tag color="green">ACTIVE</Tag>
-                                <Text type="secondary" style={{ fontSize: '12px' }}>
-                                    {activeSprint.startedAt ? dayjs(activeSprint.startedAt).format('MMM D') : 'Unknown'} - {activeSprint.releaseDate ? dayjs(activeSprint.releaseDate).format('MMM D') : 'Unknown'}
-                                </Text>
-                            </Space>
-                        ),
-                        children: (
-                            <Table 
-                                columns={getColumns('active')}
-                                dataSource={activeTickets}
-                                rowKey="id"
-                                loading={activeSprintLoading}
-                                pagination={false} 
-                                scroll={{ x: 1200 }}
-                                onRow={(record) => {
-                                    return {
-                                    onMouseEnter: () => setHoveredTicketId(record.id),
-                                    onMouseLeave: () => setHoveredTicketId(null),
-                                    };
-                                }}
-                            />
-                        )
-                    }]}
-                    style={{ marginBottom: 24, background: '#fff' }}
-                 />
-             )}
-
-             {/* Backlog Section */}
-             <Card title="Backlog">
-                 <Table 
-                    columns={getColumns('backlog')}
-                    dataSource={backlogTickets}
-                    rowKey="id"
-                    loading={backlogLoading}
-                    pagination={{
-                        current: pagination.current,
-                        pageSize: pagination.pageSize,
-                        total: totalBacklog,
-                        showSizeChanger: true,
-                        showQuickJumper: true,
-                        pageSizeOptions: ['10', '20', '50', '100'],
-                        showTotal: (total, range) =>
-                        `${range[0]}-${range[1]} of ${total} tickets`,
-                        onChange: (page, pageSize) => {
-                            setPagination({
-                                current: page,
-                                pageSize: pageSize || pagination.pageSize,
-                            });
-                        },
-                    }}
-                    scroll={{ x: 1200 }}
-                    onRow={(record) => {
-                        return {
-                        onMouseEnter: () => setHoveredTicketId(record.id),
-                        onMouseLeave: () => setHoveredTicketId(null),
-                        };
-                    }}
-                    locale={{
-                        emptyText:
-                        backlogTickets.length === 0 && !backlogLoading ? (
-                            <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description="No backlog tickets found"
-                            />
-                        ) : undefined,
-                    }}
-                 />
-             </Card>
-          </>
-      ) : (
-          <>
-            {isKanbanLoading ? (
-              <Card style={{ textAlign: 'center', padding: '40px' }}>
-                <Space direction="vertical" size="large">
-                  <div style={{ fontSize: '48px' }}>⏳</div>
-                  <Text type="secondary">Loading Kanban board...</Text>
-                </Space>
-              </Card>
-            ) : kanbanData ? (
-              <>
-                {isKanbanFetching && (
-                  <div style={{ 
-                    position: 'fixed', 
-                    top: 70, 
-                    right: 20, 
-                    zIndex: 1000,
-                    background: '#fff',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                  }}>
+        <>
+          {/* Active Sprint Section */}
+          {/* Active Sprint Section */}
+          {activeSprint && (
+            (typeof activeSprint.project === 'string' ? activeSprint.project === projectId : activeSprint.project?.id === projectId)
+          ) && (
+              <Card
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <Space>
-                      <ReloadOutlined spin />
-                      <Text type="secondary">Refreshing...</Text>
+                      <Text style={{ fontSize: '16px', fontWeight: 600 }}>
+                        {/* Backend stores sprint name in 'version' field */}
+                        {activeSprint?.version || activeSprint?.name || 'Active Sprint'}
+                      </Text>
+                      <Tag color="green" bordered={false} style={{ borderRadius: '4px' }}>RUNNING</Tag>
                     </Space>
+                    <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
+                      {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
+                      {' - '}
+                      {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
+                    </Text>
                   </div>
-                )}
-                <TicketKanban 
-                  tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []} 
-                  projects={projects}
-                  members={members}
-                  onTicketUpdate={handleKanbanUpdate}
-                  activeSprint={activeSprint}
-                  kanbanScope={kanbanScope}
-                  onSprintAssignment={handleSprintAssignment}
+                }
+                style={{ marginBottom: 20 }}
+                bodyStyle={{ padding: 10 }} // Remove padding to flush table with card
+              >
+                <Table
+                  columns={getColumns('active')}
+                  dataSource={activeTickets}
+                  rowKey="id"
+                  loading={activeSprintLoading}
+                  pagination={false}
+                  scroll={{ x: 1200 }}
+                  onRow={(record) => {
+                    return {
+                      onMouseEnter: () => setHoveredTicketId(record.id),
+                      onMouseLeave: () => setHoveredTicketId(null),
+                    };
+                  }}
                 />
-              </>
-            ) : (
-              <Card>
-                <Empty description="No tickets found" />
               </Card>
             )}
-          </>
+
+          {/* Backlog Section */}
+          <Card title="Backlog" bodyStyle={{ padding: 10 }}>
+            <Table
+              columns={getColumns('backlog')}
+              dataSource={backlogTickets}
+              rowKey="id"
+              loading={backlogLoading}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: totalBacklog,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                pageSizeOptions: ['10', '20', '50', '100'],
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} tickets`,
+                onChange: (page, pageSize) => {
+                  setPagination({
+                    current: page,
+                    pageSize: pageSize || pagination.pageSize,
+                  });
+                },
+              }}
+              scroll={{ x: 1200 }}
+              onRow={(record) => {
+                return {
+                  onMouseEnter: () => setHoveredTicketId(record.id),
+                  onMouseLeave: () => setHoveredTicketId(null),
+                };
+              }}
+              locale={{
+                emptyText:
+                  backlogTickets.length === 0 && !backlogLoading ? (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="No backlog tickets found"
+                    />
+                  ) : undefined,
+              }}
+            />
+          </Card>
+        </>
+      ) : (
+        <>
+          {isKanbanLoading ? (
+            <Card style={{ textAlign: 'center', padding: '40px' }}>
+              <Space direction="vertical" size="large">
+                <div style={{ fontSize: '48px' }}>⏳</div>
+                <Text type="secondary">Loading Kanban board...</Text>
+              </Space>
+            </Card>
+          ) : kanbanData ? (
+            <>
+              {isKanbanFetching && (
+                <div style={{
+                  position: 'fixed',
+                  top: 70,
+                  right: 20,
+                  zIndex: 1000,
+                  background: '#fff',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}>
+                  <Space>
+                    <ReloadOutlined spin />
+                    <Text type="secondary">Refreshing...</Text>
+                  </Space>
+                </div>
+              )}
+              <TicketKanban
+                tickets={kanbanData.columns ? Object.values(kanbanData.columns).flatMap((col: any) => col.tickets) : []}
+                projects={projects}
+                members={members}
+                onTicketUpdate={handleKanbanUpdate}
+                activeSprint={activeSprint}
+                kanbanScope={kanbanScope}
+                onSprintAssignment={handleSprintAssignment}
+              />
+            </>
+          ) : (
+            <Card>
+              <Empty description="No tickets found" />
+            </Card>
+          )}
+        </>
       )}
+      <TicketDetailDrawer
+        ticketId={selectedTicketId}
+        open={!!selectedTicketId}
+        onClose={() => setSelectedTicketId(null)}
+      />
     </div>
   );
 }

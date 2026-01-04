@@ -1,5 +1,5 @@
 import React from "react";
-import { Select, Space, Button, Typography, Row, Col, Divider } from "antd";
+import { Select, Space, Button, Typography } from "antd";
 import { FilterOutlined, ClearOutlined } from "@ant-design/icons";
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 
@@ -29,9 +29,9 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Text strong><FilterOutlined /> Filters</Text>
         {onReset && (
-            <Button type="link" size="small" icon={<ClearOutlined />} onClick={onReset}>
-                Reset
-            </Button>
+          <Button type="link" size="small" icon={<ClearOutlined />} onClick={onReset}>
+            Reset
+          </Button>
         )}
       </div>
 
@@ -76,13 +76,13 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             showSearch
             allowClear
             filterOption={(input, option) => {
-                const member = members.find((m) => m.value === option?.value);
-                return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                      (member.position || "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                  : false;
+              const member = members.find((m) => m.value === option?.value);
+              return member
+                ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                (member.position || "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+                : false;
             }}
             options={members.map((member) => ({
               label: `${member.label}${member.position ? ` - ${member.position}` : ''}`,

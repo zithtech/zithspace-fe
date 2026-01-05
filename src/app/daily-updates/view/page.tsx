@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Button,
@@ -14,28 +14,29 @@ import {
   Spin,
   notification,
   Segmented,
-} from 'antd';
+  Tag,
+} from "antd";
 import {
   PlusCircleOutlined,
   ReloadOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
-} from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
-import dayjs, { Dayjs } from 'dayjs';
-import MainLayout from '@/components/layout/MainLayout';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import UpdateCard from '@/components/daily-updates/UpdateCard';
-import UpdateTable from '@/components/daily-updates/UpdateTable';
-import UpdateDetailsDrawer from '@/components/daily-updates/UpdateDetailsDrawer';
-import DailyUpdateService from '@/services/dailyUpdateService';
-import { ProjectService } from '@/services/projectService';
-import { DailyStatusUpdate } from '@/types/dailyUpdate';
-import { useAuth } from '@/context/AuthContext';
+} from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import dayjs, { Dayjs } from "dayjs";
+import MainLayout from "@/components/layout/MainLayout";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import UpdateCard from "@/components/daily-updates/UpdateCard";
+import UpdateTable from "@/components/daily-updates/UpdateTable";
+import UpdateDetailsDrawer from "@/components/daily-updates/UpdateDetailsDrawer";
+import DailyUpdateService from "@/services/dailyUpdateService";
+import { ProjectService } from "@/services/projectService";
+import { DailyStatusUpdate } from "@/types/dailyUpdate";
+import { useAuth } from "@/context/AuthContext";
 
 const { Title, Text } = Typography;
 
-type ViewMode = 'card' | 'list';
+type ViewMode = "card" | "list";
 
 export default function ViewDailyUpdatesPage() {
   const { user, isLoading } = useAuth();
@@ -65,15 +66,47 @@ function ViewDailyUpdatesContent() {
   const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(true);
   const [updates, setUpdates] = useState<DailyStatusUpdate[]>([]);
-  const [projects, setProjects] = useState<Array<{ value: string; label: string }>>([]);
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>([dayjs(), dayjs()]);
-  const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
-  const [selectedUser, setSelectedUser] = useState<string | undefined>(undefined);
-  const [viewMode, setViewMode] = useState<ViewMode>('card');
-  const [selectedUpdate, setSelectedUpdate] = useState<DailyStatusUpdate | null>(null);
+  // 🔹 Delete a daily update and remove it from the UI
+  const handleDeleteUpdate = async (updateId: string) => {
+    try {
+      console.log("updateId",updateId)
+      await DailyUpdateService.deleteUpdate(updateId);
+
+      // Remove the card from the UI
+      setUpdates((prev) => prev.filter((u) =>u.id !==updateId));
+
+      api.success({
+        message: "Deleted",
+        description: "Daily update deleted successfully",
+      });
+    } catch (error: any) {
+      api.error({
+        message: "Error",
+        description: error.message || "Failed to delete update",
+      });
+    }
+  };
+
+  const [projects, setProjects] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>([
+    dayjs().subtract(1, "day"),
+    dayjs(),
+  ]);
+  const [selectedProject, setSelectedProject] = useState<string | undefined>(
+    undefined
+  );
+  const [selectedUser, setSelectedUser] = useState<string | undefined>(
+    undefined
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
+  const [selectedUpdate, setSelectedUpdate] =
+    useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  const canViewTeam = user?.role === 'super_admin' || user?.position === 'Project Manager';
+  const canViewTeam =
+    user?.role === "super_admin" || user?.position === "Project Manager";
 
   useEffect(() => {
     fetchProjects();
@@ -85,14 +118,14 @@ function ViewDailyUpdatesContent() {
       const projectsData = await ProjectService.getUserProjects();
       setProjects(projectsData);
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error("Failed to fetch projects:", error);
     }
   };
 
   const fetchUpdates = async () => {
     try {
       setLoading(true);
-      
+
       let filters: any = {
         projectId: selectedProject,
         userId: selectedUser,
@@ -100,8 +133,8 @@ function ViewDailyUpdatesContent() {
 
       // Use date range if available
       if (dateRange && dateRange[0] && dateRange[1]) {
-        filters.startDate = dateRange[0].format('YYYY-MM-DD');
-        filters.endDate = dateRange[1].format('YYYY-MM-DD');
+        filters.startDate = dateRange[0].format("YYYY-MM-DD");
+        filters.endDate = dateRange[1].format("YYYY-MM-DD");
       }
 
       if (canViewTeam) {
@@ -112,11 +145,11 @@ function ViewDailyUpdatesContent() {
         setUpdates(myUpdates);
       }
     } catch (error) {
-      console.error('Failed to fetch updates:', error);
+      console.error("Failed to fetch updates:", error);
       api.error({
-        message: 'Error',
-        description: 'Failed to load daily updates',
-        placement: 'bottomRight',
+        message: "Error",
+        description: "Failed to load daily updates",
+        placement: "bottomRight",
         duration: 4,
       });
     } finally {
@@ -124,7 +157,9 @@ function ViewDailyUpdatesContent() {
     }
   };
 
-  const handleDateRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
+  const handleDateRangeChange = (
+    dates: [Dayjs | null, Dayjs | null] | null
+  ) => {
     if (dates && dates[0] && dates[1]) {
       setDateRange([dates[0], dates[1]]);
     } else {
@@ -137,7 +172,7 @@ function ViewDailyUpdatesContent() {
   };
 
   const handleSubmitNew = () => {
-    router.push('/daily-updates/submit');
+    router.push("/daily-updates/submit");
   };
 
   const handleViewDetails = (update: DailyStatusUpdate) => {
@@ -163,23 +198,38 @@ function ViewDailyUpdatesContent() {
   return (
     <>
       {contextHolder}
-      <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ padding: "24px", maxWidth: "1400px", margin: "0 auto" }}>
         {/* Header */}
-        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Row
+          justify="space-between"
+          align="middle"
+          style={{ marginBottom: 24 }}
+        >
           <Col>
-            <Title level={3} style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>
+            <Title
+              level={3}
+              style={{ margin: 0, fontSize: 24, fontWeight: 600 }}
+            >
               Daily Status Updates
             </Title>
             <Text type="secondary" style={{ fontSize: 14 }}>
-              {canViewTeam ? 'Team Updates' : 'My Updates'}
+              {canViewTeam ? "Team Updates" : "My Updates"}
             </Text>
           </Col>
           <Col>
             <Space>
-              <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+                loading={loading}
+              >
                 Refresh
               </Button>
-              <Button type="primary" icon={<PlusCircleOutlined />} onClick={handleSubmitNew}>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={handleSubmitNew}
+              >
                 Submit Update
               </Button>
             </Space>
@@ -187,17 +237,21 @@ function ViewDailyUpdatesContent() {
         </Row>
 
         {/* Filters & View Toggle */}
-        <Card style={{ marginBottom: 20, boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}>
+        <Card
+          style={{ marginBottom: 20, boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}
+        >
           <Row gutter={16} align="middle">
             <Col xs={24} sm={12} md={8}>
-              <Space direction="vertical" style={{ width: '100%' }} size={4}>
-                <Text strong style={{ fontSize: 13 }}>Date Range</Text>
+              <Space direction="vertical" style={{ width: "100%" }} size={4}>
+                <Text strong style={{ fontSize: 13 }}>
+                  Date Range
+                </Text>
                 <DatePicker.RangePicker
                   value={dateRange}
                   onChange={handleDateRangeChange}
-                  style={{ width: '100%' }}
+                  style={{ width: "100%" }}
                   format="YYYY-MM-DD"
-                  placeholder={['Start Date', 'End Date']}
+                  placeholder={["Start Date", "End Date"]}
                 />
               </Space>
             </Col>
@@ -205,11 +259,17 @@ function ViewDailyUpdatesContent() {
             {canViewTeam && (
               <>
                 <Col xs={24} sm={12} md={6}>
-                  <Space direction="vertical" style={{ width: '100%' }} size={4}>
-                    <Text strong style={{ fontSize: 13 }}>Project</Text>
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size={4}
+                  >
+                    <Text strong style={{ fontSize: 13 }}>
+                      Project
+                    </Text>
                     <Select
                       placeholder="All Projects"
-                      style={{ width: '100%' }}
+                      style={{ width: "100%" }}
                       value={selectedProject}
                       onChange={setSelectedProject}
                       allowClear
@@ -219,11 +279,17 @@ function ViewDailyUpdatesContent() {
                 </Col>
 
                 <Col xs={24} sm={12} md={6}>
-                  <Space direction="vertical" style={{ width: '100%' }} size={4}>
-                    <Text strong style={{ fontSize: 13 }}>User</Text>
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size={4}
+                  >
+                    <Text strong style={{ fontSize: 13 }}>
+                      User
+                    </Text>
                     <Select
                       placeholder="All Users"
-                      style={{ width: '100%' }}
+                      style={{ width: "100%" }}
                       value={selectedUser}
                       onChange={setSelectedUser}
                       allowClear
@@ -235,16 +301,26 @@ function ViewDailyUpdatesContent() {
             )}
 
             <Col xs={24} sm={12} md={6}>
-              <Space direction="vertical" style={{ width: '100%' }} size={4}>
-                <Text strong style={{ fontSize: 13 }}>View</Text>
+              <Space direction="vertical" style={{ width: "100%" }} size={4}>
+                <Text strong style={{ fontSize: 13 }}>
+                  View
+                </Text>
                 <Segmented
                   value={viewMode}
                   onChange={(value) => setViewMode(value as ViewMode)}
                   options={[
-                    { label: 'Cards', value: 'card', icon: <AppstoreOutlined /> },
-                    { label: 'List', value: 'list', icon: <UnorderedListOutlined /> },
+                    {
+                      label: "Cards",
+                      value: "card",
+                      icon: <AppstoreOutlined />,
+                    },
+                    {
+                      label: "List",
+                      value: "list",
+                      icon: <UnorderedListOutlined />,
+                    },
                   ]}
-                  style={{ width: '100%' }}
+                  style={{ width: "100%" }}
                 />
               </Space>
             </Col>
@@ -254,7 +330,7 @@ function ViewDailyUpdatesContent() {
         {/* Content Area */}
         {loading ? (
           <Card>
-            <div style={{ textAlign: 'center', padding: 60 }}>
+            <div style={{ textAlign: "center", padding: 60 }}>
               <Spin size="large" />
               <div style={{ marginTop: 16 }}>
                 <Text type="secondary">Loading updates...</Text>
@@ -267,35 +343,42 @@ function ViewDailyUpdatesContent() {
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <div>
-                  <Text type="secondary" style={{ fontSize: 14 }}>No updates found for this date</Text>
+                  <Text type="secondary" style={{ fontSize: 14 }}>
+                    No updates found for this date
+                  </Text>
                   <br />
                   <Text type="secondary" style={{ fontSize: 13 }}>
                     {canViewTeam
-                      ? 'No team members have submitted updates yet'
-                      : 'You haven\'t submitted an update for this date'}
+                      ? "No team members have submitted updates yet"
+                      : "You haven't submitted an update for this date"}
                   </Text>
                 </div>
               }
             >
-              <Button type="primary" onClick={handleSubmitNew} style={{ marginTop: 16 }}>
+              <Button
+                type="primary"
+                onClick={handleSubmitNew}
+                style={{ marginTop: 16 }}
+              >
                 Submit Update
               </Button>
             </Empty>
           </Card>
-        ) : viewMode === 'card' ? (
+        ) : viewMode === "card" ? (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
               gap: 16,
             }}
             className="updates-grid"
           >
             {updates.map((update) => (
-              <UpdateCard 
-                key={update.id} 
-                update={update} 
-                onClick={() => handleViewDetails(update)}
+              <UpdateCard
+                key={update.id}
+                update={update}
+                onOpen={() => handleViewDetails(update)} // 🔓 drawer
+                onDelete={handleRefresh} // 🔹 delete handler
               />
             ))}
           </div>

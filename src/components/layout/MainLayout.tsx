@@ -161,7 +161,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       key: "/reimbursement",
       icon: <TransactionOutlined />,
       label: "reimbursement",
-      onClick: () => handleNavigation("/eimbursement"),
+      onClick: () => handleNavigation("/reimbursement"),
     },
   ];
 

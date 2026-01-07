@@ -393,10 +393,6 @@ const ProjectsManagePage: React.FC = () => {
             <Button
               type="text"
               icon={<EyeOutlined />}
-              // onClick={() => {
-              //   // Navigate to project details - implement as needed
-              //   message.info("Project details view - to be implemented");
-              // }}
               onClick={() => openViewModal(record)}
             />
           </Tooltip>

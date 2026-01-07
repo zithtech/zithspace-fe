@@ -174,24 +174,30 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // User dropdown menu
   const userMenuItems = [
     {
-      key: 'profile',
+      key: "profile",
       icon: <UserOutlined />,
-      label: 'Profile',
-      onClick: () => router.push('/profile'),
+      label: "Profile",
+      onClick: () => router.push("/profile"),
     },
     {
-      key: 'settings',
+      key: "newProfile",
+      icon: <UserOutlined />,
+      label: "New Profile",
+      onClick: () => router.push("/newProfile"),
+    },
+    {
+      key: "settings",
       icon: <SettingOutlined />,
-      label: 'Settings',
-      onClick: () => router.push('/settings'),
+      label: "Settings",
+      onClick: () => router.push("/settings"),
     },
     {
-      type: 'divider' as const,
+      type: "divider" as const,
     },
     {
-      key: 'logout',
+      key: "logout",
       icon: <LogoutOutlined />,
-      label: 'Logout',
+      label: "Logout",
       onClick: handleLogout,
     },
   ];

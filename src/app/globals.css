@@ -312,3 +312,128 @@ body {
   backdrop-filter: none;
 }
 
+.project-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+}
+
+.project-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(22, 119, 255, 0.18);
+}
+.client-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+  transition: all 0.35s cubic-bezier(.4,0,.2,1);
+}
+
+.client-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(22, 119, 255, 0.18);
+}
+
+/* ===== Modal Header Animation ===== */
+.view-modal-header {
+  animation: slideFadeIn 0.4s ease-out;
+}
+
+@keyframes slideFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ===== Body Cards Animation ===== */
+.view-card {
+  opacity: 0;
+  animation: fadeUp 0.45s ease forwards;
+}
+
+.view-card:nth-child(1) { animation-delay: 0.05s; }
+.view-card:nth-child(2) { animation-delay: 0.1s; }
+.view-card:nth-child(3) { animation-delay: 0.15s; }
+.view-card:nth-child(4) { animation-delay: 0.2s; }
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(22, 119, 255, 0.18);
+  transition: all 0.25s ease;
+}
+
+
+.view-close-btn {
+  transition: transform 0.2s ease;
+}
+
+.view-close-btn:hover {
+  transform: scale(1.05);
+}
+
+/*client*/
+.client-view-header {
+  animation: headerSlideFade 0.4s ease-out;
+}
+
+@keyframes headerSlideFade {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.client-view-card {
+  opacity: 0;
+  animation: cardFadeUp 0.45s ease forwards;
+}
+
+.client-view-card:nth-child(1) { animation-delay: 0.05s; }
+.client-view-card:nth-child(2) { animation-delay: 0.1s; }
+.client-view-card:nth-child(3) { animation-delay: 0.15s; }
+.client-view-card:nth-child(4) { animation-delay: 0.2s; }
+.client-view-card:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes cardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.client-view-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 26px rgba(22, 119, 255, 0.18);
+  transition: all 0.25s ease;
+}
+
+.client-view-close-btn {
+  transition: all 0.2s ease;
+}
+
+.client-view-close-btn:hover {
+  transform: scale(1.06);
+}
+
+

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { Settings2 } from 'lucide-react';
 import {
   Card,
   Tabs,
@@ -16,28 +17,45 @@ import {
   Tag,
   Modal,
   message,
+  notification,
   Space,
   Statistic,
   Row,
   Col,
   Badge,
   Typography,
+  Tooltip,
+  Popconfirm,
+  Switch,
+  Checkbox,
+  List,
+  InputNumber,
+  Divider,
+  Segmented,
 } from "antd";
 import {
   PlusOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
+  ScheduleOutlined,
+  EditOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
 import dayjs from "dayjs";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
-const { Paragraph } = Typography;
+const { Paragraph, Text } = Typography;
 
 export default function LeavesPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [api, contextHolder] = notification.useNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [myLeaves, setMyLeaves] = useState<Leave[]>([]);
@@ -655,58 +673,91 @@ export default function LeavesPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
+        {contextHolder}
         <div style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-            <h1 style={{ margin: 0 }}>Leave & Permission Management</h1>
-            {/* {user && (
-              <Tag 
-                color={hasApprovalRights ? "orange" : "blue"} 
-                style={{ marginLeft: 16, fontSize: 14 }}
-              >
-                {hasApprovalRights ? "Manager/Admin" : "Employee"}
-              </Tag>
-            )} */}
-          </div>
 
           {/* My Leave Status Section */}
-          <div style={{ marginBottom: 32 }}>
-            <Typography.Title level={4} style={{ marginBottom: 16, color: '#1677ff' }}>
-              My Leave Status
-            </Typography.Title>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card>
-                  <Statistic
-                    title="My Total Leaves"
-                    value={myLeaves.length}
-                    prefix={<ClockCircleOutlined />}
-                  />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card>
-                  <Statistic
-                    title="My Approved Leaves"
-                    value={myApprovedLeaves}
-                    prefix={<CheckCircleOutlined />}
-                    valueStyle={{ color: "#3f8600" }}
-                  />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card>
-                  <Statistic
-                    title="My Pending Leaves"
-                    value={myPendingLeaves}
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ color: "#faad14" }}
-                  />
-                </Card>
-              </Col>
-            </Row>
-          </div>
+  <div style={{ marginBottom: 32 }}>
+    <div style={{ marginBottom: 16 }}>
+<Tabs
+  activeKey={
+    pathname.includes("government-holidays")
+      ? "holidays"
+      : pathname.includes("leave-adjustments")
+      ? "adjustments"
+      : "leaves"
+  }
+  onChange={(key) => {
+    if (key === "leaves") router.push("/leaves");
+    if (key === "holidays") router.push("/government-holidays");
+    if (key === "adjustments") router.push("/leave-adjustments");
+  }}
+  items={[
+    {
+      key: "leaves",
+      label: (
+        <span>
+          <ClockCircleOutlined /> My Leave Status
+        </span>
+      ),
+    },
+    {
+      key: "holidays",
+      label: (
+        <span>
+          <ScheduleOutlined /> Government Holidays
+        </span>
+      ),
+    },
+    {
+      key: "adjustments",
+      label: (
+        <span>
+          <EditOutlined /> Leave Adjustment
+        </span>
+      ),
+    },
+  ]}
+/>
 
-          {/* Team Management Section - Only for Managers/Admins */}
+    </div>
+
+
+    <Row gutter={16}>
+      <Col span={8}>
+        <Card>
+          <Statistic
+            title="My Total Leaves"
+            value={myLeaves.length}
+            prefix={<ClockCircleOutlined />}
+          />
+        </Card>
+      </Col>
+
+      <Col span={8}>
+        <Card>
+          <Statistic
+            title="My Approved Leaves"
+            value={myApprovedLeaves}
+            prefix={<CheckCircleOutlined />}
+            valueStyle={{ color: "#3f8600" }}
+          />
+        </Card>
+      </Col>
+
+      <Col span={8}>
+        <Card>
+          <Statistic
+            title="My Pending Leaves"
+            value={myPendingLeaves}
+            prefix={<ClockCircleOutlined />}
+            valueStyle={{ color: "#faad14" }}
+          />
+        </Card>
+      </Col>
+    </Row>
+  </div>
+    {/* Team Management Section - Only for Managers/Admins */}
           {hasApprovalRights && (
             <div style={{ marginBottom: 32 }}>
               <Typography.Title level={4} style={{ marginBottom: 16, color: '#fa8c16' }}>
@@ -815,6 +866,7 @@ export default function LeavesPage() {
               </div>
             )}
           </Modal>
+
         </div>
       </MainLayout>
     </ProtectedRoute>

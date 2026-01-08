@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Settings2 } from 'lucide-react';
+import { Settings2 } from "lucide-react";
 import {
   Card,
   Select,
@@ -25,18 +25,20 @@ import {
   Divider,
   Segmented,
   Tabs,
-  Checkbox
+  Checkbox,
+  Tooltip,
 } from "antd";
 import {
   ClockCircleOutlined,
   ScheduleOutlined,
   DeleteOutlined,
   ArrowLeftOutlined,
-  EditOutlined
+  EditOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import Link from "next/link";
-import { useRouter,usePathname} from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import axios from "axios";
 
 const { Text } = Typography;
@@ -194,16 +196,17 @@ const tamilNaduHolidays = [
 ];
 
 export default function GovernmentHolidaysPage() {
-  
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
-    const [apiHolidaysSource, setApiHolidaysSource] = useState<any[]>(tamilNaduHolidays);
+  const [loading, setLoading] = useState(false);
+  const [apiHolidaysSource, setApiHolidaysSource] =
+    useState<any[]>(tamilNaduHolidays);
   // Holidays State
   const [holidayModalVisible, setHolidayModalVisible] = useState(false);
   const [modalCountry, setModalCountry] = useState("");
-  const [modalYear, setModalYear] = useState('2026');
+  const [modalYear, setModalYear] = useState("2026");
   const [selectedHolidayIds, setSelectedHolidayIds] = useState<number[]>([]);
   const [holidayTableData, setHolidayTableData] = useState<any[]>([]);
 
@@ -212,25 +215,26 @@ export default function GovernmentHolidaysPage() {
   const [editingHoliday, setEditingHoliday] = useState<any>(null);
   const [editBaseDays, setEditBaseDays] = useState(1);
   const [editExtraDays, setEditExtraDays] = useState(0);
-  const [editExtraPosition, setEditExtraPosition] = useState<'before' | 'after'>('after');
+  const [editExtraPosition, setEditExtraPosition] = useState<
+    "before" | "after"
+  >("after");
 
-
-//   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  //   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
   useEffect(() => {
     const fetchHolidays = async () => {
+      setLoading(true);
       try {
         const response = await axios.get("/api/holidays");
         setApiHolidaysSource(response.data);
       } catch (error) {
-       console.log('error to be finded in fetchHolidays',error)
+        console.log("error to be finded in fetchHolidays", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchHolidays();
   }, [api]);
-
-
-
 
   // Filter holidays for modal based on country
   const filteredModalHolidays = apiHolidaysSource.filter(
@@ -241,7 +245,7 @@ export default function GovernmentHolidaysPage() {
     setEditingHoliday(record);
     setEditBaseDays(record.base);
     setEditExtraDays(record.extra);
-    setEditExtraPosition(record.extraPosition || 'after');
+    setEditExtraPosition(record.extraPosition || "after");
     setEditHolidayModalVisible(true);
   };
 
@@ -252,21 +256,28 @@ export default function GovernmentHolidaysPage() {
     const extra = Number(editExtraDays) || 0;
     const position = editExtraPosition;
     const total = base + extra;
-    
+
     // Use originalFromDate if available, otherwise fallback to current fromDate (for migration/safety)
-    const originalStart = editingHoliday.originalFromDate || editingHoliday.fromDate;
-    
+    const originalStart =
+      editingHoliday.originalFromDate || editingHoliday.fromDate;
+
     let newFromDate = originalStart;
     let newToDate;
 
-    if (position === 'before') {
+    if (position === "before") {
       // If extra days are before, shift start date back. End date is determined by base days from original start.
-      newFromDate = dayjs(originalStart).subtract(extra, 'day').format("YYYY-MM-DD");
-      newToDate = dayjs(originalStart).add(Math.max(0, base - 1), 'day').format("YYYY-MM-DD");
+      newFromDate = dayjs(originalStart)
+        .subtract(extra, "day")
+        .format("YYYY-MM-DD");
+      newToDate = dayjs(originalStart)
+        .add(Math.max(0, base - 1), "day")
+        .format("YYYY-MM-DD");
     } else {
       // If extra days are after, start date is original. End date extends by base + extra.
       newFromDate = originalStart;
-      newToDate = dayjs(originalStart).add(Math.max(0, base + extra - 1), 'day').format("YYYY-MM-DD");
+      newToDate = dayjs(originalStart)
+        .add(Math.max(0, base + extra - 1), "day")
+        .format("YYYY-MM-DD");
     }
 
     setHolidayTableData((prev) =>
@@ -288,7 +299,7 @@ export default function GovernmentHolidaysPage() {
     api.success({
       message: "Holiday duration adjusted",
       placement: "bottomRight",
-      duration: 3,
+      duration: 1,
     });
     setEditHolidayModalVisible(false);
   };
@@ -298,7 +309,7 @@ export default function GovernmentHolidaysPage() {
     api.success({
       message: "Holiday deleted successfully",
       placement: "bottomRight",
-      duration: 3,
+      duration: 1,
     });
   };
 
@@ -316,27 +327,29 @@ export default function GovernmentHolidaysPage() {
       api.success({
         message: `${name} Activated Sucessfully`,
         placement: "bottomRight",
-        duration: 3,
+        duration: 1,
       });
     } else {
       api.info({
         message: `${name} Deactivated Sucessfully`,
         placement: "bottomRight",
-        duration: 3,
+        duration: 1,
       });
     }
   };
 
   const handleAddHolidays = () => {
     const existingKeys = new Set(holidayTableData.map((r) => r.key));
-    const newHolidayIds = selectedHolidayIds.filter((id) => !existingKeys.has(id));
+    const newHolidayIds = selectedHolidayIds.filter(
+      (id) => !existingKeys.has(id)
+    );
 
     if (newHolidayIds.length === 0) {
       api.warning({
         message: "Data Already Added",
         description: "You have already added the selected holidays.",
         placement: "bottomRight",
-        duration: 3,
+        duration: 1,
       });
       return;
     }
@@ -354,7 +367,7 @@ export default function GovernmentHolidaysPage() {
       original: 1,
       base: 1,
       extra: 0,
-      extraPosition: 'after',
+      extraPosition: "after",
       total: 1,
       location: holiday.country === "IN" ? "India" : "USA",
       type: holiday.type,
@@ -369,7 +382,7 @@ export default function GovernmentHolidaysPage() {
     api.success({
       message: "Holidays added successfully",
       placement: "bottomRight",
-      duration: 3,
+      duration: 1,
     });
   };
 
@@ -414,7 +427,10 @@ export default function GovernmentHolidaysPage() {
           <Space size={2}>
             <Text>{val}</Text>
             {diff !== 0 && (
-              <Text type={diff > 0 ? "success" : "danger"} style={{ fontSize: 11 }}>
+              <Text
+                type={diff > 0 ? "success" : "danger"}
+                style={{ fontSize: 11 }}
+              >
                 ({diff > 0 ? `+${diff}` : diff})
               </Text>
             )}
@@ -458,7 +474,7 @@ export default function GovernmentHolidaysPage() {
       render: (status: boolean, record: any) => (
         <Switch
           checked={status}
-        //  disabled={!isAdmin}
+          //  disabled={!isAdmin}
           onChange={(checked) => handleStatusChange(checked, record.key)}
         />
       ),
@@ -468,23 +484,23 @@ export default function GovernmentHolidaysPage() {
       key: "actions",
       width: 180,
       render: (_: any, record: any) => (
-        <Space style={{gap:20}}>
+        <Space style={{ gap: 20 }}>
+           <Tooltip title="Edit Leave Type">
           <Button
             size="small"
             icon={<Settings2 size={16} />}
             onClick={() => handleEditHoliday(record)}
-          >
-          </Button>
+          ></Button>
+          </Tooltip>
           <Popconfirm
             title="Delete this holiday?"
             onConfirm={() => handleDeleteHoliday(record.key)}
           >
-            <Button size="small" danger icon={<DeleteOutlined />}>
-            </Button>
+            <Button size="small" danger icon={<DeleteOutlined />}></Button>
           </Popconfirm>
         </Space>
       ),
-    }
+    },
   ];
 
   const modalTableColumns = [
@@ -542,50 +558,61 @@ export default function GovernmentHolidaysPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{padding:24}}>
-        {contextHolder}
-        
-    <div style={{ marginBottom: 16 }}>
-           <Tabs
-  activeKey={
-    pathname.includes("leave-adjustments")
-      ? "adjustments"
-      : pathname.includes("leaves")
-      ? "leaves"
-      : "holidays"
-  }
-  onChange={(key) => {
-    if (key === "leaves") router.push("/leaves");
-    if (key === "holidays") router.push("/government-holidays");
-    if (key === "adjustments") router.push("/leave-adjustments");
-  }}
-  items={[
-    {
-      key: "leaves",
-      label: (
-        <span>
-          <ClockCircleOutlined /> My Leave Status
-        </span>
-      ),
-    },
-    {
-      key: "holidays",
-      label: (
-        <span>
-          <ScheduleOutlined /> Government Holidays
-        </span>
-      ),
-    },
-    {
-      key: "adjustments",
-      label: (
-        <span>
-          <EditOutlined /> Leave Adjustment
-        </span>
-      ),
-    },
-  ]}
-/>
+        <div style={{ padding: 24 }}>
+          {contextHolder}
+
+          <div style={{ marginBottom: 16 }}>
+            <Tabs
+              activeKey={
+                pathname.includes("leave-adjustments")
+                  ? "adjustments"
+                  : pathname.includes("leaves")
+                  ? "leaves"
+                  : pathname.includes("leave-configuration")
+                  ? "configuration"
+                  : "holidays"
+              }
+              onChange={(key) => {
+                if (key === "leaves") router.push("/leaves");
+                if (key === "holidays") router.push("/government-holidays");
+                if (key === "adjustments") router.push("/leave-adjustments");
+                if (key === "configuration") router.push("/leave-configuration");
+              }}
+              items={[
+                {
+                  key: "leaves",
+                  label: (
+                    <span>
+                      <ClockCircleOutlined /> My Leave Status
+                    </span>
+                  ),
+                },
+                {
+                  key: "holidays",
+                  label: (
+                    <span>
+                      <ScheduleOutlined /> Government Holidays
+                    </span>
+                  ),
+                },
+                {
+                  key: "adjustments",
+                  label: (
+                    <span>
+                      <EditOutlined /> Leave Adjustment
+                    </span>
+                  ),
+                },
+                {
+                  key: "configuration",
+                  label: (
+                    <span>
+                      <SettingOutlined /> Leave Configuration
+                    </span>
+                  ),
+                },
+              ]}
+            />
           </div>
 
           <Card>
@@ -599,7 +626,9 @@ export default function GovernmentHolidaysPage() {
             >
               <div>
                 <Space align="center" size={8}>
-                  <ScheduleOutlined style={{ color: "#1a64c4ff", fontSize: 20 }} />
+                  <ScheduleOutlined
+                    style={{ color: "#1a64c4ff", fontSize: 20 }}
+                  />
                   <Typography.Title level={4} style={{ margin: 0 }}>
                     Government Holidays
                   </Typography.Title>
@@ -611,9 +640,16 @@ export default function GovernmentHolidaysPage() {
                 </div>
                 <div style={{ marginTop: 8, marginLeft: 28 }}>
                   <Space>
-                    <Tag color="processing">Total: {holidayTableData.length}</Tag>
-                    <Tag color="success">Active: {holidayTableData.filter((h) => h.status).length}</Tag>
-                    <Tag color="default">Inactive: {holidayTableData.filter((h) => !h.status).length}</Tag>
+                    <Tag color="processing">
+                      Total: {holidayTableData.length}
+                    </Tag>
+                    <Tag color="success">
+                      Active: {holidayTableData.filter((h) => h.status).length}
+                    </Tag>
+                    <Tag color="default">
+                      Inactive:{" "}
+                      {holidayTableData.filter((h) => !h.status).length}
+                    </Tag>
                   </Space>
                 </div>
               </div>
@@ -632,7 +668,7 @@ export default function GovernmentHolidaysPage() {
               dataSource={holidayTableData}
               rowKey="key"
               pagination={{ pageSize: 8 }}
-            //   scroll={{ y: 300 }}
+              //   scroll={{ y: 300 }}
               style={{ borderRadius: 8 }}
             />
           </Card>
@@ -643,9 +679,12 @@ export default function GovernmentHolidaysPage() {
             open={holidayModalVisible}
             onCancel={() => setHolidayModalVisible(false)}
             width={760}
-            style={{ bottom:20 }}
+            style={{ bottom: 20 }}
             footer={[
-              <Button key="cancel" onClick={() => setHolidayModalVisible(false)}>
+              <Button
+                key="cancel"
+                onClick={() => setHolidayModalVisible(false)}
+              >
                 Cancel
               </Button>,
               <Button
@@ -658,7 +697,14 @@ export default function GovernmentHolidaysPage() {
               </Button>,
             ]}
           >
-            <Card size="small" style={{ marginBottom: 12, background: "#fafafa", borderRadius: 8 }}>
+            <Card
+              size="small"
+              style={{
+                marginBottom: 12,
+                background: "#fafafa",
+                borderRadius: 8,
+              }}
+            >
               <Row gutter={12} align="middle">
                 <Col span={6}>
                   <Typography.Text strong>Country</Typography.Text>
@@ -687,10 +733,20 @@ export default function GovernmentHolidaysPage() {
                 <Col span={6} />
                 <Col span={6} style={{ textAlign: "right" }}>
                   <Space>
-                    <Button size="small" onClick={() => setSelectedHolidayIds(filteredModalHolidays.map((h) => h.holiday_id))}>
+                    <Button
+                      size="small"
+                      onClick={() =>
+                        setSelectedHolidayIds(
+                          filteredModalHolidays.map((h) => h.holiday_id)
+                        )
+                      }
+                    >
                       Select All
                     </Button>
-                    <Button size="small" onClick={() => setSelectedHolidayIds([])}>
+                    <Button
+                      size="small"
+                      onClick={() => setSelectedHolidayIds([])}
+                    >
                       Deselect
                     </Button>
                   </Space>
@@ -698,6 +754,7 @@ export default function GovernmentHolidaysPage() {
               </Row>
             </Card>
             <Table
+              loading={loading}
               columns={modalTableColumns}
               dataSource={filteredModalHolidays}
               rowKey="holiday_id"
@@ -713,26 +770,38 @@ export default function GovernmentHolidaysPage() {
             title={
               <Space>
                 <ClockCircleOutlined />
-                <span>Adjust Holiday Duration</span>
+                <span>Update Holidays</span>
               </Space>
             }
             open={editHolidayModalVisible}
             onCancel={() => setEditHolidayModalVisible(false)}
             onOk={handleSaveHolidayAdjustment}
-            okText="Save Adjustment"
+            okText="Update Holidays"
             width={500}
           >
             {/* Edit Modal Content */}
-             <p style={{ marginBottom: 16, color: "#666" }}>
+            <p style={{ marginBottom: 16, color: "#666" }}>
               Adjust base leave days and add extra leave for this holiday.
             </p>
 
             {editingHoliday && (
               <>
-                <Card style={{ background: "#f5f5f5", marginBottom: 24 }} size="small" bordered={false}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Card
+                  style={{ background: "#f5f5f5", marginBottom: 24 }}
+                  size="small"
+                  bordered={false}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <div>
-                      <Typography.Text strong style={{ fontSize: 16 }}>{editingHoliday.holidayName}</Typography.Text>
+                      <Typography.Text strong style={{ fontSize: 16 }}>
+                        {editingHoliday.holidayName}
+                      </Typography.Text>
                       <div style={{ fontSize: 12, color: "#888" }}>
                         {dayjs(editingHoliday.fromDate).format("MMM DD, YYYY")}
                       </div>
@@ -745,12 +814,12 @@ export default function GovernmentHolidaysPage() {
                   <Col span={12}>
                     <Typography.Text strong>Base Leave Days</Typography.Text>
                     <div style={{ marginTop: 8 }}>
-                      <InputNumber 
-                        min={1} 
-                        max={365} 
-                        value={editBaseDays} 
-                        onChange={(val) => setEditBaseDays(val || 1)} 
-                        style={{ width: '100%' }}
+                      <InputNumber
+                        min={1}
+                        max={365}
+                        value={editBaseDays}
+                        onChange={(val) => setEditBaseDays(val || 1)}
+                        style={{ width: "100%" }}
                         addonBefore="Days"
                         disabled
                       />
@@ -758,16 +827,15 @@ export default function GovernmentHolidaysPage() {
                   </Col>
                   <Col span={12}>
                     <Typography.Text strong>Extra Leave</Typography.Text>
-                    <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                      <InputNumber 
-                        min={-10} 
-                        max={10} 
-                        value={editExtraDays} 
-                        onChange={(val) => setEditExtraDays(val || 0)} 
+                    <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                      <InputNumber
+                        min={-10}
+                        max={10}
+                        value={editExtraDays}
+                        onChange={(val) => setEditExtraDays(val || 0)}
                         style={{ flex: 1 }}
                         addonBefore="Days"
                       />
-                     
                     </div>
                   </Col>
                 </Row>
@@ -785,33 +853,65 @@ export default function GovernmentHolidaysPage() {
                 </div>
 
                 <Card size="small" title="New Duration Summary">
-                  <Row gutter={16} style={{ textAlign: 'center', marginBottom: 12 }}>
+                  <Row
+                    gutter={16}
+                    style={{ textAlign: "center", marginBottom: 12 }}
+                  >
                     <Col span={8}>
                       <Statistic title="Base" value={editBaseDays} />
                     </Col>
                     <Col span={8}>
-                      <Statistic title="Extra" value={editExtraDays} prefix={editExtraDays > 0 ? "+" : ""} valueStyle={{ color: editExtraDays !== 0 ? "#faad14" : "inherit" }} />
+                      <Statistic
+                        title="Extra"
+                        value={editExtraDays}
+                        prefix={editExtraDays > 0 ? "+" : ""}
+                        valueStyle={{
+                          color: editExtraDays !== 0 ? "#faad14" : "inherit",
+                        }}
+                      />
                     </Col>
                     <Col span={8}>
-                      <Statistic title="Total Duration" value={editBaseDays + editExtraDays} suffix="Days" valueStyle={{ color: "#1677ff", fontWeight: "bold" }} />
+                      <Statistic
+                        title="Total Duration"
+                        value={editBaseDays + editExtraDays}
+                        suffix="Days"
+                        valueStyle={{ color: "#1677ff", fontWeight: "bold" }}
+                      />
                     </Col>
                   </Row>
-                  <div style={{ textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
-                    <Typography.Text type="secondary">Effective Dates</Typography.Text>
-                    <div style={{ fontSize: 16, fontWeight: 500, marginTop: 4 }}>
+                  <div
+                    style={{
+                      textAlign: "center",
+                      borderTop: "1px solid #f0f0f0",
+                      paddingTop: 12,
+                    }}
+                  >
+                    <Typography.Text type="secondary">
+                      Effective Dates
+                    </Typography.Text>
+                    <div
+                      style={{ fontSize: 16, fontWeight: 500, marginTop: 4 }}
+                    >
                       {(() => {
                         const base = Number(editBaseDays) || 1;
                         const extra = Number(editExtraDays) || 0;
-                        const start = editingHoliday.originalFromDate || editingHoliday.fromDate;
+                        const start =
+                          editingHoliday.originalFromDate ||
+                          editingHoliday.fromDate;
                         let from, to;
-                        if (editExtraPosition === 'before') {
-                          from = dayjs(start).subtract(extra, 'day');
-                          to = dayjs(start).add(Math.max(0, base - 1), 'day');
+                        if (editExtraPosition === "before") {
+                          from = dayjs(start).subtract(extra, "day");
+                          to = dayjs(start).add(Math.max(0, base - 1), "day");
                         } else {
                           from = dayjs(start);
-                          to = dayjs(start).add(Math.max(0, base + extra - 1), 'day');
+                          to = dayjs(start).add(
+                            Math.max(0, base + extra - 1),
+                            "day"
+                          );
                         }
-                        return `${from.format("MMM DD")} - ${to.format("MMM DD, YYYY")}`;
+                        return `${from.format("MMM DD")} - ${to.format(
+                          "MMM DD, YYYY"
+                        )}`;
                       })()}
                     </div>
                   </div>

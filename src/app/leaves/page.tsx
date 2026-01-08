@@ -41,6 +41,7 @@ import {
   ScheduleOutlined,
   EditOutlined,
   DeleteOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
 import dayjs from "dayjs";
@@ -685,12 +686,15 @@ export default function LeavesPage() {
       ? "holidays"
       : pathname.includes("leave-adjustments")
       ? "adjustments"
+      : pathname.includes("leave-configuration")
+      ? "configuration"
       : "leaves"
   }
   onChange={(key) => {
     if (key === "leaves") router.push("/leaves");
     if (key === "holidays") router.push("/government-holidays");
     if (key === "adjustments") router.push("/leave-adjustments");
+    if (key === "configuration") router.push("/leave-configuration");
   }}
   items={[
     {
@@ -714,6 +718,14 @@ export default function LeavesPage() {
       label: (
         <span>
           <EditOutlined /> Leave Adjustment
+        </span>
+      ),
+    },
+    {
+      key: "configuration",
+      label: (
+        <span>
+          <SettingOutlined /> Leave Configuration
         </span>
       ),
     },

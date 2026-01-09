@@ -1,29 +1,37 @@
 'use client';
 
-import React from 'react';
-import { useAuth } from '@/context/AuthContext';
-import MainLayout from '@/components/layout/MainLayout';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import TicketList from '@/components/projects/TicketList';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Spin } from 'antd';
 
-export default function ProjectsTicketsPage() {
-  const { user, isLoading } = useAuth();
+/**
+ * Legacy Redirect Page
+ * 
+ * This page handles backward compatibility for the old /projects/tickets route.
+ * It automatically redirects users to the new project selection page.
+ * 
+ * Old Flow: /projects/tickets (with optional project filter)
+ * New Flow: /projects/select → /projects/:projectId/tickets
+ */
+export default function LegacyTicketsRedirect() {
+  const router = useRouter();
 
-  // Show loading spinner while authentication is being checked
-  if (isLoading) {
-    return <LoadingSpinner message="Loading tickets..." />;
-  }
-
-  // Don't render if no user
-  if (!user) {
-    return null;
-  }
+  useEffect(() => {
+    // Redirect to the new project selection page
+    router.replace('/projects/select');
+  }, [router]);
 
   return (
-    <MainLayout>
-      <div style={{ padding: 20 }}>
-        <TicketList />
-      </div>
-    </MainLayout>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh',
+      flexDirection: 'column',
+      gap: 16
+    }}>
+      <Spin size="large" />
+      <p style={{ color: '#8c8c8c' }}>Redirecting to project selection...</p>
+    </div>
   );
 }

@@ -22,6 +22,9 @@ interface TicketKanbanProps {
   projects: Array<{ value: string; label: string; code: string }>;
   members: Array<{ value: string; label: string; position: string }>;
   onTicketUpdate: (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => void;
+  activeSprint?: any;
+  kanbanScope?: 'active' | 'backlog';
+  onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
 }
 
 const COLUMNS = [
@@ -31,7 +34,7 @@ const COLUMNS = [
   { id: 'completed', title: 'Completed' },
 ];
 
-export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, members, onTicketUpdate }) => {
+export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, members, onTicketUpdate, activeSprint, kanbanScope, onSprintAssignment }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -132,6 +135,9 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
                     projects={projects}
                     members={members}
                     onTicketUpdate={onTicketUpdate}
+                    activeSprint={activeSprint}
+                    kanbanScope={kanbanScope}
+                    onSprintAssignment={onSprintAssignment}
                 />
             ))}
         </div>

@@ -42,6 +42,8 @@ import {
   EditOutlined,
   DeleteOutlined,
   SettingOutlined,
+  ApartmentOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
 import dayjs from "dayjs";
@@ -684,19 +686,33 @@ export default function LeavesPage() {
   activeKey={
     pathname.includes("government-holidays")
       ? "holidays"
+      : pathname.includes("leaves-dashboard")
+      ? "dashboard"
       : pathname.includes("leave-adjustments")
       ? "adjustments"
       : pathname.includes("leave-configuration")
       ? "configuration"
+      : pathname.includes("position-configuration")
+      ? "positions"
       : "leaves"
   }
   onChange={(key) => {
+    if (key === "dashboard") router.push("/leaves-dashboard");
     if (key === "leaves") router.push("/leaves");
     if (key === "holidays") router.push("/government-holidays");
     if (key === "adjustments") router.push("/leave-adjustments");
     if (key === "configuration") router.push("/leave-configuration");
+    if (key === "positions") router.push("/position-configuration");
   }}
   items={[
+    {
+      key: "dashboard",
+      label: (
+        <span>
+          <AppstoreOutlined /> Dashboard
+        </span>
+      ),
+    },
     {
       key: "leaves",
       label: (
@@ -726,6 +742,14 @@ export default function LeavesPage() {
       label: (
         <span>
           <SettingOutlined /> Leave Configuration
+        </span>
+      ),
+    },
+    {
+      key: "positions",
+      label: (
+        <span>
+          <ApartmentOutlined /> Position Configuration
         </span>
       ),
     },

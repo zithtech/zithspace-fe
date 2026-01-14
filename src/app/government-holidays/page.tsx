@@ -35,6 +35,8 @@ import {
   ArrowLeftOutlined,
   EditOutlined,
   SettingOutlined,
+  ApartmentOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import Link from "next/link";
@@ -235,6 +237,26 @@ export default function GovernmentHolidaysPage() {
     };
     fetchHolidays();
   }, [api]);
+
+  useEffect(() => {
+    const initialData = tamilNaduHolidays.slice(0, 6).map((holiday) => ({
+      key: holiday.holiday_id,
+      holidayName: holiday.name,
+      fromDate: holiday.from_date,
+      toDate: holiday.to_date,
+      originalFromDate: holiday.from_date,
+      original: 1,
+      base: 1,
+      extra: 0,
+      extraPosition: "after",
+      total: 1,
+      location: holiday.country === "IN" ? "India" : "USA",
+      type: holiday.type,
+      rule: holiday.rule,
+      status: true,
+    }));
+    setHolidayTableData(initialData);
+  }, []);
 
   // Filter holidays for modal based on country
   const filteredModalHolidays = apiHolidaysSource.filter(
@@ -566,19 +588,33 @@ export default function GovernmentHolidaysPage() {
               activeKey={
                 pathname.includes("leave-adjustments")
                   ? "adjustments"
+                  : pathname.includes("leaves-dashboard")
+                  ? "dashboard"
                   : pathname.includes("leaves")
                   ? "leaves"
                   : pathname.includes("leave-configuration")
                   ? "configuration"
+                  : pathname.includes("position-configuration")
+                  ? "positions"
                   : "holidays"
               }
               onChange={(key) => {
+                if (key === "dashboard") router.push("/leaves-dashboard");
                 if (key === "leaves") router.push("/leaves");
                 if (key === "holidays") router.push("/government-holidays");
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration") router.push("/leave-configuration");
+                if (key === "positions") router.push("/position-configuration");
               }}
               items={[
+                {
+                  key: "dashboard",
+                  label: (
+                    <span>
+                      <AppstoreOutlined /> Dashboard
+                    </span>
+                  ),
+                },
                 {
                   key: "leaves",
                   label: (
@@ -608,6 +644,14 @@ export default function GovernmentHolidaysPage() {
                   label: (
                     <span>
                       <SettingOutlined /> Leave Configuration
+                    </span>
+                  ),
+                },
+                {
+                  key: "positions",
+                  label: (
+                    <span>
+                      <ApartmentOutlined /> Position Configuration
                     </span>
                   ),
                 },

@@ -32,6 +32,8 @@ import {
   UserOutlined,
   DeleteOutlined,
   SettingOutlined,
+  ApartmentOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
@@ -285,19 +287,33 @@ export default function LeaveAdjustmentPage() {
               activeKey={
                 pathname.includes("leave-adjustments")
                   ? "adjustments"
+                  : pathname.includes("leaves-dashboard")
+                  ? "dashboard"
                   : pathname.includes("government-holidays")
                   ? "holidays"
                   : pathname.includes("leave-configuration")
                   ? "configuration"
+                  : pathname.includes("position-configuration")
+                  ? "positions"
                   : "leaves"
               }
               onChange={(key) => {
+                if (key === "dashboard") router.push("/leaves-dashboard");
                 if (key === "leaves") router.push("/leaves");
                 if (key === "holidays") router.push("/government-holidays");
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration") router.push("/leave-configuration");
+                if (key === "positions") router.push("/position-configuration");
               }}
               items={[
+                {
+                  key: "dashboard",
+                  label: (
+                    <span>
+                      <AppstoreOutlined /> Dashboard
+                    </span>
+                  ),
+                },
                 {
                   key: "leaves",
                   label: (
@@ -327,6 +343,14 @@ export default function LeaveAdjustmentPage() {
                   label: (
                     <span>
                       <SettingOutlined /> Leave Configuration
+                    </span>
+                  ),
+                },
+                {
+                  key: "positions",
+                  label: (
+                    <span>
+                      <ApartmentOutlined /> Position Configuration
                     </span>
                   ),
                 },

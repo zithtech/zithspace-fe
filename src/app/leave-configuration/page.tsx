@@ -44,6 +44,8 @@ import {
   EditOutlined,
   DeleteOutlined,
   SettingOutlined,
+  ApartmentOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
 import dayjs from "dayjs";
@@ -487,13 +489,24 @@ export default function leaveConfiguration() {
             <Tabs
               activeKey="configuration"
               onChange={(key) => {
+                if (key === "dashboard") router.push("/leaves-dashboard");
                 if (key === "leaves") router.push("/leaves");
                 if (key === "holidays") router.push("/government-holidays");
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration")
                   router.push("/leave-configuration");
+                if (key === "positions")
+                  router.push("/position-configuration");
               }}
               items={[
+                {
+                  key: "dashboard",
+                  label: (
+                    <span>
+                      <AppstoreOutlined /> Dashboard
+                    </span>
+                  ),
+                },
                 {
                   key: "leaves",
                   label: (
@@ -523,6 +536,14 @@ export default function leaveConfiguration() {
                   label: (
                     <span>
                       <SettingOutlined /> Leave Configuration
+                    </span>
+                  ),
+                },
+                {
+                  key: "positions",
+                  label: (
+                    <span>
+                      <ApartmentOutlined /> Position Configuration
                     </span>
                   ),
                 },

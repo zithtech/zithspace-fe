@@ -33,6 +33,12 @@ import {
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 
+// Import images from the assets folder
+import bhogiImage from "../../assets/holidays/bhogi.jpg";
+import pongalImage from "../../assets/holidays/pongal.jpg";
+import mattuPongalImage from "../../assets/holidays/mattupongal.jpg";
+import defaultHolidayImage from "../../assets/holidays/default.jpg";
+
 const { Title } = Typography;
 const { Text } = Typography;
 
@@ -138,9 +144,9 @@ const adjustmentsData = [
 
 // From government-holidays/page.tsx
 const holidaysData = [
- { key: 1, name: "Pongal", from_date: "2026-01-14", status: true },
-  { key: 2, name: "Thai Pongal", from_date: "2026-01-15", status: true },
-  { key: 3, name: "Mattu Pongal", from_date: "2026-01-16", status: true },
+  { key: 1, name: "Bhogi", from_date: "2026-01-14", status: true, image: bhogiImage },
+  { key: 2, name: "Thai Pongal", from_date: "2026-01-15", status: true, image: pongalImage },
+  { key: 3, name: "Mattu Pongal", from_date: "2026-01-16", status: true, image:  mattuPongalImage},
   { key: 4, name: "Tamil New Year", from_date: "2026-04-14", status: true },
   { key: 5, name: "May Day", from_date: "2026-05-01", status: true },
   { key: 6, name: "Kamarajar Birthday", from_date: "2026-07-15", status: true },
@@ -540,7 +546,7 @@ export default function LeavesDashboardPage() {
                 {/* Scroll container */}
                 <div
                   style={{
-                   maxHeight: 250, // 👈 height for ~4 items
+                   maxHeight: 300, // 👈 height for ~4 items
                     overflowY: "auto", // 👈 enable scroll
                       paddingRight: 10,
                   }}
@@ -613,7 +619,8 @@ export default function LeavesDashboardPage() {
     style={{
       borderRadius: 14,
       boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-      width:399
+      width:399,
+      right:260,
     }}
     title={
       <Space>
@@ -672,7 +679,19 @@ export default function LeavesDashboardPage() {
 
           if (holiday) {
             return (
-              <Tooltip title={holiday.name}color="red">
+              <Tooltip
+                title={
+                  <div style={{ textAlign: "center" }}>
+                    <img
+                      // Use the specific holiday image, or fallback to default
+                      src={holiday.image ? holiday.image.src : defaultHolidayImage.src}
+                      alt={holiday.name}
+                      style={{ width: 120, height: "auto", borderRadius: 4, marginBottom: 4 }}
+                    />
+                    <div style={{ fontWeight: 600 }}>{holiday.name}</div>
+                  </div>
+                }
+              >
                 <div style={{ textAlign: "center", marginTop: 4, cursor: "pointer" }}>
                   <Badge color="red" />
                 </div>

@@ -636,14 +636,14 @@ export default function LeavesDashboardPage() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-              width:399
+            
           }}
         >
           <Text strong style={{ fontSize: 14 }}>
             {value.format("MMMM YYYY")}
           </Text>
 
-          <Space  style={{ right:30}}>
+          <Space>
             <Button
               size="small"
               onClick={() =>

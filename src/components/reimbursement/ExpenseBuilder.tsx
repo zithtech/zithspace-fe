@@ -33,6 +33,7 @@ export type ExpenseItem = {
   billNo?: string;
   description?: string;
   files?: any[];
+  file?: string;    
 };
 
 export type Mode = "empty" | "form" | "list" | "review";
@@ -66,9 +67,9 @@ export default function ExpenseBuilder({
   );
 
   const startAdd = () => {
-      if (items.length > 0) {
-    onResetMainForm();  // Skip for first expense
-  }
+    if (items.length > 0) {
+      onResetMainForm();  // Skip for first expense
+    }
     setItems((prev) => [...prev, {}]);
     setActiveIndex(items.length);
     setMode("form");
@@ -118,7 +119,7 @@ export default function ExpenseBuilder({
           border-2 border-dashed border-blue-200
           mx-auto mb-2
         ">
-          <PlusOutlined className="text-lg text-blue-500" onClick={startAdd}/>
+          <PlusOutlined className="text-lg text-blue-500" onClick={startAdd} />
         </div>
         <Text className="text-xs text-gray-700 mb-2 block">
           No expense items added yet
@@ -240,23 +241,26 @@ export default function ExpenseBuilder({
         {/* Upload */}
         <div className="p-1 rounded border border-dashed border-gray-300 bg-gray-50">
           <Upload
-       beforeUpload={(file) => {
-    const allowedTypes = ['image/*', '.pdf', '.doc', '.docx'];
-    const isValidType = allowedTypes.some(type => 
-      file.type === '' ? file.name.match(/\.(pdf|doc|docx)$/i) : file.type.includes(type)
-    );
-    if (!isValidType) {
-      message.error('Only PDF, DOC, images allowed!');
-    }
-    return isValidType;
-  }}     
+           beforeUpload={(file) => {
+    const fileNames = [
+      ...(item.files || []),  // Existing files
+      file.name               // New file
+    ].slice(0, 4);            // Max 4 files
+    
+    updateItem("files", fileNames);
+    return false;
+  }}
+  fileList={(item.files || []).map(name => ({name, status: 'done'}) as any)}
+  maxCount={4}
+  multiple
+          
           >
             <Button
               icon={<UploadOutlined />}
               size="small"
               className="w-full h-6 text-xs border-dashed"
             >
-              Attach Files
+              Attach Files ({item.files?.length || 0})
             </Button>
           </Upload>
         </div>

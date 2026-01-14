@@ -22,8 +22,11 @@ import {
   SyncOutlined,
   CheckCircleOutlined,
   EyeOutlined,
+  CloseOutlined,
   CloseCircleOutlined,
+  DownloadOutlined,
   QuestionCircleOutlined,
+
 } from "@ant-design/icons";
 
 import type { ColumnsType } from "antd/es/table";
@@ -49,12 +52,103 @@ export default function ManagerTab() {
   >(null);
   const [actionText, setActionText] = useState("");
   const [currentRecord, setCurrentRecord] = useState<Reimbursement | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+
+  const [loadingFile, setLoadingFile] = useState(false);
+  const [previewModal, setPreviewModal] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewFileName, setPreviewFileName] = useState("");
 
 
+
+  const normalizeFiles = (item: any): string[] => {
+    if (Array.isArray(item.attachments)) return item.attachments;
+    if (Array.isArray(item.files)) return item.files;
+    if (typeof item.attachments === "string") return [item.attachments];
+    if (typeof item.files === "string") return [item.files];
+    return [];
+  };
+
+
+
+  const getFileName = (filePath: string): string => {
+    return filePath.split('/').pop()?.split('\\').pop() || filePath;
+  };
+
+  const handlePreview = async (file: string) => {
+    try {
+      setLoadingFile(true);
+
+      const fileName = getFileName(file);
+      const url = `/files/${fileName}`;
+
+      const response = await fetch(url, { method: "HEAD" });
+      if (!response.ok) {
+        message.error("File not found for preview");
+        return;
+      }
+
+      setPreviewFileName(fileName);
+      setPreviewUrl(url);
+      setPreviewModal(true); // ✅ OPEN MODAL
+    } catch (error) {
+      console.error("Preview error:", error);
+      message.error("Preview failed");
+    } finally {
+      setLoadingFile(false);
+    }
+  };
+
+
+  const handleDownload = async (file: string) => {
+    try {
+      const fileName = getFileName(file);
+      const url = `/files/${fileName}`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('File not found');
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      message.success('Download started');
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error('Download failed');
+    }
+  };
 
   //filter logic
-  const pendingRequests= data.filter(r => r.status === "PENDING_APPROVAL");
+  const pendingRequests = data.filter(r => r.status === "PENDING_APPROVAL");
+
+
+  const getFinanceStatusTag = (status?: string) => {
+    switch (status) {
+      case "PAID":
+        return <Tag color="green">Paid</Tag>;
+      case "ON_HOLD":
+        return <Tag color="red">On Hold</Tag>;
+      default:
+        return <Tag color="orange">Pending Finance</Tag>;
+    }
+  };
+
+  const getManagerStatusTag = (status: string) => {
+    if (status === "APPROVED") {
+      return <Tag color="green">Manager Approved</Tag>;
+    }
+    if (status === "REJECTED") {
+      return <Tag color="red">Manager Rejected</Tag>;
+    }
+    return <Tag color="orange">Pending Manager Approval</Tag>;
+  };
 
 
   /* ===== TABLE COLUMNS (UNCHANGED UI) ===== */
@@ -107,14 +201,21 @@ export default function ManagerTab() {
           <Tooltip title="View">
             <Button
               type="text"
-              className="text-blue-600"
-              icon={<EyeOutlined className="text-[18px]" />}
+              icon={
+                <EyeOutlined
+                  style={{
+                    color: '#1890ff',
+                    fontSize: 14
+                  }}
+                />
+              }
               onClick={() => {
                 setSelectedRow(record);
                 setOpen(true);
               }}
             />
           </Tooltip>
+
 
           {/* APPROVE */}
           <Tooltip title="Approve">
@@ -159,6 +260,7 @@ export default function ManagerTab() {
     },
   ];
 
+
   const summaryCardClass = `
   h-24
   rounded-2xl
@@ -174,67 +276,67 @@ export default function ManagerTab() {
       {/* ===== SUMMARY CARDS (SAME UI) ===== */}
       <Row gutter={[16, 16]} style={{ marginTop: 7, marginBottom: 24 }}>
 
-  {/* Pending Approval */}
-  <Col xs={24} md={8}>
-    <Card className={summaryCardClass}>
-      <Statistic
-        title={
-          <span className="text-xs text-gray-500">
-            Pending Approval
-          </span>
-        }
-        value={data.filter(d => d.status === "PENDING_APPROVAL").length}
-        valueStyle={{
-          fontSize: "22px",
-          fontWeight: 700,
-          color: "#111827",
-          lineHeight: "1.2",
-        }}
-      />
-    </Card>
-  </Col>
+        {/* Pending Approval */}
+        <Col xs={24} md={8}>
+          <Card className={summaryCardClass}>
+            <Statistic
+              title={
+                <span className="text-xs text-gray-500">
+                  Pending Approval
+                </span>
+              }
+              value={data.filter(d => d.status === "PENDING_APPROVAL").length}
+              valueStyle={{
+                fontSize: "22px",
+                fontWeight: 700,
+                color: "#111827",
+                lineHeight: "1.2",
+              }}
+            />
+          </Card>
+        </Col>
 
-  {/* Under Review */}
-  <Col xs={24} md={8}>
-    <Card className={summaryCardClass}>
-      <Statistic
-        title={
-          <span className="text-xs text-gray-500">
-            Under Review
-          </span>
-        }
-        value={data.filter(d => d.status === "PENDING_APPROVAL").length}
-        valueStyle={{
-          fontSize: "22px",
-          fontWeight: 700,
-          color: "#111827",
-          lineHeight: "1.2",
-        }}
-      />
-    </Card>
-  </Col>
+        {/* Under Review */}
+        <Col xs={24} md={8}>
+          <Card className={summaryCardClass}>
+            <Statistic
+              title={
+                <span className="text-xs text-gray-500">
+                  Under Review
+                </span>
+              }
+              value={data.filter(d => d.status === "PENDING_APPROVAL").length}
+              valueStyle={{
+                fontSize: "22px",
+                fontWeight: 700,
+                color: "#111827",
+                lineHeight: "1.2",
+              }}
+            />
+          </Card>
+        </Col>
 
-  {/* Approved Today */}
-  <Col xs={24} md={8}>
-    <Card className={summaryCardClass}>
-      <Statistic
-        title={
-          <span className="text-xs text-gray-500">
-            Approved Today
-          </span>
-        }
-        value={data.filter(d => d.status === "APPROVED").length}
-        valueStyle={{
-          fontSize: "22px",
-          fontWeight: 700,
-          color: "#111827",
-          lineHeight: "1.2",
-        }}
-      />
-    </Card>
-  </Col>
+        {/* Approved Today */}
+        <Col xs={24} md={8}>
+          <Card className={summaryCardClass}>
+            <Statistic
+              title={
+                <span className="text-xs text-gray-500">
+                  Approved Today
+                </span>
+              }
+              value={data.filter(d => d.status === "APPROVED").length}
+              valueStyle={{
+                fontSize: "22px",
+                fontWeight: 700,
+                color: "#111827",
+                lineHeight: "1.2",
+              }}
+            />
+          </Card>
+        </Col>
 
-</Row>
+      </Row>
 
       {/* ===== TABLE ===== */}
       <Card>
@@ -247,76 +349,138 @@ export default function ManagerTab() {
         />
       </Card>
 
-      {/* ===== DRAWER (UI UNCHANGED) ===== */}
 
-      <Drawer
-        title={<span className="text-sm font-semibold">Details</span>}
-        placement="right"
-        width={480}
-        open={open}
-        onClose={() => setOpen(false)}
-        bodyStyle={{ padding: 20, background: "#f8fafc" }}
+      <Modal
+        open={previewModal}
+        onCancel={() => setPreviewModal(false)}
+        footer={null}
+        width={900}
+        bodyStyle={{ padding: 0, height: "80vh" }}
       >
-        {/* ================= EMPTY / BEFORE DATA ================= */}
-        {!selectedRow && (
-          <div className="space-y-6 text-[13px] text-gray-500">
+        {/* HEADER */}
+        <div className="p-4 border-b flex items-center justify-between bg-gray-50">
+          <div className="font-semibold text-lg truncate">
+            Preview: {previewFileName}
+          </div>
 
-            {/* Header Placeholder */}
-            <div className="rounded-2xl bg-white p-5 border shadow-sm animate-pulse">
-              <div className="h-4 w-40 bg-gray-200 rounded" />
-              <div className="h-5 w-20 bg-gray-200 rounded-full mt-3" />
-            </div>
+          <div className="flex gap-2">
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() => handleDownload(previewFileName)}
+            >
+              Download
+            </Button>
 
-            {/* Summary Placeholder */}
-            <div className="rounded-2xl bg-white p-5 border shadow-sm space-y-3 animate-pulse">
-              {[1, 2, 3, 4, 5].map((_, i) => (
-                <div key={i} className="flex justify-between">
-                  <div className="h-3 w-24 bg-gray-200 rounded" />
-                  <div className="h-3 w-32 bg-gray-200 rounded" />
-                </div>
-              ))}
-            </div>
+            <Button onClick={() => setPreviewModal(false)}>Close</Button>
+          </div>
+        </div>
 
-            {/* Message */}
-            <div className="text-center text-sm text-gray-400 pt-6">
-              Select a reimbursement to view details
+        {/* PREVIEW */}
+        <iframe
+          src={`${previewUrl}#toolbar=0`}
+          className="w-full h-[calc(100%-70px)] border-0"
+          onError={() => message.error("Preview failed")}
+        />
+      </Modal>
+
+
+      {/* ===== DRAWER (UI UNCHANGED) ===== */}
+      <Drawer
+        title={
+          <div className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
+                #{selectedRow?.requestId || "REQ-0000"}
+              </div>
+              <div className="flex items-center gap-3">
+                <Tag
+                  color={
+                    selectedRow?.status === "APPROVED"
+                      ? "green"
+                      : selectedRow?.status === "REJECTED"
+                        ? "red"
+                        : "orange"
+                  }
+                  className="rounded-full px-4 py-1 text-xs font-medium shadow-sm border-0 backdrop-blur-sm"
+                >
+                  {selectedRow?.status || "PENDING"}
+                </Tag>
+                <CloseOutlined
+                  className="cursor-pointer text-gray-500 hover:text-gray-900 hover:scale-110 text-base transition-all duration-200"
+                  onClick={() => setOpen(false)}
+                />
+              </div>
             </div>
           </div>
-        )}
+        }
+        placement="right"
+        width={450}
+        closeIcon={null}
+        open={open}
+        styles={{
+          body: {
+            padding: 10,
+            height: "100vh",
+            overflow: "hidden",
+          },
+          header: { padding: "16px 20px 0" },
+        }}
+        footer={
+          <div className="flex justify-end">
+            <div className="flex gap-2">
+              <Button
+                type="primary"
+                onClick={async () => {
+                  if (!selectedRow) return;
 
-        {/* ================= AFTER DATA ================= */}
-        {selectedRow && (
-          <div className="space-y-7 text-[13px] text-gray-700">
+                  await ReimbursementService.updateStatus(
+                    selectedRow.id,
+                    "APPROVED"
+                  );
 
-            {/* HEADER */}
-            <div className="relative rounded-2xl bg-gradient-to-br from-white to-gray-50 p-5 border shadow">
-              <div className="absolute left-0 top-0 h-full w-[4px] bg-blue-600 rounded-l-2xl" />
-
-              <div className="font-semibold text-gray-900">
-                {selectedRow.requestId}
-              </div>
-
-              <Tag
-                color={
-                  selectedRow.status === "APPROVED"
-                    ? "green"
-                    : selectedRow.status === "REJECTED"
-                      ? "red"
-                      : "orange"
-                }
-                className="mt-3 rounded-full px-3 text-[11px]"
+                  message.success("Request approved successfully");
+                  reload();
+                  setOpen(false);
+                }}
               >
-                {selectedRow.status}
-              </Tag>
-            </div>
+                Approve
+              </Button>
 
-            {/* SUMMARY */}
-            <div>
-              <div className="mb-3 font-semibold text-gray-900">
+              <Button
+                danger
+                onClick={async () => {
+                  if (!selectedRow) return;
+
+                  await ReimbursementService.updateStatus(
+                    selectedRow.id,
+                    "REJECTED"
+                  );
+
+                  message.success("Request rejected");
+                  reload();
+                  setOpen(false);
+                }}
+              >
+                Reject
+              </Button>
+            </div>
+          </div>
+        }
+
+
+
+      >
+        {selectedRow && (
+          <div className="h-full flex flex-col text-sm text-gray-700">
+
+            {/* ================= SUMMARY (FIXED) ================= */}
+            <div className="flex-shrink-0">
+              <div className="mb-3 font-semibold text-base text-gray-900 tracking-tight">
                 Request Summary
               </div>
 
-              <div className="rounded-2xl bg-white p-5 border space-y-3 shadow-md">
+              <div className="rounded-2xl bg-gradient-to-br from-white to-slate-50 p-4 border border-slate-100 space-y-2 shadow-lg">
+
                 {[
                   ["Category", selectedRow.category],
                   ["Total Amount", `₹${selectedRow.amount}`],
@@ -325,84 +489,144 @@ export default function ManagerTab() {
                   ["Submitted", selectedRow.submitted],
                   ["Created", selectedRow.created],
                 ].map(([label, value], i) => (
-                  <div key={i} className="flex justify-between text-[12px]">
-                    <span className="text-gray-500">{label}</span>
-                    <span className="font-medium text-gray-800">
-                      {value}
-                    </span>
+                  <div
+                    key={i}
+                    className="flex justify-between text-xs py-1 hover:bg-slate-100 hover:rounded-lg px-2 transition-colors"
+                  >
+                    <span className="text-gray-500 font-medium">{label}</span>
+                    <span className="font-bold text-gray-900">{value}</span>
                   </div>
                 ))}
+
+                {/* 🔹 MANAGER STATUS (NORMAL SUMMARY ROW) */}
+                <div className="flex justify-between text-xs py-1 px-2">
+                  <span className="text-gray-500 font-medium">
+                    Manager Status
+                  </span>
+
+                  <span className="font-bold text-gray-900 ml-4">
+                    {getManagerStatusTag(selectedRow.status)}
+                  </span>
+                </div>
+
+
+                {/* 🔹 FINANCE STATUS (ADDED BELOW MANAGER) */}
+                <div className="flex justify-between text-xs py-1 px-2">
+                  <span className="text-gray-500 font-medium">
+                    Finance Status
+                  </span>
+
+                  <span className="ml-4">
+                    {getFinanceStatusTag(selectedRow.financeStatus)}
+                  </span>
+                </div>
+
               </div>
             </div>
 
-            {/* EXPENSE ITEMS */}
-            <div>
-              <div className="mb-3 font-semibold text-gray-900">
-                Expense Items ({selectedRow.expenseItems.length})
-              </div>
+            {/* ================= ONLY SCROLLABLE AREA ================= */}
+            <div className="flex-1 overflow-y-auto mt-3 pr-2 space-y-6">
 
-              <div className="space-y-4">
-                {selectedRow.expenseItems.map((item, i) => (
-                  <div
-                    key={i}
-                    className="relative rounded-2xl bg-white p-5 border shadow"
-                  >
-                    <div className="absolute left-0 top-0 h-full w-[3px] bg-blue-500 rounded-l-2xl" />
+              {/* EXPENSE ITEMS */}
+              <div>
+                <div className="mb-3 font-semibold text-base text-gray-900 tracking-tight">
+                  Expense Items ({selectedRow.expenseItems?.length || 0})
+                </div>
 
-                    <div className="font-semibold text-gray-900">
-                      {item.title}
-                    </div>
-                    <div className="mt-1 text-[12px] text-gray-500">
-                      {item.date} • ₹{item.amount}
-                    </div>
+                <div className="space-y-2">
+                  {selectedRow.expenseItems?.map((item, i) => {
+                    const files = normalizeFiles(item);
+                    const showFiles = files.slice(0, 4);
+                    const hasMoreFiles = files.length > 4;
 
-                    <Tag
-                      color="green"
-                      className="mt-3 rounded-full px-3 text-[11px]"
-                    >
-                      {item.status}
-                    </Tag>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    return (
+                      <div
+                        key={i}
+                        className="group flex items-start gap-3 p-3 bg-gradient-to-r from-slate-50 to-white border border-slate-200 rounded-xl shadow-md hover:shadow-lg transition-all"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm truncate">
+                            {item.title}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {item.date} • ₹{item.amount}
+                          </div>
+                        </div>
 
-            {/* ACTIVITY LOG */}
-            <div>
-              <div className="mb-3 font-semibold text-gray-900">
-                Activity Log
-              </div>
-
-              <div className="space-y-4">
-                {selectedRow.activityLog.map((log, i) => (
-                  <div
-                    key={i}
-                    className="relative pl-5 border-l-2 border-blue-200"
-                  >
-                    <span className="absolute -left-[6px] top-1.5 h-3 w-3 rounded-full bg-blue-500" />
-                    <div className="text-sm text-gray-800">
-                      {log.action}
-                    </div>
-                    {log.note && (
-                      <div className="text-[12px] text-gray-500">
-                        {log.note}
+                        {files.length > 0 && (
+                          <div className="space-y-1.5 min-w-[180px]">
+                            {showFiles.map((file, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between bg-white p-2 rounded-lg text-xs border h-8"
+                              >
+                                <span className="truncate max-w-[90px]">
+                                  {file}
+                                </span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="small"
+                                    type="text"
+                                    onClick={() => handlePreview(file)}
+                                  >
+                                    <EyeOutlined />
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    type="text"
+                                    onClick={() => handleDownload(file)}
+                                  >
+                                    <DownloadOutlined />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                            {hasMoreFiles && (
+                              <Button size="small" type="link">
+                                +{files.length - 4} more files
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="text-[11px] text-gray-400">
-                      {log.date}
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
+              {/* ACTIVITY LOG */}
+              <div>
+                <div className="mb-3 font-semibold text-base text-gray-900 tracking-tight">
+                  Activity Log
+                </div>
+
+                <div className="space-y-3">
+                  {selectedRow.activityLog.slice(-4).map((log, i) => (
+                    <div
+                      key={i}
+                      className="relative pl-6 border-l-2 border-indigo-200 pr-2"
+                    >
+                      <span className="absolute -left-2.5 top-1.5 h-3 w-3 rounded-full bg-indigo-500" />
+                      <div className="text-sm font-semibold text-gray-900">
+                        {log.action}
+                      </div>
+                      {log.note && (
+                        <div className="text-xs text-gray-600 italic">
+                          {log.note}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500">
+                        {log.date}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
       </Drawer>
-
-
-
-
 
 
 
@@ -508,32 +732,32 @@ export default function ManagerTab() {
                   ? "bg-red-500 hover:bg-red-600"
                   : "bg-blue-500 hover:bg-blue-600"
             }
-  onClick={async () => {
-    if (!currentRecord) return;
-    
-    if ((actionType === "reject" || actionType === "clarify") && !actionText.trim()) {
-      message.error("Message is required");
-      return;
-    }
+            onClick={async () => {
+              if (!currentRecord) return;
 
-    if (actionType === "approve") {
-      await ReimbursementService.updateStatus(currentRecord.id, "APPROVED");
-      message.success(`${currentRecord.requestId} Approved Successfully! `);
-    }
+              if ((actionType === "reject" || actionType === "clarify") && !actionText.trim()) {
+                message.error("Message is required");
+                return;
+              }
 
-    if (actionType === "reject") {
-      await ReimbursementService.updateStatus(currentRecord.id, "REJECTED");
-      message.success(`${currentRecord.requestId} Rejected! `);
-    }
+              if (actionType === "approve") {
+                await ReimbursementService.updateStatus(currentRecord.id, "APPROVED");
+                message.success(`${currentRecord.requestId} Approved Successfully! `);
+              }
 
-    if (actionType === "clarify") {
-      message.success("Clarification request sent");
-    }
+              if (actionType === "reject") {
+                await ReimbursementService.updateStatus(currentRecord.id, "REJECTED");
+                message.success(`${currentRecord.requestId} Rejected! `);
+              }
 
-    reload();  // Table refresh
-    setActionType(null);
-    setActionText("");
-  }}
+              if (actionType === "clarify") {
+                message.success("Clarification request sent");
+              }
+
+              reload();  // Table refresh
+              setActionType(null);
+              setActionText("");
+            }}
           >
             {actionType === "approve"
               ? "Approve"
@@ -542,7 +766,7 @@ export default function ManagerTab() {
                 : "Send Request"}
           </Button>
 
-          
+
         </div>
       </Modal>
 

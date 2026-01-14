@@ -5,6 +5,7 @@ export type ExpenseItem = {
   billNo?: string;
   description?: string;
   file?: string;
+  attachments?: string[]; 
   status:
     | "DRAFT"
     | "PENDING_APPROVAL"
@@ -39,6 +40,7 @@ export type Reimbursement = {
     | "APPROVED"
     | "REJECTED"
     | "PAID";
+     financeStatus?: "PENDING" | "PAID" | "ON_HOLD"; 
 
   submitted?: string;
   created: string;

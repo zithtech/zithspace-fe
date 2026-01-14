@@ -441,25 +441,6 @@ const handleDelete = (record: Category) => {
   Are you sure you want to delete "{categoryToDelete?.name}"?
 </Modal>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     </>
   );
 }

@@ -67,7 +67,10 @@ const handleSubmit = async () => {
         title: i.description || "Expense",
         date: i.date?.format("DD MMM YYYY"),
         amount: i.amount,
-        file: i.files?.[0]?.name,
+          attachments: (i.files || []).map((f: any) =>
+  typeof f === "string" ? f : f.name
+),
+
 
         // ✅ Expense item status also correct
         status: "PENDING_APPROVAL",
@@ -133,7 +136,7 @@ const handleSubmit = async () => {
         date: i.date ? i.date.format("DD MMM YYYY") : null,
         amount: i.amount || 0,
         billNo: i.billNo || null,
-        file: i.files?.[0]?.name || null,
+     attachments: i.files || [],
         status: "DRAFT",
       })),
 

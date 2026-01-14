@@ -12,7 +12,24 @@ let reimbursements: Reimbursement[] = [
     status: "PENDING_APPROVAL", 
     submitted: "10 Feb 2025",
     created: "09 Feb 2025",
-    expenseItems: [],
+    expenseItems: [ {
+      title: "Flight Ticket",
+      date: "09 Feb 2025",
+      amount: 8000,
+      attachments: [
+        "ticket.pdf",
+        "boardingpass.pdf"
+      ],
+      status: "PENDING_APPROVAL" ,
+    },
+    
+    {
+      title: "Hotel Bill",
+      date: "09 Feb 2025",
+      amount: 4000,
+      attachments: ["bill.pdf"],
+      status: "PENDING_APPROVAL" ,
+    }],
     activityLog: [
       { action: "Created by Ramesh Kumar", date: "09 Feb 2025" },
     ],
@@ -27,7 +44,18 @@ let reimbursements: Reimbursement[] = [
     status: "APPROVED", 
     submitted: "08 Feb 2025",
     created: "07 Feb 2025",
-    expenseItems: [],
+    expenseItems: [ {
+      title: "Flight Ticket",
+      date: "09 Feb 2025",
+      amount: 8000,
+      attachments: [
+        "ticket.pdf",
+        "invoice.pdf",
+        "boardingpass.pdf"
+      ],
+      status: "PENDING_APPROVAL" ,
+    },
+   ],
     activityLog: [
       { action: "Approved by Manager", date: "08 Feb 2025" },
     ],
@@ -42,7 +70,14 @@ let reimbursements: Reimbursement[] = [
     status: "REJECTED",
     submitted: "06 Feb 2025",
     created: "05 Feb 2025",
-    expenseItems: [],
+    expenseItems: [ 
+    {
+      title: "Hotel Bill",
+      date: "09 Feb 2025",
+      amount: 4000,
+      attachments: ["hotelbill.pdf"],
+      status: "PENDING_APPROVAL" ,
+    }],
     activityLog: [
       { action: "Rejected by Manager", date: "06 Feb 2025" },
     ],
@@ -54,10 +89,17 @@ let reimbursements: Reimbursement[] = [
     category: "Internet",
     policy: "Internet Policy",
     amount: 1800,
-    status: "PENDING_APPROVAL", // ✅
+    status: "PENDING_APPROVAL", 
     submitted: "04 Feb 2025",
     created: "03 Feb 2025",
-    expenseItems: [],
+    expenseItems: [ 
+    {
+      title: "Hotel Bill",
+      date: "09 Feb 2025",
+      amount: 4000,
+      attachments: ["hotelbill.pdf"],
+      status: "PENDING_APPROVAL" ,
+    }],
     activityLog: [
       { action: "Created by Anita Verma", date: "03 Feb 2025" },
     ],

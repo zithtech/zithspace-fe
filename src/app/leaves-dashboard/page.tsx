@@ -643,7 +643,7 @@ export default function LeavesDashboardPage() {
             {value.format("MMMM YYYY")}
           </Text>
 
-          <Space>
+          <Space  style={{ right:30}}>
             <Button
               size="small"
               onClick={() =>

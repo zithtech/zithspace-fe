@@ -837,6 +837,27 @@ export default function ReleasePlanComponent() {
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
         width={600}
+        extra={
+          drawerReleasePlan?.status === 'active' && activeTab === 'sprint_plan' && (
+            <Popconfirm
+              title="Complete Sprint"
+              description="Are you sure you want to complete this sprint? Completed tickets will be archived and incomplete tickets will return to backlog."
+              onConfirm={() => {
+                handleCompleteSprint(drawerReleasePlan);
+                setDrawerVisible(false);
+              }}
+              okText="Complete"
+              cancelText="Cancel"
+            >
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+              >
+                Complete Sprint
+              </Button>
+            </Popconfirm>
+          )
+        }
       >
         {drawerReleasePlan && (
           <div>

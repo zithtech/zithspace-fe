@@ -41,6 +41,7 @@ import {
   CaretRightOutlined,
   ArrowLeftOutlined,
   MinusCircleOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -88,6 +89,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+    // Handle Complete Sprint
+  const [completingSprint, setCompletingSprint] = useState(false);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
@@ -208,6 +211,38 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         notifyApi.error({ message: "Update Failed", description: "Failed to update sprint assignment." });
       }
     });
+  };
+
+
+  
+  const handleCompleteSprint = async () => {
+    if (!activeSprint?.id) return;
+    
+    try {
+      setCompletingSprint(true);
+      await ReleasePlanService.completeSprint(activeSprint.id);
+      
+      notifyApi.success({
+        message: 'Sprint Completed',
+        description: 'Completed tickets archived, incomplete tickets returned to backlog',
+        placement: 'bottomLeft',
+        style: {
+          borderLeft: '4px solid #52c41a',
+        }
+      });
+      
+      // Refresh both ticket lists
+      refetchActive();
+      refetchBacklog();
+    } catch (error: any) {
+      console.error(error);
+      notifyApi.error({
+        message: 'Error',
+        description: error.message || 'Failed to complete sprint'
+      });
+    } finally {
+      setCompletingSprint(false);
+    }
   };
 
   // Enable live updates
@@ -924,11 +959,31 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       </Text>
                       <Tag color="green" bordered={false} style={{ borderRadius: '4px' }}>RUNNING</Tag>
                     </Space>
-                    <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
-                      {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
-                      {' - '}
-                      {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
-                    </Text>
+                    <Space>
+                      {activeSprint?.status === 'active' && (
+                        <Popconfirm
+                          title="Complete Sprint"
+                          description="Archive completed tickets and return incomplete tickets to backlog?"
+                          onConfirm={handleCompleteSprint}
+                          okText="Complete"
+                          cancelText="Cancel"
+                        >
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<CheckCircleOutlined />}
+                            loading={completingSprint}
+                          >
+                            Complete Sprint
+                          </Button>
+                        </Popconfirm>
+                      )}
+                      <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
+                        {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
+                        {' - '}
+                        {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
+                      </Text>
+                    </Space>
                   </div>
                 }
                 style={{ marginBottom: 20 }}
@@ -1029,6 +1084,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 activeSprint={activeSprint}
                 kanbanScope={kanbanScope}
                 onSprintAssignment={handleSprintAssignment}
+                onCompleteSprint={handleCompleteSprint}
               />
             </>
           ) : (

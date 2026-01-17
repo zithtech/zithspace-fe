@@ -122,9 +122,9 @@ export default function InvoiceproSettingPage() {
                   <Col xs={24} sm={12} md={8} key={setting.id}>
                     <Card
                       hoverable
-                      className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 bg-white"
+                      className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 border border-gray-100 bg-white"
                     >
-                      {/* Company Info */}
+                      {/* ================= COMPANY INFO ================= */}
                       <div className="flex items-center gap-4 mb-4">
                         {setting.general.company_logo && (
                           <div className="w-20 h-20 p-2 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
@@ -135,6 +135,7 @@ export default function InvoiceproSettingPage() {
                             />
                           </div>
                         )}
+
                         <div className="flex-1 space-y-2">
                           <div>
                             <p className="text-sm font-semibold text-gray-500 uppercase">
@@ -144,14 +145,16 @@ export default function InvoiceproSettingPage() {
                               {setting.general.company_name}
                             </p>
                           </div>
+
                           <div>
                             <p className="text-sm font-semibold text-gray-500 uppercase">
                               Company Address
                             </p>
                             <p className="text-gray-600">
-                              {setting.general.company_address}
+                              {setting.general.company_address || "—"}
                             </p>
                           </div>
+
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-gray-500 uppercase">
                               Primary Color
@@ -161,7 +164,7 @@ export default function InvoiceproSettingPage() {
                               style={{
                                 backgroundColor: setting.general.primary_color,
                               }}
-                            ></div>
+                            />
                             <span className="text-gray-700 font-mono text-sm">
                               {setting.general.primary_color}
                             </span>
@@ -169,39 +172,112 @@ export default function InvoiceproSettingPage() {
                         </div>
                       </div>
 
-                      {/* Regional Settings */}
-                      <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-                        <p className="text-sm font-semibold text-gray-500 uppercase mb-2">
-                          Regional Settings
-                        </p>
-                        <div className="flex justify-between">
-                          <div>
-                            <p className="text-gray-500 text-xs">Currency</p>
-                            <p className="text-gray-800 font-medium">
+                      {/* ================= GRID SECTIONS ================= */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Regional */}
+                        <div className="p-3 bg-gray-50 rounded-lg border text-sm">
+                          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                            Regional
+                          </p>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Currency</span>
+                            <span className="font-medium">
                               {setting.general.currency_code}
-                            </p>
+                            </span>
                           </div>
-                          <div>
-                            <p className="text-gray-500 text-xs">Date Format</p>
-                            <p className="text-gray-800 font-medium">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Date</span>
+                            <span className="font-medium">
                               {setting.general.date_format || "MM/DD/YYYY"}
-                            </p>
+                            </span>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Invoice Details */}
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-                        <p className="text-sm font-semibold text-gray-500 uppercase mb-2">
-                          Invoice Details
-                        </p>
-                        <div className="flex justify-between items-center">
-                          <p className="text-gray-800 font-medium">
-                            {setting.invoices.invoice_format}
+                        {/* Invoice */}
+                        <div className="p-3 bg-gray-50 rounded-lg border text-sm">
+                          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                            Invoice
                           </p>
-                          <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                            Format
-                          </span>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">
+                              {setting.invoices.invoice_format}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Payment */}
+                        <div className="col-span-2 p-3 bg-gray-50 rounded-lg border text-sm">
+                          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                            Payment
+                          </p>
+
+                          <div className="grid grid-cols-3 gap-4 items-center">
+                            {/* ========= PAYMENT DETAILS ========= */}
+                            <div className="col-span-2 space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Bank</span>
+                                <span className="font-medium">
+                                  {setting.payments?.account_name || "—"}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">
+                                  Account No
+                                </span>
+                                <span className="font-medium">
+                                  {setting.payments?.account_number || "—"}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">IFSC</span>
+                                <span className="font-medium">
+                                  {setting.payments?.ifsc_code || "—"}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">Branch</span>
+                                <span className="font-medium">
+                                  {setting.payments?.branch_name || "—"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* ========= QR IMAGE ========= */}
+                            {setting.payments?.qr_code && (
+                              <div className="flex flex-col items-center justify-center">
+                                <img
+                                  src={setting.payments.qr_code}
+                                  alt="Payment QR"
+                                  className="w-20 h-20 object-contain border rounded bg-white p-1"
+                                />
+                                <span className="text-[10px] text-gray-500 mt-1">
+                                  Scan to pay
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Signature */}
+                        <div className="col-span-2 p-3 bg-gray-50 rounded-lg border">
+                          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                            Signature
+                          </p>
+
+                          {setting.general.company_signature ? (
+                            <img
+                              src={setting.general.company_signature}
+                              alt="Signature"
+                              className="h-12 object-contain border rounded bg-white px-2"
+                            />
+                          ) : (
+                            <p className="text-xs text-gray-400">
+                              No signature uploaded
+                            </p>
+                          )}
                         </div>
                       </div>
                     </Card>

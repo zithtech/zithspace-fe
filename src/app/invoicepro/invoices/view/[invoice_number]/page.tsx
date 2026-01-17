@@ -266,20 +266,47 @@ import { currencyOptions } from "@/utils/currencyOptions";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import InvoicePDF from "../../InvoicePDF";
 
+import {
+  EditOutlined,
+  LoadingOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled,
+} from "@ant-design/icons";
+import TiptapEditor from "@/components/common/TiptapEditor";
+
 //import { ArrowLeft, Download, Printer } from "lucide-react";
 
 const { Title, Text } = Typography;
+
+interface InvoiceItem {
+  item: string;
+  description?: string;
+  qty: number;
+  price: number;
+  tax?: string | number;
+}
 
 export default function ViewInvoicePage() {
   const { invoice_number } = useParams();
   const router = useRouter();
   const [invoice, setInvoice] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
-  const [description, setDescription] = useState<string>(
-    invoice?.description || ""
-  );
+  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
+  const [editorContent, setEditorContent] = useState("");
+  const [invoice_page_descriptions, setInvoicePageDescriptions] = useState<
+    Record<string, string>
+  >({});
 
   const currencyCode = invoice?.currency || "USD";
+
+  const params = useParams();
+
+  const invoiceNumber =
+    typeof params.invoice_number === "string"
+      ? params.invoice_number
+      : Array.isArray(params.invoice_number)
+      ? params.invoice_number[0]
+      : null;
 
   const currencySymbol =
     currencyOptions.find((c) => c.value === currencyCode)?.symbol || "$";
@@ -299,14 +326,98 @@ export default function ViewInvoicePage() {
   }, [invoice_number]);
 
   useEffect(() => {
-    if (invoice) {
-      setDescription(invoice.description || "");
-    }
-  }, [invoice]);
+    if (invoiceNumber === null) return;
+
+    const savedDescriptions: Record<string, string> = JSON.parse(
+      localStorage.getItem("invoice_page_descriptions") || "{}"
+    );
+
+    const description = savedDescriptions[invoiceNumber] ?? "";
+    setEditorContent(description);
+  }, [invoiceNumber]);
+
+  useEffect(() => {
+    const savedDescriptions: Record<string, string> = JSON.parse(
+      localStorage.getItem("invoice_page_descriptions") || "{}"
+    );
+    setInvoicePageDescriptions(savedDescriptions);
+  }, []);
 
   if (!invoice || !settings) {
     return <Card>Invoice not found</Card>;
   }
+
+  const hasTax = (invoice.items as InvoiceItem[]).some(
+    (item) => Number(String(item.tax || 0).replace("%", "")) > 0
+  );
+
+  const ITEM_COL = 0;
+  const QTY_COL = 1;
+  const PRICE_COL = 2;
+  const TAX_COL = hasTax ? 3 : null;
+  const TOTAL_COL = hasTax ? 4 : 3;
+
+  // const columns = [
+  //   {
+  //     title: "Item",
+  //     dataIndex: "item",
+  //     key: "item",
+  //     render: (text: string, record: any) => (
+  //       <div>
+  //         <Text strong>{text}</Text>
+  //         {record.description && (
+  //           <div>
+  //             <Text type="secondary" style={{ fontSize: "12px" }}>
+  //               {record.description}
+  //             </Text>
+  //           </div>
+  //         )}
+  //       </div>
+  //     ),
+  //   },
+  //   {
+  //     title: "Qty",
+  //     dataIndex: "qty",
+  //     key: "qty",
+  //     align: "center" as const,
+  //     width: 80,
+  //   },
+  //   {
+  //     title: "Price",
+  //     dataIndex: "price",
+  //     key: "price",
+  //     align: "right" as const,
+  //     width: 120,
+  //     render: (value: number) =>
+  //       `${currencySymbol} ${(Number(value) || 0).toFixed(2)}`,
+  //   },
+  //   {
+  //     title: "Tax",
+  //     dataIndex: "tax",
+  //     key: "tax",
+  //     align: "center" as const,
+  //     width: 80,
+  //     render: (tax: string | number) => {
+  //       if (typeof tax === "number") return `${tax}%`;
+  //       if (typeof tax === "string" && tax.includes("%")) return tax;
+  //       return `${tax || 0}%`;
+  //     },
+  //   },
+  //   {
+  //     title: "Total",
+  //     key: "total",
+  //     align: "right" as const,
+  //     width: 120,
+  //     render: (_: any, record: any) => {
+  //       const subtotal = record.qty * record.price;
+  //       const taxRate =
+  //         parseFloat(String(record.tax || 0).replace("%", "")) / 100;
+  //       const taxAmount = subtotal * taxRate;
+  //       const total = subtotal + taxAmount;
+  //       return `${currencySymbol} ${total.toFixed(2)}`;
+  //     },
+  //   },
+  // ];
 
   const columns = [
     {
@@ -342,18 +453,25 @@ export default function ViewInvoicePage() {
       render: (value: number) =>
         `${currencySymbol} ${(Number(value) || 0).toFixed(2)}`,
     },
-    {
-      title: "Tax",
-      dataIndex: "tax",
-      key: "tax",
-      align: "center" as const,
-      width: 80,
-      render: (tax: string | number) => {
-        if (typeof tax === "number") return `${tax}%`;
-        if (typeof tax === "string" && tax.includes("%")) return tax;
-        return `${tax || 0}%`;
-      },
-    },
+
+    // ✅ TAX COLUMN ONLY IF TAX EXISTS
+    ...(hasTax
+      ? [
+          {
+            title: "Tax",
+            dataIndex: "tax",
+            key: "tax",
+            align: "center" as const,
+            width: 80,
+            render: (tax: string | number) => {
+              if (typeof tax === "number") return `${tax}%`;
+              if (typeof tax === "string" && tax.includes("%")) return tax;
+              return `${tax || 0}%`;
+            },
+          },
+        ]
+      : []),
+
     {
       title: "Total",
       key: "total",
@@ -361,68 +479,87 @@ export default function ViewInvoicePage() {
       width: 120,
       render: (_: any, record: any) => {
         const subtotal = record.qty * record.price;
-        const taxRate =
-          parseFloat(String(record.tax || 0).replace("%", "")) / 100;
+        const taxRate = hasTax
+          ? parseFloat(String(record.tax || 0).replace("%", "")) / 100
+          : 0;
         const taxAmount = subtotal * taxRate;
-        const total = subtotal + taxAmount;
-        return `${currencySymbol} ${total.toFixed(2)}`;
+        return `${currencySymbol} ${(subtotal + taxAmount).toFixed(2)}`;
       },
     },
   ];
 
-  const tableData = invoice.items.map((item: any, index: number) => ({
-    ...item,
-    _key: index,
-  }));
+  const tableData = (invoice.items as InvoiceItem[]).map(
+    (item: InvoiceItem, index: number) => ({
+      ...item,
+      _key: index,
+    })
+  );
 
   // Calculate totals
-  const itemsWithTax = invoice.items.map((item: any) => {
+  // const itemsWithTax = (invoice.items as InvoiceItem[]).map(
+  //   (item: InvoiceItem) => {
+  //     const subtotal = item.qty * item.price;
+  //     const taxRate = parseFloat(String(item.tax || 0).replace("%", "")) / 100;
+  //     const taxAmount = subtotal * taxRate;
+
+  //     return {
+  //       ...item,
+  //       subtotal,
+  //       taxAmount,
+  //       total: subtotal + taxAmount,
+  //     };
+  //   }
+  // );
+
+  const itemsWithTax = (invoice.items as InvoiceItem[]).map((item) => {
     const subtotal = item.qty * item.price;
-    const taxRate = parseFloat(String(item.tax || 0).replace("%", "")) / 100;
+    const taxRate = hasTax
+      ? parseFloat(String(item.tax || 0).replace("%", "")) / 100
+      : 0;
     const taxAmount = subtotal * taxRate;
+
     return {
-      ...item,
       subtotal,
       taxAmount,
       total: subtotal + taxAmount,
+      qty: item.qty,
     };
   });
 
-  const subtotal = itemsWithTax.reduce(
-    (acc: number, i: any) => acc + i.subtotal,
+  const subtotal = itemsWithTax.reduce<number>((acc, i) => acc + i.subtotal, 0);
+  const totalTax = itemsWithTax.reduce<number>(
+    (acc, i) => acc + i.taxAmount,
     0
   );
-  const totalTax = itemsWithTax.reduce(
-    (acc: number, i: any) => acc + i.taxAmount,
+
+  const totalQty = (invoice.items as InvoiceItem[]).reduce<number>(
+    (sum, item) => sum + item.qty,
     0
   );
+
   const discount = invoice.discount || 0;
-  const total = subtotal + totalTax - discount;
 
-  // const downloadPDF = () => {
-  //   const element = document.getElementById("invoice");
-  //   if (!element) return;
+  const grandTotal = subtotal + totalTax - discount;
 
-  //   const opt = {
-  //     margin: 10,
-  //     filename: `invoice_${invoice.invoice_number}.pdf`,
-  //     image: {
-  //       type: "jpeg" as const,
-  //       quality: 0.98,
-  //     },
-  //     html2canvas: {
-  //       scale: 2,
-  //       useCORS: true,
-  //     },
-  //     jsPDF: {
-  //       unit: "mm" as const,
-  //       format: "a4" as const,
-  //       orientation: "portrait" as const,
-  //     },
-  //   };
+  const itemColumnIndex = 0; // Item column position
+  const lastColumnIndex = columns.length - 1;
 
-  //   html2pdf().set(opt).from(element).save();
-  // };
+  const handleDescriptionSave = () => {
+    if (!invoiceNumber) return;
+
+    const savedDescriptions: Record<string, string> = JSON.parse(
+      localStorage.getItem("invoice_page_descriptions") || "{}"
+    );
+
+    savedDescriptions[invoiceNumber] = editorContent;
+
+    localStorage.setItem(
+      "invoice_page_descriptions",
+      JSON.stringify(savedDescriptions)
+    );
+
+    setDescriptionEditorOpen(false);
+  };
 
   return (
     <div
@@ -482,7 +619,11 @@ export default function ViewInvoicePage() {
             </PDFDownloadLink> */}
 
             <Space>
-              <InvoiceDownloadButton invoice={invoice} settings={settings} />
+              <InvoiceDownloadButton
+                invoice={invoice}
+                settings={settings}
+                invoice_page_descriptions={invoice_page_descriptions}
+              />
               <Button type="primary" onClick={() => window.print()}>
                 Print
               </Button>
@@ -533,7 +674,17 @@ export default function ViewInvoicePage() {
                     {settings?.general?.company_name || "InvoicePro Inc."}
                   </Title>
 
-                  <Text type="secondary" style={{ display: "block" }}>
+                  <Text
+                    type="secondary"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      lineHeight: "1.4",
+                      maxWidth: 500, // adjust based on layout
+                    }}
+                  >
                     {settings?.general?.company_address || "Address line 1"}
                   </Text>
                 </div>
@@ -664,30 +815,93 @@ export default function ViewInvoicePage() {
           </div>
 
           {/* Editable Invoice Description */}
-          {/* <Card
-            style={{
-              marginBottom: 16,
-              backgroundColor: "#f9f9f9",
-              borderRadius: 8,
-              padding: 16,
-            }}
-          >
-            <Title level={5} style={{ marginBottom: 8 }}>
-              Description / Item Notes
-            </Title>
-            <NotesEditor onChange={setDescription} />
-          </Card> */}
 
-          {/* Items Table */}
-          {/* <Table
-            dataSource={tableData}
-            columns={columns}
-            pagination={false}
-            rowKey="_key"
-            bordered
-            size="small"
-            style={{ marginBottom: 32 }}
-          /> */}
+          <div style={{ marginBottom: 32 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              <Text
+                type="secondary"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                }}
+              >
+                Description
+              </Text>
+
+              {!descriptionEditorOpen && (
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => setDescriptionEditorOpen(true)}
+                >
+                  Edit
+                </Button>
+              )}
+            </div>
+
+            {descriptionEditorOpen ? (
+              <>
+                <TiptapEditor
+                  content={editorContent}
+                  onChange={setEditorContent}
+                  placeholder="Add description..."
+                  minHeight={150}
+                />
+
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                  }}
+                >
+                  <Button
+                    size="small"
+                    onClick={() => setDescriptionEditorOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+
+                  <Button
+                    type="primary"
+                    size="small"
+                    onClick={handleDescriptionSave}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div
+                onClick={() => setDescriptionEditorOpen(true)}
+                style={{
+                  minHeight: 40,
+                  cursor: "text",
+                  padding: 12,
+                  borderRadius: 6,
+                  border: "1px dashed #d9d9d9",
+                }}
+              >
+                {editorContent ? (
+                  <div dangerouslySetInnerHTML={{ __html: editorContent }} />
+                ) : (
+                  <Text type="secondary" italic>
+                    Click to add a description…
+                  </Text>
+                )}
+              </div>
+            )}
+          </div>
 
           <Table
             dataSource={tableData}
@@ -696,265 +910,210 @@ export default function ViewInvoicePage() {
             rowKey="_key"
             bordered
             size="small"
-            summary={() => {
-              const last = columns.length - 1;
+            summary={() => (
+              <>
+                {/* ===== SUBTOTAL ===== */}
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={ITEM_COL} align="right">
+                    <Text>Subtotal</Text>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={QTY_COL} />
+                  <Table.Summary.Cell index={PRICE_COL} />
+                  {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
+                  <Table.Summary.Cell index={TOTAL_COL} align="right">
+                    <Text>
+                      {currencySymbol} {subtotal.toFixed(2)}
+                    </Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
 
-              return (
-                <>
-                  {/* Subtotal */}
+                {/* ===== TAX ===== */}
+                {hasTax && totalTax > 0 && (
                   <Table.Summary.Row>
-                    <Table.Summary.Cell index={0} colSpan={last} align="right">
-                      <Text>Subtotal</Text>
+                    <Table.Summary.Cell index={ITEM_COL} align="right">
+                      <Text>Tax</Text>
                     </Table.Summary.Cell>
-                    <Table.Summary.Cell index={last} align="right">
+                    <Table.Summary.Cell index={QTY_COL} />
+                    <Table.Summary.Cell index={PRICE_COL} />
+                    <Table.Summary.Cell index={TAX_COL!} />
+                    <Table.Summary.Cell index={TOTAL_COL} align="right">
                       <Text>
-                        {currencySymbol} {subtotal.toFixed(2)}
+                        {currencySymbol} {totalTax.toFixed(2)}
                       </Text>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
+                )}
 
-                  {/* Discount */}
-                  {discount > 0 && (
-                    <Table.Summary.Row>
-                      <Table.Summary.Cell
-                        index={0}
-                        colSpan={last}
-                        align="right"
-                      >
-                        <Text>Discount</Text>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={last} align="right">
-                        <Text>
-                          -{currencySymbol} {discount.toFixed(2)}
-                        </Text>
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  )}
-
-                  {/* Tax */}
-                  {totalTax > 0 && (
-                    <Table.Summary.Row>
-                      <Table.Summary.Cell
-                        index={0}
-                        colSpan={last}
-                        align="right"
-                      >
-                        <Text>Tax</Text>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={last} align="right">
-                        <Text>
-                          {currencySymbol} {totalTax.toFixed(2)}
-                        </Text>
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  )}
-
-                  {/* TOTAL (HIGHLIGHTED) */}
-                  <Table.Summary.Row
-                    style={{
-                      backgroundColor: "#fafafa",
-                      borderTop: "2px solid #000",
-                    }}
-                  >
-                    <Table.Summary.Cell index={0} colSpan={last} align="right">
-                      <Text strong style={{ fontSize: 14 }}>
-                        Total
-                      </Text>
+                {/* ===== DISCOUNT ===== */}
+                {discount > 0 && (
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={ITEM_COL} align="right">
+                      <Text>Discount</Text>
                     </Table.Summary.Cell>
-                    <Table.Summary.Cell index={last} align="right">
-                      <Text
-                        strong
-                        style={{
-                          fontSize: 16,
-                          color: "#1890ff",
-                        }}
-                      >
-                        {currencySymbol} {total.toFixed(2)}
+                    <Table.Summary.Cell index={QTY_COL} />
+                    <Table.Summary.Cell index={PRICE_COL} />
+                    {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
+                    <Table.Summary.Cell index={TOTAL_COL} align="right">
+                      <Text>
+                        -{currencySymbol} {discount.toFixed(2)}
                       </Text>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
-                </>
-              );
-            }}
+                )}
+
+                {/* ===== TOTAL ===== */}
+                <Table.Summary.Row
+                  style={{
+                    backgroundColor: "#fafafa",
+                    borderTop: "2px solid #000",
+                  }}
+                >
+                  <Table.Summary.Cell index={ITEM_COL} align="right">
+                    <Text strong>Total</Text>
+                  </Table.Summary.Cell>
+
+                  <Table.Summary.Cell index={QTY_COL} align="center">
+                    <Text strong>{totalQty}</Text>
+                  </Table.Summary.Cell>
+
+                  <Table.Summary.Cell index={PRICE_COL} />
+                  {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
+
+                  <Table.Summary.Cell index={TOTAL_COL} align="right">
+                    <Text strong style={{ fontSize: 16, color: "#1890ff" }}>
+                      {currencySymbol} {grandTotal.toFixed(2)}
+                    </Text>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </>
+            )}
           />
 
-          {/* Payment / Bank Details + Totals */}
+          {/* Payment / Bank Details + sign */}
           {settings?.payments && (
             <div
               style={{
                 marginTop: 16,
                 paddingTop: 8,
                 borderTop: "1px solid #f0f0f0",
-                display: "flex",
-                gap: 16,
+                display: "grid",
+                gridTemplateColumns: "2fr 1fr",
+                gap: 24,
+                fontSize: 12,
                 alignItems: "flex-start",
-                flexWrap: "nowrap",
-                fontSize: 12, // smaller font globally
               }}
             >
-              {/* Bank Details */}
-
-              <div style={{ flex: "0 0 180px", minWidth: 280 }}>
-                <Title level={5} style={{ marginBottom: 4, fontSize: 14 }}>
+              {/* ================= COLUMN 1 : BANK + QR ================= */}
+              <div>
+                <Title level={4} style={{ marginBottom: 8, color: "#555" }}>
                   Bank Details
                 </Title>
 
                 <div
                   style={{
                     backgroundColor: "#fafafa",
-                    padding: 8,
+                    padding: 12,
                     borderRadius: 6,
+                    display: "flex",
+                    gap: 20,
+                    alignItems: "flex-start",
                   }}
                 >
-                  <div style={{ marginBottom: 4 }}>
-                    <Text strong style={{ fontSize: 12 }}>
-                      Account Name:
-                    </Text>{" "}
-                    <Text style={{ fontSize: 12 }}>
-                      {settings.payments.account_name}
-                    </Text>
+                  {/* Bank Info */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <Text strong>Bank Name:</Text>{" "}
+                      <Text>{settings.payments.account_name}</Text>
+                    </div>
+
+                    <div style={{ marginBottom: 8 }}>
+                      <Text strong>Account Number:</Text>{" "}
+                      <Text>{settings.payments.account_number}</Text>
+                    </div>
+
+                    <div style={{ marginBottom: 8 }}>
+                      <Text strong>IFSC Code:</Text>{" "}
+                      <Text>{settings.payments.ifsc_code}</Text>
+                    </div>
+
+                    <div>
+                      <Text strong>Branch:</Text>{" "}
+                      <Text>{settings.payments.branch_name}</Text>
+                    </div>
                   </div>
 
-                  <div style={{ marginBottom: 4 }}>
-                    <Text strong style={{ fontSize: 12 }}>
-                      Account Number:
-                    </Text>{" "}
-                    <Text style={{ fontSize: 12 }}>
-                      {settings.payments.account_number}
-                    </Text>
-                  </div>
-
-                  <div style={{ marginBottom: 4 }}>
-                    <Text strong style={{ fontSize: 12 }}>
-                      IFSC Code:
-                    </Text>{" "}
-                    <Text style={{ fontSize: 12 }}>
-                      {settings.payments.ifsc_code}
-                    </Text>
-                  </div>
-
-                  <div>
-                    <Text strong style={{ fontSize: 12 }}>
-                      Branch:
-                    </Text>{" "}
-                    <Text style={{ fontSize: 12 }}>
-                      {settings.payments.branch_name}
-                    </Text>
-                  </div>
+                  {/* QR Code */}
+                  {settings.payments.qr_code && (
+                    <div style={{ textAlign: "center", minWidth: 180 }}>
+                      <img
+                        src={settings.payments.qr_code}
+                        alt="Payment QR Code"
+                        style={{
+                          width: 130,
+                          height: 130,
+                          objectFit: "contain",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 6,
+                          background: "#fff",
+                          padding: 8,
+                        }}
+                      />
+                      <Text
+                        type="secondary"
+                        style={{
+                          display: "block",
+                          fontSize: 11,
+                          marginTop: 6,
+                        }}
+                      >
+                        Scan to Pay
+                      </Text>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* QR Code */}
-              {settings.payments.qr_code && (
-                <div style={{ textAlign: "center", minWidth: 120 }}>
-                  <Title level={5} style={{ marginBottom: 4, fontSize: 14 }}>
-                    Pay via QR
+              {/* ================= COLUMN 2 : SIGNATURE ================= */}
+              {settings.general?.company_signature && (
+                <div style={{ textAlign: "center" }}>
+                  <Title level={4} style={{ marginBottom: 8, color: "#555" }}>
+                    Authorized Signature
                   </Title>
 
                   <div
                     style={{
                       backgroundColor: "#fafafa",
-                      padding: 6,
+                      padding: 12,
                       borderRadius: 6,
                       display: "inline-block",
                     }}
                   >
                     <img
-                      src={settings.payments.qr_code}
-                      alt="Payment QR Code"
+                      src={settings.general.company_signature}
+                      alt="Authorized Signature"
                       style={{
-                        width: 80,
-                        height: 80,
+                        width: 130,
+                        height: 130,
                         objectFit: "contain",
+                        border: "1px solid #e5e7eb",
+                        background: "#fff",
+                        padding: 8,
+                        borderRadius: 6,
                       }}
                     />
                     <Text
                       type="secondary"
-                      style={{ display: "block", fontSize: 10 }}
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        marginTop: 6,
+                      }}
                     >
-                      Scan to Pay
+                      Digitally signed
                     </Text>
                   </div>
                 </div>
               )}
-
-              {/* Totals Section */}
-              {/* <div style={{ minWidth: 220 }}>
-                <div
-                  style={{
-                    backgroundColor: "#fafafa",
-                    padding: 12,
-                    borderRadius: 6,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12 }}>Subtotal</Text>
-                    <Text strong style={{ fontSize: 12 }}>
-                      {invoice.currency} {subtotal.toFixed(2)}
-                    </Text>
-                  </div>
-
-                  {discount > 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: 6,
-                      }}
-                    >
-                      <Text style={{ fontSize: 12 }}>Discount</Text>
-                      <Text strong style={{ color: "#ff4d4f", fontSize: 12 }}>
-                        -{invoice.currency} {discount.toFixed(2)}
-                      </Text>
-                    </div>
-                  )}
-
-                  {totalTax > 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: 6,
-                      }}
-                    >
-                      <Text style={{ fontSize: 12 }}>Tax</Text>
-                      <Text strong style={{ fontSize: 12 }}>
-                        {invoice.currency} {totalTax.toFixed(2)}
-                      </Text>
-                    </div>
-                  )}
-
-                  <Divider style={{ margin: "8px 0" }} />
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text strong style={{ fontSize: 14 }}>
-                      Total
-                    </Text>
-                    <Title
-                      level={4}
-                      style={{
-                        margin: 0,
-                        fontSize: 16,
-                        color: settings?.primaryColor || "#1890ff",
-                      }}
-                    >
-                      {invoice.currency} {total.toFixed(2)}
-                    </Title>
-                  </div>
-                </div>
-              </div> */}
             </div>
           )}
 

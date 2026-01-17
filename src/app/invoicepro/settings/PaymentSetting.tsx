@@ -56,7 +56,7 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
   const qrCode = Form.useWatch("qr_code", form);
 
   return (
-    <div className="bg-gray-50 min-h-screen p-4 md:p-6">
+    <div className="bg-gray-50  p-4 md:p-6">
       <Form
         form={form}
         layout="vertical"
@@ -87,11 +87,11 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({
               className="rounded-xl shadow-sm h-full"
             >
               <Form.Item
-                label="Account Holder Name"
+                label="Bank Name"
                 name="account_name"
                 rules={[{ required: true }]}
               >
-                <Input placeholder="John Doe" />
+                <Input placeholder="xxxxx" />
               </Form.Item>
 
               <Form.Item

@@ -15,6 +15,7 @@ export interface GeneralDraft {
   company_logo: string | null; // ✅ BASE64
   currency_code: string;
   date_format: string;
+  company_signature?: string | null;
 }
 
 export interface BankPaymentDraft {

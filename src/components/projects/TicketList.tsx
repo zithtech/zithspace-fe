@@ -56,6 +56,7 @@ import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
 import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
+import { SprintCompletionModal } from "./sprint-completion";
 
 const { Title, Text } = Typography;
 
@@ -89,8 +90,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-    // Handle Complete Sprint
-  const [completingSprint, setCompletingSprint] = useState(false);
+  
+  // Sprint Completion Modal state
+  const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
@@ -215,34 +217,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
 
   
-  const handleCompleteSprint = async () => {
+  const handleCompleteSprint = () => {
     if (!activeSprint?.id) return;
-    
-    try {
-      setCompletingSprint(true);
-      await ReleasePlanService.completeSprint(activeSprint.id);
-      
-      notifyApi.success({
-        message: 'Sprint Completed',
-        description: 'Completed tickets archived, incomplete tickets returned to backlog',
-        placement: 'bottomLeft',
-        style: {
-          borderLeft: '4px solid #52c41a',
-        }
-      });
-      
-      // Refresh both ticket lists
-      refetchActive();
-      refetchBacklog();
-    } catch (error: any) {
-      console.error(error);
-      notifyApi.error({
-        message: 'Error',
-        description: error.message || 'Failed to complete sprint'
-      });
-    } finally {
-      setCompletingSprint(false);
-    }
+    setSprintCompletionModalOpen(true);
+  };
+
+  const handleSprintCompletionSuccess = () => {
+    setSprintCompletionModalOpen(false);
+    notifyApi.success({
+      message: 'Sprint Completed',
+      description: 'Sprint completed successfully',
+      placement: 'bottomLeft',
+      style: {
+        borderLeft: '4px solid #52c41a',
+      }
+    });
+    // Refresh both ticket lists
+    refetchActive();
+    refetchBacklog();
   };
 
   // Enable live updates
@@ -961,22 +953,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     </Space>
                     <Space>
                       {activeSprint?.status === 'active' && (
-                        <Popconfirm
-                          title="Complete Sprint"
-                          description="Archive completed tickets and return incomplete tickets to backlog?"
-                          onConfirm={handleCompleteSprint}
-                          okText="Complete"
-                          cancelText="Cancel"
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<CheckCircleOutlined />}
+                          onClick={handleCompleteSprint}
                         >
-                          <Button
-                            type="primary"
-                            size="small"
-                            icon={<CheckCircleOutlined />}
-                            loading={completingSprint}
-                          >
-                            Complete Sprint
-                          </Button>
-                        </Popconfirm>
+                          Complete Sprint
+                        </Button>
                       )}
                       <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
                         {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
@@ -1098,6 +1082,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         ticketId={selectedTicketId}
         open={!!selectedTicketId}
         onClose={() => setSelectedTicketId(null)}
+      />
+
+      {/* Sprint Completion Modal */}
+      <SprintCompletionModal
+        sprintId={activeSprint?.id || null}
+        open={sprintCompletionModalOpen}
+        onClose={() => setSprintCompletionModalOpen(false)}
+        onSuccess={handleSprintCompletionSuccess}
       />
     </div>
   );

@@ -250,29 +250,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     </div>
   );
 
-  //   const SectionHeader = ({ icon, title }: any) => (
-  //     <div
-  //       style={{
-  //         marginLeft: -16, // 👈 drawer padding cancel
-  //         marginRight: -16,
-  //         padding: "8px 16px", // 👈 full row padding
-  //         display: "flex",
-  //         alignItems: "center",
-  //         gap: 8,
-  //         cursor: "pointer",
-  //         transition: "background-color 0.2s ease",
-  //       }}
-  //       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e6f7ff")}
-  //       onMouseLeave={(e) =>
-  //         (e.currentTarget.style.backgroundColor = "transparent")
-  //       }
-  //     >
-  //       {icon}
-  //       <Text strong style={{ fontSize: 13 }}>
-  //         {title}
-  //       </Text>
-  //     </div>
-  //   );
+ 
 
   const DetailRow = ({ label, children }: any) => (
     <div
@@ -624,287 +602,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {/* Status & Transitions */}
-              {/* 
-              <Collapse
-                defaultActiveKey={["details", "planning"]}
-                ghost
-                expandIconPosition="end"
-                items={[
-                  {
-                    key: "details",
-                    label: (
-                      //   <Space>
-                      //     <InfoCircleOutlined />
-                      //     <Text strong style={{ fontSize: 13 }}>
-                      //       Details
-                      //     </Text>
-                      //   </Space>
-                      <div
-                        style={{
-                          display: "inline-block",
-                          padding: "4px 8px",
-                          borderRadius: 6,
-                          transition: "background-color 0.2s ease",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#e6f7ff")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "transparent")
-                        }
-                      >
-                        <Space>
-                          <InfoCircleOutlined />
-                          <Text strong style={{ fontSize: 13 }}>
-                            Details
-                          </Text>
-                        </Space>
-                      </div>
-                    ),
-                    children: (
-                      <div style={{ paddingTop: 4, paddingBottom: 4 }}>
-                        <Row gutter={[0, 4]}>
-                          {/* Assignee 
-              <Col span={24} style={fieldColStyle}>
-                <div style={rowStyle}>
-                  <Text style={labelStyle}>Assignee</Text>
-                  <EditableSelect
-                    value={
-                      typeof ticket.assignee === "string"
-                        ? ticket.assignee
-                        : ticket.assignee?.id
-                    }
-                    options={projectMembers}
-                    onSave={(v) => handleUpdate("assignee", v)}
-                    mode="user"
-                    emptyText="Unassigned"
-                  />
-                </div>
-              </Col>
-
-              {/* <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Assignee</Text>
-
-                              <div
-                                style={{
-                                  flex: 1,
-                                  padding: "2px 6px",
-                                  borderRadius: 6,
-                                  transition: "background-color 0.2s ease",
-                                }}
-                                onMouseEnter={(e) =>
-                                  (e.currentTarget.style.background = "#e6f7ff")
-                                }
-                                onMouseLeave={(e) =>
-                                  (e.currentTarget.style.background =
-                                    "transparent")
-                                }
-                              >
-                                <EditableSelect
-                                  value={
-                                    typeof ticket.assignee === "string"
-                                      ? ticket.assignee
-                                      : ticket.assignee?.id
-                                  }
-                                  options={projectMembers}
-                                  onSave={(v) => handleUpdate("assignee", v)}
-                                  mode="user"
-                                  emptyText="Unassigned"
-                                />
-                              </div>
-                            </div>
-                          </Col> */}
-
-              {/* Report To 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Report To</Text>
-                              <EditableSelect
-                                value={
-                                  typeof ticket.reportTo === "string"
-                                    ? ticket.reportTo
-                                    : ticket.reportTo?.id
-                                }
-                                options={projectMembers}
-                                onSave={(v) => handleUpdate("reportTo", v)}
-                                mode="user"
-                                emptyText="No Reporter"
-                              />
-                            </div>
-                          </Col>
-
-                          {/* Platform 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Platform</Text>
-                              <EditableSelect
-                                value={ticket.platform}
-                                options={platforms}
-                                onSave={(v) => handleUpdate("platform", v)}
-                                mode="tag"
-                                emptyText="Select Platform"
-                              />
-                            </div>
-                          </Col>
-
-                          {/* Stack 
-                          {ticket.platform === "Development" && (
-                            <Col span={24} style={fieldColStyle}>
-                              <div style={rowStyle}>
-                                <Text style={labelStyle}>Stack</Text>
-                                <EditableSelect
-                                  value={ticket.stack || ticket.metadata?.stack}
-                                  options={stacks}
-                                  onSave={(v) => handleUpdate("stack", v)}
-                                  mode="tag"
-                                />
-                              </div>
-                            </Col>
-                          )}
-
-                          {/* Priority 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Priority</Text>
-                              <EditableSelect
-                                value={ticket.priority}
-                                options={priorities}
-                                onSave={(v) => handleUpdate("priority", v)}
-                                mode="tag"
-                              />
-                            </div>
-                          </Col>
-
-                          {/* Type 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Type</Text>
-                              <EditableSelect
-                                value={ticket.type}
-                                options={types}
-                                onSave={(v) => handleUpdate("type", v)}
-                                mode="tag"
-                              />
-                            </div>
-                          </Col>
-
-                          {/* Task Level 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Task Level</Text>
-                              <EditableSelect
-                                value={ticket.taskLevel}
-                                options={taskLevels}
-                                onSave={(v) => handleUpdate("taskLevel", v)}
-                                mode="tag"
-                              />
-                            </div>
-                          </Col>
-                        </Row>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "planning",
-                    label: (
-                      //   <Space>
-                      //     <CalendarOutlined />
-                      //     <Text strong style={{ fontSize: 13 }}>
-                      //       Planning
-                      //     </Text>
-                      //   </Space>
-                      <div
-                        style={{
-                          display: "inline-block",
-                          padding: "4px 8px",
-                          borderRadius: 6,
-                          transition: "background-color 0.2s ease",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#e6f7ff")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "transparent")
-                        }
-                      >
-                        <Space>
-                          <CalendarOutlined />
-                          <Text strong style={{ fontSize: 13 }}>
-                            Planning
-                          </Text>
-                        </Space>
-                      </div>
-                    ),
-                    children: (
-                      <div style={{ paddingTop: 4, paddingBottom: 4 }}>
-                        <Row gutter={[0, 4]} style={{ marginTop: 8 }}>
-                          {/* Story Points 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Story Points</Text>
-                              <EditableField
-                                value={ticket.storyPoint}
-                                onSave={(v) =>
-                                  handleUpdate("storyPoint", Number(v))
-                                }
-                                type="number"
-                                emptyText="-"
-                                textStyle={{
-                                  background: "#e6f7ff",
-                                  borderRadius: 12,
-                                  padding: "2px 8px",
-                                  fontWeight: 600,
-                                  color: "#096dd9",
-                                }}
-                              />
-                            </div>
-                          </Col>
-
-                          {/* Estimate 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Estimate (h)</Text>
-                              <EditableField
-                                value={ticket.estimateHours}
-                                onSave={(v) =>
-                                  handleUpdate("estimateHours", Number(v))
-                                }
-                                type="number"
-                                emptyText="-"
-                              />
-                            </div>
-                          </Col>
-
-                          {/* Start Date 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Start Date</Text>
-                              <EditableDate
-                                value={ticket.startDate}
-                                onSave={(v) => handleUpdate("startDate", v)}
-                                placeholder="Start"
-                              />
-                            </div>
-                          </Col>
-
-                          {/* Due Date 
-                          <Col span={24} style={fieldColStyle}>
-                            <div style={rowStyle}>
-                              <Text style={labelStyle}>Due Date</Text>
-                              <EditableDate
-                                value={ticket.endDate}
-                                onSave={(v) => handleUpdate("endDate", v)}
-                                placeholder="Due by"
-                              />
-                            </div>
-                          </Col>
-                        </Row>
-                      </div>
-                    ),
-                  },
-                ]}
-              /> */}
+              
 
               <Collapse
                 defaultActiveKey={["details", "planning"]}
@@ -936,22 +634,6 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                             />
                           </DetailRow>
                         </Col>
-
-                        {/* <Col span={24} style={fieldColStyle}>
-                          <DetailRow label="Report To">
-                            <EditableSelect
-                              value={
-                                typeof ticket.reportTo === "string"
-                                  ? ticket.reportTo
-                                  : ticket.reportTo?.id??null
-                              }
-                              options={projectMembers}
-                              onSave={(v) => handleUpdate("reportTo", v ?? null)}
-                              mode="user"
-                              emptyText="No Reporter"
-                            />
-                          </DetailRow>
-                        </Col> */}
                         <Col span={24} style={fieldColStyle}>
                           <DetailRow label="Report To">
                             <EditableSelect
@@ -1053,20 +735,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               }
                               type="number"
                               emptyText="-"
-                              //   textStyle={{
-                              //     background: "#e6f7ff",
-                              //     borderRadius: 10,
-                              //     padding: "2px 10px",
-                              //     fontWeight: 600,
-                              //     color: "#096dd9",
-                              //   }}
-                              //   textStyle={{
-                              //     background: "#e6f7ff",
-                              //     borderRadius: 6,
-                              //     padding: "1px 6px",
-                              //     fontWeight: 600,
-                              //     color: "#096dd9",
-                              //   }}
+                             
                             />
                           </DetailRow>
                         </Col>
@@ -1107,39 +776,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 ]}
               />
 
-              {/* <div
-                style={{
-                  marginTop: "auto",
-                  paddingTop: 24,
-                  fontSize: 12,
-                  color: "#8c8c8c",
-                }}
-              > */}
-              {/* <div
-                style={{
-                  marginTop: 12, // 👈 small controlled gap
-                  paddingTop: 8, // 👈 reduced
-                  borderTop: "1px solid #f0f0f0",
-                  fontSize: 12,
-                  color: "#8c8c8c",
-                  lineHeight: 1.5,
-                }}
-              >
-                Created {dayjs(ticket.createdAt).format("MMM D, YYYY")} by{" "}
-                {ticket.createdBy?.name}
-                <br />
-                Updated {dayjs(ticket.updatedAt).fromNow()}
-              </div>
-            </div> */}
+             
+          
               <div
-                // style={{
-                //   marginTop: 12,
-                //   paddingTop: 8,
-                //   borderTop: "1px dashed #f0f0f0",
-                //   fontSize: 11,
-                //   color: "#8c8c8c",
-                //   lineHeight: 1.5,
-                // }}
+               
                 style={{
                   marginTop: 8,
                   paddingTop: 6,

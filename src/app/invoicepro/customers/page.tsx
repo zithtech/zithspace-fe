@@ -18,7 +18,7 @@ import {
   Popconfirm,
 } from "antd";
 import {
-  SettingOutlined,
+  UserAddOutlined,
   PlusOutlined,
   MailOutlined,
   PhoneOutlined,
@@ -79,7 +79,7 @@ export default function InvoiceproCustomerPage() {
   };
 
   const filteredCustomers = customers.filter((customer) =>
-    customer.name?.toLowerCase().includes(search.toLowerCase())
+    customer.name?.toLowerCase().includes(search.toLowerCase()),
   );
 
   // 🔹 EDIT
@@ -109,7 +109,7 @@ export default function InvoiceproCustomerPage() {
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <Space align="center">
-            <SettingOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+            <UserAddOutlined style={{ fontSize: 24, color: "#1677ff" }} />
             <Title level={3} style={{ margin: 0 }}>
               Customers
             </Title>

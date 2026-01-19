@@ -11,6 +11,13 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { Column } from "@ant-design/plots";
+import { Calendar, Badge } from "antd";
+import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
+
+import isBetween from "dayjs/plugin/isBetween";
+
+dayjs.extend(isBetween);
 
 const { Title, Text } = Typography;
 
@@ -31,7 +38,7 @@ export default function DashboardPage() {
     const subtotal =
       inv.items?.reduce(
         (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-        0
+        0,
       ) || 0;
     const tax =
       inv.items?.reduce((s: number, i: any) => {
@@ -53,14 +60,14 @@ export default function DashboardPage() {
         (inv.paid || 0) <
           (inv.items?.reduce(
             (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-            0
-          ) || 0)
+            0,
+          ) || 0),
     )
     .reduce((sum, inv) => {
       const subtotal =
         inv.items?.reduce(
           (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-          0
+          0,
         ) || 0;
       const tax =
         inv.items?.reduce((s: number, i: any) => {
@@ -72,12 +79,39 @@ export default function DashboardPage() {
       return sum + balance;
     }, 0);
 
+  /* ================= CALENDAR DATA ================= */
+  const calendarMap: Record<string, { created: number; received: number }> = {};
+
+  invoices.forEach((inv) => {
+    // 1️⃣ Invoice CREATED
+    if (inv.invoice_date) {
+      const createdKey = new Date(inv.invoice_date).toISOString().split("T")[0];
+
+      if (!calendarMap[createdKey]) {
+        calendarMap[createdKey] = { created: 0, received: 0 };
+      }
+
+      calendarMap[createdKey].created += 1;
+    }
+
+    // 2️⃣ Invoice RECEIVED (temporary logic)
+    if (inv.paid > 0 && inv.invoice_date) {
+      const paidKey = new Date(inv.invoice_date).toISOString().split("T")[0];
+
+      if (!calendarMap[paidKey]) {
+        calendarMap[paidKey] = { created: 0, received: 0 };
+      }
+
+      calendarMap[paidKey].received += 1;
+    }
+  });
+
   /* ================= ATTRACTIVE METRIC CARDS ================= */
   const renderCard = (
     icon: any,
     title: string,
     value: string,
-    color: string
+    color: string,
   ) => (
     <Card
       style={{
@@ -187,7 +221,7 @@ export default function DashboardPage() {
     const subtotal =
       inv.items?.reduce(
         (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-        0
+        0,
       ) || 0;
 
     const tax =
@@ -203,7 +237,7 @@ export default function DashboardPage() {
     ([month, revenue]) => ({
       month,
       revenue,
-    })
+    }),
   );
 
   const monthlyRevenueConfig = {
@@ -261,102 +295,6 @@ export default function DashboardPage() {
     },
   };
 
-  // const columns = [
-  //   {
-  //     title: "Invoice No",
-  //     dataIndex: "invoice_number",
-  //     key: "invoice_number",
-  //     render: (text: string) => <Text strong>#{text}</Text>,
-  //     sorter: (a: any, b: any) =>
-  //       a.invoice_number.localeCompare(b.invoice_number),
-  //   },
-  //   {
-  //     title: "Customer",
-  //     dataIndex: ["customer_snapshot", "name"],
-  //     key: "customer",
-  //     ellipsis: true,
-  //     sorter: (a: any, b: any) =>
-  //       a.customer_snapshot?.name.localeCompare(b.customer_snapshot?.name),
-  //   },
-  //   {
-  //     title: "Invoice Date",
-  //     dataIndex: "invoice_date",
-  //     key: "invoice_date",
-  //     render: (date: string) =>
-  //       new Date(date).toLocaleDateString("en-US", {
-  //         day: "2-digit",
-  //         month: "short",
-  //         year: "numeric",
-  //       }),
-  //     sorter: (a: any, b: any) =>
-  //       new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime(),
-  //   },
-  //   {
-  //     title: "Due Date",
-  //     dataIndex: "due_date",
-  //     key: "due_date",
-  //     render: (date: string) =>
-  //       new Date(date).toLocaleDateString("en-US", {
-  //         day: "2-digit",
-  //         month: "short",
-  //         year: "numeric",
-  //       }),
-  //     sorter: (a: any, b: any) =>
-  //       new Date(a.due_date).getTime() - new Date(b.due_date).getTime(),
-  //   },
-  //   {
-  //     title: "Amount",
-  //     key: "amount",
-  //     render: (_: any, record: any) => {
-  //       const subtotal =
-  //         record.items?.reduce(
-  //           (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-  //           0
-  //         ) || 0;
-  //       const tax =
-  //         record.items?.reduce((s: number, i: any) => {
-  //           const line = (i.qty || 0) * (i.price || 0);
-  //           return s + (line * (i.tax || 0)) / 100;
-  //         }, 0) || 0;
-  //       return (
-  //         <Text strong style={{ fontFamily: "'Roboto Mono', monospace" }}>
-  //           ${(subtotal + tax).toFixed(2)}
-  //         </Text>
-  //       );
-  //     },
-  //     sorter: (a: any, b: any) => {
-  //       const total = (inv: any) =>
-  //         (inv.items?.reduce(
-  //           (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-  //           0
-  //         ) || 0) +
-  //         (inv.items?.reduce(
-  //           (s: number, i: any) =>
-  //             s + ((i.qty || 0) * (i.price || 0) * (i.tax || 0)) / 100,
-  //           0
-  //         ) || 0);
-  //       return total(a) - total(b);
-  //     },
-  //   },
-  //   {
-  //     title: "Status",
-  //     dataIndex: "status",
-  //     key: "status",
-  //     render: (status: string | undefined) => (
-  //       <Tag color={statusColors[status || ""] || "#8c8c8c"}>
-  //         {(status || "unknown").toUpperCase()}
-  //       </Tag>
-  //     ),
-  //     filters: [
-  //       { text: "Submitted", value: "submitted" },
-  //       { text: "Pending", value: "pending" },
-  //       { text: "Draft", value: "draft" },
-  //       { text: "Overdue", value: "overdue" },
-  //     ],
-  //     onFilter: (value: any, record: any) => record.status === value,
-  //   },
-  // ];
-
   const columns = [
     {
       title: "INVOICE",
@@ -402,13 +340,13 @@ export default function DashboardPage() {
         const subtotal =
           record.items?.reduce(
             (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-            0
+            0,
           ) || 0;
         const tax =
           record.items?.reduce(
             (s: number, i: any) =>
               s + ((i.qty || 0) * (i.price || 0) * (i.tax || 0)) / 100,
-            0
+            0,
           ) || 0;
         return (
           <Text strong style={{ fontSize: "15px" }}>
@@ -447,6 +385,110 @@ export default function DashboardPage() {
       },
     },
   ];
+
+  const currentMonth = dayjs(); // today
+
+  const fullCellRender = (value: Dayjs) => {
+    if (!value.isSame(currentMonth, "month")) {
+      return <div style={{ height: "100%" }} />;
+    }
+
+    const dateKey = value.format("YYYY-MM-DD");
+    const data = calendarMap[dateKey];
+
+    return (
+      <div
+        style={{
+          height: "100%",
+          padding: 4,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: 2,
+        }}
+      >
+        {/* Date */}
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#1f1f1f",
+          }}
+        >
+          {value.date()}
+        </div>
+
+        {/* Compact indicators */}
+        {data && (
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              marginTop: 2,
+            }}
+          >
+            {data.created > 0 && (
+              <div
+                title={`${data.created} invoices created`}
+                style={{
+                  minWidth: 16,
+                  height: 14,
+                  padding: "0 4px",
+                  borderRadius: 999,
+                  background: "#1890ff",
+                  color: "#fff",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {data.created}
+              </div>
+            )}
+
+            {data.received > 0 && (
+              <div
+                title={`${data.received} invoices received`}
+                style={{
+                  minWidth: 16,
+                  height: 14,
+                  padding: "0 4px",
+                  borderRadius: 999,
+                  background: "#52c41a",
+                  color: "#fff",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {data.received}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const monthStart = currentMonth.startOf("month");
+  const monthEnd = currentMonth.endOf("month");
+
+  let monthlyCreated = 0;
+  let monthlyReceived = 0;
+
+  Object.entries(calendarMap).forEach(([date, data]) => {
+    const d = dayjs(date);
+    if (d.isBetween(monthStart, monthEnd, "day", "[]")) {
+      monthlyCreated += data.created;
+      monthlyReceived += data.received;
+    }
+  });
+
   return (
     <MainLayout>
       <div style={{ padding: "20px 24px" }}>
@@ -470,7 +512,7 @@ export default function DashboardPage() {
               <FileTextOutlined />,
               "Total Invoices",
               `${totalInvoices}`,
-              "#1890ff"
+              "#1890ff",
             )}
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -478,7 +520,7 @@ export default function DashboardPage() {
               <DollarOutlined />,
               "Total Revenue",
               `$${totalRevenue.toFixed(2)}`,
-              "#52c41a"
+              "#52c41a",
             )}
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -486,7 +528,7 @@ export default function DashboardPage() {
               <ExclamationCircleOutlined />,
               "Pending Amount",
               `$${pendingAmount.toFixed(2)}`,
-              "#faad14"
+              "#faad14",
             )}
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -494,19 +536,18 @@ export default function DashboardPage() {
               <ClockCircleOutlined />,
               "Overdue Amount",
               `$${overdueAmount.toFixed(2)}`,
-              "#f5222d"
+              "#f5222d",
             )}
           </Col>
         </Row>
 
-        {/* ================= MONTHLY REVENUE CHART ================= */}
-        <Row gutter={16}>
+        {/* ================= CHART + CALENDAR (SAME LINE) ================= */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          {/* Monthly Revenue */}
           <Col xs={24} md={12}>
-            {" "}
-            {/* 👈 50% width on desktop */}
             <Card
               title={<span style={{ fontSize: 14 }}>Monthly Revenue</span>}
-              style={{ borderRadius: 12, marginBottom: 16 }}
+              style={{ borderRadius: 12, height: "100%" }}
               styles={{
                 header: { padding: "10px 16px" },
                 body: { padding: "8px 12px" },
@@ -519,6 +560,63 @@ export default function DashboardPage() {
                   <Text type="secondary">No data</Text>
                 )}
               </div>
+            </Card>
+          </Col>
+
+          {/* Invoice Calendar */}
+          <Col xs={24} md={12}>
+            <Card
+              title={
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>
+                    Invoice Calendar
+                  </span>
+
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        background: "#1890ff15",
+                        color: "#1890ff",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Created: {monthlyCreated}
+                    </span>
+
+                    <span
+                      style={{
+                        fontSize: 12,
+                        background: "#52c41a15",
+                        color: "#52c41a",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        fontWeight: 600,
+                      }}
+                    >
+                      Received: {monthlyReceived}
+                    </span>
+                  </div>
+                </div>
+              }
+              style={{ borderRadius: 12, height: "100%" }}
+              styles={{
+                header: { padding: "12px 16px" },
+                body: { padding: "12px" },
+              }}
+            >
+              <Calendar
+                fullscreen={false}
+                //cellRender={dateCellRender}
+                fullCellRender={fullCellRender}
+                //headerRender={() => null}
+                //validRange={[dayjs().startOf("month"), dayjs().endOf("month")]}
+                style={{ borderRadius: 12 }}
+              />
             </Card>
           </Col>
         </Row>
@@ -598,7 +696,7 @@ export default function DashboardPage() {
               .sort(
                 (a, b) =>
                   new Date(b.invoice_date).getTime() -
-                  new Date(a.invoice_date).getTime()
+                  new Date(a.invoice_date).getTime(),
               )
               .slice(0, 5)}
             rowKey="invoice_number"

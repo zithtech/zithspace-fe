@@ -1,14 +1,11 @@
 "use client";
-
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Segmented, Space, Typography, Button, Card, Row, Col } from "antd";
+import { Space, Typography, Button, Card, Row, Col, Steps } from "antd";
 import {
   SettingOutlined,
   PlusOutlined,
   ArrowLeftOutlined,
-  ApartmentOutlined,
-  FullscreenOutlined,
 } from "@ant-design/icons";
 import GeneralSettings from "./GeneralSettings";
 import InvoiceSetting from "./InvoiceSetting";
@@ -29,7 +26,8 @@ const { Title } = Typography;
 
 export default function InvoiceproSettingPage() {
   const [mode, setMode] = useState<"view" | "create">("view");
-  const [section, setSection] = useState("general");
+
+  const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
     const stored = localStorage.getItem("invoice_settings");
@@ -291,74 +289,91 @@ export default function InvoiceproSettingPage() {
         {/* CREATE MODE */}
         {mode === "create" && (
           <>
-            <Segmented
-              value={section}
-              onChange={setSection}
-              className="bg-slate-100 p-1 rounded-lg"
-              options={[
-                { label: "General", value: "general" },
-                { label: "Invoices", value: "invoices" },
-                { label: "Payments", value: "payments" },
-                { label: "Alerts", value: "alerts" },
+            <Steps
+              current={currentStep}
+              className="mb-8"
+              items={[
+                { title: "General" },
+                { title: "Invoice" },
+                { title: "Payment" },
               ]}
             />
 
             <div className="mt-6">
-              <div
-                key={section}
-                className="animate-in fade-in slide-in-from-bottom-2 duration-200"
-              >
-                {section === "general" && (
-                  <GeneralSettings
-                    initialValues={draft.general}
-                    onSave={(data) =>
-                      setDraft((prev) => ({ ...prev, general: data }))
-                    }
-                  />
-                )}
+              {currentStep === 0 && (
+                <GeneralSettings
+                  initialValues={draft.general}
+                  onSave={(data) =>
+                    setDraft((prev) => ({ ...prev, general: data }))
+                  }
+                />
+              )}
 
-                {section === "invoices" && (
-                  <InvoiceSetting
-                    initialValues={draft.invoices}
-                    onSave={(data) =>
-                      setDraft((prev) => ({ ...prev, invoices: data }))
-                    }
-                  />
-                )}
-                {section === "payments" && (
-                  <BankPaymentSettings
-                    initialValues={draft.payments} // ✅ CORRECT
-                    onSave={(data) =>
-                      setDraft((prev) => ({ ...prev, payments: data }))
-                    }
-                  />
-                )}
-              </div>
+              {currentStep === 1 && (
+                <InvoiceSetting
+                  initialValues={draft.invoices}
+                  onSave={(data) =>
+                    setDraft((prev) => ({ ...prev, invoices: data }))
+                  }
+                />
+              )}
+
+              {currentStep === 2 && (
+                <BankPaymentSettings
+                  initialValues={draft.payments}
+                  onSave={(data) =>
+                    setDraft((prev) => ({ ...prev, payments: data }))
+                  }
+                />
+              )}
             </div>
 
-            <div className="flex justify-end mt-4">
-              <Button
-                type="primary"
-                onClick={() => {
-                  const newSetting: SavedSetting = {
-                    id: Date.now(),
-                    name: draft.general.company_name || "Untitled",
-                    general: draft.general,
-                    invoices: draft.invoices,
-                    payments: draft.payments,
-                  };
+            <div className="fixed bottom-0 left-0 w-full bg-white border-t p-4 flex justify-between items-center z-50">
+              {/* BACK */}
+              <div style={{ paddingLeft: "7%" }}>
+                <Button
+                  disabled={currentStep === 0}
+                  onClick={() => setCurrentStep((s) => s - 1)}
+                >
+                  Back
+                </Button>
+              </div>
 
-                  const updatedSettings = [...savedSettings, newSetting];
-                  setSavedSettings(updatedSettings);
-                  localStorage.setItem(
-                    "invoice_settings",
-                    JSON.stringify(updatedSettings)
-                  );
-                  setMode("view");
-                }}
-              >
-                Save All
-              </Button>
+              {/* NEXT / SAVE */}
+              {currentStep < 2 ? (
+                <Button
+                  type="primary"
+                  onClick={() => setCurrentStep((s) => s + 1)}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    const newSetting = {
+                      id: Date.now(),
+                      name: draft.general.company_name || "Untitled",
+                      general: draft.general,
+                      invoices: draft.invoices,
+                      payments: draft.payments,
+                    };
+
+                    const updatedSettings = [...savedSettings, newSetting];
+                    setSavedSettings(updatedSettings);
+
+                    localStorage.setItem(
+                      "invoice_settings",
+                      JSON.stringify(updatedSettings),
+                    );
+
+                    setMode("view");
+                    setCurrentStep(0);
+                  }}
+                >
+                  Save All
+                </Button>
+              )}
             </div>
           </>
         )}

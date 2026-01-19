@@ -13,6 +13,8 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { Button } from 'antd';
+import { CheckCircleOutlined } from '@ant-design/icons';
 import { Ticket } from '@/services/ticketService';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
@@ -25,6 +27,7 @@ interface TicketKanbanProps {
   activeSprint?: any;
   kanbanScope?: 'active' | 'backlog';
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
+  onCompleteSprint?: () => void;
 }
 
 const COLUMNS = [
@@ -34,7 +37,7 @@ const COLUMNS = [
   { id: 'completed', title: 'Completed' },
 ];
 
-export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, members, onTicketUpdate, activeSprint, kanbanScope, onSprintAssignment }) => {
+export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, members, onTicketUpdate, activeSprint, kanbanScope, onSprintAssignment, onCompleteSprint }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -118,8 +121,27 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
   const activeTicket = activeId ? tickets.find((t) => t.id === activeId) : null;
 
   return (
-    <div style={{ height: 'calc(100vh - 200px)', overflowX: 'auto', padding: '16px 0' }}>
-       <DndContext
+    <div style={{ height: 'calc(100vh - 200px)', overflowX: 'auto' }}>
+      {/* Complete Sprint Button - Show only for active sprint view */}
+      {kanbanScope === 'active' && activeSprint && onCompleteSprint && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          paddingBottom:"10px",
+          paddingRight:"10px"
+        }}>
+          <Button
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            size="small"
+            onClick={onCompleteSprint}
+          >
+            Complete Sprint
+          </Button>
+        </div>
+      )}
+      
+      <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}

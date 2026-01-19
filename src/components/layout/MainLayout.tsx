@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import React, { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { useTenant } from '@/context/TenantContext';
 import {
   Layout,
   Menu,
@@ -31,9 +32,14 @@ import {
   UnorderedListOutlined,
   CalendarOutlined,
   ControlOutlined,
+  InboxOutlined,
+  DeleteOutlined,
+  FolderOpenOutlined,
   AccountBookOutlined,
   BarChartOutlined,
-} from "@ant-design/icons";
+} from '@ant-design/icons';
+import { useTrashTickets } from '@/hooks/useTrash';
+import { useBuckets } from '@/hooks/useBuckets';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -44,9 +50,22 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { user, logout } = useAuth();
+  const { tenantId } = useTenant();
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Fetch data (only render badges after mount to prevent hydration errors)
+  const { data: trashData } = useTrashTickets({});
+  const { data: buckets } = useBuckets(tenantId || '');
+  
+  const trashCount = trashData?.pagination?.total || 0;
+  const bucketCount = buckets?.length || 0;
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Navigation items with modern icons
   const getNavigationItems = () => [
@@ -102,11 +121,39 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {
           key: "/projects/plans",
           icon: <CalendarOutlined />,
-          label: "Plans",
-          onClick: () => handleNavigation("/projects/plans"),
+          label: 'Plans',
+          onClick: () => handleNavigation('/projects/plans'),
         },
+        // {
+        //   key: '/projects/buckets',
+        //   icon: <InboxOutlined />,
+        //   label: isMounted && bucketCount > 0 ? (
+        //     <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+        //       <span>Buckets</span>
+        //       <Badge count={bucketCount} showZero={false} style={{ backgroundColor: '#1677ff' }} />
+        //     </Space>
+        //   ) : 'Buckets',
+        //   onClick: () => handleNavigation('/projects/buckets'),
+        // },
+        // {
+        //   key: '/projects/trash',
+        //   icon: <DeleteOutlined />,
+        //   label: isMounted && trashCount > 0 ? (
+        //     <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+        //       <span>Trash</span>
+        //       <Badge count={trashCount} showZero={false} style={{ backgroundColor: '#ff4d4f' }} />
+        //     </Space>
+        //   ) : 'Trash',
+        //   onClick: () => handleNavigation('/projects/trash'),
+        // },
+        // {
+        //   key: '/projects/archived',
+        //   icon: <FolderOpenOutlined />,
+        //   label: 'Archived',
+        //   onClick: () => handleNavigation('/projects/archived'),
+        // },
         {
-          key: "/projects/settings",
+          key: '/projects/settings',
           icon: <ControlOutlined />,
           label: "Settings",
           onClick: () => handleNavigation("/projects/settings"),

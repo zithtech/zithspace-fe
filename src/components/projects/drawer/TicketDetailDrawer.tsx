@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Drawer,
   Typography,
@@ -18,42 +18,23 @@ import {
   Collapse,
 } from "antd";
 import {
-  CloseOutlined,
-  DeleteOutlined,
-  ShareAltOutlined,
-  LinkOutlined,
-  CalendarOutlined,
-  FieldTimeOutlined,
-  UserOutlined,
-  InfoCircleOutlined,
-  EditOutlined,
+    CloseOutlined,
+    DeleteOutlined,
+    ShareAltOutlined,
+    LinkOutlined,
+    CalendarOutlined,
+    FieldTimeOutlined,
+    UserOutlined,
+    InfoCircleOutlined,
+    EditOutlined,
+    ArrowLeftOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import {
-  useTicketComments,
-  useTicketAttachments,
-  useTicketLinks,
-  useAddComment,
-  useDeleteComment,
-  useUploadAttachment,
-  useDeleteAttachment,
-  useAddRelatedLink,
-  useUpdateRelatedLink,
-  useDeleteRelatedLink,
-} from "@/hooks/useTicketDetails";
-import { useTicket, useUpdateTicket } from "@/hooks/useTickets";
-import {
-  useMembers,
-  useTicketConfig,
-  useUserProjects,
-} from "@/hooks/useGlobalData";
-import {
-  PRIORITY_OPTIONS,
-  TYPE_OPTIONS,
-  getStatusColor,
-  getPriorityColor,
-  getTypeColor,
-} from "@/utils/ticketUtils";
+import { useQuery } from "@tanstack/react-query";
+import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink } from "@/hooks/useTicketDetails";
+import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
+import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
+import { PRIORITY_OPTIONS, TYPE_OPTIONS, getStatusColor, getPriorityColor, getTypeColor } from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
 import { EditableDate } from "./editable/EditableDate";
@@ -65,6 +46,7 @@ import {
   RelatedLinksSection,
 } from "../ticket-details";
 import SubtasksSection from "../ticket-details/SubtasksSection";
+import TicketService from "@/services/ticketService";
 
 // Add relativeTime plugin
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -83,26 +65,69 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   onClose,
   open,
 }) => {
-  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
-  const [editorContent, setEditorContent] = useState("");
+    const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
+    const [editorContent, setEditorContent] = useState('');
+    
+    // Navigation State
+    const [navigationStack, setNavigationStack] = useState<string[]>([]);
+    const [currentTicketId, setCurrentTicketId] = useState<string | null>(null);
 
-  // Data Hooks
-  const { data: ticket, isLoading: ticketLoading } = useTicket(ticketId || "");
-  const { data: comments = [], isLoading: commentsLoading } = useTicketComments(
-    ticketId || ""
-  );
-  const { data: relatedLinks = [], isLoading: linksLoading } = useTicketLinks(
-    ticketId || ""
-  );
-  const { data: attachments = [], isLoading: attachmentsLoading } =
-    useTicketAttachments(ticketId || "");
+    // Data Hooks - Use currentTicketId instead of ticketId prop
+    const { data: ticket, isLoading: ticketLoading } = useTicket(currentTicketId || "");
+    
+    // Fetch parent ticket if current is a subtask using useQuery directly
+    const { data: parentTicket, isLoading: parentLoading } = useQuery({
+        queryKey: ticketKeys.detail(ticket?.parentId || ''),
+        queryFn: () => TicketService.getTicketById(ticket?.parentId || ''),
+        enabled: !!ticket?.parentId,
+        staleTime: 5 * 60 * 1000,
+    });
+    
+    // Debug logging
+    useEffect(() => {
+        if (ticket) {
+            console.log('Current ticket:', ticket.ticketNumber, 'parentId:', ticket.parentId);
+            console.log('Parent ticket:', parentTicket?.ticketNumber, 'loading:', parentLoading);
+        }
+    }, [ticket, parentTicket, parentLoading]);
+    const { data: comments = [], isLoading: commentsLoading } = useTicketComments(currentTicketId || "");
+    const { data: relatedLinks = [], isLoading: linksLoading } = useTicketLinks(currentTicketId || "");
+    const { data: attachments = [], isLoading: attachmentsLoading } = useTicketAttachments(currentTicketId || "");
 
-  // Update editor content when description changes externally
-  React.useEffect(() => {
-    if (ticket?.description) {
-      setEditorContent(ticket.description);
-    }
-  }, [ticket?.description]);
+    // Update editor content when description changes externally
+    React.useEffect(() => {
+        if (ticket?.description) {
+            setEditorContent(ticket.description);
+        }
+    }, [ticket?.description]);
+    
+    // Reset navigation state when drawer opens/closes
+    useEffect(() => {
+        if (open && ticketId) {
+            setCurrentTicketId(ticketId);
+            setNavigationStack([]);
+        } else if (!open) {
+            setCurrentTicketId(null);
+            setNavigationStack([]);
+        }
+    }, [open, ticketId]);
+    
+    // Navigation handlers
+    const navigateToTicket = (ticketId: string) => {
+        if (currentTicketId) {
+            setNavigationStack(prev => [...prev, currentTicketId]);
+        }
+        setCurrentTicketId(ticketId);
+    };
+
+    const navigateBack = () => {
+        const newStack = [...navigationStack];
+        const previousTicketId = newStack.pop();
+        setNavigationStack(newStack);
+        if (previousTicketId) {
+            setCurrentTicketId(previousTicketId);
+        }
+    };
 
   // Config Hooks
   const { data: members = [] } = useMembers();
@@ -176,19 +201,19 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     avatar: m.label.charAt(0),
   }));
 
-  // Handlers
-  const handleUpdate = async (field: string, value: any) => {
-    if (!ticketId) return;
-    try {
-      await updateTicketMutation.mutateAsync({
-        id: ticketId,
-        data: { [field]: value },
-      });
-      message.success(`${field} updated`);
-    } catch (error) {
-      message.error("Failed to update");
-    }
-  };
+    // Handlers
+    const handleUpdate = async (field: string, value: any) => {
+        if (!currentTicketId) return;
+        try {
+            await updateTicketMutation.mutateAsync({
+                id: currentTicketId,
+                data: { [field]: value }
+            });
+            message.success(`${field} updated`);
+        } catch (error) {
+            message.error("Failed to update");
+        }
+    };
 
   const handleDescriptionSave = async () => {
     // Only update if content changed/valid.
@@ -196,70 +221,96 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     setDescriptionEditorOpen(false);
   };
 
-  // Renderers
-  if (!ticketId) return null;
+    // Renderers
+    if (!currentTicketId) return null;
 
-  return (
-    <Drawer
-      title={
-        <Row justify="space-between" align="middle" style={{ width: "100%" }}>
-          <Space>
-            <Tag color="blue" style={{ fontSize: 14, padding: "4px 8px" }}>
-              {ticket?.ticketNumber || "..."}
-            </Tag>
-            {/* <Text type="secondary" style={{ fontSize: 13 }}>
-                   {ticket?.project?.name}
-                </Text> */}
-          </Space>
-          <Space>
-            <Tooltip title="Copy Link">
-              <Button type="text" icon={<LinkOutlined />} />
-            </Tooltip>
-            <Button type="text" icon={<CloseOutlined />} onClick={onClose} />
-          </Space>
-        </Row>
-      }
-      placement="right"
-      onClose={onClose}
-      open={open}
-      width={900} // Wider drawer for better layout
-      styles={{ body: { padding: 0 } }}
-      closeIcon={null} // Custom close in title
-    >
-      {!ticket ? (
-        <div style={{ padding: 40, textAlign: "center" }}>
-          <Text>Loading...</Text>
-        </div>
-      ) : (
-        <Row style={{ height: "100%" }}>
-          {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
-          <Col
-            xs={24}
-            md={15}
-            style={{
-              padding: 24,
-              paddingRight: 32,
-              borderRight: "1px solid #f0f0f0",
-              overflowY: "auto",
-              height: "100%",
-            }}
-          >
-            {/* Title */}
-            <div style={{ marginBottom: 24 }}>
-              <EditableField
-                value={ticket.title}
-                onSave={(val) => handleUpdate("title", val)}
-                textStyle={{
-                  fontSize: 20,
-                  fontWeight: 600,
-                  lineHeight: 1.4,
-                  margin: "0",
-                }}
-                type="textarea"
-                placeholder="Ticket Title"
-                editIconVisibility="hover"
-              />
-            </div>
+    return (
+        <Drawer
+            title={
+                <Row justify="space-between" align="middle" style={{ paddingLeft: 12, paddingRight: 12 }}>
+                    <Space>
+                        {/* Show back button + parent/subtask format for subtasks */}
+                        {ticket?.parentId ? (
+                            <Space size={8}>
+                                <Tooltip title="Back to parent ticket">
+                                    <Button
+                                        type="text"
+                                        size="small"
+                                        icon={<ArrowLeftOutlined />}
+                                        onClick={navigateBack}
+                                        style={{
+                                            padding: '4px 8px',
+                                            display: 'flex',
+                                            alignItems: 'center'
+                                        }}
+                                    />
+                                </Tooltip>
+                                <Tag
+                                    color="blue"
+                                    style={{
+                                        fontSize: 14,
+                                        padding: '4px 8px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onClick={navigateBack}
+                                    className="parent-ticket-badge"
+                                >
+                                    {parentTicket?.ticketNumber || '...'}
+                                </Tag>
+                                <span style={{ color: '#8c8c8c' }}>/</span>
+                                <Tag color="default" style={{ fontSize: 14, padding: '4px 8px' }}>
+                                    {ticket.ticketNumber}
+                                </Tag>
+                            </Space>
+                        ) : (
+                            /* Show just ticket badge for main tickets */
+                            <Tag color="blue" style={{ fontSize: 14, padding: '4px 8px' }}>
+                                {ticket?.ticketNumber || '...'}
+                            </Tag>
+                        )}
+                    </Space>
+                    <Space>
+                        <Tooltip title="Copy Link">
+                            <Button type="text" icon={<LinkOutlined />} />
+                        </Tooltip>
+                        <Button type="text" icon={<CloseOutlined />} onClick={onClose} />
+                    </Space>
+                    
+                    {/* Hover effect for parent ticket badge */}
+                    <style jsx global>{`
+                        .parent-ticket-badge:hover {
+                            opacity: 0.8;
+                            transform: translateY(-1px);
+                        }
+                    `}</style>
+                </Row>
+            }
+            placement="right"
+            onClose={onClose}
+            open={open}
+            width={900} // Wider drawer for better layout
+            styles={{ body: { padding: 0 } }}
+            closeIcon={null} // Custom close in title
+        >
+            {!ticket ? (
+                <div style={{ padding: 40, textAlign: "center" }}><Text>Loading...</Text></div>
+            ) : (
+                <Row style={{ height: '100%' }}>
+                    {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
+                    <Col xs={24} md={15} style={{ padding: 24, paddingRight: 32, borderRight: '1px solid #f0f0f0', overflowY: 'auto', height: '100%' }}>
+
+                        {/* Title */}
+                        <div style={{ marginBottom: 24 }}>
+                            <EditableField
+                                value={ticket.title}
+                                onSave={(val) => handleUpdate('title', val)}
+                                textStyle={{ fontSize: 20, fontWeight: 600, lineHeight: 1.4, margin: '0' }}
+                                type="textarea"
+                                placeholder="Ticket Title"
+                                editIconVisibility="hover"
+                            />
+                        </div>
 
             {/* Description */}
             <div style={{ marginBottom: 32 }}>
@@ -386,117 +437,103 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               )}
             </div>
 
-            {/* Subtasks Section */}
-            <div style={{ marginBottom: 32 }}>
-              <div
-                style={{
-                  border: "1px solid #f0f0f0",
-                  borderRadius: 8,
-                  overflow: "hidden",
-                }}
-              >
-                <SubtasksSection
-                  tickets={ticket.subTasks || []}
-                  parentId={ticket.id}
-                  projectId={
-                    typeof ticket?.project === "string"
-                      ? ticket.project
-                      : ticket?.project?.id || ""
-                  }
-                  members={members}
-                />
-              </div>
-            </div>
+                        {/* Subtasks Section - Conditional Rendering */}
+                        <div style={{ marginBottom: 32 }}>
+                            {ticket.parentId ? (
+                                // Current ticket IS a subtask - show info message
+                                // <div style={{
+                                //     padding: '16px',
+                                //     background: '#f6f6f6',
+                                //     borderRadius: 8,
+                                //     border: '1px solid #e8e8e8'
+                                // }}>
+                                //     <Space direction="vertical" size={4}>
+                                //         <Text type="secondary" style={{ fontSize: 13 }}>
+                                //             <InfoCircleOutlined /> Subtasks cannot have nested subtasks
+                                //         </Text>
+                                //         {parentTicket && (
+                                //             <Text type="secondary" style={{ fontSize: 12 }}>
+                                //                 This is a subtask of{' '}
+                                //                 <Button
+                                //                     type="link"
+                                //                     size="small"
+                                //                     onClick={navigateBack}
+                                //                     style={{ padding: 0, height: 'auto' }}
+                                //                 >
+                                //                     {parentTicket.ticketNumber}
+                                //                 </Button>
+                                //             </Text>
+                                //         )}
+                                //     </Space>
+                                // </div>
+                                null
+                            ) : (
+                                // Current ticket is a main ticket - show subtasks section
+                                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden' }}>
+                                    <SubtasksSection
+                                        tickets={ticket.subTasks || []}
+                                        parentId={ticket.id}
+                                        projectId={typeof ticket?.project === 'string' ? ticket.project : ticket?.project?.id || ""}
+                                        members={members}
+                                        onSubtaskClick={navigateToTicket}
+                                    />
+                                </div>
+                            )}
+                        </div>
 
             <Divider />
 
-            {/* Tabs for Comments, Attachments, etc. */}
-            <Tabs
-              defaultActiveKey="comments"
-              items={[
-                {
-                  key: "comments",
-                  label: `Comments (${comments.length})`,
-                  children: (
-                    <CommentsSection
-                      comments={comments}
-                      isEditing={false} // pass false to enable Edit/Delete actions on items
-                      onAddComment={async (c) =>
-                        await addCommentMutation.mutateAsync({
-                          ticketId,
-                          comment: c,
-                        })
-                      }
-                      onDeleteComment={async (id) =>
-                        await deleteCommentMutation.mutateAsync({
-                          ticketId,
-                          commentId: id,
-                        })
-                      }
-                      isAddingComment={addCommentMutation.isPending}
-                      isDeletingComment={deleteCommentMutation.isPending}
-                    />
-                  ),
-                },
-                {
-                  key: "attachments",
-                  label: `Attachments (${attachments.length})`,
-                  children: (
-                    <AttachmentsSection
-                      attachments={attachments}
-                      isLoading={attachmentsLoading}
-                      isEditing={false} // pass false to enable Uploader
-                      onUpload={async (f, n) =>
-                        await uploadAttachmentMutation.mutateAsync({
-                          ticketId,
-                          file: f,
-                          fileName: n,
-                        })
-                      }
-                      onDelete={async (id) =>
-                        await deleteAttachmentMutation.mutateAsync({
-                          ticketId,
-                          attachmentId: id,
-                        })
-                      }
-                    />
-                  ),
-                },
-                {
-                  key: "links",
-                  label: `Links (${relatedLinks.length})`,
-                  children: (
-                    <RelatedLinksSection
-                      relatedLinks={relatedLinks}
-                      isEditing={false} // pass false to enable Add Link and specific item actions
-                      onAddLink={async (t, d) => {
-                        await addLinkMutation.mutateAsync({
-                          ticketId,
-                          linkData: { linkType: t, ...d },
-                        });
-                      }}
-                      onUpdateLink={async (id, d) => {
-                        await updateLinkMutation.mutateAsync({
-                          ticketId,
-                          linkId: id,
-                          linkData: d,
-                        });
-                      }}
-                      onDeleteLink={async (id) => {
-                        await deleteLinkMutation.mutateAsync({
-                          ticketId,
-                          linkId: id,
-                        });
-                      }}
-                      isAddingLink={addLinkMutation.isPending}
-                      isUpdatingLink={updateLinkMutation.isPending}
-                      isDeletingLink={deleteLinkMutation.isPending}
-                    />
-                  ),
-                },
-              ]}
-            />
-          </Col>
+                        {/* Tabs for Comments, Attachments, etc. */}
+                        <Tabs
+                            defaultActiveKey="comments"
+                            items={[
+                                {
+                                    key: 'comments',
+                                    label: `Comments (${comments.length})`,
+                                    children: (
+                                        <CommentsSection
+                                            comments={comments}
+                                            isEditing={false} // pass false to enable Edit/Delete actions on items
+                                            onAddComment={async (c) => await addCommentMutation.mutateAsync({ ticketId: currentTicketId, comment: c })}
+                                            onDeleteComment={async (id) => await deleteCommentMutation.mutateAsync({ ticketId: currentTicketId, commentId: id })}
+                                            isAddingComment={addCommentMutation.isPending}
+                                            isDeletingComment={deleteCommentMutation.isPending}
+                                        />
+                                    )
+                                },
+                                {
+                                    key: 'attachments',
+                                    label: `Attachments (${attachments.length})`,
+                                    children: (
+                                        <AttachmentsSection
+                                            attachments={attachments}
+                                            isLoading={attachmentsLoading}
+                                            isEditing={false} // pass false to enable Uploader
+                                            onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId, file: f, fileName: n })}
+                                            onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId, attachmentId: id })}
+                                        />
+                                    )
+                                },
+                                {
+                                    key: 'links',
+                                    label: `Links (${relatedLinks.length})`,
+                                    children: (
+                                        <RelatedLinksSection
+                                            relatedLinks={relatedLinks}
+                                            isEditing={false} // pass false to enable Add Link and specific item actions
+                                            onAddLink={async (t, d) => { await addLinkMutation.mutateAsync({ ticketId: currentTicketId, linkData: { linkType: t, ...d } }) }}
+                                            onUpdateLink={async (id, d) => { await updateLinkMutation.mutateAsync({ ticketId: currentTicketId, linkId: id, linkData: d }) }}
+                                            onDeleteLink={async (id) => { await deleteLinkMutation.mutateAsync({ ticketId: currentTicketId, linkId: id }) }}
+                                            isAddingLink={addLinkMutation.isPending}
+                                            isUpdatingLink={updateLinkMutation.isPending}
+                                            isDeletingLink={deleteLinkMutation.isPending}
+                                        />
+                                    )
+                                }
+                            ]}
+                        />
+
+                    </Col>
 
           {/* RIGHT COLUMN: Metadata Sidebar */}
           <Col

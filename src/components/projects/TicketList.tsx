@@ -41,6 +41,7 @@ import {
   CaretRightOutlined,
   ArrowLeftOutlined,
   MinusCircleOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -55,6 +56,7 @@ import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
 import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
+import { SprintCompletionModal } from "./sprint-completion";
 
 const { Title, Text } = Typography;
 
@@ -88,6 +90,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  
+  // Sprint Completion Modal state
+  const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
@@ -208,6 +213,28 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         notifyApi.error({ message: "Update Failed", description: "Failed to update sprint assignment." });
       }
     });
+  };
+
+
+  
+  const handleCompleteSprint = () => {
+    if (!activeSprint?.id) return;
+    setSprintCompletionModalOpen(true);
+  };
+
+  const handleSprintCompletionSuccess = () => {
+    setSprintCompletionModalOpen(false);
+    notifyApi.success({
+      message: 'Sprint Completed',
+      description: 'Sprint completed successfully',
+      placement: 'bottomLeft',
+      style: {
+        borderLeft: '4px solid #52c41a',
+      }
+    });
+    // Refresh both ticket lists
+    refetchActive();
+    refetchBacklog();
   };
 
   // Enable live updates
@@ -924,11 +951,23 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       </Text>
                       <Tag color="green" bordered={false} style={{ borderRadius: '4px' }}>RUNNING</Tag>
                     </Space>
-                    <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
-                      {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
-                      {' - '}
-                      {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
-                    </Text>
+                    <Space>
+                      {activeSprint?.status === 'active' && (
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<CheckCircleOutlined />}
+                          onClick={handleCompleteSprint}
+                        >
+                          Complete Sprint
+                        </Button>
+                      )}
+                      <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
+                        {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
+                        {' - '}
+                        {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
+                      </Text>
+                    </Space>
                   </div>
                 }
                 style={{ marginBottom: 20 }}
@@ -1029,6 +1068,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 activeSprint={activeSprint}
                 kanbanScope={kanbanScope}
                 onSprintAssignment={handleSprintAssignment}
+                onCompleteSprint={handleCompleteSprint}
               />
             </>
           ) : (
@@ -1042,6 +1082,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         ticketId={selectedTicketId}
         open={!!selectedTicketId}
         onClose={() => setSelectedTicketId(null)}
+      />
+
+      {/* Sprint Completion Modal */}
+      <SprintCompletionModal
+        sprintId={activeSprint?.id || null}
+        open={sprintCompletionModalOpen}
+        onClose={() => setSprintCompletionModalOpen(false)}
+        onSuccess={handleSprintCompletionSuccess}
       />
     </div>
   );

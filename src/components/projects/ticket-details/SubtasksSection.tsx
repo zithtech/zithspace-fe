@@ -12,9 +12,10 @@ interface SubtasksSectionProps {
     parentId: string;
     projectId: string;
     members: any[]; // Using any[] for now as Member type specific import might differ, but ideally should be Member[] or User[]
+    onSubtaskClick?: (ticketId: string) => void; // Optional callback for subtask navigation
 }
 
-const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentId, projectId, members = [] }) => {
+const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentId, projectId, members = [], onSubtaskClick }) => {
     console.log({ members })
     const [isCreating, setIsCreating] = useState(false);
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -180,8 +181,18 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                             </div>
                         </Dropdown>
 
-                        {/* Ticket ID */}
-                        <Text type="secondary" style={{ fontSize: 12, minWidth: 60 }}>
+                        {/* Ticket ID - Clickable */}
+                        <Text
+                            type="secondary"
+                            style={{
+                                fontSize: 12,
+                                minWidth: 60,
+                                cursor: onSubtaskClick ? 'pointer' : 'default',
+                                transition: 'color 0.2s'
+                            }}
+                            className={onSubtaskClick ? 'clickable-ticket-number' : ''}
+                            onClick={() => onSubtaskClick?.(subtask.id)}
+                        >
                             {subtask.ticketNumber}
                         </Text>
 
@@ -327,6 +338,11 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                 .subtask-actions button:hover {
                     opacity: 1 !important;
                     background-color: #fff1f0;
+                }
+                /* Clickable ticket number styling */
+                .clickable-ticket-number:hover {
+                    color: #1890ff !important;
+                    text-decoration: underline;
                 }
             `}</style>
         </div>

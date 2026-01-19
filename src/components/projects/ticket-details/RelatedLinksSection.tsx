@@ -120,7 +120,7 @@ export default function RelatedLinksSection({
   };
 
   return (
-    <div style={{ marginTop: 24 }}>
+    <div style={{ marginTop:0}}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Typography.Title level={5} style={{ fontSize: 13, margin: 0 }}>Related Links</Typography.Title>
         {!isEditing && (

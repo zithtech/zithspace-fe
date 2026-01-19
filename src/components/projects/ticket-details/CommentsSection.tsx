@@ -54,8 +54,8 @@ export default function CommentsSection({
   };
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <Typography.Title level={5} style={{ fontSize: 13, marginBottom: 8 }}>Comments</Typography.Title>
+    <div style={{ marginTop:0}}>
+      {/* <Typography.Title level={5} style={{ fontSize: 13, marginBottom: 8 }}>Comments</Typography.Title> */}
       <div style={{ border: "1px solid #f0f0f0", borderRadius: 4, background: "#fff" }}>
         {/* Comment List */}
         <List

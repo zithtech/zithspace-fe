@@ -321,7 +321,7 @@ export default function TrashManagementPage() {
               danger
               icon={<ClearOutlined />}
               loading={emptyTrash.isPending}
-              disabled={!trashData || trashData.tickets.length === 0}
+              disabled={!trashData || !trashData.tickets || trashData.tickets.length === 0}
             >
               Empty Trash
             </Button>
@@ -329,7 +329,7 @@ export default function TrashManagementPage() {
         </div>
 
         {/* Warning Alert */}
-        {trashData && trashData.tickets.length > 0 && (
+        {trashData && trashData.tickets && trashData.tickets.length > 0 && (
           <Alert
             message="Auto-Purge Active"
             description="Tickets in trash are automatically permanently deleted after 7 days. Restore them before the countdown expires."

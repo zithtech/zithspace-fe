@@ -10,7 +10,7 @@ import {
   Badge,
   Spin,
   Tag,
-  message,
+  App,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -24,7 +24,7 @@ import { useSprintCompletionSummary, useCompleteSprint } from "@/hooks/useSprint
 import { SummaryTab } from "./tabs/SummaryTab";
 import { PendingTicketsTab } from "./tabs/PendingTicketsTab";
 import { CompletedTicketsTab } from "./tabs/CompletedTicketsTab";
-import { AuditLogTab } from "./tabs/AuditLogTab";
+// import { AuditLogTab } from "./tabs/AuditLogTab";
 
 const { Title, Text } = Typography;
 
@@ -35,12 +35,14 @@ interface SprintCompletionModalProps {
   onSuccess?: () => void;
 }
 
-export const SprintCompletionModal: React.FC<SprintCompletionModalProps> = ({
+// Inner component that uses App.useApp() hook
+const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
   sprintId,
   open,
   onClose,
   onSuccess,
 }) => {
+  const { modal, message } = App.useApp();
   const [activeTab, setActiveTab] = useState<string>("summary");
 
   // Fetch sprint completion summary
@@ -65,7 +67,7 @@ export const SprintCompletionModal: React.FC<SprintCompletionModalProps> = ({
       return;
     }
 
-    Modal.confirm({
+    modal.confirm({
       title: "Complete Sprint?",
       content: (
         <div>
@@ -140,9 +142,11 @@ export const SprintCompletionModal: React.FC<SprintCompletionModalProps> = ({
                 <Badge
                   status={canComplete ? "success" : "warning"}
                   text={
-                    canComplete
-                      ? "Ready to Complete"
-                      : `${summary.statistics.pendingTickets} Pending`
+                    summary
+                      ? canComplete
+                        ? "Ready to Complete"
+                        : `${summary.statistics.pendingTickets} Pending`
+                      : "Loading..."
                   }
                 />
               </Space>
@@ -283,20 +287,29 @@ export const SprintCompletionModal: React.FC<SprintCompletionModalProps> = ({
               ),
               children: <CompletedTicketsTab tickets={summary.tickets.completed} />,
             },
-            {
-              key: "audit",
-              label: (
-                <Space>
-                  <HistoryOutlined />
-                  <span>Audit Log</span>
-                </Space>
-              ),
-              children: <AuditLogTab sprintId={sprintId || ""} />,
-            },
+            // {
+            //   key: "audit",
+            //   label: (
+            //     <Space>
+            //       <HistoryOutlined />
+            //       <span>Audit Log</span>
+            //     </Space>
+            //   ),
+            //   children: <AuditLogTab sprintId={sprintId || ""} />,
+            // },
           ]}
         />
       )}
     </Modal>
+  );
+};
+
+// Wrapper component that provides App context
+export const SprintCompletionModal: React.FC<SprintCompletionModalProps> = (props) => {
+  return (
+    <App>
+      <SprintCompletionModalContent {...props} />
+    </App>
   );
 };
 

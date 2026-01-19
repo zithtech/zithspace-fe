@@ -8,12 +8,12 @@ import {
   Tag,
   Select,
   Typography,
-  message,
-  Modal,
   Card,
   Empty,
   Tooltip,
   Badge,
+  Alert,
+  App,
 } from "antd";
 import {
   SendOutlined,
@@ -37,75 +37,64 @@ interface PendingTicketsTabProps {
   onActionComplete: () => void;
 }
 
-interface TicketAction {
-  ticketId: string;
-  action: BulkActionType | null;
-  destinationId?: string;
-}
-
 export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
   sprintId,
   summary,
   onActionComplete,
 }) => {
-  const [ticketActions, setTicketActions] = useState<Record<string, TicketAction>>({});
+  const { modal, message } = App.useApp();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [activeBulkAction, setActiveBulkAction] = useState<{
+    action: BulkActionType;
+    destinationId?: string;
+    destinationName?: string;
+  } | null>(null);
   
   const bulkResolve = useBulkResolveTickets();
 
-  // Update action for a ticket
-  const handleActionChange = (ticketId: string, action: BulkActionType | null) => {
-    setTicketActions((prev) => ({
-      ...prev,
-      [ticketId]: {
-        ...prev[ticketId],
-        ticketId,
-        action,
-        destinationId: undefined, // Reset destination when action changes
-      },
-    }));
-  };
-
-  // Update destination for a ticket
-  const handleDestinationChange = (ticketId: string, destinationId: string) => {
-    setTicketActions((prev) => ({
-      ...prev,
-      [ticketId]: {
-        ...prev[ticketId],
-        destinationId,
-      },
-    }));
-  };
-
-  // Bulk apply action to selected tickets
+  // Set bulk action to apply to selected tickets
   const handleBulkAction = (action: BulkActionType, destinationId?: string) => {
-    const updates: Record<string, TicketAction> = {};
-    selectedRowKeys.forEach((ticketId) => {
-      updates[ticketId as string] = {
-        ticketId: ticketId as string,
-        action,
-        destinationId,
-      };
-    });
-    setTicketActions((prev) => ({ ...prev, ...updates }));
-    message.success(`Applied ${SprintCompletionService.getActionLabel(action)} to ${selectedRowKeys.length} ticket(s)`);
+    if (selectedRowKeys.length === 0) {
+      message.warning("Please select tickets first");
+      return;
+    }
+    
+    if ((action === 'move_to_sprint' || action === 'move_to_bucket') && !destinationId) {
+      message.error(`Please select a destination for ${SprintCompletionService.getActionLabel(action)}`);
+      return;
+    }
+    
+    // Get destination name for display
+    let destinationName = '';
+    if (destinationId) {
+      if (action === 'move_to_sprint') {
+        const sprint = summary.availableDestinations.sprints.find(s => s.id === destinationId);
+        destinationName = sprint?.name || '';
+      } else if (action === 'move_to_bucket') {
+        const bucket = summary.availableDestinations.buckets.find(b => b.id === destinationId);
+        destinationName = bucket?.name || '';
+      }
+    }
+    
+    setActiveBulkAction({ action, destinationId, destinationName });
+    message.success(
+      `Ready to ${SprintCompletionService.getActionLabel(action).toLowerCase()}${destinationName ? ` to ${destinationName}` : ''} for ${selectedRowKeys.length} selected ticket(s). Click "Resolve" to apply.`
+    );
   };
 
   // Submit bulk resolve
   const handleSubmit = async () => {
-    // Collect all actions
-    const actions: BulkResolveAction[] = Object.values(ticketActions)
-      .filter((ta) => ta.action !== null)
-      .map((ta) => ({
-        ticketId: ta.ticketId,
-        action: ta.action!,
-        destinationId: ta.destinationId,
-      }));
-
-    if (actions.length === 0) {
-      message.warning("Please assign actions to at least one ticket");
+    if (!activeBulkAction || selectedRowKeys.length === 0) {
+      message.warning("Please select tickets and choose an action");
       return;
     }
+
+    // Build actions for all selected tickets
+    const actions: BulkResolveAction[] = selectedRowKeys.map((ticketId) => ({
+      ticketId: ticketId as string,
+      action: activeBulkAction.action,
+      destinationId: activeBulkAction.destinationId,
+    }));
 
     // Validate actions
     const validation = SprintCompletionService.validateBulkActions(actions);
@@ -114,19 +103,27 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
       return;
     }
 
-    Modal.confirm({
+    // Calculate action breakdown
+    const actionBreakdown = {
+      backlog: actions.filter(a => a.action === 'move_to_backlog').length,
+      sprint: actions.filter(a => a.action === 'move_to_sprint').length,
+      bucket: actions.filter(a => a.action === 'move_to_bucket').length,
+      trash: actions.filter(a => a.action === 'move_to_trash').length,
+    };
+
+    modal.confirm({
       title: "Confirm Bulk Resolution",
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
           <p>You are about to resolve <strong>{actions.length}</strong> pending ticket(s):</p>
           <ul style={{ marginTop: 12 }}>
-            <li>Move to Backlog: {actions.filter(a => a.action === 'move_to_backlog').length}</li>
-            <li>Move to Next Sprint: {actions.filter(a => a.action === 'move_to_sprint').length}</li>
-            <li>Move to Bucket: {actions.filter(a => a.action === 'move_to_bucket').length}</li>
-            <li>Move to Trash: {actions.filter(a => a.action === 'move_to_trash').length}</li>
+            {actionBreakdown.backlog > 0 && <li>Move to Backlog: {actionBreakdown.backlog}</li>}
+            {actionBreakdown.sprint > 0 && <li>Move to Sprint: {actionBreakdown.sprint}</li>}
+            {actionBreakdown.bucket > 0 && <li>Move to Bucket: {actionBreakdown.bucket}</li>}
+            {actionBreakdown.trash > 0 && <li>Move to Trash: {actionBreakdown.trash}</li>}
           </ul>
-          <p style={{ marginTop: 12 }}>This action cannot be easily undone. Continue?</p>
+          <p style={{ marginTop: 12, color: '#8c8c8c' }}>This action cannot be easily undone. Continue?</p>
         </div>
       ),
       okText: "Resolve Tickets",
@@ -135,8 +132,9 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
       onOk: async () => {
         try {
           await bulkResolve.mutateAsync({ sprintId, actions });
-          setTicketActions({});
           setSelectedRowKeys([]);
+          setActiveBulkAction(null);
+          message.success(`${actions.length} ticket(s) resolved successfully`);
           onActionComplete();
         } catch (error: any) {
           message.error(error.message || "Failed to resolve tickets");
@@ -202,123 +200,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
       ellipsis: true,
       render: (name) => name || <Text type="secondary">Unassigned</Text>,
     },
-    {
-      title: "Action",
-      key: "action",
-      width: 200,
-      render: (_, record) => {
-        const ticketAction = ticketActions[record.id];
-        return (
-          <Select
-            placeholder="Select action"
-            style={{ width: "100%" }}
-            value={ticketAction?.action}
-            onChange={(value) => handleActionChange(record.id, value)}
-            size="small"
-          >
-            <Option value="move_to_backlog">
-              <Space>
-                <ArrowLeftOutlined />
-                <span>To Backlog</span>
-              </Space>
-            </Option>
-            <Option value="move_to_sprint">
-              <Space>
-                <RocketOutlined />
-                <span>To Next Sprint</span>
-              </Space>
-            </Option>
-            <Option value="move_to_bucket">
-              <Space>
-                <FolderOutlined />
-                <span>To Bucket</span>
-              </Space>
-            </Option>
-            <Option value="move_to_trash">
-              <Space>
-                <DeleteOutlined />
-                <span>To Trash</span>
-              </Space>
-            </Option>
-          </Select>
-        );
-      },
-    },
-    {
-      title: "Destination",
-      key: "destination",
-      width: 200,
-      render: (_, record) => {
-        const ticketAction = ticketActions[record.id];
-        
-        if (!ticketAction?.action) return null;
-        
-        if (ticketAction.action === 'move_to_backlog' || ticketAction.action === 'move_to_trash') {
-          return <Text type="secondary">-</Text>;
-        }
-
-        if (ticketAction.action === 'move_to_sprint') {
-          return (
-            <Select
-              placeholder="Select sprint"
-              style={{ width: "100%" }}
-              value={ticketAction.destinationId}
-              onChange={(value) => handleDestinationChange(record.id, value)}
-              size="small"
-            >
-              {summary.destinations.sprints.map((sprint) => (
-                <Option key={sprint.id} value={sprint.id}>
-                  {sprint.name}
-                </Option>
-              ))}
-            </Select>
-          );
-        }
-
-        if (ticketAction.action === 'move_to_bucket') {
-          return (
-            <Select
-              placeholder="Select bucket"
-              style={{ width: "100%" }}
-              value={ticketAction.destinationId}
-              onChange={(value) => handleDestinationChange(record.id, value)}
-              size="small"
-            >
-              {summary.destinations.buckets.map((bucket) => (
-                <Option key={bucket.id} value={bucket.id}>
-                  <Space>
-                    {bucket.color && (
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: bucket.color,
-                        }}
-                      />
-                    )}
-                    <span>{bucket.name}</span>
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-          );
-        }
-
-        return null;
-      },
-    },
   ];
-
-  // Count tickets by action
-  const actionCounts = {
-    backlog: Object.values(ticketActions).filter(ta => ta.action === 'move_to_backlog').length,
-    sprint: Object.values(ticketActions).filter(ta => ta.action === 'move_to_sprint').length,
-    bucket: Object.values(ticketActions).filter(ta => ta.action === 'move_to_bucket').length,
-    trash: Object.values(ticketActions).filter(ta => ta.action === 'move_to_trash').length,
-  };
-
-  const totalAssigned = Object.values(actionCounts).reduce((sum, count) => sum + count, 0);
 
   return (
     <div style={{ padding: 24, height: "calc(85vh - 220px)", overflow: "auto" }}>
@@ -330,19 +212,36 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
         />
       ) : (
         <>
+          {/* Empty State Warning */}
+          {(summary.availableDestinations.sprints.length === 0 ||
+            summary.availableDestinations.buckets.length === 0) && (
+            <Alert
+              message="Limited Resolution Options"
+              description={
+                <Space direction="vertical" size={4}>
+                  {summary.availableDestinations.sprints.length === 0 && (
+                    <Text>• No upcoming sprints available. You can move tickets to Backlog or Trash.</Text>
+                  )}
+                  {summary.availableDestinations.buckets.length === 0 && (
+                    <Text>• No buckets found. Create a bucket in the Buckets page to organize tickets.</Text>
+                  )}
+                </Space>
+              }
+              type="warning"
+              showIcon
+              closable
+              style={{ marginBottom: 16 }}
+            />
+          )}
+
           {/* Bulk Action Toolbar */}
           <Card style={{ marginBottom: 16 }}>
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Space>
-                  <Text strong>Bulk Actions</Text>
+                  <Text strong>Select Tickets & Choose Action</Text>
                   <Text type="secondary">
-                    ({selectedRowKeys.length} selected)
-                  </Text>
-                </Space>
-                <Space>
-                  <Text type="secondary">
-                    {totalAssigned} / {summary.tickets.pending.length} tickets assigned
+                    ({selectedRowKeys.length} of {summary.tickets.pending.length} tickets selected)
                   </Text>
                 </Space>
               </div>
@@ -356,36 +255,58 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                   >
                     Move to Backlog
                   </Button>
-                  {summary.destinations.sprints.length > 0 && (
+                  <Tooltip
+                    title={
+                      summary.availableDestinations.sprints.length === 0
+                        ? "No upcoming sprints available"
+                        : undefined
+                    }
+                  >
                     <Select
                       placeholder="Move to Sprint"
                       style={{ width: 180 }}
                       size="small"
+                      disabled={summary.availableDestinations.sprints.length === 0}
                       onChange={(value) => handleBulkAction('move_to_sprint', value)}
                       suffixIcon={<RocketOutlined />}
                     >
-                      {summary.destinations.sprints.map((sprint) => (
-                        <Option key={sprint.id} value={sprint.id}>
-                          {sprint.name}
-                        </Option>
-                      ))}
+                      {summary.availableDestinations.sprints.length === 0 ? (
+                        <Option disabled value="">No sprints available</Option>
+                      ) : (
+                        summary.availableDestinations.sprints.map((sprint) => (
+                          <Option key={sprint.id} value={sprint.id}>
+                            {sprint.name}
+                          </Option>
+                        ))
+                      )}
                     </Select>
-                  )}
-                  {summary.destinations.buckets.length > 0 && (
+                  </Tooltip>
+                  <Tooltip
+                    title={
+                      summary.availableDestinations.buckets.length === 0
+                        ? "No buckets available. Create one in the Buckets page."
+                        : undefined
+                    }
+                  >
                     <Select
                       placeholder="Move to Bucket"
                       style={{ width: 180 }}
                       size="small"
+                      disabled={summary.availableDestinations.buckets.length === 0}
                       onChange={(value) => handleBulkAction('move_to_bucket', value)}
                       suffixIcon={<FolderOutlined />}
                     >
-                      {summary.destinations.buckets.map((bucket) => (
-                        <Option key={bucket.id} value={bucket.id}>
-                          {bucket.name}
-                        </Option>
-                      ))}
+                      {summary.availableDestinations.buckets.length === 0 ? (
+                        <Option disabled value="">No buckets available</Option>
+                      ) : (
+                        summary.availableDestinations.buckets.map((bucket) => (
+                          <Option key={bucket.id} value={bucket.id}>
+                            {bucket.name}
+                          </Option>
+                        ))
+                      )}
                     </Select>
-                  )}
+                  </Tooltip>
                   <Button
                     size="small"
                     danger
@@ -396,25 +317,36 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                   </Button>
                 </Space>
               )}
-
-              {totalAssigned > 0 && (
-                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-                  {actionCounts.backlog > 0 && (
-                    <Tag color="orange">Backlog: {actionCounts.backlog}</Tag>
-                  )}
-                  {actionCounts.sprint > 0 && (
-                    <Tag color="blue">Next Sprint: {actionCounts.sprint}</Tag>
-                  )}
-                  {actionCounts.bucket > 0 && (
-                    <Tag color="purple">Bucket: {actionCounts.bucket}</Tag>
-                  )}
-                  {actionCounts.trash > 0 && (
-                    <Tag color="red">Trash: {actionCounts.trash}</Tag>
-                  )}
-                </div>
-              )}
             </Space>
           </Card>
+
+          {/* Active Bulk Action Banner */}
+          {activeBulkAction && selectedRowKeys.length > 0 && (
+            <Alert
+              message={
+                <Space>
+                  <Text strong>Active Action:</Text>
+                  <Tag color={SprintCompletionService.getActionColor(activeBulkAction.action)}>
+                    {SprintCompletionService.getActionLabel(activeBulkAction.action)}
+                    {activeBulkAction.destinationName && ` → ${activeBulkAction.destinationName}`}
+                  </Tag>
+                  <Text type="secondary">
+                    for {selectedRowKeys.length} selected ticket(s)
+                  </Text>
+                </Space>
+              }
+              type="info"
+              showIcon
+              closable
+              onClose={() => setActiveBulkAction(null)}
+              action={
+                <Button size="small" onClick={() => setActiveBulkAction(null)}>
+                  Clear
+                </Button>
+              }
+              style={{ marginBottom: 16 }}
+            />
+          )}
 
           {/* Tickets Table */}
           <Table
@@ -430,12 +362,12 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
               selectedRowKeys,
               onChange: setSelectedRowKeys,
             }}
-            scroll={{ x: 1200 }}
+            scroll={{ x: 1000 }}
             size="small"
           />
 
           {/* Submit Button */}
-          {totalAssigned > 0 && (
+          {activeBulkAction && selectedRowKeys.length > 0 && (
             <div
               style={{
                 position: "sticky",
@@ -454,16 +386,16 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                   onClick={handleSubmit}
                   loading={bulkResolve.isPending}
                 >
-                  Resolve {totalAssigned} Ticket{totalAssigned > 1 ? 's' : ''}
+                  Resolve {selectedRowKeys.length} Ticket{selectedRowKeys.length > 1 ? 's' : ''}
                 </Button>
                 <Button
                   size="large"
                   onClick={() => {
-                    setTicketActions({});
                     setSelectedRowKeys([]);
+                    setActiveBulkAction(null);
                   }}
                 >
-                  Clear All
+                  Clear Selection
                 </Button>
               </Space>
             </div>

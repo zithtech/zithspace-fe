@@ -64,7 +64,7 @@ export interface SprintCompletionSummary {
     totalPoints: number;
     completionPercentage: number;
   };
-  destinations: {
+  availableDestinations: {
     sprints: Array<{
       id: string;
       name: string;
@@ -143,10 +143,47 @@ class SprintCompletionService {
    */
   static async getSprintCompletionSummary(sprintId: string): Promise<SprintCompletionSummary> {
     try {
-      const response = await apiClient.get<{ success: boolean; data: SprintCompletionSummary }>(
+      const response = await apiClient.get<{ success: boolean; data: any }>(
         `/api/sprint-completion/${sprintId}/summary`
       );
-      return response.data.data;
+      
+      const apiData: any = response.data.data;
+      
+      // Transform API response to match frontend types
+      // API uses different field names: version->name, totalCompleted->completedTickets, totalPending->pendingTickets
+      const transformed: SprintCompletionSummary = {
+        sprint: {
+          id: apiData.sprint.id,
+          name: apiData.sprint.version || apiData.sprint.name || 'Unnamed Sprint',
+          status: apiData.sprint.status,
+          startDate: apiData.sprint.startDate,
+          endDate: apiData.sprint.endDate,
+          projectId: apiData.sprint.projectId,
+          project: {
+            id: apiData.sprint.project.id,
+            name: apiData.sprint.project.name,
+            code: apiData.sprint.project.code || 'N/A',
+          },
+        },
+        tickets: {
+          completed: apiData.tickets?.completed || [],
+          pending: apiData.tickets?.pending || [],
+        },
+        statistics: {
+          totalTickets: apiData.statistics?.totalTickets || 0,
+          completedTickets: apiData.statistics?.totalCompleted || apiData.statistics?.completedTickets || 0,
+          pendingTickets: apiData.statistics?.totalPending || apiData.statistics?.pendingTickets || 0,
+          completedPoints: apiData.statistics?.completedPoints || 0,
+          totalPoints: apiData.statistics?.totalPoints || 0,
+          completionPercentage: apiData.statistics?.completionPercentage || 0,
+        },
+        availableDestinations: {
+          sprints: apiData.availableDestinations?.sprints || [],
+          buckets: apiData.availableDestinations?.buckets || [],
+        },
+      };
+      
+      return transformed;
     } catch (error: any) {
       console.error('Error fetching sprint completion summary:', error);
       const errorMessage = error.response?.data?.error || 'Failed to fetch sprint summary';

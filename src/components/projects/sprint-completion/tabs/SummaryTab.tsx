@@ -33,7 +33,8 @@ interface SummaryTabProps {
 }
 
 export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
-  const { sprint, tickets, statistics, destinations } = summary;
+  const { sprint, tickets, statistics } = summary;
+  const destinations = summary?.availableDestinations || { sprints: [], buckets: [] };
 
   // Calculate velocity
   const velocity =
@@ -214,9 +215,9 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <div>
                 <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>
-                  Next Sprints ({destinations.sprints.length})
+                  Next Sprints ({destinations?.sprints?.length || 0})
                 </Text>
-                {destinations.sprints.length > 0 ? (
+                {destinations?.sprints && destinations.sprints.length > 0 ? (
                   <List
                     size="small"
                     dataSource={destinations.sprints}
@@ -239,9 +240,9 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
               <Divider style={{ margin: "8px 0" }} />
               <div>
                 <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>
-                  Buckets ({destinations.buckets.length})
+                  Buckets ({destinations?.buckets?.length || 0})
                 </Text>
-                {destinations.buckets.length > 0 ? (
+                {destinations?.buckets && destinations.buckets.length > 0 ? (
                   <List
                     size="small"
                     dataSource={destinations.buckets}

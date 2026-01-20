@@ -39,6 +39,7 @@
     "antd": "^5.22.2",
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
+    "country-state-city": "^3.2.1",
     "date-fns": "^3.6.0",
     "date-holidays": "^3.26.6",
     "dayjs": "^1.11.13",
@@ -54,6 +55,7 @@
     "react-hotkeys-hook": "^5.2.1",
     "react-window": "^2.2.3",
     "socket.io-client": "^4.8.1",
+    "xlsx": "^0.18.5",
     "yup": "^1.6.1"
   },
   "devDependencies": {

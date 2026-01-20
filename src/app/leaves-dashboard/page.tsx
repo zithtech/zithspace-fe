@@ -29,6 +29,7 @@ import {
   ApartmentOutlined,
   CalendarOutlined,
   UserOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -260,6 +261,8 @@ export default function LeavesDashboardPage() {
                 if (key === "configuration")
                   router.push("/leave-configuration");
                 if (key === "positions") router.push("/position-configuration");
+                 if (key === "addLeaves") router.push("/add-goverment-leaves");
+                
               }}
               items={[
                 {
@@ -307,6 +310,14 @@ export default function LeavesDashboardPage() {
                   label: (
                     <span>
                       <ApartmentOutlined /> Position Configuration
+                    </span>
+                  ),
+                },
+                 {
+                  key: "addLeaves",
+                  label: (
+                    <span>
+                      <PlusOutlined /> Add Government Leaves
                     </span>
                   ),
                 },

@@ -703,6 +703,7 @@ export default function LeavesPage() {
     if (key === "adjustments") router.push("/leave-adjustments");
     if (key === "configuration") router.push("/leave-configuration");
     if (key === "positions") router.push("/position-configuration");
+    if (key === "addLeaves") router.push("/add-goverment-leaves");
   }}
   items={[
     {
@@ -750,6 +751,14 @@ export default function LeavesPage() {
       label: (
         <span>
           <ApartmentOutlined /> Position Configuration
+        </span>
+      ),
+    },
+    {
+      key: "addLeaves",
+      label: (
+        <span>
+          <PlusOutlined /> Add Government Leaves
         </span>
       ),
     },

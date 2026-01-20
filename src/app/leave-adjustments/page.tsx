@@ -34,6 +34,7 @@ import {
   SettingOutlined,
   ApartmentOutlined,
   AppstoreOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
@@ -304,6 +305,7 @@ export default function LeaveAdjustmentPage() {
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration") router.push("/leave-configuration");
                 if (key === "positions") router.push("/position-configuration");
+                if (key === "addLeaves") router.push("/add-goverment-leaves");
               }}
               items={[
                 {
@@ -351,6 +353,14 @@ export default function LeaveAdjustmentPage() {
                   label: (
                     <span>
                       <ApartmentOutlined /> Position Configuration
+                    </span>
+                  ),
+                },
+                {
+                  key: "addLeaves",
+                  label: (
+                    <span>
+                      <PlusOutlined /> Add Government Leaves
                     </span>
                   ),
                 },

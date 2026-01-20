@@ -37,6 +37,9 @@ import {
   SettingOutlined,
   ApartmentOutlined,
   AppstoreOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import Link from "next/link";
@@ -254,6 +257,7 @@ export default function GovernmentHolidaysPage() {
       type: holiday.type,
       rule: holiday.rule,
       status: true,
+      floater: false,
     }));
     setHolidayTableData(initialData);
   }, []);
@@ -360,6 +364,14 @@ export default function GovernmentHolidaysPage() {
     }
   };
 
+  const handleFloaterChange = (checked: boolean, recordKey: number) => {
+    setHolidayTableData((prev) =>
+      prev.map((row) =>
+        row.key === recordKey ? { ...row, floater: checked } : row
+      )
+    );
+  };
+
   const handleAddHolidays = () => {
     const existingKeys = new Set(holidayTableData.map((r) => r.key));
     const newHolidayIds = selectedHolidayIds.filter(
@@ -395,6 +407,7 @@ export default function GovernmentHolidaysPage() {
       type: holiday.type,
       rule: holiday.rule,
       status: true,
+      floater: false,
     }));
 
     setHolidayTableData((prev) => [...prev, ...newRows]);
@@ -421,6 +434,12 @@ export default function GovernmentHolidaysPage() {
           )}
         </Space>
       ),
+    },
+    {
+      title: "Country",
+      dataIndex: "location",
+      key: "location",
+      render: (text: string) => <Text>{text}</Text>,
     },
     {
       title: "From Date",
@@ -482,6 +501,21 @@ export default function GovernmentHolidaysPage() {
       dataIndex: "type",
       key: "type",
       render: (text: string) => <Tag color="blue">{text}</Tag>,
+    },
+    {
+      title: "Floater Leave",
+      dataIndex: "floater",
+      key: "floater",
+      align: "center" as const,
+      render: (floater: boolean, record: any) => (
+        <Switch
+          checked={floater}
+          checkedChildren={<CheckOutlined />}
+          unCheckedChildren={<CloseOutlined />}
+          style={{ backgroundColor: floater ? '#52c41a' : '#f5222d' }}
+          onChange={(checked) => handleFloaterChange(checked, record.key)}
+        />
+      ),
     },
     {
       title: "Rule",
@@ -605,6 +639,7 @@ export default function GovernmentHolidaysPage() {
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration") router.push("/leave-configuration");
                 if (key === "positions") router.push("/position-configuration");
+                if (key === "addLeaves") router.push("/add-goverment-leaves");
               }}
               items={[
                 {
@@ -652,6 +687,14 @@ export default function GovernmentHolidaysPage() {
                   label: (
                     <span>
                       <ApartmentOutlined /> Position Configuration
+                    </span>
+                  ),
+                },
+                {
+                  key: "addLeaves",
+                  label: (
+                    <span>
+                      <PlusOutlined /> Add Government Leaves
                     </span>
                   ),
                 },

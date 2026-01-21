@@ -43,6 +43,17 @@ import { Country, State } from "country-state-city";
 
 const { Text } = Typography;
 
+interface FixedHoliday {
+  id: number | string;
+  holidayName: string;
+  country: string;
+  state: string | string[];
+  fromDate: string;
+  toDate: string;
+  type: string;
+  rule: string;
+}
+
 const OPTIONS = [
   { label: "All", value: "ALL" },
   { label: "Public", value: "Public" },
@@ -85,7 +96,7 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
       <>
         <Form.Item
           {...restField}
-          name={[name, "name"]}
+          name={[name, "holidayName"]}
           label="Holiday Name"
           rules={[{ required: true, message: "Please input holiday name!" }]}
         >
@@ -270,16 +281,16 @@ export default function governmentLeaves() {
   const router = useRouter();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [dataSource, setDataSource] = useState<any[]>([]);
-  const [editingKey, setEditingKey] = useState<any>(null);
+  const [dataSource, setDataSource] = useState<FixedHoliday[]>([]);
+  const [editingKey, setEditingKey] = useState<number | string | null>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
     // Simulate fetching data from backend on page load
-    const initialData = [
+    const initialData: FixedHoliday[] = [
       {
         id: 1,
-        name: "New Year's Day",
+        holidayName: "New Year's Day",
         country: "US",
         state: "NY",
         fromDate: "2024-01-01",
@@ -289,7 +300,7 @@ export default function governmentLeaves() {
       },
       {
         id: 2,
-        name: "Republic Day",
+        holidayName: "Republic Day",
         country: "IN",
         state: "TN",
         fromDate: "2024-01-26",
@@ -306,7 +317,7 @@ export default function governmentLeaves() {
     setEditingKey(null);
   };
 
-  const handleEdit = (record: any) => {
+  const handleEdit = (record: FixedHoliday) => {
     setEditingKey(record.id);
     form.setFieldsValue({
       holidays: [
@@ -320,7 +331,7 @@ export default function governmentLeaves() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: any) => {
+  const handleDelete = (id: number | string) => {
     setDataSource((prev) => prev.filter((item) => item.id !== id));
     message.success("Deleted successfully");
   };
@@ -376,11 +387,11 @@ export default function governmentLeaves() {
     setEditingKey(null);
   };
 
-  const columns: ColumnsType<any> = [
+  const columns: ColumnsType<FixedHoliday> = [
     {
       title: "Holiday Name",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "holidayName",
+      key: "holidayName",
     },
     {
       title: "Country",
@@ -395,7 +406,7 @@ export default function governmentLeaves() {
       title: "State",
       dataIndex: "state",
       key: "state",
-      render: (stateCodes: string | string[], record: any) => {
+      render: (stateCodes: string | string[], record: FixedHoliday) => {
         const codes = Array.isArray(stateCodes) ? stateCodes : (stateCodes ? [stateCodes] : []);
         if (codes.includes("ALL")) {
           return <Tag color="blue">All States</Tag>;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -23,6 +23,7 @@ import {
   Col,
   Popconfirm,
   Tooltip,
+  Collapse,
 } from "antd";
 import {
   AppstoreOutlined,
@@ -41,6 +42,228 @@ import type { ColumnsType } from "antd/es/table";
 import { Country, State } from "country-state-city";
 
 const { Text } = Typography;
+
+const OPTIONS = [
+  { label: "All", value: "ALL" },
+  { label: "Public", value: "Public" },
+  { label: "National", value: "National" },
+  { label: "State", value: "State" },
+];
+
+const HolidayCollapse = ({ fields, add, remove, form }: any) => {
+  const [activeKey, setActiveKey] = useState<string | string[]>([]);
+  const prevLengthRef = useRef(fields.length);
+
+  useEffect(() => {
+    if (fields.length > prevLengthRef.current) {
+      const lastKey = fields[fields.length - 1].key.toString();
+      setActiveKey(lastKey);
+    }
+    prevLengthRef.current = fields.length;
+  }, [fields.length]);
+
+  useEffect(() => {
+    if (fields.length > 0 && activeKey.length === 0) {
+      setActiveKey(fields[0].key.toString());
+    }
+  }, []);
+
+  const items = fields.map(({ key, name, ...restField }: any, index: number) => ({
+    key: key.toString(),
+    label: `Holiday ${index + 1}`,
+    extra:
+      fields.length > 1 ? (
+        <DeleteOutlined
+          onClick={(e) => {
+            e.stopPropagation();
+            remove(name);
+          }}
+          style={{ color: "red" }}
+        />
+      ) : null,
+    children: (
+      <>
+        <Form.Item
+          {...restField}
+          name={[name, "name"]}
+          label="Holiday Name"
+          rules={[{ required: true, message: "Please input holiday name!" }]}
+        >
+          <Input placeholder="Enter holiday name" />
+        </Form.Item>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "country"]}
+              label="Country"
+              rules={[{ required: true, message: "Please select country!" }]}
+            >
+              <Select
+                placeholder="Select Country"
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                options={Country.getAllCountries().map((c) => ({
+                  label: c.name,
+                  value: c.isoCode,
+                }))}
+                onChange={() => {
+                  const holidays = form.getFieldValue("holidays");
+                  if (holidays && holidays[name]) {
+                    holidays[name].state = undefined;
+                    form.setFieldsValue({ holidays });
+                  }
+                }}
+              />
+            </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prevValues, currentValues) =>
+                prevValues.holidays?.[name]?.country !==
+                currentValues.holidays?.[name]?.country
+              }
+            >
+              {() => {
+                const countryCode = form.getFieldValue(["holidays", name, "country"]);
+                const states = countryCode ? State.getStatesOfCountry(countryCode) : [];
+                const stateOptions = states.map((s) => ({
+                  label: s.name,
+                  value: s.isoCode,
+                }));
+
+                if (stateOptions.length > 0) {
+                  stateOptions.unshift({ label: "All States", value: "ALL" });
+                } else if (countryCode) {
+                  stateOptions.push({ label: "No State", value: "NO_STATE" });
+                }
+
+                const currentStateValue = form.getFieldValue(["holidays", name, "state"]) || [];
+                const isAllSelected = currentStateValue.includes("ALL");
+
+                const displayValue = isAllSelected
+                  ? ["ALL", ...stateOptions.slice(1).map((opt) => opt.value)]
+                  : currentStateValue;
+
+                const handleStateChange = (selectedValues: string[]) => {
+                  if (selectedValues.includes("ALL")) {
+                    form.setFieldValue(["holidays", name, "state"], ["ALL"]);
+                  } else {
+                    form.setFieldValue(["holidays", name, "state"], selectedValues);
+                  }
+                };
+
+                return (
+                  <Form.Item
+                    {...restField}
+                    name={[name, "state"]}
+                    label="State"
+                    rules={[{ required: true, message: "Please select state!" }]}
+                    getValueFromEvent={handleStateChange}
+                  >
+                    <Select
+                      mode="multiple"
+                      placeholder="Select State"
+                      showSearch
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={stateOptions}
+                      disabled={!countryCode}
+                      value={displayValue}
+                      onChange={handleStateChange}
+                      maxTagCount={2}
+                      listHeight={200}
+                      dropdownRender={(menu) => (
+                        <div>
+                          {menu}
+                          {isAllSelected && (
+                            <div style={{ padding: "8px", fontSize: 12, color: "#666" }}>
+                              ✓ All states selected
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    />
+                  </Form.Item>
+                );
+              }}
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "fromDate"]}
+              label="From Date"
+              rules={[{ required: true, message: "Please select from date!" }]}
+            >
+              <DatePicker style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "toDate"]}
+              label="To Date"
+              rules={[{ required: true, message: "Please select to date!" }]}
+            >
+              <DatePicker style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "type"]}
+              label="Type"
+              rules={[{ required: true, message: "Please select type!" }]}
+            >
+              <Select size="small" placeholder="Select Type" options={OPTIONS} />
+            </Form.Item>
+          </Col>
+
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "rule"]}
+              label="Rule"
+              rules={[{ required: true, message: "Please input rule!" }]}
+            >
+              <Input size="small" placeholder="Rule code / note" />
+            </Form.Item>
+          </Col>
+        </Row>
+      </>
+    ),
+  }));
+
+  return (
+    <>
+      <Collapse accordion activeKey={activeKey} onChange={setActiveKey} items={items} />
+      <Button
+        type="dashed"
+        block
+        onClick={() => add()}
+        icon={<PlusOutlined />}
+        style={{ marginTop: 16 }}
+      >
+        Add Another Holiday
+      </Button>
+    </>
+  );
+};
 
 export default function governmentLeaves() {
   const { user } = useAuth();
@@ -174,9 +397,13 @@ export default function governmentLeaves() {
       key: "state",
       render: (stateCodes: string | string[], record: any) => {
         const codes = Array.isArray(stateCodes) ? stateCodes : (stateCodes ? [stateCodes] : []);
-        const stateNames = codes.map(
-          (code) => State.getStateByCodeAndCountry(code, record.country)?.name || code
-        );
+        if (codes.includes("ALL")) {
+          return <Tag color="blue">All States</Tag>;
+        }
+        const stateNames = codes.map((code) => {
+          if (code === "NO_STATE") return "No State";
+          return State.getStateByCodeAndCountry(code, record.country)?.name || code;
+        });
         const visibleTags = stateNames.slice(0, 2);
         const hiddenTags = stateNames.slice(2);
         return (
@@ -319,7 +546,7 @@ export default function governmentLeaves() {
   open={isModalOpen}
   onOk={handleOk}
   onCancel={handleCancel}
-  width={400}
+  width={600}
 >
   <Form
     form={form}
@@ -329,168 +556,7 @@ export default function governmentLeaves() {
   >
     <Form.List name="holidays">
       {(fields, { add, remove }) => (
-        <>
-          {fields.map(({ key, name, ...restField }) => (
-            <div
-              key={key}
-              style={{
-                marginBottom: 16,
-                border: "1px solid #f0f0f0",
-                padding: 16,
-                borderRadius: 8,
-                position: "relative",
-              }}
-            >
-              {fields.length > 1 && (
-                <DeleteOutlined
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: 8,
-                    color: "red",
-                    cursor: "pointer",
-                    zIndex: 1,
-                  }}
-                  onClick={() => remove(name)}
-                />
-              )}
-              {/* Holiday Name – full width */}
-              <Form.Item
-                {...restField}
-                name={[name, "name"]}
-                label="Holiday Name"
-                rules={[{ required: true, message: "Please input holiday name!" }]}
-              >
-                <Input placeholder="Enter holiday name" />
-              </Form.Item>
-
-              {/* Country & State */}
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    {...restField}
-                    name={[name, "country"]}
-                    label="Country"
-                    rules={[{ required: true, message: "Please select country!" }]}
-                  >
-                    <Select
-                      placeholder="Select Country"
-                      showSearch
-                      filterOption={(input, option) =>
-                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                      }
-                      options={Country.getAllCountries().map((c) => ({
-                        label: c.name,
-                        value: c.isoCode,
-                      }))}
-                      onChange={() => {
-                        const holidays = form.getFieldValue("holidays");
-                        if (holidays && holidays[name]) {
-                          holidays[name].state = undefined;
-                          form.setFieldsValue({ holidays });
-                        }
-                      }}
-                    />
-                  </Form.Item>
-                </Col>
-
-                <Col span={12}>
-                  <Form.Item
-                    noStyle
-                    shouldUpdate={(prevValues, currentValues) =>
-                      prevValues.holidays?.[name]?.country !==
-                      currentValues.holidays?.[name]?.country
-                    }
-                  >
-                    {() => {
-                      const countryCode = form.getFieldValue(["holidays", name, "country"]);
-                      const states = countryCode ? State.getStatesOfCountry(countryCode) : [];
-                      return (
-                        <Form.Item
-                          {...restField}
-                          name={[name, "state"]}
-                          label="State"
-                          rules={[{ required: true, message: "Please select state!" }]}
-                        >
-                          <Select
-                            mode="multiple"
-                            placeholder="Select State"
-                            showSearch
-                            filterOption={(input, option) =>
-                              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                            }
-                            options={states.map((s) => ({
-                              label: s.name,
-                              value: s.isoCode,
-                            }))}
-                            disabled={!countryCode}
-                          />
-                        </Form.Item>
-                      );
-                    }}
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              {/* From Date & To Date */}
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    {...restField}
-                    name={[name, "fromDate"]}
-                    label="From Date"
-                    rules={[{ required: true, message: "Please select from date!" }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-
-                <Col span={12}>
-                  <Form.Item
-                    {...restField}
-                    name={[name, "toDate"]}
-                    label="To Date"
-                    rules={[{ required: true, message: "Please select to date!" }]}
-                  >
-                    <DatePicker style={{ width: "100%" }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              {/* Type & Rule – smaller inputs */}
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    {...restField}
-                    name={[name, "type"]}
-                    label="Type"
-                    rules={[{ required: true, message: "Please select type!" }]}
-                  >
-                    <Select size="small" placeholder="Select Type">
-                      <Select.Option value="Public">Public</Select.Option>
-                       <Select.Option value="National">National</Select.Option>
-                        <Select.Option value="All">All</Select.Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-
-                <Col span={12}>
-                  <Form.Item
-                    {...restField}
-                    name={[name, "rule"]}
-                    label="Rule"
-                    rules={[{ required: true, message: "Please input rule!" }]}
-                  >
-                    <Input size="small" placeholder="Rule code / note" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
-          ))}
-          <Button type="dashed" block onClick={() => add()} icon={<PlusOutlined />}>
-            Add Another Holiday
-          </Button>
-        </>
+        <HolidayCollapse fields={fields} add={add} remove={remove} form={form} />
       )}
     </Form.List>
   </Form>

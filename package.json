@@ -49,6 +49,7 @@
     "mongoose": "^8.16.5",
     "nanoid": "^5.1.6",
     "next": "^15.5.7",
+    "node-cache": "^5.1.2",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.61.1",

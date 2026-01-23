@@ -40,19 +40,10 @@ import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import { Country, State } from "country-state-city";
+import { FixedHolidayService, FixedHoliday } from "@/services/addHolidays";
 
 const { Text } = Typography;
 
-interface FixedHoliday {
-  id: number | string;
-  holidayName: string;
-  country: string;
-  state: string | string[];
-  fromDate: string;
-  toDate: string;
-  type: string;
-  rule: string;
-}
 
 const OPTIONS = [
   { label: "All", value: "ALL" },
@@ -337,33 +328,23 @@ export default function governmentLeaves() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dataSource, setDataSource] = useState<FixedHoliday[]>([]);
   const [editingKey, setEditingKey] = useState<number | string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
+  const fetchHolidays = async () => {
+    try {
+      setLoading(true);
+      const data = await FixedHolidayService.getFixedHolidays();
+      setDataSource(data);
+    } catch (error) {
+      message.error("Failed to fetch holidays");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Simulate fetching data from backend on page load
-    const initialData: FixedHoliday[] = [
-      {
-        id: 1,
-        holidayName: "New Year's Day",
-        country: "US",
-        state: "NY",
-        fromDate: "2024-01-01",
-        toDate: "2024-01-01",
-        type: "Public",
-        rule: "Standard",
-      },
-      {
-        id: 2,
-        holidayName: "Republic Day",
-        country: "IN",
-        state: "TN",
-        fromDate: "2024-01-26",
-        toDate: "2024-01-26",
-        type: "National",
-        rule: "Flag Hoisting",
-      },
-    ];
-    setDataSource(initialData);
+    fetchHolidays();
   }, []);
 
   const showModal = () => {
@@ -385,58 +366,57 @@ export default function governmentLeaves() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number | string) => {
-    setDataSource((prev) => prev.filter((item) => item.id !== id));
-    message.success("Deleted successfully");
+  const handleDelete = async (id: number | string) => {
+    try {
+      setLoading(true);
+      await FixedHolidayService.deleteFixedHoliday(id as string);
+      message.success("Deleted successfully");
+      fetchHolidays();
+    } catch (error) {
+      message.error("Failed to delete holiday");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOk = () => {
     form
       .validateFields()
-      .then((values) => {
+      .then(async (values) => {
+        setLoading(true);
         const holidays = values.holidays || [];
-        if (editingKey) {
-          const [editedItem, ...newItems] = holidays;
-          const updatedDataSource = dataSource.map((item) => {
-            if (item.id === editingKey) {
-              return {
-                ...item,
-                ...editedItem,
-                fromDate: editedItem.fromDate
-                  ? editedItem.fromDate.format("YYYY-MM-DD")
-                  : null,
-                toDate: editedItem.toDate
-                  ? editedItem.toDate.format("YYYY-MM-DD")
-                  : null,
+        try {
+          if (editingKey) {
+            const editedItem = holidays[0];
+            const payload = {
+              ...editedItem,
+              fromDate: editedItem.fromDate ? editedItem.fromDate.format("YYYY-MM-DD") : null,
+              toDate: editedItem.toDate ? editedItem.toDate.format("YYYY-MM-DD") : null,
+            };
+            await FixedHolidayService.updateFixedHoliday(editingKey as string, payload);
+            message.success("Government leave updated successfully");
+          } else {
+            const promises = holidays.map((holiday: any) => {
+              const payload = {
+                ...holiday,
+                fromDate: holiday.fromDate ? holiday.fromDate.format("YYYY-MM-DD") : null,
+                toDate: holiday.toDate ? holiday.toDate.format("YYYY-MM-DD") : null,
               };
-            }
-            return item;
-          });
-          const newLeaves = newItems.map((holiday: any) => ({
-            id: Date.now() + Math.random(),
-            ...holiday,
-            fromDate: holiday.fromDate
-              ? holiday.fromDate.format("YYYY-MM-DD")
-              : null,
-            toDate: holiday.toDate ? holiday.toDate.format("YYYY-MM-DD") : null,
-          }));
-          setDataSource([...updatedDataSource, ...newLeaves]);
-          message.success("Government leave updated successfully");
-        } else {
-          const newLeaves = holidays.map((holiday: any) => ({
-            id: Date.now() + Math.random(),
-            ...holiday,
-            fromDate: holiday.fromDate
-              ? holiday.fromDate.format("YYYY-MM-DD")
-              : null,
-            toDate: holiday.toDate ? holiday.toDate.format("YYYY-MM-DD") : null,
-          }));
-          setDataSource([...dataSource, ...newLeaves]);
-          message.success("Government leaves added successfully");
+              return FixedHolidayService.createFixedHoliday(payload);
+            });
+            await Promise.all(promises);
+            message.success("Government leaves added successfully");
+          }
+          setIsModalOpen(false);
+          form.resetFields();
+          setEditingKey(null);
+          fetchHolidays();
+        } catch (error) {
+          message.error("Operation failed");
+          console.error(error);
+        } finally {
+          setLoading(false);
         }
-        setIsModalOpen(false);
-        form.resetFields();
-        setEditingKey(null);
       })
       .catch((info) => {
         console.log("Validate Failed:", info);
@@ -666,7 +646,7 @@ export default function governmentLeaves() {
               </Button>
             </div>
             <Divider />
-            <Table columns={columns} dataSource={dataSource} rowKey="id" />
+            <Table columns={columns} dataSource={dataSource} rowKey="id" loading={loading} />
           </Card>
         </div>
         <Modal

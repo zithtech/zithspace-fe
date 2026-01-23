@@ -194,8 +194,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     {
       key: "/leaves",
       icon: <FileTextOutlined />,
-      label: "Leave & Permission",
-      onClick: () => handleNavigation("/leaves"),
+      label: 'Leave & Permission',
+      onClick: () => handleNavigation('/leaves-dashboard'),
     },
     {
       key: "/accounts",

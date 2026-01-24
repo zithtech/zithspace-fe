@@ -68,7 +68,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     setIsMounted(true);
   }, []);
 
-  // Navigation items with modern icons
+  // Navigation items with icons
   const getNavigationItems = () => [
     {
       key: "/dashboard",

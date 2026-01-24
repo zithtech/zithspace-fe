@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Table,
   Button,
@@ -14,6 +14,8 @@ import {
   Badge,
   Alert,
   App,
+  Modal,
+  Dropdown,
 } from "antd";
 import {
   SendOutlined,
@@ -26,7 +28,14 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { SprintCompletionSummary, BulkResolveAction, BulkActionType } from "@/services/sprintCompletionService";
 import { useBulkResolveTickets } from "@/hooks/useSprintCompletion";
+import { useCreateBucket } from "@/hooks/useBuckets";
 import SprintCompletionService from "@/services/sprintCompletionService";
+import { SprintSelector } from "../SprintSelector";
+import { BucketSelector } from "../BucketSelector";
+import { SprintCreationForm, type SprintFormData } from "../SprintCreationForm";
+import { BucketCreationForm, type BucketFormData } from "../BucketCreationForm";
+import ReleasePlanService, { type ReleasePlan } from "@/services/releasePlanService";
+import BucketService, { type Bucket } from "@/services/bucketService";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -255,58 +264,42 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                   >
                     Move to Backlog
                   </Button>
-                  <Tooltip
-                    title={
-                      summary.availableDestinations.sprints.length === 0
-                        ? "No upcoming sprints available"
-                        : undefined
-                    }
+                  <Select
+                    placeholder="Move to Sprint"
+                    style={{ width: 180 }}
+                    size="small"
+                    onChange={(value) => handleBulkAction('move_to_sprint', value)}
+                    suffixIcon={<RocketOutlined />}
                   >
-                    <Select
-                      placeholder="Move to Sprint"
-                      style={{ width: 180 }}
-                      size="small"
-                      disabled={summary.availableDestinations.sprints.length === 0}
-                      onChange={(value) => handleBulkAction('move_to_sprint', value)}
-                      suffixIcon={<RocketOutlined />}
-                    >
-                      {summary.availableDestinations.sprints.length === 0 ? (
-                        <Option disabled value="">No sprints available</Option>
-                      ) : (
-                        summary.availableDestinations.sprints.map((sprint) => (
-                          <Option key={sprint.id} value={sprint.id}>
-                            {sprint.name}
-                          </Option>
-                        ))
-                      )}
-                    </Select>
-                  </Tooltip>
-                  <Tooltip
-                    title={
-                      summary.availableDestinations.buckets.length === 0
-                        ? "No buckets available. Create one in the Buckets page."
-                        : undefined
-                    }
+                    {summary.availableDestinations.sprints.map((sprint) => (
+                      <Option key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </Option>
+                    ))}
+                    <Option value="__create_new__" disabled style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+                      <Button type="dashed" size="small" style={{ width: '100%' }}>
+                        + Create New Sprint
+                      </Button>
+                    </Option>
+                  </Select>
+                  <Select
+                    placeholder="Move to Bucket"
+                    style={{ width: 180 }}
+                    size="small"
+                    onChange={(value) => handleBulkAction('move_to_bucket', value)}
+                    suffixIcon={<FolderOutlined />}
                   >
-                    <Select
-                      placeholder="Move to Bucket"
-                      style={{ width: 180 }}
-                      size="small"
-                      disabled={summary.availableDestinations.buckets.length === 0}
-                      onChange={(value) => handleBulkAction('move_to_bucket', value)}
-                      suffixIcon={<FolderOutlined />}
-                    >
-                      {summary.availableDestinations.buckets.length === 0 ? (
-                        <Option disabled value="">No buckets available</Option>
-                      ) : (
-                        summary.availableDestinations.buckets.map((bucket) => (
-                          <Option key={bucket.id} value={bucket.id}>
-                            {bucket.name}
-                          </Option>
-                        ))
-                      )}
-                    </Select>
-                  </Tooltip>
+                    {summary.availableDestinations.buckets.map((bucket) => (
+                      <Option key={bucket.id} value={bucket.id}>
+                        {bucket.name}
+                      </Option>
+                    ))}
+                    <Option value="__create_new__" disabled style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+                      <Button type="dashed" size="small" style={{ width: '100%' }}>
+                        + Create New Bucket
+                      </Button>
+                    </Option>
+                  </Select>
                   <Button
                     size="small"
                     danger

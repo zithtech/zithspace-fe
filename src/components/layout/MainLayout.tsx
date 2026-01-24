@@ -124,34 +124,34 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: 'Plans',
           onClick: () => handleNavigation('/projects/plans'),
         },
-        // {
-        //   key: '/projects/buckets',
-        //   icon: <InboxOutlined />,
-        //   label: isMounted && bucketCount > 0 ? (
-        //     <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-        //       <span>Buckets</span>
-        //       <Badge count={bucketCount} showZero={false} style={{ backgroundColor: '#1677ff' }} />
-        //     </Space>
-        //   ) : 'Buckets',
-        //   onClick: () => handleNavigation('/projects/buckets'),
-        // },
-        // {
-        //   key: '/projects/trash',
-        //   icon: <DeleteOutlined />,
-        //   label: isMounted && trashCount > 0 ? (
-        //     <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-        //       <span>Trash</span>
-        //       <Badge count={trashCount} showZero={false} style={{ backgroundColor: '#ff4d4f' }} />
-        //     </Space>
-        //   ) : 'Trash',
-        //   onClick: () => handleNavigation('/projects/trash'),
-        // },
-        // {
-        //   key: '/projects/archived',
-        //   icon: <FolderOpenOutlined />,
-        //   label: 'Archived',
-        //   onClick: () => handleNavigation('/projects/archived'),
-        // },
+        {
+          key: '/projects/buckets',
+          icon: <InboxOutlined />,
+          label: isMounted && bucketCount > 0 ? (
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <span>Buckets</span>
+              <Badge count={bucketCount} showZero={false} style={{ backgroundColor: '#1677ff' }} />
+            </Space>
+          ) : 'Buckets',
+          onClick: () => handleNavigation('/projects/buckets'),
+        },
+        {
+          key: '/projects/trash',
+          icon: <DeleteOutlined />,
+          label: isMounted && trashCount > 0 ? (
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <span>Trash</span>
+              <Badge count={trashCount} showZero={false} style={{ backgroundColor: '#ff4d4f' }} />
+            </Space>
+          ) : 'Trash',
+          onClick: () => handleNavigation('/projects/trash'),
+        },
+        {
+          key: '/projects/archived',
+          icon: <FolderOpenOutlined />,
+          label: 'Archived',
+          onClick: () => handleNavigation('/projects/archived'),
+        },
         {
           key: '/projects/settings',
           icon: <ControlOutlined />,

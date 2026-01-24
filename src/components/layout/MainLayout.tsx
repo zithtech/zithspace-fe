@@ -40,6 +40,7 @@ import {
 } from '@ant-design/icons';
 import { useTrashTickets } from '@/hooks/useTrash';
 import { useBuckets } from '@/hooks/useBuckets';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -49,7 +50,7 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const { tenantId } = useTenant();
   const router = useRouter();
   const pathname = usePathname();
@@ -59,7 +60,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Fetch data (only render badges after mount to prevent hydration errors)
   const { data: trashData } = useTrashTickets({});
   const { data: buckets } = useBuckets(tenantId || '');
-  
+
   const trashCount = trashData?.pagination?.total || 0;
   const bucketCount = buckets?.length || 0;
 
@@ -249,6 +250,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
       ],
     },
   ];
+
+
+
+  if (authLoading) {
+    return (
+      <LoadingSpinner message="Loading..." />
+    );
+  }
+
+  if(!user){
+    router.push('/login');
+    return null;
+  }
+
+
+
 
   const handleNavigation = (path: string) => {
     router.push(path);

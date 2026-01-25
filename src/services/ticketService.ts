@@ -92,13 +92,13 @@ export interface Ticket {
   description: string;
   platform: string;
   project:
-    | {
-        id: string;
-        name: string;
-        code: string;
-        description?: string;
-      }
-    | string;
+  | {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+  }
+  | string;
   stack?: string;
   priority: string;
   taskLevel: string;
@@ -110,12 +110,12 @@ export interface Ticket {
     email: string;
   };
   reportTo:
-    | {
-        id: string;
-        name: string;
-        email: string;
-      }
-    | string;
+  | {
+    id: string;
+    name: string;
+    email: string;
+  }
+  | string;
   createdBy: {
     id: string;
     name: string;
@@ -308,22 +308,22 @@ class TicketService {
   /**
    * Get all tickets with filtering and pagination
    */
-  static async getTickets(
-    params: {
-      page?: number;
-      limit?: number;
-      status?: string;
-      priority?: string;
-      projectId?: string;
-      assigneeId?: string;
-      createdById?: string;
-      search?: string;
-      sortBy?: string;
-      sortOrder?: "asc" | "desc";
-      startDate?: string;
-      endDate?: string;
-    } = {},
-  ): Promise<TicketListResponse> {
+  static async getTickets(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    priority?: string;
+    projectId?: string;
+    assigneeId?: string;
+    createdById?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    startDate?: string;
+    endDate?: string;
+    includeArchived?: boolean;
+    archivedOnly?: boolean;
+  } = {}): Promise<TicketListResponse> {
     try {
       const queryParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {

@@ -87,7 +87,7 @@ class TrashService {
         success: boolean;
         data: { deletedCount: number };
         message: string;
-      }>('/api/trash/move-to-trash', { ticketIds });
+      }>('/api/trash/move', { ticketIds });
       return response.data.data;
     } catch (error: any) {
       console.error('Error moving tickets to trash:', error);
@@ -126,11 +126,11 @@ class TrashService {
    */
   static async permanentlyDelete(ticketIds: string[]): Promise<{ deletedCount: number }> {
     try {
-      const response = await apiClient.post<{
+      const response = await apiClient.delete<{
         success: boolean;
         data: { deletedCount: number };
         message: string;
-      }>('/api/trash/permanently-delete', { ticketIds });
+      }>('/api/trash/permanent', { data: { ticketIds } });
       return response.data.data;
     } catch (error: any) {
       console.error('Error permanently deleting tickets:', error);

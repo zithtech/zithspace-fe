@@ -78,7 +78,8 @@ export default function TrashManagementPage() {
       await restoreTicket.mutateAsync([ticketId]);
       refetch();
     } catch (error: any) {
-      message.error(error.message || "Failed to restore ticket");
+      // Error already handled by the hook
+      console.error("Error restoring ticket:", error);
     }
   };
 
@@ -87,7 +88,8 @@ export default function TrashManagementPage() {
       await permanentlyDelete.mutateAsync([ticketId]);
       refetch();
     } catch (error: any) {
-      message.error(error.message || "Failed to delete ticket");
+      // Error already handled by the hook
+      console.error("Error permanently deleting ticket:", error);
     }
   };
 
@@ -102,7 +104,8 @@ export default function TrashManagementPage() {
       setSelectedRowKeys([]);
       refetch();
     } catch (error: any) {
-      message.error(error.message || "Failed to restore tickets");
+      // Error already handled by the hook
+      console.error("Error bulk restoring tickets:", error);
     }
   };
 
@@ -117,7 +120,8 @@ export default function TrashManagementPage() {
       setSelectedRowKeys([]);
       refetch();
     } catch (error: any) {
-      message.error(error.message || "Failed to delete tickets");
+      // Error already handled by the hook
+      console.error("Error bulk deleting tickets:", error);
     }
   };
 
@@ -127,7 +131,8 @@ export default function TrashManagementPage() {
       setSelectedRowKeys([]);
       refetch();
     } catch (error: any) {
-      message.error(error.message || "Failed to empty trash");
+      // Error already handled by the hook
+      console.error("Error emptying trash:", error);
     }
   };
 
@@ -250,18 +255,25 @@ export default function TrashManagementPage() {
       fixed: "right" as const,
       render: (_: any, record: any) => (
         <Space>
-          <Tooltip title="Restore ticket">
-            <Button
-              type="text"
-              size="small"
-              icon={<UndoOutlined />}
-              onClick={() => handleRestore(record.id)}
-              loading={
-                restoreTicket.isPending &&
-                restoreTicket.variables === record.id
-              }
-            />
-          </Tooltip>
+          <Popconfirm
+            title="Restore Ticket"
+            description="Restore this ticket from trash?"
+            onConfirm={() => handleRestore(record.id)}
+            okText="Restore"
+            cancelText="Cancel"
+          >
+            <Tooltip title="Restore ticket">
+              <Button
+                type="text"
+                size="small"
+                icon={<UndoOutlined />}
+                loading={
+                  restoreTicket.isPending &&
+                  restoreTicket.variables?.[0] === record.id
+                }
+              />
+            </Tooltip>
+          </Popconfirm>
           <Popconfirm
             title="Permanently Delete"
             description="This action cannot be undone. Are you sure?"
@@ -278,7 +290,7 @@ export default function TrashManagementPage() {
                 icon={<DeleteOutlined />}
                 loading={
                   permanentlyDelete.isPending &&
-                  permanentlyDelete.variables === record.id
+                  permanentlyDelete.variables?.[0] === record.id
                 }
               />
             </Tooltip>
@@ -371,15 +383,22 @@ export default function TrashManagementPage() {
             message={
               <Space split={<Divider type="vertical" />}>
                 <Text strong>{selectedRowKeys.length} ticket(s) selected</Text>
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<UndoOutlined />}
-                  onClick={handleBulkRestore}
-                  loading={bulkRestore.isPending}
+                <Popconfirm
+                  title="Bulk Restore"
+                  description={`Restore ${selectedRowKeys.length} ticket(s) from trash?`}
+                  onConfirm={handleBulkRestore}
+                  okText="Restore"
+                  cancelText="Cancel"
                 >
-                  Bulk Restore
-                </Button>
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<UndoOutlined />}
+                    loading={bulkRestore.isPending}
+                  >
+                    Bulk Restore
+                  </Button>
+                </Popconfirm>
                 <Popconfirm
                   title="Bulk Delete"
                   description={`Permanently delete ${selectedRowKeys.length} ticket(s)? This cannot be undone.`}

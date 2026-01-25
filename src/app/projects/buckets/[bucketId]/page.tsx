@@ -77,46 +77,52 @@ export default function BucketDetailPage({ params }: { params: { bucketId: strin
   );
 
   // Use useUpdateTicket hook for moving to sprint
-  const { mutate: updateTicket, isPending: isMovingToSprint } = useUpdateTicket();
+  const { mutateAsync: updateTicket, isPending: isMovingToSprint } = useUpdateTicket();
 
   // Use useMoveToTrash hook
-  const { mutate: moveToTrash, isPending: isDeleting } = useMoveToTrash();
+  const { mutateAsync: moveToTrash, isPending: isDeleting } = useMoveToTrash();
 
-  const handleMoveToSprint = () => {
-    // Move tickets one by one
-    let completed = 0;
-    selectedRowKeys.forEach((ticketId) => {
-      updateTicket(
-        { id: ticketId as string, data: { sprintPlanId: selectedSprint, bucketId: null } as any },
-        {
-          onSuccess: () => {
-            completed++;
-            if (completed === selectedRowKeys.length) {
-              message.success(`${completed} ticket(s) moved to sprint`);
-              setSelectedRowKeys([]);
-              setSelectedSprint(null);
-              refetchTickets();
-            }
-          },
-          onError: (error: any) => {
-            message.error(`Failed to move ticket: ${error.message || 'Unknown error'}`);
-          }
-        }
+  const handleMoveToSprint = async () => {
+    if (!selectedSprint || selectedRowKeys.length === 0) {
+      message.warning("Please select tickets and a sprint");
+      return;
+    }
+
+    try {
+      // Update all tickets in parallel
+      await Promise.all(
+        selectedRowKeys.map((ticketId) =>
+          updateTicket({
+            id: ticketId as string,
+            data: { sprintPlanId: selectedSprint, bucketId: null } as any,
+          })
+        )
       );
-    });
+
+      message.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
+      setSelectedRowKeys([]);
+      setSelectedSprint(null);
+      refetchTickets();
+    } catch (error: any) {
+      message.error(`Failed to move tickets: ${error.message || 'Unknown error'}`);
+    }
   };
 
-  const handleMoveToTrash = () => {
-    moveToTrash(selectedRowKeys as string[], {
-      onSuccess: () => {
-        message.success(`${selectedRowKeys.length} ticket(s) moved to trash`);
-        setSelectedRowKeys([]);
-        refetchBucket();
-      },
-      onError: (error: any) => {
-        message.error(`Failed to move to trash: ${error.message || 'Unknown error'}`);
-      }
-    });
+  const handleMoveToTrash = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning("Please select tickets to delete");
+      return;
+    }
+
+    try {
+      await moveToTrash(selectedRowKeys as string[]);
+      setSelectedRowKeys([]);
+      refetchBucket();
+      refetchTickets();
+    } catch (error: any) {
+      // Error already handled by the hook
+      console.error("Error moving to trash:", error);
+    }
   };
 
   const allTickets = ticketsData?.tickets || [];

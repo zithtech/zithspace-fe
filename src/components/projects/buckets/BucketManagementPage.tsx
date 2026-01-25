@@ -75,17 +75,10 @@ export default function BucketManagementPage() {
   const handleDelete = async (bucketId: string) => {
     try {
       await deleteBucket.mutateAsync(bucketId);
-      api.success({
-        message: "Success",
-        description: "Bucket deleted successfully",
-        placement: "bottomRight",
-      });
+      // Success message is handled by the hook
     } catch (error: any) {
-      api.error({
-        message: "Error",
-        description: error.message || "Failed to delete bucket",
-        placement: "bottomRight",
-      });
+      // Error message is handled by the hook
+      console.error("Error deleting bucket:", error);
     }
   };
 
@@ -102,13 +95,7 @@ export default function BucketManagementPage() {
   const handleModalSuccess = () => {
     handleModalClose();
     refetch();
-    api.success({
-      message: "Success",
-      description: editingBucket
-        ? "Bucket updated successfully"
-        : "Bucket created successfully",
-      placement: "bottomRight",
-    });
+    // Success message is handled by the hook
   };
 
   return (

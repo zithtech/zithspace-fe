@@ -52,19 +52,22 @@ export default function ArchivedTicketsPage() {
   });
 
   // Use useMoveToTrash hook
-  const { mutate: moveToTrash, isPending: isDeleting } = useMoveToTrash();
+  const { mutateAsync: moveToTrash, isPending: isDeleting } = useMoveToTrash();
 
-  const handleDelete = () => {
-    moveToTrash(selectedRowKeys as string[], {
-      onSuccess: () => {
-        message.success(`${selectedRowKeys.length} ticket(s) moved to trash`);
-        setSelectedRowKeys([]);
-        refetch();
-      },
-      onError: (error: any) => {
-        message.error(`Failed to move to trash: ${error.message || 'Unknown error'}`);
-      }
-    });
+  const handleDelete = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning("Please select tickets to delete");
+      return;
+    }
+
+    try {
+      await moveToTrash(selectedRowKeys as string[]);
+      setSelectedRowKeys([]);
+      refetch();
+    } catch (error: any) {
+      // Error already handled by the hook
+      console.error("Error moving to trash:", error);
+    }
   };
 
   const tickets = ticketsData?.data || [];

@@ -14,6 +14,7 @@ import {
   App,
   Empty,
   Badge,
+  Popconfirm,
 } from 'antd';
 import {
   FolderOpenOutlined,
@@ -54,24 +55,15 @@ export default function ArchivedTicketsPage() {
   const { mutate: moveToTrash, isPending: isDeleting } = useMoveToTrash();
 
   const handleDelete = () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('Please select tickets to delete');
-      return;
-    }
-
-    modal.confirm({
-      title: 'Move to Trash?',
-      content: `Are you sure you want to move ${selectedRowKeys.length} archived ticket(s) to trash? They can be restored within 7 days.`,
-      okText: 'Move to Trash',
-      okType: 'danger',
-      onOk: () => {
-        moveToTrash(selectedRowKeys as string[], {
-          onSuccess: () => {
-            setSelectedRowKeys([]);
-            refetch();
-          },
-        });
+    moveToTrash(selectedRowKeys as string[], {
+      onSuccess: () => {
+        message.success(`${selectedRowKeys.length} ticket(s) moved to trash`);
+        setSelectedRowKeys([]);
+        refetch();
       },
+      onError: (error: any) => {
+        message.error(`Failed to move to trash: ${error.message || 'Unknown error'}`);
+      }
     });
   };
 
@@ -198,14 +190,22 @@ export default function ArchivedTicketsPage() {
             </Space>
             <Space>
               {selectedRowKeys.length > 0 && (
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleDelete}
-                  loading={isDeleting}
+                <Popconfirm
+                  title="Move to Trash?"
+                  description={`Move ${selectedRowKeys.length} archived ticket(s) to trash? They can be restored within 7 days.`}
+                  onConfirm={handleDelete}
+                  okText="Move to Trash"
+                  cancelText="Cancel"
+                  okButtonProps={{ danger: true }}
                 >
-                  Delete ({selectedRowKeys.length})
-                </Button>
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={isDeleting}
+                  >
+                    Delete ({selectedRowKeys.length})
+                  </Button>
+                </Popconfirm>
               )}
               <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
                 Refresh

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { useTenant } from '@/context/TenantContext';
+
 import {
   Layout,
   Menu,
@@ -38,8 +38,7 @@ import {
   AccountBookOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
-import { useTrashTickets } from '@/hooks/useTrash';
-import { useBuckets } from '@/hooks/useBuckets';
+
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -50,22 +49,12 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { user, logout } = useAuth();
-  const { tenantId } = useTenant();
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+
 
   // Fetch data (only render badges after mount to prevent hydration errors)
-  const { data: trashData } = useTrashTickets({});
-  const { data: buckets } = useBuckets(tenantId || '');
-  
-  const trashCount = trashData?.pagination?.total || 0;
-  const bucketCount = buckets?.length || 0;
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Navigation items with modern icons
   const getNavigationItems = () => [
@@ -127,23 +116,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {
           key: '/projects/buckets',
           icon: <InboxOutlined />,
-          label: isMounted && bucketCount > 0 ? (
-            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-              <span>Buckets</span>
-              <Badge count={bucketCount} showZero={false} style={{ backgroundColor: '#1677ff' }} />
-            </Space>
-          ) : 'Buckets',
+          label: 'Buckets',
           onClick: () => handleNavigation('/projects/buckets'),
         },
         {
           key: '/projects/trash',
           icon: <DeleteOutlined />,
-          label: isMounted && trashCount > 0 ? (
-            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-              <span>Trash</span>
-              <Badge count={trashCount} showZero={false} style={{ backgroundColor: '#ff4d4f' }} />
-            </Space>
-          ) : 'Trash',
+          label: 'Trash',
           onClick: () => handleNavigation('/projects/trash'),
         },
         {

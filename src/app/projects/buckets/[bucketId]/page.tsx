@@ -15,6 +15,7 @@ import {
   Empty,
   Badge,
   Breadcrumb,
+  Popconfirm,
 } from 'antd';
 import {
   FolderOutlined,
@@ -30,8 +31,7 @@ import Link from 'next/link';
 import { useBucket, useBucketTickets } from '@/hooks/useBuckets';
 import { useUpdateTicket } from '@/hooks/useTickets';
 import { useMoveToTrash } from '@/hooks/useTrash';
-import { useQuery } from '@tanstack/react-query';
-import ReleasePlanService from '@/services/releasePlanService';
+import { useAvailableSprints } from '@/hooks/useAvailableSprints';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -71,22 +71,10 @@ export default function BucketDetailPage({ params }: { params: { bucketId: strin
   const [page, setPage] = useState(1);
   const { data: ticketsData, isLoading: ticketsLoading, refetch: refetchTickets } = useBucketTickets(params.bucketId, page, 100);
 
-  // Fetch all sprints for the project and filter out completed ones
-  const { data: allSprints } = useQuery({
-    queryKey: ['sprints', bucket?.project?.id],
-    queryFn: async () => {
-      if (!bucket?.project?.id) return [];
-      const response = await ReleasePlanService.getReleasePlans({
-        project: bucket.project.id,
-        type: 'sprint_plan',
-      });
-      return response.data || [];
-    },
-    enabled: !!bucket?.project?.id,
-  });
-
-  // Filter out completed sprints - only show active and planning sprints
-  const sprints = allSprints?.filter((s: any) => s.status !== 'completed') || [];
+  // Fetch available sprints (active + planning only) - server-side filtered
+  const { data: sprints, isLoading: sprintsLoading } = useAvailableSprints(
+    bucket?.project?.id
+  );
 
   // Use useUpdateTicket hook for moving to sprint
   const { mutate: updateTicket, isPending: isMovingToSprint } = useUpdateTicket();
@@ -95,62 +83,39 @@ export default function BucketDetailPage({ params }: { params: { bucketId: strin
   const { mutate: moveToTrash, isPending: isDeleting } = useMoveToTrash();
 
   const handleMoveToSprint = () => {
-    if (!selectedSprint) {
-      message.warning('Please select a sprint');
-      return;
-    }
-    if (selectedRowKeys.length === 0) {
-      message.warning('Please select tickets');
-      return;
-    }
-
-    const selectedSprintData = sprints?.find((s: any) => s.id === selectedSprint);
-    modal.confirm({
-      title: 'Move to Sprint?',
-      content: `Move ${selectedRowKeys.length} ticket(s) to sprint "${selectedSprintData?.version}"?`,
-      okText: 'Move',
-      onOk: () => {
-        // Move tickets one by one
-        let completed = 0;
-        selectedRowKeys.forEach((ticketId) => {
-          updateTicket(
-            { id: ticketId as string, data: { releasePlan: selectedSprint, bucketId: null } as any },
-            {
-              onSuccess: () => {
-                completed++;
-                if (completed === selectedRowKeys.length) {
-                  message.success(`${completed} ticket(s) moved to sprint`);
-                  setSelectedRowKeys([]);
-                  setSelectedSprint(null);
-                  refetchTickets();
-                }
-              },
+    // Move tickets one by one
+    let completed = 0;
+    selectedRowKeys.forEach((ticketId) => {
+      updateTicket(
+        { id: ticketId as string, data: { sprintPlanId: selectedSprint, bucketId: null } as any },
+        {
+          onSuccess: () => {
+            completed++;
+            if (completed === selectedRowKeys.length) {
+              message.success(`${completed} ticket(s) moved to sprint`);
+              setSelectedRowKeys([]);
+              setSelectedSprint(null);
+              refetchTickets();
             }
-          );
-        });
-      },
+          },
+          onError: (error: any) => {
+            message.error(`Failed to move ticket: ${error.message || 'Unknown error'}`);
+          }
+        }
+      );
     });
   };
 
   const handleMoveToTrash = () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('Please select tickets');
-      return;
-    }
-
-    modal.confirm({
-      title: 'Move to Trash?',
-      content: `Move ${selectedRowKeys.length} ticket(s) to trash? They can be restored within 7 days.`,
-      okText: 'Move to Trash',
-      okType: 'danger',
-      onOk: () => {
-        moveToTrash(selectedRowKeys as string[], {
-          onSuccess: () => {
-            setSelectedRowKeys([]);
-            refetchBucket();
-          },
-        });
+    moveToTrash(selectedRowKeys as string[], {
+      onSuccess: () => {
+        message.success(`${selectedRowKeys.length} ticket(s) moved to trash`);
+        setSelectedRowKeys([]);
+        refetchBucket();
       },
+      onError: (error: any) => {
+        message.error(`Failed to move to trash: ${error.message || 'Unknown error'}`);
+      }
     });
   };
 
@@ -299,23 +264,39 @@ export default function BucketDetailPage({ params }: { params: { bucketId: strin
                       </Option>
                     ))}
                   </Select>
-                  <Button
-                    type="primary"
-                    icon={<RocketOutlined />}
-                    onClick={handleMoveToSprint}
-                    loading={isMovingToSprint}
-                    disabled={!selectedSprint}
+                  <Popconfirm
+                    title="Move to Sprint?"
+                    description={`Move ${selectedRowKeys.length} ticket(s) to sprint "${sprints?.find((s: any) => s.id === selectedSprint)?.version}"?`}
+                    onConfirm={handleMoveToSprint}
+                    okText="Move"
+                    cancelText="Cancel"
+                    disabled={!selectedSprint || selectedRowKeys.length === 0}
                   >
-                    Move ({selectedRowKeys.length})
-                  </Button>
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={handleMoveToTrash}
-                    loading={isDeleting}
+                    <Button
+                      type="primary"
+                      icon={<RocketOutlined />}
+                      loading={isMovingToSprint}
+                      disabled={!selectedSprint}
+                    >
+                      Move ({selectedRowKeys.length})
+                    </Button>
+                  </Popconfirm>
+                  <Popconfirm
+                    title="Move to Trash?"
+                    description={`Move ${selectedRowKeys.length} ticket(s) to trash? They can be restored within 7 days.`}
+                    onConfirm={handleMoveToTrash}
+                    okText="Move to Trash"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
                   >
-                    Delete ({selectedRowKeys.length})
-                  </Button>
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      loading={isDeleting}
+                    >
+                      Delete ({selectedRowKeys.length})
+                    </Button>
+                  </Popconfirm>
                 </>
               )}
               <Button icon={<ReloadOutlined />} onClick={() => refetchBucket()}>

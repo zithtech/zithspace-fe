@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, use } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import {
   Card,
@@ -56,20 +56,23 @@ interface BucketTicket {
   };
 }
 
-export default function BucketDetailPage({ params }: { params: { bucketId: string } }) {
+export default function BucketDetailPage({ params }: { params: Promise<{ bucketId: string }> }) {
   const { message, modal } = App.useApp();
   const router = useRouter();
+  
+  // Unwrap the params promise using React's use() hook (Next.js 15 requirement)
+  const { bucketId } = use(params);
 
   const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedSprint, setSelectedSprint] = useState<string | null>(null);
 
   // Use useBucket hook
-  const { data: bucket, isLoading: bucketLoading, refetch: refetchBucket } = useBucket(params.bucketId);
+  const { data: bucket, isLoading: bucketLoading, refetch: refetchBucket } = useBucket(bucketId);
 
   // Use useBucketTickets hook for fetching tickets
   const [page, setPage] = useState(1);
-  const { data: ticketsData, isLoading: ticketsLoading, refetch: refetchTickets } = useBucketTickets(params.bucketId, page, 100);
+  const { data: ticketsData, isLoading: ticketsLoading, refetch: refetchTickets } = useBucketTickets(bucketId, page, 100);
 
   // Fetch available sprints (active + planning only) - server-side filtered
   const { data: sprints, isLoading: sprintsLoading } = useAvailableSprints(

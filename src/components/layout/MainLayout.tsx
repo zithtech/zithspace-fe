@@ -38,10 +38,7 @@ import {
   AccountBookOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
-import { useTrashTickets } from '@/hooks/useTrash';
-import { useBuckets } from '@/hooks/useBuckets';
 import LoadingSpinner from '../common/LoadingSpinner';
-import { useTenant } from '@/context/TenantContext';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;

@@ -1,13 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
-import { ProjectService } from '@/services/projectService';
-import { MembersService } from '@/services/membersService';
-import { SettingsService } from '@/services/settingsService';
+import { useQuery } from "@tanstack/react-query";
+import { ProjectService } from "@/services/projectService";
+import { MembersService } from "@/services/membersService";
+import { SettingsService } from "@/services/settingsService";
+import TicketService from "@/services/ticketService";
+import DocumentHubService from "@/services/documentHub";
 
 // Query keys for global data
 export const globalDataKeys = {
-  projects: ['global', 'projects'] as const,
-  members: ['global', 'members'] as const,
-  ticketConfig: ['global', 'ticketConfig'] as const,
+  projects: ["global", "projects"] as const,
+  members: ["global", "members"] as const,
+  ticketConfig: ["global", "ticketConfig"] as const,
+  tickets: ["global", "userTicketsByProject"],
 };
 
 /**
@@ -23,6 +26,37 @@ export const useUserProjects = (options?: { enabled?: boolean }) => {
     ...options,
   });
 };
+
+export const useUserTicketsByProjects = (
+  projectId: string | undefined,
+  options?: { enabled?: boolean },
+) => {
+  return useQuery({
+    queryKey: [...globalDataKeys.tickets, projectId],
+    queryFn: () => TicketService.getTicketsByProjectId(projectId as string),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    enabled: Boolean(projectId) && options?.enabled !== false,
+    ...options,
+  });
+};
+
+
+
+export const useDocumentHub = (
+  documentId: string | undefined,
+  options?: { enabled?: boolean },
+) => {
+  return useQuery({
+    queryKey: [...globalDataKeys.tickets, documentId],
+    queryFn: () => DocumentHubService.getDocumentHub(documentId as string),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    enabled: Boolean(documentId) && options?.enabled !== false,
+    ...options,
+  });
+};
+
 
 /**
  * Hook to fetch and cache all members

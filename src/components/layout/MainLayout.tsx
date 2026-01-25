@@ -37,6 +37,7 @@ import {
   FolderOpenOutlined,
   AccountBookOutlined,
   BarChartOutlined,
+  FileZipOutlined,
 } from '@ant-design/icons';
 import { useTrashTickets } from '@/hooks/useTrash';
 import { useBuckets } from '@/hooks/useBuckets';
@@ -247,7 +248,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: "Settings",
           onClick: () => handleNavigation("/invoicepro/settings"),
         },
+
       ],
+
+    },
+    {
+      key: "/documenthub",
+      icon: <FileZipOutlined />,
+      label: "Document Hub",
+      onClick: () => handleNavigation("/documenthub"),
     },
   ];
 
@@ -259,7 +268,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     );
   }
 
-  if(!user){
+  if (!user) {
     router.push('/login');
     return null;
   }

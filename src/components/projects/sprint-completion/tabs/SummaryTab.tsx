@@ -48,16 +48,17 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
 
   return (
     <div style={{ padding: 24, height: "calc(85vh - 220px)", overflow: "auto" }}>
-      {/* Sprint Info Card */}
+      {/* Sprint Info Card with Progress */}
       <Card style={{ marginBottom: 24 }}>
-        <Row gutter={[16, 16]}>
-          <Col span={24}>
+        <Row gutter={24} align="middle">
+          {/* LEFT: Sprint Details */}
+          <Col flex="1">
             <Space direction="vertical" size={4}>
               <Text type="secondary">Sprint Details</Text>
               <Title level={4} style={{ margin: 0 }}>
                 {sprint.name}
               </Title>
-              <Space size={16}>
+              <Space size={16} wrap>
                 <Text>
                   <CalendarOutlined /> {dayjs(sprint.startDate).format("MMM D")} -{" "}
                   {dayjs(sprint.endDate).format("MMM D, YYYY")}
@@ -73,6 +74,77 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
                   </Tag>
                 )}
               </Space>
+            </Space>
+          </Col>
+
+          {/* DIVIDER */}
+          <Divider type="vertical" style={{ height: 'auto', minHeight: '120px', margin: '0 24px', borderColor: '#e0e0e0' }} />
+
+          {/* RIGHT: Sprint Progress - Horizontal Layout */}
+          <Col style={{ flex: '1' }}>
+            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              {/* <Text strong style={{ fontSize: 14 }}>Sprint Progress</Text> */}
+              
+              {/* Completion - Full Width */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text strong>Progress</Text>
+                  <Text strong>{statistics.completionPercentage}%</Text>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Progress
+                    percent={statistics.completionPercentage}
+                    status={statistics.completionPercentage === 100 ? "success" : "active"}
+                    strokeColor={{
+                      "0%": "#1890ff",
+                      "100%": "#52c41a",
+                    }}
+                    style={{ flex: 1, margin: 0 }}
+                  />
+                  <Text type="secondary" style={{ minWidth: 35, textAlign: 'right' }}>{statistics.completionPercentage}%</Text>
+                </div>
+              </div>
+
+              {/* Story Points & Tickets - Two Columns */}
+              <Row gutter={24}>
+                {/* Story Points */}
+                <Col span={12}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <Text>Story Points</Text>
+                      <Text strong>{statistics.completedPoints} / {statistics.totalPoints}</Text>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Progress
+                        percent={velocity}
+                        status={velocity === 100 ? "success" : "active"}
+                        size="small"
+                        style={{ flex: 1, margin: 0 }}
+                      />
+                      <Text type="secondary" style={{ minWidth: 35, textAlign: 'right', fontSize: 12 }}>{velocity}%</Text>
+                    </div>
+                  </div>
+                </Col>
+
+                {/* Tickets */}
+                <Col span={12}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <Text>Tickets</Text>
+                      <Text strong>{statistics.completedTickets} / {statistics.totalTickets}</Text>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <Progress
+                        percent={statistics.completionPercentage}
+                        status={statistics.completionPercentage === 100 ? "success" : "active"}
+                        size="small"
+                        style={{ flex: 1, margin: 0 }}
+                      />
+                      <Text type="secondary" style={{ minWidth: 35, textAlign: 'right', fontSize: 12 }}>{statistics.completionPercentage}%</Text>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
             </Space>
           </Col>
         </Row>
@@ -125,80 +197,6 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
           </Card>
         </Col>
       </Row>
-
-      {/* Progress Card */}
-      <Card title="Sprint Progress" style={{ marginBottom: 24 }}>
-        <Row gutter={[24, 24]}>
-          <Col span={24}>
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Text strong>Completion</Text>
-                <Text strong>{statistics.completionPercentage}%</Text>
-              </div>
-              <Progress
-                percent={statistics.completionPercentage}
-                status={
-                  statistics.completionPercentage === 100 ? "success" : "active"
-                }
-                strokeColor={{
-                  "0%": "#1890ff",
-                  "100%": "#52c41a",
-                }}
-              />
-            </Space>
-          </Col>
-          <Col xs={24} md={12}>
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Text>Story Points</Text>
-                <Text strong>
-                  {statistics.completedPoints} / {statistics.totalPoints}
-                </Text>
-              </div>
-              <Progress
-                percent={velocity}
-                status={velocity === 100 ? "success" : "active"}
-                size="small"
-              />
-            </Space>
-          </Col>
-          <Col xs={24} md={12}>
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Text>Tickets</Text>
-                <Text strong>
-                  {statistics.completedTickets} / {statistics.totalTickets}
-                </Text>
-              </div>
-              <Progress
-                percent={statistics.completionPercentage}
-                status={
-                  statistics.completionPercentage === 100 ? "success" : "active"
-                }
-                size="small"
-              />
-            </Space>
-          </Col>
-        </Row>
-      </Card>
 
       <Row gutter={[16, 16]}>
         {/* Available Destinations */}

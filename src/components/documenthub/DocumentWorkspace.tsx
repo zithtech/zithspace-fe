@@ -209,6 +209,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addNodeParentId, setAddNodeParentId] = useState<string | null>(null);
     const [addNodeType, setAddNodeType] = useState<'file' | 'folder'>('folder');
+    const [isCreatingNode, setIsCreatingNode] = useState(false);
     const [form] = Form.useForm();
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
@@ -311,12 +312,16 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
     const handleCreateNode = async (values: any) => {
         try {
+            setIsCreatingNode(true);
             await DocumentHubService.createTreeNode({
                 documentHubId: documentId,
                 parentId: addNodeParentId,
                 type: addNodeType,
                 title: values.name
             });
+
+            // Add a small delay to ensure the loader is visible and prevent double clicks
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             messageApi.success(`${addNodeType === 'folder' ? 'Folder' : 'File'} created successfully`);
             setIsAddModalOpen(false);
@@ -334,6 +339,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         } catch (error) {
             console.error(error);
             messageApi.error('Failed to create item');
+        } finally {
+            setIsCreatingNode(false);
         }
     }
 
@@ -675,7 +682,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         <Button onClick={() => setIsAddModalOpen(false)}>
                             Cancel
                         </Button>
-                        <Button type="primary" htmlType="submit">
+                        <Button type="primary" htmlType="submit" loading={isCreatingNode}>
                             Create
                         </Button>
                     </div>

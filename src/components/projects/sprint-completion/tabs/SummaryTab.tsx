@@ -223,7 +223,7 @@ export const SummaryTab: React.FC<SummaryTabProps> = ({ summary }) => {
                       <List.Item>
                         <Space>
                           <Tag color="blue">{sprint.status}</Tag>
-                          <Text>{sprint.name}</Text>
+                          <Text>{sprint.version}</Text>
                         </Space>
                       </List.Item>
                     )}

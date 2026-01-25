@@ -75,8 +75,7 @@ export default function TrashManagementPage() {
 
   const handleRestore = async (ticketId: string) => {
     try {
-      await restoreTicket.mutateAsync(ticketId);
-      message.success("Ticket restored successfully");
+      await restoreTicket.mutateAsync([ticketId]);
       refetch();
     } catch (error: any) {
       message.error(error.message || "Failed to restore ticket");
@@ -85,8 +84,7 @@ export default function TrashManagementPage() {
 
   const handlePermanentDelete = async (ticketId: string) => {
     try {
-      await permanentlyDelete.mutateAsync(ticketId);
-      message.success("Ticket permanently deleted");
+      await permanentlyDelete.mutateAsync([ticketId]);
       refetch();
     } catch (error: any) {
       message.error(error.message || "Failed to delete ticket");

@@ -94,7 +94,7 @@ export function BucketCreationForm({
           onClick={handleSubmit}
           loading={submitting || loading}
         >
-          Create & Move Tickets
+          Create Bucket
         </Button>
       </Space>
     </div>

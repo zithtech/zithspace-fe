@@ -173,7 +173,7 @@ export function SprintCreationForm({
           onClick={handleSubmit}
           loading={submitting || loading}
         >
-          Create & Move Tickets
+          Create Sprint
         </Button>
       </Space>
     </div>

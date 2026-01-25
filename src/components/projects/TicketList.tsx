@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   Button,
@@ -25,6 +25,7 @@ import {
   Divider,
   Collapse,
   notification,
+  Alert,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -57,6 +58,7 @@ import { TicketKanban } from './kanban/TicketKanban';
 import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
 import { SprintCompletionModal } from "./sprint-completion";
+import { SprintCreationForm, type SprintFormData } from "./sprint-completion/SprintCreationForm";
 
 const { Title, Text } = Typography;
 
@@ -75,6 +77,7 @@ interface TicketListProps {
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [modal, contextHolder] = Modal.useModal();
 
   // Local state for filters only
@@ -93,6 +96,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   
   // Sprint Completion Modal state
   const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
+  
+  // Create Sprint Modal state
+  const [createSprintModalOpen, setCreateSprintModalOpen] = useState(false);
+  const [creatingSprintLoading, setCreatingSprintLoading] = useState(false);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
@@ -232,9 +239,62 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         borderLeft: '4px solid #52c41a',
       }
     });
-    // Refresh both ticket lists
+    // Refresh both ticket lists and active sprint query
     refetchActive();
     refetchBacklog();
+    queryClient.invalidateQueries({ queryKey: ['activeSprint', projectId] });
+  };
+
+  // Handle sprint creation from backlog
+  const handleCreateSprintFromBacklog = async (data: SprintFormData) => {
+    try {
+      setCreatingSprintLoading(true);
+      
+      // Determine sprint status based on whether active sprint exists
+      const hasActiveSprint = !!activeSprint;
+      const sprintStatus = hasActiveSprint ? 'planning' : 'active';
+      
+      // Create sprint
+      const newSprint = await ReleasePlanService.createReleasePlan({
+        version: data.name,
+        description: data.goal || '',
+        projectId: projectId,
+        releaseDate: data.endDate.format('YYYY-MM-DD'),
+        startDate: data.startDate.format('YYYY-MM-DD'),
+        endDate: data.endDate.format('YYYY-MM-DD'),
+        type: 'sprint_plan',
+        status: sprintStatus,
+      });
+      
+      setCreateSprintModalOpen(false);
+      
+      // Show appropriate success message
+      if (sprintStatus === 'active') {
+        notifyApi.success({
+          message: 'Active Sprint Created',
+          description: `${newSprint.version} is now your active sprint! Start adding tickets.`,
+          placement: 'bottomLeft',
+          style: { borderLeft: '4px solid #52c41a' }
+        });
+      } else {
+        notifyApi.success({
+          message: 'Planning Sprint Created',
+          description: `${newSprint.version} created as a draft. You can start it after completing the current sprint.`,
+          placement: 'bottomLeft',
+          style: { borderLeft: '4px solid #1890ff' }
+        });
+      }
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['activeSprint', projectId] });
+      refetchActive();
+      refetchBacklog();
+      
+    } catch (error: any) {
+      message.error(error.message || 'Failed to create sprint');
+    } finally {
+      setCreatingSprintLoading(false);
+    }
   };
 
   // Enable live updates
@@ -991,7 +1051,22 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             )}
 
           {/* Backlog Section */}
-          <Card title="Backlog" bodyStyle={{ padding: 10 }}>
+          <Card 
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Text style={{ fontSize: '16px', fontWeight: 600 }}>Backlog</Text>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateSprintModalOpen(true)}
+                >
+                  Create Sprint
+                </Button>
+              </div>
+            }
+            bodyStyle={{ padding: 10 }}
+          >
             <Table
               columns={getColumns('backlog')}
               dataSource={backlogTickets}
@@ -1091,6 +1166,54 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         onClose={() => setSprintCompletionModalOpen(false)}
         onSuccess={handleSprintCompletionSuccess}
       />
+
+      {/* Create Sprint Modal */}
+      <Modal
+        title={
+          <Space direction="vertical" size={0}>
+            <Text strong>Create New Sprint</Text>
+            {activeSprint ? (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Will be created as "Planning" (draft sprint)
+              </Text>
+            ) : (
+              <Text type="success" style={{ fontSize: 12 }}>
+                Will become your active sprint immediately
+              </Text>
+            )}
+          </Space>
+        }
+        open={createSprintModalOpen}
+        onCancel={() => setCreateSprintModalOpen(false)}
+        footer={null}
+        width={500}
+      >
+        {activeSprint && (
+          <Alert
+            message="Creating Planning Sprint"
+            description={`You have an active sprint (${activeSprint.version}). This new sprint will be created as a draft and can be started after completing the current sprint.`}
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {!activeSprint && (
+          <Alert
+            message="Creating Active Sprint"
+            description="No active sprint found. This sprint will become active immediately and you can start adding tickets to it."
+            type="success"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        
+        <SprintCreationForm
+          projectId={projectId}
+          loading={creatingSprintLoading}
+          onSubmit={handleCreateSprintFromBacklog}
+          onCancel={() => setCreateSprintModalOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }

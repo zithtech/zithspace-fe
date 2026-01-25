@@ -157,12 +157,16 @@ export const useBulkResolveTickets = () => {
       queryClient.invalidateQueries({ queryKey: sprintCompletionKeys.summary(variables.sprintId) });
       queryClient.invalidateQueries({ queryKey: bucketKeys.all });
       
-      if (result.errors.length > 0) {
+      // Safe access with fallbacks
+      const errors = result?.errors || [];
+      const actionsPerformed = result?.actionsPerformed || 0;
+      
+      if (errors.length > 0) {
         message.warning(
-          `${result.actionsPerformed} of ${variables.actions.length} ticket(s) resolved. ${result.errors.length} failed.`
+          `${actionsPerformed} of ${variables.actions.length} ticket(s) resolved. ${errors.length} failed.`
         );
       } else {
-        message.success(`${result.actionsPerformed} ticket(s) resolved successfully`);
+        message.success(`${actionsPerformed} ticket(s) resolved successfully`);
       }
     },
   });
@@ -229,9 +233,14 @@ export const useCompleteSprint = () => {
       // Invalidate sprint plans list
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       queryClient.invalidateQueries({ queryKey: ['plans'] });
+      queryClient.invalidateQueries({ queryKey: ['tickets', 'kanban'] });
+
+      // Safe access to result.summary with fallback
+      const ticketsCompleted = result?.summary?.ticketsCompleted || 0;
+      const completedPoints = result?.summary?.completedPoints || 0;
 
       message.success(
-        `Sprint completed successfully! ${result.summary.ticketsCompleted} ticket(s) completed with ${result.summary.completedPoints} story points.`
+        `Sprint completed successfully! ${ticketsCompleted} ticket(s) completed with ${completedPoints} story points.`
       );
     },
   });

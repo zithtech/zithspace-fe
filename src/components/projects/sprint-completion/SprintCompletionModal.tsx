@@ -96,8 +96,12 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
       onOk: async () => {
         try {
           await completeSprint.mutateAsync({ sprintId, force: false });
-          message.success("Sprint completed successfully!");
-          onSuccess?.();
+          // Wait for parent to refresh before closing modal
+          if (onSuccess) {
+            await onSuccess();
+          }
+          // Small delay to ensure UI updates
+          await new Promise(resolve => setTimeout(resolve, 300));
           onClose();
         } catch (error: any) {
           message.error(error.message || "Failed to complete sprint");

@@ -304,6 +304,8 @@ class TicketService {
     sortOrder?: 'asc' | 'desc';
     startDate?: string;
     endDate?: string;
+    includeArchived?: boolean;
+    archivedOnly?: boolean;
   } = {}): Promise<TicketListResponse> {
     try {
       const queryParams = new URLSearchParams();

@@ -375,6 +375,7 @@ export const useUpdateTicket = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
+      message.error("Failed to update ticket");
     },
     onSuccess: (savedTicket) => {
       // Update detail

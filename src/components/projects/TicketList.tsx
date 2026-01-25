@@ -122,10 +122,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // --- React Query Hooks ---
 
-  // Prepare params for useTickets - always scoped to projectId
-  const queryParams = {
-    page: pagination.current,
-    limit: pagination.pageSize,
+  // Base params (without pagination) for filters
+  const baseQueryParams = {
     projectId, // From props, mandatory project context
     status: filters.status.length > 0 ? filters.status[0] : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
@@ -144,16 +142,19 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
   console.log("Active Sprint:", activeSprint);
 
-  // Query Params for Active Sprint List
+  // Query Params for Active Sprint List (NO PAGINATION - fetch ALL tickets)
   const activeSprintParams = {
-    ...queryParams,
+    ...baseQueryParams,
     sprintId: 'active'
+    // No page/limit - fetch all active sprint tickets
   };
 
-  // Query Params for Backlog List
+  // Query Params for Backlog List (WITH PAGINATION)
   const backlogParams = {
-    ...queryParams,
-    sprintId: 'null'
+    ...baseQueryParams,
+    sprintId: 'null',
+    page: pagination.current,
+    limit: pagination.pageSize,
   };
 
   // 1. Fetch Active Sprint Tickets

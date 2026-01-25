@@ -16,6 +16,7 @@ import {
   App,
   Modal,
   Dropdown,
+  Divider,
 } from "antd";
 import {
   SendOutlined,
@@ -372,6 +373,31 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                   >
                     Move to Trash
                   </Button>
+
+                  {/* Inline Resolve & Clear Buttons */}
+                  {activeBulkAction && (
+                    <>
+                      <Divider type="vertical" style={{ height: 24, margin: '0 8px' }} />
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<SendOutlined />}
+                        onClick={handleSubmit}
+                        loading={bulkResolve.isPending}
+                      >
+                        Resolve ({selectedRowKeys.length})
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setSelectedRowKeys([]);
+                          setActiveBulkAction(null);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </>
+                  )}
                 </Space>
               )}
             </Space>
@@ -422,41 +448,6 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
             scroll={{ x: 1000 }}
             size="small"
           />
-
-          {/* Submit Button */}
-          {activeBulkAction && selectedRowKeys.length > 0 && (
-            <div
-              style={{
-                position: "sticky",
-                bottom: 0,
-                padding: "16px 0",
-                background: "#fff",
-                borderTop: "1px solid #f0f0f0",
-                marginTop: 16,
-              }}
-            >
-              <Space>
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<SendOutlined />}
-                  onClick={handleSubmit}
-                  loading={bulkResolve.isPending}
-                >
-                  Resolve {selectedRowKeys.length} Ticket{selectedRowKeys.length > 1 ? 's' : ''}
-                </Button>
-                <Button
-                  size="large"
-                  onClick={() => {
-                    setSelectedRowKeys([]);
-                    setActiveBulkAction(null);
-                  }}
-                >
-                  Clear Selection
-                </Button>
-              </Space>
-            </div>
-          )}
 
           {/* Sprint Creation Modal */}
           <Modal

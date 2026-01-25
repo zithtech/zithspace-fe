@@ -16,6 +16,7 @@ import {
   Badge,
   Breadcrumb,
   Popconfirm,
+  message as antdMessage,
 } from 'antd';
 import {
   FolderOutlined,
@@ -28,7 +29,8 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useBucket, useBucketTickets } from '@/hooks/useBuckets';
+import { useQueryClient } from '@tanstack/react-query';
+import { useBucket, useBucketTickets, bucketKeys } from '@/hooks/useBuckets';
 import { useUpdateTicket } from '@/hooks/useTickets';
 import { useMoveToTrash } from '@/hooks/useTrash';
 import { useAvailableSprints } from '@/hooks/useAvailableSprints';
@@ -57,8 +59,8 @@ interface BucketTicket {
 }
 
 export default function BucketDetailPage({ params }: { params: Promise<{ bucketId: string }> }) {
-  const { message, modal } = App.useApp();
   const router = useRouter();
+  const queryClient = useQueryClient();
   
   // Unwrap the params promise using React's use() hook (Next.js 15 requirement)
   const { bucketId } = use(params);
@@ -87,7 +89,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
   const handleMoveToSprint = async () => {
     if (!selectedSprint || selectedRowKeys.length === 0) {
-      message.warning("Please select tickets and a sprint");
+      antdMessage.warning("Please select tickets and a sprint");
       return;
     }
 
@@ -102,23 +104,33 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
         )
       );
 
-      message.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
+      // Invalidate bucket-related queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(bucketId, page) });
+      queryClient.invalidateQueries({ queryKey: bucketKeys.detail(bucketId) });
+      
+      antdMessage.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
       setSelectedRowKeys([]);
       setSelectedSprint(null);
       refetchTickets();
     } catch (error: any) {
-      message.error(`Failed to move tickets: ${error.message || 'Unknown error'}`);
+      console.error('Error moving tickets:', error);
+      antdMessage.error(`Failed to move tickets: ${error.message || 'Unknown error'}`);
     }
   };
 
   const handleMoveToTrash = async () => {
     if (selectedRowKeys.length === 0) {
-      message.warning("Please select tickets to delete");
+      antdMessage.warning("Please select tickets to delete");
       return;
     }
 
     try {
       await moveToTrash(selectedRowKeys as string[]);
+      
+      // Invalidate bucket-related queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(bucketId, page) });
+      queryClient.invalidateQueries({ queryKey: bucketKeys.detail(bucketId) });
+      
       setSelectedRowKeys([]);
       refetchBucket();
       refetchTickets();

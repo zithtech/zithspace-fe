@@ -25,7 +25,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, FullscreenOutlined, FullscreenExitOutlined } from '@ant-design/icons'
+import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, FullscreenOutlined, FullscreenExitOutlined, ExportOutlined } from '@ant-design/icons'
 import DocumentHistory from '@/components/common/DocumentHistory'
 
 interface TreeItem extends DocumentTreeNode {
@@ -559,6 +559,12 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                     >
                                         Save
                                     </Button>
+                                    <Tooltip title="Open in New Tab">
+                                        <Button
+                                            icon={<ExportOutlined className="w-4 h-4" />}
+                                            onClick={() => window.open(`/document/${selectedDoc}`, '_blank')}
+                                        />
+                                    </Tooltip>
                                     <div className="h-6 w-px bg-gray-200 mx-2" />
                                 </>
                             )}

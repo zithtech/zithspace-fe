@@ -38,7 +38,10 @@ import {
   AccountBookOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
-
+import { useTrashTickets } from '@/hooks/useTrash';
+import { useBuckets } from '@/hooks/useBuckets';
+import LoadingSpinner from '../common/LoadingSpinner';
+import { useTenant } from '@/context/TenantContext';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -48,7 +51,8 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
+ 
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
@@ -56,7 +60,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   // Fetch data (only render badges after mount to prevent hydration errors)
 
-  // Navigation items with modern icons
+
+
+
+  // Navigation items with icons
   const getNavigationItems = () => [
     {
       key: "/dashboard",
@@ -228,6 +235,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
       ],
     },
   ];
+
+
+
+  if (authLoading) {
+    return (
+      <LoadingSpinner message="Loading..." />
+    );
+  }
+
+  if(!user){
+    router.push('/login');
+    return null;
+  }
+
+
+
 
   const handleNavigation = (path: string) => {
     router.push(path);

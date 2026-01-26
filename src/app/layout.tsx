@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import { ConfigProvider } from "antd";
+import { ConfigProvider, App } from "antd";
 import { AuthProvider } from "@/context/AuthContext";
 import { TenantProvider } from "@/context/TenantContext";
 import QueryProvider from "@/providers/QueryProvider";
@@ -97,15 +97,17 @@ export default function RootLayout({
       <body>
         <AntdRegistry>
           <ConfigProvider theme={theme}>
-            <TenantProvider>
-              <AuthProvider>
-                <QueryProvider>
-                  <SocketProvider>
-                    <ClientProviders>{children}</ClientProviders>
-                  </SocketProvider>
-                </QueryProvider>
-              </AuthProvider>
-            </TenantProvider>
+            <App>
+              <TenantProvider>
+                <AuthProvider>
+                  <QueryProvider>
+                    <SocketProvider>
+                      <ClientProviders>{children}</ClientProviders>
+                    </SocketProvider>
+                  </QueryProvider>
+                </AuthProvider>
+              </TenantProvider>
+            </App>
           </ConfigProvider>
         </AntdRegistry>
       </body>

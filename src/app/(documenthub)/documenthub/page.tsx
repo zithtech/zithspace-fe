@@ -31,6 +31,7 @@ const DocumentHubPage = (props: Props) => {
   const [searchText, setSearchText] = useState("");
   const [selectedUser, setSelectedUser] = useState<string | undefined>(undefined);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
   const { data: tickets = [], isLoading: ticketsLoading } = useUserTicketsByProjects(selectedProjectId);
@@ -45,6 +46,7 @@ const DocumentHubPage = (props: Props) => {
 
   const handleAddDocument = async (values: any) => {
     try {
+      setIsCreating(true);
       const documentDetails = {
         ...values,
       };
@@ -56,6 +58,8 @@ const DocumentHubPage = (props: Props) => {
       router.push(`/documenthub/${data?.id}`);
     } catch (error) {
       console.error("Failed to create document hub", error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -269,7 +273,7 @@ const DocumentHubPage = (props: Props) => {
                   allowClear
                   disabled={!selectedProjectId}
                 >
-                  {tickets.map((ticket: TicketDetails) => (
+                  {tickets.map((ticket: any) => (
                     <Option key={ticket.id} value={ticket.id}>
                       {ticket.ticketNumber} ({ticket.title})
                     </Option>
@@ -288,7 +292,7 @@ const DocumentHubPage = (props: Props) => {
             >
               Cancel
             </Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" loading={isCreating}>
               Create Document
             </Button>
           </div>

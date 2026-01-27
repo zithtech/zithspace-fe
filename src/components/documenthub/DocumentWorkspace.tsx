@@ -198,7 +198,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [collapsed, setCollapsed] = useState(false)
     const [selectedDoc, setSelectedDoc] = useState('api-ref')
     const [searchValue, setSearchValue] = useState('')
-    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set(['recent', 'guides']))
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
     const [viewMode, setViewMode] = useState<ViewMode>("edit");
     const [isSaving, setIsSaving] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -209,6 +209,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addNodeParentId, setAddNodeParentId] = useState<string | null>(null);
     const [addNodeType, setAddNodeType] = useState<'file' | 'folder'>('folder');
+    const [isCreatingNode, setIsCreatingNode] = useState(false);
     const [form] = Form.useForm();
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
@@ -234,6 +235,22 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const editor = useCreateBlockNote({
         initialContent: undefined, // We'll handle content updates via useEffect
     });
+
+    // Expand all nodes by default when data loads and select first document
+    useEffect(() => {
+        if (documentHub?.treeNodes) {
+            const allIds = documentHub.treeNodes.map(n => n.id);
+            setExpandedIds(new Set(allIds));
+
+            // Select first document if currently on placeholder
+            if (selectedDoc === 'api-ref') {
+                const firstFile = documentHub.treeNodes.find(n => n.type === 'file' && n.documentId);
+                if (firstFile && firstFile.documentId) {
+                    setSelectedDoc(firstFile.documentId);
+                }
+            }
+        }
+    }, [documentHub?.treeNodes]);
 
     // Update editor content when document changes or preview version changes
     useEffect(() => {
@@ -311,12 +328,16 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
     const handleCreateNode = async (values: any) => {
         try {
+            setIsCreatingNode(true);
             await DocumentHubService.createTreeNode({
                 documentHubId: documentId,
                 parentId: addNodeParentId,
                 type: addNodeType,
                 title: values.name
             });
+
+            // Add a small delay to ensure the loader is visible and prevent double clicks
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             messageApi.success(`${addNodeType === 'folder' ? 'Folder' : 'File'} created successfully`);
             setIsAddModalOpen(false);
@@ -334,6 +355,8 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         } catch (error) {
             console.error(error);
             messageApi.error('Failed to create item');
+        } finally {
+            setIsCreatingNode(false);
         }
     }
 
@@ -427,26 +450,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Sidebar */}
                 {!isFullScreen && (
                     <aside
-                        className={`flex flex-col border-r border-gray-200 bg-[#f5f5f5] transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'
+                        className={`flex flex-col border-r border-gray-200 bg-[#f5f5f5] transition-all duration-300 overflow-hidden ${collapsed ? 'w-0 border-none' : 'w-64'
                             }`}
                     >
                         {/* Sidebar Header */}
-                        <div className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200">
-                            {!collapsed && (
-                                <h1 className="text-sm font-semibold text-gray-900 truncate">
-                                    {documentHub?.name}
-                                </h1>
-                            )}
-                            <button
-                                onClick={() => setCollapsed(!collapsed)}
-                                className="p-2 rounded-md hover:bg-gray-200 text-gray-600"
-                            >
-                                {collapsed ? (
-                                    <PanelLeft className="w-5 h-5" />
-                                ) : (
-                                    <PanelLeftClose className="w-5 h-5" />
-                                )}
-                            </button>
+                        <div className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200 h-[40px]">
+                            <h1 className="text-sm font-semibold text-gray-900 truncate">
+                                {documentHub?.name}
+                            </h1>
                         </div>
 
                         {!collapsed && (
@@ -518,14 +529,19 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     {/* Header */}
                     <header className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200 bg-white">
                         <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setCollapsed(!collapsed)}
+                                className="p-2 rounded-md hover:bg-gray-100 text-gray-600"
+                            >
+                                {collapsed ? (
+                                    <PanelLeft className="w-5 h-5" />
+                                ) : (
+                                    <PanelLeftClose className="w-5 h-5" />
+                                )}
+                            </button>
                             <h2 className="text-xl font-semibold text-gray-900">
                                 {documentContent?.title || 'Select a document'}
                             </h2>
-                            {/* {documentContent && (
-                                <span className="px-2 py-1 text-xs font-medium bg-green-500 text-white rounded">
-                                    Published
-                                </span>
-                            )} */}
                         </div>
                         <div className="flex items-center gap-2">
                             {selectedDoc && selectedDoc !== 'api-ref' && (
@@ -675,7 +691,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         <Button onClick={() => setIsAddModalOpen(false)}>
                             Cancel
                         </Button>
-                        <Button type="primary" htmlType="submit">
+                        <Button type="primary" htmlType="submit" loading={isCreatingNode}>
                             Create
                         </Button>
                     </div>

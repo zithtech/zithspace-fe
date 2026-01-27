@@ -397,261 +397,6 @@ export default function LeavesPage() {
     },
   ];
 
-  // Build tab items conditionally based on user role
-  const tabItems = [
-    {
-      key: "apply",
-      label: "Apply Leave",
-      children: (
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <Card>
-            <Form form={form} layout="vertical" onFinish={handleApplyLeave}>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="type"
-                  label="Leave Type"
-                  rules={[
-                    { required: true, message: "Please select leave type" },
-                  ]}
-                >
-                  <Select
-                    options={leaveTypes}
-                    placeholder="Select leave type"
-                    onChange={(value) => {
-                      setSelectedLeaveType(value);
-                      // Reset fields when leave type changes
-                      form.setFieldsValue({
-                        durationType: undefined,
-                        duration: undefined,
-                        dateRange: undefined,
-                      });
-                      setDateRange([]);
-                      setSelectedDurationType("");
-                      setCalculatedDuration(0);
-
-                      // Auto-select HOURS for permission
-                      if (value === "permission") {
-                        form.setFieldsValue({ durationType: "HOURS" });
-                        setSelectedDurationType("HOURS");
-                      }
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="durationType"
-                  label="Duration Type"
-                  rules={[
-                    { required: true, message: "Please select duration type" },
-                  ]}
-                >
-                  <Select
-                    options={durationTypes}
-                    placeholder="Select duration type"
-                    disabled={selectedLeaveType === "permission"}
-                    onChange={(value) => {
-                      setSelectedDurationType(value);
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col span={selectedLeaveType === "permission" ? 12 : 16}>
-                <Form.Item
-                  name="dateRange"
-                  label={
-                    selectedLeaveType === "permission" ? "Date" : "Date Range"
-                  }
-                  rules={[
-                    {
-                      required: true,
-                      message:
-                        selectedLeaveType === "permission"
-                          ? "Please select date"
-                          : "Please select date range",
-                    },
-                  ]}
-                >
-                  {selectedLeaveType === "permission" ? (
-                    <DatePicker
-                      style={{ width: "100%" }}
-                      onChange={(date) => {
-                        if (date) {
-                          setDateRange([date, date]);
-                        } else {
-                          setDateRange([]);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <RangePicker
-                      style={{ width: "100%" }}
-                      onChange={(dates) => {
-                        setDateRange(dates || []);
-                      }}
-                    />
-                  )}
-                </Form.Item>
-              </Col>
-
-              {selectedLeaveType === "permission" ? (
-                <Col span={12}>
-                  <Form.Item
-                    name="duration"
-                    label="Duration (Hours)"
-                    rules={[
-                      { required: true, message: "Please enter duration" },
-                      {
-                        validator: (_, value) => {
-                          if (value > 4) {
-                            return Promise.reject(
-                              "Maximum 4 hours allowed for permission"
-                            );
-                          }
-                          if (value <= 0) {
-                            return Promise.reject(
-                              "Duration must be greater than 0"
-                            );
-                          }
-                          return Promise.resolve();
-                        },
-                      },
-                    ]}
-                    help="Maximum 4 hours allowed"
-                  >
-                    <Input
-                      type="number"
-                      step="0.5"
-                      placeholder="Enter hours (max 4)"
-                      max={4}
-                    />
-                  </Form.Item>
-                </Col>
-              ) : (
-                <Col span={8}>
-                  <Form.Item label="Calculated Duration">
-                    <div
-                      style={{
-                        padding: "8px 12px",
-                        background: "#f0f5ff",
-                        border: "1px solid #adc6ff",
-                        borderRadius: "6px",
-                        textAlign: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "20px",
-                          fontWeight: "bold",
-                          color: "#1677ff",
-                        }}
-                      >
-                        {calculatedDuration > 0 ? calculatedDuration : "-"}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "14px",
-                          color: "#666",
-                          marginLeft: "4px",
-                        }}
-                      >
-                        {calculatedDuration === 1 ? "day" : "days"}
-                      </span>
-                    </div>
-                    {selectedDurationType === "HALF_DAY" &&
-                      dateRange.length === 2 &&
-                      dateRange[0] &&
-                      dateRange[1] &&
-                      dayjs(dateRange[1]).diff(dayjs(dateRange[0]), "days") >
-                        0 && (
-                        <Paragraph
-                          type="warning"
-                          style={{
-                            fontSize: "12px",
-                            marginTop: "4px",
-                            marginBottom: 0,
-                          }}
-                        >
-                          Half-day is only available for single day. Switched to
-                          Full Day.
-                        </Paragraph>
-                      )}
-                  </Form.Item>
-                  {/* Hidden field to store calculated duration */}
-                  <Form.Item name="duration" hidden>
-                    <Input type="hidden" />
-                  </Form.Item>
-                </Col>
-              )}
-            </Row>
-
-            <Form.Item
-              name="reason"
-              label="Reason"
-              rules={[{ required: true, message: "Please provide a reason" }]}
-            >
-              <TextArea rows={4} placeholder="Enter reason for leave" />
-            </Form.Item>
-
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                icon={<PlusOutlined />}
-              >
-                Submit Application
-              </Button>
-            </Form.Item>
-            </Form>
-          </Card>
-        </div>
-      ),
-    },
-    {
-      key: "history",
-      label: (
-        <span>
-          My Leave History
-          <Badge count={myLeaves.length} style={{ marginLeft: 8 }} />
-        </span>
-      ),
-      children: (
-        <Card>
-          <Table
-            columns={myLeavesColumns}
-            dataSource={myLeaves}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-          />
-        </Card>
-      ),
-    },
-    {
-      key: "approvals",
-      label: (
-        <span>
-          Pending Approvals
-          <Badge count={pendingApprovals.length} style={{ marginLeft: 8 }} />
-        </span>
-      ),
-      children: (
-        <Card>
-          <Table
-            columns={approvalsColumns}
-            dataSource={pendingApprovals}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-          />
-        </Card>
-      ),
-    },
-  ];
-
   return (
     <ProtectedRoute>
       <MainLayout>
@@ -670,40 +415,125 @@ export default function LeavesPage() {
 
           {/* My Leave Status Section */}
           <div style={{ marginBottom: 32 }}>
-            <Typography.Title level={4} style={{ marginBottom: 16, color: '#1677ff' }}>
+            <Typography.Title level={4} style={{ marginBottom: 16, color: '#5884c1ff' }}>
               My Leave Status
             </Typography.Title>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Card>
-                  <Statistic
-                    title="My Total Leaves"
-                    value={myLeaves.length}
-                    prefix={<ClockCircleOutlined />}
-                  />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card>
-                  <Statistic
-                    title="My Approved Leaves"
-                    value={myApprovedLeaves}
-                    prefix={<CheckCircleOutlined />}
-                    valueStyle={{ color: "#3f8600" }}
-                  />
-                </Card>
-              </Col>
-              <Col span={8}>
-                <Card>
-                  <Statistic
-                    title="My Pending Leaves"
-                    value={myPendingLeaves}
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ color: "#faad14" }}
-                  />
-                </Card>
-              </Col>
-            </Row>
+           <Row gutter={16}>
+  <Col xs={24} md={8}>
+    <Card
+      hoverable
+      bodyStyle={{ padding: 16 }}
+      style={{
+        borderRadius: 12,
+        background: "linear-gradient(135deg, #e6f4ff, #ffffff)",
+      }}
+    >
+      <Row align="middle" justify="space-between">
+        <Col>
+          <Statistic
+            title="My Total Leaves"
+            value={myLeaves.length}
+            valueStyle={{ fontWeight: 600 }}
+          />
+        </Col>
+        <Col>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#1677ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 18,
+            }}
+          >
+            <ClockCircleOutlined />
+          </div>
+        </Col>
+      </Row>
+    </Card>
+  </Col>
+
+  <Col xs={24} md={8}>
+    <Card
+      hoverable
+      bodyStyle={{ padding: 16 }}
+      style={{
+        borderRadius: 12,
+        background: "linear-gradient(135deg, #f6ffed, #ffffff)",
+      }}
+    >
+      <Row align="middle" justify="space-between">
+        <Col>
+          <Statistic
+            title="Approved Leaves"
+            value={myApprovedLeaves}
+            valueStyle={{ color: "#3f8600", fontWeight: 600 }}
+          />
+        </Col>
+        <Col>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#52c41a",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 18,
+            }}
+          >
+            <CheckCircleOutlined />
+          </div>
+        </Col>
+      </Row>
+    </Card>
+  </Col>
+
+  <Col xs={24} md={8}>
+    <Card
+      hoverable
+      bodyStyle={{ padding: 16 }}
+      style={{
+        borderRadius: 12,
+        background: "linear-gradient(135deg, #fff7e6, #ffffff)",
+      }}
+    >
+      <Row align="middle" justify="space-between">
+        <Col>
+          <Statistic
+            title="Pending Leaves"
+            value={myPendingLeaves}
+            valueStyle={{ color: "#faad14", fontWeight: 600 }}
+          />
+        </Col>
+        <Col>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#faad14",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 18,
+            }}
+          >
+            <ClockCircleOutlined />
+          </div>
+        </Col>
+      </Row>
+    </Card>
+  </Col>
+</Row>
+
           </div>
 
           {/* Team Management Section - Only for Managers/Admins */}
@@ -747,7 +577,251 @@ export default function LeavesPage() {
             </div>
           )}
 
-          <Tabs items={hasApprovalRights ? tabItems : tabItems.filter(tab => tab.key !== 'approvals')} />
+          <Row gutter={24}>
+            <Col xs={24} lg={10}>
+              <Card title="Apply Leave">   
+                <Form form={form} layout="vertical" onFinish={handleApplyLeave}>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="type"
+                        label="Leave Type"
+                        rules={[
+                          { required: true, message: "Please select leave type" },
+                        ]}
+                      >
+                        <Select
+                          options={leaveTypes}
+                          placeholder="Select leave type"
+                          onChange={(value) => {
+                            setSelectedLeaveType(value);
+                            // Reset fields when leave type changes
+                            form.setFieldsValue({
+                              durationType: undefined,
+                              duration: undefined,
+                              dateRange: undefined,
+                            });
+                            setDateRange([]);
+                            setSelectedDurationType("");
+                            setCalculatedDuration(0);
+
+                            // Auto-select HOURS for permission
+                            if (value === "permission") {
+                              form.setFieldsValue({ durationType: "HOURS" });
+                              setSelectedDurationType("HOURS");
+                            }
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="durationType"
+                        label="Duration Type"
+                        rules={[
+                          { required: true, message: "Please select duration type" },
+                        ]}
+                      >
+                        <Select
+                          options={durationTypes}
+                          placeholder="Select duration type"
+                          disabled={selectedLeaveType === "permission"}
+                          onChange={(value) => {
+                            setSelectedDurationType(value);
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col span={selectedLeaveType === "permission" ? 12 : 16}>
+                      <Form.Item
+                        name="dateRange"
+                        label={
+                          selectedLeaveType === "permission" ? "Date" : "Date Range"
+                        }
+                        rules={[
+                          {
+                            required: true,
+                            message:
+                              selectedLeaveType === "permission"
+                                ? "Please select date"
+                                : "Please select date range",
+                          },
+                        ]}
+                      >
+                        {selectedLeaveType === "permission" ? (
+                          <DatePicker
+                            style={{ width: "100%" }}
+                            onChange={(date) => {
+                              if (date) {
+                                setDateRange([date, date]);
+                              } else {
+                                setDateRange([]);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <RangePicker
+                            style={{ width: "100%" }}
+                            onChange={(dates) => {
+                              setDateRange(dates || []);
+                            }}
+                          />
+                        )}
+                      </Form.Item>
+                    </Col>
+
+                    {selectedLeaveType === "permission" ? (
+                      <Col span={12}>
+                        <Form.Item
+                          name="duration"
+                          label="Duration (Hours)"
+                          rules={[
+                            { required: true, message: "Please enter duration" },
+                            {
+                              validator: (_, value) => {
+                                if (value > 4) {
+                                  return Promise.reject(
+                                    "Maximum 4 hours allowed for permission"
+                                  );
+                                }
+                                if (value <= 0) {
+                                  return Promise.reject(
+                                    "Duration must be greater than 0"
+                                  );
+                                }
+                                return Promise.resolve();
+                              },
+                            },
+                          ]}
+                          help="Maximum 4 hours allowed"
+                        >
+                          <Input
+                            type="number"
+                            step="0.5"
+                            placeholder="Enter hours (max 4)"
+                            max={4}
+                          />
+                        </Form.Item>
+                      </Col>
+                    ) : (
+                      <Col span={8}>
+                        <Form.Item label="Calculated Duration">
+                          <div
+                            style={{
+                              padding: "8px 12px",
+                              background: "#f0f5ff",
+                              border: "1px solid #adc6ff",
+                              borderRadius: "6px",
+                              textAlign: "center",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "20px",
+                                fontWeight: "bold",
+                                color: "#1677ff",
+                              }}
+                            >
+                              {calculatedDuration > 0 ? calculatedDuration : "-"}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "14px",
+                                color: "#666",
+                                marginLeft: "4px",
+                              }}
+                            >
+                              {calculatedDuration === 1 ? "day" : "days"}
+                            </span>
+                          </div>
+                          {selectedDurationType === "HALF_DAY" &&
+                            dateRange.length === 2 &&
+                            dateRange[0] &&
+                            dateRange[1] &&
+                            dayjs(dateRange[1]).diff(dayjs(dateRange[0]), "days") >
+                              0 && (
+                              <Paragraph
+                                type="warning"
+                                style={{
+                                  fontSize: "12px",
+                                  marginTop: "4px",
+                                  marginBottom: 0,
+                                }}
+                              >
+                                Half-day is only available for single day. Switched to
+                                Full Day.
+                              </Paragraph>
+                            )}
+                        </Form.Item>
+                        {/* Hidden field to store calculated duration */}
+                        <Form.Item name="duration" hidden>
+                          <Input type="hidden" />
+                        </Form.Item>
+                      </Col>
+                    )}
+                  </Row>
+
+                  <Form.Item
+                    name="reason"
+                    label="Reason"
+                    rules={[
+                      { required: true, message: "Please provide a reason" },
+                    ]}
+                  >
+                    <TextArea rows={4} placeholder="Enter reason for leave" />
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={loading}
+                      icon={<PlusOutlined />}
+                    >
+                      Submit Application
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+            </Col>
+            <Col xs={24} lg={14}>
+              <Card
+                title={
+                  <span>
+                    My Leave History
+                    <Badge count={myLeaves.length} style={{ marginLeft: 8 }} />
+                  </span>
+                }
+              >
+                <Table
+                  columns={myLeavesColumns}
+                  dataSource={myLeaves}
+                  rowKey="id"
+                  pagination={{ pageSize: 10 }}
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          {hasApprovalRights && (
+            <div style={{ marginTop: 32 }}>
+              <Typography.Title level={4} style={{ marginBottom: 16 }}>
+                Pending Approvals
+                <Badge count={pendingApprovals.length} style={{ marginLeft: 8 }} />
+              </Typography.Title>
+              <Card>
+                <Table
+                  columns={approvalsColumns}
+                  dataSource={pendingApprovals}
+                  rowKey="id"
+                  pagination={{ pageSize: 10 }}
+                />
+              </Card>
+            </div>
+          )}
 
           <Modal
             title="Review Leave Application"

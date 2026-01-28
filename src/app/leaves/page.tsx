@@ -417,6 +417,17 @@ export default function LeavesPage() {
       ),
     },
   ];
+const cardStyle = {
+  borderRadius: 16,
+  boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+  transition: "all 0.3s ease",
+  cursor: "pointer",
+};
+
+const hoverStyle = {
+  transform: "translateY(-4px)",
+  boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+};
 
   return (
     <ProtectedRoute>
@@ -458,7 +469,7 @@ export default function LeavesPage() {
                 key: "leaves",
                 label: (
                   <span>
-                    <ClockCircleOutlined /> My Leave Status
+                    <ClockCircleOutlined /> Apply Leave
                   </span>
                 ),
               },
@@ -506,28 +517,35 @@ export default function LeavesPage() {
           />
 
           {/* My Leave Status Section */}
-          <div style={{ marginBottom: 32 }}>
-            {/* <Typography.Title level={4} style={{ marginBottom: 16, color: '#5884c1ff' }}>
-              My Leave Status
-            </Typography.Title> */}
+          <div style={{ marginBottom: 8 }}>
+            <Typography.Title level={4} style={{ marginBottom: 8, color: '#5884c1ff' }}>
+              Apply Leave Status
+            </Typography.Title>
            <Row gutter={16}>
   <Col xs={24} md={8}>
-    <Card
-      hoverable
-      bodyStyle={{ padding: 16 }}
-      style={{
-        borderRadius: 12,
-        background: "linear-gradient(135deg, #e6f4ff, #ffffff)",
-      }}
-    >
-      <Row align="middle" justify="space-between">
-        <Col>
-          <Statistic
-            title="My Total Leaves"
-            value={myLeaves.length}
-            valueStyle={{ fontWeight: 600 }}
-          />
-        </Col>
+   <Card
+  size="small"
+  hoverable
+  bodyStyle={{ padding: 16 }}
+  style={{
+    borderRadius: 12,
+    background: "linear-gradient(135deg, #e6f4ff, #ffffff)",
+  }}
+>
+  <Row align="middle" justify="space-between">
+    
+    {/* LEFT - Title */}
+    <Col>
+      <div style={{ color: "#595959", fontSize: 14 }}>
+        My Total Leaves
+      </div>
+    </Col>
+
+    {/* RIGHT - Icon + Number */}
+    <Col>
+      <Row align="middle" gutter={12}>
+        
+        {/* ICON */}
         <Col>
           <div
             style={{
@@ -545,27 +563,51 @@ export default function LeavesPage() {
             <ClockCircleOutlined />
           </div>
         </Col>
+
+        {/* NUMBER */}
+        <Col>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: "#1677ff",
+            }}
+          >
+            {myLeaves.length}
+          </div>
+        </Col>
+
       </Row>
-    </Card>
+    </Col>
+
+  </Row>
+</Card>
+
   </Col>
 
   <Col xs={24} md={8}>
     <Card
-      hoverable
-      bodyStyle={{ padding: 16 }}
-      style={{
-        borderRadius: 12,
-        background: "linear-gradient(135deg, #f6ffed, #ffffff)",
-      }}
-    >
-      <Row align="middle" justify="space-between">
-        <Col>
-          <Statistic
-            title="Approved Leaves"
-            value={myApprovedLeaves}
-            valueStyle={{ color: "#3f8600", fontWeight: 600 }}
-          />
-        </Col>
+  hoverable
+  bodyStyle={{ padding: 16 }}
+  style={{
+    borderRadius: 12,
+    background: "linear-gradient(135deg, #f6ffed, #ffffff)",
+  }}
+>
+  <Row align="middle" justify="space-between">
+    
+    {/* LEFT - Title */}
+    <Col>
+      <div style={{ color: "#595959", fontSize: 14 }}>
+        Approved Leaves
+      </div>
+    </Col>
+
+    {/* RIGHT - Icon + Number */}
+    <Col>
+      <Row align="middle" gutter={12}>
+        
+        {/* ICON */}
         <Col>
           <div
             style={{
@@ -583,27 +625,51 @@ export default function LeavesPage() {
             <CheckCircleOutlined />
           </div>
         </Col>
+
+        {/* NUMBER */}
+        <Col>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: "#3f8600",
+            }}
+          >
+            {myApprovedLeaves}
+          </div>
+        </Col>
+
       </Row>
-    </Card>
+    </Col>
+
+  </Row>
+</Card>
+
   </Col>
 
   <Col xs={24} md={8}>
-    <Card
-      hoverable
-      bodyStyle={{ padding: 16 }}
-      style={{
-        borderRadius: 12,
-        background: "linear-gradient(135deg, #fff7e6, #ffffff)",
-      }}
-    >
-      <Row align="middle" justify="space-between">
-        <Col>
-          <Statistic
-            title="Pending Leaves"
-            value={myPendingLeaves}
-            valueStyle={{ color: "#faad14", fontWeight: 600 }}
-          />
-        </Col>
+   <Card
+  hoverable
+  bodyStyle={{ padding: 16 }}
+  style={{
+    borderRadius: 12,
+    background: "linear-gradient(135deg, #fff7e6, #ffffff)",
+  }}
+>
+  <Row align="middle" justify="space-between">
+    
+    {/* LEFT - Title */}
+    <Col>
+      <div style={{ color: "#595959", fontSize: 14 }}>
+        Pending Leaves
+      </div>
+    </Col>
+
+    {/* RIGHT - Icon + Number */}
+    <Col>
+      <Row align="middle" gutter={12}>
+        
+        {/* ICON */}
         <Col>
           <div
             style={{
@@ -621,8 +687,26 @@ export default function LeavesPage() {
             <ClockCircleOutlined />
           </div>
         </Col>
+
+        {/* NUMBER */}
+        <Col>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: "#faad14",
+            }}
+          >
+            {myPendingLeaves}
+          </div>
+        </Col>
+
       </Row>
-    </Card>
+    </Col>
+
+  </Row>
+</Card>
+
   </Col>
 </Row>
 
@@ -630,40 +714,194 @@ export default function LeavesPage() {
 
           {/* Team Management Section - Only for Managers/Admins */}
           {hasApprovalRights && (
-            <div style={{ marginBottom: 32 }}>
-              <Typography.Title level={4} style={{ marginBottom: 16, color: '#fa8c16' }}>
+            <div style={{ marginBottom: 10 }}>
+              <Typography.Title level={4} style={{ marginBottom: 10, color: '#fa8c16' }}>
                 Team Management
               </Typography.Title>
               <Row gutter={16}>
                 <Col span={8}>
-                  <Card style={{ borderColor: '#ffa940' }}>
-                    <Statistic
-                      title="Team Pending Approvals"
-                      value={pendingApprovals.length}
-                      prefix={<ClockCircleOutlined />}
-                      valueStyle={{ color: "#fa8c16" }}
-                    />
-                  </Card>
+      <Card
+  hoverable
+  bodyStyle={{ padding: 16 }}
+  style={{
+    ...cardStyle,
+    background: "linear-gradient(135deg, #fff7e6, #ffffff)",
+  }}
+>
+  <Row align="middle" justify="space-between">
+
+    {/* LEFT - Title */}
+    <Col>
+      <div style={{ color: "#595959", fontSize: 14 }}>
+        Team Pending Approvals
+      </div>
+    </Col>
+
+    {/* RIGHT - Icon + Number */}
+    <Col>
+      <Row align="middle" gutter={12}>
+
+        {/* ICON */}
+        <Col>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#fa8c16",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 18,
+            }}
+          >
+            <ClockCircleOutlined />
+          </div>
+        </Col>
+
+        {/* NUMBER */}
+        <Col>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: "#fa8c16",
+            }}
+          >
+            {pendingApprovals.length}
+          </div>
+        </Col>
+
+      </Row>
+    </Col>
+
+  </Row>
+</Card>
+
                 </Col>
                 <Col span={8}>
-                  <Card>
-                    <Statistic
-                      title="Approved This Month"
-                      value={0}
-                      prefix={<CheckCircleOutlined />}
-                      valueStyle={{ color: "#52c41a" }}
-                    />
-                  </Card>
+                  <Card
+  hoverable
+  bodyStyle={{ padding: 16 }}
+  style={{
+    ...cardStyle,
+    background: "linear-gradient(135deg, #e6fffb, #ffffff)",
+  }}
+>
+  <Row align="middle" justify="space-between">
+
+    {/* LEFT - Title */}
+    <Col>
+      <div style={{ color: "#595959", fontSize: 14 }}>
+        Approved This Month
+      </div>
+    </Col>
+
+    {/* RIGHT - Icon + Number */}
+    <Col>
+      <Row align="middle" gutter={12}>
+
+        {/* ICON */}
+        <Col>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#52c41a",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 18,
+            }}
+          >
+            <CheckCircleOutlined />
+          </div>
+        </Col>
+
+        {/* NUMBER */}
+        <Col>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: "#52c41a",
+            }}
+          >
+            {0}
+          </div>
+        </Col>
+
+      </Row>
+    </Col>
+
+  </Row>
+</Card>
+
+
                 </Col>
                 <Col span={8}>
-                  <Card>
-                    <Statistic
-                      title="Rejected This Month"
-                      value={0}
-                      prefix={<CloseCircleOutlined />}
-                      valueStyle={{ color: "#ff4d4f" }}
-                    />
-                  </Card>
+                 <Card
+  hoverable
+  bodyStyle={{ padding: 16 }}
+  style={{
+    ...cardStyle,
+    background: "linear-gradient(135deg, #f1f5e3ff, #ffffff)",
+  }}
+>
+  <Row align="middle" justify="space-between">
+
+    {/* LEFT - Title */}
+    <Col>
+      <div style={{ color: "#595959", fontSize: 14 }}>
+        Rejected This Month
+      </div>
+    </Col>
+
+    {/* RIGHT - Icon + Number */}
+    <Col>
+      <Row align="middle" gutter={12}>
+
+        {/* ICON */}
+        <Col>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "#ff4d4f",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 18,
+            }}
+          >
+            <CloseCircleOutlined />
+          </div>
+        </Col>
+
+        {/* NUMBER */}
+        <Col>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 600,
+              color: "#ff4d4f",
+            }}
+          >
+            {0}
+          </div>
+        </Col>
+
+      </Row>
+    </Col>
+
+  </Row>
+</Card>
+
                 </Col>
               </Row>
             </div>
@@ -671,7 +909,7 @@ export default function LeavesPage() {
 
           <Row gutter={24}>
             <Col xs={24} lg={10}>
-              <Card title="Apply Leave">   
+              <Card title="Apply Leave" style={{marginTop:10,height:380}}>   
                 <Form form={form} layout="vertical" onFinish={handleApplyLeave}>
                   <Row gutter={16}>
                     <Col span={12}>
@@ -802,23 +1040,29 @@ export default function LeavesPage() {
                       <Col span={8}>
                         <Form.Item label="Calculated Duration">
                           <div
-                            style={{
-                              padding: "8px 12px",
-                              background: "#f0f5ff",
-                              border: "1px solid #adc6ff",
-                              borderRadius: "6px",
-                              textAlign: "center",
-                            }}
+                             style={{
+    padding: "4px 8px",          // ⬇️ reduced
+    background: "#f0f5ff",
+    border: "1px solid #adc6ff",
+    borderRadius: "6px",
+    textAlign: "center",
+    minHeight: 34,               // ⬇️ fixed compact height
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  }}
                           >
                             <span
-                              style={{
-                                fontSize: "20px",
-                                fontWeight: "bold",
-                                color: "#1677ff",
-                              }}
-                            >
-                              {calculatedDuration > 0 ? calculatedDuration : "-"}
-                            </span>
+    style={{
+      fontSize: "16px",          // ⬇️ smaller
+      fontWeight: 600,
+      color: "#1677ff",
+      lineHeight: 1,
+    }}
+  >
+    {calculatedDuration > 0 ? calculatedDuration : "-"}
+  </span>
                             <span
                               style={{
                                 fontSize: "14px",
@@ -863,7 +1107,7 @@ export default function LeavesPage() {
                       { required: true, message: "Please provide a reason" },
                     ]}
                   >
-                    <TextArea rows={4} placeholder="Enter reason for leave" />
+                    <TextArea rows={3} placeholder="Enter reason for leave" />
                   </Form.Item>
 
                   <Form.Item>
@@ -880,40 +1124,61 @@ export default function LeavesPage() {
               </Card>
             </Col>
             <Col xs={24} lg={14}>
-              <Card
-                title={
-                  <span>
-                    My Leave History
-                    <Badge count={myLeaves.length} style={{ marginLeft: 8 }} />
-                  </span>
-                }
+              <Card bodyStyle={{ paddingTop: 8 }}
+              style={{marginTop:10}}
               >
-                <Table
-                  columns={myLeavesColumns}
-                  dataSource={myLeaves}
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
+                <Tabs
+                  defaultActiveKey="history"
+                  items={[
+                    {
+                      key: "history",
+                      label: (
+                        <span>
+                          My Leave History
+                          <Badge
+                            count={myLeaves.length}
+                            style={{ marginLeft: 8 }}
+                          />
+                        </span>
+                      ),
+                      children: (
+                        <Table
+                          columns={myLeavesColumns}
+                          dataSource={myLeaves}
+                          rowKey="id"
+                          pagination={{ pageSize: 10 }}
+                        />
+                      ),
+                    },
+                    ...(hasApprovalRights
+                      ? [
+                          {
+                            key: "approvals",
+                            label: (
+                              <span>
+                                Pending Approvals
+                                <Badge
+                                  count={pendingApprovals.length}
+                                  style={{ marginLeft: 8 }}
+                                />
+                              </span>
+                            ),
+                            children: (
+                              <Table
+                                columns={approvalsColumns}
+                                dataSource={pendingApprovals}
+                                rowKey="id"
+                                pagination={{ pageSize: 10 }}
+                              />
+                            ),
+                          },
+                        ]
+                      : []),
+                  ]}
                 />
               </Card>
             </Col>
           </Row>
-
-          {hasApprovalRights && (
-            <div style={{ marginTop: 32 }}>
-              <Typography.Title level={4} style={{ marginBottom: 16 }}>
-                Pending Approvals
-                <Badge count={pendingApprovals.length} style={{ marginLeft: 8 }} />
-              </Typography.Title>
-              <Card>
-                <Table
-                  columns={approvalsColumns}
-                  dataSource={pendingApprovals}
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
-                />
-              </Card>
-            </div>
-          )}
 
           <Modal
             title="Review Leave Application"

@@ -13,7 +13,7 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Button, Popconfirm } from 'antd';
+import { Button } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { Ticket } from '@/services/ticketService';
 import { KanbanColumn } from './KanbanColumn';
@@ -129,23 +129,15 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
           justifyContent: 'flex-end',
           paddingBottom:"10px",
           paddingRight:"10px"
-
         }}>
-          <Popconfirm
-            title="Complete Sprint"
-            description="Archive completed tickets and return incomplete tickets to backlog?"
-            onConfirm={onCompleteSprint}
-            okText="Complete"
-            cancelText="Cancel"
+          <Button
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            size="small"
+            onClick={onCompleteSprint}
           >
-            <Button
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              size="small"
-            >
-              Complete Sprint
-            </Button>
-          </Popconfirm>
+            Complete Sprint
+          </Button>
         </div>
       )}
       

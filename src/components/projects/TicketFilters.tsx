@@ -1,6 +1,6 @@
 import React from "react";
-import { Select, Space, Button, Typography } from "antd";
-import { FilterOutlined, ClearOutlined } from "@ant-design/icons";
+import { Select, Space, Button, Typography, Switch } from "antd";
+import { FilterOutlined, ClearOutlined, InboxOutlined } from "@ant-design/icons";
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 
 const { Text } = Typography;
@@ -9,6 +9,7 @@ interface FilterState {
   status: string[];
   priority: string[];
   assignee: string[];
+  showArchived?: boolean;
 }
 
 interface TicketFiltersProps {
@@ -16,6 +17,7 @@ interface TicketFiltersProps {
   onFilterChange: (key: keyof FilterState, value: any) => void;
   members: Array<{ value: string; label: string; position?: string }>;
   onReset?: () => void;
+  showArchivedToggle?: boolean;
 }
 
 export const TicketFilters: React.FC<TicketFiltersProps> = ({
@@ -23,6 +25,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
   onFilterChange,
   members,
   onReset,
+  showArchivedToggle = false,
 }) => {
   return (
     <div style={{ width: 300 }}>
@@ -36,6 +39,28 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
       </div>
 
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        {/* Show Archived Toggle */}
+        {showArchivedToggle && (
+          <div
+            style={{
+              padding: 12,
+              background: "#f5f5f5",
+              borderRadius: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Space size={8}>
+              <InboxOutlined />
+              <Text>Show Archived</Text>
+            </Space>
+            <Switch
+              checked={filters.showArchived || false}
+              onChange={(checked) => onFilterChange("showArchived", checked)}
+            />
+          </div>
+        )}
         {/* Status Filter */}
         <div>
           <Text type="secondary" style={{ fontSize: 12 }}>STATUS</Text>

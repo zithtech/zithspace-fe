@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { Settings2 } from 'lucide-react';
 import {
   Card,
   Tabs,
@@ -16,28 +17,48 @@ import {
   Tag,
   Modal,
   message,
+  notification,
   Space,
   Statistic,
   Row,
   Col,
   Badge,
   Typography,
+  Tooltip,
+  Popconfirm,
+  Switch,
+  Checkbox,
+  List,
+  InputNumber,
+  Divider,
+  Segmented,
 } from "antd";
 import {
   PlusOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
+  ScheduleOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SettingOutlined,
+  ApartmentOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
 import dayjs from "dayjs";
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
-const { Paragraph } = Typography;
+const { Paragraph, Text } = Typography;
 
 export default function LeavesPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [api, contextHolder] = notification.useNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [myLeaves, setMyLeaves] = useState<Leave[]>([]);
@@ -889,6 +910,7 @@ export default function LeavesPage() {
               </div>
             )}
           </Modal>
+
         </div>
       </MainLayout>
     </ProtectedRoute>

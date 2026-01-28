@@ -14,6 +14,7 @@ import {
   Space,
   Divider,
   Badge,
+  App,
 } from "antd";
 import {
   MenuFoldOutlined,
@@ -38,6 +39,7 @@ import {
   AccountBookOutlined,
   BarChartOutlined,
   FileZipOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -50,10 +52,49 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { user, logout, isLoading: authLoading } = useAuth();
- 
+  const { notification } = App.useApp();
+
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
+
+  // Connect to user stream for global notifications
+  React.useEffect(() => {
+    if (user?.id) {
+      const { streamClient } = require('@/services/streamClient');
+
+      streamClient.connectUser(user.id);
+
+      streamClient.onNotification((data: any) => {
+        // Don't show notification if we are already on the channel page
+        // This is a simple check, could be more robust with path checking
+        if (pathname.includes(`/chat/${data.channelId}`)) {
+          return;
+        }
+
+        const key = `notification-${Date.now()}`;
+
+        notification.info({
+          key,
+          message: `New message from ${data.senderName}`,
+          description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+          placement: 'topRight',
+          duration: 4.5,
+          onClick: () => {
+            notification.destroy(key);
+            router.push(`/chat/${data.channelId}`);
+          },
+          style: {
+            cursor: 'pointer'
+          }
+        });
+      });
+
+      return () => {
+        streamClient.disconnectUser();
+      };
+    }
+  }, [user?.id, pathname, router, notification]);
 
 
   // Fetch data (only render badges after mount to prevent hydration errors)
@@ -445,6 +486,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Right side - User actions */}
           <Space size={16} align="center">
+            {/* Chat */}
+            <Button
+              type="text"
+              icon={<MessageOutlined />}
+              onClick={() => router.push('/chat')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+
             {/* Notifications */}
             <Button
               type="text"

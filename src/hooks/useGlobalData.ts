@@ -33,7 +33,7 @@ export const useUserTicketsByProjects = (
 ) => {
   return useQuery({
     queryKey: [...globalDataKeys.tickets, projectId],
-    queryFn: () => TicketService.getTicketsByProjectId(projectId as string),
+    queryFn: () => TicketService.getProjectTickets(projectId as string),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     enabled: Boolean(projectId) && options?.enabled !== false,

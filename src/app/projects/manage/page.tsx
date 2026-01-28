@@ -20,6 +20,7 @@ import {
   Avatar,
   Typography,
   message,
+  Segmented,
 } from "antd";
 import {
   PlusOutlined,
@@ -31,6 +32,9 @@ import {
   TeamOutlined,
   CalendarOutlined,
   ProjectOutlined,
+  AppstoreOutlined,
+  BarsOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -74,6 +78,12 @@ const ProjectsManagePage: React.FC = () => {
     pageSize: 10,
     total: 0,
   });
+
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
+  // View Project Modal (READ-ONLY)
+  const [viewProject, setViewProject] = useState<Project | null>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState<ProjectsFilters>({
@@ -383,10 +393,7 @@ const ProjectsManagePage: React.FC = () => {
             <Button
               type="text"
               icon={<EyeOutlined />}
-              onClick={() => {
-                // Navigate to project details - implement as needed
-                message.info("Project details view - to be implemented");
-              }}
+              onClick={() => openViewModal(record)}
             />
           </Tooltip>
           {user?.role &&
@@ -456,6 +463,10 @@ const ProjectsManagePage: React.FC = () => {
       </MainLayout>
     );
   }
+  const openViewModal = (project: Project) => {
+    setViewProject(project);
+    setViewModalOpen(true);
+  };
 
   return (
     <MainLayout>
@@ -466,23 +477,74 @@ const ProjectsManagePage: React.FC = () => {
             align="center"
             style={{ width: "100%", justifyContent: "space-between" }}
           >
+            {/* Left title */}
             <Space align="center">
               <ProjectOutlined style={{ fontSize: 24, color: "#1677ff" }} />
               <Title level={3} style={{ margin: 0 }}>
                 Projects Management
               </Title>
             </Space>
-            {user?.role &&
-              RBAC.hasPermission(user.role as any, "projects", "create") && (
+
+            {/* Right controls */}
+            <Space>
+              {/* Card / List Toggle */}
+              <div
+                style={{
+                  display: "flex",
+                  background: "#f5f5f5",
+                  borderRadius: 10,
+                  padding: 2,
+                  boxShadow: "inset 0 0 0 1px #d9d9d9",
+                }}
+              >
+                {/* Card View Button */}
                 <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAdd}
-                  size="middle"
+                  type="text"
+                  icon={<AppstoreOutlined />}
+                  onClick={() => setViewMode("card")}
+                  style={{
+                    borderRadius: 8,
+                    padding: "4px 14px",
+                    fontWeight: 500,
+                    background: viewMode === "card" ? "#1677ff" : "transparent",
+                    color: viewMode === "card" ? "#fff" : "#595959",
+                    transition: "all 0.25s ease",
+                  }}
                 >
-                  Add Project
+                  Card
                 </Button>
-              )}
+
+                {/* Table View Button */}
+                <Button
+                  type="text"
+                  icon={<BarsOutlined />}
+                  onClick={() => setViewMode("table")}
+                  style={{
+                    borderRadius: 8,
+                    padding: "4px 14px",
+                    fontWeight: 500,
+                    background:
+                      viewMode === "table" ? "#1677ff" : "transparent",
+                    color: viewMode === "table" ? "#fff" : "#595959",
+                    transition: "all 0.25s ease",
+                  }}
+                >
+                  List
+                </Button>
+              </div>
+
+              {/* Add Project */}
+              {user?.role &&
+                RBAC.hasPermission(user.role as any, "projects", "create") && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAdd}
+                  >
+                    Add Project
+                  </Button>
+                )}
+            </Space>
           </Space>
         </div>
 
@@ -571,31 +633,228 @@ const ProjectsManagePage: React.FC = () => {
         </Card>
 
         {/* Projects Table */}
-        <Card size="small">
-          <Table
-            columns={columns}
-            dataSource={projects}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total}`,
-              onChange: (page, pageSize) => {
-                setFilters((prev) => ({
-                  ...prev,
-                  page: page,
-                  limit: pageSize || 10,
-                }));
-              },
-            }}
-            scroll={{ x: 1200 }}
-          />
-        </Card>
+
+        {viewMode === "card" ? (
+          <Row gutter={[24, 24]}>
+            {loading
+              ? [1, 2, 3, 4].map((i) => (
+                  <Col xs={24} sm={12} lg={8} xl={6} key={i}>
+                    <Card
+                      loading
+                      style={{
+                        height: 320,
+                        borderRadius: 18,
+                      }}
+                    />
+                  </Col>
+                ))
+              : projects.map((project) => (
+                  <Col xs={24} sm={12} lg={8} xl={6} key={project.id}>
+                    <Card
+                      hoverable
+                      className="project-card"
+                      onClick={() => openViewModal(project)}
+                      style={{
+                        height: "100%",
+                        borderRadius: 18,
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                        border: "1px solid rgba(22,119,255,0.15)",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+                        transition: "all 0.35s cubic-bezier(.4,0,.2,1)",
+                        background:
+                          "linear-gradient(180deg, #ffffff 0%, #fafcff 100%)",
+                      }}
+                      bodyStyle={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        padding: 18,
+                      }}
+                    >
+                      {/* ===== HEADER ===== */}
+                      <div
+                        style={{
+                          display: "flex",
+                          marginBottom: 18,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Avatar
+                          size={52}
+                          style={{
+                            background:
+                              "linear-gradient(135deg, #1677ff, #69b1ff)",
+                            boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
+                            fontWeight: "bold",
+                            fontSize: 18,
+                          }}
+                        >
+                          {project.name?.[0]?.toUpperCase()}
+                        </Avatar>
+
+                        <div style={{ marginLeft: 14, flex: 1 }}>
+                          <Title
+                            level={5}
+                            style={{
+                              margin: 0,
+                              lineHeight: 1.3,
+                              fontWeight: 600,
+                            }}
+                            ellipsis={{ tooltip: project.name }}
+                          >
+                            {project.name}
+                          </Title>
+
+                          {project.code && (
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {project.code}
+                            </Text>
+                          )}
+
+                          <div style={{ marginTop: 6 }}>
+                            <Tag
+                              color={getStatusColor(project.status)}
+                              style={{
+                                fontWeight: 600,
+                                borderRadius: 6,
+                              }}
+                            >
+                              {project.status.toUpperCase().replace("-", " ")}
+                            </Tag>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ===== PROJECT INFO ===== */}
+                      <div
+                        style={{
+                          background: "rgba(245,248,250,0.9)",
+                          backdropFilter: "blur(6px)",
+                          padding: 14,
+                          borderRadius: 12,
+                          marginBottom: 18,
+                          flex: 1,
+                          border: "1px solid #e6f4ff",
+                        }}
+                      >
+                        <Space direction="vertical" size={8}>
+                          <Space>
+                            <UserOutlined style={{ color: "#1677ff" }} />
+                            <Text style={{ fontSize: 13 }}>
+                              {project.projectManager?.name || "—"}
+                            </Text>
+                          </Space>
+
+                          <Space>
+                            <TeamOutlined style={{ color: "#1677ff" }} />
+                            <Text style={{ fontSize: 13 }}>
+                              {project.members?.length || 0} members
+                            </Text>
+                          </Space>
+
+                          <Space>
+                            <CalendarOutlined style={{ color: "#1677ff" }} />
+                            <Text style={{ fontSize: 13 }}>
+                              {dayjs(project.startDate).format("MMM DD, YYYY")}
+                            </Text>
+                          </Space>
+
+                          {project.endDate && (
+                            <Space>
+                              <CalendarOutlined style={{ color: "#1677ff" }} />
+                              <Text style={{ fontSize: 13 }}>
+                                {dayjs(project.endDate).format("MMM DD, YYYY")}
+                              </Text>
+                            </Space>
+                          )}
+                        </Space>
+                      </div>
+
+                      {/* ===== FOOTER ===== */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Tag
+                          color={getPriorityColor(project.defaultPriority)}
+                          style={{
+                            fontWeight: 600,
+                            borderRadius: 6,
+                          }}
+                        >
+                          {project.defaultPriority.toUpperCase()}
+                        </Tag>
+
+                        <Space>
+                          {user?.role &&
+                            RBAC.hasPermission(
+                              user.role as any,
+                              "projects",
+                              "update"
+                            ) && (
+                              <Button
+                                type="text"
+                                icon={<EditOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEdit(project);
+                                }}
+                              />
+                            )}
+
+                          {user?.role &&
+                            RBAC.hasPermission(
+                              user.role as any,
+                              "projects",
+                              "delete"
+                            ) && (
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(project.id);
+                                }}
+                              />
+                            )}
+                        </Space>
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+          </Row>
+        ) : (
+          /* ===== TABLE VIEW ===== */
+          <Card size="small">
+            <Table
+              columns={columns}
+              dataSource={projects}
+              rowKey="id"
+              loading={loading}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} projects`,
+              }}
+              scroll={{ x: 1200 }}
+              onRow={(record) => ({
+                onClick: () => {
+                  openViewModal(record); // 👈 modal open
+                },
+              })}
+            />
+          </Card>
+        )}
 
         {/* Create/Edit Modal */}
         <Modal
@@ -781,6 +1040,153 @@ const ProjectsManagePage: React.FC = () => {
               </Button>
             </div>
           </Form>
+        </Modal>
+
+        {/*Modal*/}
+        <Modal
+          open={viewModalOpen}
+          onCancel={() => {
+            setViewModalOpen(false);
+            setViewProject(null);
+          }}
+          footer={null}
+          width={760}
+          centered
+          destroyOnClose
+          styles={{
+            content: {
+              borderRadius: 20,
+              padding: 0,
+              overflow: "hidden",
+            },
+          }}
+        >
+          {viewProject && (
+            <>
+              {/* ===== HEADER ===== */}
+              <div
+              className="view-modal-header"
+                style={{
+                  padding: "22px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                  background:
+                    "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                  color: "#fff",
+                }}
+              >
+                <Avatar
+                  size={52}
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.25)",
+                    fontWeight: 700,
+                    fontSize: 20,
+                  }}
+                >
+                  {viewProject.name?.[0]?.toUpperCase()}
+                </Avatar>
+
+                <div style={{ flex: 1 }}>
+                  <Title level={4} style={{ margin: 0, color: "#fff" }}>
+                    {viewProject.name}
+                  </Title>
+                  <Text style={{ color: "rgba(255,255,255,0.85)" }}>
+                    {viewProject.code || "—"}
+                  </Text>
+                </div>
+
+                <Tag
+                  color={getStatusColor(viewProject.status)}
+                  style={{
+                    fontWeight: 600,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                  }}
+                >
+                  {viewProject.status.toUpperCase()}
+                </Tag>
+              </div>
+
+              {/* ===== BODY ===== */}
+              <div style={{ padding: 24, background: "#fafcff" }}>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Card size="small" bordered={false} className="view-card">
+                      <Space>
+                        <UserOutlined style={{ color: "#1677ff" }} />
+                        <Text strong>Project Manager</Text>
+                      </Space>
+                      <div style={{ marginTop: 6 }}>
+                        {viewProject.projectManager?.name || "—"}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  <Col span={12}>
+                    <Card size="small" bordered={false} className="view-card">
+                      <Space>
+                        <TeamOutlined style={{ color: "#1677ff" }} />
+                        <Text strong>Team Members</Text>
+                      </Space>
+                      <div style={{ marginTop: 6 }}>
+                        {viewProject.members?.length || 0} members
+                      </div>
+                    </Card>
+                  </Col>
+
+                  <Col span={12}>
+                    <Card size="small" bordered={false} className="view-card">
+                      <Space>
+                        <CalendarOutlined style={{ color: "#1677ff" }} />
+                        <Text strong>Start Date</Text>
+                      </Space>
+                      <div style={{ marginTop: 6 }}>
+                        {dayjs(viewProject.startDate).format("MMM DD, YYYY")}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  <Col span={12}>
+                    <Card size="small" bordered={false} className="view-card">
+                      <Space>
+                        <CalendarOutlined style={{ color: "#1677ff" }} />
+                        <Text strong>End Date</Text>
+                      </Space>
+                      <div style={{ marginTop: 6 }}>
+                        {viewProject.endDate
+                          ? dayjs(viewProject.endDate).format("MMM DD, YYYY")
+                          : "—"}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  <Col span={24}>
+                    <Card size="small" bordered={false} className="view-card">
+                      <Text strong>Description</Text>
+                      <div style={{ marginTop: 8, color: "#595959" }}>
+                        {viewProject.description || "No description provided."}
+                      </div>
+                    </Card>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* ===== FOOTER ===== */}
+              <div
+                style={{
+                  padding: "14px 20px",
+                  borderTop: "1px solid #f0f0f0",
+                  background: "#fff",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Button onClick={() => setViewModalOpen(false)} className="view-close-btn">Close</Button>
+              </div>
+            </>
+          )}
         </Modal>
       </div>
     </MainLayout>

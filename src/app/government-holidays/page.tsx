@@ -654,7 +654,7 @@ export default function GovernmentHolidaysPage() {
                   key: "leaves",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> My Leave Status
+                      <ClockCircleOutlined /> Apply Leave
                     </span>
                   ),
                 },

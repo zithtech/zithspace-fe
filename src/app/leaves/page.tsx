@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Settings2 } from 'lucide-react';
+import { Settings2 } from "lucide-react";
 import {
   Card,
   Tabs,
@@ -72,14 +72,21 @@ export default function LeavesPage() {
   const [calculatedDuration, setCalculatedDuration] = useState<number>(0);
   const [approvingLeaveId, setApprovingLeaveId] = useState<string | null>(null);
   const [rejectingLeaveId, setRejectingLeaveId] = useState<string | null>(null);
-  const [cancellingLeaveId, setCancellingLeaveId] = useState<string | null>(null);
+  const [cancellingLeaveId, setCancellingLeaveId] = useState<string | null>(
+    null,
+  );
 
   // Determine if user has approval rights
-  const hasApprovalRights = user?.role === 'super_admin' || user?.role === 'admin' || pendingApprovals.length > 0;
-  
+  const hasApprovalRights =
+    user?.role === "super_admin" ||
+    user?.role === "admin" ||
+    pendingApprovals.length > 0;
+
   // Calculate personal leave stats
   const myPendingLeaves = myLeaves.filter((l) => l.status === "pending").length;
-  const myApprovedLeaves = myLeaves.filter((l) => l.status === "approved").length;
+  const myApprovedLeaves = myLeaves.filter(
+    (l) => l.status === "approved",
+  ).length;
 
   const leaveTypes = [
     { label: "Sick Leave", value: "sick_leave" },
@@ -176,11 +183,11 @@ export default function LeavesPage() {
       };
 
       const response = await leaveService.applyLeave(data);
-      
+
       // Optimistic update: Add new leave to state immediately
       const newLeave = response;
-      setMyLeaves(prev => [newLeave, ...prev]);
-      
+      setMyLeaves((prev) => [newLeave, ...prev]);
+
       message.success("Leave application submitted successfully");
       form.resetFields();
       // Removed fetchMyLeaves() - using optimistic update instead
@@ -193,21 +200,28 @@ export default function LeavesPage() {
 
   const handleApprove = async (leaveId: string) => {
     if (approvingLeaveId) return; // Prevent multiple clicks
-    
+
     try {
       setApprovingLeaveId(leaveId);
       await leaveService.approveLeave(leaveId);
-      
+
       // Optimistic update: Remove from pending approvals immediately
-      setPendingApprovals(prev => prev.filter(l => l.id !== leaveId));
-      
+      setPendingApprovals((prev) => prev.filter((l) => l.id !== leaveId));
+
       // Update status in myLeaves if it exists (for managers viewing their own leaves)
-      setMyLeaves(prev => prev.map(l => 
-        l.id === leaveId 
-          ? { ...l, status: 'approved', approvedAt: new Date().toISOString(), approvedById: user?.id }
-          : l
-      ));
-      
+      setMyLeaves((prev) =>
+        prev.map((l) =>
+          l.id === leaveId
+            ? {
+                ...l,
+                status: "approved",
+                approvedAt: new Date().toISOString(),
+                approvedById: user?.id,
+              }
+            : l,
+        ),
+      );
+
       message.success("Leave approved successfully");
       setApprovalModalVisible(false);
       setSelectedLeave(null);
@@ -233,17 +247,25 @@ export default function LeavesPage() {
     try {
       setRejectingLeaveId(leaveId);
       await leaveService.rejectLeave(leaveId, rejectionReason);
-      
+
       // Optimistic update: Remove from pending approvals immediately
-      setPendingApprovals(prev => prev.filter(l => l.id !== leaveId));
-      
+      setPendingApprovals((prev) => prev.filter((l) => l.id !== leaveId));
+
       // Update status in myLeaves if it exists
-      setMyLeaves(prev => prev.map(l => 
-        l.id === leaveId 
-          ? { ...l, status: 'rejected', rejectionReason, approvedAt: new Date().toISOString(), approvedById: user?.id }
-          : l
-      ));
-      
+      setMyLeaves((prev) =>
+        prev.map((l) =>
+          l.id === leaveId
+            ? {
+                ...l,
+                status: "rejected",
+                rejectionReason,
+                approvedAt: new Date().toISOString(),
+                approvedById: user?.id,
+              }
+            : l,
+        ),
+      );
+
       message.success("Leave rejected");
       setApprovalModalVisible(false);
       setRejectionReason("");
@@ -265,12 +287,12 @@ export default function LeavesPage() {
     try {
       setCancellingLeaveId(leaveId);
       await leaveService.cancelLeave(leaveId);
-      
+
       // Optimistic update: Update status immediately
-      setMyLeaves(prev => prev.map(l => 
-        l.id === leaveId ? { ...l, status: 'cancelled' } : l
-      ));
-      
+      setMyLeaves((prev) =>
+        prev.map((l) => (l.id === leaveId ? { ...l, status: "cancelled" } : l)),
+      );
+
       message.success("Leave cancelled successfully");
       // Removed fetchMyLeaves() - using optimistic update instead
     } catch (error: any) {
@@ -347,9 +369,9 @@ export default function LeavesPage() {
       key: "action",
       render: (_: any, record: Leave) =>
         record.status === "pending" && (
-          <Button 
-            size="small" 
-            danger 
+          <Button
+            size="small"
+            danger
             loading={cancellingLeaveId === record.id}
             disabled={!!cancellingLeaveId}
             onClick={() => handleCancel(record.id)}
@@ -417,23 +439,23 @@ export default function LeavesPage() {
       ),
     },
   ];
-const cardStyle = {
-  borderRadius: 16,
-  boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-  transition: "all 0.3s ease",
-  cursor: "pointer",
-};
+  const cardStyle = {
+    borderRadius: 16,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    transition: "all 0.3s ease",
+    cursor: "pointer",
+  };
 
-const hoverStyle = {
-  transform: "translateY(-4px)",
-  boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
-};
+  const hoverStyle = {
+    transform: "translateY(-4px)",
+    boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+  };
 
   return (
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: 24 }}>
-          <div style={{  marginBottom: 16 }}>
+          <div style={{ marginBottom: 16 }}>
             {/* {user && (
               <Tag 
                 color={hasApprovalRights ? "orange" : "blue"} 
@@ -451,8 +473,7 @@ const hoverStyle = {
               if (key === "leaves") router.push("/leaves");
               if (key === "holidays") router.push("/government-holidays");
               if (key === "adjustments") router.push("/leave-adjustments");
-              if (key === "configuration")
-                router.push("/leave-configuration");
+              if (key === "configuration") router.push("/leave-configuration");
               if (key === "positions") router.push("/position-configuration");
               if (key === "addLeaves") router.push("/add-goverment-leaves");
             }}
@@ -518,390 +539,364 @@ const hoverStyle = {
 
           {/* My Leave Status Section */}
           <div style={{ marginBottom: 8 }}>
-            <Typography.Title level={4} style={{ marginBottom: 8, color: '#5884c1ff' }}>
+            <Typography.Title
+              level={4}
+              style={{ marginBottom: 8, color: "#5884c1ff" }}
+            >
               Apply Leave Status
             </Typography.Title>
-           <Row gutter={16}>
-  <Col xs={24} md={8}>
-   <Card
-  size="small"
-  hoverable
-  bodyStyle={{ padding: 16 }}
-  style={{
-    borderRadius: 12,
-    background: "linear-gradient(135deg, #e6f4ff, #ffffff)",
-  }}
->
-  <Row align="middle" justify="space-between">
-    
-    {/* LEFT - Title */}
-    <Col>
-      <div style={{ color: "#595959", fontSize: 14 }}>
-        My Total Leaves
-      </div>
-    </Col>
+            <Row gutter={16}>
+              <Col xs={24} md={8}>
+                <Card
+                  size="small"
+                  hoverable
+                  bodyStyle={{ padding: 16 }}
+                  style={{
+                    borderRadius: 12,
+                    background: "linear-gradient(135deg, #e6f4ff, #ffffff)",
+                  }}
+                >
+                  <Row align="middle" justify="space-between">
+                    {/* LEFT - Title */}
+                    <Col>
+                      <div style={{ color: "#595959", fontSize: 14 }}>
+                        My Total Leaves
+                      </div>
+                    </Col>
 
-    {/* RIGHT - Icon + Number */}
-    <Col>
-      <Row align="middle" gutter={12}>
-        
-        {/* ICON */}
-        <Col>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "#1677ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 18,
-            }}
-          >
-            <ClockCircleOutlined />
-          </div>
-        </Col>
+                    {/* RIGHT - Icon + Number */}
+                    <Col>
+                      <Row align="middle" gutter={12}>
+                        {/* ICON */}
+                        <Col>
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              background: "#1677ff",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: 18,
+                            }}
+                          >
+                            <ClockCircleOutlined />
+                          </div>
+                        </Col>
 
-        {/* NUMBER */}
-        <Col>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 600,
-              color: "#1677ff",
-            }}
-          >
-            {myLeaves.length}
-          </div>
-        </Col>
+                        {/* NUMBER */}
+                        <Col>
+                          <div
+                            style={{
+                              fontSize: 22,
+                              fontWeight: 600,
+                              color: "#1677ff",
+                            }}
+                          >
+                            {myLeaves.length}
+                          </div>
+                        </Col>
+                      </Row>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
 
-      </Row>
-    </Col>
+              <Col xs={24} md={8}>
+                <Card
+                  hoverable
+                  bodyStyle={{ padding: 16 }}
+                  style={{
+                    borderRadius: 12,
+                    background: "linear-gradient(135deg, #f6ffed, #ffffff)",
+                  }}
+                >
+                  <Row align="middle" justify="space-between">
+                    {/* LEFT - Title */}
+                    <Col>
+                      <div style={{ color: "#595959", fontSize: 14 }}>
+                        Approved Leaves
+                      </div>
+                    </Col>
 
-  </Row>
-</Card>
+                    {/* RIGHT - Icon + Number */}
+                    <Col>
+                      <Row align="middle" gutter={12}>
+                        {/* ICON */}
+                        <Col>
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              background: "#52c41a",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: 18,
+                            }}
+                          >
+                            <CheckCircleOutlined />
+                          </div>
+                        </Col>
 
-  </Col>
+                        {/* NUMBER */}
+                        <Col>
+                          <div
+                            style={{
+                              fontSize: 22,
+                              fontWeight: 600,
+                              color: "#3f8600",
+                            }}
+                          >
+                            {myApprovedLeaves}
+                          </div>
+                        </Col>
+                      </Row>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
 
-  <Col xs={24} md={8}>
-    <Card
-  hoverable
-  bodyStyle={{ padding: 16 }}
-  style={{
-    borderRadius: 12,
-    background: "linear-gradient(135deg, #f6ffed, #ffffff)",
-  }}
->
-  <Row align="middle" justify="space-between">
-    
-    {/* LEFT - Title */}
-    <Col>
-      <div style={{ color: "#595959", fontSize: 14 }}>
-        Approved Leaves
-      </div>
-    </Col>
+              <Col xs={24} md={8}>
+                <Card
+                  hoverable
+                  bodyStyle={{ padding: 16 }}
+                  style={{
+                    borderRadius: 12,
+                    background: "linear-gradient(135deg, #fff7e6, #ffffff)",
+                  }}
+                >
+                  <Row align="middle" justify="space-between">
+                    {/* LEFT - Title */}
+                    <Col>
+                      <div style={{ color: "#595959", fontSize: 14 }}>
+                        Pending Leaves
+                      </div>
+                    </Col>
 
-    {/* RIGHT - Icon + Number */}
-    <Col>
-      <Row align="middle" gutter={12}>
-        
-        {/* ICON */}
-        <Col>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "#52c41a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 18,
-            }}
-          >
-            <CheckCircleOutlined />
-          </div>
-        </Col>
+                    {/* RIGHT - Icon + Number */}
+                    <Col>
+                      <Row align="middle" gutter={12}>
+                        {/* ICON */}
+                        <Col>
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              background: "#faad14",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: 18,
+                            }}
+                          >
+                            <ClockCircleOutlined />
+                          </div>
+                        </Col>
 
-        {/* NUMBER */}
-        <Col>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 600,
-              color: "#3f8600",
-            }}
-          >
-            {myApprovedLeaves}
-          </div>
-        </Col>
-
-      </Row>
-    </Col>
-
-  </Row>
-</Card>
-
-  </Col>
-
-  <Col xs={24} md={8}>
-   <Card
-  hoverable
-  bodyStyle={{ padding: 16 }}
-  style={{
-    borderRadius: 12,
-    background: "linear-gradient(135deg, #fff7e6, #ffffff)",
-  }}
->
-  <Row align="middle" justify="space-between">
-    
-    {/* LEFT - Title */}
-    <Col>
-      <div style={{ color: "#595959", fontSize: 14 }}>
-        Pending Leaves
-      </div>
-    </Col>
-
-    {/* RIGHT - Icon + Number */}
-    <Col>
-      <Row align="middle" gutter={12}>
-        
-        {/* ICON */}
-        <Col>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "#faad14",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 18,
-            }}
-          >
-            <ClockCircleOutlined />
-          </div>
-        </Col>
-
-        {/* NUMBER */}
-        <Col>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 600,
-              color: "#faad14",
-            }}
-          >
-            {myPendingLeaves}
-          </div>
-        </Col>
-
-      </Row>
-    </Col>
-
-  </Row>
-</Card>
-
-  </Col>
-</Row>
-
+                        {/* NUMBER */}
+                        <Col>
+                          <div
+                            style={{
+                              fontSize: 22,
+                              fontWeight: 600,
+                              color: "#faad14",
+                            }}
+                          >
+                            {myPendingLeaves}
+                          </div>
+                        </Col>
+                      </Row>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
           </div>
 
           {/* Team Management Section - Only for Managers/Admins */}
           {hasApprovalRights && (
             <div style={{ marginBottom: 10 }}>
-              <Typography.Title level={4} style={{ marginBottom: 10, color: '#fa8c16' }}>
+              <Typography.Title
+                level={4}
+                style={{ marginBottom: 10, color: "#fa8c16" }}
+              >
                 Team Management
               </Typography.Title>
               <Row gutter={16}>
                 <Col span={8}>
-      <Card
-  hoverable
-  bodyStyle={{ padding: 16 }}
-  style={{
-    ...cardStyle,
-    background: "linear-gradient(135deg, #fff7e6, #ffffff)",
-  }}
->
-  <Row align="middle" justify="space-between">
+                  <Card
+                    hoverable
+                    bodyStyle={{ padding: 16 }}
+                    style={{
+                      ...cardStyle,
+                      background: "linear-gradient(135deg, #fff7e6, #ffffff)",
+                    }}
+                  >
+                    <Row align="middle" justify="space-between">
+                      {/* LEFT - Title */}
+                      <Col>
+                        <div style={{ color: "#595959", fontSize: 14 }}>
+                          Team Pending Approvals
+                        </div>
+                      </Col>
 
-    {/* LEFT - Title */}
-    <Col>
-      <div style={{ color: "#595959", fontSize: 14 }}>
-        Team Pending Approvals
-      </div>
-    </Col>
+                      {/* RIGHT - Icon + Number */}
+                      <Col>
+                        <Row align="middle" gutter={12}>
+                          {/* ICON */}
+                          <Col>
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: "50%",
+                                background: "#fa8c16",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#fff",
+                                fontSize: 18,
+                              }}
+                            >
+                              <ClockCircleOutlined />
+                            </div>
+                          </Col>
 
-    {/* RIGHT - Icon + Number */}
-    <Col>
-      <Row align="middle" gutter={12}>
-
-        {/* ICON */}
-        <Col>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "#fa8c16",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 18,
-            }}
-          >
-            <ClockCircleOutlined />
-          </div>
-        </Col>
-
-        {/* NUMBER */}
-        <Col>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 600,
-              color: "#fa8c16",
-            }}
-          >
-            {pendingApprovals.length}
-          </div>
-        </Col>
-
-      </Row>
-    </Col>
-
-  </Row>
-</Card>
-
+                          {/* NUMBER */}
+                          <Col>
+                            <div
+                              style={{
+                                fontSize: 22,
+                                fontWeight: 600,
+                                color: "#fa8c16",
+                              }}
+                            >
+                              {pendingApprovals.length}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Col>
+                    </Row>
+                  </Card>
                 </Col>
                 <Col span={8}>
                   <Card
-  hoverable
-  bodyStyle={{ padding: 16 }}
-  style={{
-    ...cardStyle,
-    background: "linear-gradient(135deg, #e6fffb, #ffffff)",
-  }}
->
-  <Row align="middle" justify="space-between">
+                    hoverable
+                    bodyStyle={{ padding: 16 }}
+                    style={{
+                      ...cardStyle,
+                      background: "linear-gradient(135deg, #e6fffb, #ffffff)",
+                    }}
+                  >
+                    <Row align="middle" justify="space-between">
+                      {/* LEFT - Title */}
+                      <Col>
+                        <div style={{ color: "#595959", fontSize: 14 }}>
+                          Approved This Month
+                        </div>
+                      </Col>
 
-    {/* LEFT - Title */}
-    <Col>
-      <div style={{ color: "#595959", fontSize: 14 }}>
-        Approved This Month
-      </div>
-    </Col>
+                      {/* RIGHT - Icon + Number */}
+                      <Col>
+                        <Row align="middle" gutter={12}>
+                          {/* ICON */}
+                          <Col>
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: "50%",
+                                background: "#52c41a",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#fff",
+                                fontSize: 18,
+                              }}
+                            >
+                              <CheckCircleOutlined />
+                            </div>
+                          </Col>
 
-    {/* RIGHT - Icon + Number */}
-    <Col>
-      <Row align="middle" gutter={12}>
-
-        {/* ICON */}
-        <Col>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "#52c41a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 18,
-            }}
-          >
-            <CheckCircleOutlined />
-          </div>
-        </Col>
-
-        {/* NUMBER */}
-        <Col>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 600,
-              color: "#52c41a",
-            }}
-          >
-            {0}
-          </div>
-        </Col>
-
-      </Row>
-    </Col>
-
-  </Row>
-</Card>
-
-
+                          {/* NUMBER */}
+                          <Col>
+                            <div
+                              style={{
+                                fontSize: 22,
+                                fontWeight: 600,
+                                color: "#52c41a",
+                              }}
+                            >
+                              {0}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Col>
+                    </Row>
+                  </Card>
                 </Col>
                 <Col span={8}>
-                 <Card
-  hoverable
-  bodyStyle={{ padding: 16 }}
-  style={{
-    ...cardStyle,
-    background: "linear-gradient(135deg, #f1f5e3ff, #ffffff)",
-  }}
->
-  <Row align="middle" justify="space-between">
+                  <Card
+                    hoverable
+                    bodyStyle={{ padding: 16 }}
+                    style={{
+                      ...cardStyle,
+                      background: "linear-gradient(135deg, #f1f5e3ff, #ffffff)",
+                    }}
+                  >
+                    <Row align="middle" justify="space-between">
+                      {/* LEFT - Title */}
+                      <Col>
+                        <div style={{ color: "#595959", fontSize: 14 }}>
+                          Rejected This Month
+                        </div>
+                      </Col>
 
-    {/* LEFT - Title */}
-    <Col>
-      <div style={{ color: "#595959", fontSize: 14 }}>
-        Rejected This Month
-      </div>
-    </Col>
+                      {/* RIGHT - Icon + Number */}
+                      <Col>
+                        <Row align="middle" gutter={12}>
+                          {/* ICON */}
+                          <Col>
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: "50%",
+                                background: "#ff4d4f",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#fff",
+                                fontSize: 18,
+                              }}
+                            >
+                              <CloseCircleOutlined />
+                            </div>
+                          </Col>
 
-    {/* RIGHT - Icon + Number */}
-    <Col>
-      <Row align="middle" gutter={12}>
-
-        {/* ICON */}
-        <Col>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: "#ff4d4f",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 18,
-            }}
-          >
-            <CloseCircleOutlined />
-          </div>
-        </Col>
-
-        {/* NUMBER */}
-        <Col>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 600,
-              color: "#ff4d4f",
-            }}
-          >
-            {0}
-          </div>
-        </Col>
-
-      </Row>
-    </Col>
-
-  </Row>
-</Card>
-
+                          {/* NUMBER */}
+                          <Col>
+                            <div
+                              style={{
+                                fontSize: 22,
+                                fontWeight: 600,
+                                color: "#ff4d4f",
+                              }}
+                            >
+                              {0}
+                            </div>
+                          </Col>
+                        </Row>
+                      </Col>
+                    </Row>
+                  </Card>
                 </Col>
               </Row>
             </div>
@@ -909,7 +904,7 @@ const hoverStyle = {
 
           <Row gutter={24}>
             <Col xs={24} lg={10}>
-              <Card title="Apply Leave" style={{marginTop:10,height:380}}>   
+              <Card title="Apply Leave" style={{ marginTop: 10, height: 380 }}>
                 <Form form={form} layout="vertical" onFinish={handleApplyLeave}>
                   <Row gutter={16}>
                     <Col span={12}>
@@ -917,7 +912,10 @@ const hoverStyle = {
                         name="type"
                         label="Leave Type"
                         rules={[
-                          { required: true, message: "Please select leave type" },
+                          {
+                            required: true,
+                            message: "Please select leave type",
+                          },
                         ]}
                       >
                         <Select
@@ -949,7 +947,10 @@ const hoverStyle = {
                         name="durationType"
                         label="Duration Type"
                         rules={[
-                          { required: true, message: "Please select duration type" },
+                          {
+                            required: true,
+                            message: "Please select duration type",
+                          },
                         ]}
                       >
                         <Select
@@ -969,7 +970,9 @@ const hoverStyle = {
                       <Form.Item
                         name="dateRange"
                         label={
-                          selectedLeaveType === "permission" ? "Date" : "Date Range"
+                          selectedLeaveType === "permission"
+                            ? "Date"
+                            : "Date Range"
                         }
                         rules={[
                           {
@@ -1009,17 +1012,20 @@ const hoverStyle = {
                           name="duration"
                           label="Duration (Hours)"
                           rules={[
-                            { required: true, message: "Please enter duration" },
+                            {
+                              required: true,
+                              message: "Please enter duration",
+                            },
                             {
                               validator: (_, value) => {
                                 if (value > 4) {
                                   return Promise.reject(
-                                    "Maximum 4 hours allowed for permission"
+                                    "Maximum 4 hours allowed for permission",
                                   );
                                 }
                                 if (value <= 0) {
                                   return Promise.reject(
-                                    "Duration must be greater than 0"
+                                    "Duration must be greater than 0",
                                   );
                                 }
                                 return Promise.resolve();
@@ -1040,29 +1046,31 @@ const hoverStyle = {
                       <Col span={8}>
                         <Form.Item label="Calculated Duration">
                           <div
-                             style={{
-    padding: "4px 8px",          // ⬇️ reduced
-    background: "#f0f5ff",
-    border: "1px solid #adc6ff",
-    borderRadius: "6px",
-    textAlign: "center",
-    minHeight: 34,               // ⬇️ fixed compact height
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  }}
+                            style={{
+                              padding: "4px 8px", // ⬇️ reduced
+                              background: "#f0f5ff",
+                              border: "1px solid #adc6ff",
+                              borderRadius: "6px",
+                              textAlign: "center",
+                              minHeight: 34, // ⬇️ fixed compact height
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 4,
+                            }}
                           >
                             <span
-    style={{
-      fontSize: "16px",          // ⬇️ smaller
-      fontWeight: 600,
-      color: "#1677ff",
-      lineHeight: 1,
-    }}
-  >
-    {calculatedDuration > 0 ? calculatedDuration : "-"}
-  </span>
+                              style={{
+                                fontSize: "16px", // ⬇️ smaller
+                                fontWeight: 600,
+                                color: "#1677ff",
+                                lineHeight: 1,
+                              }}
+                            >
+                              {calculatedDuration > 0
+                                ? calculatedDuration
+                                : "-"}
+                            </span>
                             <span
                               style={{
                                 fontSize: "14px",
@@ -1077,8 +1085,10 @@ const hoverStyle = {
                             dateRange.length === 2 &&
                             dateRange[0] &&
                             dateRange[1] &&
-                            dayjs(dateRange[1]).diff(dayjs(dateRange[0]), "days") >
-                              0 && (
+                            dayjs(dateRange[1]).diff(
+                              dayjs(dateRange[0]),
+                              "days",
+                            ) > 0 && (
                               <Paragraph
                                 type="warning"
                                 style={{
@@ -1087,8 +1097,8 @@ const hoverStyle = {
                                   marginBottom: 0,
                                 }}
                               >
-                                Half-day is only available for single day. Switched to
-                                Full Day.
+                                Half-day is only available for single day.
+                                Switched to Full Day.
                               </Paragraph>
                             )}
                         </Form.Item>
@@ -1124,9 +1134,7 @@ const hoverStyle = {
               </Card>
             </Col>
             <Col xs={24} lg={14}>
-              <Card bodyStyle={{ paddingTop: 8 }}
-              style={{marginTop:10}}
-              >
+              <Card bodyStyle={{ paddingTop: 8 }} style={{ marginTop: 10 }}>
                 <Tabs
                   defaultActiveKey="history"
                   items={[
@@ -1246,7 +1254,6 @@ const hoverStyle = {
               </div>
             )}
           </Modal>
-
         </div>
       </MainLayout>
     </ProtectedRoute>

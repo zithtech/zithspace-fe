@@ -237,15 +237,17 @@ const leaveTypesData = [
     description: "Leave during temporary workforce layoff.",
   },
   {
-  id: 35,
-  name: "Menstrual Leave",
-  description: "Menstrual Leave is a paid leave granted to eligible female employees to address health and wellness needs during their menstrual cycle. This leave is provided in accordance with company policy and may require prior approval."
-},
-{
-  id: 36,
-  name: "Sandwich Leave",
-  description: "Sandwich Leave is applied when an employee takes leave before and after a holiday or weekend, causing the intervening non-working days to be counted as leave, as per company policy."
-},
+    id: 35,
+    name: "Menstrual Leave",
+    description:
+      "Menstrual Leave is a paid leave granted to eligible female employees to address health and wellness needs during their menstrual cycle. This leave is provided in accordance with company policy and may require prior approval.",
+  },
+  {
+    id: 36,
+    name: "Sandwich Leave",
+    description:
+      "Sandwich Leave is applied when an employee takes leave before and after a holiday or weekend, causing the intervening non-working days to be counted as leave, as per company policy.",
+  },
 ];
 
 interface LeaveType {
@@ -287,7 +289,7 @@ export default function leaveConfiguration() {
           key: "2",
           name: "Sick Leave",
           code: "SL",
-           description: "Leave taken when an employee is ill or unwell.",
+          description: "Leave taken when an employee is ill or unwell.",
           unit: "Days",
           paid: true,
           approval: "Required",
@@ -297,7 +299,7 @@ export default function leaveConfiguration() {
           key: "3",
           name: "Loss of Pay",
           code: "LOP",
-           description: "Leave during temporary workforce layoff.",
+          description: "Leave during temporary workforce layoff.",
           unit: "Days",
           paid: false,
           approval: "Required",
@@ -399,14 +401,13 @@ export default function leaveConfiguration() {
       key: "actions",
       render: (_: unknown, record: LeaveType) => (
         <Space>
-            <Tooltip title="Edit Leave Type">
-          <Button
-            type="text"
-            icon={<Settings2 size={16} />}
-            onClick={() => handleEdit(record)}
-          />
+          <Tooltip title="Edit Leave Type">
+            <Button
+              type="text"
+              icon={<Settings2 size={16} />}
+              onClick={() => handleEdit(record)}
+            />
           </Tooltip>
-    
         </Space>
       ),
     },
@@ -449,8 +450,8 @@ export default function leaveConfiguration() {
                 approval: values.approval ? "Required" : "Auto",
                 status: values.status ? "Active" : "Inactive",
               }
-            : item
-        )
+            : item,
+        ),
       );
       setEditingKey(null);
       api.success({
@@ -495,8 +496,7 @@ export default function leaveConfiguration() {
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration")
                   router.push("/leave-configuration");
-                if (key === "positions")
-                  router.push("/position-configuration");
+                if (key === "positions") router.push("/position-configuration");
                 if (key === "addLeaves") router.push("/add-goverment-leaves");
               }}
               items={[
@@ -512,7 +512,7 @@ export default function leaveConfiguration() {
                   key: "leaves",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> My Leave Status
+                      <ClockCircleOutlined /> Apply Leave
                     </span>
                   ),
                 },
@@ -608,7 +608,7 @@ export default function leaveConfiguration() {
               dataSource={dataSource.filter(
                 (item) =>
                   item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                  item.code.toLowerCase().includes(searchText.toLowerCase())
+                  item.code.toLowerCase().includes(searchText.toLowerCase()),
               )}
               loading={loading}
               style={{ marginTop: 24 }}
@@ -652,17 +652,21 @@ export default function leaveConfiguration() {
                         value: l.name,
                       }))}
                       filterOption={(inputValue, option) =>
-                        option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                        option!.value
+                          .toUpperCase()
+                          .indexOf(inputValue.toUpperCase()) !== -1
                       }
                       onChange={(value) => {
                         const selectedLeave = leaveTypesData.find(
-                          (l) => l.name === value
+                          (l) => l.name === value,
                         );
-                        const code = value ? value
-                          .split(" ")
-                          .map((x: string) => x[0])
-                          .join("")
-                          .toUpperCase() : "";
+                        const code = value
+                          ? value
+                              .split(" ")
+                              .map((x: string) => x[0])
+                              .join("")
+                              .toUpperCase()
+                          : "";
                         form.setFieldsValue({
                           code,
                           description: selectedLeave?.description || "",
@@ -684,8 +688,10 @@ export default function leaveConfiguration() {
               </Row>
 
               {/* Description */}
-              <Form.Item name="description" label="Description"
-               rules={[{ required: true, message: "Please Description" }]}
+              <Form.Item
+                name="description"
+                label="Description"
+                rules={[{ required: true, message: "Please Description" }]}
               >
                 <TextArea rows={2} placeholder="Enter description" />
               </Form.Item>
@@ -814,4 +820,4 @@ export default function leaveConfiguration() {
       </MainLayout>
     </ProtectedRoute>
   );
-}               
+}

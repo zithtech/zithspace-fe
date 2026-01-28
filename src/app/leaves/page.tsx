@@ -422,8 +422,7 @@ export default function LeavesPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-            <h1 style={{ margin: 0 }}>Leave & Permission Management</h1>
+          <div style={{  marginBottom: 16 }}>
             {/* {user && (
               <Tag 
                 color={hasApprovalRights ? "orange" : "blue"} 
@@ -434,11 +433,83 @@ export default function LeavesPage() {
             )} */}
           </div>
 
+          <Tabs
+            activeKey="leaves"
+            onChange={(key) => {
+              if (key === "dashboard") router.push("/leaves-dashboard");
+              if (key === "leaves") router.push("/leaves");
+              if (key === "holidays") router.push("/government-holidays");
+              if (key === "adjustments") router.push("/leave-adjustments");
+              if (key === "configuration")
+                router.push("/leave-configuration");
+              if (key === "positions") router.push("/position-configuration");
+              if (key === "addLeaves") router.push("/add-goverment-leaves");
+            }}
+            items={[
+              {
+                key: "dashboard",
+                label: (
+                  <span>
+                    <AppstoreOutlined /> Dashboard
+                  </span>
+                ),
+              },
+              {
+                key: "leaves",
+                label: (
+                  <span>
+                    <ClockCircleOutlined /> My Leave Status
+                  </span>
+                ),
+              },
+              {
+                key: "holidays",
+                label: (
+                  <span>
+                    <ScheduleOutlined /> Government Holidays
+                  </span>
+                ),
+              },
+              {
+                key: "adjustments",
+                label: (
+                  <span>
+                    <EditOutlined /> Leave Adjustment
+                  </span>
+                ),
+              },
+              {
+                key: "configuration",
+                label: (
+                  <span>
+                    <SettingOutlined /> Leave Configuration
+                  </span>
+                ),
+              },
+              {
+                key: "positions",
+                label: (
+                  <span>
+                    <ApartmentOutlined /> Position Configuration
+                  </span>
+                ),
+              },
+              {
+                key: "addLeaves",
+                label: (
+                  <span>
+                    <PlusOutlined /> Add Government Leaves
+                  </span>
+                ),
+              },
+            ]}
+          />
+
           {/* My Leave Status Section */}
           <div style={{ marginBottom: 32 }}>
-            <Typography.Title level={4} style={{ marginBottom: 16, color: '#5884c1ff' }}>
+            {/* <Typography.Title level={4} style={{ marginBottom: 16, color: '#5884c1ff' }}>
               My Leave Status
-            </Typography.Title>
+            </Typography.Title> */}
            <Row gutter={16}>
   <Col xs={24} md={8}>
     <Card

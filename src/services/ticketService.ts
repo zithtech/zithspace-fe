@@ -826,6 +826,143 @@ class TicketService {
       throw new Error(errorMessage);
     }
   }
+
+  /**
+   * Get development info for a ticket
+   */
+  static async getDevelopmentInfo(ticketId: string): Promise<any> {
+    try {
+      const response = await apiClient.get(
+        `/api/tickets/${ticketId}/development-info`,
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error fetching development info:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to fetch development info";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Update development info for a ticket
+   */
+  static async updateDevelopmentInfo(
+    ticketId: string,
+    data: {
+      repositoryName?: string;
+      repositoryUrl?: string;
+      branchName?: string;
+    },
+  ): Promise<any> {
+    try {
+      const response = await apiClient.put(
+        `/api/tickets/${ticketId}/development-info`,
+        data,
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating development info:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to update development info";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Get pull requests for a ticket
+   */
+  static async getPullRequests(ticketId: string): Promise<any[]> {
+    try {
+      const response = await apiClient.get(
+        `/api/tickets/${ticketId}/pull-requests`,
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error fetching pull requests:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to fetch pull requests";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Create a pull request
+   */
+  static async createPullRequest(
+    ticketId: string,
+    data: {
+      title: string;
+      url: string;
+      prNumber?: number;
+      status?: string;
+    },
+  ): Promise<any> {
+    try {
+      const response = await apiClient.post(
+        `/api/tickets/${ticketId}/pull-requests`,
+        data,
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error creating pull request:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to create pull request";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Update a pull request
+   */
+  static async updatePullRequest(
+    ticketId: string,
+    prId: string,
+    data: {
+      title?: string;
+      url?: string;
+      prNumber?: number;
+      status?: string;
+    },
+  ): Promise<any> {
+    try {
+      const response = await apiClient.put(
+        `/api/tickets/${ticketId}/pull-requests/${prId}`,
+        data,
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating pull request:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to update pull request";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Delete a pull request
+   */
+  static async deletePullRequest(
+    ticketId: string,
+    prId: string,
+  ): Promise<void> {
+    try {
+      await apiClient.delete(`/api/tickets/${ticketId}/pull-requests/${prId}`);
+    } catch (error: any) {
+      console.error("Error deleting pull request:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to delete pull request";
+      throw new Error(errorMessage);
+    }
+  }
 }
+
+// Export service methods for direct use in hooks
+export const getDevelopmentInfo = TicketService.getDevelopmentInfo;
+export const updateDevelopmentInfo = TicketService.updateDevelopmentInfo;
+export const getPullRequests = TicketService.getPullRequests;
+export const createPullRequest = TicketService.createPullRequest;
+export const updatePullRequest = TicketService.updatePullRequest;
+export const deletePullRequest = TicketService.deletePullRequest;
 
 export default TicketService;

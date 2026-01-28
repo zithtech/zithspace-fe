@@ -46,6 +46,7 @@ import {
   RelatedLinksSection,
 } from "../ticket-details";
 import SubtasksSection from "../ticket-details/SubtasksSection";
+import DevelopmentSection from "../ticket-details/DevelopmentSection";
 import TicketService from "@/services/ticketService";
 
 // Add relativeTime plugin
@@ -528,6 +529,13 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                             isUpdatingLink={updateLinkMutation.isPending}
                                             isDeletingLink={deleteLinkMutation.isPending}
                                         />
+                                    )
+                                },
+                                {
+                                    key: 'development',
+                                    label: 'Development',
+                                    children: (
+                                        <DevelopmentSection ticketId={currentTicketId} />
                                     )
                                 }
                             ]}

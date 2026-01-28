@@ -85,3 +85,38 @@ export interface RelatedLinkFormData {
 }
 
 export type LinkType = "ui_design" | "scope_doc" | "sample_response" | "dev_doc";
+
+// Development Info Types
+export interface TicketDevelopmentInfo {
+  id: string;
+  ticketId: string;
+  repositoryName: string | null;
+  repositoryUrl: string | null;
+  branchName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketPullRequest {
+  id: string;
+  ticketId: string;
+  title: string;
+  url: string;
+  prNumber: number | null;
+  status: 'open' | 'merged' | 'closed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DevelopmentInfoFormData {
+  repositoryName?: string;
+  repositoryUrl?: string;
+  branchName?: string;
+}
+
+export interface PullRequestFormData {
+  title: string;
+  url: string;
+  prNumber?: number;
+  status?: 'open' | 'merged' | 'closed';
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Select, Space, Input, Button, List, Typography, message } from "antd";
+import { Card, Select, Space, Input, Button, List, Typography, message, Divider } from "antd";
 import {
   PlusOutlined,
   BgColorsOutlined,
@@ -120,14 +120,16 @@ export default function RelatedLinksSection({
   };
 
   return (
-    <Card
-      title="Related Links"
-      style={{ marginTop: 16 }}
-      extra={
-        !isEditing && (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Typography.Title level={5} style={{ fontSize: 13, margin: 0 }}>Related Links</Typography.Title>
+        {!isEditing && (
           <Select
             placeholder="Add Link"
-            style={{ width: 150 }}
+            size="small"
+            variant="borderless"
+            style={{ width: 120, fontSize: 12 }}
+            dropdownMatchSelectWidth={false}
             value={null}
             onChange={(value: LinkType) => {
               setSelectedLinkType(value);
@@ -135,201 +137,176 @@ export default function RelatedLinksSection({
               setLinkFormData({ description: "", url: "" });
               setEditingLinkId(null);
             }}
-            suffixIcon={<PlusOutlined />}
+            suffixIcon={<PlusOutlined style={{ fontSize: 12 }} />}
           >
-            <Select.Option value="ui_design">
-              <Space>
-                <BgColorsOutlined />
-                UI Design Link
-              </Space>
-            </Select.Option>
-            <Select.Option value="scope_doc">
-              <Space>
-                <FileTextOutlined />
-                Scope Doc Link
-              </Space>
-            </Select.Option>
-            <Select.Option value="sample_response">
-              <Space>
-                <ApiOutlined />
-                Sample Response/Payload
-              </Space>
-            </Select.Option>
-            <Select.Option value="dev_doc">
-              <Space>
-                <CodeOutlined />
-                Dev Doc Link
-              </Space>
-            </Select.Option>
+            <Select.Option value="ui_design"><Space><BgColorsOutlined /> UI Design</Space></Select.Option>
+            <Select.Option value="scope_doc"><Space><FileTextOutlined /> Scope Doc</Space></Select.Option>
+            <Select.Option value="sample_response"><Space><ApiOutlined /> Sample Response</Space></Select.Option>
+            <Select.Option value="dev_doc"><Space><CodeOutlined /> Dev Doc</Space></Select.Option>
           </Select>
-        )
-      }
-    >
-      {/* Add Link Form */}
-      {showAddLinkForm && selectedLinkType && (
-        <div
-          style={{
-            background: "#fafafa",
-            border: "1px solid #e8e8e8",
-            borderRadius: "8px",
-            padding: "16px",
-            marginBottom: "16px",
-          }}
-        >
-          <div style={{ marginBottom: "12px" }}>
-            <Text strong>
-              {editingLinkId ? "Edit" : "Add"} {getLinkTypeLabel(selectedLinkType)}
-            </Text>
-          </div>
+        )}
+      </div>
 
-          <div style={{ marginBottom: "12px" }}>
-            <Text>Description</Text>
-            <Input
-              placeholder="Enter description for this link..."
-              value={linkFormData.description}
-              onChange={(e) =>
-                setLinkFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              style={{ marginTop: "4px" }}
-            />
-          </div>
+      <div style={{ border: "1px solid #f0f0f0", borderRadius: 4, background: "#fff", padding: showAddLinkForm ? 16 : 0 }}>
+        {/* Add Link Form */}
+        {showAddLinkForm && selectedLinkType && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: "12px" }}>
+              <Text strong style={{ fontSize: 13 }}>
+                {editingLinkId ? "Edit" : "Add"} {getLinkTypeLabel(selectedLinkType)}
+              </Text>
+            </div>
 
-          <div style={{ marginBottom: "12px" }}>
-            <Text>URL</Text>
-            <Input
-              placeholder="https://..."
-              value={linkFormData.url}
-              onChange={(e) =>
-                setLinkFormData((prev) => ({
-                  ...prev,
-                  url: e.target.value,
-                }))
-              }
-              style={{ marginTop: "4px" }}
-            />
-          </div>
+            <div style={{ marginBottom: "12px" }}>
+              <Text style={{ fontSize: 12, color: '#8c8c8c' }}>Description</Text>
+              <Input
+                placeholder="Enter description..."
+                value={linkFormData.description}
+                onChange={(e) =>
+                  setLinkFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                style={{ marginTop: "4px" }}
+              />
+            </div>
 
-          <div style={{ textAlign: "right" }}>
-            <Space>
-              <Button
-                size="small"
-                onClick={() => {
-                  setShowAddLinkForm(false);
-                  setSelectedLinkType(null);
-                  setLinkFormData({ description: "", url: "" });
-                  setEditingLinkId(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                size="small"
-                loading={isAddingLink || isUpdatingLink}
-                onClick={handleSaveLink}
-              >
-                {editingLinkId ? "Update" : "Save"} Link
-              </Button>
-            </Space>
-          </div>
-        </div>
-      )}
+            <div style={{ marginBottom: "12px" }}>
+              <Text style={{ fontSize: 12, color: '#8c8c8c' }}>URL</Text>
+              <Input
+                placeholder="https://..."
+                value={linkFormData.url}
+                onChange={(e) =>
+                  setLinkFormData((prev) => ({
+                    ...prev,
+                    url: e.target.value,
+                  }))
+                }
+                style={{ marginTop: "4px" }}
+              />
+            </div>
 
-      {/* Display existing links */}
-      <div>
-        {relatedLinks.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              color: "#999",
-              padding: "20px",
-            }}
-          >
-            No related links added yet
+            <div style={{ textAlign: "right" }}>
+              <Space>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setShowAddLinkForm(false);
+                    setSelectedLinkType(null);
+                    setLinkFormData({ description: "", url: "" });
+                    setEditingLinkId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  size="small"
+                  loading={isAddingLink || isUpdatingLink}
+                  onClick={handleSaveLink}
+                >
+                  {editingLinkId ? "Update" : "Save"} Link
+                </Button>
+              </Space>
+            </div>
+            {/* Divider if list is below */}
+            {relatedLinks.length > 0 && <Divider style={{ margin: '16px 0' }} />}
           </div>
-        ) : (
-          <List
-            dataSource={relatedLinks}
-            renderItem={(link) => {
-              // Check if this link is being edited
-              const isEditingThis = editingLinkId === link.id;
+        )}
 
-              if (isEditingThis) {
-                // Show inline edit form
+        {/* Display existing links */}
+        <div>
+          {relatedLinks.length === 0 && !showAddLinkForm ? (
+            <div
+              style={{
+                textAlign: "center",
+                color: "#999",
+                padding: "20px",
+                fontSize: 13
+              }}
+            >
+              No related links added
+            </div>
+          ) : (
+            <List
+              dataSource={relatedLinks}
+              renderItem={(link) => {
+                // Check if this link is being edited
+                const isEditingThis = editingLinkId === link.id;
+
+                if (isEditingThis) {
+                  // Show inline edit form (reuse logic or simplify to just show form above)
+                  // For simplicity, we can render the form inside the list item or prompt to scroll top.
+                  // But here we'll just render the form inline.
+                  return (
+                    <List.Item style={{ padding: 16 }}>
+                      <div style={{ width: '100%' }}>
+                        <div style={{ marginBottom: "12px" }}>
+                          <Text strong>Edit Link</Text>
+                        </div>
+                        <div style={{ marginBottom: "8px" }}>
+                          <Input
+                            placeholder="Description"
+                            value={linkFormData.description}
+                            onChange={(e) =>
+                              setLinkFormData((prev) => ({
+                                ...prev,
+                                description: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div style={{ marginBottom: "8px" }}>
+                          <Input
+                            placeholder="URL"
+                            value={linkFormData.url}
+                            onChange={(e) =>
+                              setLinkFormData((prev) => ({
+                                ...prev,
+                                url: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <Space>
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                setEditingLinkId(null);
+                                setLinkFormData({ description: "", url: "" });
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="primary"
+                              size="small"
+                              loading={isUpdatingLink}
+                              onClick={handleSaveLink}
+                            >
+                              Save
+                            </Button>
+                          </Space>
+                        </div>
+                      </div>
+                    </List.Item>
+                  )
+                }
+
+                // Show normal link display
                 return (
-                  <List.Item>
-                    <div style={{ width: "100%", padding: "12px", background: "#fafafa", borderRadius: "8px" }}>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Edit Link</Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text>Description</Text>
-                        <Input
-                          placeholder="Enter description..."
-                          value={linkFormData.description}
-                          onChange={(e) =>
-                            setLinkFormData((prev) => ({
-                              ...prev,
-                              description: e.target.value,
-                            }))
-                          }
-                          style={{ marginTop: "4px" }}
-                        />
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text>URL</Text>
-                        <Input
-                          placeholder="https://..."
-                          value={linkFormData.url}
-                          onChange={(e) =>
-                            setLinkFormData((prev) => ({
-                              ...prev,
-                              url: e.target.value,
-                            }))
-                          }
-                          style={{ marginTop: "4px" }}
-                        />
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <Space>
-                          <Button
-                            size="small"
-                            onClick={() => {
-                              setEditingLinkId(null);
-                              setLinkFormData({ description: "", url: "" });
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="primary"
-                            size="small"
-                            loading={isUpdatingLink}
-                            onClick={handleSaveLink}
-                          >
-                            Save
-                          </Button>
-                        </Space>
-                      </div>
-                    </div>
-                  </List.Item>
-                );
-              }
-
-              // Show normal link display
-              return (
-                <List.Item
-                  actions={
-                    !isEditing
-                      ? [
+                  <List.Item
+                    style={{ padding: "8px 16px", borderBottom: '1px solid #f0f0f0' }}
+                    actions={
+                      !isEditing
+                        ? [
                           <Button
                             key="edit"
-                            type="link"
+                            type="text"
                             size="small"
-                            icon={<EditOutlined />}
+                            icon={<EditOutlined style={{ fontSize: 12 }} />}
                             onClick={() => {
                               setEditingLinkId(link.id || "");
                               setLinkFormData({
@@ -337,49 +314,46 @@ export default function RelatedLinksSection({
                                 url: link.url,
                               });
                             }}
-                          >
-                            Edit
-                          </Button>,
+                          />,
                           <Button
                             key="delete"
-                            type="link"
+                            type="text"
                             size="small"
                             danger
-                            icon={<DeleteOutlined />}
+                            icon={<DeleteOutlined style={{ fontSize: 12 }} />}
                             loading={isDeletingLink}
                             onClick={() => handleDeleteLink(link.id || "")}
-                          >
-                            Delete
-                          </Button>,
+                          />,
                         ]
-                      : []
-                  }
-                >
-                  <List.Item.Meta
-                    avatar={getLinkIcon(link.type)}
-                    title={
-                      <Space>
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontWeight: 500 }}
-                        >
-                          {link.title}
-                          <ExportOutlined
-                            style={{ marginLeft: "4px", fontSize: "12px" }}
-                          />
-                        </a>
-                      </Space>
+                        : []
                     }
-                    description={link.description}
-                  />
-                </List.Item>
-              );
-            }}
-          />
-        )}
+                  >
+                    <List.Item.Meta
+                      avatar={getLinkIcon(link.type)}
+                      title={
+                        <Space>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontWeight: 500, fontSize: 13 }}
+                          >
+                            {link.title}
+                            <ExportOutlined
+                              style={{ marginLeft: "4px", fontSize: "10px", color: '#8c8c8c' }}
+                            />
+                          </a>
+                        </Space>
+                      }
+                      description={<Text type="secondary" style={{ fontSize: 12 }}>{link.description}</Text>}
+                    />
+                  </List.Item>
+                );
+              }}
+            />
+          )}
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }

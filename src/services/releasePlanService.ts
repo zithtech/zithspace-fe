@@ -5,6 +5,9 @@ export interface ReleasePlanFormData {
   description: string;
   projectId: string;      // Changed from 'project' to match backend
   releaseDate: string;    // Changed from 'deadline' to match backend
+  startDate?: string;
+  endDate?: string;
+  goal?: string;
   status?: 'planning' | 'active' | 'completed' | 'cancelled';
   tickets?: string[];
   type?: 'sprint_plan' | 'demo_plan' | 'release_plan';
@@ -12,7 +15,8 @@ export interface ReleasePlanFormData {
 
 export interface ReleasePlan {
   id: string;
-  name: string;
+  version: string;
+  name?: string;
   description: string;
   project: {
     id: string;
@@ -21,6 +25,12 @@ export interface ReleasePlan {
     description?: string;
   } | string;
   deadline: string;
+  releaseDate?: string;
+  startDate?: string;
+  endDate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  goal?: string;
   status: 'planning' | 'active' | 'completed' | 'cancelled' | 'on_hold';
   progress: number;
   tickets: Array<{
@@ -190,14 +200,35 @@ class ReleasePlanService {
 
   /**
    * Get active release plans
+   * @param projectId - Optional project ID to filter active plans by project
    */
-  static async getActiveReleasePlans(): Promise<ReleasePlan[]> {
+  static async getActiveReleasePlans(projectId?: string): Promise<ReleasePlan[]> {
     try {
-      const response = await apiClient.get('/api/release-plans/active');
+      const url = projectId
+        ? `/api/release-plans/active?projectId=${projectId}`
+        : '/api/release-plans/active';
+      const response = await apiClient.get(url);
       return response?.data?.data || [];
     } catch (error) {
       console.error('Error fetching active release plans:', error);
       throw new Error('Failed to fetch active release plans');
+    }
+  }
+
+  /**
+   * Get available sprints (active + planning) for a project
+   * Used for sprint assignment dropdowns in buckets, trash, etc.
+   * @param projectId - Project ID to get available sprints for
+   */
+  static async getAvailableSprints(projectId: string): Promise<ReleasePlan[]> {
+    try {
+      const response = await apiClient.get('/api/release-plans/available', {
+        params: { projectId }
+      });
+      return response?.data?.data || [];
+    } catch (error) {
+      console.error('Error fetching available sprints:', error);
+      throw new Error('Failed to fetch available sprints');
     }
   }
 
@@ -280,6 +311,33 @@ class ReleasePlanService {
     } catch (error) {
       console.error('Error searching tickets:', error);
       throw new Error('Failed to search tickets');
+    }
+  }
+  /**
+   * Start a sprint
+   */
+  static async startSprint(id: string): Promise<ReleasePlan> {
+    try {
+      const response = await apiClient.post(`/api/release-plans/${id}/start`);
+      return response?.data?.data;
+    } catch (error: any) {
+      console.error('Error starting sprint:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to start sprint';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Complete a sprint
+   */
+  static async completeSprint(id: string): Promise<ReleasePlan> {
+    try {
+      const response = await apiClient.post(`/api/release-plans/${id}/complete`);
+      return response?.data?.data;
+    } catch (error: any) {
+      console.error('Error completing sprint:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to complete sprint';
+      throw new Error(errorMessage);
     }
   }
 }

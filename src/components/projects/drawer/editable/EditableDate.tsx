@@ -44,6 +44,13 @@ export const EditableDate: React.FC<EditableDateProps> = ({
         }
     };
 
+    const handleClose = () => {
+        // Only close if not currently saving
+        if (!loading) {
+            setIsEditing(false);
+        }
+    };
+
     const hasValue = !!value;
     const displayValue = value ? dayjs(value).format(format) : '';
 
@@ -53,7 +60,12 @@ export const EditableDate: React.FC<EditableDateProps> = ({
                 ref={pickerRef}
                 value={value ? dayjs(value) : null}
                 onChange={handleChange}
-                onBlur={() => setIsEditing(false)}
+                onOpenChange={(open) => {
+                    // Close the picker when calendar dropdown closes
+                    if (!open && !loading) {
+                        setIsEditing(false);
+                    }
+                }}
                 style={{ width: '100%' }}
                 placeholder={placeholder}
                 open={true}

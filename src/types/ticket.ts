@@ -48,6 +48,14 @@ export interface TicketDetails {
   completedSteps?: number;
   totalSteps?: number;
   releasePlan?: string;
+  // Archive fields
+  isArchived?: boolean;
+  archivedAt?: string;
+  archivedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
   comments?: Array<{
     id: string;
     userId:

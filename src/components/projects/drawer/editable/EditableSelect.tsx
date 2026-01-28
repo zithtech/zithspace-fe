@@ -68,9 +68,14 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                 loading={loading}
                 defaultOpen
                 showSearch
-                optionFilterProp="label"
+                filterOption={(input, option) => {
+                    // Filter by the searchLabel (plain text)
+                    const searchLabel = option?.searchLabel || '';
+                    return searchLabel.toLowerCase().includes(input.toLowerCase());
+                }}
                 options={options.map(opt => ({
                     value: opt.value,
+                    searchLabel: opt.label, // Plain string for search
                     label: (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {opt.color && <div style={{ width: 8, height: 8, borderRadius: '50%', background: opt.color }} />}

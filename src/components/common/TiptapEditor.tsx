@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React, { useCallback } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import Highlight from '@tiptap/extension-highlight';
-import { message, Spin } from 'antd';
+import React, { useCallback } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import { message, Spin } from "antd";
 import {
   BoldOutlined,
   ItalicOutlined,
@@ -25,8 +25,8 @@ import {
   HighlightOutlined,
   UndoOutlined,
   RedoOutlined,
-} from '@ant-design/icons';
-import { apiClient } from '@/lib/axios';
+} from "@ant-design/icons";
+import { apiClient } from "@/lib/axios";
 
 interface TiptapEditorProps {
   content?: string;
@@ -38,9 +38,9 @@ interface TiptapEditorProps {
 }
 
 export default function TiptapEditor({
-  content = '',
+  content = "",
   onChange,
-  placeholder = 'Start typing...',
+  placeholder = "Start typing...",
   editable = true,
   minHeight = 200,
   maxHeight = 600,
@@ -59,19 +59,19 @@ export default function TiptapEditor({
         inline: true,
         allowBase64: false,
         HTMLAttributes: {
-          class: 'tiptap-image',
+          class: "tiptap-image",
         },
       }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          target: '_blank',
-          rel: 'noopener noreferrer',
+          target: "_blank",
+          rel: "noopener noreferrer",
         },
       }),
       Underline,
       TextAlign.configure({
-        types: ['heading', 'paragraph'],
+        types: ["heading", "paragraph"],
       }),
       Highlight.configure({
         multicolor: false,
@@ -86,7 +86,7 @@ export default function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class: 'tiptap-editor-content',
+        class: "tiptap-editor-content",
         style: `min-height: ${minHeight}px; max-height: ${maxHeight}px; overflow-y: auto;`,
       },
     },
@@ -109,23 +109,23 @@ export default function TiptapEditor({
   const handleImageUpload = useCallback(async () => {
     if (!editor) return;
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
     input.onchange = async (e: Event) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
 
       // Validate file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
-        message.error('Image size must be less than 5MB');
+        message.error("Image size must be less than 5MB");
         return;
       }
 
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        message.error('Please select a valid image file');
+      if (!file.type.startsWith("image/")) {
+        message.error("Please select a valid image file");
         return;
       }
 
@@ -139,34 +139,40 @@ export default function TiptapEditor({
 
           try {
             // Upload to backend
-            const response = await apiClient.post('/api/tickets/upload-image', {
+            const response = await apiClient.post("/api/tickets/upload-image", {
               image: base64,
             });
 
             if (response.data.success && response.data.data.url) {
               // Insert image at cursor position
-              editor.chain().focus().setImage({ src: response.data.data.url }).run();
-              message.success('Image uploaded successfully');
+              editor
+                .chain()
+                .focus()
+                .setImage({ src: response.data.data.url })
+                .run();
+              message.success("Image uploaded successfully");
             } else {
-              throw new Error('Upload failed');
+              throw new Error("Upload failed");
             }
           } catch (error: any) {
-            console.error('Image upload error:', error);
-            message.error(error.response?.data?.error || 'Failed to upload image');
+            console.error("Image upload error:", error);
+            message.error(
+              error.response?.data?.error || "Failed to upload image",
+            );
           } finally {
             setUploading(false);
           }
         };
 
         reader.onerror = () => {
-          message.error('Failed to read image file');
+          message.error("Failed to read image file");
           setUploading(false);
         };
 
         reader.readAsDataURL(file);
       } catch (error) {
-        console.error('Image upload error:', error);
-        message.error('Failed to upload image');
+        console.error("Image upload error:", error);
+        message.error("Failed to upload image");
         setUploading(false);
       }
     };
@@ -177,17 +183,17 @@ export default function TiptapEditor({
   const setLink = useCallback(() => {
     if (!editor) return;
 
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('Enter URL:', previousUrl);
+    const previousUrl = editor.getAttributes("link").href;
+    const url = window.prompt("Enter URL:", previousUrl);
 
     if (url === null) return;
 
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    if (url === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
 
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
   if (!editor) {
@@ -195,21 +201,31 @@ export default function TiptapEditor({
   }
 
   return (
-    <div className="tiptap-editor-wrapper" style={{ border: '1px solid #d9d9d9', borderRadius: '6px', overflow: 'hidden' }}>
+    <div
+      className="tiptap-editor-wrapper"
+      style={{
+        border: "1px solid #d9d9d9",
+        borderRadius: "6px",
+        overflow: "hidden",
+      }}
+    >
       {editable && (
-        <div className="tiptap-toolbar" style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '4px',
-          padding: '8px',
-          borderBottom: '1px solid #d9d9d9',
-          backgroundColor: '#fafafa',
-        }}>
+        <div
+          className="tiptap-toolbar"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "4px",
+            padding: "8px",
+            borderBottom: "1px solid #d9d9d9",
+            backgroundColor: "#fafafa",
+          }}
+        >
           {/* Text Formatting */}
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
             disabled={!editor.can().chain().focus().toggleBold().run()}
-            className={editor.isActive('bold') ? 'is-active' : ''}
+            className={editor.isActive("bold") ? "is-active" : ""}
             style={buttonStyle}
             title="Bold"
           >
@@ -218,7 +234,7 @@ export default function TiptapEditor({
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
             disabled={!editor.can().chain().focus().toggleItalic().run()}
-            className={editor.isActive('italic') ? 'is-active' : ''}
+            className={editor.isActive("italic") ? "is-active" : ""}
             style={buttonStyle}
             title="Italic"
           >
@@ -227,7 +243,7 @@ export default function TiptapEditor({
           <button
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             disabled={!editor.can().chain().focus().toggleUnderline().run()}
-            className={editor.isActive('underline') ? 'is-active' : ''}
+            className={editor.isActive("underline") ? "is-active" : ""}
             style={buttonStyle}
             title="Underline"
           >
@@ -236,7 +252,7 @@ export default function TiptapEditor({
           <button
             onClick={() => editor.chain().focus().toggleStrike().run()}
             disabled={!editor.can().chain().focus().toggleStrike().run()}
-            className={editor.isActive('strike') ? 'is-active' : ''}
+            className={editor.isActive("strike") ? "is-active" : ""}
             style={buttonStyle}
             title="Strikethrough"
           >
@@ -245,47 +261,73 @@ export default function TiptapEditor({
           <button
             onClick={() => editor.chain().focus().toggleHighlight().run()}
             disabled={!editor.can().chain().focus().toggleHighlight().run()}
-            className={editor.isActive('highlight') ? 'is-active' : ''}
+            className={editor.isActive("highlight") ? "is-active" : ""}
             style={buttonStyle}
             title="Highlight"
           >
             <HighlightOutlined />
           </button>
 
-          <div style={{ width: '1px', height: '24px', backgroundColor: '#d9d9d9', margin: '0 4px' }} />
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#d9d9d9",
+              margin: "0 4px",
+            }}
+          />
 
           {/* Headings */}
           <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 1 }).run()
+            }
+            className={
+              editor.isActive("heading", { level: 1 }) ? "is-active" : ""
+            }
             style={buttonStyle}
             title="Heading 1"
           >
             H1
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            className={
+              editor.isActive("heading", { level: 2 }) ? "is-active" : ""
+            }
             style={buttonStyle}
             title="Heading 2"
           >
             H2
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 3 }).run()
+            }
+            className={
+              editor.isActive("heading", { level: 3 }) ? "is-active" : ""
+            }
             style={buttonStyle}
             title="Heading 3"
           >
             H3
           </button>
 
-          <div style={{ width: '1px', height: '24px', backgroundColor: '#d9d9d9', margin: '0 4px' }} />
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#d9d9d9",
+              margin: "0 4px",
+            }}
+          />
 
           {/* Lists */}
           <button
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={editor.isActive('bulletList') ? 'is-active' : ''}
+            className={editor.isActive("bulletList") ? "is-active" : ""}
             style={buttonStyle}
             title="Bullet List"
           >
@@ -293,47 +335,67 @@ export default function TiptapEditor({
           </button>
           <button
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={editor.isActive('orderedList') ? 'is-active' : ''}
+            className={editor.isActive("orderedList") ? "is-active" : ""}
             style={buttonStyle}
             title="Ordered List"
           >
             <OrderedListOutlined />
           </button>
 
-          <div style={{ width: '1px', height: '24px', backgroundColor: '#d9d9d9', margin: '0 4px' }} />
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#d9d9d9",
+              margin: "0 4px",
+            }}
+          />
 
           {/* Alignment */}
           <button
-            onClick={() => editor.chain().focus().setTextAlign('left').run()}
-            className={editor.isActive({ textAlign: 'left' }) ? 'is-active' : ''}
+            onClick={() => editor.chain().focus().setTextAlign("left").run()}
+            className={
+              editor.isActive({ textAlign: "left" }) ? "is-active" : ""
+            }
             style={buttonStyle}
             title="Align Left"
           >
             <AlignLeftOutlined />
           </button>
           <button
-            onClick={() => editor.chain().focus().setTextAlign('center').run()}
-            className={editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}
+            onClick={() => editor.chain().focus().setTextAlign("center").run()}
+            className={
+              editor.isActive({ textAlign: "center" }) ? "is-active" : ""
+            }
             style={buttonStyle}
             title="Align Center"
           >
             <AlignCenterOutlined />
           </button>
           <button
-            onClick={() => editor.chain().focus().setTextAlign('right').run()}
-            className={editor.isActive({ textAlign: 'right' }) ? 'is-active' : ''}
+            onClick={() => editor.chain().focus().setTextAlign("right").run()}
+            className={
+              editor.isActive({ textAlign: "right" }) ? "is-active" : ""
+            }
             style={buttonStyle}
             title="Align Right"
           >
             <AlignRightOutlined />
           </button>
 
-          <div style={{ width: '1px', height: '24px', backgroundColor: '#d9d9d9', margin: '0 4px' }} />
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#d9d9d9",
+              margin: "0 4px",
+            }}
+          />
 
           {/* Link & Image */}
           <button
             onClick={setLink}
-            className={editor.isActive('link') ? 'is-active' : ''}
+            className={editor.isActive("link") ? "is-active" : ""}
             style={buttonStyle}
             title="Add Link"
           >
@@ -348,19 +410,33 @@ export default function TiptapEditor({
             {uploading ? <Spin size="small" /> : <PictureOutlined />}
           </button>
 
-          <div style={{ width: '1px', height: '24px', backgroundColor: '#d9d9d9', margin: '0 4px' }} />
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#d9d9d9",
+              margin: "0 4px",
+            }}
+          />
 
           {/* Code */}
           <button
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            className={editor.isActive('codeBlock') ? 'is-active' : ''}
+            className={editor.isActive("codeBlock") ? "is-active" : ""}
             style={buttonStyle}
             title="Code Block"
           >
             <CodeOutlined />
           </button>
 
-          <div style={{ width: '1px', height: '24px', backgroundColor: '#d9d9d9', margin: '0 4px' }} />
+          <div
+            style={{
+              width: "1px",
+              height: "24px",
+              backgroundColor: "#d9d9d9",
+              margin: "0 4px",
+            }}
+          />
 
           {/* Undo/Redo */}
           <button
@@ -382,7 +458,9 @@ export default function TiptapEditor({
         </div>
       )}
 
-      <EditorContent editor={editor} />
+      <div className="prose prose-lg max-w-none focus:outline-none">
+        <EditorContent editor={editor} />
+      </div>
 
       <style jsx global>{`
         .tiptap-editor-content {
@@ -436,7 +514,7 @@ export default function TiptapEditor({
           background-color: #f5f5f5;
           padding: 2px 6px;
           border-radius: 3px;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .tiptap-editor-content pre {
@@ -489,17 +567,17 @@ export default function TiptapEditor({
 }
 
 const buttonStyle: React.CSSProperties = {
-  border: 'none',
-  background: 'transparent',
-  padding: '4px 8px',
-  cursor: 'pointer',
-  borderRadius: '4px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '14px',
-  color: '#595959',
-  transition: 'all 0.2s',
-  minWidth: '32px',
-  height: '32px',
+  border: "none",
+  background: "transparent",
+  padding: "4px 8px",
+  cursor: "pointer",
+  borderRadius: "4px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "14px",
+  color: "#595959",
+  transition: "all 0.2s",
+  minWidth: "32px",
+  height: "32px",
 };

@@ -216,6 +216,23 @@ class ReleasePlanService {
   }
 
   /**
+   * Get available sprints (active + planning) for a project
+   * Used for sprint assignment dropdowns in buckets, trash, etc.
+   * @param projectId - Project ID to get available sprints for
+   */
+  static async getAvailableSprints(projectId: string): Promise<ReleasePlan[]> {
+    try {
+      const response = await apiClient.get('/api/release-plans/available', {
+        params: { projectId }
+      });
+      return response?.data?.data || [];
+    } catch (error) {
+      console.error('Error fetching available sprints:', error);
+      throw new Error('Failed to fetch available sprints');
+    }
+  }
+
+  /**
    * Get tickets by project with search functionality
    */
   static async getTicketsByProject(projectId: string, params: {

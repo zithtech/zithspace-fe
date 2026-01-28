@@ -70,6 +70,7 @@ export interface SprintCompletionSummary {
       name: string;
       status: string;
       projectId: string;
+      version?: string;
     }>;
     buckets: Array<{
       id: string;
@@ -204,11 +205,38 @@ class SprintCompletionService {
     actions: BulkResolveAction[]
   ): Promise<BulkResolveResult> {
     try {
-      const response = await apiClient.post<{ success: boolean; data: BulkResolveResult }>(
+      const response = await apiClient.post<{ 
+        success: boolean; 
+        data: {
+          processedCount?: number;
+          updates?: Array<{
+            ticketId: string;
+            action: string;
+            status: string;
+            error?: string;
+          }>;
+        }
+      }>(
         `/api/sprint-completion/${sprintId}/bulk-resolve`,
         { actions }
       );
-      return response.data.data;
+      
+      const backendData = response.data.data;
+      
+      // Transform backend response to match frontend interface
+      const updates = backendData.updates || [];
+      const successfulUpdates = updates.filter(u => u.status === 'success');
+      const failedUpdates = updates.filter(u => u.status === 'error' || u.status === 'failed');
+      
+      return {
+        success: response.data.success,
+        actionsPerformed: backendData.processedCount || successfulUpdates.length,
+        ticketsAffected: successfulUpdates.map(u => u.ticketId),
+        errors: failedUpdates.map(u => ({
+          ticketId: u.ticketId,
+          error: u.error || 'Unknown error occurred'
+        }))
+      };
     } catch (error: any) {
       console.error('Error bulk resolving tickets:', error);
       const errorMessage = error.response?.data?.error || 'Failed to resolve tickets';

@@ -394,7 +394,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   }}
                 >
                   {ticket.description ? (
-                    <div
+                    <div className="prose max-w-none focus:outline-none"
                       dangerouslySetInnerHTML={{ __html: ticket.description }}
                     />
                   ) : (

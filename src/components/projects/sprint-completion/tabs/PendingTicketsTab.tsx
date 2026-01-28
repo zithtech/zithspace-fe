@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Table,
   Button,
@@ -14,6 +14,9 @@ import {
   Badge,
   Alert,
   App,
+  Modal,
+  Dropdown,
+  Divider,
 } from "antd";
 import {
   SendOutlined,
@@ -22,11 +25,19 @@ import {
   RocketOutlined,
   ArrowLeftOutlined,
   ExclamationCircleOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { SprintCompletionSummary, BulkResolveAction, BulkActionType } from "@/services/sprintCompletionService";
 import { useBulkResolveTickets } from "@/hooks/useSprintCompletion";
+import { useCreateBucket } from "@/hooks/useBuckets";
 import SprintCompletionService from "@/services/sprintCompletionService";
+import { SprintSelector } from "../SprintSelector";
+import { BucketSelector } from "../BucketSelector";
+import { SprintCreationForm, type SprintFormData } from "../SprintCreationForm";
+import { BucketCreationForm, type BucketFormData } from "../BucketCreationForm";
+import ReleasePlanService, { type ReleasePlan } from "@/services/releasePlanService";
+import BucketService, { type Bucket } from "@/services/bucketService";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -50,7 +61,57 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
     destinationName?: string;
   } | null>(null);
   
+  // Modal state for creation forms
+  const [showSprintModal, setShowSprintModal] = useState(false);
+  const [showBucketModal, setShowBucketModal] = useState(false);
+  const [creatingSprintLoading, setCreatingSprintLoading] = useState(false);
+  const [creatingBucketLoading, setCreatingBucketLoading] = useState(false);
+  
   const bulkResolve = useBulkResolveTickets();
+
+  // Handle sprint creation
+  const handleCreateSprint = async (data: SprintFormData) => {
+    try {
+      setCreatingSprintLoading(true);
+      const newSprint = await ReleasePlanService.createReleasePlan({
+        version: data.name,
+        description: data.goal || '',
+        projectId: summary.sprint.project.id,
+        releaseDate: data.endDate.format('YYYY-MM-DD'),
+        startDate: data.startDate.format('YYYY-MM-DD'),
+        endDate: data.endDate.format('YYYY-MM-DD'),
+        type: 'sprint_plan',
+      });
+      setShowSprintModal(false);
+      message.success(`Sprint "${newSprint.version}" created successfully! You can now select it from the dropdown.`);
+      // Refresh the summary to update available sprints list
+      onActionComplete();
+    } catch (error: any) {
+      message.error(error.message || 'Failed to create sprint');
+    } finally {
+      setCreatingSprintLoading(false);
+    }
+  };
+
+  // Handle bucket creation
+  const handleCreateBucket = async (data: BucketFormData) => {
+    try {
+      setCreatingBucketLoading(true);
+      const newBucket = await BucketService.createBucket({
+        name: data.name,
+        description: data.description || '',
+        projectId: summary.sprint.project.id,
+      });
+      setShowBucketModal(false);
+      message.success(`Bucket "${newBucket.name}" created successfully! You can now select it from the dropdown.`);
+      // Refresh the summary to update available buckets list
+      onActionComplete();
+    } catch (error: any) {
+      message.error(error.message || 'Failed to create bucket');
+    } finally {
+      setCreatingBucketLoading(false);
+    }
+  };
 
   // Set bulk action to apply to selected tickets
   const handleBulkAction = (action: BulkActionType, destinationId?: string) => {
@@ -202,9 +263,12 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
     },
   ];
 
+  const pendingTickets = summary?.tickets?.pending || [];
+  const hasPendingTickets = pendingTickets.length > 0;
+
   return (
     <div style={{ padding: 24, height: "calc(85vh - 220px)", overflow: "auto" }}>
-      {summary.tickets.pending.length === 0 ? (
+      {!hasPendingTickets ? (
         <Empty
           description="No pending tickets"
           style={{ marginTop: 100 }}
@@ -255,58 +319,52 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                   >
                     Move to Backlog
                   </Button>
-                  <Tooltip
-                    title={
-                      summary.availableDestinations.sprints.length === 0
-                        ? "No upcoming sprints available"
-                        : undefined
-                    }
+                  <Select
+                    placeholder="Move to Sprint"
+                    style={{ width: 180 }}
+                    size="small"
+                    onChange={(value) => {
+                      if (value === '__create_new__') {
+                        setShowSprintModal(true);
+                      } else {
+                        handleBulkAction('move_to_sprint', value);
+                      }
+                    }}
+                    suffixIcon={<RocketOutlined />}
                   >
-                    <Select
-                      placeholder="Move to Sprint"
-                      style={{ width: 180 }}
-                      size="small"
-                      disabled={summary.availableDestinations.sprints.length === 0}
-                      onChange={(value) => handleBulkAction('move_to_sprint', value)}
-                      suffixIcon={<RocketOutlined />}
-                    >
-                      {summary.availableDestinations.sprints.length === 0 ? (
-                        <Option disabled value="">No sprints available</Option>
-                      ) : (
-                        summary.availableDestinations.sprints.map((sprint) => (
-                          <Option key={sprint.id} value={sprint.id}>
-                            {sprint.name}
-                          </Option>
-                        ))
-                      )}
-                    </Select>
-                  </Tooltip>
-                  <Tooltip
-                    title={
-                      summary.availableDestinations.buckets.length === 0
-                        ? "No buckets available. Create one in the Buckets page."
-                        : undefined
-                    }
+                    {summary.availableDestinations.sprints.map((sprint) => (
+                      <Option key={sprint.id} value={sprint.id}>
+                        {sprint.version}
+                      </Option>
+                    ))}
+                    <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+                      <PlusOutlined style={{ marginRight: 8 }} />
+                      Create New Sprint
+                    </Option>
+                  </Select>
+                  <Select
+                    placeholder="Move to Bucket"
+                    style={{ width: 180 }}
+                    size="small"
+                    onChange={(value) => {
+                      if (value === '__create_new__') {
+                        setShowBucketModal(true);
+                      } else {
+                        handleBulkAction('move_to_bucket', value);
+                      }
+                    }}
+                    suffixIcon={<FolderOutlined />}
                   >
-                    <Select
-                      placeholder="Move to Bucket"
-                      style={{ width: 180 }}
-                      size="small"
-                      disabled={summary.availableDestinations.buckets.length === 0}
-                      onChange={(value) => handleBulkAction('move_to_bucket', value)}
-                      suffixIcon={<FolderOutlined />}
-                    >
-                      {summary.availableDestinations.buckets.length === 0 ? (
-                        <Option disabled value="">No buckets available</Option>
-                      ) : (
-                        summary.availableDestinations.buckets.map((bucket) => (
-                          <Option key={bucket.id} value={bucket.id}>
-                            {bucket.name}
-                          </Option>
-                        ))
-                      )}
-                    </Select>
-                  </Tooltip>
+                    {summary.availableDestinations.buckets.map((bucket) => (
+                      <Option key={bucket.id} value={bucket.id}>
+                        {bucket.name}
+                      </Option>
+                    ))}
+                    <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+                      <PlusOutlined style={{ marginRight: 8 }} />
+                      Create New Bucket
+                    </Option>
+                  </Select>
                   <Button
                     size="small"
                     danger
@@ -315,6 +373,31 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                   >
                     Move to Trash
                   </Button>
+
+                  {/* Inline Resolve & Clear Buttons */}
+                  {activeBulkAction && (
+                    <>
+                      <Divider type="vertical" style={{ height: 24, margin: '0 8px' }} />
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<SendOutlined />}
+                        onClick={handleSubmit}
+                        loading={bulkResolve.isPending}
+                      >
+                        Resolve ({selectedRowKeys.length})
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setSelectedRowKeys([]);
+                          setActiveBulkAction(null);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </>
+                  )}
                 </Space>
               )}
             </Space>
@@ -366,40 +449,37 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
             size="small"
           />
 
-          {/* Submit Button */}
-          {activeBulkAction && selectedRowKeys.length > 0 && (
-            <div
-              style={{
-                position: "sticky",
-                bottom: 0,
-                padding: "16px 0",
-                background: "#fff",
-                borderTop: "1px solid #f0f0f0",
-                marginTop: 16,
-              }}
-            >
-              <Space>
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<SendOutlined />}
-                  onClick={handleSubmit}
-                  loading={bulkResolve.isPending}
-                >
-                  Resolve {selectedRowKeys.length} Ticket{selectedRowKeys.length > 1 ? 's' : ''}
-                </Button>
-                <Button
-                  size="large"
-                  onClick={() => {
-                    setSelectedRowKeys([]);
-                    setActiveBulkAction(null);
-                  }}
-                >
-                  Clear Selection
-                </Button>
-              </Space>
-            </div>
-          )}
+          {/* Sprint Creation Modal */}
+          <Modal
+            title="Create New Sprint"
+            open={showSprintModal}
+            onCancel={() => setShowSprintModal(false)}
+            footer={null}
+            width={500}
+          >
+            <SprintCreationForm
+              projectId={summary.sprint.project.id}
+              loading={creatingSprintLoading}
+              onSubmit={handleCreateSprint}
+              onCancel={() => setShowSprintModal(false)}
+            />
+          </Modal>
+
+          {/* Bucket Creation Modal */}
+          <Modal
+            title="Create New Bucket"
+            open={showBucketModal}
+            onCancel={() => setShowBucketModal(false)}
+            footer={null}
+            width={500}
+          >
+            <BucketCreationForm
+              projectId={summary.sprint.project.id}
+              loading={creatingBucketLoading}
+              onSubmit={handleCreateBucket}
+              onCancel={() => setShowBucketModal(false)}
+            />
+          </Modal>
         </>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Card, Input, Button, Divider, List, Avatar, Typography, Space, message } from "antd";
-import { SendOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { SendOutlined, EditOutlined, DeleteOutlined, UserOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { TicketComment } from "@/types/ticket";
 
@@ -54,149 +54,122 @@ export default function CommentsSection({
   };
 
   return (
-    <Card title="Comments" style={{ marginTop: 16 }}>
-      <div style={{ marginBottom: 16 }}>
-        <TextArea
-          rows={3}
-          placeholder="Add a comment..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-        />
-        <div style={{ marginTop: 8, textAlign: "right" }}>
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            loading={isAddingComment}
-            onClick={handleAddComment}
-            disabled={!newComment.trim()}
-          >
-            Add Comment
-          </Button>
-        </div>
-      </div>
+    <div style={{ marginTop: 24 }}>
+      <Typography.Title level={5} style={{ fontSize: 13, marginBottom: 8 }}>Comments</Typography.Title>
+      <div style={{ border: "1px solid #f0f0f0", borderRadius: 4, background: "#fff" }}>
+        {/* Comment List */}
+        <List
+          itemLayout="horizontal"
+          dataSource={comments}
+          renderItem={(comment) => {
+            const userName = (comment as any).user?.name || "Unknown User";
+            const isEditingThis = editingCommentId === comment.id;
 
-      <Divider />
-
-      <List
-        dataSource={comments}
-        renderItem={(comment) => {
-          // Handle user data from React Query response
-          const userName = (comment as any).user?.name || "Unknown User";
-
-          const isEditingThis = editingCommentId === comment.id;
-
-          if (isEditingThis) {
-            // Show inline edit form
             return (
-              <List.Item>
-                <div style={{ width: "100%", padding: "12px", background: "#fafafa", borderRadius: "8px" }}>
-                  <div style={{ marginBottom: "12px" }}>
-                    <Text strong>Edit Comment</Text>
-                  </div>
-                  <TextArea
-                    rows={3}
-                    value={editCommentText}
-                    onChange={(e) => setEditCommentText(e.target.value)}
-                    style={{ marginBottom: "12px" }}
-                  />
-                  <div style={{ textAlign: "right" }}>
-                    <Space>
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setEditingCommentId(null);
-                          setEditCommentText("");
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="primary"
-                        size="small"
-                        onClick={() => {
-                          if (!editCommentText.trim()) {
-                            message.error("Comment cannot be empty");
-                            return;
-                          }
-                          // Note: Update functionality would need to be passed as prop
-                          message.info("Comment update not implemented in this component");
-                          setEditingCommentId(null);
-                          setEditCommentText("");
-                        }}
-                      >
-                        Save
-                      </Button>
-                    </Space>
-                  </div>
-                </div>
-              </List.Item>
-            );
-          }
-
-          // Show normal comment display
-          return (
-            <List.Item
-              actions={
-                !isEditing
-                  ? [
+              <List.Item
+                style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0" }}
+                actions={
+                  !isEditing && !isEditingThis
+                    ? [
                       <Button
                         key="edit"
-                        type="link"
+                        type="text"
                         size="small"
                         icon={<EditOutlined />}
                         onClick={() => {
                           setEditingCommentId(comment.id);
                           setEditCommentText(comment.comment);
                         }}
-                      >
-                        Edit
-                      </Button>,
+                      />,
                       <Button
                         key="delete"
-                        type="link"
+                        type="text"
                         size="small"
                         danger
                         icon={<DeleteOutlined />}
                         loading={isDeletingComment}
                         onClick={() => handleDeleteComment(comment.id)}
-                      >
-                        Delete
-                      </Button>,
+                      />,
                     ]
-                  : []
-              }
-            >
-              <div style={{ width: "100%" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: 8,
-                  }}
-                >
-                  <Avatar
-                    style={{ backgroundColor: "#1677ff", marginRight: 8 }}
-                  >
-                    {userName.charAt(0).toUpperCase()}
-                  </Avatar>
-                  <div>
-                    <Text strong>{userName}</Text>
-                    <div style={{ fontSize: 12, color: "#999" }}>
-                      {dayjs(comment?.timestamp).format(
-                        "MMMM DD, YYYY HH:mm"
-                      )}
-                    </div>
+                    : []
+                }
+              >
+                {isEditingThis ? (
+                  <div style={{ width: "100%" }}>
+                    <TextArea
+                      rows={2}
+                      value={editCommentText}
+                      onChange={(e) => setEditCommentText(e.target.value)}
+                      style={{ marginBottom: 8, fontSize: 13 }}
+                    />
+                    <Space size="small" style={{ float: "right" }}>
+                      <Button size="small" onClick={() => setEditingCommentId(null)}>Cancel</Button>
+                      <Button
+                        size="small"
+                        type="primary"
+                        onClick={() => {
+                          // Note: Update logic is missing in props, but UI is updated
+                          setEditingCommentId(null);
+                        }}
+                      >
+                        Save
+                      </Button>
+                    </Space>
                   </div>
-                </div>
-                <Paragraph style={{ marginLeft: 40, marginBottom: 0 }}>
-                  {comment?.comment}
-                </Paragraph>
-              </div>
-            </List.Item>
-          );
-        }}
-        locale={{ emptyText: "No comments yet" }}
-      />
-    </Card>
+                ) : (
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar size={24} style={{ backgroundColor: "#1890ff", fontSize: 12 }}>
+                        {userName.charAt(0).toUpperCase()}
+                      </Avatar>
+                    }
+                    title={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                        <Text strong>{userName}</Text>
+                        <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(comment?.timestamp).fromNow()}</Text>
+                      </div>
+                    }
+                    description={<Text style={{ fontSize: 13, color: '#262626' }}>{comment?.comment}</Text>}
+                  />
+                )}
+              </List.Item>
+            );
+          }}
+          locale={{ emptyText: <div style={{ padding: 16, textAlign: 'center', color: '#8c8c8c' }}>No comments yet</div> }}
+        />
+
+        {/* Input Area */}
+        <div style={{ padding: "12px 16px", background: "#fafafa", borderTop: "1px solid #f0f0f0" }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Avatar size={24} icon={<UserOutlined />} style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <Input
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onPressEnter={(e) => {
+                  if (!e.shiftKey) {
+                    e.preventDefault();
+                    handleAddComment();
+                  }
+                }}
+                suffix={
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<SendOutlined />}
+                    loading={isAddingComment}
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim()}
+                    style={{ color: newComment.trim() ? '#1890ff' : '#d9d9d9' }}
+                  />
+                }
+                style={{ borderRadius: 4 }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

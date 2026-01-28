@@ -18,7 +18,7 @@ import {
   Calendar,
   Badge,
   Button,
-  Tooltip
+  Tooltip,
 } from "antd";
 import {
   AppstoreOutlined,
@@ -145,9 +145,27 @@ const adjustmentsData = [
 
 // From government-holidays/page.tsx
 const holidaysData = [
-  { key: 1, name: "Bhogi", from_date: "2026-01-14", status: true, image: bhogiImage },
-  { key: 2, name: "Thai Pongal", from_date: "2026-01-15", status: true, image: pongalImage },
-  { key: 3, name: "Mattu Pongal", from_date: "2026-01-16", status: true, image:  mattuPongalImage},
+  {
+    key: 1,
+    name: "Bhogi",
+    from_date: "2026-01-14",
+    status: true,
+    image: bhogiImage,
+  },
+  {
+    key: 2,
+    name: "Thai Pongal",
+    from_date: "2026-01-15",
+    status: true,
+    image: pongalImage,
+  },
+  {
+    key: 3,
+    name: "Mattu Pongal",
+    from_date: "2026-01-16",
+    status: true,
+    image: mattuPongalImage,
+  },
   { key: 4, name: "Tamil New Year", from_date: "2026-04-14", status: true },
   { key: 5, name: "May Day", from_date: "2026-05-01", status: true },
   { key: 6, name: "Kamarajar Birthday", from_date: "2026-07-15", status: true },
@@ -179,7 +197,7 @@ export default function LeavesDashboardPage() {
       // Leave Config Stats
       const totalLeaveTypes = leaveTypesData.length;
       const activeLeaveTypes = leaveTypesData.filter(
-        (lt) => lt.status === "Active"
+        (lt) => lt.status === "Active",
       ).length;
 
       // Position Config Stats
@@ -196,7 +214,7 @@ export default function LeavesDashboardPage() {
 
       // Adjustments Stats
       const adjustmentsThisMonth = adjustmentsData.filter((adj) =>
-        dayjs(adj.date).isSame(dayjs(), "month")
+        dayjs(adj.date).isSame(dayjs(), "month"),
       ).length;
       const credits = adjustmentsData
         .filter((adj) => adj.type === "Credit")
@@ -212,15 +230,21 @@ export default function LeavesDashboardPage() {
         (h) =>
           h.status &&
           dayjs(h.from_date).isAfter(today) &&
-          dayjs(h.from_date).diff(today, "day") <= 90
+          dayjs(h.from_date).diff(today, "day") <= 90,
       ).length;
       const nextHoliday = holidaysData
-        .filter((h) => h.status && (dayjs(h.from_date).isAfter(today) || h.from_date === todayStr))
+        .filter(
+          (h) =>
+            h.status &&
+            (dayjs(h.from_date).isAfter(today) || h.from_date === todayStr),
+        )
         .sort(
-          (a, b) => dayjs(a.from_date).valueOf() - dayjs(b.from_date).valueOf()
+          (a, b) => dayjs(a.from_date).valueOf() - dayjs(b.from_date).valueOf(),
         )[0];
 
-      const isHolidayToday = nextHoliday ? nextHoliday.from_date === todayStr : false;
+      const isHolidayToday = nextHoliday
+        ? nextHoliday.from_date === todayStr
+        : false;
 
       const activeHolidays = holidaysData.filter((h) => h.status).length;
       const inactiveHolidays = holidaysData.length - activeHolidays;
@@ -261,8 +285,7 @@ export default function LeavesDashboardPage() {
                 if (key === "configuration")
                   router.push("/leave-configuration");
                 if (key === "positions") router.push("/position-configuration");
-                 if (key === "addLeaves") router.push("/add-goverment-leaves");
-                
+                if (key === "addLeaves") router.push("/add-goverment-leaves");
               }}
               items={[
                 {
@@ -277,7 +300,7 @@ export default function LeavesDashboardPage() {
                   key: "leaves",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> My Leave Status
+                      <ClockCircleOutlined /> Apply Leave
                     </span>
                   ),
                 },
@@ -313,7 +336,7 @@ export default function LeavesDashboardPage() {
                     </span>
                   ),
                 },
-                 {
+                {
                   key: "addLeaves",
                   label: (
                     <span>
@@ -324,9 +347,15 @@ export default function LeavesDashboardPage() {
               ]}
             />
           </div>
-          <Title level={3} style={{ marginBottom: 24 }}>
+          {/* <Title level={3} style={{ marginBottom: 24 }}>
             Leaves Dashboard
-          </Title>
+          </Title> */}
+          <Typography.Title
+            level={4}
+            style={{ marginBottom: 8, color: "#5884c1ff" }}
+          >
+            Leaves Dashboard
+          </Typography.Title>
 
           <Row gutter={[16, 16]}>
             {/* postion configuration */}
@@ -343,7 +372,13 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Text type="secondary">Total Leave Types</Text>
                   <Text strong style={{ fontSize: 18 }}>
                     <Space>
@@ -367,7 +402,13 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Text type="secondary">Active Leave Types</Text>
                   <Text strong style={{ fontSize: 18, color: "#3f8600" }}>
                     <Space>
@@ -392,7 +433,13 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Text type="secondary">Total Positions</Text>
                   <Text strong style={{ fontSize: 18 }}>
                     <Space>
@@ -417,7 +464,13 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Text type="secondary">Avg Leave / Position</Text>
                   <Text strong style={{ fontSize: 18 }}>
                     <Space>
@@ -441,7 +494,13 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Text type="secondary">Adjustments This Month</Text>
                   <Text strong style={{ fontSize: 18 }}>
                     <Space>
@@ -465,7 +524,13 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Text type="secondary">Credits vs Debits</Text>
                   <Text strong style={{ fontSize: 18 }}>
                     <Space>
@@ -490,7 +555,13 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <Text type="secondary">Holidays Status</Text>
                   <Text strong style={{ fontSize: 18 }}>
                     {`${stats?.activeHolidays || 0} / ${stats?.inactiveHolidays || 0}`}
@@ -511,9 +582,24 @@ export default function LeavesDashboardPage() {
                 }}
                 styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Text type="secondary" style={stats?.isHolidayToday ? { color: "#faad14", fontWeight: 600 } : {}}>
-                    {stats?.isHolidayToday ? "Today's Holiday" : "Upcoming Holiday"}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    type="secondary"
+                    style={
+                      stats?.isHolidayToday
+                        ? { color: "#faad14", fontWeight: 600 }
+                        : {}
+                    }
+                  >
+                    {stats?.isHolidayToday
+                      ? "Today's Holiday"
+                      : "Upcoming Holiday"}
                   </Text>
                   <Text strong style={{ fontSize: 16 }}>
                     <Space>
@@ -522,7 +608,9 @@ export default function LeavesDashboardPage() {
                         <span>
                           {stats.nextHoliday.name}{" "}
                           <span style={{ fontSize: 12, color: "gray" }}>
-                            {dayjs(stats.nextHoliday.from_date).format("DD MMM")}
+                            {dayjs(stats.nextHoliday.from_date).format(
+                              "DD MMM",
+                            )}
                           </span>
                         </span>
                       ) : (
@@ -544,7 +632,7 @@ export default function LeavesDashboardPage() {
                 style={{
                   borderRadius: 14,
                   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  width:399
+                  width: 399,
                 }}
                 extra={
                   <Typography.Link
@@ -557,9 +645,9 @@ export default function LeavesDashboardPage() {
                 {/* Scroll container */}
                 <div
                   style={{
-                   maxHeight: 300, // 👈 height for ~4 items
+                    maxHeight: 300, // 👈 height for ~4 items
                     overflowY: "auto", // 👈 enable scroll
-                      paddingRight: 10,
+                    paddingRight: 10,
                   }}
                 >
                   <List
@@ -621,108 +709,124 @@ export default function LeavesDashboardPage() {
                 </div>
               </Card>
             </Col>
-           <Col xs={24} md={12}>
-  <Card
-    loading={loading}
-    bordered={false}
-    hoverable
-    size="small"
-    style={{
-      borderRadius: 14,
-      boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-      width:399,
-      right:260,
-    }}
-    title={
-      <Space>
-        <CalendarOutlined style={{ color: "#ff4d4f" }} />
-        <Text strong>Holiday Calendar</Text>
-      </Space>
-    }
-    extra={
-      <Tag color="error" style={{ borderRadius: 12 }}>
-        ● Holiday
-      </Tag>
-    }
-  >
-    <Calendar
-      fullscreen={false}
-      headerRender={({ value, onChange }) => (
-        <div
-          style={{
-            padding: "0 0 8px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            
-          }}
-        >
-          <Text strong style={{ fontSize: 14 }}>
-            {value.format("MMMM YYYY")}
-          </Text>
-
-          <Space>
-            <Button
-              size="small"
-              onClick={() =>
-                onChange(value.clone().subtract(1, "month"))
-              }
-            >
-              ‹
-            </Button>
-            <Button
-              size="small"
-              onClick={() =>
-                onChange(value.clone().add(1, "month"))
-              }
-            >
-              ›
-            </Button>
-          </Space>
-        </div>
-      )}
-      cellRender={(value, info) => {
-        if (info.type === "date") {
-          const dateString = value.format("YYYY-MM-DD");
-          const holiday = holidaysData.find(
-            (h) => h.from_date === dateString && h.status
-          );
-
-          if (holiday) {
-            return (
-              <Tooltip
+            <Col xs={24} md={12}>
+              <Card
+                loading={loading}
+                bordered={false}
+                hoverable
+                size="small"
+                style={{
+                  borderRadius: 14,
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  width: 399,
+                  right: 260,
+                }}
                 title={
-                  <div style={{ textAlign: "center" }}>
-                    <img
-                      // Use the specific holiday image, or fallback to default
-                      src={holiday.image ? holiday.image.src : defaultHolidayImage.src}
-                      alt={holiday.name}
-                      style={{ width: 120, height: "auto", borderRadius: 4, marginBottom: 4 }}
-                    />
-                    <div style={{ fontWeight: 600 }}>{holiday.name}</div>
-                  </div>
+                  <Space>
+                    <CalendarOutlined style={{ color: "#ff4d4f" }} />
+                    <Text strong>Holiday Calendar</Text>
+                  </Space>
+                }
+                extra={
+                  <Tag color="error" style={{ borderRadius: 12 }}>
+                    ● Holiday
+                  </Tag>
                 }
               >
-                <div style={{ textAlign: "center", marginTop: 4, cursor: "pointer" }}>
-                  <Badge color="red" />
-                </div>
-              </Tooltip>
-            );
-          }
-        }
-        return null;
-      }}
-    />
+                <Calendar
+                  fullscreen={false}
+                  headerRender={({ value, onChange }) => (
+                    <div
+                      style={{
+                        padding: "0 0 8px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text strong style={{ fontSize: 14 }}>
+                        {value.format("MMMM YYYY")}
+                      </Text>
 
-    {/* Legend */}
-    {/* <div
+                      <Space>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            onChange(value.clone().subtract(1, "month"))
+                          }
+                        >
+                          ‹
+                        </Button>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            onChange(value.clone().add(1, "month"))
+                          }
+                        >
+                          ›
+                        </Button>
+                      </Space>
+                    </div>
+                  )}
+                  cellRender={(value, info) => {
+                    if (info.type === "date") {
+                      const dateString = value.format("YYYY-MM-DD");
+                      const holiday = holidaysData.find(
+                        (h) => h.from_date === dateString && h.status,
+                      );
+
+                      if (holiday) {
+                        return (
+                          <Tooltip
+                            title={
+                              <div style={{ textAlign: "center" }}>
+                                <img
+                                  // Use the specific holiday image, or fallback to default
+                                  src={
+                                    holiday.image
+                                      ? holiday.image.src
+                                      : defaultHolidayImage.src
+                                  }
+                                  alt={holiday.name}
+                                  style={{
+                                    width: 120,
+                                    height: "auto",
+                                    borderRadius: 4,
+                                    marginBottom: 4,
+                                  }}
+                                />
+                                <div style={{ fontWeight: 600 }}>
+                                  {holiday.name}
+                                </div>
+                              </div>
+                            }
+                          >
+                            <div
+                              style={{
+                                textAlign: "center",
+                                marginTop: 4,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <Badge color="red" />
+                            </div>
+                          </Tooltip>
+                        );
+                      }
+                    }
+                    return null;
+                  }}
+                />
+
+                {/* Legend */}
+                {/* <div
       style={{
         marginTop: 12,
         display: "flex",
         justifyContent: "flex-end",
       }}
     > */}
-      {/* <Space size={12}>
+                {/* <Space size={12}>
         <Space size={6}>
           <Badge color="red" />
           <Text type="secondary" style={{ fontSize: 12 }}>
@@ -731,9 +835,8 @@ export default function LeavesDashboardPage() {
         </Space>
       </Space>
     </div> */}
-  </Card>
-</Col>
-
+              </Card>
+            </Col>
           </Row>
         </div>
       </MainLayout>

@@ -145,8 +145,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Query Params for Active Sprint List (NO PAGINATION - fetch ALL tickets)
   const activeSprintParams = {
     ...baseQueryParams,
-    sprintId: 'active'
-    // No page/limit - fetch all active sprint tickets
+    sprintId: 'active',
+    limit: 9999 // Fetch all tickets in active sprint (no pagination)
   };
 
   // Query Params for Backlog List (WITH PAGINATION)

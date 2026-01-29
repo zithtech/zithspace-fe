@@ -31,6 +31,7 @@ export interface Timesheet {
   rejectReason?: string;
   approvedById?: string;
   rows: TimesheetRow[];
+  employeeName?: string; 
   user?: TimesheetUser;
   createdAt: string;
   updatedAt: string;

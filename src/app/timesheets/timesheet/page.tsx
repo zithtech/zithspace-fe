@@ -186,39 +186,73 @@ export default function TimesheetsPage() {
           );
         },
       },
+      // {
+      //   title: "Status",
+      //   dataIndex: "status",
+      //   render: (status: string, record: any) => {
+      //     return (
+      //       <Space>
+      //         {status === "Approved" && (
+      //           <>
+      //             <Tag color="green">Approved</Tag>
+      //             <CheckCircleOutlined style={{ color: "#52c41a" }} />
+      //           </>
+      //         )}
+
+      //         {status === "Rejected" && (
+      //           <>
+      //             <Tag color="red">Rejected</Tag>
+      //             <WarningOutlined
+      //               style={{ color: "#fa8c16", cursor: "pointer" }}
+      //               onClick={(e) => {
+      //                 e.stopPropagation();
+      //                 setCurrentRejectReason(record.rejectReason);
+      //                 setShowRejectReasonModal(true);
+      //               }}
+      //             />
+      //           </>
+      //         )}
+
+      //         {status === "Submitted" && <Tag color="orange">Submitted</Tag>}
+      //         {status === "Draft" && <Tag color="blue">Draft</Tag>}
+      //       </Space>
+      //     );
+      //   },
+      // },
       {
-        title: "Status",
-        dataIndex: "status",
-        render: (status: string, record: any) => {
-          return (
-            <Space>
-              {status === "Approved" && (
-                <>
-                  <Tag color="green">Approved</Tag>
-                  <CheckCircleOutlined style={{ color: "#52c41a" }} />
-                </>
-              )}
+  title: "Status",
+  dataIndex: "status",
+  render: (status: string, record: any) => {
+    return (
+      <Space>
+        {status === "APPROVED" && (
+          <>
+            <Tag color="green">Approved</Tag>
+            <CheckCircleOutlined style={{ color: "#52c41a" }} />
+          </>
+        )}
 
-              {status === "Rejected" && (
-                <>
-                  <Tag color="red">Rejected</Tag>
-                  <WarningOutlined
-                    style={{ color: "#fa8c16", cursor: "pointer" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentRejectReason(record.rejectReason);
-                      setShowRejectReasonModal(true);
-                    }}
-                  />
-                </>
-              )}
+        {status === "REJECTED" && (
+          <>
+            <Tag color="red">Rejected</Tag>
+            <WarningOutlined
+              style={{ color: "#fa8c16", cursor: "pointer" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentRejectReason(record.rejectReason);
+                setShowRejectReasonModal(true);
+              }}
+            />
+          </>
+        )}
 
-              {status === "Submitted" && <Tag color="orange">Submitted</Tag>}
-              {status === "Draft" && <Tag color="blue">Draft</Tag>}
-            </Space>
-          );
-        },
-      },
+        {status === "SUBMITTED" && <Tag color="orange">Submitted</Tag>}
+        {status === "DRAFT" && <Tag color="blue">Draft</Tag>}
+      </Space>
+    );
+  },
+},
+
 
       {
         title: "Approved By",

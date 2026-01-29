@@ -22,8 +22,7 @@ import MainLayout from "@/components/layout/MainLayout";
 //import { TimesheetService } from "@/services/timesheetService";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { useTimesheets } from '@/hooks/useTimesheet';
-
+import { useTimesheets } from "@/hooks/useTimesheet";
 
 const { Title, Text } = Typography;
 
@@ -31,14 +30,12 @@ export default function TeamsPage() {
   const router = useRouter();
 
   /* ---------------- STATE ---------------- */
-  const [timesheets, setTimesheets] = useState<any[]>([]);
+  //const [timesheets, setTimesheets] = useState<any[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
 
   const { data: timesheetsData, isLoading } = useTimesheets();
-  const timesheets1 = timesheetsData?.data || [];
-
-
+  const timesheets = timesheetsData?.data || [];
 
   /* ---------------- LOAD DATA ---------------- */
   // useEffect(() => {
@@ -55,34 +52,49 @@ export default function TeamsPage() {
   //   //const submittedOnly = all.filter((t: any) => t.status === "Submitted");
   //   setTimesheets(all);
 
-    // const rejectedOnly = timesheets.filter((t) => t.status === "Rejected");
-    // const approvedOnly = timesheets.filter((t) => t.status === "Approved");
+  // const rejectedOnly = timesheets.filter((t) => t.status === "Rejected");
+  // const approvedOnly = timesheets.filter((t) => t.status === "Approved");
   //};
 
   /* ---------------- FILTER ---------------- */
-  const filteredData = useMemo(() => {
-    return timesheets.filter((t) => {
-      const memberOk =
-        selectedMembers.length === 0 || selectedMembers.includes(t.employeeId);
 
-      // const weekOk = selectedWeek
-      //   ? dayjs(t.weekStart).isSame(selectedWeek, "week")
-      //   : true;
-      const weekOk = selectedWeek
-        ? dayjs(t.weekStart).startOf("week").isSame(dayjs(selectedWeek), "day")
-        : true;
+ const filteredData = useMemo(() => {
+  return timesheets.filter((t) => {
+    const userId = t.user?.id;
 
-      return memberOk && weekOk;
-    });
-  }, [timesheets, selectedMembers, selectedWeek]);
+    const memberOk =
+      selectedMembers.length === 0 ||
+      (userId ? selectedMembers.includes(userId) : false);
 
+    const weekOk = selectedWeek
+      ? dayjs(t.weekStart).startOf("week").isSame(dayjs(selectedWeek), "day")
+      : true;
+
+    return memberOk && weekOk;
+  });
+}, [timesheets, selectedMembers, selectedWeek]);
+
+
+
+  // const members = useMemo(() => {
+  //   const map = new Map();
+  //   timesheets.forEach((t) => {
+  //     map.set(t.user?.id, {
+  //       id: t.user?.id,
+  //       name: t.employeeName,
+  //     });
+  //   });
+  //   return Array.from(map.values());
+  // }, [timesheets]);
   const members = useMemo(() => {
     const map = new Map();
     timesheets.forEach((t) => {
-      map.set(t.employeeId, {
-        id: t.employeeId,
-        name: t.employeeName,
-      });
+      if (t.user) {
+        map.set(t.user.id, {
+          id: t.user.id,
+          name: t.user.name,
+        });
+      }
     });
     return Array.from(map.values());
   }, [timesheets]);
@@ -103,25 +115,36 @@ export default function TeamsPage() {
 
   /* ---------------- COUNTS ---------------- */
   const approvedCount = filteredData.filter(
-    (t) => t.status === "Approved",
+    (t) => t.status === "APPROVED",
   ).length;
 
   const pendingCount = filteredData.filter(
-    (t) => t.status !== "Approved",
+    (t) => t.status !=="APPROVED",
   ).length;
 
   /* ---------------- TABLE COLUMNS ---------------- */
   const columns = [
+    // {
+    //   title: "Employee",
+    //   render: (_: any, r: any) => (
+    //     <>
+    //       <strong>{r.employeeName}</strong>
+    //       <br />
+    //       <span style={{ color: "#888" }}>{r.user?.id}</span>
+    //     </>
+    //   ),
+    // },
     {
-      title: "Employee",
-      render: (_: any, r: any) => (
-        <>
-          <strong>{r.employeeName}</strong>
-          <br />
-          <span style={{ color: "#888" }}>{r.employeeId}</span>
-        </>
-      ),
-    },
+  title: "Employee",
+  render: (_: any, r: any) => (
+    <>
+      <strong>{r.user?.name}</strong>
+      <br />
+      <span style={{ color: "#888" }}>{r.user?.email}</span>
+    </>
+  ),
+},
+
 
     {
       title: "Date",
@@ -131,10 +154,32 @@ export default function TeamsPage() {
         return `${start.format("MMM DD")} – ${end.format("MMM DD")}`;
       },
     },
+    // {
+    //   title: "Status",
+    //   render: (_: any, r: any) => {
+    //     if (r.status === "Approved") {
+    //       return (
+    //         <Space>
+    //           <Tag color="green">Approved</Tag>
+    //           <CheckCircleOutlined style={{ color: "#52c41a" }} />
+    //         </Space>
+    //       );
+    //     }
+    //     if (r.status === "Rejected") {
+    //       return (
+    //         <Space>
+    //           <Tag color="red">Rejected</Tag>
+    //           <WarningOutlined style={{ color: "#fa8c16" }} />
+    //         </Space>
+    //       );
+    //     }
+    //     return <Tag color="orange">Submitted</Tag>;
+    //   },
+    // },
     {
       title: "Status",
       render: (_: any, r: any) => {
-        if (r.status === "Approved") {
+        if (r.status === "APPROVED") {
           return (
             <Space>
               <Tag color="green">Approved</Tag>
@@ -142,7 +187,8 @@ export default function TeamsPage() {
             </Space>
           );
         }
-        if (r.status === "Rejected") {
+
+        if (r.status === "REJECTED") {
           return (
             <Space>
               <Tag color="red">Rejected</Tag>
@@ -150,9 +196,15 @@ export default function TeamsPage() {
             </Space>
           );
         }
-        return <Tag color="orange">Submitted</Tag>;
+
+        if (r.status === "SUBMITTED") {
+          return <Tag color="orange">Submitted</Tag>;
+        }
+
+        return <Tag color="blue">Draft</Tag>;
       },
     },
+
     {
       title: "Total Hours",
       dataIndex: "totalHours",
@@ -201,7 +253,6 @@ export default function TeamsPage() {
       <div style={{ padding: 24 }}>
         {/* HEADER */}
         <div
-
           style={{
             marginTop: "30px",
             display: "flex",
@@ -267,7 +318,7 @@ export default function TeamsPage() {
 
         {/* TABLE */}
         <Card style={{ marginTop: 30 }}>
-          <Table columns={columns} dataSource={filteredData} rowKey="id" />
+          <Table columns={columns} dataSource={filteredData} rowKey="id"  loading={isLoading}/>
         </Card>
       </div>
     </MainLayout>

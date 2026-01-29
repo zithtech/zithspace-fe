@@ -69,6 +69,7 @@ import type {
 const { Title, Text } = Typography;
 
 interface TimesheetRowUI {
+  id?: string; 
   key: string;
   day: string;
   date: string;
@@ -639,8 +640,8 @@ export default function MyTimesheetPage() {
                 updateRow(r.key, {
                   projectId,
                   projectName: selected?.name,
-                  taskId: undefined,
-                  taskName: undefined,
+                  // taskId: undefined,
+                  // taskName: undefined,
                 });
               }}
             />
@@ -1296,6 +1297,7 @@ const handleSubmitTimesheet = async () => {
     // Convert rows to correct type for backend
     const rowsForPayload = rows.map((r) => ({
       // day: new Date(r.day),
+      id: r.id, // ✅ MUST
       day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
 
       projectName: r.projectName || "",

@@ -443,6 +443,14 @@ export default function governmentLeaves() {
             const newHolidays = await Promise.all(promises);
             setAllHolidays(prev => [...prev, ...newHolidays]);
             message.success("Government leaves added successfully");
+            // If new holidays were added, adjust filters to show them
+            if (newHolidays.length > 0) {
+              const firstNewHoliday = newHolidays[0];
+              setFilterCountry(firstNewHoliday.country);
+              // Clear state filter to ensure visibility, as it might not match the new country
+              setFilterState(null); 
+              if (firstNewHoliday.fromDate) setFilterMonth(dayjs(firstNewHoliday.fromDate));
+            }
           }
           setIsModalOpen(false);
           form.resetFields();

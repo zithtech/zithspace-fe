@@ -671,7 +671,7 @@ export default function ClientsPage() {
 
                           <div style={{ marginTop: 6 }}>
                             <Tag
-                              color={client.isActive ? "blue" : "red"}
+                              color={client.isActive ? "green" : "red"}
                               style={{
                                 fontWeight: 600,
                                 borderRadius: 6,
@@ -915,7 +915,7 @@ export default function ClientsPage() {
                       {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
                     </Tag> */}
                     <Tag
-                      color={selectedClient.isActive ? "blue" : "red"}
+                      color={selectedClient.isActive ? "green" : "red"}
                       style={{
                         fontWeight: 500,
                         fontSize: 11, // 🔽 smaller text

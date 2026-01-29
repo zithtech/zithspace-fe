@@ -817,7 +817,7 @@ export default function ClientsPage() {
           {selectedClient && modalType === "view" && (
             <>
               {/* ===== CLIENT HEADER (same as project modal header) ===== */}
-              <div
+              {/* <div
                 className="client-view-header"
                 style={{
                   padding: "22px 24px",
@@ -828,7 +828,7 @@ export default function ClientsPage() {
                   color: "#fff",
                 }}
               >
-                {/* Avatar */}
+                {/* Avatar 
                 <Avatar
                   size={52}
                   style={{
@@ -842,7 +842,7 @@ export default function ClientsPage() {
                   {selectedClient.name?.[0]?.toUpperCase()}
                 </Avatar>
 
-                {/* Name & Email */}
+                {/* Name & Email 
                 <div style={{ flex: 1 }}>
                   <Title level={4} style={{ margin: 0, color: "black" }}>
                     {selectedClient.name}
@@ -852,7 +852,7 @@ export default function ClientsPage() {
                   </Text>
                 </div>
 
-                {/* Status Tag */}
+                {/* Status Tag 
                 <Tag
                   color={selectedClient.isActive ? "blue" : "red"}
                   style={{
@@ -864,6 +864,76 @@ export default function ClientsPage() {
                 >
                   {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
                 </Tag>
+              </div> */}
+              <div
+                className="client-view-header"
+                style={{
+                  padding: "22px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                }}
+              >
+                {/* Avatar */}
+                <Avatar
+                  size={52}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                    fontWeight: 700,
+                    fontSize: 20,
+                  }}
+                >
+                  {selectedClient.name?.[0]?.toUpperCase()}
+                </Avatar>
+
+                {/* Text block */}
+                <div style={{ flex: 1 }}>
+                  {/* Name + Status (same row) */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline", // 🔥 name straight, tag slightly lower
+                      gap: 8,
+                    }}
+                  >
+                    <Title level={4} style={{ margin: 0, color: "black" }}>
+                      {selectedClient.name}
+                    </Title>
+
+                    {/* <Tag
+                      color={selectedClient.isActive ? "blue" : "red"}
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 11,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        display: "inline-block",
+                       
+                      }}
+                    >
+                      {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
+                    </Tag> */}
+                    <Tag
+                      color={selectedClient.isActive ? "blue" : "red"}
+                      style={{
+                        fontWeight: 500,
+                        fontSize: 11, // 🔽 smaller text
+                        padding: "1px 5px", // 🔽 less height & width
+                        borderRadius: 3,
+                        //lineHeight: "14px", 
+                        display: "inline-block",
+                      }}
+                    >
+                      {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
+                    </Tag>
+                  </div>
+
+                  {/* Email below */}
+                  <Text style={{ color: "black", fontSize: 13 }}>
+                    {selectedClient.email || "—"}
+                  </Text>
+                </div>
               </div>
 
               {/* ===== BODY ===== */}

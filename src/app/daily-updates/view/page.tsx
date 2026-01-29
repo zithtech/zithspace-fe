@@ -343,7 +343,7 @@ function ViewDailyUpdatesContent() {
             <Col flex="1 1 260px">
               <Space direction="vertical" style={{ width: "100%" }} size={4}>
                 <Text strong style={{ fontSize: 13 }}>
-                  {/* Date Range */}
+                  Date Range
                 </Text>
                 <DatePicker.RangePicker
                   value={dateRange}
@@ -364,7 +364,7 @@ function ViewDailyUpdatesContent() {
                     size={4}
                   >
                     <Text strong style={{ fontSize: 13 }}>
-                      {/* Project */}
+                      Project
                     </Text>
                     <Select
                       placeholder="All Projects"
@@ -384,7 +384,7 @@ function ViewDailyUpdatesContent() {
                     size={4}
                   >
                     <Text strong style={{ fontSize: 13 }}>
-                      {/* User */}
+                      User
                     </Text>
                     <Select
                       placeholder="All Users"
@@ -402,7 +402,7 @@ function ViewDailyUpdatesContent() {
               <Col style={{marginLeft:"auto",flex:"0 0 200px" }}>
                 <Space direction="vertical"  size={4}>
                   <Text strong style={{ fontSize: 13 }}>
-                    {/* View */}
+                    View
                   </Text>
                   <Segmented
                     value={viewMode}

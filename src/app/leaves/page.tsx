@@ -446,11 +446,6 @@ export default function LeavesPage() {
     cursor: "pointer",
   };
 
-  const hoverStyle = {
-    transform: "translateY(-4px)",
-    boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
-  };
-
   return (
     <ProtectedRoute>
       <MainLayout>
@@ -539,21 +534,19 @@ export default function LeavesPage() {
 
           {/* My Leave Status Section */}
           <div style={{ marginBottom: 8 }}>
-            <Typography.Title
+            {/* <Typography.Title
               level={4}
               style={{ marginBottom: 8, color: "#5884c1ff" }}
             >
               Apply Leave Status
-            </Typography.Title>
+            </Typography.Title> */}
             <Row gutter={16}>
               <Col xs={24} md={8}>
                 <Card
                   size="small"
-                  hoverable
                   bodyStyle={{ padding: 16 }}
                   style={{
                     borderRadius: 12,
-                    background: "linear-gradient(135deg, #e6f4ff, #ffffff)",
                   }}
                 >
                   <Row align="middle" justify="space-between">
@@ -606,11 +599,9 @@ export default function LeavesPage() {
 
               <Col xs={24} md={8}>
                 <Card
-                  hoverable
                   bodyStyle={{ padding: 16 }}
                   style={{
                     borderRadius: 12,
-                    background: "linear-gradient(135deg, #f6ffed, #ffffff)",
                   }}
                 >
                   <Row align="middle" justify="space-between">
@@ -663,11 +654,9 @@ export default function LeavesPage() {
 
               <Col xs={24} md={8}>
                 <Card
-                  hoverable
                   bodyStyle={{ padding: 16 }}
                   style={{
                     borderRadius: 12,
-                    background: "linear-gradient(135deg, #fff7e6, #ffffff)",
                   }}
                 >
                   <Row align="middle" justify="space-between">
@@ -723,20 +712,18 @@ export default function LeavesPage() {
           {/* Team Management Section - Only for Managers/Admins */}
           {hasApprovalRights && (
             <div style={{ marginBottom: 10 }}>
-              <Typography.Title
+              {/* <Typography.Title
                 level={4}
                 style={{ marginBottom: 10, color: "#fa8c16" }}
               >
                 Team Management
-              </Typography.Title>
+              </Typography.Title> */}
               <Row gutter={16}>
                 <Col span={8}>
                   <Card
-                    hoverable
                     bodyStyle={{ padding: 16 }}
                     style={{
                       ...cardStyle,
-                      background: "linear-gradient(135deg, #fff7e6, #ffffff)",
                     }}
                   >
                     <Row align="middle" justify="space-between">
@@ -788,11 +775,9 @@ export default function LeavesPage() {
                 </Col>
                 <Col span={8}>
                   <Card
-                    hoverable
                     bodyStyle={{ padding: 16 }}
                     style={{
                       ...cardStyle,
-                      background: "linear-gradient(135deg, #e6fffb, #ffffff)",
                     }}
                   >
                     <Row align="middle" justify="space-between">
@@ -844,11 +829,9 @@ export default function LeavesPage() {
                 </Col>
                 <Col span={8}>
                   <Card
-                    hoverable
                     bodyStyle={{ padding: 16 }}
                     style={{
                       ...cardStyle,
-                      background: "linear-gradient(135deg, #f1f5e3ff, #ffffff)",
                     }}
                   >
                     <Row align="middle" justify="space-between">
@@ -1134,7 +1117,7 @@ export default function LeavesPage() {
               </Card>
             </Col>
             <Col xs={24} lg={14}>
-              <Card bodyStyle={{ paddingTop: 8 }} style={{ marginTop: 10 }}>
+              <Card bodyStyle={{ paddingTop: 8 }} style={{ marginTop: 10, height: 380 }}>
                 <Tabs
                   defaultActiveKey="history"
                   items={[

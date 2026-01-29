@@ -269,6 +269,12 @@ export default function LeavesDashboardPage() {
     const timer = setTimeout(calculateStats, 500); // Simulate network delay
     return () => clearTimeout(timer);
   }, []);
+  const cardStyle = {
+    borderRadius: 12,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    transition: "all 0.3s ease",
+    cursor: "pointer",
+  };
 
   return (
     <ProtectedRoute>
@@ -350,12 +356,12 @@ export default function LeavesDashboardPage() {
           {/* <Title level={3} style={{ marginBottom: 24 }}>
             Leaves Dashboard
           </Title> */}
-          <Typography.Title
+          {/* <Typography.Title
             level={4}
             style={{ marginBottom: 8, color: "#5884c1ff" }}
           >
             Leaves Dashboard
-          </Typography.Title>
+          </Typography.Title> */}
 
           <Row gutter={[16, 16]}>
             {/* postion configuration */}
@@ -363,262 +369,494 @@ export default function LeavesDashboardPage() {
               <Card
                 loading={loading}
                 size="small"
-                hoverable
                 onClick={() => router.push("/leave-configuration")}
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderLeft: `4px solid #872eecff`,
-                  borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary">Total Leave Types</Text>
-                  <Text strong style={{ fontSize: 18 }}>
-                    <Space>
-                      <SettingOutlined />
-                      {stats?.totalLeaveTypes}
-                    </Space>
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT SIDE - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Total Leave Types
+                    </div>
+                  </Col>
+
+                  {/* RIGHT SIDE - Icon + Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#872eecff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 19,
+                          }}
+                        >
+                          <SettingOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 600,
+                            color: "#872eecff",
+                          }}
+                        >
+                          {stats?.totalLeaveTypes}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card
                 loading={loading}
-                hoverable
                 onClick={() => router.push("/leave-configuration")}
                 size="small"
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderLeft: `4px solid #1c1515cf`,
-                  borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
+                  border: "none",
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary">Active Leave Types</Text>
-                  <Text strong style={{ fontSize: 18, color: "#3f8600" }}>
-                    <Space>
-                      <AudioLines size={20} />
-                      {stats?.activeLeaveTypes}
-                    </Space>
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Name */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Active Leave Types
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={10}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#3f8600",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <AudioLines size={18} />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 600,
+                            color: "#3f8600",
+                          }}
+                        >
+                          {stats?.activeLeaveTypes}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
             {/* postion configuration */}
             <Col xs={24} sm={12} md={6}>
               <Card
-                hoverable
                 onClick={() => router.push("/position-configuration")}
                 loading={loading}
                 size="small"
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderLeft: `4px solid #2e94e8ff`,
-                  borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
+                  border: "none",
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary">Total Positions</Text>
-                  <Text strong style={{ fontSize: 18 }}>
-                    <Space>
-                      <ApartmentOutlined />
-                      {stats?.totalPositions}
-                    </Space>
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Total Positions
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#2e94e8ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <ApartmentOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 600,
+                            color: "#2e94e8ff",
+                          }}
+                        >
+                          {stats?.totalPositions}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
             {/* postion configuration */}
             <Col xs={24} sm={12} md={6}>
               <Card
-                hoverable
                 onClick={() => router.push("/position-configuration")}
                 loading={loading}
                 size="small"
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderLeft: `4px solid #4fef85ff`,
-                  borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
+                  border: "none",
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary">Avg Leave / Position</Text>
-                  <Text strong style={{ fontSize: 18 }}>
-                    <Space>
-                      <CalendarOutlined />
-                      {stats?.avgLeavePerPosition} days
-                    </Space>
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Avg Leave / Position
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#4fef85ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <CalendarOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 600,
+                            color: "#3f8600",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {stats?.avgLeavePerPosition} days
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card
-                hoverable
                 onClick={() => router.push("/leave-adjustments")}
                 loading={loading}
                 size="small"
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderLeft: `4px solid #8543ffff`,
-                  borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
+                  border: "none",
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary">Adjustments This Month</Text>
-                  <Text strong style={{ fontSize: 18 }}>
-                    <Space>
-                      <EditOutlined />
-                      {stats?.adjustmentsThisMonth}
-                    </Space>
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Adjustments This Month
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#ec51e6ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <EditOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 600,
+                            color: "#8543ffff",
+                          }}
+                        >
+                          {stats?.adjustmentsThisMonth}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card
-                hoverable
                 onClick={() => router.push("/leave-adjustments")}
                 loading={loading}
                 size="small"
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderLeft: `4px solid #ff665bff`,
-                  borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
+                  border: "none",
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary">Credits vs Debits</Text>
-                  <Text strong style={{ fontSize: 18 }}>
-                    <Space>
-                      <TrendingUpDown size={20} />
-                      {`${stats?.credits || 0} / ${stats?.debits || 0}`}
-                    </Space>
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Credits vs Debits
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#ff665bff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <TrendingUpDown size={18} />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 600,
+                            color: "#ff665bff",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {`${stats?.credits || 0} / ${stats?.debits || 0}`}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
 
             <Col xs={24} sm={12} md={6}>
               <Card
-                hoverable
                 onClick={() => router.push("/government-holidays")}
                 loading={loading}
                 size="small"
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderLeft: `4px solid #ffa633ff`,
-                  borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
+                  border: "none",
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text type="secondary">Holidays Status</Text>
-                  <Text strong style={{ fontSize: 18 }}>
-                    {`${stats?.activeHolidays || 0} / ${stats?.inactiveHolidays || 0}`}
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Holidays Status
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#efdc08ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <CalendarOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 600,
+                            color: "#efdc08ff",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {`${stats?.activeHolidays || 0} / ${stats?.inactiveHolidays || 0}`}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Card
-                hoverable
                 onClick={() => router.push("/government-holidays")}
                 loading={loading}
                 bordered={false}
+                bodyStyle={{ padding: 16 }}
                 style={{
-                  borderRadius: 14,
-                  borderLeft: `4px solid #5e5e5eff`,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  ...cardStyle,
                 }}
-                styles={{ body: { padding: 16 } }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    type="secondary"
-                    style={
-                      stats?.isHolidayToday
-                        ? { color: "#faad14", fontWeight: 600 }
-                        : {}
-                    }
-                  >
-                    {stats?.isHolidayToday
-                      ? "Today's Holiday"
-                      : "Upcoming Holiday"}
-                  </Text>
-                  <Text strong style={{ fontSize: 16 }}>
-                    <Space>
-                      <CalendarOutlined />
-                      {stats?.nextHoliday ? (
-                        <span>
-                          {stats.nextHoliday.name}{" "}
-                          <span style={{ fontSize: 12, color: "gray" }}>
-                            {dayjs(stats.nextHoliday.from_date).format(
-                              "DD MMM",
-                            )}
-                          </span>
-                        </span>
-                      ) : (
-                        "None"
-                      )}
-                    </Space>
-                  </Text>
-                </div>
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div
+                      style={
+                        stats?.isHolidayToday
+                          ? { color: "#faad14", fontWeight: 600, fontSize: 14 }
+                          : { color: "#595959", fontSize: 14 }
+                      }
+                    >
+                      {stats?.isHolidayToday
+                        ? "Today's Holiday"
+                        : "Upcoming Holiday"}
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Text */}
+                  <Col>
+                    <Row align="middle" gutter={10}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            background: "#faad14",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 16,
+                          }}
+                        >
+                          <CalendarOutlined />
+                        </div>
+                      </Col>
+
+                      {/* TEXT */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 19,
+                            fontWeight: 600,
+                            color: "#8b8b8bff",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {stats?.nextHoliday ? (
+                            <>
+                              {stats.nextHoliday.name}
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: "#8c8c8c",
+                                  marginLeft: 6,
+                                }}
+                              >
+                                {dayjs(stats.nextHoliday.from_date).format(
+                                  "DD MMM",
+                                )}
+                              </span>
+                            </>
+                          ) : (
+                            "None"
+                          )}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Card>
             </Col>
 
@@ -626,13 +864,12 @@ export default function LeavesDashboardPage() {
               <Card
                 title="Recent Leave Adjustments"
                 loading={loading}
-                hoverable
                 size="small"
                 bordered={false}
                 style={{
                   borderRadius: 14,
                   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  width: 399,
+                  width: "100%",
                 }}
                 extra={
                   <Typography.Link
@@ -713,13 +950,12 @@ export default function LeavesDashboardPage() {
               <Card
                 loading={loading}
                 bordered={false}
-                hoverable
                 size="small"
                 style={{
                   borderRadius: 14,
                   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  width: 399,
-                  right: 260,
+                  width: "100%",
+                  //right: 260,
                 }}
                 title={
                   <Space>
@@ -768,53 +1004,54 @@ export default function LeavesDashboardPage() {
                       </Space>
                     </div>
                   )}
-                  cellRender={(value, info) => {
-                    if (info.type === "date") {
-                      const dateString = value.format("YYYY-MM-DD");
-                      const holiday = holidaysData.find(
-                        (h) => h.from_date === dateString && h.status,
-                      );
+                  fullCellRender={(value) => {
+                    const dateString = value.format("YYYY-MM-DD");
+                    const holiday = holidaysData.find(
+                      (h) => h.from_date === dateString && h.status,
+                    );
 
-                      if (holiday) {
-                        return (
-                          <Tooltip
-                            title={
-                              <div style={{ textAlign: "center" }}>
-                                <img
-                                  // Use the specific holiday image, or fallback to default
-                                  src={
-                                    holiday.image
-                                      ? holiday.image.src
-                                      : defaultHolidayImage.src
-                                  }
-                                  alt={holiday.name}
-                                  style={{
-                                    width: 120,
-                                    height: "auto",
-                                    borderRadius: 4,
-                                    marginBottom: 4,
-                                  }}
-                                />
-                                <div style={{ fontWeight: 600 }}>
-                                  {holiday.name}
-                                </div>
+                    const content = (
+                      <div className="ant-picker-cell-inner">
+                        <div className="ant-picker-calendar-date-value">
+                          {value.date()}
+                        </div>
+                        <div className="ant-picker-calendar-date-content">
+                          {holiday && <Badge color="red" />}
+                        </div>
+                      </div>
+                    );
+
+                    if (holiday) {
+                      return (
+                        <Tooltip
+                          title={
+                            <div style={{ textAlign: "center" }}>
+                              <img
+                                // Use the specific holiday image, or fallback to default
+                                src={
+                                  holiday.image
+                                    ? holiday.image.src
+                                    : defaultHolidayImage.src
+                                }
+                                alt={holiday.name}
+                                style={{
+                                  width: 120,
+                                  height: "auto",
+                                  borderRadius: 4,
+                                  marginBottom: 4,
+                                }}
+                              />
+                              <div style={{ fontWeight: 600 }}>
+                                {holiday.name}
                               </div>
-                            }
-                          >
-                            <div
-                              style={{
-                                textAlign: "center",
-                                marginTop: 4,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <Badge color="red" />
                             </div>
-                          </Tooltip>
-                        );
-                      }
+                          }
+                        >
+                          {content}
+                        </Tooltip>
+                      );
                     }
-                    return null;
+                    return content;
                   }}
                 />
 

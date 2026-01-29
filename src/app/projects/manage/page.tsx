@@ -684,9 +684,8 @@ const ProjectsManagePage: React.FC = () => {
                         <Avatar
                           size={52}
                           style={{
-                            background:
-                              "linear-gradient(135deg, #1677ff, #69b1ff)",
-                            boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
+                            background:"linear-gradient(135deg, #1677ff, #69b1ff)",
+                            //boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
                             fontWeight: "bold",
                             fontSize: 18,
                           }}
@@ -1071,15 +1070,15 @@ const ProjectsManagePage: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   gap: 16,
-                  background:
-                    "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                  //background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
                   color: "#fff",
                 }}
               >
                 <Avatar
                   size={52}
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.25)",
+                    //backgroundColor: "rgba(255,255,255,0.25)",
+                    background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
                     fontWeight: 700,
                     fontSize: 20,
                   }}
@@ -1088,10 +1087,12 @@ const ProjectsManagePage: React.FC = () => {
                 </Avatar>
 
                 <div style={{ flex: 1 }}>
-                  <Title level={4} style={{ margin: 0, color: "#fff" }}>
+                  <Title level={4} style={{ margin: 0, color: "black" }}>
                     {viewProject.name}
                   </Title>
-                  <Text style={{ color: "rgba(255,255,255,0.85)" }}>
+                  {/* <Text style={{ color: "rgba(255,255,255,0.85)" }}> */}
+                  <Text style={{ color: "black"}}>
+                    
                     {viewProject.code || "—"}
                   </Text>
                 </div>
@@ -1102,6 +1103,8 @@ const ProjectsManagePage: React.FC = () => {
                     fontWeight: 600,
                     padding: "4px 10px",
                     borderRadius: 6,
+                    // marginLeft: 20,
+                    transform: "translateX(-10px)",
                   }}
                 >
                   {viewProject.status.toUpperCase()}
@@ -1179,7 +1182,7 @@ const ProjectsManagePage: React.FC = () => {
                   borderTop: "1px solid #f0f0f0",
                   background: "#fff",
                   display: "flex",
-                  justifyContent: "space-between",
+                  justifyContent: "flex-end",
                   alignItems: "center",
                 }}
               >

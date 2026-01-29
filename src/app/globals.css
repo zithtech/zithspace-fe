@@ -513,5 +513,8 @@ body {
 .client-view-close-btn:hover {
   transform: scale(1.06);
 }
+.client-view-card {
+  height: 100%;
+}
 
 

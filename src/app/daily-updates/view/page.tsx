@@ -69,11 +69,11 @@ function ViewDailyUpdatesContent() {
   // 🔹 Delete a daily update and remove it from the UI
   const handleDeleteUpdate = async (updateId: string) => {
     try {
-      console.log("updateId",updateId)
+      console.log("updateId", updateId);
       await DailyUpdateService.deleteUpdate(updateId);
 
       // Remove the card from the UI
-      setUpdates((prev) => prev.filter((u) =>u.id !==updateId));
+      setUpdates((prev) => prev.filter((u) => u.id !== updateId));
 
       api.success({
         message: "Deleted",
@@ -95,10 +95,10 @@ function ViewDailyUpdatesContent() {
     dayjs(),
   ]);
   const [selectedProject, setSelectedProject] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [selectedUser, setSelectedUser] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [selectedUpdate, setSelectedUpdate] =
@@ -158,7 +158,7 @@ function ViewDailyUpdatesContent() {
   };
 
   const handleDateRangeChange = (
-    dates: [Dayjs | null, Dayjs | null] | null
+    dates: [Dayjs | null, Dayjs | null] | null,
   ) => {
     if (dates && dates[0] && dates[1]) {
       setDateRange([dates[0], dates[1]]);
@@ -186,7 +186,7 @@ function ViewDailyUpdatesContent() {
   };
 
   const uniqueUsers = Array.from(
-    new Set(updates.map((update) => update.user?.name).filter(Boolean))
+    new Set(updates.map((update) => update.user?.name).filter(Boolean)),
   ).map((name) => {
     const update = updates.find((u) => u.user?.name === name);
     return {
@@ -237,7 +237,7 @@ function ViewDailyUpdatesContent() {
         </Row>
 
         {/* Filters & View Toggle */}
-        <Card
+        {/* <Card
           style={{ marginBottom: 20, boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}
         >
           <Row gutter={16} align="middle">
@@ -324,6 +324,106 @@ function ViewDailyUpdatesContent() {
                 />
               </Space>
             </Col>
+          </Row>
+        </Card> */}
+        <Card
+          style={{
+            marginBottom: 20,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+          }}
+          // bodyStyle={{
+          //   padding: "10px 12px", // 👈 left = right equal
+          // }}
+        >
+          <Row
+            gutter={[16, 16]}
+            align="top"
+            style={{ display: "flex", flexWrap: "wrap" }}
+          >
+            <Col flex="1 1 260px">
+              <Space direction="vertical" style={{ width: "100%" }} size={4}>
+                <Text strong style={{ fontSize: 13 }}>
+                  Date Range
+                </Text>
+                <DatePicker.RangePicker
+                  value={dateRange}
+                  onChange={handleDateRangeChange}
+                  style={{ width: "100%" }}
+                  format="YYYY-MM-DD"
+                  placeholder={["Start Date", "End Date"]}
+                />
+              </Space>
+            </Col>
+
+            {canViewTeam && (
+              <>
+                <Col flex="1 1 220px">
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size={4}
+                  >
+                    <Text strong style={{ fontSize: 13 }}>
+                      Project
+                    </Text>
+                    <Select
+                      placeholder="All Projects"
+                      style={{ width: "100%" }}
+                      value={selectedProject}
+                      onChange={setSelectedProject}
+                      allowClear
+                      options={projects}
+                    />
+                  </Space>
+                </Col>
+
+                <Col flex="1 1 220px">
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size={4}
+                  >
+                    <Text strong style={{ fontSize: 13 }}>
+                      User
+                    </Text>
+                    <Select
+                      placeholder="All Users"
+                      style={{ width: "100%" }}
+                      value={selectedUser}
+                      onChange={setSelectedUser}
+                      allowClear
+                      options={uniqueUsers}
+                    />
+                  </Space>
+                </Col>
+              </>
+            )}
+            {/* <div style={{ display: "flex", justifyContent: "flex-end" }}> */}
+              <Col style={{marginLeft:"auto",flex:"0 0 200px" }}>
+                <Space direction="vertical"  size={4}>
+                  <Text strong style={{ fontSize: 13 }}>
+                    View
+                  </Text>
+                  <Segmented
+                    value={viewMode}
+                    onChange={(value) => setViewMode(value as ViewMode)}
+                    options={[
+                      {
+                        label: "Cards",
+                        value: "card",
+                        icon: <AppstoreOutlined />,
+                      },
+                      {
+                        label: "List",
+                        value: "list",
+                        icon: <UnorderedListOutlined />,
+                      },
+                    ]}
+                    style={{ width: "100%"}}
+                  />
+                </Space>
+              </Col>
+            {/* </div> */}
           </Row>
         </Card>
 

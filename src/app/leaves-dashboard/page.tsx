@@ -618,7 +618,7 @@ const hoverStyle = {
         <Col>
           <div
             style={{
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: 600,
               color: "#3f8600",
               whiteSpace: "nowrap",
@@ -644,7 +644,7 @@ const hoverStyle = {
   bodyStyle={{ padding: 16 }}
   style={{
     ...cardStyle,
-    background: "linear-gradient(135deg, #f4eaff, #ffffff)",
+    background: "linear-gradient(135deg, #ffe8fdff, #ffffff)",
     border: "none",
   }}
 >
@@ -668,7 +668,7 @@ const hoverStyle = {
               width: 36,
               height: 36,
               borderRadius: "50%",
-              background: "#8543ffff",
+              background: "#ec51e6ff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -776,7 +776,7 @@ const hoverStyle = {
   bodyStyle={{ padding: 16 }}
   style={{
     ...cardStyle,
-    background: "linear-gradient(135deg, #fff7e6, #ffffff)",
+    background: "linear-gradient(135deg, #f9f4ddff, #ffffff)",
     border: "none",
   }}
 >
@@ -800,7 +800,7 @@ const hoverStyle = {
               width: 36,
               height: 36,
               borderRadius: "50%",
-              background: "#ffa633ff",
+              background: "#efdc08ff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -818,7 +818,7 @@ const hoverStyle = {
             style={{
               fontSize: 20,
               fontWeight: 600,
-              color: "#ffa633ff",
+              color: "#efdc08ff",
               whiteSpace: "nowrap",
             }}
           >
@@ -887,9 +887,9 @@ const hoverStyle = {
         <Col>
           <div
             style={{
-              fontSize: 14,
+              fontSize: 19,
               fontWeight: 600,
-              color: "#262626",
+              color: "#8b8b8bff",
               whiteSpace: "nowrap",
             }}
           >
@@ -924,7 +924,7 @@ const hoverStyle = {
                 style={{
                   borderRadius: 14,
                   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  width: 399,
+                  width: "100%",
                 }}
                 extra={
                   <Typography.Link
@@ -1010,8 +1010,8 @@ const hoverStyle = {
                 style={{
                   borderRadius: 14,
                   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  width: 399,
-                  right: 260,
+                  width: "100%",
+                  //right: 260,
                 }}
                 title={
                   <Space>
@@ -1060,53 +1060,54 @@ const hoverStyle = {
                       </Space>
                     </div>
                   )}
-                  cellRender={(value, info) => {
-                    if (info.type === "date") {
-                      const dateString = value.format("YYYY-MM-DD");
-                      const holiday = holidaysData.find(
-                        (h) => h.from_date === dateString && h.status,
-                      );
+                  fullCellRender={(value) => {
+                    const dateString = value.format("YYYY-MM-DD");
+                    const holiday = holidaysData.find(
+                      (h) => h.from_date === dateString && h.status,
+                    );
 
-                      if (holiday) {
-                        return (
-                          <Tooltip
-                            title={
-                              <div style={{ textAlign: "center" }}>
-                                <img
-                                  // Use the specific holiday image, or fallback to default
-                                  src={
-                                    holiday.image
-                                      ? holiday.image.src
-                                      : defaultHolidayImage.src
-                                  }
-                                  alt={holiday.name}
-                                  style={{
-                                    width: 120,
-                                    height: "auto",
-                                    borderRadius: 4,
-                                    marginBottom: 4,
-                                  }}
-                                />
-                                <div style={{ fontWeight: 600 }}>
-                                  {holiday.name}
-                                </div>
+                    const content = (
+                      <div className="ant-picker-cell-inner">
+                        <div className="ant-picker-calendar-date-value">
+                          {value.date()}
+                        </div>
+                        <div className="ant-picker-calendar-date-content">
+                          {holiday && <Badge color="red" />}
+                        </div>
+                      </div>
+                    );
+
+                    if (holiday) {
+                      return (
+                        <Tooltip
+                          title={
+                            <div style={{ textAlign: "center" }}>
+                              <img
+                                // Use the specific holiday image, or fallback to default
+                                src={
+                                  holiday.image
+                                    ? holiday.image.src
+                                    : defaultHolidayImage.src
+                                }
+                                alt={holiday.name}
+                                style={{
+                                  width: 120,
+                                  height: "auto",
+                                  borderRadius: 4,
+                                  marginBottom: 4,
+                                }}
+                              />
+                              <div style={{ fontWeight: 600 }}>
+                                {holiday.name}
                               </div>
-                            }
-                          >
-                            <div
-                              style={{
-                                textAlign: "center",
-                                marginTop: 4,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <Badge color="red" />
                             </div>
-                          </Tooltip>
-                        );
-                      }
+                          }
+                        >
+                          {content}
+                        </Tooltip>
+                      );
                     }
-                    return null;
+                    return content;
                   }}
                 />
 

@@ -1,65 +1,4 @@
-// services/timesheet.service.ts
 
-// export type TimesheetStatus =
-//   | "Draft"
-//   | "Submitted"
-//   | "Rejected"
-//   | "Approved";
-
-// export interface Timesheet {
-//   id: string;
-//   weekStart: string;
-//   weekEnd: string;
-//   rows: any[];
-//   totalHours: number;
-//   totalBillable: number;
-//   status: TimesheetStatus;
-//    approvedBy: string; 
-
-//   createdAt: string;
-//   rejectReason?: string;
-//    // ✅ ADD THIS
-//     employeeName: string; 
-//      projectId?: string;
-//   projectName?: string;   // ✅ ADD
-
-//   taskId?: string;
-//   taskName?: string;   
-
-// }
-
-// let TIMESHEETS: Timesheet[] = []; // 👈 memory DB
-
-// export const TimesheetService = {
-//   getAll() {
-//     return Promise.resolve([...TIMESHEETS]);
-//   },
-
-//   getById(id: string) {
-//     return Promise.resolve(
-//       TIMESHEETS.find((t) => t.id === id) || null
-//     );
-//   },
-
-
-
-//   create(sheet: Timesheet) {
-//     TIMESHEETS.push(sheet);
-//     return Promise.resolve(sheet);
-//   },
-
-//   update(id: string, patch: Partial<Timesheet>) {
-//     TIMESHEETS = TIMESHEETS.map((t) =>
-//       t.id === id ? { ...t, ...patch } : t
-//     );
-//     return Promise.resolve(true);
-//   },
-
-//   delete(id: string) {
-//     TIMESHEETS = TIMESHEETS.filter((t) => t.id !== id);
-//     return Promise.resolve(true);
-//   },
-// };
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 export interface TimesheetUser {
   id: string;
@@ -71,6 +10,9 @@ export interface TimesheetRow{
   day: string;
   projectName: string;
   taskName: string;
+  taskId?: string;
+  projectId?: string;
+ 
   description?: string;
   hours: number;
   billable: boolean;
@@ -184,5 +126,17 @@ export class TimesheetsService {
       throw new Error('Failed to approve/reject timesheet');
     }
   }
+  static async getMeta() { const res = await api.get("/api/timesheets/meta"); return res.data.data; }
+
+  /** Submit a timesheet (changes DRAFT → SUBMITTED) */
+static async submitTimesheet(id: string): Promise<Timesheet> {
+  try {
+    return await api.post<Timesheet>(`/api/timesheets/${id}/submit`);
+  } catch (error) {
+    if (error instanceof ApiError) throw new Error(error.message);
+    throw new Error('Failed to submit timesheet');
+  }
+}
+
 }
 

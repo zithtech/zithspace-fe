@@ -26,7 +26,7 @@ import {
   Radio,
   Checkbox,
   Tooltip,
-  message
+  message,
 } from "antd";
 import {
   LeftOutlined,
@@ -119,6 +119,11 @@ export default function MyTimesheetPage() {
   type TimesheetStatus = "Draft" | "Submitted" | "Approved" | "Rejected";
   const [isDescModalOpen, setIsDescModalOpen] = useState(false);
   const [selectedDesc, setSelectedDesc] = useState("");
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
+
+  const [tasks, setTasks] = useState<
+    { id: string; name: string; projectId: string }[]
+  >([]);
 
   // 🔹 FETCH single timesheet
 
@@ -252,18 +257,29 @@ export default function MyTimesheetPage() {
   //   return "Draft";
   // };
 
-  const projectOptions = Array.from(
-    new Set(rows.map((r) => r.projectName).filter(Boolean)),
-  ).map((name) => ({
-    value: name!,
-    label: name!,
-  }));
-  const taskOptions = Array.from(
-    new Set(rows.map((r) => r.taskName).filter(Boolean)),
-  ).map((name) => ({
-    value: name!,
-    label: name!,
-  }));
+  // const projectOptions = Array.from(
+  //   new Set(rows.map((r) => r.projectName).filter(Boolean)),
+  // ).map((name) => ({
+  //   value: name!,
+  //   label: name!,
+  // }));
+  // const taskOptions = Array.from(
+  //   new Set(rows.map((r) => r.taskName).filter(Boolean)),
+  // ).map((name) => ({
+  //   value: name!,
+  //   label: name!,
+  // }));
+  useEffect(() => {
+    const loadMeta = async () => {
+      const meta = await TimesheetsService.getMeta();
+      // 👆 this API should return { projects, tasks }
+
+      setProjects(meta.projects);
+      setTasks(meta.tasks);
+    };
+
+    loadMeta();
+  }, []);
 
   const mapBackendStatusToUI = (
     status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED",
@@ -443,30 +459,8 @@ export default function MyTimesheetPage() {
   };
 
   const viewColumns: ColumnsType<TimesheetRowUI> = [
-    // {
-    //   title: "Date",
-    //   render: (_: any, r) => `${r.day} (${r.date})`,
-    // },
     {
       title: "Date",
-      // render: (_: any, r) => {
-      //   const dayIndexMap: Record<string, number> = {
-      //     Sun: 0,
-      //     Mon: 1,
-      //     Tue: 2,
-      //     Wed: 3,
-      //     Thu: 4,
-      //     Fri: 5,
-      //     Sat: 6,
-      //   };
-
-      //   const date = currentDate
-      //     .startOf("week")
-      //     .add(dayIndexMap[r.day], "day")
-      //     .format("MMM DD");
-
-      //   return `${r.day} (${date})`;
-      // },
       render: (_: any, r) => {
         const date = currentDate
           .startOf("week")
@@ -476,17 +470,6 @@ export default function MyTimesheetPage() {
         return `${r.day} (${date})`;
       },
     },
-
-    // {
-    //   title: "Project",
-    //   render: (_: any, r) =>
-    //     PROJECTS.find((p) => p.value === r.projectId)?.label || "-",
-    // },
-    // {
-    //   title: "Task",
-    //   render: (_: any, r) =>
-    //     TASKS.find((t) => t.value === r.taskId)?.label || "-",
-    // },
     {
       title: "Project",
       //   render: (_: any, r) =>
@@ -626,7 +609,7 @@ export default function MyTimesheetPage() {
     });
   }}
 /> */}
-            <Select
+            {/* <Select
               disabled={isViewMode || !isFieldEditable(r)}
               bordered={false}
               // value={r.projectName} // ✅ projectId NOT needed
@@ -637,6 +620,27 @@ export default function MyTimesheetPage() {
               onChange={(value) => {
                 updateRow(r.key, {
                   projectName: value, // ✅ only name
+                });
+              }}
+            /> */}
+            <Select
+              disabled={isViewMode || !isFieldEditable(r)}
+              bordered={false}
+              value={r.projectId}
+              placeholder="Project"
+              style={{ width: 200 }}
+              options={projects.map((p) => ({
+                value: p.id,
+                label: p.name,
+              }))}
+              onChange={(projectId) => {
+                const selected = projects.find((p) => p.id === projectId);
+
+                updateRow(r.key, {
+                  projectId,
+                  projectName: selected?.name,
+                  taskId: undefined,
+                  taskName: undefined,
                 });
               }}
             />
@@ -695,7 +699,7 @@ export default function MyTimesheetPage() {
     });
   }}
 /> */}
-            <Select
+            {/* <Select
               bordered={false}
               disabled={isViewMode || !isFieldEditable(r)}
               // value={r.taskName}
@@ -706,6 +710,26 @@ export default function MyTimesheetPage() {
               onChange={(value) => {
                 updateRow(r.key, {
                   taskName: value,
+                });
+              }}
+            /> */}
+            <Select
+              bordered={false}
+              value={r.taskId}
+              placeholder="Task"
+              style={{ width: 200 }}
+              options={tasks
+                .filter((t) => t.projectId === r.projectId) // 🔥 IMPORTANT
+                .map((t) => ({
+                  value: t.id,
+                  label: t.name,
+                }))}
+              onChange={(taskId) => {
+                const selected = tasks.find((t) => t.id === taskId);
+
+                updateRow(r.key, {
+                  taskId,
+                  taskName: selected?.name,
                 });
               }}
             />
@@ -954,182 +978,303 @@ export default function MyTimesheetPage() {
   //   setIsSubmitOpen(false);
   //   setIsSubmittedModalOpen(true);
   // };
-  const handleSubmitTimesheet = async () => {
-    // if (!loggedInEmployee) return;
+  // const handleSubmitTimesheet = async () => {
+  //   // if (!loggedInEmployee) return;
 
-    const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
+  //   const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
 
-    // 1️⃣ Find existing timesheet for this employee + week
-    // const existing = allTimesheets?.data?.find(
-    //   (t: Timesheet) =>
-    //     t.userId === loggedInEmployee.employeeId &&
-    //     dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
-    // );
-    const existing = allTimesheets?.data?.find(
-  (t: Timesheet) =>
-    t.user?.id === sheet?.user?.id && // ✅ use the employee from timesheet
-    dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
-);
+  //   // 1️⃣ Find existing timesheet for this employee + week
+  //   // const existing = allTimesheets?.data?.find(
+  //   //   (t: Timesheet) =>
+  //   //     t.userId === loggedInEmployee.employeeId &&
+  //   //     dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
+  //   // );
+  //   const existing = allTimesheets?.data?.find(
+  //     (t: Timesheet) =>
+  //       t.user?.id === sheet?.user?.id && // ✅ use the employee from timesheet
+  //       dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
+  //   );
 
-    // 2️⃣ Convert rows to correct type (Date for day, required fields)
-    const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
-      //day: new Date(r.day), // must be Date
-      //    day: currentDate
-      // .startOf("week")
-      // .add(dayIndexMap[r.day], "day")
-      // .toDate(),
-      day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
-      projectName: r.projectName || "", // can't be undefined
-      taskName: r.taskName || "", // can't be undefined
-      description: r.description || "",
-      hours: r.hours || 0,
-      billable: r.billable || false,
-    }));
+  //   // 2️⃣ Convert rows to correct type (Date for day, required fields)
+  //   const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
+  //     //day: new Date(r.day), // must be Date
+  //     //    day: currentDate
+  //     // .startOf("week")
+  //     // .add(dayIndexMap[r.day], "day")
+  //     // .toDate(),
+  //     day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
+  //     projectName: r.projectName || "", // can't be undefined
+  //     taskName: r.taskName || "", // can't be undefined
+  //     description: r.description || "",
+  //     hours: r.hours || 0,
+  //     billable: r.billable || false,
+  //   }));
 
-    try {
-      if (existing) {
-        // 3️⃣ Update existing timesheet (UpdateTimesheetData)
-        const updatePayload: UpdateTimesheetData = {
-          weekStart: currentDate.startOf("week").toDate(),
-          weekEnd: currentDate.endOf("week").toDate(),
-          rows: rowsForPayload,
-          status: "SUBMITTED",
-        };
+  //   try {
+  //     if (existing) {
+  //       // 3️⃣ Update existing timesheet (UpdateTimesheetData)
+  //       const updatePayload: UpdateTimesheetData = {
+  //         weekStart: currentDate.startOf("week").toDate(),
+  //         weekEnd: currentDate.endOf("week").toDate(),
+  //         rows: rowsForPayload,
+  //         status: "SUBMITTED",
+  //       };
 
-        await updateMutation.mutateAsync({
-          id: existing.id,
-          data: updatePayload,
-        });
-      } else {
-        // 4️⃣ Create new timesheet (CreateTimesheetData)
-        const createPayload: CreateTimesheetData = {
-          weekStart: currentDate.startOf("week").toDate(),
-          weekEnd: currentDate.endOf("week").toDate(),
-          rows: rowsForPayload,
-        };
+  //       await updateMutation.mutateAsync({
+  //         id: existing.id,
+  //         data: updatePayload,
+  //       });
+  //     } else {
+  //       // 4️⃣ Create new timesheet (CreateTimesheetData)
+  //       const createPayload: CreateTimesheetData = {
+  //         weekStart: currentDate.startOf("week").toDate(),
+  //         weekEnd: currentDate.endOf("week").toDate(),
+  //         rows: rowsForPayload,
+  //       };
 
-        await createMutation.mutateAsync(createPayload);
-      }
+  //       await createMutation.mutateAsync(createPayload);
+  //     }
 
-      // 5️⃣ Update UI state
-      setIsSubmitted(true);
-      setStatus("Submitted");
-      setIsSubmitOpen(false);
-      setIsSubmittedModalOpen(true);
-    } catch (err: any) {
-      console.error("Submit timesheet failed:", err);
-    }
-  };
-// const handleSubmitTimesheet = async () => {
-//   console.log("Button clicked!");
+  //     // 5️⃣ Update UI state
+  //     setIsSubmitted(true);
+  //     setStatus("Submitted");
+  //     setIsSubmitOpen(false);
+  //     setIsSubmittedModalOpen(true);
+  //   } catch (err: any) {
+  //     console.error("Submit timesheet failed:", err);
+  //   }
+  // };
+//   const handleSubmitTimesheet = async () => {
+//   const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
 
-//    if (!rows || rows.length === 0) {
-//     message.error("Please add at least one timesheet entry before submitting");
-//     return;
-//   }
+//   // 1️⃣ Find existing timesheet for this employee + week
+//   const existing = allTimesheets?.data?.find(
+//     (t: Timesheet) =>
+//       t.user?.id === sheet?.user?.id &&
+//       dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
+//   );
+
+//   // 2️⃣ Convert rows to correct type (Date for day, required fields)
+//   const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
+//     day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
+//     projectName: r.projectName || "",
+//     taskName: r.taskName || "",
+//     description: r.description || "",
+//     hours: r.hours || 0,
+//     billable: r.billable || false,
+//   }));
+
 //   try {
-//     const weekStart = currentDate.startOf("week");
-//     const weekEnd = currentDate.endOf("week");
-//     const weekStartStr = weekStart.format("YYYY-MM-DD");
-
-//     // 🔹 keep your existing logic
-//     const existing = allTimesheets?.data?.find(
-//       (t: Timesheet) =>
-//         t.user?.id === sheet?.user?.id &&
-//         dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
-//     );
-
-//     // 🔹 SAFE row mapping (create + edit both)
-//     const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
-//       day: dayjs(r.day).isValid()
-//         ? dayjs(r.day).toDate()
-//         : weekStart.add(dayIndexMap[r.day], "day").toDate(),
-//       projectName: r.projectName ?? "",
-//       taskName: r.taskName ?? "",
-//       description: r.description ?? "",
-//       hours: Number(r.hours) || 0,
-//       billable: !!r.billable,
-//     }));
+//     let timesheetId: string;
 
 //     if (existing) {
-//       // 🔹 UPDATE FLOW (unchanged logic)
+//       // 3️⃣ Update existing timesheet as DRAFT
 //       const updatePayload: UpdateTimesheetData = {
-//         weekStart: weekStart.toDate(),
-//         weekEnd: weekEnd.toDate(),
+//         weekStart: currentDate.startOf("week").toDate(),
+//         weekEnd: currentDate.endOf("week").toDate(),
 //         rows: rowsForPayload,
-//         status: "SUBMITTED",
 //       };
 
 //       await updateMutation.mutateAsync({
 //         id: existing.id,
 //         data: updatePayload,
 //       });
+//       timesheetId = existing.id;
 //     } else {
-//       // 🔹 CREATE FLOW (unchanged logic)
+//       // 4️⃣ Create new timesheet as DRAFT
 //       const createPayload: CreateTimesheetData = {
-//         weekStart: weekStart.toDate(),
-//         weekEnd: weekEnd.toDate(),
+//         weekStart: currentDate.startOf("week").toDate(),
+//         weekEnd: currentDate.endOf("week").toDate(),
 //         rows: rowsForPayload,
 //       };
 
-//       await createMutation.mutateAsync(createPayload);
+//       const newTimesheet = await createMutation.mutateAsync(createPayload);
+//       timesheetId = newTimesheet.id;
 //     }
 
-//     // 🔹 UI updates
+//     // 5️⃣ Submit the timesheet (changes DRAFT → SUBMITTED)
+//     await TimesheetsService.submitTimesheet(timesheetId);
+
+//     // 6️⃣ Update UI state
 //     setIsSubmitted(true);
 //     setStatus("Submitted");
 //     setIsSubmitOpen(false);
 //     setIsSubmittedModalOpen(true);
-//   } catch (err) {
+//   } catch (err: any) {
 //     console.error("Submit timesheet failed:", err);
 //   }
 // };
-// const handleSubmitTimesheet = async () => {
-//   try {
-//     if (!sheet?.id) {
-//       console.error("Timesheet ID missing, cannot submit.");
-//       return;
-//     }
+const handleSubmitTimesheet = async () => {
+  const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
 
-//     // ✅ Prepare rows for payload (optional if backend uses existing rows)
-//     const rowsForPayload: any[] = rows.map(r => ({
-//       day: dayjs(r.day).isValid() ? dayjs(r.day).toDate() : null,
-//       projectName: r.projectName ?? "",
-//       taskName: r.taskName ?? "",
-//       description: r.description ?? "",
-//       hours: Number(r.hours) || 0,
-//       billable: !!r.billable,
-//     }));
+  const existing = allTimesheets?.data?.find(
+    (t: Timesheet) =>
+      t.user?.id === sheet?.user?.id &&
+      dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
+  );
 
-//     // 🔹 Make API call to submit timesheet
-//     const response = await fetch(`/api/timesheets/${sheet.id}/submit`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ rows: rowsForPayload }), // optional if backend doesn't need rows
-//     });
+  const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
+    day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
+    projectName: r.projectName || "",
+    taskName: r.taskName || "",
+    description: r.description || "",
+    hours: r.hours || 0,
+    billable: r.billable || false,
+  }));
 
-//     const data = await response.json();
+  try {
+    let timesheetId: string;
 
-//     if (!response.ok) {
-//       console.error("Submit timesheet failed:", data.error);
-//       return;
-//     }
+    if (existing) {
+      const updatePayload: UpdateTimesheetData = {
+        weekStart: currentDate.startOf("week").toDate(),
+        weekEnd: currentDate.endOf("week").toDate(),
+        rows: rowsForPayload,
+      };
 
-//     // 🔹 UI updates
-//     setIsSubmitted(true);
-//     setStatus("Submitted");
-//     setIsSubmitOpen(false);
-//     setIsSubmittedModalOpen(true);
+      await updateMutation.mutateAsync({
+        id: existing.id,
+        data: updatePayload,
+      });
+      timesheetId = existing.id;
+    } else {
+      const createPayload: CreateTimesheetData = {
+        weekStart: currentDate.startOf("week").toDate(),
+        weekEnd: currentDate.endOf("week").toDate(),
+        rows: rowsForPayload,
+      };
 
-//     console.log("Timesheet submitted successfully!", data);
-//   } catch (err) {
-//     console.error("Submit timesheet error:", err);
-//   }
-// };
+      const newTimesheet = await createMutation.mutateAsync(createPayload);
+      timesheetId = newTimesheet.id;
+    }
+
+    if (!timesheetId) throw new Error("Timesheet ID missing");
+
+    // ✅ Submit timesheet
+    await TimesheetsService.submitTimesheet(timesheetId);
+
+    // ✅ Open modal after submit
+    setTimeout(() => {
+      setIsSubmittedModalOpen(true);
+      setIsSubmitted(true);
+      setStatus("Submitted");
+      setIsSubmitOpen(false);
+    }, 0);
+
+  } catch (err: any) {
+    console.error("Submit timesheet failed:", err);
+  }
+};
 
 
+  // const handleSubmitTimesheet = async () => {
+  //   console.log("Button clicked!");
+
+  //    if (!rows || rows.length === 0) {
+  //     message.error("Please add at least one timesheet entry before submitting");
+  //     return;
+  //   }
+  //   try {
+  //     const weekStart = currentDate.startOf("week");
+  //     const weekEnd = currentDate.endOf("week");
+  //     const weekStartStr = weekStart.format("YYYY-MM-DD");
+
+  //     // 🔹 keep your existing logic
+  //     const existing = allTimesheets?.data?.find(
+  //       (t: Timesheet) =>
+  //         t.user?.id === sheet?.user?.id &&
+  //         dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
+  //     );
+
+  //     // 🔹 SAFE row mapping (create + edit both)
+  //     const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
+  //       day: dayjs(r.day).isValid()
+  //         ? dayjs(r.day).toDate()
+  //         : weekStart.add(dayIndexMap[r.day], "day").toDate(),
+  //       projectName: r.projectName ?? "",
+  //       taskName: r.taskName ?? "",
+  //       description: r.description ?? "",
+  //       hours: Number(r.hours) || 0,
+  //       billable: !!r.billable,
+  //     }));
+
+  //     if (existing) {
+  //       // 🔹 UPDATE FLOW (unchanged logic)
+  //       const updatePayload: UpdateTimesheetData = {
+  //         weekStart: weekStart.toDate(),
+  //         weekEnd: weekEnd.toDate(),
+  //         rows: rowsForPayload,
+  //         status: "SUBMITTED",
+  //       };
+
+  //       await updateMutation.mutateAsync({
+  //         id: existing.id,
+  //         data: updatePayload,
+  //       });
+  //     } else {
+  //       // 🔹 CREATE FLOW (unchanged logic)
+  //       const createPayload: CreateTimesheetData = {
+  //         weekStart: weekStart.toDate(),
+  //         weekEnd: weekEnd.toDate(),
+  //         rows: rowsForPayload,
+  //       };
+
+  //       await createMutation.mutateAsync(createPayload);
+  //     }
+
+  //     // 🔹 UI updates
+  //     setIsSubmitted(true);
+  //     setStatus("Submitted");
+  //     setIsSubmitOpen(false);
+  //     setIsSubmittedModalOpen(true);
+  //   } catch (err) {
+  //     console.error("Submit timesheet failed:", err);
+  //   }
+  // };
+  // const handleSubmitTimesheet = async () => {
+  //   try {
+  //     if (!sheet?.id) {
+  //       console.error("Timesheet ID missing, cannot submit.");
+  //       return;
+  //     }
+
+  //     // ✅ Prepare rows for payload (optional if backend uses existing rows)
+  //     const rowsForPayload: any[] = rows.map(r => ({
+  //       day: dayjs(r.day).isValid() ? dayjs(r.day).toDate() : null,
+  //       projectName: r.projectName ?? "",
+  //       taskName: r.taskName ?? "",
+  //       description: r.description ?? "",
+  //       hours: Number(r.hours) || 0,
+  //       billable: !!r.billable,
+  //     }));
+
+  //     // 🔹 Make API call to submit timesheet
+  //     const response = await fetch(`/api/timesheets/${sheet.id}/submit`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ rows: rowsForPayload }), // optional if backend doesn't need rows
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (!response.ok) {
+  //       console.error("Submit timesheet failed:", data.error);
+  //       return;
+  //     }
+
+  //     // 🔹 UI updates
+  //     setIsSubmitted(true);
+  //     setStatus("Submitted");
+  //     setIsSubmitOpen(false);
+  //     setIsSubmittedModalOpen(true);
+
+  //     console.log("Timesheet submitted successfully!", data);
+  //   } catch (err) {
+  //     console.error("Submit timesheet error:", err);
+  //   }
+  // };
 
   // const handleSaveChanges = async () => {
   //   if (!timesheetId) return;
@@ -1259,7 +1404,7 @@ export default function MyTimesheetPage() {
                 <Title level={3} style={{ margin: 0 }}>
                   {/* {loggedInEmployee.employeeName} */}
                   {/* {employeeName} */}
-                   {sheet?.user?.name ?? 'Unknown Employee'}
+                  {sheet?.user?.name ?? "Unknown Employee"}
                 </Title>
                 <Text type="secondary">
                   {dayjs(currentDate.startOf("week")).format("MMM DD")} –{" "}

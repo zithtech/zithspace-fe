@@ -329,13 +329,17 @@ export default function governmentLeaves() {
   const [dataSource, setDataSource] = useState<FixedHoliday[]>([]);
   const [editingKey, setEditingKey] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [allHolidays, setAllHolidays] = useState<FixedHoliday[]>([]);
+  const [filterCountry, setFilterCountry] = useState<string | null>('IN'); // Default to India
+  const [filterState, setFilterState] = useState<string | null>(null);
+  const [filterMonth, setFilterMonth] = useState<dayjs.Dayjs | null>(dayjs()); // Default to current month
   const [form] = Form.useForm();
 
   const fetchHolidays = async () => {
     try {
       setLoading(true);
       const data = await FixedHolidayService.getFixedHolidays();
-      setDataSource(data);
+      setAllHolidays(data);
     } catch (error) {
       message.error("Failed to fetch holidays");
     } finally {
@@ -346,6 +350,37 @@ export default function governmentLeaves() {
   useEffect(() => {
     fetchHolidays();
   }, []);
+
+  useEffect(() => {
+    let filtered = [...allHolidays];
+
+    if (filterCountry) {
+      filtered = filtered.filter((h) => h.country === filterCountry);
+    }
+
+    if (filterState) {
+      filtered = filtered.filter((h) => {
+        const states = Array.isArray(h.state)
+          ? h.state
+          : h.state
+            ? [h.state]
+            : [];
+        return states.includes("ALL") || states.includes(filterState);
+      });
+    }
+
+    if (filterMonth) {
+      const targetMonth = filterMonth.month();
+      const targetYear = filterMonth.year();
+      filtered = filtered.filter((h) => {
+        if (!h.fromDate) return false;
+        const date = dayjs(h.fromDate);
+        return date.month() === targetMonth && date.year() === targetYear;
+      });
+    }
+
+    setDataSource(filtered);
+  }, [allHolidays, filterCountry, filterState, filterMonth]);
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -371,7 +406,7 @@ export default function governmentLeaves() {
       setLoading(true);
       await FixedHolidayService.deleteFixedHoliday(id as string);
       message.success("Deleted successfully");
-      fetchHolidays();
+      setAllHolidays((prev) => prev.filter((h) => h.id !== id));
     } catch (error) {
       message.error("Failed to delete holiday");
     } finally {
@@ -393,7 +428,8 @@ export default function governmentLeaves() {
               fromDate: editedItem.fromDate ? editedItem.fromDate.format("YYYY-MM-DD") : null,
               toDate: editedItem.toDate ? editedItem.toDate.format("YYYY-MM-DD") : null,
             };
-            await FixedHolidayService.updateFixedHoliday(editingKey as string, payload);
+            const updatedHoliday = await FixedHolidayService.updateFixedHoliday(editingKey as string, payload);
+            setAllHolidays(prev => prev.map(h => h.id === editingKey ? updatedHoliday : h));
             message.success("Government leave updated successfully");
           } else {
             const promises = holidays.map((holiday: any) => {
@@ -404,13 +440,21 @@ export default function governmentLeaves() {
               };
               return FixedHolidayService.createFixedHoliday(payload);
             });
-            await Promise.all(promises);
+            const newHolidays = await Promise.all(promises);
+            setAllHolidays(prev => [...prev, ...newHolidays]);
             message.success("Government leaves added successfully");
+            // If new holidays were added, adjust filters to show them
+            if (newHolidays.length > 0) {
+              const firstNewHoliday = newHolidays[0];
+              setFilterCountry(firstNewHoliday.country);
+              // Clear state filter to ensure visibility, as it might not match the new country
+              setFilterState(null); 
+              if (firstNewHoliday.fromDate) setFilterMonth(dayjs(firstNewHoliday.fromDate));
+            }
           }
           setIsModalOpen(false);
           form.resetFields();
           setEditingKey(null);
-          fetchHolidays();
         } catch (error) {
           message.error("Operation failed");
           console.error(error);
@@ -535,7 +579,7 @@ export default function governmentLeaves() {
       <MainLayout>
         <div style={{ padding: 24 }}>
           {/* Tabs Navigation */}
-          <div style={{ marginBottom: 24 }}>
+          <div >
             <Tabs
               activeKey="addLeaves"
               onChange={(key) => {
@@ -634,19 +678,86 @@ export default function governmentLeaves() {
                     manual corrections.
                   </Text>
                 </div>
+                <div style={{ marginTop: 8, marginLeft: 28 }}>
+                                <Space>
+                                  <Tag color="processing" style={{borderRadius:10}}>
+                                    Total leave: {allHolidays.length}
+                                  </Tag>
+                                  <Tag color="success" style={{borderRadius:10}}>
+                                    Total Month: {dataSource.length}
+                                    
+                                  </Tag>
+                                 
+                                </Space>
+                              </div>
               </div>
+                
 
-              <Button
-                icon={<PlusOutlined />}
-                style={{ height: 40 }}
-                type="primary"
-                onClick={showModal}
-              >
-                Add goverment leaves
-              </Button>
+              <Space>
+                <Select
+                  placeholder="Select Country"
+                  style={{ width: 150 }}
+                  showSearch
+                  allowClear
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  options={Country.getAllCountries().map((c) => ({
+                    label: c.name,
+                    value: c.isoCode,
+                  }))}
+                  onChange={(val) => {
+                    setFilterCountry(val);
+                    setFilterState(null);
+                  }}
+                  value={filterCountry}
+                />
+                <Select
+                  placeholder="Select State"
+                  style={{ width: 150 }}
+                  showSearch
+                  allowClear
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  options={
+                    filterCountry
+                      ? State.getStatesOfCountry(filterCountry).map((s) => ({
+                          label: s.name,
+                          value: s.isoCode,
+                        }))
+                      : []
+                  }
+                  onChange={setFilterState}
+                  value={filterState}
+                  disabled={!filterCountry}
+                />
+                <DatePicker
+                  picker="month"
+                  placeholder="Select Month"
+                  style={{ width: 150 }}
+                  onChange={setFilterMonth}
+                  value={filterMonth}
+                  format="MMMM"
+                />
+                <Button
+                  icon={<PlusOutlined />}
+                  style={{ height: 40 }}
+                  type="primary"
+                  onClick={showModal}
+                >
+                  Add goverment leaves
+                </Button>
+              </Space>
             </div>
             <Divider />
-            <Table columns={columns} dataSource={dataSource} rowKey="id" loading={loading} />
+            <Table columns={columns} dataSource={dataSource} rowKey="id" loading={loading}  pagination={{ pageSize: 10 }}/>
           </Card>
         </div>
         <Modal

@@ -42,240 +42,98 @@ import {
   PlusOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import axios from "axios";
+import { Country, ICountry } from "country-state-city";
+import { FixedHolidayService, FixedHoliday } from "@/services/addHolidays";
+import {
+  useCompanyGovernmentHolidays,
+} from "@/hooks/useCompanyGovernmentHolidays";
+import { CompanyGovernmentHoliday, CreateHolidayPayload, UpdateHolidayPayload } from "@/services/companyGovernmentHolidayService";
 
 const { Text } = Typography;
-const tamilNaduHolidays = [
-  {
-    holiday_id: 1,
-    name: "Pongal",
-    from_date: "2026-01-14",
-    to_date: "2026-01-14",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Fixed",
-  },
-  {
-    holiday_id: 2,
-    name: "Thai Pongal",
-    from_date: "2026-01-15",
-    to_date: "2026-01-15",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Fixed",
-  },
-  {
-    holiday_id: 3,
-    name: "Mattu Pongal",
-    from_date: "2026-01-16",
-    to_date: "2026-01-16",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Fixed",
-  },
-  {
-    holiday_id: 4,
-    name: "Tamil New Year",
-    from_date: "2026-04-14",
-    to_date: "2026-04-14",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Fixed",
-  },
-  {
-    holiday_id: 5,
-    name: "May Day",
-    from_date: "2026-05-01",
-    to_date: "2026-05-01",
-    country: "IN",
-    state: "TN",
-    type: "National",
-    rule: "Fixed",
-  },
-  {
-    holiday_id: 6,
-    name: "Kamarajar Birthday",
-    from_date: "2026-07-15",
-    to_date: "2026-07-15",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Fixed",
-  },
-  {
-    holiday_id: 7,
-    name: "Aadi Perukku",
-    from_date: "2026-08-03",
-    to_date: "2026-08-03",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Variable",
-  },
-  {
-    holiday_id: 8,
-    name: "Krishna Jayanthi",
-    from_date: "2026-08-29",
-    to_date: "2026-08-29",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Variable",
-  },
-  {
-    holiday_id: 9,
-    name: "Vinayagar Chaturthi",
-    from_date: "2026-09-14",
-    to_date: "2026-09-14",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Variable",
-  },
-  {
-    holiday_id: 10,
-    name: "Milad-un-Nabi",
-    from_date: "2026-09-26",
-    to_date: "2026-09-26",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Variable",
-  },
-  {
-    holiday_id: 11,
-    name: "Gandhi Jayanthi",
-    from_date: "2026-10-02",
-    to_date: "2026-10-02",
-    country: "IN",
-    state: "TN",
-    type: "National",
-    rule: "Fixed",
-  },
-  {
-    holiday_id: 12,
-    name: "Ayudha Pooja",
-    from_date: "2026-10-19",
-    to_date: "2026-10-19",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Variable",
-  },
-  {
-    holiday_id: 13,
-    name: "Vijaya Dashami",
-    from_date: "2026-10-20",
-    to_date: "2026-10-20",
-    country: "IN",
-    state: "TN",
-    type: "State",
-    rule: "Variable",
-  },
-  {
-    holiday_id: 14,
-    name: "Deepavali",
-    from_date: "2026-11-08",
-    to_date: "2026-11-08",
-    country: "IN",
-    state: "TN",
-    type: "National",
-    rule: "Variable",
-  },
-  {
-    holiday_id: 15,
-    name: "Christmas",
-    from_date: "2026-12-25",
-    to_date: "2026-12-25",
-    country: "IN",
-    state: "TN",
-    type: "National",
-    rule: "Fixed",
-  },
-];
 
 export default function GovernmentHolidaysPage() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
-  const [loading, setLoading] = useState(false);
-  const [apiHolidaysSource, setApiHolidaysSource] =
-    useState<any[]>(tamilNaduHolidays);
+  const {
+    holidays,
+    loading: holidaysLoading,
+    error,
+    fetchHolidays,
+    createHoliday,
+    updateHoliday,
+    deleteHoliday,
+  } = useCompanyGovernmentHolidays();
+  const [dataSource, setDataSource] = useState<CompanyGovernmentHoliday[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [apiHolidaysSource, setApiHolidaysSource] =useState<FixedHoliday[]>([]);
   // Holidays State
   const [holidayModalVisible, setHolidayModalVisible] = useState(false);
-  const [modalCountry, setModalCountry] = useState("");
-  const [modalYear, setModalYear] = useState("2026");
-  const [selectedHolidayIds, setSelectedHolidayIds] = useState<number[]>([]);
-  const [holidayTableData, setHolidayTableData] = useState<any[]>([]);
+  const [modalCountry, setModalCountry] = useState("IN");
+  const [selectedHolidayIds, setSelectedHolidayIds] = useState<(number | string)[]>([]);
 
+  const [isAdding, setIsAdding] = useState(false);
   // Edit Holiday State
   const [editHolidayModalVisible, setEditHolidayModalVisible] = useState(false);
-  const [editingHoliday, setEditingHoliday] = useState<any>(null);
+  const [editingHoliday, setEditingHoliday] = useState<CompanyGovernmentHoliday | null>(null);
   const [editBaseDays, setEditBaseDays] = useState(1);
   const [editExtraDays, setEditExtraDays] = useState(0);
-  const [editExtraPosition, setEditExtraPosition] = useState<
+  const [editExtraPosition, setEditExtraPosition] = useState< 
     "before" | "after"
   >("after");
 
   //   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
   useEffect(() => {
-    const fetchHolidays = async () => {
-      setLoading(true);
+    const fetchSourceHolidays = async () => {
+      setModalLoading(true);
       try {
-        const response = await axios.get("/api/holidays");
-        setApiHolidaysSource(response.data);
+        const data = await FixedHolidayService.getFixedHolidays();
+        setApiHolidaysSource(data);
       } catch (error) {
-        console.log("error to be finded in fetchHolidays", error);
+        console.error("Failed to fetch holidays:", error);
+        message.error("Failed to fetch source holidays");
       } finally {
-        setLoading(false);
+        setModalLoading(false);
       }
     };
-    fetchHolidays();
-  }, [api]);
+    fetchSourceHolidays();
+  }, []);
 
   useEffect(() => {
-    const initialData = tamilNaduHolidays.slice(0, 6).map((holiday) => ({
-      key: holiday.holiday_id,
-      holidayName: holiday.name,
-      fromDate: holiday.from_date,
-      toDate: holiday.to_date,
-      originalFromDate: holiday.from_date,
-      original: 1,
-      base: 1,
-      extra: 0,
-      extraPosition: "after",
-      total: 1,
-      location: holiday.country === "IN" ? "India" : "USA",
-      type: holiday.type,
-      rule: holiday.rule,
-      status: true,
-      floater: false,
-    }));
-    setHolidayTableData(initialData);
-  }, []);
+    fetchHolidays();
+  }, [fetchHolidays]);
+
+  useEffect(() => {
+    // Keep the local dataSource in sync with the data from the hook
+    setDataSource(holidays);
+  }, [holidays]);
 
   // Filter holidays for modal based on country
   const filteredModalHolidays = apiHolidaysSource.filter(
-    (h) => h.country === modalCountry
+    (h) => {
+      const isCountryMatch = h.country === modalCountry;
+      const isAlreadyAdded = holidays.some(
+        (added) =>
+          added.holidayName === h.holidayName &&
+          added.country === h.country &&
+          dayjs(added.fromDate).isSame(dayjs(h.fromDate), "day")
+      );
+      return isCountryMatch && !isAlreadyAdded;
+    }
   );
 
-  const handleEditHoliday = (record: any) => {
+  const handleEditHoliday = (record: CompanyGovernmentHoliday) => {
     setEditingHoliday(record);
-    setEditBaseDays(record.base);
-    setEditExtraDays(record.extra);
-    setEditExtraPosition(record.extraPosition || "after");
+    setEditBaseDays(record.baseLeave);
+    setEditExtraDays(record.extraLeave);
+    setEditExtraPosition(record.rule === 'before' ? 'before' : 'after');
     setEditHolidayModalVisible(true);
   };
 
-  const handleSaveHolidayAdjustment = () => {
+  const handleSaveHolidayAdjustment = async () => {
     if (!editingHoliday) return;
 
     const base = Number(editBaseDays) || 1;
@@ -283,9 +141,22 @@ export default function GovernmentHolidaysPage() {
     const position = editExtraPosition;
     const total = base + extra;
 
-    // Use originalFromDate if available, otherwise fallback to current fromDate (for migration/safety)
-    const originalStart =
-      editingHoliday.originalFromDate || editingHoliday.fromDate;
+    const originalHoliday = apiHolidaysSource.find(
+      (h) =>
+        h.holidayName === editingHoliday.holidayName &&
+        h.country === editingHoliday.country
+    );
+
+    if (!originalHoliday) {
+      api.error({
+        message: "Cannot Adjust Holiday",
+        description: "Could not find the original holiday definition to calculate date adjustments. The holiday might have been removed from the source list.",
+        placement: "topRight",
+      });
+      return;
+    }
+
+    const originalStart = originalHoliday.fromDate;
 
     let newFromDate = originalStart;
     let newToDate;
@@ -306,130 +177,129 @@ export default function GovernmentHolidaysPage() {
         .format("YYYY-MM-DD");
     }
 
-    setHolidayTableData((prev) =>
-      prev.map((row) =>
-        row.key === editingHoliday.key
-          ? {
-              ...row,
-              base: base,
-              extra: extra,
-              extraPosition: position,
-              total: total,
-              fromDate: newFromDate,
-              toDate: newToDate,
-              originalFromDate: originalStart, // Ensure original date is preserved
-            }
-          : row
-      )
-    );
-    api.success({
-      message: "Holiday duration adjusted",
-      placement: "bottomRight",
-      duration: 1,
-    });
-    setEditHolidayModalVisible(false);
+    const payload: UpdateHolidayPayload = {
+      baseLeave: base,
+      extraLeave: extra,
+      totalLeave: total,
+      fromDate: newFromDate,
+      toDate: newToDate,
+      rule: position,
+    };
+
+    try {
+      await updateHoliday(editingHoliday.id, payload);
+      api.success({
+        message: "Holiday duration adjusted",
+        placement: "topRight",
+        duration: 1,
+      });
+      setEditHolidayModalVisible(false);
+    } catch (error: any) {
+      api.error({
+        message: "Failed to save adjustment",
+        description: error.message || "An unexpected error occurred.",
+        placement: "topRight",
+      });
+    }
   };
 
-  const handleDeleteHoliday = (recordKey: number) => {
-    setHolidayTableData((prev) => prev.filter((row) => row.key !== recordKey));
-    api.success({
-      message: "Holiday deleted successfully",
-      placement: "bottomRight",
-      duration: 1,
-    });
+  const handleDeleteHoliday = async (id: string) => {
+    try {
+      await deleteHoliday(id);
+      api.success({
+        message: "Holiday deleted successfully",
+        placement: "topRight",
+        duration: 1,
+      });
+    } catch (error: any) {
+      message.error(error.message || "Failed to delete holiday.");
+    }
   };
 
-  const handleStatusChange = (checked: boolean, recordKey: number) => {
-    const holiday = holidayTableData.find((h) => h.key === recordKey);
-    const name = holiday ? holiday.holidayName : "Holiday";
+  const handleStatusChange = (checked: boolean, recordKey: number | string) => {
+    const holiday = holidays.find((h) => h.id === recordKey);
+    const name = holiday ? holiday.holidayName : "Holiday"; 
 
-    setHolidayTableData((prev) =>
-      prev.map((row) =>
-        row.key === recordKey ? { ...row, status: checked } : row
-      )
-    );
+    updateHoliday(recordKey as string, { status: checked ? 'ACTIVE' : 'INACTIVE' }).catch((err) => {
+      message.error(err.message || "Failed to update status.");
+      // Re-fetch to revert UI state on error
+      fetchHolidays();
+    });
+
 
     if (checked) {
       api.success({
         message: `${name} Activated Sucessfully`,
-        placement: "bottomRight",
+        placement: "topRight",
         duration: 1,
       });
     } else {
       api.info({
         message: `${name} Deactivated Sucessfully`,
-        placement: "bottomRight",
+        placement: "topRight",
         duration: 1,
       });
     }
   };
 
-  const handleFloaterChange = (checked: boolean, recordKey: number) => {
-    setHolidayTableData((prev) =>
-      prev.map((row) =>
-        row.key === recordKey ? { ...row, floater: checked } : row
-      )
-    );
-  };
-
-  const handleAddHolidays = () => {
-    const existingKeys = new Set(holidayTableData.map((r) => r.key));
-    const newHolidayIds = selectedHolidayIds.filter(
-      (id) => !existingKeys.has(id)
-    );
-
-    if (newHolidayIds.length === 0) {
-      api.warning({
-        message: "Data Already Added",
-        description: "You have already added the selected holidays.",
-        placement: "bottomRight",
-        duration: 1,
-      });
-      return;
-    }
-
-    const selected = apiHolidaysSource.filter((h) =>
-      newHolidayIds.includes(h.holiday_id)
-    );
-
-    const newRows = selected.map((holiday) => ({
-      key: holiday.holiday_id,
-      holidayName: holiday.name,
-      fromDate: holiday.from_date,
-      toDate: holiday.to_date,
-      originalFromDate: holiday.from_date,
-      original: 1,
-      base: 1,
-      extra: 0,
-      extraPosition: "after",
-      total: 1,
-      location: holiday.country === "IN" ? "India" : "USA",
-      type: holiday.type,
-      rule: holiday.rule,
-      status: true,
-      floater: false,
-    }));
-
-    setHolidayTableData((prev) => [...prev, ...newRows]);
-
-    setHolidayModalVisible(false);
-    setSelectedHolidayIds([]);
-    api.success({
-      message: "Holidays added successfully",
-      placement: "bottomRight",
-      duration: 1,
+  const handleFloaterChange = (checked: boolean, record: CompanyGovernmentHoliday) => {
+    updateHoliday(record.id, { isFloater: checked }).catch((err) => {
+      message.error(err.message || "Failed to update floater status.");
+      fetchHolidays();
     });
   };
+
+  const handleAddHolidays = async () => {
+    setIsAdding(true);
+
+    const creationPromises = selectedHolidayIds.map((holidayId) => {
+      const holidayData = apiHolidaysSource.find((h) => h.id === holidayId);
+      if (!holidayData) {
+        // This case should ideally not happen if UI is in sync
+        return Promise.reject(
+          new Error(`Holiday with id ${holidayId} not found.`),
+        );
+      }
+      const payload: CreateHolidayPayload = {
+        holidayName: holidayData.holidayName,
+        country: holidayData.country,
+        fromDate: holidayData.fromDate,
+        toDate: holidayData.toDate,
+        baseLeave: 1,
+        extraLeave: 0,
+        totalLeave: 1,
+        type: holidayData.type,
+        isFloater: false, // Defaulting to false
+        rule: holidayData.rule,
+        status: "ACTIVE",
+      };
+      return createHoliday(payload);
+    });
+
+    try {
+      await Promise.all(creationPromises);
+      api.success({ message: "Holidays added successfully!" });
+      // After successful creation, refetch the list of holidays to update the table.
+      await fetchHolidays();
+    } catch (error: any) {
+      api.error({ message: "Failed to add holidays", description: error.message });
+    } finally {
+      setIsAdding(false);
+      setHolidayModalVisible(false);
+      setSelectedHolidayIds([]);
+    }
+  };
+
 
   const holidayColumns = [
     {
       title: "Holiday Name",
       dataIndex: "holidayName",
       key: "holidayName",
-      render: (text: string, record: any) => (
+      render: (text: string, record: CompanyGovernmentHoliday) => (
         <Space>
           <Text strong>{text}</Text>
-          {(record.base !== record.original || record.extra !== 0) && (
+          {(record.baseLeave !== 1 || record.extraLeave !== 0) && (
             <Tag color="orange">Adjusted</Tag>
           )}
         </Space>
@@ -437,9 +307,9 @@ export default function GovernmentHolidaysPage() {
     },
     {
       title: "Country",
-      dataIndex: "location",
-      key: "location",
-      render: (text: string) => <Text>{text}</Text>,
+      dataIndex: "country",
+      key: "country",
+      render: (isoCode: string) => <Text>{Country.getCountryByCode(isoCode)?.name || isoCode}</Text>,
     },
     {
       title: "From Date",
@@ -459,11 +329,11 @@ export default function GovernmentHolidaysPage() {
     },
     {
       title: "Base",
-      dataIndex: "base",
-      key: "base",
+      dataIndex: "baseLeave",
+      key: "baseLeave",
       align: "center" as const,
-      render: (val: number, record: any) => {
-        const diff = val - record.original;
+      render: (val: number) => {
+        const diff = val - 1;
         return (
           <Space size={2}>
             <Text>{val}</Text>
@@ -481,8 +351,8 @@ export default function GovernmentHolidaysPage() {
     },
     {
       title: "Extra",
-      dataIndex: "extra",
-      key: "extra",
+      dataIndex: "extraLeave",
+      key: "extraLeave",
       align: "center" as const,
       render: (val: number) => (
         <Text type={val > 0 ? "success" : val < 0 ? "danger" : "secondary"}>
@@ -492,8 +362,8 @@ export default function GovernmentHolidaysPage() {
     },
     {
       title: "Total",
-      dataIndex: "total",
-      key: "total",
+      dataIndex: "totalLeave",
+      key: "totalLeave",
       render: (val: any) => <Text>{val}</Text>,
     },
     {
@@ -504,16 +374,16 @@ export default function GovernmentHolidaysPage() {
     },
     {
       title: "Floater Leave",
-      dataIndex: "floater",
-      key: "floater",
+      dataIndex: "isFloater",
+      key: "isFloater",
       align: "center" as const,
-      render: (floater: boolean, record: any) => (
+      render: (isFloater: boolean, record: CompanyGovernmentHoliday) => (
         <Switch
-          checked={floater}
+          checked={isFloater}
           checkedChildren={<CheckOutlined />}
           unCheckedChildren={<CloseOutlined />}
-          style={{ backgroundColor: floater ? '#52c41a' : '#f5222d' }}
-          onChange={(checked) => handleFloaterChange(checked, record.key)}
+          style={{ backgroundColor: isFloater ? '#52c41a' : '#f5222d' }}
+          onChange={(checked) => handleFloaterChange(checked, record)}
         />
       ),
     },
@@ -526,12 +396,12 @@ export default function GovernmentHolidaysPage() {
     {
       title: "Status",
       dataIndex: "status",
-      key: "status",
-      render: (status: boolean, record: any) => (
+      key: "status", 
+      render: (status: 'ACTIVE' | 'INACTIVE', record: CompanyGovernmentHoliday) => (
         <Switch
-          checked={status}
+          checked={status === 'ACTIVE'}
           //  disabled={!isAdmin}
-          onChange={(checked) => handleStatusChange(checked, record.key)}
+          onChange={(checked) => handleStatusChange(checked, record.id)}
         />
       ),
     },
@@ -539,7 +409,7 @@ export default function GovernmentHolidaysPage() {
       title: "Actions",
       key: "actions",
       width: 180,
-      render: (_: any, record: any) => (
+      render: (_: any, record: CompanyGovernmentHoliday) => (
         <Space style={{ gap: 20 }}>
            <Tooltip title="Edit Leave Type">
           <Button
@@ -550,7 +420,7 @@ export default function GovernmentHolidaysPage() {
           </Tooltip>
           <Popconfirm
             title="Delete this holiday?"
-            onConfirm={() => handleDeleteHoliday(record.key)}
+            onConfirm={() => handleDeleteHoliday(record.id)}
           >
             <Button size="small" danger icon={<DeleteOutlined />}></Button>
           </Popconfirm>
@@ -567,13 +437,13 @@ export default function GovernmentHolidaysPage() {
       width: 50,
       render: (_: any, record: any) => (
         <Checkbox
-          checked={selectedHolidayIds.includes(record.holiday_id)}
+          checked={selectedHolidayIds.includes(record.id)}
           onChange={(e) => {
             const checked = e.target.checked;
             setSelectedHolidayIds((prev) =>
               checked
-                ? [...prev, record.holiday_id]
-                : prev.filter((id) => id !== record.holiday_id)
+                ? [...prev, record.id]
+                : prev.filter((id) => id !== record.id)
             );
           }}
         />
@@ -581,21 +451,31 @@ export default function GovernmentHolidaysPage() {
     },
     {
       title: "Holiday Name",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "holidayName",
+      key: "holidayName",
       render: (text: string) => <Text strong>{text}</Text>,
     },
     {
       title: "From Date",
-      dataIndex: "from_date",
-      key: "from_date",
-      render: (date: string) => dayjs(date).format("MMM DD, YYYY"),
+      dataIndex: "fromDate",
+      key: "fromDate",
+    render: (date: string | Date) => (
+  <Text>
+    {date ? dayjs(typeof date === 'string' ? date : date.toISOString()).format("MMM DD, YYYY") : "-"}
+  </Text>
+),
+
     },
     {
       title: "To Date",
-      dataIndex: "to_date",
-      key: "to_date",
-      render: (date: string) => dayjs(date).format("MMM DD, YYYY"),
+      dataIndex: "toDate",
+      key: "toDate",
+render: (date: string | Date) => (
+  <Text>
+    {date ? dayjs(typeof date === 'string' ? date : date.toISOString()).format("MMM DD, YYYY") : "-"}
+  </Text>
+),
+
     },
     {
       title: "Type",
@@ -728,14 +608,14 @@ export default function GovernmentHolidaysPage() {
                 <div style={{ marginTop: 8, marginLeft: 28 }}>
                   <Space>
                     <Tag color="processing">
-                      Total: {holidayTableData.length}
+                      Total: {holidays.length}
                     </Tag>
                     <Tag color="success">
-                      Active: {holidayTableData.filter((h) => h.status).length}
+                      Active: {holidays.filter((h) => h.status === 'ACTIVE').length}
                     </Tag>
                     <Tag color="default">
                       Inactive:{" "}
-                      {holidayTableData.filter((h) => !h.status).length}
+                      {holidays.filter((h) => h.status === 'INACTIVE').length}
                     </Tag>
                   </Space>
                 </div>
@@ -751,13 +631,14 @@ export default function GovernmentHolidaysPage() {
             </div>
             <Divider />
             <Table
-              columns={holidayColumns as any}
-              dataSource={holidayTableData}
-              rowKey="key"
-              pagination={{ pageSize: 8 }}
-              //   scroll={{ y: 300 }}
-              style={{ borderRadius: 8 }}
-            />
+  loading={holidaysLoading}
+  columns={holidayColumns as any}
+  dataSource={dataSource}
+  rowKey="id"
+  pagination={{ pageSize: 10 }}
+  key={dataSource.length}  // Keep the re-render strategy, but based on the new dataSource
+/>
+
           </Card>
 
           {/* Modals */}
@@ -777,6 +658,7 @@ export default function GovernmentHolidaysPage() {
               <Button
                 key="submit"
                 type="primary"
+                loading={isAdding}
                 disabled={selectedHolidayIds.length === 0}
                 onClick={handleAddHolidays}
               >
@@ -799,13 +681,19 @@ export default function GovernmentHolidaysPage() {
                     style={{ width: "100%", marginTop: 4 }}
                     value={modalCountry}
                     onChange={setModalCountry}
-                    options={[
-                      { label: "India", value: "IN" },
-                      { label: "USA", value: "US" },
-                    ]}
+                    showSearch
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    options={Country.getAllCountries().map((c: ICountry) => ({
+                      label: c.name,
+                      value: c.isoCode,
+                    }))}
                   />
                 </Col>
-                <Col span={6}>
+                {/* <Col span={6}>
                   <Typography.Text strong>Year</Typography.Text>
                   <Select
                     style={{ width: "100%", marginTop: 4 }}
@@ -816,15 +704,15 @@ export default function GovernmentHolidaysPage() {
                       { label: "2026", value: 2026 },
                     ]}
                   />
-                </Col>
-                <Col span={6} />
-                <Col span={6} style={{ textAlign: "right" }}>
+                </Col> */}
+                <Col span={9} />
+                <Col span={9} style={{ textAlign: "right" }}>
                   <Space>
                     <Button
                       size="small"
                       onClick={() =>
                         setSelectedHolidayIds(
-                          filteredModalHolidays.map((h) => h.holiday_id)
+                          filteredModalHolidays.map((h) => h.id)
                         )
                       }
                     >
@@ -841,10 +729,10 @@ export default function GovernmentHolidaysPage() {
               </Row>
             </Card>
             <Table
-              loading={loading}
+              loading={modalLoading}
               columns={modalTableColumns}
               dataSource={filteredModalHolidays}
-              rowKey="holiday_id"
+              rowKey="id"
               pagination={false}
               scroll={{ y: 300 }}
               size="middle"
@@ -982,9 +870,17 @@ export default function GovernmentHolidaysPage() {
                       {(() => {
                         const base = Number(editBaseDays) || 1;
                         const extra = Number(editExtraDays) || 0;
-                        const start =
-                          editingHoliday.originalFromDate ||
-                          editingHoliday.fromDate;
+                        if (!editingHoliday) return "";
+
+                        const originalHoliday = apiHolidaysSource.find(
+                          (h) =>
+                            h.holidayName === editingHoliday.holidayName &&
+                            h.country === editingHoliday.country
+                        );
+
+                        const start = originalHoliday
+                          ? originalHoliday.fromDate
+                          : editingHoliday.fromDate;
                         let from, to;
                         if (editExtraPosition === "before") {
                           from = dayjs(start).subtract(extra, "day");

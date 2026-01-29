@@ -534,7 +534,7 @@ render: (date: string | Date) => (
                   key: "leaves",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> My Leave Status
+                      <ClockCircleOutlined /> Apply Leave
                     </span>
                   ),
                 },

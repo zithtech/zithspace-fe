@@ -607,7 +607,7 @@ export default function governmentLeaves() {
                   key: "leaves",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> My Leave Status
+                      <ClockCircleOutlined /> Apply Leave
                     </span>
                   ),
                 },

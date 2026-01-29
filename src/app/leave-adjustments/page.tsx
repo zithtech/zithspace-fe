@@ -64,7 +64,7 @@ export default function LeaveAdjustmentPage() {
   const [dataSource, setDataSource] = useState<LeaveAdjustment[]>([]);
   const [api, contextHolder] = notification.useNotification();
   const [selectedLeaveType, setSelectedLeaveType] = useState<string | null>(
-    null
+    null,
   );
   const [searchText, setSearchText] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -147,8 +147,8 @@ export default function LeaveAdjustmentPage() {
     if (editingKey) {
       setDataSource((prev) =>
         prev.map((item) =>
-          item.key === editingKey ? { ...item, ...values } : item
-        )
+          item.key === editingKey ? { ...item, ...values } : item,
+        ),
       );
       api.success({
         message: "Adjustment updated successfully",
@@ -267,11 +267,11 @@ export default function LeaveAdjustmentPage() {
       render: (_: any, record: LeaveAdjustment) => (
         <Space>
           <Tooltip title="Edit Leave Adjustment">
-          <Button
-            type="text"
-            icon={<Settings2 size={16} />}
-            onClick={() => handleEdit(record)}
-          />
+            <Button
+              type="text"
+              icon={<Settings2 size={16} />}
+              onClick={() => handleEdit(record)}
+            />
           </Tooltip>
         </Space>
       ),
@@ -289,21 +289,22 @@ export default function LeaveAdjustmentPage() {
                 pathname.includes("leave-adjustments")
                   ? "adjustments"
                   : pathname.includes("leaves-dashboard")
-                  ? "dashboard"
-                  : pathname.includes("government-holidays")
-                  ? "holidays"
-                  : pathname.includes("leave-configuration")
-                  ? "configuration"
-                  : pathname.includes("position-configuration")
-                  ? "positions"
-                  : "leaves"
+                    ? "dashboard"
+                    : pathname.includes("government-holidays")
+                      ? "holidays"
+                      : pathname.includes("leave-configuration")
+                        ? "configuration"
+                        : pathname.includes("position-configuration")
+                          ? "positions"
+                          : "leaves"
               }
               onChange={(key) => {
                 if (key === "dashboard") router.push("/leaves-dashboard");
                 if (key === "leaves") router.push("/leaves");
                 if (key === "holidays") router.push("/government-holidays");
                 if (key === "adjustments") router.push("/leave-adjustments");
-                if (key === "configuration") router.push("/leave-configuration");
+                if (key === "configuration")
+                  router.push("/leave-configuration");
                 if (key === "positions") router.push("/position-configuration");
                 if (key === "addLeaves") router.push("/add-goverment-leaves");
               }}
@@ -320,7 +321,7 @@ export default function LeaveAdjustmentPage() {
                   key: "leaves",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> My Leave Status
+                      <ClockCircleOutlined /> Apply Leave
                     </span>
                   ),
                 },
@@ -413,7 +414,7 @@ export default function LeaveAdjustmentPage() {
             <Table
               columns={columns}
               dataSource={dataSource.filter((item) =>
-                item.employee.toLowerCase().includes(searchText.toLowerCase())
+                item.employee.toLowerCase().includes(searchText.toLowerCase()),
               )}
               style={{ marginTop: 24 }}
               pagination={{ pageSize: 6 }}
@@ -628,7 +629,7 @@ export default function LeaveAdjustmentPage() {
                   Cancel
                 </Button>
                 <Button type="primary" htmlType="submit">
-                {editingKey ? "Update Adjustment" : "Save Adjustment"}
+                  {editingKey ? "Update Adjustment" : "Save Adjustment"}
                 </Button>
               </div>
             </Form>

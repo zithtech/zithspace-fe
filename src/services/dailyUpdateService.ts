@@ -15,6 +15,7 @@ export class DailyUpdateService {
    */
   static async createUpdate(data: CreateDailyUpdateRequest): Promise<DailyStatusUpdate> {
     try {
+      console.log(data,"is_missed")
       return await api.post('/api/daily-updates', data);
     } catch (error: any) {
       // Extract error message from different error types
@@ -113,6 +114,7 @@ export class DailyUpdateService {
    * Delete daily status update
    */
   static async deleteUpdate(id: string): Promise<void> {
+    console.log("id checking",id)
     try {
       await api.delete(`/api/daily-updates/${id}`);
     } catch (error: any) {

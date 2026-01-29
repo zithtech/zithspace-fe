@@ -78,7 +78,7 @@ export default function ClientsPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(
-    undefined
+    undefined,
   );
 
   // Modal states
@@ -167,7 +167,7 @@ export default function ClientsPage() {
       if (modalType === "edit" && selectedClient) {
         await ClientService.updateClient(
           selectedClient.id,
-          formData as UpdateClientData
+          formData as UpdateClientData,
         );
         setSuccess("Client updated successfully");
       } else {
@@ -494,7 +494,6 @@ export default function ClientsPage() {
                     List
                   </Button>
                 </div>
-                
 
                 {/* Add Client Button */}
                 {canManage && (
@@ -591,8 +590,6 @@ export default function ClientsPage() {
           </Space>
         </Card>
 
-       
-
         {viewMode === "card" ? (
           <Row gutter={[24, 24]}>
             {loading
@@ -645,7 +642,7 @@ export default function ClientsPage() {
                           style={{
                             background:
                               "linear-gradient(135deg, #1677ff, #69b1ff)",
-                            boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
+                            //boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
                             fontWeight: "bold",
                             fontSize: 18,
                           }}
@@ -674,7 +671,7 @@ export default function ClientsPage() {
 
                           <div style={{ marginTop: 6 }}>
                             <Tag
-                              color={client.isActive ? "blue" : "red"}
+                              color={client.isActive ? "green" : "red"}
                               style={{
                                 fontWeight: 600,
                                 borderRadius: 6,
@@ -820,23 +817,24 @@ export default function ClientsPage() {
           {selectedClient && modalType === "view" && (
             <>
               {/* ===== CLIENT HEADER (same as project modal header) ===== */}
-              <div
+              {/* <div
                 className="client-view-header"
                 style={{
                   padding: "22px 24px",
                   display: "flex",
                   alignItems: "center",
                   gap: 16,
-                  background:
-                    "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                  //background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
                   color: "#fff",
                 }}
               >
-                {/* Avatar */}
+                {/* Avatar 
                 <Avatar
                   size={52}
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.25)",
+                    //backgroundColor: "rgba(255,255,255,0.25)",
+                    background:
+                      "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
                     fontWeight: 700,
                     fontSize: 20,
                   }}
@@ -844,47 +842,105 @@ export default function ClientsPage() {
                   {selectedClient.name?.[0]?.toUpperCase()}
                 </Avatar>
 
-                {/* Name & Email */}
+                {/* Name & Email 
                 <div style={{ flex: 1 }}>
-                  <Title level={4} style={{ margin: 0, color: "#fff" }}>
+                  <Title level={4} style={{ margin: 0, color: "black" }}>
                     {selectedClient.name}
                   </Title>
-                  <Text style={{ color: "rgba(255,255,255,0.85)" }}>
+                  <Text style={{ color: "black" }}>
                     {selectedClient.email || "—"}
                   </Text>
                 </div>
 
-                {/* Status Tag */}
+                {/* Status Tag 
                 <Tag
                   color={selectedClient.isActive ? "blue" : "red"}
                   style={{
                     fontWeight: 600,
                     padding: "4px 10px",
                     borderRadius: 6,
+                    transform: "translateX(-11px)",
                   }}
                 >
                   {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
                 </Tag>
+              </div> */}
+              <div
+                className="client-view-header"
+                style={{
+                  padding: "22px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                }}
+              >
+                {/* Avatar */}
+                <Avatar
+                  size={52}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                    fontWeight: 700,
+                    fontSize: 20,
+                  }}
+                >
+                  {selectedClient.name?.[0]?.toUpperCase()}
+                </Avatar>
+
+                {/* Text block */}
+                <div style={{ flex: 1 }}>
+                  {/* Name + Status (same row) */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline", // 🔥 name straight, tag slightly lower
+                      gap: 8,
+                    }}
+                  >
+                    <Title level={4} style={{ margin: 0, color: "black" }}>
+                      {selectedClient.name}
+                    </Title>
+
+                    {/* <Tag
+                      color={selectedClient.isActive ? "blue" : "red"}
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 11,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        display: "inline-block",
+                       
+                      }}
+                    >
+                      {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
+                    </Tag> */}
+                    <Tag
+                      color={selectedClient.isActive ? "green" : "red"}
+                      style={{
+                        fontWeight: 500,
+                        fontSize: 11, // 🔽 smaller text
+                        padding: "1px 5px", // 🔽 less height & width
+                        borderRadius: 3,
+                        //lineHeight: "14px", 
+                        display: "inline-block",
+                      }}
+                    >
+                      {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
+                    </Tag>
+                  </div>
+
+                  {/* Email below */}
+                  <Text style={{ color: "black", fontSize: 13 }}>
+                    {selectedClient.email || "—"}
+                  </Text>
+                </div>
               </div>
 
               {/* ===== BODY ===== */}
-              <div style={{ padding: 24, background: "#fafcff" }}>
+              {/* <div style={{ padding: 24, background: "#fafcff" }}>
                 <Row gutter={[16, 16]}>
-                  {selectedClient.phone && (
-                    <Col span={12}>
-                      <Card
-                        size="small"
-                        bordered={false}
-                        className="client-view-card"
-                      >
-                        <Text strong>Phone</Text>
-                        <div style={{ marginTop: 6 }}>
-                          {selectedClient.phone}
-                        </div>
-                      </Card>
-                    </Col>
-                  )}
-                  {selectedClient.company && (
+                  
+                   {selectedClient.company && (
                     <Col span={12}>
                       <Card
                         size="small"
@@ -898,6 +954,8 @@ export default function ClientsPage() {
                       </Card>
                     </Col>
                   )}
+
+                 
                   {selectedClient.contactPerson && (
                     <Col span={12}>
                       <Card
@@ -908,6 +966,20 @@ export default function ClientsPage() {
                         <Text strong>Contact Person</Text>
                         <div style={{ marginTop: 6 }}>
                           {selectedClient.contactPerson}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                  {selectedClient.phone && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Phone</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.phone}
                         </div>
                       </Card>
                     </Col>
@@ -954,6 +1026,114 @@ export default function ClientsPage() {
                       </div>
                     </Card>
                   </Col>
+                  {selectedClient.createdBy && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Created By</Text>
+                        <div style={{ marginTop: 6, color: "#595959" }}>
+                          {selectedClient.createdBy.name}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                </Row>
+              </div> */}
+              <div style={{ padding: 24, background: "#fafcff" }}>
+                <Row gutter={[16, 16]} align="stretch">
+                  {selectedClient.company && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Company</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.company}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.contactPerson && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Contact Person</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.contactPerson}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.phone && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Phone</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.phone}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.address && (
+                    <Col span={24}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Address</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.address}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.notes && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Notes</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.notes}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  <Col span={12}>
+                    <Card
+                      size="small"
+                      bordered={false}
+                      className="client-view-card"
+                    >
+                      <Text strong>Created</Text>
+                      <div style={{ marginTop: 6, color: "#595959" }}>
+                        {dayjs(selectedClient.createdAt).format(
+                          "MMM DD, YYYY HH:mm",
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+
                   {selectedClient.createdBy && (
                     <Col span={12}>
                       <Card

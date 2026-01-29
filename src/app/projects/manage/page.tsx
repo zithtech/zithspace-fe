@@ -221,7 +221,7 @@ const ProjectsManagePage: React.FC = () => {
       if (editingProject) {
         await ProjectService.updateProject(
           editingProject.id,
-          projectData as UpdateProjectData
+          projectData as UpdateProjectData,
         );
         setSuccess("Project updated successfully");
       } else {
@@ -686,7 +686,7 @@ const ProjectsManagePage: React.FC = () => {
                           style={{
                             background:
                               "linear-gradient(135deg, #1677ff, #69b1ff)",
-                            boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
+                            //boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
                             fontWeight: "bold",
                             fontSize: 18,
                           }}
@@ -795,7 +795,7 @@ const ProjectsManagePage: React.FC = () => {
                             RBAC.hasPermission(
                               user.role as any,
                               "projects",
-                              "update"
+                              "update",
                             ) && (
                               <Button
                                 type="text"
@@ -811,7 +811,7 @@ const ProjectsManagePage: React.FC = () => {
                             RBAC.hasPermission(
                               user.role as any,
                               "projects",
-                              "delete"
+                              "delete",
                             ) && (
                               <Button
                                 type="text"
@@ -936,7 +936,7 @@ const ProjectsManagePage: React.FC = () => {
                     showSearch
                     filterOption={(input, option) => {
                       const member = members.find(
-                        (m) => m.value === option?.value
+                        (m) => m.value === option?.value,
                       );
                       return member
                         ? member.label
@@ -1064,22 +1064,22 @@ const ProjectsManagePage: React.FC = () => {
           {viewProject && (
             <>
               {/* ===== HEADER ===== */}
-              <div
+              {/* <div
               className="view-modal-header"
                 style={{
                   padding: "22px 24px",
                   display: "flex",
                   alignItems: "center",
                   gap: 16,
-                  background:
-                    "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                  //background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
                   color: "#fff",
                 }}
               >
                 <Avatar
                   size={52}
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.25)",
+                    //backgroundColor: "rgba(255,255,255,0.25)",
+                    background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
                     fontWeight: 700,
                     fontSize: 20,
                   }}
@@ -1088,12 +1088,27 @@ const ProjectsManagePage: React.FC = () => {
                 </Avatar>
 
                 <div style={{ flex: 1 }}>
-                  <Title level={4} style={{ margin: 0, color: "#fff" }}>
+                  <Title level={4} style={{ margin: 0, color: "black" }}>
                     {viewProject.name}
                   </Title>
-                  <Text style={{ color: "rgba(255,255,255,0.85)" }}>
+                  {/* <Text style={{ color: "rgba(255,255,255,0.85)" }}> 
+                  <Text style={{ color: "black"}}>
+                    
                     {viewProject.code || "—"}
                   </Text>
+
+                  <Tag
+                  color={getStatusColor(viewProject.status)}
+                  style={{
+                    fontWeight: 600,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    // marginLeft: 20,
+                    transform: "translateX(-10px)",
+                  }}
+                >
+                  {viewProject.status.toUpperCase()}
+                </Tag>
                 </div>
 
                 <Tag
@@ -1102,10 +1117,70 @@ const ProjectsManagePage: React.FC = () => {
                     fontWeight: 600,
                     padding: "4px 10px",
                     borderRadius: 6,
+                    // marginLeft: 20,
+                    transform: "translateX(-10px)",
                   }}
                 >
                   {viewProject.status.toUpperCase()}
                 </Tag>
+              </div> */}
+              <div
+                className="view-modal-header"
+                style={{
+                  padding: "22px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                }}
+              >
+                <Avatar
+                  size={52}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                    fontWeight: 700,
+                    fontSize: 20,
+                  }}
+                >
+                  {viewProject.name?.[0]?.toUpperCase()}
+                </Avatar>
+
+                {/* Text block */}
+                <div style={{ flex: 1 }}>
+                  {/* Name + Tag in same row */}
+                  <div
+                    style={{
+                      display: "flex",
+                      //alignItems: "center",
+                      alignItems: "baseline", 
+                      gap: 8,
+                    }}
+                  >
+                    <Title level={4} style={{ margin: 0, color: "black" }}>
+                      {viewProject.name}
+                    </Title>
+
+                    <Tag
+                      color={getStatusColor(viewProject.status)}
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 11,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        width: "fit-content",
+                        display: "inline-block",
+                        
+                      }}
+                    >
+                      {viewProject.status.toUpperCase()}
+                    </Tag>
+                  </div>
+
+                  {/* ID below */}
+                  <Text style={{ color: "black", fontSize: 13 }}>
+                    {viewProject.code || "—"}
+                  </Text>
+                </div>
               </div>
 
               {/* ===== BODY ===== */}
@@ -1179,11 +1254,16 @@ const ProjectsManagePage: React.FC = () => {
                   borderTop: "1px solid #f0f0f0",
                   background: "#fff",
                   display: "flex",
-                  justifyContent: "space-between",
+                  justifyContent: "flex-end",
                   alignItems: "center",
                 }}
               >
-                <Button onClick={() => setViewModalOpen(false)} className="view-close-btn">Close</Button>
+                <Button
+                  onClick={() => setViewModalOpen(false)}
+                  className="view-close-btn"
+                >
+                  Close
+                </Button>
               </div>
             </>
           )}

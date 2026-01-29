@@ -204,7 +204,7 @@ const SettingsPage = () => {
               key: "allowance",
               label: (
                 <span>
-                  <DollarOutlined /> Allowance Name
+                  <DollarOutlined /> salary component 
                 </span>
               ),
             },

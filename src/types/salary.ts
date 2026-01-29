@@ -45,28 +45,50 @@ export interface SalaryStructure {
 }
 
 
+// export interface Company {
+//   id: number;
+//   name: string;
+//   email: string;
+//   phone: string;
+
+//   plotNo: string;
+//   floorNo: string;
+//   buildingName: string;
+//   street: string;
+//   area: string;
+//   city: string;
+//   pincode: string;
+//   country: string;
+
+//   cin: string;
+//   gst: string;
+//   isActive: boolean;
+//   logo?: string; // ✅ ADD THIS
+// }
+
+
 export interface Company {
   id: number;
   name: string;
-  email: string;
-  phone: string;
 
-  plotNo: string;
-  floorNo: string;
-  buildingName: string;
-  street: string;
-  area: string;
-  city: string;
-  pincode: string;
-  country: string;
+  email?: string;
+  phone?: string;
 
-  cin: string;
-  gst: string;
+  plotNo?: string;
+  floorNo?: string;
+  buildingName?: string;
+  street?: string;
+  area?: string;
+  city?: string;
+  pincode?: string;
+  country?: string;
+
+  cin?: string;
+  gst?: string;
+
   isActive: boolean;
-  logo?: string; // ✅ ADD THIS
+  logo?: string;
 }
-
-
 
 
 export type PreviewType =

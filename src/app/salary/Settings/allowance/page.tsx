@@ -1,204 +1,530 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   Typography,
-  Table,
   Button,
-  Popconfirm,
-  Modal,
+  Table,
+  Drawer,
   Form,
   Input,
-  InputNumber,
+  Radio,
+  Select,
+  Switch,
   Space,
+  Popconfirm,
+  message,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-
-import { fetchAllowances } from "@/services/salarySettings.service";
+import {
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
+import {
+  useSalaryComponents,
+  useCreateSalaryComponent,
+  useUpdateSalaryComponent,
+  useUpdateSalaryStatus,
+  useDeleteSalaryComponent,
+} from "@/hooks/useSalaryComponents";
+import toast from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
-type Allowance = {
-  id: number;
-  name: string;
-  amount: number;
-  ytd: number;
+/* ===== FUTURE USE ===== */
+// type CalculationType = "Fixed" | "Percentage" | "Formula";
+
+type ComponentType = "Earning" | "Deduction";
+type SalaryComponent = {
+  key: number;
+  componentName: string;
+  componentCode: string;
+  type: ComponentType;
+
+  /* ===== FUTURE USE ===== */
+  // calculationType: CalculationType;
+  // amount?: number;
+  // percentage?: number;
+
+  status: boolean;
 };
 
-const AllowanceSettings = () => {
-  useEffect(() => {
-    fetchAllowances().then(setData);
-  }, []);
-
-  const [data, setData] = useState<Allowance[]>([]);
+const SalaryComponentManagement = () => {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"add" | "edit">("add");
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingKey, setEditingKey] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [form] = Form.useForm();
 
-  /* OPEN ADD MODAL */
-  const openAdd = () => {
-    setMode("add");
-    form.resetFields();
-    setOpen(true);
-  };
+  React.useEffect(() => {
+    setPage(1);
+  }, [search, typeFilter, statusFilter]);
 
-  /* OPEN EDIT MODAL */
-  const openEdit = (record: Allowance) => {
-    setMode("edit");
-    setEditingId(record.id);
-    form.setFieldsValue(record);
-    setOpen(true);
-  };
+  const { data, isLoading } = useSalaryComponents({
+    page,
+    limit: pageSize,
+    search,
+    type: typeFilter as any,
+    status: statusFilter as any,
+  });
 
-  /* SAVE (ADD / EDIT) */
-  const handleSubmit = (values: any) => {
-    if (mode === "add") {
-      setData((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          ...values,
-        },
-      ]);
-    } else {
-      setData((prev) =>
-        prev.map((item) =>
-          item.id === editingId ? { ...item, ...values } : item,
-        ),
-      );
-    }
+  console.log("React Query raw data:", data);
 
-    setOpen(false);
-    setEditingId(null);
-    form.resetFields();
-  };
+  const components = data?.data || [];
+  // const pagination = data?.pagination;
 
-  /* DELETE */
+  const createMutation = useCreateSalaryComponent();
+  const updateMutation = useUpdateSalaryComponent();
+  const statusMutation = useUpdateSalaryStatus();
+  const deleteMutation = useDeleteSalaryComponent();
+
+  // const [data, setData] = useState<SalaryComponent[]>([
+  //   {
+  //     key: 1,
+  //     componentName: "Basic Salary",
+  //     componentCode: "BASIC",
+  //     type: "Earning",
+  //     status: true,
+  //   },
+  //   {
+  //     key: 2,
+  //     componentName: "Provident Fund",
+  //     componentCode: "PF",
+  //     type: "Deduction",
+  //     status: true,
+  //   },
+  // ]);
+
+  const generateComponentCode = (name: string) =>
+    name.toUpperCase().trim().replace(/\s+/g, "_");
+
+  // const filteredData = data.filter((item) => {
+  //   const matchesSearch =
+  //     item.componentName.toLowerCase().includes(search.toLowerCase()) ||
+  //     item.componentCode.toLowerCase().includes(search.toLowerCase());
+
+  //   const matchesType = typeFilter ? item.type === typeFilter : true;
+
+  //   const matchesStatus =
+  //     statusFilter === "Active"
+  //       ? item.status
+  //       : statusFilter === "Inactive"
+  //       ? !item.status
+  //       : true;
+
+  //   return matchesSearch && matchesType && matchesStatus;
+  // });
+
   const handleDelete = (id: number) => {
-    setData((prev) => prev.filter((item) => item.id !== id));
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success("Salary component deleted successfully ");
+      },
+      onError: () => {
+        toast.error("Failed to delete salary component ");
+      },
+    });
   };
 
   const columns = [
+    { title: "Component Name", dataIndex: "componentName" },
+    { title: "Code", dataIndex: "componentCode" },
     {
-      title: "Allowance Name",
-      dataIndex: "name",
+      title: "Type",
+      dataIndex: "type",
+      render: (t: string) => (
+        <span style={{ color: t === "Earning" ? "green" : "red" }}>{t}</span>
+      ),
     },
+
+    /* ===== FUTURE USE ===== */
+    // { title: "Calculation Type", dataIndex: "calculationType" },
+
+    // {
+    //   title: "Status",
+    //   dataIndex: "status",
+    //   render: (s: boolean, record: any) => (
+    //     <Switch
+    //       checked={s}
+    //       checkedChildren="Active"
+    //       unCheckedChildren="Inactive"
+    //       onChange={(checked) => toggleStatus(record.key, checked)}
+    //     />
+    //   ),
+    // },
+
     {
-      title: "Amount",
-      dataIndex: "amount",
-      render: (v: number) => `₹ ${v}`,
+      title: "Status",
+      dataIndex: "status",
+      render: (s: boolean, record: SalaryComponent) => (
+        <Switch
+          checked={s}
+          checkedChildren="Active"
+          unCheckedChildren="Inactive"
+          onChange={(checked) => toggleStatus(record.key, checked)} // ✅ use key
+        />
+      ),
     },
+
     {
-      title: "YTD",
-      dataIndex: "ytd",
-      render: (v: number) => `₹ ${v}`,
-    },
-    {
-      title: "Action",
-      align: "center" as const,
-      render: (_: any, record: Allowance) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => openEdit(record)}
+      title: "Actions",
+      key: "actions",
+      render: (_: any, record: SalaryComponent) => (
+        <Space size={16}>
+          <EditOutlined
+            style={{ color: "#1677ff", cursor: "pointer" }}
+            onClick={() => handleEdit(record)}
           />
+
           <Popconfirm
-            title="Delete this allowance?"
-            onConfirm={() => handleDelete(record.id)}
+            title="Delete component?"
+            description="This action cannot be undone"
+            okText="Yes"
+            cancelText="No"
+            onConfirm={() => handleDelete(record.key)}
           >
-            <Button type="text" danger icon={<DeleteOutlined />} />
+            <DeleteOutlined style={{ color: "red", cursor: "pointer" }} />
           </Popconfirm>
         </Space>
       ),
     },
   ];
 
+  // const handleSave = async () => {
+  //   const values = await form.validateFields();
+
+  //   if (isEditMode && editingKey !== null) {
+  //     setData((prev) =>
+  //       prev.map((item) =>
+  //         item.key === editingKey
+  //           ? {
+  //               ...item,
+  //               componentName: values.componentName,
+  //               componentCode: values.componentCode,
+  //               type: values.type,
+  //               status: values.status,
+  //             }
+  //           : item,
+  //       ),
+  //     );
+  //   } else {
+  //     const newComponent: SalaryComponent = {
+  //       key: Date.now(),
+  //       componentName: values.componentName,
+  //       componentCode: values.componentCode,
+  //       type: values.type,
+  //       status: values.status,
+  //     };
+
+  //     setData((prev) => [newComponent, ...prev]);
+  //   }
+
+  //   form.resetFields();
+  //   setIsEditMode(false);
+  //   setEditingKey(null);
+  //   setOpen(false);
+  // };
+
+  //___________________________________________________________________
+
+  // const handleSave = async () => {
+  //   const values = await form.validateFields();
+
+  //   if (isEditMode && editingKey !== null) {
+  //     updateMutation.mutate({
+  //       id: editingKey,
+  //       data: values,
+  //     });
+  //   } else {
+  //     createMutation.mutate(values);
+  //   }
+
+  //   form.resetFields();
+  //   setIsEditMode(false);
+  //   setEditingKey(null);
+  //   setOpen(false);
+  // };
+
+  //________________________________________________________________________________
+
+  //_______________________________________________________________
+
+  const handleSave = async () => {
+    const values = await form.validateFields();
+
+    if (isEditMode && editingKey !== null) {
+      updateMutation.mutate(
+        {
+          id: editingKey,
+          data: values,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Salary component successfully updated ");
+            form.resetFields();
+            setIsEditMode(false);
+            setEditingKey(null);
+            setOpen(false);
+          },
+          onError: () => {
+            toast.error("Failed to update salary component ");
+          },
+        },
+      );
+    } else {
+      createMutation.mutate(values, {
+        onSuccess: () => {
+          toast.success("Salary component successfully added ");
+          form.resetFields();
+          setOpen(false);
+        },
+        onError: () => {
+          toast.error("Failed to add salary component ");
+        },
+      });
+    }
+  };
+
+  // const toggleStatus = (id: number, status: boolean) => {
+  //   statusMutation.mutate({ id, status });
+  // };
+
+  const toggleStatus = (key: number, status: boolean) => {
+  statusMutation.mutate(
+    { key, status },
+    {
+      onSuccess: () => {
+        toast.success(
+          `Salary component ${status ? "activated" : "deactivated"} successfully`
+        );
+      },
+      onError: () => {
+        toast.error("Failed to update component status");
+      },
+    }
+  );
+};
+
+  // const handleEdit = (record: SalaryComponent) => {
+  //   setIsEditMode(true);
+  //   setEditingKey(record.key);
+  //   form.setFieldsValue(record);
+  //   setOpen(true);
+  // };
+
+  const handleEdit = (record: SalaryComponent) => {
+    setIsEditMode(true);
+    setEditingKey(record.key);
+    form.setFieldsValue(record);
+    setOpen(true);
+  };
+
   return (
-    <Card style={{ marginTop: 16 }}>
-      {/* HEADER */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
+    <Card style={{ marginLeft: 5, marginTop: -16 }}>
+      {/* Header */}
+
+      <Toaster position="top-right" />
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>
-          <Title level={4} style={{ margin: 0 }}>
-            Allowance Details
+          <Title level={4} style={{ margin: 0, lineHeight: 1.3 }}>
+            Salary Component Management
           </Title>
-          <Text type="secondary">Manage monthly allowances</Text>
+          <Text type="secondary">
+            Define and manage earning and deduction components for payroll
+          </Text>
         </div>
 
         <Button
           type="primary"
           icon={<PlusOutlined />}
-          onClick={openAdd}
-          style={{
-            borderRadius: 20,
-            padding: "0 18px",
-            fontWeight: 600,
+          onClick={() => {
+            form.resetFields();
+            setIsEditMode(false);
+            setEditingKey(null);
+            setOpen(true);
           }}
         >
-          Add Allowance
+          Add Component
         </Button>
       </div>
 
-      {/* TABLE */}
-      <Table
+      {/* Filters */}
+      <Space style={{ marginTop: 24 }}>
+        <Select
+          placeholder="All Types"
+          allowClear
+          style={{ width: 160 }}
+          onChange={setTypeFilter}
+        >
+          <Option value="Earning">Earning</Option>
+          <Option value="Deduction">Deduction</Option>
+        </Select>
+
+        <Select
+          placeholder="All Status"
+          allowClear
+          style={{ width: 160 }}
+          onChange={setStatusFilter}
+        >
+          <Option value="Active">Active</Option>
+          <Option value="Inactive">Inactive</Option>
+        </Select>
+
+        <Input
+          placeholder="Search by name or code"
+          prefix={<SearchOutlined />}
+          style={{ width: 260 }}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </Space>
+
+      {/* Table */}
+      {/* <Table
+        loading={isLoading}
         columns={columns}
-        dataSource={data}
-        rowKey="id"
-        pagination={false}
-        bordered
-        size="small"
-      />
+        dataSource={components}
+        rowKey="id" 
+        pagination={{
+          current: pagination?.current,
+          pageSize: pagination?.pageSize,
+          total: pagination?.total,
+          showSizeChanger: true,
+          onChange: (page, pageSize) => {
+            setPage(page);
+            setPageSize(pageSize);
+          },
+        }}
+        pagination={{ pageSize: 7 }}
+      /> */}
 
-      {/* ADD / EDIT MODAL */}
-      <Modal
+      {/* <Table
+        loading={isLoading}
+        columns={columns}
+        dataSource={components}
+        rowKey="key" // use key, not id
+        pagination={{ pageSize: 7 }}
+      /> */}
+
+      <div style={{ marginTop: 22 }}>
+        <Card
+          bordered={false}
+          style={{
+            boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+            borderRadius: 12,
+          }}
+        >
+          <Table
+            loading={isLoading}
+            columns={columns}
+            dataSource={components}
+            rowKey="key"
+            pagination={{ pageSize: 7 }}
+            size="middle"
+            rowClassName={() => "salary-table-row"}
+          />
+        </Card>
+      </div>
+
+      {/* Drawer */}
+      <Drawer
+        title={isEditMode ? "Edit Salary Component" : "Add Salary Component"}
         open={open}
-        title={mode === "add" ? "Add Allowance" : "Edit Allowance"}
-        onCancel={() => setOpen(false)}
-        onOk={() => form.submit()}
-        okText={mode === "add" ? "Save" : "Update"}
+        onClose={() => setOpen(false)}
+        width={420}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+        <Form
+          form={form}
+          layout="vertical"
+          onValuesChange={(changed) => {
+            if (changed.componentName) {
+              form.setFieldsValue({
+                componentCode: generateComponentCode(changed.componentName),
+              });
+            }
+          }}
+        >
           <Form.Item
-            label="Allowance Name"
-            name="name"
-            rules={[{ required: true, message: "Allowance name is required" }]}
+            label="Component Name"
+            name="componentName"
+            rules={[{ required: true }]}
           >
-            <Input placeholder="e.g. House Rent Allowance" />
+            <Input />
           </Form.Item>
 
           <Form.Item
-            label="Monthly Amount"
-            name="amount"
-            rules={[{ required: true, message: "Amount is required" }]}
+            label="Component Code"
+            name="componentCode"
+            rules={[{ required: true }]}
           >
-            <InputNumber style={{ width: "100%" }} placeholder="Enter amount" />
+            <Input />
           </Form.Item>
 
           <Form.Item
-            label="Year To Date (YTD)"
-            name="ytd"
-            rules={[{ required: true, message: "YTD amount is required" }]}
+            label="Component Type"
+            name="type"
+            initialValue="Earning"
+            rules={[{ required: true }]}
           >
-            <InputNumber
-              style={{ width: "100%" }}
-              placeholder="Enter YTD amount"
-            />
+            <Radio.Group>
+              <Radio value="Earning">Earning</Radio>
+              <Radio value="Deduction">Deduction</Radio>
+            </Radio.Group>
           </Form.Item>
+
+          {/* ===== CALCULATION TYPE – FULLY COMMENTED (FUTURE USE) ===== */}
+          {/*
+          <Form.Item label="Calculation Type" name="calculationType">
+            <Select>
+              <Option value="Fixed">Fixed</Option>
+              <Option value="Percentage">Percentage</Option>
+              <Option value="Formula">Formula</Option>
+            </Select>
+          </Form.Item>
+          */}
+
+          {/*
+          <Form.Item shouldUpdate>
+            {({ getFieldValue }) => {
+              const calcType = getFieldValue("calculationType");
+              if (calcType === "Fixed") {
+                return <Form.Item name="amount" label="Amount"><Input /></Form.Item>;
+              }
+              if (calcType === "Percentage") {
+                return <Form.Item name="percentage" label="Percentage"><Input /></Form.Item>;
+              }
+              return null;
+            }}
+          </Form.Item>
+          */}
+
+          <Form.Item
+            label="Status"
+            name="status"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch />
+          </Form.Item>
+
+          <Space style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="primary" onClick={handleSave}>
+              {isEditMode ? "Update" : "Add"}
+            </Button>
+          </Space>
         </Form>
-      </Modal>
+      </Drawer>
     </Card>
-    
   );
 };
 
-export default AllowanceSettings;
+export default SalaryComponentManagement;

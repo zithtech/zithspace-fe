@@ -1,23 +1,62 @@
 import { SalaryStructure,Company,AttendanceResponse,ReimbursementResponse,Employee,EmployeeSalary } from "@/types/salary";
 
-let structures: SalaryStructure[] = [];
+// let structures: SalaryStructure[] = [];
 
+// export const SalaryStructureService = {
+//   getAll(): SalaryStructure[] {
+//     return [...structures];
+//   },
+
+//   create(structure: SalaryStructure) {
+//     if (structures.length === 0) {
+//      structure.isActive = false;
+//     }
+//     structures = [structure, ...structures];
+//   },
+
+//   setActive(id: number) {
+//     structures = structures.map((s) => ({
+//       ...s,
+//       isActive: s.id === id,
+//     }));
+//   },
+
+//   getById(id: number) {
+//     return structures.find((s) => s.id === id);
+//   },
+
+//   update(id: number, data: Partial<SalaryStructure>) {
+//   structures = structures.map((s) =>
+//     s.id === id
+//       ? {
+//           ...s,
+//           ...data,
+//           isActive:
+//             data.isActive !== undefined ? data.isActive : s.isActive,
+//         }
+//       : s
+//   );
+// }
+
+// };
+
+
+let structures: SalaryStructure[] = [];
 export const SalaryStructureService = {
   getAll(): SalaryStructure[] {
     return [...structures];
   },
 
   create(structure: SalaryStructure) {
-    if (structures.length === 0) {
-      structure.isActive = true;
-    }
-    structures = [structure, ...structures];
+    const newStructure = { ...structure, isActive: false }; // Default to inactive
+    structures = [newStructure, ...structures];
+    return newStructure;
   },
 
   setActive(id: number) {
     structures = structures.map((s) => ({
       ...s,
-      isActive: s.id === id,
+      isActive: s.id === id ? !s.isActive : s.isActive // Just toggle the clicked one
     }));
   },
 
@@ -26,11 +65,19 @@ export const SalaryStructureService = {
   },
 
   update(id: number, data: Partial<SalaryStructure>) {
-    structures = structures.map((s) =>
-      s.id === id ? { ...s, ...data } : s
-    );
+    const existing = this.getById(id);
+    if (!existing) return null;
+    
+    const updatedData = {
+      ...existing,
+      ...data,
+    };
+    
+    structures = structures.map((s) => (s.id === id ? updatedData : s));
+    return updatedData;
   },
 };
+
 
 
 let companies: Company[] = [];
@@ -185,12 +232,6 @@ export async function fetchEmployeeSalary(
 }
 
 
-// services/allowance.service.ts
-export const fetchAllowances = async () => {
-  // TEMP — replace with real API
-  return [
-    { id: 1, name: "House Rent Allowance", amount: 8000, ytd: 96000 },
-    { id: 2, name: "Travel Allowance", amount: 3000, ytd: 36000 },
-  ];
-};
+
+
 

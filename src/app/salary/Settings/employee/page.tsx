@@ -12,199 +12,258 @@ import {
   Row,
   Col,
   Modal,
+  Tooltip,
+  Popconfirm,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   CheckOutlined,
   EyeOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { PreviewType } from "@/types/salary";
 
 interface Props {
-  onPreview: (type: Exclude<PreviewType, null>, data: any) => void;
+  onPreview: (type: Exclude<PreviewType, null>, data: EmployeeField[]) => void;
 }
 
 const { Title, Text } = Typography;
 
-type Field = {
-  key: string;
-  label: string;
-  show: boolean;
+export type EmployeeField = {
+  systemKey: string;
+  displayName: string;
+  isVisible: boolean;
 };
 
-const initialFields: Field[] = [
-  { key: "Employee Name", label: "name", show: true },
-  { key: "Employee ID", label: "id", show: true },
-  { key: "Department", label: "department", show: true },
-  { key: "Designation", label: "designation", show: true },
-  { key: "Date of Joining", label: "DOJ", show: true },
-  { key: "Bank Account", label: "bank", show: false },
-  { key: "PAN Number", label: "pan", show: false },
+const initialEmployeeFields: EmployeeField[] = [
+  { systemKey: "Employee Name", displayName: "name", isVisible: true },
+  { systemKey: "Employee ID", displayName: "id", isVisible: true },
+  { systemKey: "Department", displayName: "department", isVisible: true },
+  { systemKey: "Designation", displayName: "designation", isVisible: true },
+  { systemKey: "Date of Joining", displayName: "DOJ", isVisible: true },
+  { systemKey: "Bank Account", displayName: "bank", isVisible: false },
+  { systemKey: "PAN Number", displayName: "pan", isVisible: false },
 ];
 
 export default function EmployeeSettings({ onPreview }: Props) {
-  const [fields, setFields] = useState<Field[]>(initialFields);
+  const [employeeFields, setEmployeeFields] = useState<EmployeeField[]>(
+    initialEmployeeFields,
+  );
 
   // modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingField, setEditingField] = useState<Field | null>(null);
+  const [editingField, setEditingField] = useState<EmployeeField | null>(null);
 
-  // form
-  const [systemName, setSystemName] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  // form (UI-only naming)
+  const [fieldKeyInput, setFieldKeyInput] = useState("");
+  const [fieldLabelInput, setFieldLabelInput] = useState("");
 
-  const toggleShow = (key: string) => {
-    setFields((prev) =>
-      prev.map((f) => (f.key === key ? { ...f, show: !f.show } : f))
+  const toggleVisibility = (systemKey: string) => {
+    setEmployeeFields((prev) =>
+      prev.map((field) =>
+        field.systemKey === systemKey
+          ? { ...field, isVisible: !field.isVisible }
+          : field,
+      ),
     );
   };
 
-  const openAdd = () => {
+  const openAddField = () => {
     setEditingField(null);
-    setSystemName("");
-    setDisplayName("");
+    setFieldKeyInput("");
+    setFieldLabelInput("");
     setIsModalOpen(true);
   };
 
-  const openEdit = (field: Field) => {
+  const openEditField = (field: EmployeeField) => {
     setEditingField(field);
-    setSystemName(field.key);
-    setDisplayName(field.label);
+    setFieldKeyInput(field.systemKey);
+    setFieldLabelInput(field.displayName);
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
-    if (!systemName.trim()) return;
+  const handleSaveField = () => {
+    if (!fieldKeyInput.trim()) return;
 
     if (editingField) {
       // EDIT
-      setFields((prev) =>
-        prev.map((f) =>
-          f.key === editingField.key
-            ? { ...f, label: displayName || systemName }
-            : f
-        )
+      setEmployeeFields((prev) =>
+        prev.map((field) =>
+          field.systemKey === editingField.systemKey
+            ? {
+                ...field,
+                displayName: fieldLabelInput || fieldKeyInput,
+              }
+            : field,
+        ),
       );
     } else {
       // ADD
-      setFields((prev) => [
+      setEmployeeFields((prev) => [
         ...prev,
         {
-          key: systemName,
-          label: displayName || systemName,
-          show: true,
+          systemKey: fieldKeyInput,
+          displayName: fieldLabelInput || fieldKeyInput,
+          isVisible: true,
         },
       ]);
     }
 
     setIsModalOpen(false);
     setEditingField(null);
-    setSystemName("");
-    setDisplayName("");
+    setFieldKeyInput("");
+    setFieldLabelInput("");
   };
 
+  const handleDeleteField = (systemKey: string) => {
+    // Your delete logic here
+    console.log("Deleting field:", systemKey);
+    // Example:
+    // setEmployeeFields(prev => prev.filter(field => field.systemKey !== systemKey));
+  };
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%", padding: 5 }}>
-      <Card>
-        {/* HEADER */}
-        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+    <Card style={{ marginTop: -16, marginLeft: 5 }}>
+      {/* HEADER */}
+      <Space style={{ width: "100%", justifyContent: "space-between" }}>
+        <div>
+          <Title level={4} style={{ margin: 0 }}>
+            Employee Details Configuration
+          </Title>
+          <Text type="secondary">
+            Configure employee fields shown on payslip
+          </Text>
+        </div>
+
+        <Space>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() =>
+              onPreview(
+                "employee",
+                employeeFields.filter((f) => f.isVisible),
+              )
+            }
+          >
+            Preview
+          </Button>
+
+          <Button icon={<CheckOutlined />}>Save</Button>
+
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAddField}>
+            Add Custom Field
+          </Button>
+        </Space>
+      </Space>
+
+      <Divider style={{ margin: "12px 0" }} />
+
+      {/* FIELDS */}
+      <Row gutter={[16, 12]}>
+        {employeeFields.map((field) => (
+          <Col key={field.systemKey} xs={24} sm={12} md={8}>
+            <Card
+              bordered
+              bodyStyle={{ padding: 12 }}
+              style={{ border: "1px solid #b1adad" }}
+            >
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ flex: 1 }}>
+                  <Text strong>{field.systemKey}</Text>
+                  <div>
+                    <Text type="secondary">Display: {field.displayName}</Text>
+                  </div>
+                </div>
+
+                <Space size="small">
+                  {/* Edit Button */}
+                  <Tooltip title="Edit">
+                    <EditOutlined
+                      style={{
+                        color: "#1677ff",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                        padding: "4px",
+                      }}
+                      onClick={() => openEditField(field)}
+                    />
+                  </Tooltip>
+
+                  {/* Delete Button with Popconfirm */}
+                  <Popconfirm
+                    title="Delete Field"
+                    description="Are you sure to delete this field?"
+                    onConfirm={() => handleDeleteField(field.systemKey)}
+                    okText="Yes"
+                    cancelText="No"
+                    okType="danger"
+                    icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                  >
+                    <Tooltip title="Delete">
+                      <DeleteOutlined
+                        style={{
+                          color: "#ff4d4f",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                          padding: "4px",
+                        }}
+                      />
+                    </Tooltip>
+                  </Popconfirm>
+
+                  {/* Show/Hide Toggle */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      marginLeft: "8px",
+                      paddingLeft: "8px",
+                      borderLeft: "1px solid #d9d9d9",
+                    }}
+                  >
+                    <Text style={{ fontSize: "12px" }}>Show</Text>
+                    <Switch
+                      size="small"
+                      checked={field.isVisible}
+                      onChange={() => toggleVisibility(field.systemKey)}
+                    />
+                  </div>
+                </Space>
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      {/* MODAL */}
+      <Modal
+        title={editingField ? "Edit Field" : "Add Custom Field"}
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        onOk={handleSaveField}
+        okText={editingField ? "Update Field" : "Add Field"}
+      >
+        <Space direction="vertical" style={{ width: "100%" }}>
           <div>
-            <Title level={4} style={{ margin: 0 }}>
-              Employee Details Configuration
-            </Title>
-            <Text type="secondary">
-              Configure employee fields shown on payslip
-            </Text>
+            <Text strong>Field Name (System)</Text>
+            <Input
+              value={fieldKeyInput}
+              onChange={(e) => setFieldKeyInput(e.target.value)}
+              disabled={!!editingField}
+            />
           </div>
 
-          <Space>
-            <Button
-              icon={<EyeOutlined />}
-              onClick={() =>
-                onPreview(
-                  "employee",
-                  fields.filter((f) => f.show)
-                )
-              }
-            >
-              Preview
-            </Button>
-
-            <Button icon={<CheckOutlined />}>Save</Button>
-
-            <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
-              Add Custom Field
-            </Button>
-          </Space>
+          <div>
+            <Text strong>Display Name (Payslip)</Text>
+            <Input
+              value={fieldLabelInput}
+              onChange={(e) => setFieldLabelInput(e.target.value)}
+            />
+          </div>
         </Space>
-
-        <Divider style={{ margin: "12px 0" }} />
-
-        {/* FIELDS */}
-        <Row gutter={[16, 12]}>
-          {fields.map((field) => (
-            <Col key={field.key} xs={24} sm={12} md={8}>
-              <Card
-                bordered
-                bodyStyle={{ padding: 12 }}
-                style={{ border: "1px solid #b1adad" }}
-              >
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <div style={{ flex: 1 }}>
-                    <Text strong>{field.key}</Text>
-                    <div>
-                      <Text type="secondary">
-                        Display: {field.label}
-                      </Text>
-                    </div>
-                  </div>
-
-                  <Space>
-                    <EditOutlined
-                      style={{ color: "#1677ff", cursor: "pointer" }}
-                      onClick={() => openEdit(field)}
-                    />
-                    <Text>Show</Text>
-                    <Switch
-                      checked={field.show}
-                      onChange={() => toggleShow(field.key)}
-                    />
-                  </Space>
-                </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-
-        {/* MODAL */}
-        <Modal
-          title={editingField ? "Edit Field" : "Add Custom Field"}
-          open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
-          onOk={handleSave}
-          okText={editingField ? "Update Field" : "Add Field"}
-        >
-          <Space direction="vertical" style={{ width: "100%" }}>
-            <div>
-              <Text strong>Field Name (System)</Text>
-              <Input
-                value={systemName}
-                onChange={(e) => setSystemName(e.target.value)}
-                disabled={!!editingField}
-              />
-            </div>
-
-            <div>
-              <Text strong>Display Name (Payslip)</Text>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-              />
-            </div>
-          </Space>
-        </Modal>
-      </Card>
-    </Space>
+      </Modal>
+    </Card>
   );
 }

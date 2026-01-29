@@ -14,6 +14,7 @@ import {
   Col,
   InputNumber,
   DatePicker,
+  Divider
 } from "antd";
 import {
   PlusOutlined,
@@ -115,123 +116,110 @@ export default function PayslipSettings({ onPreview }: PayslipSettingsProps) {
 
   return (
     <>
-      <Space
-        direction="vertical"
-        size={10}
-        style={{ width: "100%", padding: 5 }}
-      >
+      
         {/* Header */}
 
         {/* Payslip Fields Card */}
+        <Card style={{ marginTop: -16, marginLeft: 5 }}>
+  {/* HEADER */}
+  <Space style={{ width: "100%", justifyContent: "space-between" }}>
+    <div>
+      <Title level={4} style={{ margin: 0 }}>
+        Payslip Base Configuration
+      </Title>
+      <Text type="secondary">
+        Configure payslip fields with add, edit, and delete functionality
+      </Text>
+    </div>
+
+    <Space>
+      <Button
+        icon={<EyeOutlined />}
+        onClick={() =>
+          onPreview("payslip", {
+            fields: fields,
+          })
+        }
+      >
+        Preview
+      </Button>
+
+      <Button
+        icon={<CheckOutlined />}
+        onClick={() => console.log("Save payslip settings")}
+      >
+        Save Payslip Details
+      </Button>
+
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => setIsModalOpen(true)}
+      >
+        Add Field
+      </Button>
+    </Space>
+  </Space>
+
+  <Divider style={{ margin: "12px 0" }} />
+
+  {/* FIELDS */}
+  <Row gutter={[16, 16]}>
+    {fields.map((field) => (
+      <Col key={field.id} xs={24} sm={12} md={8}>
         <Card
-          title={
-            <div>
-              <Title level={4} style={{ marginBottom: 0 }}>
-                Payslip Base Configuration
-              </Title>
-              <Text
-                style={{
-                  color: "#8c8c8c",
-                  fontSize: 14,
-                  fontWeight: 400,
-                }}
-              >
-                Configure payslip fields with add, edit, and delete
-                functionality
-              </Text>
+          bordered
+          bodyStyle={{ padding: 16 }}
+          style={{ border: "1px solid #aba9a9" }}
+        >
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div
+              style={{
+                width: 6,
+                height: "100%",
+                backgroundColor: "#1677ff",
+                borderRadius: 4,
+                marginRight: 16,
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <Text strong>{field.label}</Text>
+              <div>
+                <Text type="secondary">
+                  {field.type === "date"
+                    ? dayjs(field.value).format("DD MMM YYYY")
+                    : field.value}
+                </Text>
+              </div>
             </div>
-          }
-          extra={
+
             <Space>
               <Button
-                icon={<EyeOutlined />}
-                onClick={() =>
-                  onPreview("payslip", {
-                    fields: fields, // wrap your array in an object
-                  })
-                }
-              >
-                Preview
-              </Button>
-
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setEditField(field);
+                  editForm.setFieldsValue({
+                    label: field.label,
+                    value: field.value,
+                  });
+                }}
+              />
               <Button
-                icon={<CheckOutlined />}
-                onClick={() => console.log("Save payslip settings")}
-              >
-                Save Payslip Details
-              </Button>
-
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setIsModalOpen(true)}
-              >
-                Add Field
-              </Button>
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteField(field.id)}
+              />
             </Space>
-          }
-        >
-          <Row gutter={[16, 16]}>
-            {fields.map((field) => (
-              <Col key={field.id} xs={24} sm={12} md={8}>
-                {/* md={8} → 24 / 3 = 8 (3 per row) */}
-
-                <Card
-                  bordered
-                  styles={{ body: { padding: 16 } }}
-                  style={{ border: "1px solid #aba9a9" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center" }}>
-                    <div
-                      style={{
-                        width: 6,
-                        height: "100%",
-                        backgroundColor: "#1677ff",
-                        borderRadius: 4,
-                        marginRight: 16,
-                      }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <Space>
-                        <Text strong>{field.label}</Text>
-                        {/* {field.isDefault && <Tag color="blue">Default</Tag>} */}
-                      </Space>
-                      <div>
-                        <Text type="secondary">
-                          {field.type === "date"
-                            ? dayjs(field.value).format("DD MMM YYYY")
-                            : field.value}
-                        </Text>
-                      </div>
-                    </div>
-                    <Space>
-                      <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        onClick={() => {
-                          setEditField(field);
-                          editForm.setFieldsValue({
-                            label: field.label,
-                            value: field.value,
-                          });
-                        }}
-                      />
-
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDeleteField(field.id)}
-                      />
-                    </Space>
-                  </div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
+          </div>
         </Card>
-      </Space>
+      </Col>
+    ))}
+  </Row>
+</Card>
 
+      
       {/* Add Field Modal */}
       <Modal
         title="Add New Field"

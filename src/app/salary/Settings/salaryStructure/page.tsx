@@ -13,7 +13,6 @@ import {
   Dropdown,
 } from "antd";
 import {
-  SettingOutlined,
   PlusOutlined,
   CheckCircleFilled,
   AppstoreOutlined,
@@ -41,305 +40,322 @@ export default function SalaryStructureSettings({ onCreate, onEdit }: Props) {
   const [selectedStructure, setSelectedStructure] =
     useState<SalaryStructure | null>(null);
 
+  /* =========================
+     LOAD DATA
+  ========================== */
   useEffect(() => {
     setStructures([...SalaryStructureService.getAll()]);
   }, []);
 
-  const setActive = (id: number) => {
-    SalaryStructureService.setActive(id);
-    setStructures([...SalaryStructureService.getAll()]);
-  };
+  /* =========================
+     TOGGLE ACTIVE (CORE LOGIC)
+     - Active → Inactive
+     - Inactive → Active
+     - Only ONE active at a time
+  ========================== */
+  /* =========================
+   TOGGLE ACTIVE (MULTI-ACTIVE)
+   - Click active → becomes inactive
+   - Click inactive → becomes active
+   - Other items remain unchanged
+========================== */
+// const toggleActive = (id: number) => {
+//   setStructures((prev) =>
+//     prev.map((s) =>
+//       s.id === id ? { ...s, isActive: !s.isActive } : s
+//     )
+//   );
+// };
 
+// SalaryStructureSettings.tsx - toggleActive function
+const toggleActive = (id: number) => {
+  console.log("Before toggle:", structures.map(s => ({ id: s.id, isActive: s.isActive })));
+  
+  // Update local state
+  setStructures((prev) =>
+    prev.map((s) => {
+      if (s.id === id) {
+        return { ...s, isActive: !s.isActive }; // Just toggle the clicked one
+      }
+      return s;
+    })
+  );
+  
+  // Also update in service
+  SalaryStructureService.setActive(id);
+  
+  // Verify after toggle
+  setTimeout(() => {
+    console.log("After toggle:", SalaryStructureService.getAll().map(s => ({ 
+      id: s.id, 
+      isActive: s.isActive 
+    })));
+  }, 100);
+};
+
+  /* =========================
+     TABLE COLUMNS
+  ========================== */
   const columns = [
     {
       title: "Name",
       dataIndex: "name",
-      key: "name",
     },
     {
       title: "Description",
       dataIndex: "description",
-      key: "description",
     },
     {
-      title: "Earnings Components",
-      key: "earnings",
-      render: (text: any, record: SalaryStructure) =>
+      title: "Earnings",
+      render: (_: any, record: SalaryStructure) =>
         `${record.earnings.length} (${record.earnings.reduce(
           (sum, e) => sum + e.percentage,
           0,
         )}%)`,
     },
     {
-      title: "Deductions Components",
-      key: "deductions",
+      title: "Deductions",
       render: (_: any, record: SalaryStructure) =>
         record.deductionsEnabled ? record.deductions.length : 0,
     },
     {
-      title: "Active",
-      key: "isActive",
-      render: (text: any, record: SalaryStructure) =>
+      title: "Status",
+      render: (_: any, record: SalaryStructure) =>
         record.isActive ? (
           <CheckCircleFilled style={{ color: "#52c41a" }} />
         ) : null,
     },
     {
       title: "Action",
-      key: "action",
-      render: (text: any, record: SalaryStructure) => (
-        <>
+      render: (_: any, record: SalaryStructure) => (
+        <Space>
           <Button
             size="small"
+            icon={<EyeOutlined />}
             onClick={() => {
               setSelectedStructure(record);
               setDrawerVisible(true);
             }}
-            style={{ marginRight: 8 }}
           >
             Preview
           </Button>
-          {!record.isActive && (
-            <Button size="small" onClick={() => setActive(record.id)}>
+
+          {record.isActive ? (
+            <Button
+              danger
+              size="small"
+              onClick={() => toggleActive(record.id)}
+            >
+              Inactive
+            </Button>
+          ) : (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => toggleActive(record.id)}
+            >
               Set Active
             </Button>
           )}
-        </>
+        </Space>
       ),
     },
   ];
 
   return (
     <>
-      <div style={{ padding: 5 }}>
-        <Card>
-          {/* Header */}
+      <Card style={{ marginTop: -16, marginLeft: 5 }}>
+        {/* HEADER */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
+          <div>
+            <Title level={4} style={{ margin: 0 }}>
+              Salary Structure Configuration
+            </Title>
+            {/* <Text type="secondary">
+              Active:{" "}
+              {structures.find((s) => s.isActive)?.name || "None"}
+            </Text> */}
+
+            <Text type="secondary">
+  Active Structures: {structures.filter((s) => s.isActive).length}
+</Text>
+          </div>
+
+          <Space>
+            <Segmented
+              options={[
+                { label: "Card", value: "card", icon: <AppstoreOutlined /> },
+                { label: "Table", value: "table", icon: <TableOutlined /> },
+              ]}
+              value={viewMode}
+              onChange={(val) => setViewMode(val as "card" | "table")}
+            />
+
+            <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
+              New Structure
+            </Button>
+          </Space>
+        </div>
+
+        {/* CONTENT */}
+        {viewMode === "card" ? (
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              gap: 16,
             }}
           >
-            <Space align="center" size={24}>
-              {/* <SettingOutlined
-              style={{ fontSize: 22, color: "#1677ff", cursor: "pointer" }}
-            /> */}
-              <div>
-                <Title level={4} style={{ margin: 0 }}>
-                  Salary Structure Configuration
-                </Title>
-                <Text type="secondary">
-                  Manage salary structures · Active:{" "}
-                  {structures.find((s) => s.isActive)?.name || "None"}
-                </Text>
-              </div>
-            </Space>
+            {structures.map((s) => {
+              const isHovered = hoveredId === s.id;
 
-            <Space>
-              <Segmented
-                options={[
-                  { label: "Card", value: "card", icon: <AppstoreOutlined /> },
-                  { label: "Table", value: "table", icon: <TableOutlined /> },
-                ]}
-                value={viewMode}
-                onChange={(val) => setViewMode(val as "card" | "table")}
-              />
+              const cardContent = (
+                <>
+                  <Title level={5} style={{ margin: 0 }}>
+                    {s.name}
+                  </Title>
 
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={onCreate} // call the callback instead of navigating
-              >
-                New Structure
-              </Button>
-            </Space>
-          </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text type="secondary">{s.description}</Text>
 
-          {/* Structures */}
-          <div>
-            {viewMode === "card" ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-                  gap: 16,
-                }}
-              >
-                {structures.map((s) => {
-                  const isHovered = hoveredId === s.id;
-                  const content = (
-                    <>
-                      <Title level={5} style={{ margin: 0 }}>
-                        {s.name}
-                      </Title>
-                      <div
+                    <Space>
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<EyeOutlined />}
+                        onClick={() => {
+                          setSelectedStructure(s);
+                          setDrawerVisible(true);
+                        }}
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
+                          opacity: isHovered ? 1 : 0,
+                          pointerEvents: isHovered ? "auto" : "none",
                         }}
                       >
-                        <Text type="secondary">{s.description}</Text>
+                        Preview
+                      </Button>
 
-                        <Space size={8}>
-                          {/* Preview (hover based or always visible – your choice) */}
-                          <Button
-                            type="link"
-                            size="small"
-                            icon={<EyeOutlined />}
-                            onClick={() => {
-                              setSelectedStructure(s);
-                              setDrawerVisible(true);
-                            }}
-                            style={{
-                              padding: 0,
-                              opacity: isHovered ? 1 : 0, // remove this line if always visible
-                              pointerEvents: isHovered ? "auto" : "none",
-                            }}
-                          >
-                            Preview
-                          </Button>
+                      <Dropdown
+                        menu={{
+                          items: [
+                            {
+                              key: "edit",
+                              label: "Edit",
+                              onClick: () => onEdit(s.id),
+                            },
+                          ],
+                        }}
+                      >
+                        <MoreOutlined style={{ fontSize: 18 }} />
+                      </Dropdown>
+                    </Space>
+                  </div>
 
-                          {/* Three dot menu – ALWAYS visible */}
-                          <Dropdown
-                            menu={{
-                              items: [
-                                {
-                                  key: "edit",
-                                  label: "Edit",
-                                  onClick: () => onEdit(s.id),
-                                },
-                              ],
-                            }}
-                            trigger={["click"]}
-                          >
-                            <MoreOutlined
-                              style={{
-                                fontSize: 18,
-                                cursor: "pointer",
-                                color: "#595959",
-                              }}
-                            />
-                          </Dropdown>
-                        </Space>
-                      </div>
-
-                      <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
-                        <Card size="small" style={{ flex: 1 }}>
-                          <Text>Earnings</Text>
-                          <Title level={4}>{s.earnings.length}</Title>
-                          <Text type="secondary">
-                            components (
-                            {s.earnings.reduce(
-                              (sum, e) => sum + e.percentage,
-                              0,
-                            )}
-                            %)
-                          </Text>
-                        </Card>
-                        <Card size="small" style={{ flex: 1 }}>
-                          <Text>Deductions</Text>
-                          <Title level={4}>
-                            {s.deductionsEnabled ? s.deductions.length : 0}
-                          </Title>
-                          <Text type="secondary">
-                            {s.deductionsEnabled
-                              ? "components"
-                              : "components(0)"}
-                          </Text>
-                        </Card>
-                      </div>
-                      <Space style={{ marginTop: 16 }}>
-                        {s.isActive && (
-                          <CheckCircleFilled style={{ color: "#52c41a" }} />
-                        )}
-                        <Text type="secondary">Updated {s.createdAt}</Text>
-                      </Space>
-                      {!s.isActive && (
-                        <Button
-                          block
-                          style={{ marginTop: 16 }}
-                          onClick={() => setActive(s.id)}
-                        >
-                          Set as Active
-                        </Button>
-                      )}
-                    </>
-                  );
-
-                  const card = (
-                    <Card
-                      hoverable
-                      onMouseEnter={() => setHoveredId(s.id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      style={{
-                        borderRadius: 10,
-                        boxShadow: `
-        0 12px 30px rgba(0,0,0,0.2),
-        0 6px 12px rgba(0,0,0,0.15)
-      `,
-                        transition: "all 0.25s ease",
-                      }}
-                      bodyStyle={{ padding: 16 }}
-                    >
-                      {content}
+                  <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
+                    <Card size="small" style={{ flex: 1 }}>
+                      <Text>Earnings</Text>
+                      <Title level={4}>{s.earnings.length}</Title>
                     </Card>
-                  );
 
-                  return s.isActive ? (
-                    <Badge.Ribbon key={s.id} text="Active" color="blue">
-                      {card}
-                    </Badge.Ribbon>
+                    <Card size="small" style={{ flex: 1 }}>
+                      <Text>Deductions</Text>
+                      <Title level={4}>
+                        {s.deductionsEnabled ? s.deductions.length : 0}
+                      </Title>
+                    </Card>
+                  </div>
+
+                  {s.isActive ? (
+                    <Button
+                      danger
+                      block
+                      style={{ marginTop: 16 }}
+                      onClick={() => toggleActive(s.id)}
+                    >
+                      Inactive
+                    </Button>
                   ) : (
-                    <React.Fragment key={s.id}>{card}</React.Fragment>
-                  );
-                })}
+                    <Button
+                      type="primary"
+                      block
+                      style={{ marginTop: 16 }}
+                      onClick={() => toggleActive(s.id)}
+                    >
+                      Set Active
+                    </Button>
+                  )}
+                </>
+              );
 
-                {/* Add New Card */}
+              const card = (
                 <Card
                   hoverable
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 220,
-                  }}
-                  onClick={onCreate} // replace router.push
+                  onMouseEnter={() => setHoveredId(s.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                 >
-                  <Space direction="vertical" align="center">
-                    <PlusOutlined style={{ fontSize: 24 }} />
-                    <Text>Add New Structure</Text>
-                  </Space>
+                  {cardContent}
                 </Card>
-              </div>
-            ) : (
-              <Table
-                dataSource={structures}
-                columns={columns}
-                rowKey="id"
-                pagination={false}
-              />
-            )}
+              );
+
+              return s.isActive ? (
+               <Badge.Ribbon key={s.id} text="Active" color="#1677ff">
+                  {card}
+                </Badge.Ribbon>
+              ) : (
+                <React.Fragment key={s.id}>{card}</React.Fragment>
+              );
+            })}
+
+            {/* ADD NEW */}
+            <Card hoverable onClick={onCreate}>
+              <Space
+                direction="vertical"
+                align="center"
+                style={{ width: "100%" }}
+              >
+                <PlusOutlined style={{ fontSize: 24 }} />
+                <Text>Add New Structure</Text>
+              </Space>
+            </Card>
           </div>
-        </Card>
-      </div>
+        ) : (
+          <Table
+            dataSource={structures}
+            columns={columns}
+            rowKey="id"
+            pagination={false}
+          />
+        )}
+      </Card>
+
+      {/* PREVIEW DRAWER */}
       <Drawer
-        title={selectedStructure?.name || "Salary Preview"}
-        placement="right"
+        title={selectedStructure?.name}
         width={500}
-        onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
       >
         {selectedStructure && (
           <SalaryPreview
             grossSalary={selectedStructure.grossSalary}
-            setGrossSalary={() => {}} // optional: no editing inside drawer
+            setGrossSalary={() => {}}
             earnings={selectedStructure.earnings}
             deductions={selectedStructure.deductions}
             deductionsEnabled={selectedStructure.deductionsEnabled}
-            readOnly={true}
+            readOnly
           />
         )}
       </Drawer>

@@ -47,6 +47,7 @@ import ReleasePlanService, {
   ProjectTicket,
 } from "@/services/releasePlanService";
 import { ProjectService } from "@/services/projectService";
+import { SprintCompletionModal } from "./sprint-completion";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -84,6 +85,10 @@ export default function ReleasePlanComponent() {
 
   // Search debounce timer
   const [searchTimer, setSearchTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Sprint Completion Modal state
+  const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -354,22 +359,20 @@ export default function ReleasePlanComponent() {
     }
   };
 
-  const handleCompleteSprint = async (plan: ReleasePlan) => {
-    try {
-      await ReleasePlanService.completeSprint(plan.id);
-      api.success({
-        message: "Success",
-        description: "Sprint completed successfully",
-        placement: "bottomRight",
-      });
-      loadData();
-    } catch (error: any) {
-      api.error({
-        message: "Error",
-        description: error.message || "Failed to complete sprint",
-        placement: "bottomRight",
-      });
-    }
+  const handleCompleteSprint = (plan: ReleasePlan) => {
+    setSelectedSprintId(plan.id);
+    setSprintCompletionModalOpen(true);
+  };
+
+  const handleSprintCompletionSuccess = () => {
+    setSprintCompletionModalOpen(false);
+    setSelectedSprintId(null);
+    loadData();
+    api.success({
+      message: "Success",
+      description: "Sprint completed successfully",
+      placement: "bottomRight",
+    });
   };
 
   const handleCloseModal = () => {
@@ -548,21 +551,14 @@ export default function ReleasePlanComponent() {
             </Popconfirm>
           )}
           {activeTab === 'sprint_plan' && record.status === 'active' && (
-             <Popconfirm
-                title="Complete Sprint"
-                description="Are you sure you want to complete this sprint?"
-                onConfirm={() => handleCompleteSprint(record)}
-                okText="Complete"
-                cancelText="Cancel"
-              >
-              <Tooltip title="Complete Sprint">
-                <Button 
-                  type="text" 
-                  size="small" 
-                  icon={<CheckCircleOutlined style={{ color: '#1677ff' }} />} 
-                />
-              </Tooltip>
-            </Popconfirm>
+            <Tooltip title="Complete Sprint">
+              <Button
+                type="text"
+                size="small"
+                icon={<CheckCircleOutlined style={{ color: '#1677ff' }} />}
+                onClick={() => handleCompleteSprint(record)}
+              />
+            </Tooltip>
           )}
 
           <Tooltip title="Edit">
@@ -837,6 +833,20 @@ export default function ReleasePlanComponent() {
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
         width={600}
+        extra={
+          drawerReleasePlan?.status === 'active' && activeTab === 'sprint_plan' && (
+            <Button
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              onClick={() => {
+                handleCompleteSprint(drawerReleasePlan);
+                setDrawerVisible(false);
+              }}
+            >
+              Complete Sprint
+            </Button>
+          )
+        }
       >
         {drawerReleasePlan && (
           <div>
@@ -910,6 +920,17 @@ export default function ReleasePlanComponent() {
           </div>
         )}
       </Drawer>
+
+      {/* Sprint Completion Modal */}
+      <SprintCompletionModal
+        sprintId={selectedSprintId}
+        open={sprintCompletionModalOpen}
+        onClose={() => {
+          setSprintCompletionModalOpen(false);
+          setSelectedSprintId(null);
+        }}
+        onSuccess={handleSprintCompletionSuccess}
+      />
     </div>
   );
 }

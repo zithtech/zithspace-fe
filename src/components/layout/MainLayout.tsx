@@ -13,6 +13,7 @@ import {
   Space,
   Divider,
   Badge,
+  App,
 } from "antd";
 import {
   MenuFoldOutlined,
@@ -36,7 +37,15 @@ import {
   ProfileOutlined,
   FileAddOutlined,
   SnippetsOutlined,
+  InboxOutlined,
+  DeleteOutlined,
+  FolderOpenOutlined,
+  AccountBookOutlined,
+  BarChartOutlined,
+  FileZipOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -46,12 +55,58 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
+  const { notification } = App.useApp();
+
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
 
-  // Navigation items with modern icons
+  // Connect to user stream for global notifications
+  React.useEffect(() => {
+    if (user?.id) {
+      const { streamClient } = require('@/services/streamClient');
+
+      streamClient.connectUser(user.id);
+
+      streamClient.onNotification((data: any) => {
+        // Don't show notification if we are already on the channel page
+        // This is a simple check, could be more robust with path checking
+        if (pathname.includes(`/chat/${data.channelId}`)) {
+          return;
+        }
+
+        const key = `notification-${Date.now()}`;
+
+        notification.info({
+          key,
+          message: `New message from ${data.senderName}`,
+          description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+          placement: 'topRight',
+          duration: 4.5,
+          onClick: () => {
+            notification.destroy(key);
+            router.push(`/chat/${data.channelId}`);
+          },
+          style: {
+            cursor: 'pointer'
+          }
+        });
+      });
+
+      return () => {
+        streamClient.disconnectUser();
+      };
+    }
+  }, [user?.id, pathname, router, notification]);
+
+
+  // Fetch data (only render badges after mount to prevent hydration errors)
+
+
+
+
+  // Navigation items with icons
   const getNavigationItems = () => [
     {
       key: "/dashboard",
@@ -105,11 +160,29 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {
           key: "/projects/plans",
           icon: <CalendarOutlined />,
-          label: "Plans",
-          onClick: () => handleNavigation("/projects/plans"),
+          label: 'Plans',
+          onClick: () => handleNavigation('/projects/plans'),
         },
         {
-          key: "/projects/settings",
+          key: '/projects/buckets',
+          icon: <InboxOutlined />,
+          label: 'Buckets',
+          onClick: () => handleNavigation('/projects/buckets'),
+        },
+        {
+          key: '/projects/trash',
+          icon: <DeleteOutlined />,
+          label: 'Trash',
+          onClick: () => handleNavigation('/projects/trash'),
+        },
+        {
+          key: '/projects/archived',
+          icon: <FolderOpenOutlined />,
+          label: 'Archived',
+          onClick: () => handleNavigation('/projects/archived'),
+        },
+        {
+          key: '/projects/settings',
           icon: <ControlOutlined />,
           label: "Settings",
           onClick: () => handleNavigation("/projects/settings"),
@@ -150,8 +223,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     {
       key: "/leaves",
       icon: <FileTextOutlined />,
-      label: "Leave & Permission",
-      onClick: () => handleNavigation("/leaves"),
+      label: 'Leave & Permission',
+      onClick: () => handleNavigation('/leaves-dashboard'),
     },
     {
       key: "/accounts",
@@ -161,51 +234,74 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation("/accounts"),
       style: user?.role !== "super_admin" ? { color: "#bfbfbf" } : undefined,
     },
-
     {
-      key: "salary",
-      icon: <MoneyCollectOutlined />,
-      label: "salary",
+      key: "invoicepro",
+      icon: <AccountBookOutlined />,
+      label: "InvoicePro",
       children: [
-        // {
-        //   key: "/salary/Dashboard",
-        //   icon: <DashboardOutlined />,
-        //   label: "Dashboard",
-        //   onClick: () => handleNavigation("/salary/Dashboard"),
-        // },
         {
-          key: "/salary/Settings",
+          key: "/invoicepro/dashboard",
+          icon: <BarChartOutlined />,
+          label: "Dashboard",
+          onClick: () => handleNavigation("/invoicepro/dashboard"),
+        },
+        {
+          key: "/invoicepro/invoices",
+          icon: <FileTextOutlined />,
+          label: "Invoices",
+          onClick: () => handleNavigation("/invoicepro/invoices"),
+        },
+        {
+          key: "/invoicepro/newinvoice",
+          icon: <PlusCircleOutlined />,
+          label: "New Invoice",
+          onClick: () => handleNavigation("/invoicepro/newinvoice"),
+        },
+        {
+          key: "/invoicepro/reports",
+          icon: <BarChartOutlined />,
+          label: "Reports",
+          onClick: () => handleNavigation("/invoicepro/reports"),
+        },
+        {
+          key: "/invoicepro/customers",
+          icon: <TeamOutlined />,
+          label: "Customers",
+          onClick: () => handleNavigation("/invoicepro/customers"),
+        },
+        {
+          key: "/invoicepro/settings",
           icon: <SettingOutlined />,
           label: "Settings",
-          onClick: () => handleNavigation("/salary/Settings"),
+          onClick: () => handleNavigation("/invoicepro/settings"),
         },
-        {
-          key: "/salary/Create-payslip",
-          icon: <FileAddOutlined />,
-          label: "Create Payslip",
-          onClick: () => handleNavigation("/salary/Create-payslip"),
-        },
-        {
-          key: "/salary/My-Payslip",
-          icon: <ProfileOutlined />,
-          label: "My-Payslip",
-          onClick: () => handleNavigation("/salary/My-payslip"),
-        },
-        {
-          key: "/salary/Generate-payslip",
-          icon: <FileAddOutlined />,
-          label: "Generate-Payslip",
-          onClick: () => handleNavigation("/salary/Generate-payslip"),
-        },
-        {
-          key: "/salary/Payslips",
-          icon: <SnippetsOutlined />,
-          label: "Payslips",
-          onClick: () => handleNavigation("/salary/Payslips"),
-        },
+
       ],
+
+    },
+    {
+      key: "/documenthub",
+      icon: <FileZipOutlined />,
+      label: "Document Hub",
+      onClick: () => handleNavigation("/documenthub"),
     },
   ];
+
+
+
+  if (authLoading) {
+    return (
+      <LoadingSpinner message="Loading..." />
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
+
+
 
   const handleNavigation = (path: string) => {
     router.push(path);
@@ -394,6 +490,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Right side - User actions */}
           <Space size={16} align="center">
+            {/* Chat */}
+            <Button
+              type="text"
+              icon={<MessageOutlined />}
+              onClick={() => router.push('/chat')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+
             {/* Notifications */}
             <Button
               type="text"

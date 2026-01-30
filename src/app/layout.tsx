@@ -7,7 +7,7 @@ import QueryProvider from "@/providers/QueryProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
 
 import "./globals.css";
-import ClientProviders from "@/providers/ClientProviders";
+
 
 export const metadata: Metadata = {
   title: "Z Internal App",
@@ -101,7 +101,7 @@ export default function RootLayout({
               <AuthProvider>
                 <QueryProvider>
                   <SocketProvider>
-                    <ClientProviders>{children}</ClientProviders>
+                    {children}
                   </SocketProvider>
                 </QueryProvider>
               </AuthProvider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Space, Typography, Card, Table, Dropdown, Button, Input } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -17,63 +17,50 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { downloadInvoicePDF } from "./InvoiceDownloadButton";
+import { useInvoices, useDeleteInvoice } from "@/hooks/useInvoices";
 
 const { Title } = Typography;
 
 export default function InvoiceproInvoicesPage() {
   const router = useRouter();
 
-  const [invoices, setInvoices] = useState<any[]>([]);
+ 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
   const [invoice_page_descriptions, setInvoicePageDescriptions] = useState<any>(
     {},
   );
 
+
+const {
+  data,
+  isLoading,
+  isError,
+} = useInvoices();
+
+const invoices = data?.data ?? [];
+const deleteMutation = useDeleteInvoice();
+
   const [settings, setSettings] = useState<any>(null);
   const [searchText, setSearchText] = useState("");
 
-  useEffect(() => {
-    const s = JSON.parse(localStorage.getItem("invoice_settings") || "null");
-    setSettings(s);
-  }, []);
 
-  useEffect(() => {
-    const stored = JSON.parse(
-      localStorage.getItem("invoice_page_descriptions") || "{}",
-    );
-    setInvoicePageDescriptions(stored);
-  }, []);
-
-  /* ================= LOAD INVOICES ================= */
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("invoices") || "[]");
-    setInvoices(stored);
-  }, []);
 
   /* ================= DELETE SINGLE ================= */
-  const deleteInvoice = (invoice_number: string) => {
-    const updated = invoices.filter(
-      (inv) => inv.invoice_number !== invoice_number,
-    );
-    setInvoices(updated);
-    localStorage.setItem("invoices", JSON.stringify(updated));
-  };
 
+  const deleteInvoice = (id: string) => {
+  deleteMutation.mutate(id);
+};
   /* ================= BULK DELETE ================= */
-  const bulkDelete = () => {
-    const remaining = invoices.filter(
-      (inv) =>
-        !selectedInvoices.some(
-          (sel) => sel.invoice_number === inv.invoice_number,
-        ),
-    );
 
-    setInvoices(remaining);
-    localStorage.setItem("invoices", JSON.stringify(remaining));
-    setSelectedRowKeys([]);
-    setSelectedInvoices([]);
-  };
+
+  const bulkDelete = async () => {
+  for (const inv of selectedInvoices) {
+    deleteMutation.mutate(inv.id);
+  }
+  setSelectedRowKeys([]);
+  setSelectedInvoices([]);
+};
 
   /* ================= ACTION MENU ================= */
   const getMenuItems = (record: any): MenuProps["items"] => [
@@ -82,22 +69,24 @@ export default function InvoiceproInvoicesPage() {
       icon: <EyeOutlined />,
       label: "View",
       onClick: () =>
-        router.push(`/invoicepro/invoices/view/${record.invoice_number}`),
+        router.push(`/invoicepro/invoices/view/${record.invoiceNumber}`),
+
     },
-    {
-      key: "edit",
-      icon: <EditOutlined />,
-      label: "Edit",
-      onClick: () =>
-        router.push(`/invoicepro/newinvoice?edit=${record.invoice_number}`),
-    },
+ {
+  key: "edit",
+  icon: <EditOutlined />,
+  label: "Edit",
+  onClick: () =>
+    // Use record.id instead of record.invoice_number if your form needs the DB ID to save
+    router.push(`/invoicepro/newinvoice?edit=${record.id}`),
+},
     { type: "divider" },
     {
       key: "delete",
       icon: <DeleteOutlined />,
       label: "Delete",
       danger: true,
-      onClick: () => deleteInvoice(record.invoice_number),
+      onClick: () => deleteInvoice(record.id),
     },
   ];
 
@@ -105,27 +94,32 @@ export default function InvoiceproInvoicesPage() {
   const columns: ColumnsType<any> = [
     {
       title: "Invoice No",
-      dataIndex: "invoice_number",
+      dataIndex: "invoiceNumber",
       key: "invoice_number",
     },
+  
     {
-      title: "Customer",
-      key: "customer",
-      render: (_, record) => {
-        const customer = record.customer_snapshot;
-        return (
-          <div>
-            <div className="font-medium">{customer?.name || "Unknown"}</div>
-            <div className="text-xs text-gray-500">
-              {customer?.email || "-"}
-            </div>
-          </div>
-        );
-      },
-    },
+  title: "Customer",
+  key: "customer",
+  render: (_, record) => {
+    // Accessing the camelCase property from your API response
+    const snapshot = record.customerSnapshot as any;; 
+    
+    return (
+      <div>
+        <div className="font-medium">
+          {snapshot?.companyName || record.customer?.companyName || "Unknown"}
+        </div>
+        <div className="text-xs text-gray-500">
+          {snapshot?.email || record.customer?.email || ""}
+        </div>
+      </div>
+    );
+  },
+},
     {
       title: "Date",
-      dataIndex: "invoice_date",
+      dataIndex: "invoiceDate",
       render: (date: string) =>
         date
           ? new Date(date).toLocaleDateString("en-US", {
@@ -137,7 +131,7 @@ export default function InvoiceproInvoicesPage() {
     },
     {
       title: "Due Date",
-      dataIndex: "due_date",
+      dataIndex: "dueDate",
       render: (date: string) =>
         date
           ? new Date(date).toLocaleDateString("en-US", {
@@ -147,20 +141,14 @@ export default function InvoiceproInvoicesPage() {
             })
           : "-",
     },
-    {
-      title: "Amount",
-      dataIndex: "items",
-      render: (items: any[]) => {
-        const subtotal =
-          items?.reduce((s, i) => s + (i.qty || 0) * (i.price || 0), 0) || 0;
-        const tax =
-          items?.reduce((s, i) => {
-            const line = (i.qty || 0) * (i.price || 0);
-            return s + (line * (i.tax || 0)) / 100;
-          }, 0) || 0;
-        return `$ ${(subtotal + tax).toFixed(2)}`;
-      },
-    },
+ 
+
+       {
+  title: "Amount",
+  dataIndex: "total",
+  render: (v) => `$ ${Number(v).toFixed(2)}`
+}
+    ,
     {
       title: "Status",
       dataIndex: "status",
@@ -170,24 +158,16 @@ export default function InvoiceproInvoicesPage() {
         </span>
       ),
     },
+ 
+
     {
-      title: "Payment Due",
-      render: (_, record) => {
-        const subtotal =
-          record.items?.reduce(
-            (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-            0,
-          ) || 0;
-        const tax =
-          record.items?.reduce((s: number, i: any) => {
-            const line = (i.qty || 0) * (i.price || 0);
-            return s + (line * (i.tax || 0)) / 100;
-          }, 0) || 0;
-        const total = subtotal + tax;
-        const paid = record.paid || 0;
-        return `$ ${(total - paid).toFixed(2)}`;
-      },
-    },
+  title: "Payment Due",
+  dataIndex: "balanceDue",
+  render: (v) => `$ ${Number(v).toFixed(2)}`
+}
+
+ 
+    ,
     {
       title: "",
       align: "center",
@@ -213,17 +193,25 @@ export default function InvoiceproInvoicesPage() {
   };
 
   /* ================= search ================= */
-  const filteredInvoices = invoices.filter((inv) => {
-    if (!searchText) return true;
 
-    const q = searchText.toLowerCase();
 
-    return (
-      inv.invoice_number?.toLowerCase().includes(q) ||
-      inv.customer_snapshot?.name?.toLowerCase().includes(q) ||
-      inv.customer_snapshot?.email?.toLowerCase().includes(q)
-    );
-  });
+const filteredInvoices = invoices.filter((inv) => {
+  if (!searchText) return true;
+  const q = searchText.toLowerCase();
+
+  // Cast the snapshot to 'any' or your CustomerDraft interface to access properties
+  const snapshot = inv.customerSnapshot as any;
+
+  return (
+    inv.invoiceNumber?.toLowerCase().includes(q) ||
+    // Search in snapshot using the casted variable
+    snapshot?.companyName?.toLowerCase().includes(q) ||
+    snapshot?.email?.toLowerCase().includes(q) ||
+    // Search in live relation (fallback)
+    inv.customer?.companyName?.toLowerCase().includes(q) ||
+    inv.customer?.email?.toLowerCase().includes(q)
+  );
+});
 
   /* ================= RENDER ================= */
   return (
@@ -323,9 +311,9 @@ export default function InvoiceproInvoicesPage() {
                 rowSelection={rowSelection}
                 columns={columns}
                 dataSource={filteredInvoices.map((inv) => ({
-                  ...inv,
-                  key: inv.invoice_number,
-                }))}
+    ...inv,
+    key: inv.id,
+  }))}
                 pagination={{ pageSize: 5 }}
               />
             </Card>

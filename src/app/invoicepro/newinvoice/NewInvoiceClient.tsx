@@ -15,207 +15,436 @@ import {
   Switch,
   Tooltip,
   Modal,
-  Checkbox,
-  message,
+  App
 } from "antd";
 import {
   SubnodeOutlined,
   DeleteOutlined,
-  PlusOutlined,
+ 
 } from "@ant-design/icons";
 import { currencyOptions } from "@/utils/currencyOptions";
+import {
+  useInvoices,
+  useCreateInvoice,
+  useUpdateInvoice,
+  useNextInvoiceNumber,
+  useInvoice,
+  
+} from "@/hooks/useInvoices";
 
-const { Option } = Select;
+
+
+
 const { Title } = Typography;
 
-import { useCustomers } from "@/context/CustomerContext";
+
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { Customer } from "@/types/invoice";
+
 import CustomerModal from "@/components/customer/CustomerModal";
+import { CustomersService, Customer ,UpdateCustomerData} from "@/services/customersService";
+import { useCustomers, useUpdateCustomer } from "@/hooks/use-customers";
+import { message as antdMessage } from "antd";
+import { InvoiceType } from "@/services/invoiceService";
 
-interface CustomerSnapshot {
+
+
+
+interface CustomerDraft {
   id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  taxid?: string;
+  companyName: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  taxId?: string | null;
 }
 
-interface Invoice {
-  invoice_number: string;
-  customer_id: string;
-  customer_snapshot?: Customer;
-  invoice_date?: string;
-  due_date?: string;
-  recurring_frequency?: string;
-  items?: Array<{
-    item?: string;
-    description?: string;
-    qty?: number;
-    price?: number;
-    tax?: number;
-  }>;
-  [key: string]: any; // For other dynamic fields
-}
+
+
 
 export default function InvoiceproNewinvoicePage() {
   const router = useRouter();
+
   const searchParams = useSearchParams();
-  const editInvoiceNumber = searchParams.get("edit");
+
+const editInvoiceId = searchParams.get("edit");
+
+
   const [form] = Form.useForm();
   const customerSnapshot = Form.useWatch("customer_snapshot", form);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const { customers, updateCustomer } = useCustomers();
+  const { message } = App.useApp();
+
   const [isRecurring, setIsRecurring] = useState(false);
-  const [pendingCustomer, setPendingCustomer] = useState<Customer | null>(null);
+  const [pendingCustomer, setPendingCustomer] = useState<CustomerDraft | null>(null);
+
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [rememberChoice, setRememberChoice] = useState(false);
+
+
+const updateCustomerMutation = useUpdateCustomer();
+const createInvoiceMutation = useCreateInvoice();
+const updateInvoiceMutation = useUpdateInvoice();
+
+
+
+const { data: customersData, isLoading: loadingCustomers } = useCustomers();
+const customers = customersData?.data || [];
+
+// const { data: invoicesData, isLoading: loadingInvoices } = useInvoices();
+// const invoices = invoicesData?.data || [];
+
+const { data: invoiceDetail, isLoading: loadingInvoice } =
+  useInvoice(editInvoiceId!, !!editInvoiceId);
+
+
+// Ensure you are destructuring 'data' and naming it 'nextInvoice'
+const { data: nextInvoice } = useNextInvoiceNumber(!editInvoiceId);
+
+
+
   const DRAFT_KEY = "invoice_draft";
 
-  useEffect(() => {
-    if (!customers) return;
 
-    // Clear form first
-    form.resetFields();
 
-    if (editInvoiceNumber) {
-      const invoices: Invoice[] = JSON.parse(
-        localStorage.getItem("invoices") || "[]",
-      );
 
-      const invoice = invoices.find(
-        (inv) => inv.invoice_number === editInvoiceNumber,
-      );
 
-      if (!invoice) {
-        message.error("Invoice not found");
-        return;
-      }
+
+useEffect(() => {
+  // Only auto-fill if we are NOT in edit mode
+  if (!editInvoiceId && nextInvoice?.invoiceNumber) {
+    form.setFieldsValue({
+      invoiceNumber: nextInvoice.invoiceNumber,
+    });
+  }
+}, [nextInvoice, editInvoiceId, form]);
+
+
+
+
+
+
+// useEffect(() => {
+//   if (!editInvoiceId || !invoices.length) return;
+
+//   const invoice = invoices.find((inv) => inv.id === editInvoiceId);
+//   if (!invoice) return;
+
+//   if (!invoice.items || invoice.items.length === 0) {
+//   form.setFieldsValue({
+//     items: [{ item: "", description: "", qty: 1, price: 0, tax: 0 }],
+//   });
+// }
+
+//   form.setFieldsValue({
+//     invoiceNumber: invoice.invoiceNumber,
+//     invoice_date: invoice.invoiceDate ? dayjs(invoice.invoiceDate) : null,
+//     due_date: invoice.dueDate ? dayjs(invoice.dueDate) : null,
+//     invoice_type: invoice.invoiceType?.toLowerCase(),
+//     currency: invoice.currency,
+//     discount: invoice.discount ?? 0,
+//     notes: invoice.notes,
+//     terms: invoice.terms,
+
+//     customer_id: invoice.customerId,
+//     customer_snapshot: invoice.customerSnapshot,
+
+//     // ✅ THIS IS THE IMPORTANT PART
+//     items: invoice.items?.map((i: any) => ({
+//       item: i.item,
+//       description: i.description,
+//       qty: i.qty,
+//       price: i.price,
+//       tax: i.tax,
+//     })) || [],
+//   });
+
+//   setIsRecurring(!!invoice.recurringFrequency);
+// }, [editInvoiceId, invoices, form]);
+
+// useEffect(() => {
+//   if (!editInvoiceId || !invoiceDetail) return;
+
+// const mappedItems =
+//   invoiceDetail.items?.length > 0
+//     ? invoiceDetail.items.map((i) => ({
+//         id: i.id,                 // ✅ REQUIRED
+//         item: i.item,
+//         description: i.description,
+//         qty: i.qty,
+//         price: i.price,
+//         tax: i.tax,
+//       }))
+//     : [{ item: "", description: "", qty: 1, price: 0, tax: 0 }];
+
+
+//   console.log("MAPPED ITEMS:", mappedItems);
+
+//   form.setFieldsValue({
+//     invoiceNumber: invoiceDetail.invoiceNumber,
+//     invoice_date: invoiceDetail.invoiceDate
+//       ? dayjs(invoiceDetail.invoiceDate)
+//       : null,
+//     due_date: invoiceDetail.dueDate
+//       ? dayjs(invoiceDetail.dueDate)
+//       : null,
+
+//     customer_id: invoiceDetail.customerId,
+//     customer_snapshot: invoiceDetail.customerSnapshot,
+//     currency: invoiceDetail.currency,
+//     discount: invoiceDetail.discount ?? 0,
+//     notes: invoiceDetail.notes,
+//     terms: invoiceDetail.terms,
+
+//     // 🔥 THIS
+//     items: mappedItems,
+//   });
+// }, [editInvoiceId, invoiceDetail, form]);
+
+useEffect(() => {
+  // 1. EDIT MODE: Wait for invoiceDetail to be available
+  if (editInvoiceId) {
+    if (invoiceDetail) {
+      const mappedItems = invoiceDetail.items?.length > 0
+        ? invoiceDetail.items.map((i) => ({
+            id: i.id,
+            item: i.item,
+            description: i.description,
+            qty: i.qty,
+            price: i.price,
+            tax: i.tax,
+          }))
+        : [{ item: "", description: "", qty: 1, price: 0, tax: 0 }];
 
       form.setFieldsValue({
-        ...invoice,
-        invoice_date: invoice.invoice_date ? dayjs(invoice.invoice_date) : null,
-        due_date: invoice.due_date ? dayjs(invoice.due_date) : null,
-        customer_id: invoice.customer_id,
-        customer_snapshot: invoice.customer_snapshot,
+        ...invoiceDetail, // Spreads basic fields like notes, terms, etc.
+    customer_id: invoiceDetail.customerId,
+    customer_snapshot: invoiceDetail.customerSnapshot,
+        invoice_date: invoiceDetail.invoiceDate ? dayjs(invoiceDetail.invoiceDate) : null,
+        due_date: invoiceDetail.dueDate ? dayjs(invoiceDetail.dueDate) : null,
+        invoice_type: invoiceDetail.invoiceType?.toLowerCase(),
+        items: mappedItems,
       });
-
-      setIsRecurring(!!invoice.recurring_frequency);
-    } else {
-      // NEW INVOICE: Set default values
-      const defaultValues = {
+    }
+  } 
+  // 2. CREATE MODE: Explicitly set the default row
+  else {
+    // Check if we already have items (e.g. from a draft or user input) 
+    // to prevent overwriting user progress
+    const currentItems = form.getFieldValue("items");
+    if (!currentItems || currentItems.length === 0) {
+      form.setFieldsValue({
+        items: [{ item: "", description: "", qty: 1, price: 0, tax: 0 }],
         invoice_type: "standard",
         currency: "USD",
-        items: [
-          {
-            item: "",
-            description: "",
-            qty: 1,
-            price: 0,
-            tax: 0,
-          },
-        ],
-      };
-
-      // Clear any existing items first
-      form.setFieldsValue({ items: [] });
-
-      setTimeout(() => {
-        form.setFieldsValue(defaultValues);
-      }, 0);
+      });
     }
-  }, [editInvoiceNumber, customers, form]);
+  }
+}, [editInvoiceId, invoiceDetail, form]);
+
+const sanitizeCustomerPayload = (
+  values: any
+): UpdateCustomerData => ({
+  companyName: values.companyName,
+  email: values.email ?? undefined,
+  phone: values.phone ?? undefined,
+  address: values.address ?? undefined,
+  city: values.city ?? undefined,
+  country: values.country ?? undefined,
+  taxId: values.taxId ?? undefined,
+});
+
+
+
+
+
+  
+  
+  
+
+
+
+
+
+
   /* ---------------- Currency ---------------- */
   const currency = Form.useWatch("currency", form);
   const currencySymbol =
     currencyOptions.find((c) => c.value === currency)?.symbol || "$";
 
   /* ---------------- Line Items ---------------- */
-  const items = Form.useWatch("items", form) || [];
+/* ---------------- Line Items ---------------- */
+const items = Form.useWatch("items", form) || [];
+const discount = Number(Form.useWatch("discount", form) || 0);
 
-  const subtotal = items.reduce(
-    (sum: number, i: any) => sum + (i?.qty || 0) * (i?.price || 0),
-    0,
-  );
+// Calculate subtotal
+const subtotal = items.reduce(
+  (sum: number, i: any) => sum + (Number(i.qty || 0) * Number(i.price || 0)),
+  0
+);
 
-  const taxTotal = items.reduce((sum: number, i: any) => {
-    const line = (i?.qty || 0) * (i?.price || 0);
-    return sum + (line * (i?.tax || 0)) / 100;
-  }, 0);
+// Calculate tax total
+const taxTotal = items.reduce((sum: number, i: any) => {
+  const lineTotal = Number(i.qty || 0) * Number(i.price || 0);
+  return sum + (lineTotal * (Number(i.tax || 0) / 100));
+}, 0);
 
-  const total = subtotal + taxTotal;
-  const paid = 0;
-  const balanceDue = total - paid;
+// Total after tax and discount
+const total = subtotal + taxTotal - discount;
+
+// Paid and balance
+const paid = 0;
+const balanceDue = total - paid;
+
 
   /* ---------------- Customer apply helpers ---------------- */
-  const applyToInvoiceOnly = (updatedCustomer: Customer) => {
-    form.setFieldsValue({
-      customer_snapshot: { ...updatedCustomer },
+
+
+ 
+const applyToInvoiceOnly = (updatedCustomer: CustomerDraft) => {
+  form.setFieldsValue({
+    customer_snapshot: {
+      id: updatedCustomer.id,
+      companyName: updatedCustomer.companyName,
+      email: updatedCustomer.email ?? undefined,
+      phone: updatedCustomer.phone ?? undefined,
+      address: updatedCustomer.address ?? undefined,
+      city: updatedCustomer.city ?? undefined,
+      country: updatedCustomer.country ?? undefined,
+      taxId: updatedCustomer.taxId ?? undefined,
+    },
+  });
+
+  antdMessage.success("Applied to invoice snapshot");
+};
+
+
+
+
+
+
+
+
+
+
+
+const applyToCustomerAndInvoice = async (draft: CustomerDraft) => {
+  const payload: UpdateCustomerData = {
+    companyName: draft.companyName,
+    email: draft.email ?? undefined,
+    phone: draft.phone ?? undefined,
+    address: draft.address ?? undefined,
+    city: draft.city ?? undefined,
+    country: draft.country ?? undefined,
+    taxId: draft.taxId ?? undefined,
+  };
+
+  try {
+    const savedCustomer = await updateCustomerMutation.mutateAsync({
+      id: draft.id,
+      data: payload,
     });
-  };
 
-  const applyToCustomerAndInvoice = (updatedCustomer: Customer) => {
-    updateCustomer(updatedCustomer.id, updatedCustomer);
-    applyToInvoiceOnly(updatedCustomer);
-  };
-
-  const onFinish = (values: any) => {
-    // 1️⃣ Get existing invoices
-    const invoices: Invoice[] = JSON.parse(
-      localStorage.getItem("invoices") || "[]",
-    );
-
-    // 2️⃣ Find selected customer from CONTEXT
-    const selectedCustomer = customers.find((c) => c.id === values.customer_id);
-
-    // 3️⃣ Safety check (THIS WAS MISSING)
-    if (!selectedCustomer) {
-      message.error("Customer not found");
-      return;
-    }
-
-    // 4️⃣ Build invoice object
-    const invoicePayload: Invoice = {
-      ...values,
-      customer_id: selectedCustomer.id,
+    form.setFieldsValue({
       customer_snapshot: {
-        id: selectedCustomer.id,
-        name: selectedCustomer.name,
-        email: selectedCustomer.email,
-        phone: selectedCustomer.phone,
-        address: selectedCustomer.address,
-        city: selectedCustomer.city,
-        country: selectedCustomer.country,
-        taxid: selectedCustomer.taxid,
+        id: savedCustomer.id,
+        companyName: savedCustomer.companyName,
+        email: savedCustomer.email,
+        phone: savedCustomer.phone,
+        address: savedCustomer.address,
+        city: savedCustomer.city,
+        country: savedCustomer.country,
+        taxId: savedCustomer.taxId,
       },
-    };
+    });
 
-    // 5️⃣ EDIT MODE
-    if (editInvoiceNumber) {
-      const updatedInvoices = invoices.map((inv) =>
-        inv.invoice_number === editInvoiceNumber
-          ? { ...inv, ...invoicePayload }
-          : inv,
-      );
+    antdMessage.success("Customer record and invoice updated");
+  } catch {
+    antdMessage.error("Failed to update customer database");
+  }
+};
 
-      localStorage.setItem("invoices", JSON.stringify(updatedInvoices));
+ 
+
+
+
+
+
+
+
+
+
+
+
+const onFinish = async (values: any) => {
+  // Map "credit_note" from UI to "CREDIT" for Prisma Enum
+
+  let finalSnapshot = values.customer_snapshot;
+  if (!finalSnapshot && values.customer_id) {
+    const c = customers.find((x: any) => x.id === values.customer_id);
+    if (c) {
+      finalSnapshot = {
+        id: c.id,
+        companyName: c.companyName,
+        email: c.email,
+        phone: c.phone,
+        address: c.address,
+        city: c.city,
+        country: c.country,
+        taxId: c.taxId,
+      };
     }
-    // 6️⃣ NEW INVOICE MODE
-    else {
-      invoices.push(invoicePayload);
-      localStorage.setItem("invoices", JSON.stringify(invoices));
-    }
+  }
+  const mappedType = values.invoice_type?.toUpperCase().replace("_NOTE", "") as InvoiceType;
 
-    // 7️⃣ Cleanup + redirect
-    localStorage.removeItem("invoice_draft");
-    message.success("Invoice saved successfully");
-    router.push("/invoicepro/invoices");
+ const payload: any = {
+    invoiceNumber: values.invoiceNumber,
+    invoiceDate: values.invoice_date?.toISOString(),
+    dueDate: values.due_date?.toISOString(),
+    invoiceType: (values.invoice_type?.toUpperCase().replace("_NOTE", "") || "STANDARD"),
+    currency: values.currency || "USD",
+    discount: Number(values.discount || 0),
+    notes: values.notes || "",
+    terms: values.terms || "",
+    
+    customerId: values.customer_id,
+    // Change "customerData" to "customerSnapshot" to match your Interface/DB
+    customerSnapshot: finalSnapshot, 
+
+ items: (values.items || []).map((item: any) => ({
+  id: item.id,                 // ✅ KEEP ID
+  item: item.item || "Untitled Item",
+  description: item.description || "",
+  qty: Number(item.qty || 1),
+  price: Number(item.price || 0),
+  tax: Number(item.tax || 0),
+}))
+,
   };
+
+  try {
+    if (editInvoiceId) {
+      await updateInvoiceMutation.mutateAsync({ 
+        id: editInvoiceId, 
+        data: payload 
+      });
+      antdMessage.success("Invoice updated successfully");
+    } else {
+      await createInvoiceMutation.mutateAsync(payload);
+      antdMessage.success("Invoice created successfully");
+    }
+    
+    localStorage.removeItem(DRAFT_KEY);
+    router.push("/invoicepro/invoices");
+  } catch (error: any) {
+    const errorMsg = error.response?.data?.error || error.message || "Submission Failed";
+    console.error("Submission Error:", error);
+    antdMessage.error(errorMsg);
+  }
+};
 
   const selectedCustomerId = Form.useWatch("customer_id", form);
 
@@ -231,7 +460,7 @@ export default function InvoiceproNewinvoicePage() {
             <Space align="center">
               <SubnodeOutlined style={{ fontSize: 40, color: "#1677ff" }} />
               <Title level={3}>
-                {editInvoiceNumber ? "Edit Invoice" : "New Invoice"}
+                {editInvoiceId ? "Edit Invoice" : "New Invoice"}
               </Title>
             </Space>
           </div>
@@ -240,6 +469,10 @@ export default function InvoiceproNewinvoicePage() {
             form={form}
             layout="vertical"
             onFinish={onFinish}
+            onFinishFailed={(errorInfo) => {
+    console.log("Failed:", errorInfo);
+    message.error("Please fill in all required fields");
+  }}
             initialValues={{
               items: [
                 {
@@ -254,7 +487,7 @@ export default function InvoiceproNewinvoicePage() {
               currency: "USD",
             }}
             onValuesChange={(_, allValues) => {
-              if (editInvoiceNumber) return;
+              if (editInvoiceId) return;
 
               localStorage.setItem(
                 DRAFT_KEY,
@@ -276,25 +509,55 @@ export default function InvoiceproNewinvoicePage() {
                   <Form.Item name="customer_id" rules={[{ required: true }]}>
                     <Select
                       placeholder="Select customer"
+                      loading={loadingCustomers}
                       showSearch
                       optionFilterProp="children"
-                      onChange={(id) => {
-                        const c = customers.find((x) => x.id === id);
-                        if (!c) return;
+      //                 onChange={(id) => {
+      //                   const c = customers.find((x) => x.id === id);
+      //                   if (!c) return;
 
-                        form.setFieldsValue({
-                          customer_id: id,
-                          customer_snapshot: { ...c },
-                        });
-                      }}
+      //                       form.setFieldsValue({
+      //   customer_id: id,
+      //   customer_snapshot: {
+      //     id: c.id,
+      //     companyName: c.companyName,
+      //     email: c.email,
+      //     phone: c.phone,
+      //     address: c.address,
+      //     city: c.city,
+      //     country: c.country,
+      //     taxId: c.taxId,
+      //   },
+      // });
+      //                 }}
+       onSelect={(id) => {
+      const c = customers.find((x) => x.id === id);
+      if (c) {
+        form.setFieldsValue({
+          customer_snapshot: {
+            id: c.id,
+            companyName: c.companyName,
+            email: c.email,
+            phone: c.phone,
+            address: c.address,
+            city: c.city,
+            country: c.country,
+            taxId: c.taxId,
+          },
+        });
+        antdMessage.info(`Snapshot captured for ${c.companyName}`);
+      }
+    }}
                     >
                       {customers.map((c) => (
                         <Select.Option key={c.id} value={c.id}>
-                          {c.name}
+                          {c.companyName}
                         </Select.Option>
                       ))}
                     </Select>
                   </Form.Item>
+
+
 
                   {selectedCustomer && (
                     <Tooltip title="Click to edit">
@@ -303,7 +566,7 @@ export default function InvoiceproNewinvoicePage() {
                         onClick={() => setEditingCustomer(selectedCustomer)}
                         style={{ cursor: "pointer" }}
                       >
-                        <b>{selectedCustomer.name}</b>
+                        <b>{selectedCustomer.companyName}</b>
                         <div>{selectedCustomer.address}</div>
                         <div>{selectedCustomer.city}</div>
                         <div>{selectedCustomer.taxId}</div>
@@ -323,13 +586,17 @@ export default function InvoiceproNewinvoicePage() {
                 >
                   <Row gutter={[12, 12]}>
                     <Col xs={24} md={12} lg={6}>
-                      <Form.Item
-                        label="Invoice No"
-                        name="invoice_number"
-                        rules={[{ required: true }]}
-                      >
-                        <Input disabled={!!editInvoiceNumber} size="middle" />
-                      </Form.Item>
+                      
+
+<Form.Item
+  label="Invoice No"
+  name="invoiceNumber" // Change from invoice_number to invoiceNumber
+  rules={[{ required: true }]}
+>
+  <Input readOnly className="bg-gray-100" />
+</Form.Item>
+
+
                     </Col>
 
                     <Col xs={24} md={12} lg={6}>
@@ -366,7 +633,16 @@ export default function InvoiceproNewinvoicePage() {
                             Proforma
                           </Select.Option>
                           <Select.Option value="credit_note">
-                            Credit Note
+                            Credit 
+                          </Select.Option>
+                          <Select.Option value="credit_note">
+                            Tax
+                          </Select.Option>
+                          <Select.Option value="credit_note">
+                            Debit
+                          </Select.Option>
+                          <Select.Option value="credit_note">
+                            Recurring
                           </Select.Option>
                         </Select>
                       </Form.Item>
@@ -432,7 +708,7 @@ export default function InvoiceproNewinvoicePage() {
                   className="rounded-xl shadow-md border border-gray-200"
                   bodyStyle={{ padding: 0 }}
                 >
-                  <Form.List name="items">
+                  <Form.List name="items" key={editInvoiceId || "new"}>
                     {(fields, { add, remove }) => (
                       <>
                         <table className="w-full text-xs border-collapse">
@@ -638,7 +914,12 @@ export default function InvoiceproNewinvoicePage() {
      px-6 py-3 text-base"
               >
                 <div className="flex gap-3">
-                  <Button type="primary" size="middle" htmlType="submit">
+                  <Button type="primary" size="middle" htmlType="submit"
+                  loading={
+    createInvoiceMutation.isPending ||
+    updateInvoiceMutation.isPending
+  }
+                  >
                     Submit for Approval
                   </Button>
                   <Button
@@ -668,86 +949,91 @@ export default function InvoiceproNewinvoicePage() {
           </Form>
         </div>
 
-        {/* CUSTOMER EDIT MODAL */}
-        <CustomerModal
-          open={!!editingCustomer}
-          customer={editingCustomer}
-          loading={false}
-          onClose={() => setEditingCustomer(null)}
-          onSave={(values, id) => {
-            if (!id || !editingCustomer) return;
+       
 
-            const updatedCustomer = { ...editingCustomer, ...values };
-            const pref = localStorage.getItem("customer_update_preference");
+ <CustomerModal
+  open={!!editingCustomer}
+  customer={editingCustomer}
+  loading={updateCustomerMutation.status === "pending"}
+  onClose={() => setEditingCustomer(null)}
 
-            if (pref === "apply_both") {
-              applyToCustomerAndInvoice(updatedCustomer);
-              setEditingCustomer(null);
-              return;
-            }
 
-            if (pref === "invoice_only") {
-              applyToInvoiceOnly(updatedCustomer);
-              setEditingCustomer(null);
-              return;
-            }
 
-            setPendingCustomer(updatedCustomer);
-            setShowApplyModal(true);
-          }}
-        />
+  onSave={async (values, id) => {
+  if (!id) return;
+
+  // 1️⃣ Build a pending customer object
+ setPendingCustomer({
+  id,
+  companyName: values.companyName,
+  email: values.email ?? null,
+  phone: values.phone ?? null,
+  address: values.address ?? null,
+  city: values.city ?? null,
+  country: values.country ?? null,
+  taxId: values.taxId ?? null,
+});
+
+
+  // 2️⃣ Show the confirmation modal
+  setShowApplyModal(true);
+}}
+
+/>
+
+
+
+
+
+
+
+
+
 
         <Modal
-          open={showApplyModal}
-          title="Apply changes to customer?"
-          onCancel={() => {
-            setShowApplyModal(false);
-            setPendingCustomer(null);
-          }}
-          footer={[
-            <Button
-              key="invoice"
-              onClick={() => {
-                if (!pendingCustomer) return;
-                if (rememberChoice)
-                  localStorage.setItem(
-                    "customer_update_preference",
-                    "invoice_only",
-                  );
-                applyToInvoiceOnly(pendingCustomer);
-                setShowApplyModal(false);
-                setEditingCustomer(null);
-              }}
-            >
-              Invoice only
-            </Button>,
-            <Button
-              key="both"
-              type="primary"
-              onClick={() => {
-                if (!pendingCustomer) return;
-                if (rememberChoice)
-                  localStorage.setItem(
-                    "customer_update_preference",
-                    "apply_both",
-                  );
-                applyToCustomerAndInvoice(pendingCustomer);
-                setShowApplyModal(false);
-                setEditingCustomer(null);
-              }}
-            >
-              Apply to customer
-            </Button>,
-          ]}
-        >
-          <p>Apply these changes to customer record?</p>
-          <Checkbox
-            checked={rememberChoice}
-            onChange={(e) => setRememberChoice(e.target.checked)}
-          >
-            Remember my choice
-          </Checkbox>
-        </Modal>
+  open={showApplyModal}
+  title="Apply changes to customer?"
+  onCancel={() => {
+    setShowApplyModal(false);
+    setPendingCustomer(null);
+  }}
+  footer={[
+    <Button
+      key="invoice"
+      onClick={() => {
+        if (!pendingCustomer) return;
+
+        applyToInvoiceOnly(pendingCustomer);
+
+        setShowApplyModal(false);
+        setPendingCustomer(null);
+      }}
+    >
+      Invoice only
+    </Button>,
+
+
+<Button
+  key="both"
+  type="primary"
+  onClick={async () => {
+    if (!pendingCustomer) return;
+
+    await applyToCustomerAndInvoice(pendingCustomer);
+
+    setShowApplyModal(false);
+    setPendingCustomer(null);
+    setEditingCustomer(null);
+  }}
+>
+  Apply to customer
+</Button>
+
+
+  ]}
+>
+  <p>Apply these changes to customer record?</p>
+</Modal>
       </div>
     </MainLayout>
   );

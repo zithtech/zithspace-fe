@@ -182,7 +182,6 @@ const handleDelete = (record: Category) => {
 };
 
   const summaryCardClass = `
-    h-24
     rounded-2xl
     border border-gray-200
     bg-white
@@ -193,45 +192,60 @@ const handleDelete = (record: Category) => {
   return (
     <>
       {/* ================= SUMMARY CARDS ================= */}
-      <Row gutter={[16, 16]} className="mb-4">
-        <Col xs={24} md={6}>
-          <Card className={summaryCardClass}>
-            <div className="text-xs text-gray-500 mb-1">Total Categories</div>
-            <div className="text-[22px] font-bold text-gray-900">
-              {data.length}
-            </div>
-          </Card>
-        </Col>
+   <Row gutter={[16, 16]} className="mb-4">
+  <Col xs={24} md={6}>
+    <Card className={summaryCardClass}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          Total Categories
+        </span>
+        <span className="text-[22px] font-bold text-gray-900">
+          {data.length}
+        </span>
+      </div>
+    </Card>
+  </Col>
 
-        <Col xs={24} md={6}>
-          <Card className={summaryCardClass}>
-            <div className="text-xs text-gray-500 mb-1">Active</div>
-            <div className="text-[22px] font-bold text-gray-900">
-              {activeCount}
-            </div>
-          </Card>
-        </Col>
+  <Col xs={24} md={6}>
+    <Card className={summaryCardClass}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          Active
+        </span>
+        <span className="text-[22px] font-bold text-gray-900">
+          {activeCount}
+        </span>
+      </div>
+    </Card>
+  </Col>
 
-        <Col xs={24} md={6}>
-          <Card className={summaryCardClass}>
-            <div className="text-xs text-gray-500 mb-1">Inactive</div>
-            <div className="text-[22px] font-bold text-gray-900">
-              {inactiveCount}
-            </div>
-          </Card>
-        </Col>
+  <Col xs={24} md={6}>
+    <Card className={summaryCardClass}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          Inactive
+        </span>
+        <span className="text-[22px] font-bold text-gray-900">
+          {inactiveCount}
+        </span>
+      </div>
+    </Card>
+  </Col>
 
-        <Col xs={24} md={6}>
-          <Card className={summaryCardClass}>
-            <div className="text-xs text-gray-500 mb-1">
-              Attachment Required
-            </div>
-            <div className="text-[22px] font-bold text-gray-900">
-              {attachmentRequired ? "Yes" : "No"}
-            </div>
-          </Card>
-        </Col>
-      </Row>
+  <Col xs={24} md={6}>
+    <Card className={summaryCardClass}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          Attachment Required
+        </span>
+        <span className="text-[22px] font-bold text-gray-900">
+          {attachmentRequired ? "Yes" : "No"}
+        </span>
+      </div>
+    </Card>
+  </Col>
+</Row>
+
 
       {/* ================= ADD CATEGORY ================= */}
       <div className="flex justify-end mb-3">

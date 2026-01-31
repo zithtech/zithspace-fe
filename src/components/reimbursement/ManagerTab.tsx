@@ -129,27 +129,26 @@ export default function ManagerTab() {
   const pendingRequests = data.filter(r => r.status === "PENDING_APPROVAL");
 
 
-  const getFinanceStatusTag = (status?: string) => {
-    switch (status) {
-      case "PAID":
-        return <Tag color="green">Paid</Tag>;
-      case "ON_HOLD":
-        return <Tag color="red">On Hold</Tag>;
-      default:
-        return <Tag color="orange">Pending Finance</Tag>;
-    }
-  };
+ const getManagerStatusTag = (status: string) => {
+  switch (status) {
+    case "APPROVED":
+      return <span className="text-green-600">Manager Approved</span>;
+    case "REJECTED":
+      return <span className="text-red-600">Manager Rejected</span>;
+    default:
+      return <span className="text-red-500">Pending  Approval</span>;
+  }
+};
 
-  const getManagerStatusTag = (status: string) => {
-    if (status === "APPROVED") {
-      return <Tag color="green">Manager Approved</Tag>;
-    }
-    if (status === "REJECTED") {
-      return <Tag color="red">Manager Rejected</Tag>;
-    }
-    return <Tag color="orange">Pending Manager Approval</Tag>;
-  };
-
+const getFinanceStatusTag = (status?: string) => {
+  if (status === "PAID") {
+    return <span className="text-green-600">Finance Paid</span>;
+  }
+  if (status === "ON_HOLD") {
+    return <span className="text-red-600">Finance On Hold</span>;
+  }
+  return <span className="text-red-500">Pending  Approval</span>;
+};
 
   /* ===== TABLE COLUMNS (UNCHANGED UI) ===== */
   const columns: ColumnsType<Reimbursement> = [
@@ -275,68 +274,53 @@ export default function ManagerTab() {
     <div>
       {/* ===== SUMMARY CARDS (SAME UI) ===== */}
       <Row gutter={[16, 16]} style={{ marginTop: 7, marginBottom: 24 }}>
+  {/* Pending Approval */}
+  <Col xs={24} md={8}>
+    <Card className={`${summaryCardClass} h-full`}>
+      <div className="flex items-center justify-between h-full">
+        <span className="text-xs text-gray-500">
+          Pending Approval
+        </span>
 
-        {/* Pending Approval */}
-        <Col xs={24} md={8}>
-          <Card className={summaryCardClass}>
-            <Statistic
-              title={
-                <span className="text-xs text-gray-500">
-                  Pending Approval
-                </span>
-              }
-              value={data.filter(d => d.status === "PENDING_APPROVAL").length}
-              valueStyle={{
-                fontSize: "22px",
-                fontWeight: 700,
-                color: "#111827",
-                lineHeight: "1.2",
-              }}
-            />
-          </Card>
-        </Col>
+        <span className="text-[20px] font-bold text-gray-900">
+          {data.filter(d => d.status === "PENDING_APPROVAL").length}
+        </span>
+      </div>
+    </Card>
+  </Col>
 
-        {/* Under Review */}
-        <Col xs={24} md={8}>
-          <Card className={summaryCardClass}>
-            <Statistic
-              title={
-                <span className="text-xs text-gray-500">
-                  Under Review
-                </span>
-              }
-              value={data.filter(d => d.status === "PENDING_APPROVAL").length}
-              valueStyle={{
-                fontSize: "22px",
-                fontWeight: 700,
-                color: "#111827",
-                lineHeight: "1.2",
-              }}
-            />
-          </Card>
-        </Col>
+  {/* Under Review */}
+  <Col xs={24} md={8}>
+    <Card className={`${summaryCardClass} h-full`}>
+      <div className="flex items-center justify-between h-full">
+        <span className="text-xs text-gray-500">
+          Under Review
+        </span>
 
-        {/* Approved Today */}
-        <Col xs={24} md={8}>
-          <Card className={summaryCardClass}>
-            <Statistic
-              title={
-                <span className="text-xs text-gray-500">
-                  Approved Today
-                </span>
-              }
-              value={data.filter(d => d.status === "APPROVED").length}
-              valueStyle={{
-                fontSize: "22px",
-                fontWeight: 700,
-                color: "#111827",
-                lineHeight: "1.2",
-              }}
-            />
-          </Card>
-        </Col>
+        <span className="text-[20px] font-bold text-gray-900">
+          {data.filter(d => d.status === "PENDING_APPROVAL").length}
+        </span>
+      </div>
+    </Card>
+  </Col>
 
-      </Row>
+  {/* Approved Today */}
+  <Col xs={24} md={8}>
+    <Card className={`${summaryCardClass} h-full`}>
+      <div className="flex items-center justify-between h-full">
+        <span className="text-xs text-gray-500">
+          Approved Today
+        </span>
+
+        <span className="text-[20px] font-bold text-gray-900">
+          {data.filter(d => d.status === "APPROVED").length}
+        </span>
+      </div>
+    </Card>
+  </Col>
+</Row>
+
+
 
       {/* ===== TABLE ===== */}
       <Card>

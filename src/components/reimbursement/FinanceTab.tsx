@@ -80,25 +80,27 @@ export default function FinanceTab() {
   });
 
 
-  const getManagerStatusTag = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return <Tag color="green">Manager Approved</Tag>;
-      case "REJECTED":
-        return <Tag color="red">Manager Rejected</Tag>;
-      default:
-        return <Tag color="orange">Pending Manager Approval</Tag>;
-    }
-  };
-  const getFinanceStatusTag = (status?: string) => {
-    if (status === "PAID") {
-      return <Tag color="green">Finance Paid</Tag>;
-    }
-    if (status === "ON_HOLD") {
-      return <Tag color="red">Finance On Hold</Tag>;
-    }
-    return <Tag color="orange">Pending Finance Approval</Tag>;
-  };
+const getManagerStatusTag = (status: string) => {
+  switch (status) {
+    case "APPROVED":
+      return <span className="text-green-600">Manager Approved</span>;
+    case "REJECTED":
+      return <span className="text-red-600">Manager Rejected</span>;
+    default:
+      return <span className="text-red-500">Pending  Approval</span>;
+  }
+};
+
+const getFinanceStatusTag = (status?: string) => {
+  if (status === "PAID") {
+    return <span className="text-green-600">Finance Paid</span>;
+  }
+  if (status === "ON_HOLD") {
+    return <span className="text-red-600">Finance On Hold</span>;
+  }
+  return <span className="text-red-500">Pending  Approval</span>;
+};
+
 
 
   /* ===== FILTERED DATA ===== */
@@ -257,7 +259,6 @@ export default function FinanceTab() {
   };
 
   const summaryCardClass = `
-  h-24
   rounded-2xl
   border border-gray-200
   bg-white
@@ -269,21 +270,32 @@ export default function FinanceTab() {
   return (
     <>
       {/* ===== SUMMARY CARDS ===== */}
-      <Row gutter={[16, 16]}>
 
+      <Row gutter={[16, 16]}>
         {/* Pending Payment */}
         <Col xs={24} md={8}>
           <Card className={summaryCardClass}>
-            <div className="text-xs text-gray-500 mb-1">
-              Pending Payment
-            </div>
+            <div className="flex flex-col gap-1">
 
-            <div className="text-[22px] font-bold text-gray-900 leading-tight">
-              ₹630.00
-            </div>
+              <div className="flex items-center justify-between gap-4">
+                {/* Left side: title + requests */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    Pending Payment
+                  </span>
 
-            <div className="text-xs text-gray-500 mt-1">
-              1 requests
+                  <span className="text-xs text-gray-400">
+                    1 requests
+                  </span>
+                </div>
+
+                {/* Right side: amount */}
+                <span className="text-[20px] font-bold text-gray-900">
+                  ₹630.00
+                </span>
+              </div>
+
+
             </div>
           </Card>
         </Col>
@@ -291,12 +303,14 @@ export default function FinanceTab() {
         {/* Paid This Month */}
         <Col xs={24} md={8}>
           <Card className={summaryCardClass}>
-            <div className="text-xs text-gray-500 mb-1">
-              Paid This Month
-            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                Paid This Month
+              </span>
 
-            <div className="text-[22px] font-bold text-gray-900 leading-tight">
-              ₹0.00
+              <span className="text-[20px] font-bold text-gray-900">
+                ₹0.00
+              </span>
             </div>
           </Card>
         </Col>
@@ -304,17 +318,22 @@ export default function FinanceTab() {
         {/* Total All Time */}
         <Col xs={24} md={8}>
           <Card className={summaryCardClass}>
-            <div className="text-xs text-gray-500 mb-1">
-              Total All Time
-            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                Total All Time
+              </span>
 
-            <div className="text-[22px] font-bold text-gray-900 leading-tight">
-              ₹99.99
+              <span className="text-[20px] font-bold text-gray-900">
+                ₹99.99
+              </span>
             </div>
           </Card>
         </Col>
-
       </Row>
+
+
+
+
 
 
 
@@ -542,28 +561,31 @@ export default function FinanceTab() {
                   </div>
                 ))}
 
-                <div className="flex justify-between text-xs py-1 px-2">
+                <div className="flex items-center justify-between text-xs py-1 px-2">
                   <span className="text-gray-500 font-medium">
                     Manager Status
                   </span>
 
-                  <span className="font-bold text-gray-900 ml-4">
+                  <span className="min-w-[90px] text-right font-bold text-gray-900">
                     {getManagerStatusTag(selectedRow.status)}
                   </span>
                 </div>
 
-
-                <div className="flex justify-between text-xs py-1 px-2">
+                <div className="flex items-center justify-between text-xs py-1 px-2">
                   <span className="text-gray-500 font-medium">
                     Finance Status
                   </span>
 
-                  <span className="ml-4">
+                  <span className="min-w-[90px] text-right">
                     {getFinanceStatusTag(selectedRow.financeStatus)}
                   </span>
                 </div>
 
+
               </div>
+
+
+
             </div>
             <div className="flex-1 overflow-y-auto mt-3 pr-2 space-y-6">
 

@@ -29,10 +29,10 @@ export default function ReimbursementPage() {
       <Link href="/reimburseCreate"></Link>
 
       <div style={{ padding: 10 }}>
-        {/* HEADER */}
+      
         <div className="px-5 py-4 bg-white">
           <Row justify="space-between" align="middle">
-            {/* LEFT */}
+          
             <Col>
               <Space align="center" size={8}>
                 <TransactionOutlined className="text-lg text-blue-600" />
@@ -42,7 +42,7 @@ export default function ReimbursementPage() {
               </Space>
             </Col>
 
-            {/* RIGHT */}
+     
             <Col>
               <Button
                 type="primary"

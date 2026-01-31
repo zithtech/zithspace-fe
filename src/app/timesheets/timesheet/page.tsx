@@ -37,8 +37,6 @@ import {
   useTimesheetById,
 } from "@/hooks/useTimesheet";
 
-
-
 const { Title, Text } = Typography;
 
 /* ------------------ Data ------------------ */
@@ -73,56 +71,59 @@ export default function TimesheetsPage() {
   const [currentRejectReason, setCurrentRejectReason] = useState("");
 
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewTimesheet, setPreviewTimesheet] = useState<any | null>(null);
+  //const [previewTimesheet, setPreviewTimesheet] = useState<any | null>(null);
 
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const deleteMutation = useDeleteTimesheet();
-  const { data: previewTimesheets, refetch: refetchPreview } = useTimesheetById(
+  // const { data: previewTimesheet, refetch } = useTimesheetById(
+  //   previewId || undefined,
+  // );
+  const { data: previewTimesheetData, refetch } = useTimesheetById(
     previewId || undefined,
   );
+
   const { data: allTimesheets, isLoading } = useTimesheets();
+  useEffect(() => {
+    if (previewId) {
+      refetch();
+    }
+  }, [previewId, refetch]);
 
   // useEffect(() => {
-  //   loadTimesheets();
-  // }, []);
+  //   if (allTimesheets?.data) {
+  //     setDataSource(
+  //       allTimesheets.data.map((t) => ({
+  //         key: t.id,
+  //         weekStart: t.weekStart,
+  //         status: t.status,
+  //         approvedBy: t.status === "APPROVED" ? "Manager" : "-",
+  //         createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
+  //         totalHours: `${t.totalHours}h`,
+  //         leave: "0",
+  //         rejectReason: t.rejectReason || "",
+  //       })),
+  //     );
+  //   }
+  // }, [allTimesheets]);
+  const tableData = useMemo(() => {
+  if (!allTimesheets?.data) return [];
 
-  // const loadTimesheets = async () => {
-  //   const list = await TimesheetService.getAll();
-  //   console.log("list", list[0]);
+  return allTimesheets.data.map((t) => ({
+    key: t.id,
+    weekStart: t.weekStart,
+    employeeName: t.employeeName, 
+    status: t.status,
+    approvedBy: t.status === "APPROVED" ? "Manager" : "-",
+    createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
+    totalHours: `${t.totalHours}h`,
+    leave: "0",
+    rejectReason: t.rejectReason || "",
+  }));
+}, [allTimesheets]);
 
-  //   setDataSource(
-  //     list.map((t) => ({
-  //       key: t.id,
-  //       weekStart: t.weekStart,
-  //       status: t.status,
-  //       approvedBy: t.status === "Approved" ? "Manager" : "-", // default value
-
-  //       createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
-  //       totalHours: `${t.totalHours}h`,
-  //       leave: "0",
-  //       rejectReason: t.rejectReason || "", // important!
-  //     })),
-  //   );
-  // };
-  useEffect(() => {
-    if (allTimesheets?.data) {
-      setDataSource(
-        allTimesheets.data.map((t) => ({
-          key: t.id,
-          weekStart: t.weekStart,
-          status: t.status,
-          approvedBy: t.status === "APPROVED" ? "Manager" : "-",
-          createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
-          totalHours: `${t.totalHours}h`,
-          leave: "0",
-          rejectReason: t.rejectReason || "",
-        })),
-      );
-    }
-  }, [allTimesheets]);
 
   /* ------------------ Delete ------------------ */
   // const handleDelete = async (id: string) => {
@@ -144,6 +145,26 @@ export default function TimesheetsPage() {
       title: "Day",
       dataIndex: "day",
     },
+  //    {
+  //   title: "Day",
+  //   dataIndex: "day",
+  //   render: (_: any, row: any) => {
+  //     // Convert the row's date (assuming it's row.date or row.day in ISO) to proper day
+  //     return dayjs(row.date || row.day).format("ddd"); // Mon, Tue, etc.
+  //   },
+  // },
+ // {
+//   title: "Day",
+//   dataIndex: "day",
+//   render: (_: any, row: any) => {
+//     // row.date should be a single date in ISO format, e.g., 2026-02-08
+//     const startOfWeek = dayjs(row.date).startOf("week"); // Sunday
+//     const endOfWeek = startOfWeek.add(6, "day");        // Saturday
+//     return `${startOfWeek.format("MMM DD")} – ${endOfWeek.format("MMM DD")}`;
+//   },
+// },
+
+       
     {
       title: "Project",
       dataIndex: "projectName",
@@ -178,6 +199,7 @@ export default function TimesheetsPage() {
 
           const start = dayjs(record.weekStart).day(0);
           const end = dayjs(record.weekStart).day(6);
+           
 
           return (
             <span>
@@ -186,73 +208,39 @@ export default function TimesheetsPage() {
           );
         },
       },
-      // {
-      //   title: "Status",
-      //   dataIndex: "status",
-      //   render: (status: string, record: any) => {
-      //     return (
-      //       <Space>
-      //         {status === "Approved" && (
-      //           <>
-      //             <Tag color="green">Approved</Tag>
-      //             <CheckCircleOutlined style={{ color: "#52c41a" }} />
-      //           </>
-      //         )}
-
-      //         {status === "Rejected" && (
-      //           <>
-      //             <Tag color="red">Rejected</Tag>
-      //             <WarningOutlined
-      //               style={{ color: "#fa8c16", cursor: "pointer" }}
-      //               onClick={(e) => {
-      //                 e.stopPropagation();
-      //                 setCurrentRejectReason(record.rejectReason);
-      //                 setShowRejectReasonModal(true);
-      //               }}
-      //             />
-      //           </>
-      //         )}
-
-      //         {status === "Submitted" && <Tag color="orange">Submitted</Tag>}
-      //         {status === "Draft" && <Tag color="blue">Draft</Tag>}
-      //       </Space>
-      //     );
-      //   },
-      // },
       {
-  title: "Status",
-  dataIndex: "status",
-  render: (status: string, record: any) => {
-    return (
-      <Space>
-        {status === "APPROVED" && (
-          <>
-            <Tag color="green">Approved</Tag>
-            <CheckCircleOutlined style={{ color: "#52c41a" }} />
-          </>
-        )}
+        title: "Status",
+        dataIndex: "status",
+        render: (status: string, record: any) => {
+          return (
+            <Space>
+              {status === "APPROVED" && (
+                <>
+                  <Tag color="green">Approved</Tag>
+                  <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                </>
+              )}
 
-        {status === "REJECTED" && (
-          <>
-            <Tag color="red">Rejected</Tag>
-            <WarningOutlined
-              style={{ color: "#fa8c16", cursor: "pointer" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setCurrentRejectReason(record.rejectReason);
-                setShowRejectReasonModal(true);
-              }}
-            />
-          </>
-        )}
+              {status === "REJECTED" && (
+                <>
+                  <Tag color="red">Rejected</Tag>
+                  <WarningOutlined
+                    style={{ color: "#fa8c16", cursor: "pointer" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentRejectReason(record.rejectReason);
+                      setShowRejectReasonModal(true);
+                    }}
+                  />
+                </>
+              )}
 
-        {status === "SUBMITTED" && <Tag color="orange">Submitted</Tag>}
-        {status === "DRAFT" && <Tag color="blue">Draft</Tag>}
-      </Space>
-    );
-  },
-},
-
+              {status === "SUBMITTED" && <Tag color="orange">Submitted</Tag>}
+              {status === "DRAFT" && <Tag color="blue">Draft</Tag>}
+            </Space>
+          );
+        },
+      },
 
       {
         title: "Approved By",
@@ -295,7 +283,7 @@ export default function TimesheetsPage() {
                   onClick: () => {
                     setPreviewId(record.key); // set the ID to fetch
                     setPreviewOpen(true); // open the modal
-                    refetchPreview(); // fetch the timesheet
+                    //refetchPreview(); // fetch the timesheet
                   },
                 },
 
@@ -303,9 +291,6 @@ export default function TimesheetsPage() {
                   key: "edit",
                   icon: <EditOutlined />,
                   label: "Edit",
-                  //   disabled:
-                  //     record.status === "Submitted" ||
-                  //     record.status === "Approved",
                   disabled: record.status === "Approved",
                   onClick: () =>
                     router.push(
@@ -346,7 +331,8 @@ export default function TimesheetsPage() {
   );
 
   const filteredData = useMemo(() => {
-    return dataSource.filter((item) => {
+    //return dataSource.filter((item) => {
+      return tableData.filter((item) => {
       const search = searchText.toLowerCase();
 
       const matchesSearch =
@@ -358,7 +344,7 @@ export default function TimesheetsPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [dataSource, searchText, statusFilter]);
+  }, [tableData, searchText, statusFilter]);
 
   return (
     <MainLayout>
@@ -403,9 +389,9 @@ export default function TimesheetsPage() {
               menu={{
                 items: [
                   { key: "all", label: "All" },
-                  { key: "Approved", label: "Approved" },
-                  { key: "Rejected", label: "Rejected" },
-                  { key: "Submitted", label: "Submitted" },
+                  { key: "APPROVED", label: "Approved" },
+                  { key: "REJECTED", label: "Rejected" },
+                  { key: "SUBMITTED", label: "Submitted" },
                 ],
                 onClick: ({ key }) =>
                   setStatusFilter(key === "all" ? null : key),
@@ -505,47 +491,38 @@ export default function TimesheetsPage() {
             </div>
           </div>
         </Modal>
-
         <Modal
           open={previewOpen}
           onCancel={() => setPreviewOpen(false)}
           width={1000}
           centered
-          bodyStyle={{
-            padding: 24,
-            background: "#fcfcfc",
-          }}
+          bodyStyle={{ padding: 24, background: "#fcfcfc" }}
           footer={[
             <Button key="close" onClick={() => setPreviewOpen(false)}>
               Close
             </Button>,
           ]}
           title={
-            previewTimesheet && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                }}
-              >
+            previewTimesheetData&& (
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <Avatar
                   size={48}
-                  style={{
-                    backgroundColor: "#1677ff",
-                    fontWeight: 600,
-                  }}
+                  style={{ backgroundColor: "#1677ff", fontWeight: 600 }}
                 >
-                  {previewTimesheet.employeeName?.[0]}
+                  {previewTimesheetData.employeeName?.[0]}
                 </Avatar>
-
                 <div>
                   <Title level={4} style={{ margin: 0 }}>
-                    {previewTimesheet.employeeName}
+                    {previewTimesheetData.employeeName}
                   </Title>
                   <Tag color="blue" style={{ marginTop: 4 }}>
-                    {dayjs(previewTimesheet.weekStart).format("MMM DD")} –{" "}
-                    {dayjs(previewTimesheet.weekEnd).format("MMM DD, YYYY")}
+                    {dayjs(previewTimesheetData.weekStart).format(
+                      "MMM DD",
+                    )}{" "}
+                    –{" "}
+                    {dayjs(previewTimesheetData.weekEnd).format(
+                      "MMM DD, YYYY",
+                    )}
                   </Tag>
                 </div>
               </div>
@@ -553,7 +530,7 @@ export default function TimesheetsPage() {
           }
         >
           {/* Summary Section */}
-          {previewTimesheet && (
+          {previewTimesheetData&& (
             <div
               style={{
                 display: "flex",
@@ -565,18 +542,17 @@ export default function TimesheetsPage() {
                 fontWeight: 500,
               }}
             >
-              <Text>Total Hours: {previewTimesheet.totalHours}h</Text>
-
+              <Text>Total Hours: {previewTimesheetData.totalHours}h</Text>
               <Tag
                 color={
-                  previewTimesheet.status === "Approved"
+                  previewTimesheetData.status === "APPROVED"
                     ? "green"
-                    : previewTimesheet.status === "Rejected"
+                    : previewTimesheetData.status === "REJECTED"
                       ? "red"
                       : "orange"
                 }
               >
-                {previewTimesheet.status}
+                {previewTimesheetData.status}
               </Tag>
             </div>
           )}
@@ -584,14 +560,15 @@ export default function TimesheetsPage() {
           {/* Timesheet Table */}
           <Table
             columns={previewColumns}
-            dataSource={previewTimesheet?.rows || []}
+            dataSource={previewTimesheetData?.rows || []}
             pagination={false}
             bordered
-            rowKey="key"
+            rowKey="id"
             size="middle"
             rowClassName={(_, index) =>
               index % 2 === 0 ? "table-row-light" : "table-row-dark"
             }
+            loading={!previewTimesheetData} // optional, shows spinner while loading
           />
         </Modal>
       </div>

@@ -64,7 +64,16 @@ export interface TimesheetFilters {
   startDate?: string;
   endDate?: string;
 }
-
+export const reviewTimesheet = async (
+  id: string,
+   status: "APPROVED" | "REJECTED",
+  reason?: string
+) => {
+  return api.post(`/api/timesheets/${id}/review`, {
+    status,  
+    reason,
+  });
+};
 
 
 export class TimesheetsService {
@@ -127,7 +136,11 @@ export class TimesheetsService {
       throw new Error('Failed to approve/reject timesheet');
     }
   }
-  static async getMeta() { const res = await api.get("/api/timesheets/meta"); return res.data.data; }
+  static async getMeta() { 
+    const res = await api.get("/api/timesheets/meta"); 
+    console.log("SERVICE RES:", res);
+    return res;
+}
 
   /** Submit a timesheet (changes DRAFT → SUBMITTED) */
 static async submitTimesheet(id: string): Promise<Timesheet> {
@@ -138,6 +151,8 @@ static async submitTimesheet(id: string): Promise<Timesheet> {
     throw new Error('Failed to submit timesheet');
   }
 }
+
+
 
 }
 

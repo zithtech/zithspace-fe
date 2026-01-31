@@ -7,6 +7,7 @@ import {
   Timesheet,
   CreateTimesheetData,
   UpdateTimesheetData,
+  reviewTimesheet,
 } from "@/services/timesheetService";
 
 import {
@@ -69,7 +70,7 @@ import type {
 const { Title, Text } = Typography;
 
 interface TimesheetRowUI {
-  id?: string; 
+  id?: string;
   key: string;
   day: string;
   date: string;
@@ -93,6 +94,7 @@ export default function MyTimesheetPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  console.log("submitopen", isSubmitOpen);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -101,10 +103,6 @@ export default function MyTimesheetPage() {
   //const [status, setStatus] = useState<"Draft" | "Submitted">("Draft");
   const [status, setStatus] = useState<TimesheetStatus>("Draft");
   const [rows, setRows] = useState<TimesheetRowUI[]>([]);
-
-  // const [employeeName, setEmployeeName] = useState(
-  //   loggedInEmployee.employeeName,
-  // );
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -125,6 +123,10 @@ export default function MyTimesheetPage() {
   const [tasks, setTasks] = useState<
     { id: string; name: string; projectId: string }[]
   >([]);
+  const [entryCount, setEntryCount] = useState(0);
+  const { data: allTimesheets } = useTimesheets();
+  const [allTimesheetsState, setAllTimesheetsState] = useState(allTimesheets);
+
 
   // 🔹 FETCH single timesheet
 
@@ -183,9 +185,18 @@ export default function MyTimesheetPage() {
       };
     });
   }, [currentDate]);
-  const entryCount = rows.filter(
-    (row) => row.projectId && row.taskId && (row.hours ?? 0) > 0,
-  ).length;
+  // const entryCount = rows.filter(
+  //   (row) => row.projectId && row.taskId && (row.hours ?? 0) > 0,
+  // ).length;
+  //   const entryCount = (timesheet?.rows ?? []).filter(
+  //   (row) =>
+  //     row.projectId &&
+  //     row.taskId &&
+  //     Number(row.hours) > 0,
+  // ).length;
+  // const entryCount = rows.filter(
+  //   (row: TimesheetRowUI) => row.projectId && row.taskId && Number(row.hours) > 0
+  // ).length;
 
   const createEmptyRows = () =>
     DAYS.map((d) => ({
@@ -200,87 +211,34 @@ export default function MyTimesheetPage() {
       hours: 0,
       billable: true,
       status: "Draft" as const,
-      // employeeName: loggedInEmployee.employeeName,
-      // employeeName:sheet.user?.name
       employeeName: sheet?.user?.name || "Unknown Employee",
     }));
-
-  // useEffect(() => {
-  //   TimesheetsService.getProjects().then(setProjects);
-  // }, []);
-
-  // useEffect(() => {
-  //   TimesheetsService.getTasks().then(setTasks);
-  // }, []);
-  // useEffect(() => {
-  //   TimesheetsService.getProjects().then((data) => {
-  //     setProjects(data.map(p => ({ value: p.id, label: p.name })));
-  //   });
-
-  //   TimesheetsService.getTasks().then((data) => {
-  //     setTasks(data.map(t => ({ value: t.id, label: t.name })));
-  //   });
-  // }, []);
-
-  // useEffect(() => {
-  //   if (mode === "resubmit") {
-  //     setRows(createEmptyRows());
-  //     setStatus("Draft");
-  //     setIsSubmitted(false);
-  //     return;
-  //   }
-
-  //   if (id) {
-  //     TimesheetService.getById(id).then((sheet) => {
-  //       if (!sheet) return;
-
-  //       const rowsWithEmployee = sheet.rows.map((r: any) => ({
-  //         ...r,
-  //         description: r.description,
-  //         employeeName: sheet.employeeName || loggedInEmployee.employeeName,
-  //       }));
-
-  //       setRows(rowsWithEmployee);
-  //       setIsSubmitted(sheet.status === "Submitted");
-
-  //       setStatus(sheet.status);
-  //       setCurrentDate(dayjs(sheet.weekStart));
-  //     });
-  //   } else {
-  //     setRows(createEmptyRows());
-  //     setStatus("Draft");
-  //   }
-  // }, [id, mode, isViewMode]);
-  // const mapBackendStatusToUI = (
-  //   status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED",
-  // ): "Draft" | "Submitted" => {
-  //   if (status === "SUBMITTED") return "Submitted";
-  //   return "Draft";
-  // };
-
-  // const projectOptions = Array.from(
-  //   new Set(rows.map((r) => r.projectName).filter(Boolean)),
-  // ).map((name) => ({
-  //   value: name!,
-  //   label: name!,
-  // }));
-  // const taskOptions = Array.from(
-  //   new Set(rows.map((r) => r.taskName).filter(Boolean)),
-  // ).map((name) => ({
-  //   value: name!,
-  //   label: name!,
-  // }));
   useEffect(() => {
     const loadMeta = async () => {
-      const meta = await TimesheetsService.getMeta();
-      // 👆 this API should return { projects, tasks }
+      try {
+        const meta = await TimesheetsService.getMeta();
 
-      setProjects(meta.projects);
-      setTasks(meta.tasks);
+        console.log("Full API Response:", meta);
+        console.log("Projects:", meta?.projects);
+        console.log("Tasks:", meta?.tasks);
+
+        setProjects(meta?.projects || []);
+        setTasks(meta?.tasks || []);
+      } catch (error) {
+        console.error("Error loading meta:", error);
+      }
     };
 
     loadMeta();
   }, []);
+  useEffect(() => {
+    const count = rows.filter(
+      (row: TimesheetRowUI) =>
+        !!row.projectId && !!row.taskId && Number(row.hours) > 0,
+    ).length;
+
+    setEntryCount(count);
+  }, [rows]);
 
   const mapBackendStatusToUI = (
     status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED",
@@ -305,45 +263,70 @@ export default function MyTimesheetPage() {
       setIsSubmitted(false);
       return;
     }
-
-    // if (id && sheet) {
-    //   const rowsWithEmployee = sheet.rows.map((r: any) => ({
-    //     ...r,
-    //     employeeName: sheet.user?.name || loggedInEmployee.employeeName,
-    //   }));
-
-    //   setRows(rowsWithEmployee);
-    //   setStatus(mapBackendStatusToUI(sheet.status));
-    //   setIsSubmitted(sheet.status === "SUBMITTED");
-    //   setCurrentDate(dayjs(sheet.weekStart));
-    //   return;
-    // }
     if (id && sheet) {
+      if (!sheet || !projects.length || !tasks.length) return;
+      // const mappedRows: TimesheetRowUI[] = sheet.rows.map(
+      //   (r: TimesheetRowAPI) => ({
+      //     key: r.id,
+      //     id: r.id,
+      //     day: dayjs(r.day).format("ddd"), // Mon
+      //     date: dayjs(r.day).format("MMM DD"),
+      //     // projectId: undefined, // UI only
+      //     // taskId: undefined,
+      //     projectId: r.projectId, // ✅ Use actual projectId from backend
+      //     taskId: r.taskId, // ✅ Use actual taskId from backend
+      //     description: r.description,
+      //     hours: r.hours,
+      //     billable: r.billable,
+      //     status: sheet.status === "SUBMITTED" ? "Submitted" : "Draft",
+      //     projectName: projects.find((p) => p.id === r.projectId)?.name || "",
+      //     taskName: tasks.find((t) => t.id === r.taskId)?.name || "",
+
+      //     employeeName: sheet.user?.name ?? "Unknown Employee",
+      //     // projectName: r.projectName,
+      //     // taskName: r.taskName,
+      //   }),
+      // );
       const mappedRows: TimesheetRowUI[] = sheet.rows.map(
-        (r: TimesheetRowAPI) => ({
-          key: r.id,
-          day: dayjs(r.day).format("ddd"), // Mon
-          date: dayjs(r.day).format("MMM DD"),
-          projectId: undefined, // UI only
-          taskId: undefined,
-          // projectId: r.projectId, // ✅ Use actual projectId from backend
-          // taskId: r.taskId, // ✅ Use actual taskId from backend
-          description: r.description,
-          hours: r.hours,
-          billable: r.billable,
-          status: sheet.status === "SUBMITTED" ? "Submitted" : "Draft",
-          //status: mapBackendStatusToUI(sheet.status),
-          // employeeName: sheet.user?.name ?? loggedInEmployee.employeeName,
-          employeeName: sheet.user?.name ?? "Unknown Employee",
-          projectName: r.projectName,
-          taskName: r.taskName,
-        }),
-      );
+  (r: TimesheetRowAPI, index: number) => {
+    // Get the actual date from backend
+    const rowDate = dayjs(r.day);
+    // Calculate the day of week (0-6)
+    const dayOfWeek = rowDate.day();
+    // Map to day abbreviation
+    const dayAbbr = Object.keys(dayIndexMap).find(
+      key => dayIndexMap[key] === dayOfWeek
+    ) || "Sun";
+    
+    return {
+      key: r.id,
+      id: r.id,
+      day: dayAbbr, // Use calculated day abbreviation
+      date: rowDate.format("MMM DD"),
+      projectId: r.projectId,
+      taskId: r.taskId,
+      description: r.description,
+      hours: r.hours,
+      billable: r.billable,
+      status: sheet.status === "SUBMITTED" ? "Submitted" : "Draft",
+      projectName: projects.find((p) => p.id === r.projectId)?.name || "",
+      taskName: tasks.find((t) => t.id === r.taskId)?.name || "",
+      employeeName: sheet.user?.name ?? "Unknown Employee",
+    };
+  }
+);
 
       setRows(mappedRows);
       setStatus(mapBackendStatusToUI(sheet.status));
       setIsSubmitted(sheet.status === "SUBMITTED");
       setCurrentDate(dayjs(sheet.weekStart));
+
+      //   const entryCount = mappedRows.filter(
+      //   (row: TimesheetRowUI) => !!row.projectId && !!row.taskId && Number(row.hours) > 0
+      // ).length;
+
+      setEntryCount(entryCount); // <-- use a state variable to store it
+
       return;
     }
 
@@ -351,7 +334,24 @@ export default function MyTimesheetPage() {
       setRows(createEmptyRows());
       setStatus("Draft");
     }
-  }, [id, mode, sheet]);
+  }, [id, mode, sheet, projects, tasks]);
+
+  // 🔥 This fixes projectName / taskName not showing in edit
+  useEffect(() => {
+    if (!projects.length || !tasks.length) return;
+
+    setRows((prev) =>
+      prev.map((r) => ({
+        ...r,
+        projectName: r.projectId
+          ? projects.find((p) => p.id === r.projectId)?.name || r.projectName
+          : r.projectName,
+        taskName: r.taskId
+          ? tasks.find((t) => t.id === r.taskId)?.name || r.taskName
+          : r.taskName,
+      })),
+    );
+  }, [projects, tasks]);
 
   const updateRow = (key: string, patch: Partial<TimesheetRowUI>) => {
     setRows((prev) =>
@@ -483,6 +483,17 @@ export default function MyTimesheetPage() {
       //   tasks.find((t) => t.value === r.taskId)?.label || "-",
       render: (_, r) => r.taskName || "-",
     },
+    //     {
+    //   title: "Project",
+    //   render: (_, r) =>
+    //     projects.find((p) => p.id === r.projectId)?.name || "-",
+    // },
+    // {
+    //   title: "Task",
+    //   render: (_, r) =>
+    //     tasks.find((t) => t.id === r.taskId)?.name || "-",
+    // },
+
     {
       title: "Description",
       render: (_: any, r) => {
@@ -559,15 +570,6 @@ export default function MyTimesheetPage() {
             Add entry
           </Button>
         ) : (
-          // <Select
-          //   disabled={isViewMode || !isFieldEditable(r)}
-          //   bordered={false}
-          //   value={r.projectId}
-          //   placeholder="Project"
-          //   options={PROJECTS}
-          //   style={{ width: 200 }}
-          //   onChange={(v) => updateRow(r.key, { projectId: v })}
-          // />
           <Tooltip
             title={
               isWeekend(r.day) && !isFieldEditable(r)
@@ -575,55 +577,6 @@ export default function MyTimesheetPage() {
                 : ""
             }
           >
-            {/* <Select
-              disabled={isViewMode || !isFieldEditable(r)}
-              bordered={false}
-              value={r.projectId}
-              placeholder="Project"
-              options={PROJECTS}
-              style={{ width: 200 }}
-              onChange={(projectId) => {
-                const selectedProject = PROJECTS.find(
-                  (p) => p.value === projectId,
-                );
-
-                updateRow(r.key, {
-                  projectId: selectedProject?.value, // p2
-                  projectName: selectedProject?.label, // Payroll System
-                });
-              }}
-            /> */}
-            {/* <Select
-  disabled={isViewMode || !isFieldEditable(r)}
-  bordered={false}
-  value={r.projectId}
-  placeholder="Project"
-  options={projects} // <-- dynamic now
-  style={{ width: 200 }}
-  onChange={(projectId) => {
-    const selectedProject = projects.find((p) => p.value === projectId);
-
-    updateRow(r.key, {
-      projectId: selectedProject?.value,
-      projectName: selectedProject?.label,
-      
-    });
-  }}
-/> */}
-            {/* <Select
-              disabled={isViewMode || !isFieldEditable(r)}
-              bordered={false}
-              // value={r.projectName} // ✅ projectId NOT needed
-              value={r.projectName || undefined}
-              placeholder="Project"
-              options={projectOptions} // ✅ dynamic from rows
-              style={{ width: 200 }}
-              onChange={(value) => {
-                updateRow(r.key, {
-                  projectName: value, // ✅ only name
-                });
-              }}
-            /> */}
             <Select
               disabled={isViewMode || !isFieldEditable(r)}
               bordered={false}
@@ -636,17 +589,22 @@ export default function MyTimesheetPage() {
               }))}
               onChange={(projectId) => {
                 const selected = projects.find((p) => p.id === projectId);
+               
 
                 updateRow(r.key, {
                   projectId,
                   projectName: selected?.name,
-                  // taskId: undefined,
-                  // taskName: undefined,
+                  taskId: undefined,
+                  taskName: undefined,
                 });
               }}
             />
+        
           </Tooltip>
+       
+  
         ),
+
     },
     {
       title: "TASK",
@@ -668,69 +626,25 @@ export default function MyTimesheetPage() {
                 : ""
             }
           >
-            {/* <Select
-              bordered={false}
-              disabled={isViewMode || !isFieldEditable(r)}
-              value={r.taskId}
-              placeholder="Task"
-              options={TASKS}
-              style={{ width: 200 }}
-              onChange={(taskId) => {
-                const selectedTask = TASKS.find((t) => t.value === taskId);
-
-                updateRow(r.key, {
-                  taskId: selectedTask?.value, // proto
-                  taskName: selectedTask?.label, // Prototype UI
-                });
-              }}
-            /> */}
-            {/* <Select
-  bordered={false}
-  disabled={isViewMode || !isFieldEditable(r)}
-  value={r.taskId}
-  placeholder="Task"
-  options={tasks} // <-- dynamic now
-  style={{ width: 200 }}
-  onChange={(taskId) => {
-    const selectedTask = tasks.find((t) => t.value === taskId);
-
-    updateRow(r.key, {
-      taskId: selectedTask?.value,
-      taskName: selectedTask?.label,
-    });
-  }}
-/> */}
-            {/* <Select
-              bordered={false}
-              disabled={isViewMode || !isFieldEditable(r)}
-              // value={r.taskName}
-              value={r.taskName || undefined}
-              placeholder="Task"
-              options={taskOptions}
-              style={{ width: 200 }}
-              onChange={(value) => {
-                updateRow(r.key, {
-                  taskName: value,
-                });
-              }}
-            /> */}
             <Select
               bordered={false}
               value={r.taskId}
               placeholder="Task"
               style={{ width: 200 }}
+              //disabled={!r.projectId}   // 🔥 project illatti disable
               options={tasks
-                .filter((t) => t.projectId === r.projectId) // 🔥 IMPORTANT
+                .filter((t) => t.projectId === r.projectId) // ✅ correct
                 .map((t) => ({
                   value: t.id,
-                  label: t.name,
+                  label: t.name, // ✅ task name show aagum
                 }))}
               onChange={(taskId) => {
+                //if (!r.id) return;
                 const selected = tasks.find((t) => t.id === taskId);
 
                 updateRow(r.key, {
                   taskId,
-                  taskName: selected?.name,
+                  taskName: selected?.name ?? "",
                 });
               }}
             />
@@ -842,72 +756,12 @@ export default function MyTimesheetPage() {
               }}
               onClick={() => isFieldEditable(r) && handleDeleteRow(r.key)}
             />
-            {/* ✅ Checkbox for weekends */}
-            {/* {isWeekend(r.day) && (
-              <Checkbox
-                checked={isFieldEditable(r)}
-                onChange={(e) =>
-                  setWeekendEditable((prev) => ({
-                    ...prev,
-                    [r.key]: e.target.checked,
-                  }))
-                }
-              ></Checkbox>
-            )} */}
           </Space>
         ),
     },
   ].filter(Boolean) as ColumnsType<TimesheetRowUI>;
-
-  // const handleSaveDraft = async () => {
-  //   const weekStart = currentDate.startOf("week").format("YYYY-MM-DD");
-
-  //   const all = await TimesheetService.getAll();
-
-  //   const existing = all.find(
-  //     (t: any) =>
-  //       t.employeeId === loggedInEmployee.employeeId &&
-  //       dayjs(t.weekStart).format("YYYY-MM-DD") === weekStart,
-  //   );
-
-  //   const payload = {
-  //     employeeId: loggedInEmployee.employeeId,
-  //     employeeName: loggedInEmployee.employeeName,
-  //     weekStart: currentDate.startOf("week").toISOString(),
-  //     weekEnd: currentDate.endOf("week").toISOString(),
-  //     rows,
-  //     totalHours,
-  //     totalBillable,
-  //     status: "Draft" as const,
-  //     // ✅ KEY POINT
-  //     updatedAt: new Date().toISOString(),
-  //     approvedBy: "",
-  //   };
-
-  //   if (existing) {
-  //     await TimesheetService.update(existing.id, payload);
-  //   } else {
-  //     await TimesheetService.create({
-  //       ...payload,
-  //       id: Date.now().toString(),
-  //       createdAt: new Date().toISOString(),
-  //     });
-  //   }
-  //   router.push("/timesheets/timesheet");
-  //   setStatus("Draft");
-  // };
-  const { data: allTimesheets } = useTimesheets();
+  
   const handleSaveDraft = async () => {
-    // const existing = allTimesheets?.data?.find((t: Timesheet) =>
-    //   t.employeeId === loggedInEmployee.employeeId &&
-    //   dayjs(t.weekStart).format("YYYY-MM-DD") === currentDate.startOf("week").format("YYYY-MM-DD")
-    // );
-    // const existing = allTimesheets?.data?.find(
-    //   (t: Timesheet) =>
-    //     t.userId === loggedInEmployee.employeeId &&
-    //     dayjs(t.weekStart).format("YYYY-MM-DD") ===
-    //       currentDate.startOf("week").format("YYYY-MM-DD"),
-    // );
     const existing = allTimesheets?.data?.find(
       (t: Timesheet) =>
         t.user?.id === sheet?.user?.id && // ✅ use the employee from timesheet
@@ -915,14 +769,36 @@ export default function MyTimesheetPage() {
           currentDate.startOf("week").format("YYYY-MM-DD"),
     );
 
+    // const payload = {
+
+    //   weekStart: currentDate.startOf("week").toISOString(),
+    //   weekEnd: currentDate.endOf("week").toISOString(),
+    //   rows,
+    //   totalHours,
+    //   totalBillable,
+    //   status: "DRAFT", // backend enum
+    // };
+    const rowsForPayload = rows.map((r) => ({
+      // day: r.day ? new Date(r.day) : new Date(), // ✅ convert string → Date
+       day: currentDate
+    .startOf("week")
+    .add(dayIndexMap[r.day], "day")
+    .toDate(),
+
+      projectName: r.projectName || "",
+      taskName: r.taskName || "",
+      description: r.description || "",
+      hours: r.hours || 0,
+      billable: r.billable ?? true,
+    }));
+
     const payload = {
-      //employeeId: loggedInEmployee.employeeId,
       weekStart: currentDate.startOf("week").toISOString(),
       weekEnd: currentDate.endOf("week").toISOString(),
-      rows,
+      rows: rowsForPayload, // ✅ use mapped rows
       totalHours,
       totalBillable,
-      status: "DRAFT", // backend enum
+      status: "DRAFT",
     };
 
     if (existing) {
@@ -934,178 +810,45 @@ export default function MyTimesheetPage() {
     setStatus("Draft");
     router.push("/timesheets/timesheet");
   };
-
-  // const handleSubmitTimesheet = async () => {
-  //   const weekStart = currentDate.startOf("week").format("YYYY-MM-DD");
-
-  //   // 🔍 1. Get all timesheets
-  //   const all = await TimesheetService.getAll();
-
-  //   // 🔍 2. Check same employee + same week
-  //   const existing = all.find(
-  //     (t: any) =>
-  //       t.employeeId === loggedInEmployee.employeeId &&
-  //       dayjs(t.weekStart).format("YYYY-MM-DD") === weekStart,
-  //   );
-
-  //   const payload = {
-  //     employeeId: loggedInEmployee.employeeId,
-  //     employeeName: loggedInEmployee.employeeName,
-  //     weekStart: currentDate.startOf("week").toISOString(),
-  //     weekEnd: currentDate.endOf("week").toISOString(),
-  //     rows,
-  //     totalHours,
-  //     totalBillable,
-  //     status: "Submitted" as const,
-  //     updatedAt: new Date().toISOString(),
-  //     approvedBy: "",
-  //   };
-
-  //   if (existing) {
-  //     // ✅ UPDATE existing week
-  //     await TimesheetService.update(existing.id, payload);
-  //   } else {
-  //     // ✅ CREATE only first time
-  //     await TimesheetService.create({
-  //       ...payload,
-  //       id: Date.now().toString(),
-  //       createdAt: new Date().toISOString(),
-  //     });
-  //   }
-
-  //   // ✅ UI state updates
-  //   setIsSubmitted(true);
-  //   setStatus("Submitted");
-  //   setIsSubmitOpen(false);
-  //   setIsSubmittedModalOpen(true);
-  // };
-  // const handleSubmitTimesheet = async () => {
-  //   // if (!loggedInEmployee) return;
-
-  //   const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
-
-  //   // 1️⃣ Find existing timesheet for this employee + week
-  //   // const existing = allTimesheets?.data?.find(
-  //   //   (t: Timesheet) =>
-  //   //     t.userId === loggedInEmployee.employeeId &&
-  //   //     dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
-  //   // );
-  //   const existing = allTimesheets?.data?.find(
-  //     (t: Timesheet) =>
-  //       t.user?.id === sheet?.user?.id && // ✅ use the employee from timesheet
-  //       dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
-  //   );
-
-  //   // 2️⃣ Convert rows to correct type (Date for day, required fields)
-  //   const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
-  //     //day: new Date(r.day), // must be Date
-  //     //    day: currentDate
-  //     // .startOf("week")
-  //     // .add(dayIndexMap[r.day], "day")
-  //     // .toDate(),
-  //     day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
-  //     projectName: r.projectName || "", // can't be undefined
-  //     taskName: r.taskName || "", // can't be undefined
-  //     description: r.description || "",
-  //     hours: r.hours || 0,
-  //     billable: r.billable || false,
-  //   }));
-
-  //   try {
+  // const handleSaveDraft = async () => {
+  //     // const existing = allTimesheets?.data?.find((t: Timesheet) =>
+  //     //   t.employeeId === loggedInEmployee.employeeId &&
+  //     //   dayjs(t.weekStart).format("YYYY-MM-DD") === currentDate.startOf("week").format("YYYY-MM-DD")
+  //     // );
+  //     // const existing = allTimesheets?.data?.find(
+  //     //   (t: Timesheet) =>
+  //     //     t.userId === loggedInEmployee.employeeId &&
+  //     //     dayjs(t.weekStart).format("YYYY-MM-DD") ===
+  //     //       currentDate.startOf("week").format("YYYY-MM-DD"),
+  //     // );
+  //     const existing = allTimesheets?.data?.find(
+  //       (t: Timesheet) =>
+  //         t.user?.id === sheet?.user?.id && // ✅ use the employee from timesheet
+  //         dayjs(t.weekStart).format("YYYY-MM-DD") ===
+  //           currentDate.startOf("week").format("YYYY-MM-DD"),
+  //     );
+  
+  //     const payload = {
+  //       //employeeId: loggedInEmployee.employeeId,
+  //       weekStart: currentDate.startOf("week").toISOString(),
+  //       weekEnd: currentDate.endOf("week").toISOString(),
+  //       rows,
+  //       totalHours,
+  //       totalBillable,
+  //       status: "DRAFT", // backend enum
+  //     };
+  
   //     if (existing) {
-  //       // 3️⃣ Update existing timesheet (UpdateTimesheetData)
-  //       const updatePayload: UpdateTimesheetData = {
-  //         weekStart: currentDate.startOf("week").toDate(),
-  //         weekEnd: currentDate.endOf("week").toDate(),
-  //         rows: rowsForPayload,
-  //         status: "SUBMITTED",
-  //       };
-
-  //       await updateMutation.mutateAsync({
-  //         id: existing.id,
-  //         data: updatePayload,
-  //       });
+  //       await updateMutation.mutateAsync({ id: existing.id, data: payload });
   //     } else {
-  //       // 4️⃣ Create new timesheet (CreateTimesheetData)
-  //       const createPayload: CreateTimesheetData = {
-  //         weekStart: currentDate.startOf("week").toDate(),
-  //         weekEnd: currentDate.endOf("week").toDate(),
-  //         rows: rowsForPayload,
-  //       };
-
-  //       await createMutation.mutateAsync(createPayload);
+  //       await createMutation.mutateAsync(payload);
   //     }
-
-  //     // 5️⃣ Update UI state
-  //     setIsSubmitted(true);
-  //     setStatus("Submitted");
-  //     setIsSubmitOpen(false);
-  //     setIsSubmittedModalOpen(true);
-  //   } catch (err: any) {
-  //     console.error("Submit timesheet failed:", err);
-  //   }
-  // };
-//   const handleSubmitTimesheet = async () => {
-//   const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
-
-//   // 1️⃣ Find existing timesheet for this employee + week
-//   const existing = allTimesheets?.data?.find(
-//     (t: Timesheet) =>
-//       t.user?.id === sheet?.user?.id &&
-//       dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
-//   );
-
-//   // 2️⃣ Convert rows to correct type (Date for day, required fields)
-//   const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
-//     day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
-//     projectName: r.projectName || "",
-//     taskName: r.taskName || "",
-//     description: r.description || "",
-//     hours: r.hours || 0,
-//     billable: r.billable || false,
-//   }));
-
-//   try {
-//     let timesheetId: string;
-
-//     if (existing) {
-//       // 3️⃣ Update existing timesheet as DRAFT
-//       const updatePayload: UpdateTimesheetData = {
-//         weekStart: currentDate.startOf("week").toDate(),
-//         weekEnd: currentDate.endOf("week").toDate(),
-//         rows: rowsForPayload,
-//       };
-
-//       await updateMutation.mutateAsync({
-//         id: existing.id,
-//         data: updatePayload,
-//       });
-//       timesheetId = existing.id;
-//     } else {
-//       // 4️⃣ Create new timesheet as DRAFT
-//       const createPayload: CreateTimesheetData = {
-//         weekStart: currentDate.startOf("week").toDate(),
-//         weekEnd: currentDate.endOf("week").toDate(),
-//         rows: rowsForPayload,
-//       };
-
-//       const newTimesheet = await createMutation.mutateAsync(createPayload);
-//       timesheetId = newTimesheet.id;
-//     }
-
-//     // 5️⃣ Submit the timesheet (changes DRAFT → SUBMITTED)
-//     await TimesheetsService.submitTimesheet(timesheetId);
-
-//     // 6️⃣ Update UI state
-//     setIsSubmitted(true);
-//     setStatus("Submitted");
-//     setIsSubmitOpen(false);
-//     setIsSubmittedModalOpen(true);
-//   } catch (err: any) {
-//     console.error("Submit timesheet failed:", err);
-//   }
-// };
-const handleSubmitTimesheet = async () => {
+  
+  //     setStatus("Draft");
+  //     router.push("/timesheets/timesheet");
+  //   };
+  const handleSubmitTimesheet = async () => {
+  console.log("SUBMIT BUTTON CLICKED");
   const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
 
   const existing = allTimesheets?.data?.find(
@@ -1115,12 +858,19 @@ const handleSubmitTimesheet = async () => {
   );
 
   const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
-    day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
+    // day: r.day ? new Date(r.day) : new Date(), // ✅ ensure valid Date
+     day: currentDate
+    .startOf("week")
+    .add(dayIndexMap[r.day], "day")
+    .toDate(),
+
+    projectId: r.projectId,
+    taskId: r.taskId,
     projectName: r.projectName || "",
     taskName: r.taskName || "",
     description: r.description || "",
     hours: r.hours || 0,
-    billable: r.billable || false,
+    billable: r.billable ?? true,
   }));
 
   try {
@@ -1151,160 +901,49 @@ const handleSubmitTimesheet = async () => {
 
     if (!timesheetId) throw new Error("Timesheet ID missing");
 
-    // ✅ Submit timesheet
-    await TimesheetsService.submitTimesheet(timesheetId);
+    // 🔹 Submit to backend
+    const submittedTimesheet = await TimesheetsService.submitTimesheet(timesheetId);
 
-    // ✅ Open modal after submit
-    setTimeout(() => {
-      setIsSubmittedModalOpen(true);
-      setIsSubmitted(true);
-      setStatus("Submitted");
-      setIsSubmitOpen(false);
-    }, 0);
+    // 🔹 Update local state so UI reflects "Submitted"
+    setIsSubmittedModalOpen(true);
+    setIsSubmitted(true);
+    setStatus("Submitted");
 
+    // 🔹 Update allTimesheets locally
+    // if (allTimesheets?.data) {
+    //   const updatedData = allTimesheets.data.map((t) =>
+    //     t.id === timesheetId ? submittedTimesheet : t
+    //   );
+    //   setAllTimesheetsState({ ...allTimesheets, data: updatedData });
+    // }
+    if (allTimesheetsState?.data) {
+  const updatedData = allTimesheetsState.data.map((t) =>
+    t.id === timesheetId ? submittedTimesheet : t
+  );
+  setAllTimesheetsState({ ...allTimesheetsState, data: updatedData });
+}
   } catch (err: any) {
     console.error("Submit timesheet failed:", err);
+  } finally {
+    setIsSubmitOpen(false);
   }
 };
 
-
-  // const handleSubmitTimesheet = async () => {
-  //   console.log("Button clicked!");
-
-  //    if (!rows || rows.length === 0) {
-  //     message.error("Please add at least one timesheet entry before submitting");
-  //     return;
-  //   }
-  //   try {
-  //     const weekStart = currentDate.startOf("week");
-  //     const weekEnd = currentDate.endOf("week");
-  //     const weekStartStr = weekStart.format("YYYY-MM-DD");
-
-  //     // 🔹 keep your existing logic
-  //     const existing = allTimesheets?.data?.find(
-  //       (t: Timesheet) =>
-  //         t.user?.id === sheet?.user?.id &&
-  //         dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
-  //     );
-
-  //     // 🔹 SAFE row mapping (create + edit both)
-  //     const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
-  //       day: dayjs(r.day).isValid()
-  //         ? dayjs(r.day).toDate()
-  //         : weekStart.add(dayIndexMap[r.day], "day").toDate(),
-  //       projectName: r.projectName ?? "",
-  //       taskName: r.taskName ?? "",
-  //       description: r.description ?? "",
-  //       hours: Number(r.hours) || 0,
-  //       billable: !!r.billable,
-  //     }));
-
-  //     if (existing) {
-  //       // 🔹 UPDATE FLOW (unchanged logic)
-  //       const updatePayload: UpdateTimesheetData = {
-  //         weekStart: weekStart.toDate(),
-  //         weekEnd: weekEnd.toDate(),
-  //         rows: rowsForPayload,
-  //         status: "SUBMITTED",
-  //       };
-
-  //       await updateMutation.mutateAsync({
-  //         id: existing.id,
-  //         data: updatePayload,
-  //       });
-  //     } else {
-  //       // 🔹 CREATE FLOW (unchanged logic)
-  //       const createPayload: CreateTimesheetData = {
-  //         weekStart: weekStart.toDate(),
-  //         weekEnd: weekEnd.toDate(),
-  //         rows: rowsForPayload,
-  //       };
-
-  //       await createMutation.mutateAsync(createPayload);
-  //     }
-
-  //     // 🔹 UI updates
-  //     setIsSubmitted(true);
-  //     setStatus("Submitted");
-  //     setIsSubmitOpen(false);
-  //     setIsSubmittedModalOpen(true);
-  //   } catch (err) {
-  //     console.error("Submit timesheet failed:", err);
-  //   }
-  // };
-  // const handleSubmitTimesheet = async () => {
-  //   try {
-  //     if (!sheet?.id) {
-  //       console.error("Timesheet ID missing, cannot submit.");
-  //       return;
-  //     }
-
-  //     // ✅ Prepare rows for payload (optional if backend uses existing rows)
-  //     const rowsForPayload: any[] = rows.map(r => ({
-  //       day: dayjs(r.day).isValid() ? dayjs(r.day).toDate() : null,
-  //       projectName: r.projectName ?? "",
-  //       taskName: r.taskName ?? "",
-  //       description: r.description ?? "",
-  //       hours: Number(r.hours) || 0,
-  //       billable: !!r.billable,
-  //     }));
-
-  //     // 🔹 Make API call to submit timesheet
-  //     const response = await fetch(`/api/timesheets/${sheet.id}/submit`, {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({ rows: rowsForPayload }), // optional if backend doesn't need rows
-  //     });
-
-  //     const data = await response.json();
-
-  //     if (!response.ok) {
-  //       console.error("Submit timesheet failed:", data.error);
-  //       return;
-  //     }
-
-  //     // 🔹 UI updates
-  //     setIsSubmitted(true);
-  //     setStatus("Submitted");
-  //     setIsSubmitOpen(false);
-  //     setIsSubmittedModalOpen(true);
-
-  //     console.log("Timesheet submitted successfully!", data);
-  //   } catch (err) {
-  //     console.error("Submit timesheet error:", err);
-  //   }
-  // };
-
-  // const handleSaveChanges = async () => {
-  //   if (!timesheetId) return;
-
-  //   await TimesheetService.update(timesheetId, {
-  //     rows,
-  //     totalHours,
-  //     totalBillable,
-  //     status: "Submitted", // or "draft" based on your flow
-  //   });
-
-  //   setIsSubmitOpen(false);
-  //   // router.push("/timesheets");
-  //   router.push("/timesheets/timesheet");
-  // };
   const handleSaveChanges = async () => {
     if (!timesheetId) return;
+    console.log("ROWS STATE BEFORE SAVE", rows);
 
     // Convert rows to correct type for backend
     const rowsForPayload = rows.map((r) => ({
-      // day: new Date(r.day),
       id: r.id, // ✅ MUST
       day: currentDate.startOf("week").add(dayIndexMap[r.day], "day").toDate(),
-
-      projectName: r.projectName || "",
-      taskName: r.taskName || "",
+      taskId: r.taskId,
+      projectId: r.projectId,
       description: r.description || "",
       hours: r.hours || 0,
       billable: r.billable || false,
+      ...(r.projectName && { projectName: r.projectName }),
+      ...(r.taskName && { taskName: r.taskName }),
     }));
 
     // Prepare update payload
@@ -1324,6 +963,7 @@ const handleSubmitTimesheet = async () => {
       });
 
       setIsSubmitOpen(false);
+
       router.push("/timesheets/timesheet");
     } catch (err: any) {
       console.error("Save changes failed:", err);
@@ -1404,8 +1044,6 @@ const handleSubmitTimesheet = async () => {
             <>
               <div>
                 <Title level={3} style={{ margin: 0 }}>
-                  {/* {loggedInEmployee.employeeName} */}
-                  {/* {employeeName} */}
                   {sheet?.user?.name ?? "Unknown Employee"}
                 </Title>
                 <Text type="secondary">
@@ -1936,32 +1574,6 @@ const handleSubmitTimesheet = async () => {
             }}
           >
             <Button onClick={() => setRejectOpen(false)}>Cancel</Button>
-            {/* <Button
-              danger
-              type="primary"
-              disabled={!rejectReason}
-              onClick={async () => {
-                await TimesheetService.update(timesheetId!, {
-                  status: "Rejected",
-                  rejectReason,
-                });
-                setStatus("Rejected");
-
-                // ✅ 1. Drawer close
-                setRejectOpen(false);
-
-                // ✅ 2. Set rejected reason
-                setRejectedReason(rejectReason);
-
-                // ✅ 3. Clear textarea
-                setRejectReason("");
-
-                // ✅ 4. OPEN modal
-                setShowRejectedModal(true);
-              }}
-            >
-              Confirm Rejection
-            </Button> */}
             <Button
               danger
               type="primary"
@@ -1970,19 +1582,15 @@ const handleSubmitTimesheet = async () => {
                 if (!timesheetId) return;
 
                 try {
-                  // ✅ Call mutation hook
-                  await approveMutation.mutateAsync({
-                    id: timesheetId,
-                    status: "REJECTED",
-                    rejectReason,
-                  });
+                  // await reviewTimesheet(timesheetId, "reject", rejectReason);
+                  await reviewTimesheet(timesheetId, "REJECTED", rejectReason);
 
-                  setStatus("Rejected"); // update UI status
+                  setStatus("Rejected"); // UI update
                   setRejectOpen(false); // close drawer
-                  setRejectedReason(rejectReason); // set rejected reason
-                  setRejectReason(""); // clear textarea
-                  setShowRejectedModal(true); // show modal
-                } catch (err: any) {
+                  setRejectedReason(rejectReason);
+                  setRejectReason("");
+                  setShowRejectedModal(true); // success modal
+                } catch (err) {
                   console.error("Rejection failed:", err);
                 }
               }}
@@ -2039,21 +1647,6 @@ const handleSubmitTimesheet = async () => {
             <Button key="cancel" onClick={() => setApproveOpen(false)}>
               Cancel
             </Button>,
-            // <Button
-            //   key="confirm"
-            //   type="primary"
-            //   onClick={async () => {
-            //     await TimesheetService.update(timesheetId!, {
-            //       status: "Approved",
-            //     });
-            //     setStatus("Approved");
-
-            //     setApproveOpen(false);
-            //     setShowApprovedModal(true);
-            //   }}
-            // >
-            //   Confirm Approval
-            // </Button>
             <Button
               key="confirm"
               type="primary"
@@ -2061,15 +1654,12 @@ const handleSubmitTimesheet = async () => {
                 if (!timesheetId) return;
 
                 try {
-                  await approveMutation.mutateAsync({
-                    id: timesheetId,
-                    status: "APPROVED", // backend enum
-                  });
+                  await reviewTimesheet(timesheetId, "APPROVED");
 
-                  setStatus("Approved"); // update UI
+                  setStatus("Approved"); // UI update
                   setApproveOpen(false); // close modal
-                  setShowApprovedModal(true); // show success modal
-                } catch (err: any) {
+                  setShowApprovedModal(true); // success modal
+                } catch (err) {
                   console.error("Approval failed:", err);
                 }
               }}

@@ -54,6 +54,7 @@ const columns = (
         <Text type="secondary">—</Text>
       ),
   },
+  
   {
     title: "Attachment",
     dataIndex: "attachmentRequired",

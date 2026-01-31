@@ -242,12 +242,6 @@ export default function EmployeeTab() {
           </Card>
         </Col>
       </Row>
-
-
-
-
-
-
       {/* ================= TABLE ================= */}
       <Card className="rounded-2xl shadow-lg">
         <Table

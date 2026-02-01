@@ -32,7 +32,10 @@ import {
   CalendarOutlined,
   ControlOutlined,
   TrophyOutlined,
+  PlusOutlined,
+  ReconciliationOutlined,
 } from "@ant-design/icons";
+import { icons } from "antd/es/image/PreviewGroup";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -156,27 +159,31 @@ export default function MainLayout({ children }: MainLayoutProps) {
     //   onClick: () => handleNavigation("/onboarding"),
     // },
     {
-  key: "/onboarding",
-  icon: <TrophyOutlined />,
-  label: "Onboarding",
-  children: [
-    {
-      key: "/onboarding/onboarding",
-      label: "Create",
-      onClick: () => handleNavigation("/onboarding/create"),
+      key: "/onboarding",
+      icon: <TrophyOutlined />,
+      label: "Onboarding",
+      children: [
+        {
+          key: "/onboarding/onboarding",
+
+          icon: <PlusOutlined />,
+          label: "Create",
+          onClick: () => handleNavigation("/onboarding/create"),
+        },
+        {
+          key: "/onboarding/onboarded",
+          icon: <ReconciliationOutlined />,
+          label: "Onboarded",
+          onClick: () => handleNavigation("/onboarding/onboarded"),
+        },
+        {
+          key: "/onboarding/settings",
+          icons: <SettingOutlined />,
+          label: "Settings",
+          onClick: () => handleNavigation("/onboarding/settings"),
+        },
+      ],
     },
-    {
-      key: "/onboarding/onboarded",
-      label: "Onboarded",
-      onClick: () => handleNavigation("/onboarding/onboarded"),
-    },
-    {
-      key: "/onboarding/settings",
-      label: "Settings",
-      onClick: () => handleNavigation("/onboarding/settings"),
-    },
-  ],
-},
     {
       key: "/accounts",
       icon: <DollarOutlined />,

@@ -8,7 +8,7 @@ export default function PersonalDetails() {
   const [emergencyInfoForm] = Form.useForm();
   const [identityForm] = Form.useForm();
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
-  // all information 
+  // all information
   const [formData, setFormData] = useState({
     address: {
       current: {},
@@ -20,66 +20,45 @@ export default function PersonalDetails() {
     const checked = e.target.checked;
     setSameAsCurrent(checked);
     console.log("Checked:", checked);
-
-    // if (checked) {
-    //   const current = addressForm.getFieldsValue([
-    //     "c_flat",
-    //     "c_area",
-    //     "c_city",
-    //     "c_state",
-    //     "c_pincode",
-    //     "c_country",
-    //   ]);
-
-    //   addressForm.setFieldsValue({
-    //     p_flat: current.c_flat,
-    //     p_area: current.c_area,
-    //     p_city: current.c_city,
-    //     p_state: current.c_state,
-    //     p_pincode: current.c_pincode,
-    //     p_country: current.c_country,
-    //   });
-    // }
     if (checked) {
-    const current = addressForm.getFieldsValue([
-      "c_flat",
-      "c_area",
-      "c_city",
-      "c_state",
-      "c_pincode",
-      "c_country",
-    ]);
+      const current = addressForm.getFieldsValue([
+        "c_flat",
+        "c_area",
+        "c_city",
+        "c_state",
+        "c_pincode",
+        "c_country",
+      ]);
 
-    const permanent = {
-      p_flat: current.c_flat,
-      p_area: current.c_area,
-      p_city: current.c_city,
-      p_state: current.c_state,
-      p_pincode: current.c_pincode,
-      p_country: current.c_country,
-    };
+      const permanent = {
+        p_flat: current.c_flat,
+        p_area: current.c_area,
+        p_city: current.c_city,
+        p_state: current.c_state,
+        p_pincode: current.c_pincode,
+        p_country: current.c_country,
+      };
 
-    // ✅ UI update
-    addressForm.setFieldsValue(permanent);
+      // ✅ UI update
+      addressForm.setFieldsValue(permanent);
 
-    // ✅ STATE update (IMPORTANT 🔥)
-    setFormData((prev) => ({
-      ...prev,
-      address: {
-        ...prev.
-        address,
-        permanent: {
-          ...permanent,
+      // ✅ STATE update (IMPORTANT 🔥)
+      setFormData((prev) => ({
+        ...prev,
+        address: {
+          ...prev.address,
+          permanent: {
+            ...permanent,
+          },
         },
-      },
-    }));
-  }
+      }));
+    }
   };
   const labelStyle = { fontSize: 11 };
   const inputStyle = { height: 25, fontSize: 11 };
 
-
   console.log("formData", formData);
+
   return (
     <div
       style={{
@@ -278,28 +257,28 @@ export default function PersonalDetails() {
           size="small"
           requiredMark={false}
           onValuesChange={(_, allValues) => {
-    setFormData((prev) => ({
-      ...prev,
-      address: {
-        current: {
-          c_flat: allValues.c_flat,
-          c_area: allValues.c_area,
-          c_city: allValues.c_city,
-          c_state: allValues.c_state,
-          c_pincode: allValues.c_pincode,
-          c_country: allValues.c_country,
-        },
-        permanent: {
-          p_flat: allValues.p_flat,
-          p_area: allValues.p_area,
-          p_city: allValues.p_city,
-          p_state: allValues.p_state,
-          p_pincode: allValues.p_pincode,
-          p_country: allValues.p_country,
-        },
-      },
-    }));
-  }} // ✅ store in state
+            setFormData((prev) => ({
+              ...prev,
+              address: {
+                current: {
+                  c_flat: allValues.c_flat,
+                  c_area: allValues.c_area,
+                  c_city: allValues.c_city,
+                  c_state: allValues.c_state,
+                  c_pincode: allValues.c_pincode,
+                  c_country: allValues.c_country,
+                },
+                permanent: {
+                  p_flat: allValues.p_flat,
+                  p_area: allValues.p_area,
+                  p_city: allValues.p_city,
+                  p_state: allValues.p_state,
+                  p_pincode: allValues.p_pincode,
+                  p_country: allValues.p_country,
+                },
+              },
+            }));
+          }} // ✅ store in state
           style={{
             background: "#ffffff",
             padding: "16px",
@@ -460,9 +439,11 @@ export default function PersonalDetails() {
           form={emergencyInfoForm}
           size="small"
           requiredMark={false}
-           onValuesChange={(_, allValues) => setFormData((pre)=>{
-            return {...pre,...allValues};
-           })} // ✅ store in statee
+          onValuesChange={(_, allValues) =>
+            setFormData((pre) => {
+              return { ...pre, ...allValues };
+            })
+          } // ✅ store in statee
           style={{
             width: "90%",
             background: "#ffffff",
@@ -485,7 +466,7 @@ export default function PersonalDetails() {
             name="relationship"
             rules={[{ required: true, message: "Required" }]}
             style={{ marginBottom: 10 }}
-          > 
+          >
             <Select
               placeholder="Select relationship"
               style={{ height: 25, fontSize: 11 }}
@@ -533,9 +514,11 @@ export default function PersonalDetails() {
           size="small"
           form={identityForm}
           requiredMark={false}
-           onValuesChange={(_, allValues) => setFormData((pre)=>{
-            return {...pre,...allValues};
-           })} // ✅ store in state
+          onValuesChange={(_, allValues) =>
+            setFormData((pre) => {
+              return { ...pre, ...allValues };
+            })
+          } // ✅ store in state
           style={{
             width: "90%",
             background: "#ffffff",

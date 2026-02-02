@@ -8,10 +8,18 @@ export function useCategories() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    CategoryService.getAll().then(res => {
-      setData(res);
-      setLoading(false);
-    });
+    const load = async () => {
+      try {
+        const res = await CategoryService.getAll();
+        setData(res);
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
   }, []);
 
   return { data, loading };

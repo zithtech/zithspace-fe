@@ -1,87 +1,141 @@
 import { Category } from "@/types/category";
+import { mapCategoryFromApi } from "@/utils/categoryMapper";
 
-let categories: Category[] = [
-  {
-    id: "1",
-    key: "1", // 
-    name: "Travel",
-    maxPerRequest: 500,
-    monthlyLimit: 2000,
-    yearlyLimit: 10000,
-    eligibleRoles: ["Employee", "Manager"],
-    attachmentRequired: true,
-    status: "Active",
-    accept: ["Finance"],
-  },
-  {
-    id: "2",
-    key: "2", // ✅ ADD THIS
-    name: "Food",
-    maxPerRequest: 100,
-    monthlyLimit: 500,
-    yearlyLimit: 3000,
-    eligibleRoles: ["Employee"],
-    attachmentRequired: false,
-    status: "Active",
-    accept: ["Manager"],
-  },
-  {
-    id: "3",
-    key: "3", // ✅ ADD THIS
-    name: "Internet",
-    maxPerRequest: 75,
-    monthlyLimit: 300,
-    yearlyLimit: 2000,
-    eligibleRoles: ["Employee"],
-    attachmentRequired: true,
-    status: "Active",
-    accept: ["Finance"],
-  },
-  {
-    id: "4",
-    key: "4", // ✅ ADD THIS
-    name: "Medical",
-    maxPerRequest: 250,
-    monthlyLimit: 1000,
-    yearlyLimit: 5000,
-    eligibleRoles: ["Employee"],
-    attachmentRequired: true,
-    status: "Active",
-    accept: ["Manager"]
-  },
-];
+const API_URL = "http://localhost:5000/api/reimbursementCategory";
+
+/**
+ * 🔐 Common headers
+ * ❗ IMPORTANT:
+ * - Inga NEVER error throw panna koodaadhu
+ * - Token / tenant illa na backend handle pannum
+ */
+const headers = () => {
+  const token = localStorage.getItem("token");
+
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    "x-tenant-id": "PASTE_REAL_TENANT_UUID_HERE", 
+  };
+};
+
 
 export const CategoryService = {
-  getAll: async () => categories.map(c => ({ ...c, key: c.id })), // ✅ Ensure key exists
+  // =========================
+  // GET ALL CATEGORIES
+  // =========================
+  getAll: async (): Promise<Category[]> => {
+    const res = await fetch(API_URL, {
+      method: "GET",
+      headers: headers(),
+    });
 
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to fetch categories");
+    }
+
+    const json = await res.json();
+    return json.data.map(mapCategoryFromApi);
+  },
+
+  // =========================
+  // GET CATEGORY BY ID
+  // =========================
+  getById: async (id: string): Promise<Category> => {
+    const res = await fetch(`${API_URL}/${id}`, {
+      method: "GET",
+      headers: headers(),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Category not found");
+    }
+
+    const json = await res.json();
+    return mapCategoryFromApi(json.data);
+  },
+
+  // =========================
+  // CREATE CATEGORY
+  // =========================
   create: async (data: Category) => {
-    const newCategory = { ...data, id: Date.now().toString(), key: Date.now().toString() };
-    categories.unshift(newCategory);
-    return newCategory;
+    const payload = {
+      code: data.name.toUpperCase(), // backend expects
+      name: data.name,
+      description: data.name,
+
+      maxRequestsPerMonth: data.maxPerRequest,
+      monthlyLimitAmount: data.monthlyLimit,
+      yearlyLimitAmount: data.yearlyLimit,
+
+      allowedRoles: data.eligibleRoles,
+      approvalFlow: data.accept,
+
+      attachmentRequired: data.attachmentRequired,
+      isActive: data.status === "Active",
+    };
+
+    console.log("CREATE CATEGORY PAYLOAD:", payload);
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Create category failed");
+    }
+
+    return res.json();
   },
 
-  updateStatus: async (id: string, status: Category["status"]) => {
-    const item = categories.find(c => c.id === id);
-    if (item) item.status = status;
-    return item;
-  },
-
-  // ✅ ADD THESE METHODS
+  // =========================
+  // UPDATE CATEGORY
+  // =========================
   update: async (id: string, data: Partial<Category>) => {
-    const index = categories.findIndex(c => c.id === id);
-    if (index !== -1) {
-      categories[index] = { ...categories[index], ...data, key: id };
-      return categories[index];
+    const payload = {
+      name: data.name,
+      maxRequestsPerMonth: data.maxPerRequest,
+      monthlyLimitAmount: data.monthlyLimit,
+      yearlyLimitAmount: data.yearlyLimit,
+      allowedRoles: data.eligibleRoles,
+      approvalFlow: data.accept,
+      attachmentRequired: data.attachmentRequired,
+      isActive: data.status === "Active",
+    };
+
+    const res = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: headers(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Update category failed");
     }
-    return null;
+
+    return res.json();
   },
 
+  // =========================
+  // DELETE CATEGORY (SOFT DELETE)
+  // =========================
   delete: async (id: string) => {
-    const index = categories.findIndex(c => c.id === id);
-    if (index !== -1) {
-      categories.splice(index, 1);
-      return true;
+    const res = await fetch(`${API_URL}/${id}`, {
+      method: "DELETE",
+      headers: headers(),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Delete category failed");
     }
-    return false;
-  }
+
+    return res.json();
+  },
 };

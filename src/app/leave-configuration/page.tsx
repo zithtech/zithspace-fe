@@ -230,7 +230,8 @@ export default function leaveConfiguration() {
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingKey, setEditingKey] = useState<string | null>(null);  
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<LeaveType[]>([]);
   const [searchText, setSearchText] = useState("");
   const [leaveUnit, setLeaveUnit] = useState("Days");
@@ -306,9 +307,9 @@ export default function leaveConfiguration() {
         <Tooltip title={text}>
           <div
             style={{
-              maxWidth: 200,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
+              maxWidth: 400,
+             whiteSpace: "nowrap",
+             overflow: "hidden",
               textOverflow: "ellipsis",
             }}
           >
@@ -379,6 +380,8 @@ export default function leaveConfiguration() {
               title="Delete this leave type?"
               description="Are you sure you want to delete this leave type?"
               onConfirm={() => handleDelete(record.key)}
+              okButtonProps={{ loading: deletingKey === record.key }}
+              cancelButtonProps={{ disabled: deletingKey === record.key }}
               okText="Yes"
               cancelText="No"
             >
@@ -410,6 +413,7 @@ export default function leaveConfiguration() {
   };
 
   const handleDelete = async (key: string) => {
+    setDeletingKey(key);
     try {
       await deleteLeaveType(key);
       api.success({
@@ -423,6 +427,8 @@ export default function leaveConfiguration() {
         description: e.message || "Could not delete the leave type.",
         placement: "topRight",
       });
+    } finally {
+      setDeletingKey(null);
     }
   };
 
@@ -700,13 +706,18 @@ export default function leaveConfiguration() {
                         const selectedLeave = leaveTypesData.find(
                           (l) => l.name === value,
                         );
-                        let code = value
-                          ? value
-                              .split(" ")
+                        let code = "";
+                        if (value) {
+                          const words = value.trim().split(/\s+/);
+                          if (words.length === 1 && words[0].length > 0) {
+                            code = words[0].substring(0, 2).toUpperCase();
+                          } else if (words.length > 1) {
+                            code = words
                               .map((x: string) => x[0])
                               .join("")
-                              .toUpperCase()
-                          : "";
+                              .toUpperCase();
+                          }
+                        }
 
                         if (code) {
                           let finalCode = code;

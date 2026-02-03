@@ -283,7 +283,7 @@ export default function LeaveAdjustmentPage() {
       <MainLayout>
         <div style={{ padding: 24 }}>
           {contextHolder}
-          <div style={{ marginBottom: 16 }}>
+          <div >
             <Tabs
               activeKey={
                 pathname.includes("leave-adjustments")
@@ -386,30 +386,33 @@ export default function LeaveAdjustmentPage() {
                     Leave Adjustments
                   </Typography.Title>
                 </Space>
-                <div style={{ marginLeft: 28, marginTop: 4 }}>
+                <div style={{ marginLeft: 10, }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Handle special employee-specific leave cases, comp-offs, and
                     manual corrections.
                   </Text>
                 </div>
               </div>
+               <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
 
-              <Button
-                type="primary"
-                style={{ height: 40 }}
-                onClick={() => setIsModalVisible(true)}
-              >
-                + Added New Adjustment
-              </Button>
-            </div>
-            <Divider />
-            <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
-              <Input.Search
-                placeholder="Search adjustments...."
-                allowClear
-                style={{ width: 480 }}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
+  <Input.Search
+    size="large"
+    placeholder="Search adjustments...."
+    allowClear
+    style={{ width: 350,height: 35}}
+    onChange={(e) => setSearchText(e.target.value)}
+  />
+
+  <Button
+    type="primary"
+    style={{ width: 160,height: 35 }}
+    onClick={() => setIsModalVisible(true)}
+  >
+    + Add New Adjustment
+  </Button>
+
+</div>
+
             </div>
             <Table
               columns={columns}
@@ -417,7 +420,8 @@ export default function LeaveAdjustmentPage() {
                 item.employee.toLowerCase().includes(searchText.toLowerCase()),
               )}
               style={{ marginTop: 24 }}
-              pagination={{ pageSize: 6 }}
+              size="small"
+              pagination={{ pageSize: 10 }}
             />
           </Card>
 

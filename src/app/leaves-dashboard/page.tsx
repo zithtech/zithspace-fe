@@ -32,6 +32,8 @@ import {
   PlusOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+import { useCompanyGovernmentHolidays } from "@/hooks/useCompanyGovernmentHolidays";
 import dayjs from "dayjs";
 
 // Import images from the assets folder
@@ -40,18 +42,8 @@ import pongalImage from "../../assets/holidays/pongal.jpg";
 import mattuPongalImage from "../../assets/holidays/mattupongal.jpg";
 import defaultHolidayImage from "../../assets/holidays/default.jpg";
 
-const { Title } = Typography;
+
 const { Text } = Typography;
-
-// --- Mock Data Simulation ---
-// Data derived from your other pages to populate the dashboard.
-
-// From leave-configuration/page.tsx
-const leaveTypesData = [
-  { key: "1", name: "Casual Leave", status: "Active" },
-  { key: "2", name: "Sick Leave", status: "Active" },
-  { key: "3", name: "Loss of Pay", status: "Inactive" },
-];
 
 // From position-configuration/page.tsx
 const positionConfigData = [
@@ -143,33 +135,11 @@ const adjustmentsData = [
   },
 ];
 
-// From government-holidays/page.tsx
-const holidaysData = [
-  {
-    key: 1,
-    name: "Bhogi",
-    from_date: "2026-01-14",
-    status: true,
-    image: bhogiImage,
-  },
-  {
-    key: 2,
-    name: "Thai Pongal",
-    from_date: "2026-01-15",
-    status: true,
-    image: pongalImage,
-  },
-  {
-    key: 3,
-    name: "Mattu Pongal",
-    from_date: "2026-01-16",
-    status: true,
-    image: mattuPongalImage,
-  },
-  { key: 4, name: "Tamil New Year", from_date: "2026-04-14", status: true },
-  { key: 5, name: "May Day", from_date: "2026-05-01", status: true },
-  { key: 6, name: "Kamarajar Birthday", from_date: "2026-07-15", status: true },
-];
+const holidayImageMap: { [key: string]: any } = {
+  "Bhogi": bhogiImage,
+  "Thai Pongal": pongalImage,
+  "Mattu Pongal": mattuPongalImage,
+};
 
 interface DashboardStats {
   totalLeaveTypes: number;
@@ -189,15 +159,35 @@ interface DashboardStats {
 export default function LeavesDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const {
+    leaveTypes,
+    loading: leaveTypesLoading,
+    fetchLeaveTypes,
+  } = useLeaveTypes();
+  const {
+    holidays,
+    loading: holidaysLoading,
+    fetchHolidays,
+  } = useCompanyGovernmentHolidays();
+
+  const loading = leaveTypesLoading || holidaysLoading;
 
   useEffect(() => {
-    // Simulate fetching and processing data from other pages
+    fetchLeaveTypes();
+    fetchHolidays();
+  }, [fetchLeaveTypes, fetchHolidays]);
+
+  useEffect(() => {
+    if (loading || !leaveTypes || !holidays) {
+      return;
+    }
+
     const calculateStats = () => {
       // Leave Config Stats
-      const totalLeaveTypes = leaveTypesData.length;
-      const activeLeaveTypes = leaveTypesData.filter(
-        (lt) => lt.status === "Active",
+      const totalLeaveTypes = leaveTypes.length;
+      const activeLeaveTypes = leaveTypes.filter(
+        (lt) => lt.isActive,
       ).length;
 
       // Position Config Stats
@@ -223,31 +213,37 @@ export default function LeavesDashboardPage() {
         .filter((adj) => adj.type === "Debit")
         .reduce((sum, adj) => sum + adj.amount, 0);
 
-      // Holidays Stats (assuming today is Jan 14, 2026 for consistent upcoming count)
-      const today = dayjs("2026-01-14");
-      const todayStr = today.format("YYYY-MM-DD");
-      const upcomingHolidays = holidaysData.filter(
+      // Holidays Stats
+      const today = dayjs();
+      const upcomingHolidays = holidays.filter(
         (h) =>
-          h.status &&
-          dayjs(h.from_date).isAfter(today) &&
-          dayjs(h.from_date).diff(today, "day") <= 90,
+          h.status === "ACTIVE" &&
+          dayjs(h.fromDate).isAfter(today) &&
+          dayjs(h.fromDate).diff(today, "day") <= 90,
       ).length;
-      const nextHoliday = holidaysData
+      const nextHolidayRaw = holidays
         .filter(
           (h) =>
-            h.status &&
-            (dayjs(h.from_date).isAfter(today) || h.from_date === todayStr),
+            h.status === "ACTIVE" &&
+            (dayjs(h.fromDate).isAfter(today) ||
+              dayjs(h.fromDate).isSame(today, "day")),
         )
         .sort(
-          (a, b) => dayjs(a.from_date).valueOf() - dayjs(b.from_date).valueOf(),
+          (a, b) => dayjs(a.fromDate).valueOf() - dayjs(b.fromDate).valueOf(),
         )[0];
 
-      const isHolidayToday = nextHoliday
-        ? nextHoliday.from_date === todayStr
+      const nextHoliday = nextHolidayRaw
+        ? { name: nextHolidayRaw.holidayName, from_date: nextHolidayRaw.fromDate }
+        : undefined;
+
+      const isHolidayToday = nextHolidayRaw
+        ? dayjs(nextHolidayRaw.fromDate).isSame(today, "day")
         : false;
 
-      const activeHolidays = holidaysData.filter((h) => h.status).length;
-      const inactiveHolidays = holidaysData.length - activeHolidays;
+      const activeHolidays = holidays.filter(
+        (h) => h.status === "ACTIVE",
+      ).length;
+      const inactiveHolidays = holidays.length - activeHolidays;
 
       setStats({
         totalLeaveTypes,
@@ -263,12 +259,10 @@ export default function LeavesDashboardPage() {
         nextHoliday,
         isHolidayToday,
       });
-      setLoading(false);
     };
 
-    const timer = setTimeout(calculateStats, 500); // Simulate network delay
-    return () => clearTimeout(timer);
-  }, []);
+    calculateStats();
+  }, [loading, leaveTypes, holidays]);
   const cardStyle = {
     borderRadius: 12,
     boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
@@ -280,7 +274,7 @@ export default function LeavesDashboardPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: 24 }}>
-          <div style={{ marginTop: 14 }}>
+          <div >
             <Tabs
               activeKey="dashboard"
               onChange={(key) => {
@@ -353,16 +347,6 @@ export default function LeavesDashboardPage() {
               ]}
             />
           </div>
-          {/* <Title level={3} style={{ marginBottom: 24 }}>
-            Leaves Dashboard
-          </Title> */}
-          {/* <Typography.Title
-            level={4}
-            style={{ marginBottom: 8, color: "#5884c1ff" }}
-          >
-            Leaves Dashboard
-          </Typography.Title> */}
-
           <Row gutter={[16, 16]}>
             {/* postion configuration */}
             <Col xs={24} sm={12} md={6}>
@@ -1006,8 +990,8 @@ export default function LeavesDashboardPage() {
                   )}
                   fullCellRender={(value) => {
                     const dateString = value.format("YYYY-MM-DD");
-                    const holiday = holidaysData.find(
-                      (h) => h.from_date === dateString && h.status,
+                    const holiday = holidays.find(
+                      (h) => h.fromDate === dateString && h.status === "ACTIVE",
                     );
 
                     const content = (
@@ -1029,11 +1013,11 @@ export default function LeavesDashboardPage() {
                               <img
                                 // Use the specific holiday image, or fallback to default
                                 src={
-                                  holiday.image
-                                    ? holiday.image.src
-                                    : defaultHolidayImage.src
+                                  (holidayImageMap[holiday.holidayName] ||
+                                    defaultHolidayImage)
+                                    .src
                                 }
-                                alt={holiday.name}
+                                alt={holiday.holidayName}
                                 style={{
                                   width: 120,
                                   height: "auto",
@@ -1042,7 +1026,7 @@ export default function LeavesDashboardPage() {
                                 }}
                               />
                               <div style={{ fontWeight: 600 }}>
-                                {holiday.name}
+                                {holiday.holidayName}
                               </div>
                             </div>
                           }

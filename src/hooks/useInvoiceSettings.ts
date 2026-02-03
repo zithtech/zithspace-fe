@@ -7,7 +7,7 @@ import {
   UpdateSettingsData,
   SettingsProfile
 } from "@/services/invoiceSettingsService";
-import { message} from "antd"; // Replace with your toast library (antd, hot-toast, etc.)
+import { App } from "antd"; // Replace with your toast library (antd, hot-toast, etc.)
 
 // ==================== Query Keys ====================
 
@@ -17,6 +17,7 @@ export const settingsKeys = {
   list: (filters: SettingsListParams) => [...settingsKeys.lists(), filters] as const,
   details: () => [...settingsKeys.all, "detail"] as const,
   detail: (id: string) => [...settingsKeys.details(), id] as const,
+  active: () => [...settingsKeys.all, 'active'] as const,
 };
 
 // ==================== Queries ====================
@@ -50,6 +51,7 @@ export const useSettingsProfile = (id: string, enabled: boolean = true) => {
  * Hook to create a new settings profile
  */
 export const useCreateSettingsProfile = () => {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
 
  return useMutation({
@@ -63,7 +65,7 @@ export const useCreateSettingsProfile = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.lists() });
-      message.success("Settings profile created successfully");
+      message.success({content:"Settings profile created successfully",duration:5});
     },
     onError: (error: Error) => {
       message.error(error.message || "Failed to create profile");
@@ -76,6 +78,7 @@ export const useCreateSettingsProfile = () => {
  * Hook to update an existing settings profile
  */
 export const useUpdateSettingsProfile = () => {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -85,7 +88,7 @@ export const useUpdateSettingsProfile = () => {
       // Update both the list and the specific detail view
       queryClient.invalidateQueries({ queryKey: settingsKeys.lists() });
       queryClient.setQueryData(settingsKeys.detail(updatedProfile.id), updatedProfile);
-      message.success("Settings updated successfully");
+      message.success({content:"Settings updated successfully",duration:5});
     },
     onError: (error: Error) => {
       message.error(error.message || "Failed to update profile");
@@ -98,27 +101,57 @@ export const useUpdateSettingsProfile = () => {
  * Note: Invalidates the entire 'all' key because activating one 
  * profile deactivates others in the backend.
  */
+
+
+
+// export const useActivateSettingsProfile = () => {
+//   const queryClient = useQueryClient();
+
+//   return useMutation({
+//     // Receive an object containing id and the new boolean state
+//     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => 
+//       InvoiceSettingsService.activateProfile(id, isActive),
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: settingsKeys.all });
+//     },
+//     onError: (error: Error) => {
+//       message.error(error.message || "Failed to update profile");
+//     },
+//   });
+// };
+
+
 export const useActivateSettingsProfile = () => {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => InvoiceSettingsService.activateProfile(id),
-    onSuccess: () => {
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => 
+      InvoiceSettingsService.activateProfile(id, isActive),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: settingsKeys.all });
-      message.success("Profile activated");
+      message.success({content :variables.isActive ? "Profile activated" : "Profile deactivated",duration:5});
     },
-    onError: (error: Error) => {
-      message.error(error.message || "Failed to activate profile");
+    onError: (error: any) => {
+      message.error(error?.response?.data?.error || error.message || "Failed to update profile status");
     },
   });
 };
 
 
 
+export const useActiveSettingsProfiles = () => {
+  return useQuery({
+    // Add the parentheses here to execute the function!
+    queryKey: settingsKeys.active(), 
+    queryFn: () => InvoiceSettingsService.getActiveProfiles(),
+  });
+};
 
 
 
 export const useDeleteSettingsProfile = () => {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -130,7 +163,9 @@ export const useDeleteSettingsProfile = () => {
       queryClient.invalidateQueries({
         queryKey: settingsKeys.all,
       });
-      message.success("Profile deleted permanently");
+      message.success({
+        content: "Profile deleted permanently",
+      duration:5});
     },
     onError: (error: any) => {
       console.error("Delete Hook Error:", error);

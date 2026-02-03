@@ -74,6 +74,7 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
   };
 
   return (
+     <div className="bg-gray-50 px-4 py-3">
     <Form form={form} layout="vertical">
       <Form.Item
         label="Invoice Number Format"
@@ -91,6 +92,7 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
 
       {preview && <div className="text-blue-600 mt-1">Preview: {preview}</div>}
     </Form>
+    </div>
   );
 };
 

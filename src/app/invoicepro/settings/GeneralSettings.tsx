@@ -165,7 +165,7 @@ const handleValuesChange = () => {
             <Card
               title={
                 <span className="flex items-center gap-2">
-                  <ApartmentOutlined />
+                  <ApartmentOutlined style={{color:"#1890ff"}} />
                   Company Information
                 </span>
               }
@@ -251,7 +251,7 @@ const handleValuesChange = () => {
             <Card
               title={
                 <span className="flex items-center gap-2">
-                  <FullscreenOutlined />
+                  <FullscreenOutlined style={{color:"#1890ff"}} />
                   Regional Settings
                 </span>
               }
@@ -277,7 +277,12 @@ const handleValuesChange = () => {
 
             <Row gutter={16} className="mt-4">
               <Col span={12}>
-                <Card title="Signature">
+                <Card title={
+                <span className="flex items-center gap-2">
+                    <EditOutlined style={{color:"#1890ff"}}/> 
+                    Signature
+                  </span>
+                } style={{height:"255px"}}>
                   <Upload
                     listType="picture-card"
                     fileList={signatureFileList}
@@ -291,7 +296,12 @@ const handleValuesChange = () => {
               </Col>
 
               <Col span={12}>
-                <Card title="Company Logo">
+                <Card title={
+                  <span className="flex items-center gap-2">
+                    <EditOutlined style={{color:"#1890ff"}}/> 
+                    Company Logo
+                  </span>
+                  } style={{height:"255px"}}>
                   <Upload
                     listType="picture-card"
                     fileList={logoFileList}

@@ -1,6 +1,4 @@
 
-
-
 "use client";
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -16,6 +14,7 @@ import {
   Modal,
   Badge,
   Tag,
+  message
 
 } from "antd";
 
@@ -45,6 +44,7 @@ import BankPaymentSettings from "./PaymentSetting";
 import {  useSettingsProfiles ,useDeleteSettingsProfile,useCreateSettingsProfile,useUpdateSettingsProfile} from "@/hooks/useInvoiceSettings";
 import MiniCard from "@/components/customer/MiniCard";
 
+
 const { Title } = Typography;
 
 const DEFAULT_DRAFT: Draft = {
@@ -68,10 +68,10 @@ const DEFAULT_DRAFT: Draft = {
   },
   invoice: {
     format: "INV-{YYYY}-{###}",
-    padding: 3,
-    nextNumber: 1,
-    resetYearly: true,
-    lastResetYear: new Date().getFullYear(),
+    // padding: 3,
+    // nextNumber: 1,
+    // resetYearly: true,
+    // lastResetYear: new Date().getFullYear(),
   },
   payment: {
     bankName: "",
@@ -102,7 +102,7 @@ const [deleteId, setDeleteId] = useState<string | null>(null);
 const [expanded, setExpanded] = useState(false);
 
 
-
+  
 
 const [draft, setDraft] = useState<Draft>({
   general: {
@@ -119,16 +119,16 @@ const [draft, setDraft] = useState<Draft>({
     },
     primaryColor: "#1890ff",
     companyLogo: null,
-    currency: Currency.USD,           // ✅ use enum
-    dateFormat: DateFormat.MM_DD_YYYY, // ✅ use enum
+    currency: Currency.USD,           
+    dateFormat: DateFormat.MM_DD_YYYY, 
     signature: null,
   },
   invoice: {
-    format: "INV-{YYYY}-{###}",      // make sure keys match your interface
-    padding: 3,
-    nextNumber: 1,
-    resetYearly: true,
-    lastResetYear:new Date().getFullYear(),
+    format: "INV-{YYYY}-{###}",      
+    // padding: 3,
+    // nextNumber: 1,
+    // resetYearly: true,
+    // lastResetYear:new Date().getFullYear(),
   },
   payment: {
     bankName: "",
@@ -187,6 +187,7 @@ if (isLoading) {
 
   return (
     <MainLayout>
+      
       <div style={{ padding: 20 }}>
         {/* HEADER */}
 
@@ -202,12 +203,7 @@ if (isLoading) {
               </Button>
             )}
 
-            {/* <Space align="center">
-              <SettingOutlined style={{ fontSize: 24, color: "#1677ff" }} />
-              <Title level={3} style={{ margin: 0 }}>
-                Settings
-              </Title>
-            </Space> */}
+           
             <Space align="center" style={{ display: "flex", alignItems: "center", gap: 8 }}>
   <SettingOutlined style={{ fontSize: 24, color: "#1677ff" }} />
   <Title level={3} style={{ margin: 0, lineHeight: 1 }}>
@@ -218,17 +214,7 @@ if (isLoading) {
           </Space>
 
           {mode === "view" && (
-  //           <Button
-  //             type="primary"
-  //             icon={<PlusOutlined />}
-  //             onClick={() => {
-  //   resetDraft();
-  //   setMode("create");
-    
-  // }}
-  //           >
-  //             Create New
-  //           </Button>
+
    <div className="flex items-center gap-4">
     
   <Tag
@@ -329,14 +315,29 @@ if (isLoading) {
         label: "Edit",
         onClick: () => handleEdit(setting.id),
       },
+      // {
+      //   key: "activate",
+      //   label: setting.isActive ? "Inactive" : " Set AS Active",
+      //   disabled: setting.isActive,
+      //   onClick: () => {
+      //     activateMutation.mutate(setting.id);
+      //   },
+      // },
       {
-        key: "activate",
-        label: setting.isActive ? "Active" : "Set as Active",
-        disabled: setting.isActive,
-        onClick: () => {
-          activateMutation.mutate(setting.id);
-        },
-      },
+  key: "activate",
+  // 1. Label flips based on current state
+  label: setting.isActive ? "Deactivate" : "Set As Active",
+  
+  // 2. Remove "disabled: setting.isActive" so it's always clickable
+  
+  onClick: () => {
+    // 3. Mutate with the OPPOSITE value of setting.isActive
+    activateMutation.mutate({ 
+      id: setting.id, 
+      isActive: !setting.isActive 
+    });
+  },
+},
       {
         key: "delete",
         label: "Delete",
@@ -464,26 +465,7 @@ if (isLoading) {
   </MiniCard>
 
   {/* BANK */}
-  {/* <MiniCard title="Bank">
-    <div className="flex justify-between">
-      <span>Account</span>
-      <span className="font-medium">
-        {setting.payment?.accountNumber || "—"}
-      </span>
-    </div>
-    <div className="flex justify-between">
-      <span>IFSC</span>
-      <span className="font-medium">
-        {setting.payment?.ifscCode || "—"}
-      </span>
-    </div>
-    <div className="flex justify-between">
-      <span>Branch</span>
-      <span className="font-medium">
-        {setting.payment?.branchName || "—"}
-      </span>
-    </div>
-  </MiniCard> */}
+
   
 
 <MiniCard title="BANK DETAILS">
@@ -642,87 +624,12 @@ if (isLoading) {
                   Next
                 </Button>
               ) : (
-                // <Button
-                //   type="primary"
-                //   onClick={() => {
-                //     const newSetting = {
-                //       id: editingId ?? Date.now(),
-                //       name: draft.general.company_name || "Untitled",
-                //       general: draft.general,
-                //       invoices: draft.invoices,
-                //       payments: draft.payments,
-                //     };
+                
+               
+               
 
-                //     let updatedSettings;
-                //     if (editingId) {
-                //       // If editing, update existing
-                //       updatedSettings = savedSettings.map((s) =>
-                //         s.id === editingId ? newSetting : s,
-                //       );
-                //     } else {
-                //       // Otherwise, add new
-                //       updatedSettings = [...savedSettings, newSetting];
-                //     }
 
-                //     setSavedSettings(updatedSettings);
-                //     localStorage.setItem(
-                //       "invoice_settings",
-                //       JSON.stringify(updatedSettings),
-                //     );
 
-                //     // Reset
-                //     setMode("view");
-                //     setCurrentStep(0);
-                //     setEditingId(null);
-                //   }}
-                  
-                // >
-                //   {editingId ? "Update" : "Save All"}
-                // </Button>
-//                 <Button
-//   type="primary"
-//   onClick={() => {
-//     if (editingId) {
-//       // UPDATE existing profile
-//       updateMutation.mutate(
-//         {
-//           id: editingId,
-//           data: {
-//             general: draft.general,
-//             invoice: draft.invoice,
-//             payment: draft.payment,
-//             name: draft.general.companyName,
-//           },
-//         },
-//         {
-//           onSuccess: () => {
-//             setMode("view");
-//             setCurrentStep(0);
-//             setEditingId(null);
-//           },
-//         }
-//       );
-//     } else {
-//       // CREATE new profile
-//       createMutation.mutate(
-//         {
-//           name: draft.general.companyName || "Untitled",
-//           general: draft.general,
-//           invoice: draft.invoice,
-//           payment: draft.payment,
-//         },
-//         {
-//           onSuccess: () => {
-//             setMode("view");
-//             setCurrentStep(0);
-//           },
-//         }
-//       );
-//     }
-//   }}
-// >
-//   {editingId ? "Update" : "Save All"}
-// </Button>
 
 <Button
   type="primary"
@@ -777,30 +684,8 @@ if (isLoading) {
         )}
       </div>
 
-      {/* <Modal
-  open={deleteModalOpen}
-  title="Delete settings profile?"
-  okText="Yes, Delete"
-  okType="danger"
-  cancelText="Cancel"
-  confirmLoading={deleteMutation.isPending}
-  onOk={() => {
-    if (!deleteId) return;
-
-    deleteMutation.mutate(deleteId, {
-      onSuccess: () => {
-        setDeleteModalOpen(false);
-        setDeleteId(null);
-      },
-    });
-  }}
-  onCancel={() => {
-    setDeleteModalOpen(false);
-    setDeleteId(null);
-  }}
->
-  <p>This action cannot be undone.</p>
-</Modal> */}
+  
+ 
 
 <Modal
   title="Confirm Permanent Deletion"

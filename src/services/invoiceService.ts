@@ -8,6 +8,7 @@ export type InvoiceStatus =
   | 'APPROVED'
   | 'SENT'
   | 'PAID'
+  |'PARTIALLY_PAID'
   | 'OVERDUE'
   | 'CANCELLED';
 
@@ -53,12 +54,13 @@ export interface Invoice {
   taxTotal: number;
   discount: number;
   total: number;
-  paid: number;
+  paidAmount: number;
   balanceDue: number;
   recurringFrequency?: RecurringFrequency;
-
+  taxInclusive:boolean;
   notes?: string;
   terms?: string;
+  pdfUrl:string;
 
   sentAt?: string;
   paidAt?: string;
@@ -77,6 +79,20 @@ export interface Invoice {
   updatedAt: string;
 }
 
+
+interface UpdateInvoiceStatusPayload {
+  status: InvoiceStatus;
+  description?: string;
+  payment?: {
+    amount: number;
+    method: string;
+    description?: string;
+    date?: string;
+  };
+  // Keep these for backward compatibility if needed
+  paidAmount?: number;
+  paidAt?: string | Date;
+}
 /* ==================== PAYLOADS ==================== */
 
 export interface CreateInvoiceData {
@@ -105,6 +121,50 @@ export interface InvoiceListParams {
   customerId?: string;
   search?: string;
 }
+export type PaymentStatus =
+  | 'PENDING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'REFUNDED'
+  | 'CANCELLED';
+
+
+  export type PaymentMethod =
+  | 'CASH'
+  | 'BANK_TRANSFER'
+  | 'CREDIT_CARD'
+  | 'DEBIT_CARD'
+  | 'CHECK'
+  | 'PAYPAL'
+  | 'STRIPE'
+  | 'OTHER';
+
+
+
+export interface InvoicePaymentTransaction {
+  id: string;
+  amount: number;
+  paymentDate: string;
+  description?: string;
+  paymentMethod?: PaymentMethod;
+  status: PaymentStatus;
+  createdBy?: string;
+}
+
+type InvoicePaymentHistory = {
+  totalAmount: number;
+  totalPaid: number;
+  balance: number;
+  transactions: {
+    id: string;
+    paymentDate: string;
+    amount: number;
+    paymentMethod: string;
+    status: string;
+    description?: string;
+  }[];
+};
+
 
 /* ==================== API RESPONSES ==================== */
 
@@ -189,20 +249,22 @@ class InvoiceService {
     }
   }
 
+ 
+
   static async updateInvoiceStatus(
-    id: string,
-    status: InvoiceStatus
-  ): Promise<Invoice> {
-    try {
-      const response = await apiClient.patch<ApiResponse<Invoice>>(
-        `/api/invoices/${id}/status`,
-        { status }
-      );
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to update status');
-    }
+  id: string,
+  data: UpdateInvoiceStatusPayload
+): Promise<Invoice> {
+  try {
+    const response = await apiClient.patch<ApiResponse<Invoice>>(
+      `/api/invoices/${id}/status`,
+      data  // Send the entire data object
+    );
+    return response.data.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error || 'Failed to update status');
   }
+}
 
   static async deleteInvoice(id: string): Promise<void> {
     try {
@@ -211,6 +273,60 @@ class InvoiceService {
       throw new Error(error.response?.data?.error || 'Failed to delete invoice');
     }
   }
+
+  /**
+   * Downloads the invoice PDF. 
+   * Handles the Bearer token and the backend redirect.
+   */
+
+
+  static async downloadInvoice(id: string): Promise<void> {
+  const response = await apiClient.get(
+    `/api/invoices/${id}/download`,
+    { responseType: 'blob' }
+  );
+
+  const blob = new Blob([response.data], { type: 'application/pdf' });
+  const url = window.URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `Invoice-${id}.pdf`;
+
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
+
+ 
+
+
+
+
+  static async getPaymentHistory(
+  invoiceId: string
+): Promise<any> {  // Change return type to any for flexibility
+  try {
+    const response = await apiClient.get<any>(
+      `/api/invoices/${invoiceId}/payments`
+    );
+    console.log('Payment history API raw response:', response.data);
+    return response.data.data; // Return the data as-is
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.error || 'Failed to fetch payment history'
+    );
+  }
+}
+
+}
+
+
+
+
+
+
 
 export default InvoiceService;

@@ -1,5 +1,5 @@
 // @/services/invoiceSettingsService.ts
-import { api, ApiError, apiUtils, PaginatedResponse } from "@/lib/axios";
+import { api, ApiError, apiUtils, PaginatedResponse ,AxiosResponse} from "@/lib/axios";
 
 // ==================== Type Definitions ====================
 
@@ -33,10 +33,10 @@ export interface GeneralSetting {
 export interface InvoiceSetting {
   id: string;
   format: string;
-  padding: number;
-  nextNumber: number;
-  resetYearly: boolean;
-  lastResetYear: number;
+  // padding: number;
+  // nextNumber: number;
+  // resetYearly: boolean;
+  // lastResetYear: number;
 }
 
 export interface PaymentSetting {
@@ -171,17 +171,46 @@ export class InvoiceSettingsService {
     }
   }
 
+
+ 
   /**
-   * Set a profile as the active configuration for the tenant
-   */
-  static async activateProfile(id: string): Promise<SettingsProfile> {
-    try {
-      return await api.patch<SettingsProfile>(`/api/invoicesetting/${id}/activate`);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw new Error(error.message);
-      }
-      throw new Error("Failed to activate profile");
-    }
+ * Set a profile status 
+ */
+static async activateProfile(id: string, isActive: boolean): Promise<SettingsProfile> {
+  try {
+    // Pass isActive in the body
+    return await api.patch<SettingsProfile>(`/api/invoicesetting/${id}/activate`, { 
+      isActive 
+    });
+  } catch (error) {
+    if (error instanceof ApiError) throw new Error(error.message);
+    throw new Error("Failed to update profile status");
   }
+}
+
+/**
+ * Get only profiles where isActive is true
+ */
+
+
+static async getActiveProfiles(): Promise<SettingsProfile[]> {
+  try {
+    const response = await api.get("/api/invoicesetting/active");
+    
+    // If your logs say 'Service Layer Check: Array(2)', 
+    // it means 'response' is already the array (Axios interceptor handled it).
+    console.log("Service Layer Check:", response);
+
+    // Ensure we return an array, no matter what
+    const data = Array.isArray(response) 
+      ? response 
+      : (response as any)?.data?.data || (response as any)?.data || [];
+
+    return data;
+  } catch (error) {
+    console.error("Service Error:", error);
+    return [];
+  }
+}
+
 }

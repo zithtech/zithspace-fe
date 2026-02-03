@@ -15,6 +15,7 @@ import {
   Card,
   Divider,
   Dropdown,
+  Modal
 } from "antd";
 import {
   UserAddOutlined,
@@ -54,6 +55,9 @@ export default function InvoiceproCustomerPage() {
   const [search, setSearch] = useState("");
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
+
 
 
   // Filter customers based on search
@@ -66,35 +70,7 @@ const updating = updateCustomer.status === "pending";
 
 
 
-  // Handle create or update
-  // const handleSave = async (
-  //   values: Omit<ServiceCustomer, "id" | "tenantId" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt">,
-  //   id?: string
-  // ) => {
-  //   const payload = {
-  //     companyName: values.companyName,
-  //     email: values.email || undefined,
-  //     phone: values.phone || undefined,
-  //     address: values.address || undefined,
-  //     city: values.city || undefined,
-  //     country: values.country || undefined,
-  //     taxId: values.taxId || undefined,
-  //   };
 
-  //   try {
-  //     if (id) {
-  //       await updateCustomer.mutateAsync({ id, data: payload });
-  //     } else {
-  //       await createCustomer.mutateAsync(payload);
-  //     }
-
-  //     setIsModalOpen(false);
-  //     setEditingCustomer(null);
-  //     form.resetFields();
-  //   } catch (error: any) {
-  //     message.error(error.message || "Failed to save customer");
-  //   }
-  // };
 
 const handleSave = async (
   values: Omit<
@@ -155,10 +131,21 @@ const handleSave = async (
     setIsModalOpen(true);
   };
 
-  // Delete customer
-  const handleDelete = (id: string) => {
-    deleteCustomer.mutate(id);
-  };
+
+
+const confirmDelete = async () => {
+  if (!deletingCustomerId) return;
+
+  await deleteCustomer.mutateAsync(deletingCustomerId);
+
+  messageApi.success("Customer deleted successfully");
+
+  setIsDeleteModalOpen(false);
+  setDeletingCustomerId(null);
+};
+
+
+
 
   return (
     <MainLayout>
@@ -251,15 +238,21 @@ const handleSave = async (
                                 label: "Edit",
                                 onClick: () => handleEdit(customer),
                               },
-                              {
-                                key: "delete",
-                                danger: true,
-                                label: (
-                                  <span onClick={() => handleDelete(customer.id)}>
-                                    <DeleteOutlined /> Delete
-                                  </span>
-                                ),
-                              },
+{
+  key: "delete",
+  danger: true,
+  label: (
+    <span
+      onClick={() => {
+        setDeletingCustomerId(customer.id);
+        setIsDeleteModalOpen(true);
+      }}
+    >
+      <DeleteOutlined /> Delete
+    </span>
+  ),
+}
+
                             ],
                           }}
                           trigger={["click"]}
@@ -319,6 +312,25 @@ const handleSave = async (
           onSave={handleSave}
         />
       </div>
+      <Modal
+  open={isDeleteModalOpen}
+  title="Delete customer"
+  okText="Delete"
+  okType="danger"
+  cancelText="Cancel"
+  confirmLoading={deleteCustomer.status === "pending"}
+  onOk={confirmDelete}
+  onCancel={() => {
+    setIsDeleteModalOpen(false);
+    setDeletingCustomerId(null);
+  }}
+>
+  <p>
+    Are you sure you want to delete this customer?  
+    This action cannot be undone.
+  </p>
+</Modal>
+
     </MainLayout>
   );
 }

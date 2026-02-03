@@ -114,38 +114,9 @@ export const useCreateCustomer = () => {
   });
 };
 
-/**
- * Update customer
- */
-// export const useUpdateCustomer = () => {
-//   const queryClient = useQueryClient();
 
-//   return useMutation({
-//     mutationFn: ({
-//       id,
-//       data,
-//     }: {
-//       id: string;
-//       data: UpdateCustomerData;
-//     }) => CustomersService.updateCustomer(id, data),
 
-//     onSuccess: (updatedCustomer) => {
-//       queryClient.setQueryData(
-//         customerKeys.detail(updatedCustomer.id),
-//         updatedCustomer
-//       );
 
-//       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
-//       queryClient.invalidateQueries({ queryKey: customerKeys.select() });
-
-//       message.success("Customer updated successfully");
-//     },
-
-//     onError: (error: Error) => {
-//       message.error(error.message);
-//     },
-//   });
-// };
 
 
 /**
@@ -225,7 +196,7 @@ export const useDeleteCustomer = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: customerKeys.select() });
-      message.success("Customer deleted successfully");
+     
     },
 
     onError: (error: Error) => {

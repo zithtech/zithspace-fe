@@ -1,8 +1,40 @@
+
+
+
+
+
+
+
 "use client";
 
-import {  useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Space, Typography, Card, Table, Dropdown, Button, Input } from "antd";
+import {
+  Space,
+  Typography,
+  Card,
+  Table,
+  Dropdown,
+  Button,
+  Input,
+  Form,
+  Modal,
+  DatePicker,
+  Select,
+  Tag,
+  Badge,
+  Tooltip,
+  Alert,
+  Popover,
+  Divider,
+  Drawer,
+  Spin,
+  Empty,
+  message,
+  Menu,
+  Progress
+} from "antd";
+import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import type { MenuProps } from "antd";
 import {
@@ -14,172 +46,693 @@ import {
   MailOutlined,
   DownloadOutlined,
   PlusOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+  CloseCircleOutlined,
+  DollarOutlined,
+  LoadingOutlined,
+  FormOutlined,
+  FunnelPlotOutlined
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { downloadInvoicePDF } from "./InvoiceDownloadButton";
-import { useInvoices, useDeleteInvoice } from "@/hooks/useInvoices";
+import moment from "moment";
+import isBetween from "dayjs/plugin/isBetween";
 
-const { Title } = Typography;
+import { useInvoices, useDeleteInvoice, useDownloadInvoice, useUpdateInvoiceStatus } from "@/hooks/useInvoices";
+import { useInvoicePaymentHistory } from "@/hooks/useInvoices";
+
+const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
+
+type CustomerSnapshot = {
+  id?: string;
+  companyName?: string;
+  name?: string;
+  email?: string;
+};
+interface FailedInvoice {
+  invoiceNumber: string;
+  error: string;
+}
+
+// Define the InvoiceStatus to match your TypeScript interface
+type InvoiceStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'SENT' | 'PAID' | 'PARTIALLY_PAID' | 'OVERDUE' | 'CANCELLED';
+
+// Helper function to get available status transitions
+const getAvailableTransitions = (currentStatus: InvoiceStatus): InvoiceStatus[] => {
+  const transitions: Record<InvoiceStatus, InvoiceStatus[]> = {
+    'DRAFT': ['PENDING', 'SENT', 'CANCELLED'],
+    'PENDING': ['APPROVED', 'SENT', 'CANCELLED'],
+    'APPROVED': ['SENT', 'CANCELLED'],
+    'SENT': ['PAID', 'PARTIALLY_PAID', 'OVERDUE', 'CANCELLED'],
+    'OVERDUE': ['PAID', 'PARTIALLY_PAID', 'CANCELLED'],
+    'PARTIALLY_PAID': ['PAID', 'OVERDUE', 'CANCELLED'],
+    'PAID': [],
+    'CANCELLED': []
+  };
+
+  return transitions[currentStatus] || [];
+};
+
+// Helper to convert frontend status to backend status
+const toBackendStatus = (status: InvoiceStatus): string => {
+  return status === 'APPROVED' ? 'APPROVAL' : status;
+};
+
+// Helper to convert backend status to frontend status
+const fromBackendStatus = (status: string): InvoiceStatus => {
+  if (status === 'APPROVAL') return 'APPROVED';
+  return status as InvoiceStatus;
+};
+
+// Status color mapping
+const getStatusColor = (status: InvoiceStatus) => {
+  const colors: Record<InvoiceStatus, string> = {
+    'DRAFT': 'default',
+    'PENDING': 'blue',
+    'APPROVED': 'cyan',
+    'SENT': 'geekblue',
+    'PAID': 'success',
+    'PARTIALLY_PAID': 'warning',
+    'OVERDUE': 'error',
+    'CANCELLED': 'default'
+  };
+  return colors[status] || 'default';
+};
+
+// Status icon mapping
+const getStatusIcon = (status: InvoiceStatus) => {
+  const icons: Record<InvoiceStatus, React.ReactNode> = {
+    'DRAFT': <ClockCircleOutlined />,
+    'PENDING': <ClockCircleOutlined />,
+    'APPROVED': <CheckCircleOutlined />,
+    'SENT': <MailOutlined />,
+    'PAID': <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+    'PARTIALLY_PAID': <DollarOutlined style={{ color: '#faad14' }} />,
+    'OVERDUE': <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
+    'CANCELLED': <CloseCircleOutlined style={{ color: '#bfbfbf' }} />
+  };
+  return icons[status] || <ClockCircleOutlined />;
+};
 
 export default function InvoiceproInvoicesPage() {
   const router = useRouter();
+  const [messageApi, contextHolder] = message.useMessage();
 
- 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
-  const [invoice_page_descriptions, setInvoicePageDescriptions] = useState<any>(
-    {},
-  );
-
-
-const {
-  data,
-  isLoading,
-  isError,
-} = useInvoices();
-
-const invoices = data?.data ?? [];
-const deleteMutation = useDeleteInvoice();
-
-  const [settings, setSettings] = useState<any>(null);
   const [searchText, setSearchText] = useState("");
 
+  const { data, isLoading, isError, refetch } = useInvoices();
+  const invoices = data?.data ?? [];
+  const deleteMutation = useDeleteInvoice();
 
+  const { mutate: downloadInvoice, isPending: isDownloading, variables: downloadingId } = useDownloadInvoice();
+  const { mutateAsync: downloadAsync } = useDownloadInvoice();
+
+  // For Paid / Partial Paid
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [statusInvoice, setStatusInvoice] = useState<any>(null);
+  const [statusForm] = Form.useForm();
+  const updateStatusMutation = useUpdateInvoiceStatus();
+
+  // For Approval
+  const [approvalModalVisible, setApprovalModalVisible] = useState(false);
+  const [approvalInvoice, setApprovalInvoice] = useState<any>(null);
+  const [approvalForm] = Form.useForm();
+
+  // For general status change
+  const [statusChangeModalVisible, setStatusChangeModalVisible] = useState(false);
+  const [statusChangeInvoice, setStatusChangeInvoice] = useState<any>(null);
+  const [selectedNewStatus, setSelectedNewStatus] = useState<InvoiceStatus | null>(null);
+
+  const [transactionDrawerOpen, setTransactionDrawerOpen] = useState(false);
+  const [transactionInvoice, setTransactionInvoice] = useState<any>(null);
+
+  // For delete state
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
+
+  // For bulk delete state
+  const [bulkDeleteModalVisible, setBulkDeleteModalVisible] = useState(false);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{
+    visible: boolean;
+    total: number;
+    completed: number;
+    failed: number;
+    currentInvoice: string | null;
+    isDeleting: boolean;
+  }>({
+    visible: false,
+    total: 0,
+    completed: 0,
+    failed: 0,
+    currentInvoice: null,
+    isDeleting: false
+  });
+
+  // In your component, update the hook call
+  const {
+    data: paymentHistory,
+    isLoading: isPaymentLoading,
+    refetch: refetchPaymentHistory,
+  } = useInvoicePaymentHistory(
+    transactionInvoice?.id,
+    !!transactionDrawerOpen
+  );
+
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  dayjs.extend(isBetween);
 
   /* ================= DELETE SINGLE ================= */
+  const openDeleteModal = (record: any) => {
+    //console.log("Opening delete modal for:", record.invoiceNumber);
+    setInvoiceToDelete(record);
+    setDeleteModalVisible(true);
+  };
 
-  const deleteInvoice = (id: string) => {
-  deleteMutation.mutate(id);
-};
+  const handleDeleteInvoice = async () => {
+    if (!invoiceToDelete) return;
+    
+    try {
+      setDeletingId(invoiceToDelete.id);
+      await deleteMutation.mutateAsync(invoiceToDelete.id, {
+        onSuccess: () => {
+          messageApi.success(`Invoice ${invoiceToDelete.invoiceNumber} deleted successfully`);
+          refetch(); // Refresh the invoice list
+          setDeleteModalVisible(false);
+          setInvoiceToDelete(null);
+          setDeletingId(null);
+        },
+        onError: (error: any) => {
+          messageApi.error(error.message || 'Failed to delete invoice');
+          setDeletingId(null);
+        }
+      });
+    } catch (error) {
+      console.error('Delete failed:', error);
+      setDeletingId(null);
+    }
+  };
+
   /* ================= BULK DELETE ================= */
+  const openBulkDeleteModal = () => {
+    if (selectedInvoices.length === 0) {
+      messageApi.warning('Please select invoices to delete');
+      return;
+    }
+    setBulkDeleteModalVisible(true);
+  };
+
+  const closeBulkDeleteModal = () => {
+    setBulkDeleteModalVisible(false);
+  };
+
+ 
 
 
-  const bulkDelete = async () => {
-  for (const inv of selectedInvoices) {
-    deleteMutation.mutate(inv.id);
+const startBulkDelete = async () => {
+  if (selectedInvoices.length === 0) return;
+  
+  setBulkDeleteModalVisible(false);
+  
+  setBulkDeleteProgress({
+    visible: true,
+    total: selectedInvoices.length,
+    completed: 0,
+    failed: 0,
+    currentInvoice: null,
+    isDeleting: true
+  });
+
+  const deletedInvoices: string[] = [];
+  const failedInvoices: Array<{ invoiceNumber: string; error: string }> = [];
+  
+  for (let i = 0; i < selectedInvoices.length; i++) {
+    const inv = selectedInvoices[i];
+    
+    setBulkDeleteProgress(prev => ({
+      ...prev,
+      currentInvoice: inv.invoiceNumber
+    }));
+    
+    try {
+      console.log(`Deleting invoice ${i + 1}/${selectedInvoices.length}:`, {
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        url: `/api/invoices/${inv.id}`
+      });
+      
+      // Test if the endpoint exists first
+      const testResponse = await fetch(`/api/invoices/${inv.id}`, {
+        method: 'HEAD',
+      });
+      
+      console.log('HEAD response status:', testResponse.status);
+      
+      if (testResponse.status === 404) {
+        throw new Error(`Invoice not found (404). ID: ${inv.id}, Number: ${inv.invoiceNumber}`);
+      }
+      
+      // Now try the DELETE
+      const response = await fetch(`/api/invoices/${inv.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('DELETE response status:', response.status);
+      
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // Ignore JSON parse errors
+        }
+        throw new Error(errorMessage);
+      }
+      
+      deletedInvoices.push(inv.invoiceNumber);
+      
+      setBulkDeleteProgress(prev => ({
+        ...prev,
+        completed: prev.completed + 1
+      }));
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+    } catch (error: any) {
+      console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, {
+        error: error.message,
+        invoiceId: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        stack: error.stack
+      });
+      
+      failedInvoices.push({
+        invoiceNumber: inv.invoiceNumber,
+        error: error.message || 'Unknown error'
+      });
+      
+      setBulkDeleteProgress(prev => ({
+        ...prev,
+        failed: prev.failed + 1,
+        completed: prev.completed + 1
+      }));
+    }
   }
-  setSelectedRowKeys([]);
-  setSelectedInvoices([]);
+
+
+
+  
+  // Wait a moment before closing progress modal
+  setTimeout(() => {
+    setBulkDeleteProgress({
+      visible: false,
+      total: 0,
+      completed: 0,
+      failed: 0,
+      currentInvoice: null,
+      isDeleting: false
+    });
+    
+    // Show results
+    if (deletedInvoices.length > 0) {
+      messageApi.success(`Deleted ${deletedInvoices.length} invoice(s) successfully`);
+    }
+    
+    if (failedInvoices.length > 0) {
+      messageApi.warning(`Failed to delete ${failedInvoices.length} invoice(s)`);
+      
+      // Show detailed error modal
+      Modal.warning({
+        title: 'Failed to Delete Some Invoices',
+        content: (
+          <div>
+            <Alert
+              message={`${failedInvoices.length} invoice(s) could not be deleted`}
+              description="The following invoices failed to delete:"
+              type="warning"
+              showIcon
+              className="mb-4"
+            />
+            <div className="max-h-60 overflow-y-auto border rounded p-2">
+              <ul className="list-disc pl-4">
+                {failedInvoices.map((failed, idx) => (
+                  <li key={idx} className="mb-1 text-sm">
+                    <Text strong>{failed.invoiceNumber}</Text>
+                    <Text type="secondary" className="ml-2">
+                      - {failed.error}
+                    </Text>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ),
+        width: 500,
+        okText: 'OK'
+      });
+    }
+    
+    // Clear selection and refresh data
+    setSelectedRowKeys([]);
+    setSelectedInvoices([]);
+    refetch();
+    
+  }, 1500);
+  
+  // ... rest of your code
 };
+
+
+  const cancelBulkDelete = () => {
+    setBulkDeleteProgress({
+      visible: false,
+      total: 0,
+      completed: 0,
+      failed: 0,
+      currentInvoice: null,
+      isDeleting: false
+    });
+  };
 
   /* ================= ACTION MENU ================= */
   const getMenuItems = (record: any): MenuProps["items"] => [
     {
       key: "view",
       icon: <EyeOutlined />,
-      label: "View",
-      onClick: () =>
-        router.push(`/invoicepro/invoices/view/${record.invoiceNumber}`),
-
+      label: "View Details",
+      onClick: () => {
+        router.push(`/invoicepro/invoices/view/${record.invoiceNumber}`);
+      },
     },
- {
-  key: "edit",
-  icon: <EditOutlined />,
-  label: "Edit",
-  onClick: () =>
-    // Use record.id instead of record.invoice_number if your form needs the DB ID to save
-    router.push(`/invoicepro/newinvoice?edit=${record.id}`),
-},
+    {
+      key: "edit",
+      icon: <EditOutlined />,
+      label: "Edit Invoice",
+      onClick: () => {
+        router.push(`/invoicepro/newinvoice?edit=${record.id}`);
+      },
+    },
+    {
+      key: "download",
+      icon: <DownloadOutlined />,
+      label: record.id === downloadingId && isDownloading ? "Downloading..." : "Download PDF",
+      disabled: isDownloading,
+      onClick: () => {
+        downloadInvoice(record.id);
+      },
+    },
+    {
+      key: "transactions",
+      icon: <DollarOutlined />,
+      label: "Transaction History",
+      onClick: () => {
+        setTransactionInvoice(record);
+        setTransactionDrawerOpen(true);
+      },
+    },
     { type: "divider" },
     {
       key: "delete",
       icon: <DeleteOutlined />,
-      label: "Delete",
+      label: deletingId === record.id && deleteMutation.isPending ? "Deleting..." : "Delete",
       danger: true,
-      onClick: () => deleteInvoice(record.id),
+      disabled: deletingId === record.id && deleteMutation.isPending,
+      onClick: () => {
+        console.log("Delete clicked for:", record.invoiceNumber);
+        openDeleteModal(record);
+      },
     },
   ];
+
+  /* ================= HANDLE STATUS CHANGE ================= */
+  const handleStatusChange = (record: any) => {
+    const frontendStatus = fromBackendStatus(record.status);
+    const availableTransitions = getAvailableTransitions(frontendStatus);
+
+    if (availableTransitions.length === 0) {
+      messageApi.info(`Invoice ${record.invoiceNumber} is already in final status: ${frontendStatus}`);
+      return;
+    }
+
+    setStatusChangeInvoice(record);
+    setSelectedNewStatus(null);
+    setStatusChangeModalVisible(true);
+  };
+
+  /* ================= HANDLE PAYMENT UPDATE ================= */
+  const handlePaymentUpdate = () => {
+    statusForm.validateFields().then((values) => {
+      const paidAmount = Number(values.paidAmount);
+      const paymentMethod = values.paymentMethod || "BANK_TRANSFER";
+      const currentBalance = Number(statusInvoice.balanceDue);
+
+      let newStatus: InvoiceStatus = 'PARTIALLY_PAID';
+      if (paidAmount >= currentBalance) {
+        newStatus = 'PAID';
+      }
+
+      updateStatusMutation.mutate({
+        id: statusInvoice.id,
+        status: newStatus,
+        payment: {
+          amount: paidAmount,
+          method: paymentMethod,
+          description: values.description || "",
+          date: values.paidAt ? values.paidAt.toISOString() : new Date().toISOString()
+        }
+      }, {
+        onSuccess: () => {
+          setStatusModalVisible(false);
+          statusForm.resetFields();
+          refetch(); // Refresh the invoice list
+          messageApi.success('Payment updated successfully');
+        },
+        onError: (error: any) => {
+          messageApi.error(error.message || 'Failed to update payment');
+        }
+      });
+    });
+  };
+
+  /* ================= HANDLE APPROVAL UPDATE ================= */
+  const handleApprovalUpdate = () => {
+    approvalForm.validateFields().then((values) => {
+      updateStatusMutation.mutate({
+        id: approvalInvoice.id,
+        status: 'APPROVED',
+        description: values.note,
+      }, {
+        onSuccess: () => {
+          setApprovalModalVisible(false);
+          approvalForm.resetFields();
+          refetch(); // Refresh the invoice list
+          messageApi.success('Invoice approved successfully');
+        },
+        onError: (error: any) => {
+          messageApi.error(error.message || 'Failed to approve invoice');
+        }
+      });
+    });
+  };
+
+  /* ================= HANDLE GENERAL STATUS UPDATE ================= */
+  const handleGeneralStatusUpdate = () => {
+    if (selectedNewStatus) {
+      if (selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') {
+        setStatusInvoice(statusChangeInvoice);
+        statusForm.setFieldsValue({
+          paidAmount: statusChangeInvoice.balanceDue,
+          description: statusChangeInvoice.description || "",
+          paidAt: moment(),
+          paymentMethod: "BANK_TRANSFER"
+        });
+        setStatusModalVisible(true);
+        setStatusChangeModalVisible(false);
+      } else if (selectedNewStatus === 'APPROVED') {
+        setApprovalInvoice(statusChangeInvoice);
+        approvalForm.setFieldsValue({
+          note: statusChangeInvoice.description || ""
+        });
+        setApprovalModalVisible(true);
+        setStatusChangeModalVisible(false);
+      } else {
+        updateStatusMutation.mutate({
+          id: statusChangeInvoice.id,
+          status: selectedNewStatus,
+        }, {
+          onSuccess: () => {
+            setStatusChangeModalVisible(false);
+            refetch(); // Refresh the invoice list
+            messageApi.success('Status updated successfully');
+          },
+          onError: (error: any) => {
+            messageApi.error(error.message || 'Failed to update status');
+          }
+        });
+      }
+    }
+  };
 
   /* ================= TABLE COLUMNS ================= */
   const columns: ColumnsType<any> = [
     {
-      title: "Invoice No",
+      title: "INVOICE NO",
       dataIndex: "invoiceNumber",
       key: "invoice_number",
+      width: 140,
+      render: (text) => (
+        <Text strong style={{ color: '#1890ff' }}>
+          {text}
+        </Text>
+      ),
     },
-  
     {
-  title: "Customer",
-  key: "customer",
-  render: (_, record) => {
-    // Accessing the camelCase property from your API response
-    const snapshot = record.customerSnapshot as any;; 
-    
-    return (
-      <div>
-        <div className="font-medium">
-          {snapshot?.companyName || record.customer?.companyName || "Unknown"}
-        </div>
-        <div className="text-xs text-gray-500">
-          {snapshot?.email || record.customer?.email || ""}
-        </div>
-      </div>
-    );
-  },
-},
+      title: "CUSTOMER",
+      key: "customer",
+      width: 200,
+      render: (_, record) => {
+        const snapshot = record.customerSnapshot as any;
+        return (
+          <div className="truncate">
+            <div className="font-medium text-gray-900 truncate">
+              {snapshot?.companyName || record.customer?.companyName || "Unknown"}
+            </div>
+            <div className="text-xs text-gray-500 truncate">
+              {snapshot?.email || record.customer?.email || ""}
+            </div>
+          </div>
+        );
+      },
+    },
     {
-      title: "Date",
+      title: "DATE",
       dataIndex: "invoiceDate",
-      render: (date: string) =>
-        date
-          ? new Date(date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : "-",
+      width: 120,
+      render: (date: string) => (
+        <div className="text-gray-600">
+          {date ? moment(date).format('MMM DD, YYYY') : '-'}
+        </div>
+      ),
     },
     {
-      title: "Due Date",
+      title: "DUE DATE",
       dataIndex: "dueDate",
-      render: (date: string) =>
-        date
-          ? new Date(date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : "-",
+      width: 120,
+      render: (date: string) => {
+        const isOverdue = date && moment(date).isBefore(moment(), 'day');
+        return (
+          <div className={isOverdue ? "text-red-500 font-medium" : "text-gray-600"}>
+            {date ? moment(date).format('MMM DD, YYYY') : '-'}
+          </div>
+        );
+      },
     },
- 
-
-       {
-  title: "Amount",
-  dataIndex: "total",
-  render: (v) => `$ ${Number(v).toFixed(2)}`
-}
-    ,
     {
-      title: "Status",
+      title: "AMOUNT",
+      dataIndex: "total",
+      width: 120,
+      render: (v) => (
+        <div className="font-semibold text-gray-900">
+          ${Number(v).toFixed(2)}
+        </div>
+      ),
+    },
+    {
+      title: "STATUS",
       dataIndex: "status",
-      render: (status: string) => (
-        <span style={{ color: status === "submitted" ? "green" : "orange" }}>
-          {status}
-        </span>
-      ),
+      width: 150,
+      render: (status: string, record: any) => {
+        const frontendStatus = fromBackendStatus(status);
+        return (
+          <div
+            className="cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              handleStatusChange(record);
+            }}
+          >
+            <Tooltip title="Click to change status">
+              <Badge
+                count={
+                  <Tag
+                    color={getStatusColor(frontendStatus)}
+                    icon={getStatusIcon(frontendStatus)}
+                    className="hover:opacity-80 transition-opacity"
+                    style={{
+                      padding: "2px 6px",
+                      borderRadius: 10,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      lineHeight: "14px",
+                    }}
+                  >
+                    {frontendStatus.replace('_', ' ')}
+                  </Tag>
+                }
+              />
+            </Tooltip>
+          </div>
+        );
+      },
     },
- 
-
     {
-  title: "Payment Due",
-  dataIndex: "balanceDue",
-  render: (v) => `$ ${Number(v).toFixed(2)}`
-}
-
- 
-    ,
+      title: "BALANCE DUE",
+      dataIndex: "balanceDue",
+      width: 120,
+      render: (v, record) => {
+        const isFullyPaid = Number(v) === 0;
+        return (
+          <div className={isFullyPaid ? "text-green-600 font-medium" : "text-gray-900 font-semibold"}>
+            ${Number(v).toFixed(2)}
+            {isFullyPaid && <CheckCircleOutlined className="ml-1 text-green-500" />}
+          </div>
+        );
+      },
+    },
     {
-      title: "",
+      title: "ACTIONS",
       align: "center",
-      render: (_, record) => (
-        <Dropdown trigger={["click"]} menu={{ items: getMenuItems(record) }}>
-          <Button
-            type="text"
-            icon={<MoreOutlined />}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </Dropdown>
-      ),
+      width: 80,
+      render: (_, record) => {
+        const menu = (
+          <Menu items={getMenuItems(record)} />
+        );
+        
+        return (
+          <Dropdown 
+            overlay={menu} 
+            trigger={['click']}
+            placement="bottomRight"
+            onOpenChange={(open) => {
+              if (!open) {
+                // Reset deleting state when dropdown closes
+                setDeletingId(null);
+              }
+            }}
+          >
+            <Button
+              type="text"
+              icon={<MoreOutlined className="text-gray-500 hover:text-gray-700" />}
+              className="hover:bg-gray-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            />
+          </Dropdown>
+        );
+      },
     },
   ];
 
@@ -190,136 +743,746 @@ const deleteMutation = useDeleteInvoice();
       setSelectedRowKeys(keys);
       setSelectedInvoices(rows);
     },
+    getCheckboxProps: (record: any) => ({
+      disabled: record.status === 'CANCELLED',
+    }),
   };
 
-  /* ================= search ================= */
+  /* ================= SEARCH AND FILTER ================= */
+  const filteredInvoices = invoices.filter((inv) => {
+    const snapshot = inv.customerSnapshot as any;
+    const search = searchText?.toLowerCase().trim();
 
+    // SEARCH
+    const matchSearch =
+      !search ||
+      inv.invoiceNumber?.toLowerCase().includes(search) ||
+      snapshot?.companyName?.toLowerCase().includes(search) ||
+      snapshot?.name?.toLowerCase().includes(search) ||
+      snapshot?.email?.toLowerCase().includes(search);
 
-const filteredInvoices = invoices.filter((inv) => {
-  if (!searchText) return true;
-  const q = searchText.toLowerCase();
+    if (!matchSearch) return false;
 
-  // Cast the snapshot to 'any' or your CustomerDraft interface to access properties
-  const snapshot = inv.customerSnapshot as any;
+    // STATUS
+    if (statusFilter && fromBackendStatus(inv.status) !== statusFilter) {
+      return false;
+    }
 
-  return (
-    inv.invoiceNumber?.toLowerCase().includes(q) ||
-    // Search in snapshot using the casted variable
-    snapshot?.companyName?.toLowerCase().includes(q) ||
-    snapshot?.email?.toLowerCase().includes(q) ||
-    // Search in live relation (fallback)
-    inv.customer?.companyName?.toLowerCase().includes(q) ||
-    inv.customer?.email?.toLowerCase().includes(q)
-  );
-});
+    // DATE RANGE
+    if (dateRange?.[0] && dateRange?.[1]) {
+      const invoiceDate = dayjs(inv.invoiceDate);
+      if (
+        !invoiceDate.isBetween(
+          dayjs(dateRange[0]).startOf("day"),
+          dayjs(dateRange[1]).endOf("day"),
+          undefined,
+          "[]"
+        )
+      ) {
+        return false;
+      }
+    }
 
-  /* ================= RENDER ================= */
-  return (
-    <MainLayout>
-      <div style={{ padding: 20 }}>
-        <Space align="center">
-          <SettingOutlined style={{ fontSize: 24, color: "#1677ff" }} />
-          <Title level={3} style={{ margin: 0 }}>
-            Invoice
-          </Title>
-        </Space>
+    return true;
+  });
 
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            padding: "8px 12px",
-            background: "#fff",
-            borderRadius: 6,
-            border: "1px solid #f0f0f0",
-            marginTop: 4,
-          }}
-        >
-          <Input.Search
-            placeholder="Search by invoice number or customer..."
+  const totalCount = invoices.length;
+  const paidCount = invoices.filter(
+    (i) => fromBackendStatus(i.status) === "PAID"
+  ).length;
+  const pendingCount = invoices.filter(
+    (i) => fromBackendStatus(i.status) === "PENDING"
+  ).length;
+  const customerCount = new Set(
+    invoices.map((i) => {
+      const snapshot = i.customerSnapshot as CustomerSnapshot | null;
+      return snapshot?.id || i.customer?.id;
+    })
+  ).size;
+
+  /* ================= BULK DOWNLOAD ================= */
+  const handleBulkDownload = async () => {
+    for (const inv of selectedInvoices) {
+      try {
+        await downloadAsync(inv.id);
+        await new Promise((r) => setTimeout(r, 500));
+      } catch (e) {
+        console.error("Bulk download failed for:", inv.id);
+        messageApi.error(`Failed to download invoice ${inv.invoiceNumber}`);
+      }
+    }
+  };
+
+  const filterContent = (
+    <div className="w-72">
+      <Space direction="vertical" size="middle" className="w-full">
+        {/* Date Range */}
+        <div>
+          <div className="text-sm font-medium mb-1">Filter by Date</div>
+          <RangePicker
+            className="w-full"
+            value={dateRange as any}
+            onChange={(values) => setDateRange(values)}
             allowClear
-            size="large"
-            style={{ flex: 1, minWidth: 200 }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
           />
+        </div>
 
+        {/* Status */}
+        <div>
+          <div className="text-sm font-medium mb-1">Filter by Status</div>
+          <Select
+            className="w-full"
+            placeholder="Select status"
+            allowClear
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value)}
+            options={[
+              { label: "Draft", value: "DRAFT" },
+              { label: "Pending", value: "PENDING" },
+              { label: "Approval", value: "APPROVED" },
+              { label: "Sent", value: "SENT" },
+              { label: "Submitted", value: "SUBMITTED" },
+              { label: "Partially Paid", value: "PARTIALLY_PAID" },
+              { label: "Paid", value: "PAID" },
+              { label: "Overdue", value: "OVERDUE" },
+              { label: "Cancelled", value: "CANCELLED" },
+            ]}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-2 border-t">
           <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            onClick={() => router.push("/invoicepro/newinvoice")}
+            size="small"
+            onClick={() => {
+              setDateRange(null);
+              setStatusFilter(null);
+            }}
           >
-            New Invoice
+            Reset
+          </Button>
+          <Button size="small" type="primary">
+            Apply
           </Button>
         </div>
+      </Space>
+    </div>
+  );
 
-        <div className="mt-5">
-          {invoices.length === 0 ? (
-            <Card>No invoices found. Create a new invoice first.</Card>
-          ) : (
-            <Card className="rounded-xl shadow-md border border-gray-200">
-              {/* ===== BULK ACTION BAR ===== */}
-              {selectedRowKeys.length > 0 && (
-                <div
-                  style={{
-                    marginBottom: 16,
-                    padding: "10px 14px",
-                    background: "#f0f5ff",
-                    borderRadius: 8,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <strong>{selectedRowKeys.length} invoice(s) selected</strong>
+  const transactionColumns: ColumnsType<any> = [
+    {
+      title: "Date",
+      dataIndex: "paymentDate",
+      render: (v) => moment(v).format("MMM DD, YYYY HH:mm"),
+    },
+    {
+      title: "Amount",
+      dataIndex: "amount",
+      render: (v) => (
+        <Text strong>${Number(v).toFixed(2)}</Text>
+      ),
+    },
+    {
+      title: "Method",
+      dataIndex: "paymentMethod",
+      render: (v) => <Tag>{v || "—"}</Tag>,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      render: (v) => (
+        <Tag
+          color={
+            v === "COMPLETED"
+              ? "green"
+              : v === "FAILED"
+                ? "red"
+                : "blue"
+          }
+        >
+          {v}
+        </Tag>
+      ),
+    },
+    {
+      title: "Note",
+      dataIndex: "description",
+      render: (v) => v || "—",
+    },
+  ];
 
-                  <Space>
-                    <Button icon={<MailOutlined />}>Send Mail</Button>
-                    <Button
-                      icon={<DownloadOutlined />}
-                      onClick={async () => {
-                        if (!settings) return;
+  return (
+    <MainLayout>
+      {contextHolder}
+      <div className="p-3">
+        {/* Invoices Table */}
+        <Card className="shadow-sm border-gray-200">
+          {/* Header */}
+          <div className="flex flex-row items-center justify-between gap-4 mb-6 flex-nowrap">
+            <div className="flex flex-col shrink-0">
+              <div className="flex items-center space-x-3">
+                <FormOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+                <Title level={2} className="!mb-0 !text-gray-900">
+                  Invoices
+                </Title>
+              </div>
 
-                        for (const invoice of selectedInvoices) {
-                          await downloadInvoicePDF(
-                            invoice,
-                            settings,
-                            invoice_page_descriptions,
-                          );
-                          await new Promise((r) => setTimeout(r, 300)); // browser-safe
-                        }
-                      }}
-                    >
-                      Download
-                    </Button>
+              <Text type="secondary" className="ml-12 mt-1">
+                Manage, track payments, and monitor invoice statuses across customers.
+              </Text>
 
-                    <Button
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={bulkDelete}
-                    >
-                      Delete
-                    </Button>
-                  </Space>
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 ml-12 mt-2">
+                <Tag color="pink">
+                  Total Invoice: <strong>{totalCount}</strong>
+                </Tag>
 
-              {/* ===== TABLE ===== */}
-              <Table
-                rowSelection={rowSelection}
-                columns={columns}
-                dataSource={filteredInvoices.map((inv) => ({
-    ...inv,
-    key: inv.id,
-  }))}
-                pagination={{ pageSize: 5 }}
+                <Tag color="green" icon={<CheckCircleOutlined />}>
+                  Paid: <strong>{paidCount}</strong>
+                </Tag>
+
+                <Tag color="blue" icon={<ClockCircleOutlined />}>
+                  Pending: <strong>{pendingCount}</strong>
+                </Tag>
+
+                <Tag color="purple">
+                  Customers: <strong>{customerCount}</strong>
+                </Tag>
+              </div>
+            </div>
+
+            {/* RIGHT */}
+            <div className="flex flex-row items-center gap-3 flex-nowrap">
+              <Input.Search
+                placeholder="Search invoices..."
+                allowClear
+                size="middle"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="w-64"
               />
-            </Card>
+
+              <Popover content={filterContent} trigger="click" placement="bottomRight">
+                <Button size="middle" icon={<FunnelPlotOutlined />}>
+                  Filter
+                </Button>
+              </Popover>
+
+              <Button
+                type="primary"
+                size="middle"
+                icon={<PlusOutlined />}
+                onClick={() => router.push("/invoicepro/newinvoice")}
+                className="h-11 shrink-0"
+              >
+                New Invoice
+              </Button>
+            </div>
+          </div>
+
+          <Divider />
+
+          {/* Bulk Action Bar */}
+          {selectedRowKeys.length > 0 && (
+            <div className="mb-3">
+              <Alert
+                message={
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">
+                      {selectedRowKeys.length} invoice(s) selected
+                    </span>
+                    <Space size="middle">
+                      <Button
+                        icon={<MailOutlined />}
+                        onClick={() => messageApi.info('Send email feature coming soon')}
+                      >
+                        Send Email
+                      </Button>
+                      <Button
+                        icon={<DownloadOutlined />}
+                        loading={isDownloading}
+                        onClick={handleBulkDownload}
+                      >
+                        Download Selected
+                      </Button>
+                      <Button
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={openBulkDeleteModal}
+                        loading={bulkDeleteProgress.isDeleting}
+                      >
+                        Delete Selected
+                      </Button>
+                    </Space>
+                  </div>
+                }
+                type="info"
+                className="mb-0"
+                closable
+                onClose={() => {
+                  setSelectedRowKeys([]);
+                  setSelectedInvoices([]);
+                }}
+              />
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <LoadingOutlined className="text-3xl text-blue-500" spin />
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12">
+              <ExclamationCircleOutlined className="text-4xl text-red-500 mb-4" />
+              <Title level={4} className="!text-gray-700">Failed to load invoices</Title>
+              <Text type="secondary">Please try again later</Text>
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-4xl text-gray-300 mb-4">📄</div>
+              <Title level={4} className="!text-gray-500">No invoices found</Title>
+              <Text type="secondary" className="mb-6 block">
+                {searchText ? 'Try a different search term' : 'Create your first invoice to get started'}
+              </Text>
+              {!searchText && (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => router.push("/invoicepro/newinvoice")}
+                >
+                  Create First Invoice
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Table
+              size="small"
+              rowSelection={rowSelection}
+              columns={columns}
+              dataSource={filteredInvoices.map((inv) => ({
+                ...inv,
+                key: inv.id,
+              }))}
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} invoices`,
+              }}
+              scroll={{ x: 1000 }}
+            />
+          )}
+        </Card>
+      </div>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal
+        title="Delete Selected Invoices"
+        open={bulkDeleteModalVisible}
+        onCancel={closeBulkDeleteModal}
+        onOk={startBulkDelete}
+        okText={`Delete ${selectedInvoices.length} Invoices`}
+        okType="danger"
+        cancelText="Cancel"
+        width={500}
+      >
+        <div className="py-4">
+          <div className="flex items-center mb-3">
+            <ExclamationCircleOutlined className="text-xl text-red-500 mr-2" />
+            <Text strong>Are you sure you want to delete {selectedInvoices.length} selected invoice(s)?</Text>
+          </div>
+          
+          <div className="mb-4 max-h-60 overflow-y-auto border rounded p-2">
+            <Text type="secondary" className="block mb-2">Selected Invoices:</Text>
+            <ul className="list-disc pl-4">
+              {selectedInvoices.slice(0, 10).map((inv, index) => (
+                <li key={inv.id} className="text-sm mb-1">
+                  <Text strong>{inv.invoiceNumber}</Text>
+                  <Text type="secondary" className="ml-2">
+                    - ${Number(inv.total || 0).toFixed(2)}
+                    {inv.customerSnapshot && ` - ${(inv.customerSnapshot as any)?.companyName}`}
+                  </Text>
+                </li>
+              ))}
+              {selectedInvoices.length > 10 && (
+                <li className="text-sm text-gray-500">
+                  ...and {selectedInvoices.length - 10} more
+                </li>
+              )}
+            </ul>
+          </div>
+          
+          <Alert
+            message="Warning: This action cannot be undone"
+            description="All selected invoices and their associated data will be permanently deleted."
+            type="warning"
+            showIcon
+          />
+        </div>
+      </Modal>
+
+      {/* Bulk Delete Progress Modal */}
+      <Modal
+        title="Deleting Invoices..."
+        open={bulkDeleteProgress.visible}
+        closable={false}
+        maskClosable={false}
+        footer={null}
+        width={400}
+      >
+        <div className="py-4">
+          <div className="flex justify-between mb-2">
+            <Text>Progress:</Text>
+            <Text strong>
+              {bulkDeleteProgress.completed}/{bulkDeleteProgress.total}
+            </Text>
+          </div>
+          
+          <div className="mb-4">
+            <Progress
+              percent={Math.round((bulkDeleteProgress.completed / bulkDeleteProgress.total) * 100)}
+              status={bulkDeleteProgress.failed > 0 ? "exception" : "active"}
+            />
+            <div className="flex justify-between text-sm text-gray-600 mt-1">
+              <span>Success: {bulkDeleteProgress.completed - bulkDeleteProgress.failed}</span>
+              <span>Failed: {bulkDeleteProgress.failed}</span>
+            </div>
+          </div>
+          
+          {bulkDeleteProgress.currentInvoice && (
+            <div className="text-center mb-4">
+              <LoadingOutlined className="text-blue-500 mr-2" spin={bulkDeleteProgress.isDeleting} />
+              <Text type="secondary">
+                Deleting invoice: <Text strong>{bulkDeleteProgress.currentInvoice}</Text>
+              </Text>
+            </div>
+          )}
+          
+          {!bulkDeleteProgress.isDeleting && (
+            <div className="text-center">
+              <Text type="success" strong>
+                {bulkDeleteProgress.failed === 0 ? 'All invoices deleted successfully!' : 'Deletion completed!'}
+              </Text>
+              <div className="mt-3">
+                <Button type="primary" onClick={cancelBulkDelete} block>
+                  OK
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {bulkDeleteProgress.isDeleting && (
+            <div className="text-center">
+              <Text type="secondary" className="text-sm">
+                Please wait while invoices are being deleted...
+              </Text>
+            </div>
           )}
         </div>
-      </div>
+      </Modal>
+
+      {/* Single Delete Confirmation Modal */}
+      <Modal
+        title="Delete Invoice"
+        open={deleteModalVisible}
+        onCancel={() => {
+          setDeleteModalVisible(false);
+          setInvoiceToDelete(null);
+        }}
+        onOk={handleDeleteInvoice}
+        confirmLoading={deletingId === invoiceToDelete?.id}
+        okText="Delete"
+        okType="danger"
+        cancelText="Cancel"
+        width={500}
+      >
+        {invoiceToDelete && (
+          <div className="py-4">
+            <div className="flex items-center mb-3">
+              <ExclamationCircleOutlined className="text-xl text-red-500 mr-2" />
+              <Text strong>Are you sure you want to delete this invoice?</Text>
+            </div>
+            <div className="mb-4 p-3 bg-gray-50 rounded">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Text type="secondary" className="block text-sm">Invoice Number</Text>
+                  <Text strong className="text-lg">{invoiceToDelete.invoiceNumber}</Text>
+                </div>
+                <div>
+                  <Text type="secondary" className="block text-sm">Amount</Text>
+                  <Text strong className="text-lg">${Number(invoiceToDelete.total || 0).toFixed(2)}</Text>
+                </div>
+                <div className="col-span-2">
+                  <Text type="secondary" className="block text-sm">Customer</Text>
+                  <Text strong>
+                    {(invoiceToDelete.customerSnapshot as any)?.companyName || invoiceToDelete.customer?.companyName || "Unknown"}
+                  </Text>
+                </div>
+              </div>
+            </div>
+            <Alert
+              message="Warning: This action cannot be undone"
+              description="All invoice data, including PDF files and transaction history, will be permanently deleted."
+              type="warning"
+              showIcon
+            />
+          </div>
+        )}
+      </Modal>
+
+      {/* Payment Status Modal */}
+      <Modal
+        title={
+          <div className="flex items-center">
+            <DollarOutlined className="text-green-500 mr-2" />
+            Update Payment for Invoice {statusInvoice?.invoiceNumber}
+          </div>
+        }
+        open={statusModalVisible}
+        onCancel={() => {
+          setStatusModalVisible(false);
+          statusForm.resetFields();
+        }}
+        onOk={handlePaymentUpdate}
+        confirmLoading={updateStatusMutation.isPending}
+        okText="Update Payment"
+        cancelText="Cancel"
+        width={500}
+      >
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+          <div className="flex justify-between">
+            <div>
+              <div className="text-sm text-gray-600">Total Amount</div>
+              <div className="text-2xl font-bold">
+                ${Number(statusInvoice?.total || 0).toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">Balance Due</div>
+              <div className="text-2xl font-bold text-blue-600">
+                ${Number(statusInvoice?.balanceDue || 0).toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Form form={statusForm} layout="vertical">
+          <Form.Item
+            label="Paid Amount"
+            name="paidAmount"
+            rules={[
+              { required: true, message: "Please enter paid amount" },
+              {
+                validator: (_, value) => {
+                  const balanceDue = Number(statusInvoice?.balanceDue || 0);
+                  const paidAmount = Number(value || 0);
+
+                  if (paidAmount > balanceDue) {
+                    return Promise.reject(new Error(`Amount cannot exceed balance due ($${balanceDue.toFixed(2)})`));
+                  }
+                  if (paidAmount <= 0) {
+                    return Promise.reject(new Error('Amount must be greater than 0'));
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
+          >
+            <Input
+              type="number"
+              min={0.01}
+              max={statusInvoice?.balanceDue}
+              placeholder="0.00"
+              prefix="$"
+              size="large"
+              step="0.01"
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Payment Method"
+            name="paymentMethod"
+            initialValue="BANK_TRANSFER"
+            rules={[{ required: true, message: "Please select payment method" }]}
+          >
+            <Select size="large">
+              <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
+              <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
+              <Select.Option value="CASH">Cash</Select.Option>
+              <Select.Option value="CHECK">Check</Select.Option>
+              <Select.Option value="OTHER">Other</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item label="Description / Note" name="description">
+            <Input.TextArea
+              rows={3}
+              placeholder="Enter note for payment (optional)"
+              maxLength={500}
+              showCount
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Payment Date"
+            name="paidAt"
+            rules={[{ required: true, message: "Please select payment date" }]}
+          >
+            <DatePicker
+              showTime
+              format="YYYY-MM-DD HH:mm"
+              style={{ width: '100%' }}
+              size="large"
+              defaultValue={moment()}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Approval Modal */}
+      <Modal
+        title={
+          <div className="flex items-center">
+            <CheckCircleOutlined className="text-green-500 mr-2" />
+            Approve Invoice {approvalInvoice?.invoiceNumber}
+          </div>
+        }
+        open={approvalModalVisible}
+        onCancel={() => {
+          setApprovalModalVisible(false);
+          approvalForm.resetFields();
+        }}
+        onOk={handleApprovalUpdate}
+        confirmLoading={updateStatusMutation.isPending}
+        okText="Approve Invoice"
+        cancelText="Cancel"
+        width={400}
+      >
+        <Form form={approvalForm} layout="vertical">
+          <Form.Item label="Approval Note (optional)" name="note">
+            <Input.TextArea
+              rows={4}
+              placeholder="Enter note for approval"
+              maxLength={500}
+              showCount
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Status Change Modal */}
+      <Modal
+        title={`Change Status for Invoice ${statusChangeInvoice?.invoiceNumber}`}
+        open={statusChangeModalVisible}
+        onCancel={() => {
+          setStatusChangeModalVisible(false);
+          setSelectedNewStatus(null);
+        }}
+        onOk={handleGeneralStatusUpdate}
+        confirmLoading={updateStatusMutation.isPending}
+        okText="Update Status"
+        cancelText="Cancel"
+        width={400}
+      >
+        <div className="mb-4">
+          <div className="text-sm text-gray-500 mb-1">Current Status</div>
+          <Tag
+            color={getStatusColor(fromBackendStatus(statusChangeInvoice?.status))}
+            icon={getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
+            className="text-sm font-medium"
+          >
+            {fromBackendStatus(statusChangeInvoice?.status)}
+          </Tag>
+        </div>
+
+        <div className="mb-4">
+          <div className="text-sm text-gray-500 mb-2">Select New Status</div>
+          <Select
+            style={{ width: '100%' }}
+            placeholder="Select new status"
+            size="large"
+            onChange={(value) => setSelectedNewStatus(value)}
+            options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
+              label: (
+                <div className="flex items-center">
+                  {getStatusIcon(status)}
+                  <span className="ml-2">{status}</span>
+                </div>
+              ),
+              value: status
+            }))}
+          />
+        </div>
+
+        {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
+          <Alert
+            message="Payment information will be required"
+            description="You'll need to enter payment details for this status change."
+            type="info"
+            showIcon
+            className="mb-2"
+          />
+        )}
+      </Modal>
+
+      {/* Transaction History Drawer */}
+      <Drawer
+        title={
+          <div>
+            <div className="font-semibold">Transaction History</div>
+            <div className="text-sm text-gray-500">Invoice #{transactionInvoice?.invoiceNumber}</div>
+          </div>
+        }
+        open={transactionDrawerOpen}
+        onClose={() => {
+          setTransactionDrawerOpen(false);
+          setTransactionInvoice(null);
+        }}
+        width={720}
+        destroyOnClose
+      >
+        {isPaymentLoading ? (
+          <div className="flex justify-center py-20">
+            <Spin size="large" />
+          </div>
+        ) : !paymentHistory || !paymentHistory.transactions || paymentHistory.transactions.length === 0 ? (
+          <Empty description="No payment history found" />
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <Card size="small">
+                <Text type="secondary">Total Amount</Text>
+                <div className="text-xl font-bold">
+                  ${paymentHistory?.totalAmount?.toFixed(2) ?? "0.00"}
+                </div>
+              </Card>
+
+              <Card size="small">
+                <Text type="secondary">Total Paid</Text>
+                <div className="text-xl font-bold text-green-600">
+                  ${paymentHistory?.totalPaid?.toFixed(2) ?? "0.00"}
+                </div>
+              </Card>
+
+              <Card size="small">
+                <Text type="secondary">Balance Due</Text>
+                <div className="text-xl font-bold text-blue-600">
+                  ${paymentHistory?.balance?.toFixed(2) ?? "0.00"}
+                </div>
+              </Card>
+            </div>
+
+            {/* Transactions Table */}
+            <Table
+              columns={transactionColumns}
+              dataSource={paymentHistory.transactions}
+              rowKey="id"
+              pagination={false}
+              size="small"
+            />
+          </>
+        )}
+      </Drawer>
     </MainLayout>
   );
 }

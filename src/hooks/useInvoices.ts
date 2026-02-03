@@ -25,6 +25,9 @@ export const invoiceKeys = {
   details: () => [...invoiceKeys.all, "detail"] as const,
   detail: (id: string) => [...invoiceKeys.details(), id] as const,
   nextNumber: () => [...invoiceKeys.all, "next-number"] as const,
+
+  payments: (invoiceId: string) =>
+    [...invoiceKeys.detail(invoiceId), "payments"] as const,
 };
 
 // ==================== Queries ====================
@@ -225,23 +228,97 @@ export const useUpdateInvoice = () => {
 /**
  * Update Invoice Status
  */
+
+
+
 export const useUpdateInvoiceStatus = () => {
   const queryClient = useQueryClient();
 
+  type StatusPayload = {
+    id: string;
+    status: InvoiceStatus;
+    // For payment statuses (PAID, PARTIALLY_PAID)
+    payment?: {
+      amount: number;
+      method: string;
+      description?: string;
+      date?: string;
+    };
+    // For other statuses (like APPROVED, etc.)
+    description?: string;
+    // Legacy fields for backward compatibility
+    paidAmount?: number;
+    paidAt?: string | Date;
+  };
+
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: InvoiceStatus }) =>
-      InvoiceService.updateInvoiceStatus(id, status),
+    mutationFn: async (payload: StatusPayload) => {
+      // Prepare data for API
+      const apiData: any = { 
+        status: payload.status === 'APPROVED' ? 'APPROVAL' : payload.status 
+      };
+
+      // For payment statuses
+      if (payload.status === 'PAID' || payload.status === 'PARTIALLY_PAID') {
+        if (payload.payment) {
+          apiData.payment = payload.payment;
+        } else if (payload.paidAmount !== undefined) {
+          // Handle legacy format
+          apiData.payment = {
+            amount: payload.paidAmount,
+            method: 'BANK_TRANSFER', // default
+            description: payload.description || '',
+            date: payload.paidAt ? 
+              (typeof payload.paidAt === 'string' ? payload.paidAt : payload.paidAt.toISOString()) 
+              : new Date().toISOString()
+          };
+        }
+      } 
+      // For other statuses with description
+      else if (payload.description) {
+        apiData.description = payload.description;
+      }
+
+      return InvoiceService.updateInvoiceStatus(payload.id, apiData);
+    },
+
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: invoiceKeys.all });
+      
+      // Optimistically update cache
+      const previousInvoice = queryClient.getQueryData<Invoice>(invoiceKeys.detail(payload.id));
+      
+      if (previousInvoice) {
+        const updatedInvoice = {
+          ...previousInvoice,
+          status: payload.status,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Update payment amounts for PAID/PARTIALLY_PAID
+        if (payload.status === 'PAID' || payload.status === 'PARTIALLY_PAID') {
+          const paymentAmount = payload.payment?.amount || payload.paidAmount || 0;
+          updatedInvoice.paidAmount = (previousInvoice.paidAmount || 0) + paymentAmount;
+          updatedInvoice.balanceDue = Math.max(0, previousInvoice.balanceDue - paymentAmount);
+        }
+        
+        queryClient.setQueryData(invoiceKeys.detail(payload.id), updatedInvoice);
+      }
+      
+      return { previousInvoice };
+    },
 
     onSuccess: (updatedInvoice) => {
-      queryClient.setQueryData(
-        invoiceKeys.detail(updatedInvoice.id),
-        updatedInvoice
-      );
+      queryClient.setQueryData(invoiceKeys.detail(updatedInvoice.id), updatedInvoice);
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
       message.success("Invoice status updated");
     },
 
-    onError: () => {
+    onError: (error, payload, context) => {
+      // Revert optimistic update on error
+      if (context?.previousInvoice) {
+        queryClient.setQueryData(invoiceKeys.detail(payload.id), context.previousInvoice);
+      }
       message.error("Failed to update invoice status");
     },
   });
@@ -293,3 +370,121 @@ export const useDeleteInvoice = () => {
     },
   });
 };
+
+/**
+ * Hook for Downloading/Generating Invoice PDF
+ */
+
+
+
+export const useDownloadInvoice = () => {
+  return useMutation({
+    mutationFn: (id: string) => InvoiceService.downloadInvoice(id),
+    onError: (error: any) => {
+      message.error(error.message || "Failed to download invoice");
+    },
+  });
+};
+
+
+
+
+
+
+
+
+
+
+      
+
+
+
+export const useInvoicePaymentHistory = (
+  invoiceId?: string,
+  enabled: boolean = true
+) => {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["invoicePayments", invoiceId],
+    queryFn: async () => {
+      // Don't throw - return empty data instead
+      if (!invoiceId) {
+        console.log('No invoice ID provided, returning empty payment history');
+        return {
+          transactions: [],
+          totalAmount: 0,
+          totalPaid: 0,
+          balance: 0
+        };
+      }
+      
+      try {
+        // 1. Fetch the raw data from API
+        const rawData = await InvoiceService.getPaymentHistory(invoiceId);
+        console.log('Raw payment history data:', rawData);
+        
+        // 2. Check what format we got
+        // If it's already in the correct format, return it
+        if (rawData && typeof rawData === 'object' && 'transactions' in rawData) {
+          console.log('Data is already in correct format');
+          return rawData;
+        }
+        
+        // 3. If it's an array, transform it
+        if (Array.isArray(rawData)) {
+          console.log('Data is array, transforming...');
+          
+          const totalPaid = rawData.reduce((sum: number, transaction: any) => {
+            return sum + (Number(transaction.amount) || 0);
+          }, 0);
+          
+          return {
+            transactions: rawData,
+            totalAmount: 0,
+            totalPaid: totalPaid,
+            balance: 0
+          };
+        }
+        
+        // 4. Default fallback
+        return {
+          transactions: [],
+          totalAmount: 0,
+          totalPaid: 0,
+          balance: 0
+        };
+      } catch (error) {
+        console.error('Error fetching payment history:', error);
+        // Return empty data on error instead of throwing
+        return {
+          transactions: [],
+          totalAmount: 0,
+          totalPaid: 0,
+          balance: 0
+        };
+      }
+    },
+    enabled: enabled && !!invoiceId,
+    staleTime: 2 * 60 * 1000,
+    retry: 1, // Limit retries
+    retryDelay: 1000,
+  });
+
+  const refetch = () => {
+    if (invoiceId) {
+      queryClient.invalidateQueries({
+        queryKey: ["invoicePayments", invoiceId],
+      });
+    }
+  };
+
+  return { ...query, refetch };
+};
+
+
+
+
+
+
+

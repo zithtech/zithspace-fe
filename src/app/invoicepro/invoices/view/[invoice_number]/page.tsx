@@ -1,22 +1,18 @@
+
+
+
+
 "use client";
 
-import {  useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, Button, Typography, Table, Divider, Space, Tag } from "antd";
 
-import InvoiceDownloadButton from "../../InvoiceDownloadButton";
-
 import { currencyOptions } from "@/utils/currencyOptions";
-import { useInvoice } from "@/hooks/useInvoices";
+import { useInvoice, useDownloadInvoice, useInvoicePaymentHistory } from "@/hooks/useInvoices";
 import { useSettingsProfile } from "@/hooks/useInvoiceSettings";
 
-
-
-
-import { EditOutlined } from "@ant-design/icons";
-import TiptapEditor from "@/components/common/TiptapEditor";
-
-
+import { DownloadOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -39,45 +35,17 @@ interface CustomerSnapshot {
   taxId?: string | null;
 }
 
-
-
 export function numberToWords(num: number): string {
   if (num === 0) return "Zero";
 
   const a = [
-    "",
-    "One",
-    "Two",
-    "Three",
-    "Four",
-    "Five",
-    "Six",
-    "Seven",
-    "Eight",
-    "Nine",
-    "Ten",
-    "Eleven",
-    "Twelve",
-    "Thirteen",
-    "Fourteen",
-    "Fifteen",
-    "Sixteen",
-    "Seventeen",
-    "Eighteen",
-    "Nineteen",
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+    "Seventeen", "Eighteen", "Nineteen",
   ];
 
   const b = [
-    "",
-    "",
-    "Twenty",
-    "Thirty",
-    "Forty",
-    "Fifty",
-    "Sixty",
-    "Seventy",
-    "Eighty",
-    "Ninety",
+    "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
   ];
 
   const inWords = (n: number): string => {
@@ -111,90 +79,85 @@ export function numberToWords(num: number): string {
   return inWords(Math.floor(num)).trim();
 }
 
+// Helper function to safely format currency
+const formatCurrency = (value: any, symbol: string): string => {
+  const num = Number(value);
+  if (isNaN(num)) return `${symbol} 0.00`;
+  return `${symbol} ${num.toFixed(2)}`;
+};
 
 export default function ViewInvoicePage() {
-
   const router = useRouter();
-   const params = useParams();
+  const params = useParams();
 
+  const invoice_number =
+    (params as any)?.invoice_number ||
+    (params as any)?.id ||
+    (params as any)?.invoiceNumber;
 
-const invoice_number =
-  (params as any)?.invoice_number ||
-  (params as any)?.id ||
-  (params as any)?.invoiceNumber;
+  // Fetch invoice data
+  const {
+    data: invoice,
+    isLoading,
+    error,
+  } = useInvoice(invoice_number, !!invoice_number && invoice_number !== "undefined");
 
-
-
-
-const {
-  data: invoice,
-  isLoading,
-  error,
-} = useInvoice(invoice_number, !!invoice_number && invoice_number !== "undefined");
-
-console.log("Invoice param:", invoice_number);
-
-
-
-
-
-  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
-  const [editorContent, setEditorContent] = useState("");
-  const [invoice_page_descriptions, setInvoicePageDescriptions] = useState<
-    Record<string, string>
-  >({});
-
+  // Always call hooks at the top level
   const settingsProfileId = invoice?.settingsProfileId;
 
-const customer = invoice?.customerSnapshot as CustomerSnapshot | undefined;
-
-  
-  
+  // Fetch payment history (called unconditionally)
   const {
-  data: settings,
-  isLoading: settingsLoading,
-} = useSettingsProfile(settingsProfileId as string, !!settingsProfileId);
+    data: paymentHistory,
+    isLoading: isPaymentLoading,
+  } = useInvoicePaymentHistory(invoice?.id, !!invoice?.id);
+
+  const customer = invoice?.customerSnapshot as CustomerSnapshot | undefined;
+
+  const { mutate: downloadInvoice, isPending: isDownloading } = useDownloadInvoice();
+
+  // Fetch settings
+  const {
+    data: settings,
+    isLoading: settingsLoading,
+  } = useSettingsProfile(settingsProfileId as string, !!settingsProfileId);
 
   const currencyCode = invoice?.currency || "USD";
-
   const currencySymbol =
     currencyOptions.find((c) => c.value === currencyCode)?.symbol || "$";
 
-  
-if (isLoading || settingsLoading) {
-  return <Card>Loading invoice...</Card>;
-}
+  // Loading state
+  if (isLoading || settingsLoading) {
+    return <Card>Loading invoice...</Card>;
+  }
 
-if (!invoice) {
-  return <Card>Invoice not found</Card>;
-}
+  // Error or no invoice state
+  if (!invoice) {
+    return <Card>Invoice not found</Card>;
+  }
 
-if (!settings) {
-  return <Card>Settings profile not found</Card>;
-}
+  if (!settings) {
+    return <Card>Settings profile not found</Card>;
+  }
 
+  const hasTax = invoice.taxTotal > 0;
 
- const hasTax = invoice.taxTotal > 0;
+  // Prepare table data
+  const tableData = (invoice.items as InvoiceItem[]).map((item, index: number) => {
+    const qty = Number(item.qty || 0);
+    const price = Number(item.price || 0);
+    const taxPercent = Number(item.tax || 0);
 
+    const lineSubtotal = price * qty;
+    const lineTaxAmount = lineSubtotal * (taxPercent / 100);
+    const total = lineSubtotal + lineTaxAmount;
 
-const tableData = (invoice.items as InvoiceItem[]).map((item, index: number) => {
-  const qty = Number(item.qty || 0);
-  const price = Number(item.price || 0);
-  const taxPercent = Number(item.tax || 0);
-
-  const lineSubtotal = price * qty;
-  const lineTaxAmount = lineSubtotal * (taxPercent / 100);
-  const total = lineSubtotal + lineTaxAmount;
-
-  return {
-    ...item,
-    _key: index,
-    lineTaxAmount, // Store this to show in the Tax column
-    total,
-  };
-});
-
-
+    return {
+      ...item,
+      _key: index,
+      lineTaxAmount,
+      total,
+    };
+  });
 
   const SNO_COL = 0;
   const ITEM_COL = 1;
@@ -241,11 +204,8 @@ const tableData = (invoice.items as InvoiceItem[]).map((item, index: number) => 
       key: "price",
       align: "right" as const,
       width: 120,
-      render: (value: number) =>
-        `${currencySymbol} ${(Number(value) || 0).toFixed(2)}`,
+      render: (value: number) => formatCurrency(value, currencySymbol),
     },
-
-    // ✅ TAX COLUMN ONLY IF TAX EXISTS
     ...(hasTax
       ? [
           {
@@ -255,63 +215,42 @@ const tableData = (invoice.items as InvoiceItem[]).map((item, index: number) => 
             align: "center" as const,
             width: 80,
             render: (_: any, record: InvoiceItem) =>
-      `${currencySymbol} ${Number(record.tax).toFixed(2)}`,
+              formatCurrency(record.tax, currencySymbol),
           },
         ]
       : []),
-
     {
       title: "Total",
       key: "total",
       align: "right" as const,
       width: 120,
-      render: (_: any, record: any) =>
-  `${currencySymbol} ${Number(record.total || 0).toFixed(2)}`,
-
+      render: (_: any, record: any) => formatCurrency(record.total, currencySymbol),
     },
   ];
 
-  // const tableData = (invoice.items as InvoiceItem[]).map(
-  //   (item: InvoiceItem, index: number) => ({
-  //     ...item,
-  //     _key: index,
-  //   }),
-  // );
+  const subtotal = Number(invoice?.subtotal || 0);
+  const taxTotal = Number(invoice?.taxTotal || 0);
+  const discount = Number(invoice?.discount || 0);
+  const grandTotal = Number(invoice?.total || 0);
 
-const subtotal = Number(invoice?.subtotal || 0);
-const taxTotal = Number(invoice?.taxTotal || 0);
-const discount = Number(invoice?.discount || 0);
-const grandTotal = Number(invoice?.total || 0);
-
-const totalQty = invoice.items.reduce(
-  (sum, item) => sum + Number(item.qty || 0),
-  0,
-);
-
-
-
-  // Pick currency
+  const totalQty = invoice.items.reduce(
+    (sum, item) => sum + Number(item.qty || 0),
+    0,
+  );
 
   const currency = currencyOptions.find((c) => c.value === currencyCode);
-
   const majorAmount = Math.floor(grandTotal);
   const minorAmount = Math.round((grandTotal - majorAmount) * 100);
-
   const majorWord = majorAmount === 1 ? currency?.label : `${currency?.label}s`;
   const minorWord = minorAmount === 1 ? currency?.minor : `${currency?.minor}s`;
-
-  // Construct full total in words
   const totalInWords = `${numberToWords(majorAmount)} ${majorWord}${
     minorAmount ? ` and ${numberToWords(minorAmount)} ${minorWord}` : ""
   } Only`;
 
-
-
-
   return (
     <div
       style={{
-        height: "calc(100vh - 64px)", // adjust if header height differs
+        height: "calc(100vh - 64px)",
         overflowY: "auto",
         padding: "24px 16px",
       }}
@@ -327,7 +266,6 @@ const totalQty = invoice.items.reduce(
           }}
         >
           <Button
-            //icon={<ArrowLeft size={16} />}
             onClick={() => router.back()}
             style={{ display: "flex", alignItems: "center", gap: 8 }}
           >
@@ -336,11 +274,14 @@ const totalQty = invoice.items.reduce(
 
           <Space>
             <Space>
-              <InvoiceDownloadButton
-                invoice={invoice}
-                settings={settings}
-                invoice_page_descriptions={invoice_page_descriptions}
-              />
+              <Button
+                type="default"
+                icon={<DownloadOutlined />}
+                loading={isDownloading}
+                onClick={() => downloadInvoice(invoice.id)}
+              >
+                {isDownloading ? "Generating PDF..." : "Download PDF"}
+              </Button>
               <Button type="primary" onClick={() => window.print()}>
                 Print
               </Button>
@@ -400,18 +341,18 @@ const totalQty = invoice.items.reduce(
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       lineHeight: "1.4",
-                      maxWidth: 500, 
+                      maxWidth: 500,
                     }}
                   >
                     {[
                       settings?.general?.address?.plot_no,
-  settings?.general?.address?.floor_no,
-  settings?.general?.address?.building_name,
-  settings?.general?.address?.street,
-  settings?.general?.address?.area,
-  settings?.general?.address?.city,
-  settings?.general?.address?.pincode,
-  settings?.general?.address?.country,
+                      settings?.general?.address?.floor_no,
+                      settings?.general?.address?.building_name,
+                      settings?.general?.address?.street,
+                      settings?.general?.address?.area,
+                      settings?.general?.address?.city,
+                      settings?.general?.address?.pincode,
+                      settings?.general?.address?.country,
                     ]
                       .filter(Boolean)
                       .join(" ") || ""}
@@ -424,7 +365,24 @@ const totalQty = invoice.items.reduce(
                 <Title level={2} style={{ margin: 0 }}>
                   INVOICE
                 </Title>
-                <Text type="secondary">Invoice #{invoice.invoiceNumber}</Text>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+                  <Text type="secondary">Invoice #{invoice.invoiceNumber}</Text>
+                  <Tag
+                    color={
+                      invoice?.status === 'PAID' ? 'success' :
+                      invoice?.status === 'PARTIALLY_PAID' ? 'warning' :
+                      invoice?.status === 'OVERDUE' ? 'error' : 'default'
+                    }
+                    style={{ margin: 0 }}
+                  >
+                    {invoice?.status?.replace('_', ' ')}
+                  </Tag>
+                </div>
+                {(Number(invoice?.balanceDue) || 0) > 0 && (
+                  <Text type="danger" style={{ fontSize: 12, marginTop: 4 }}>
+                    Balance Due: {formatCurrency(invoice?.balanceDue, currencySymbol)}
+                  </Text>
+                )}
               </div>
             </div>
           </div>
@@ -435,52 +393,44 @@ const totalQty = invoice.items.reduce(
               display: "flex",
               gap: 12,
               marginBottom: 32,
-              alignItems: "flex-start", 
+              alignItems: "flex-start",
             }}
           >
             {/* Bill To Section */}
+            <div style={{ flex: 1 }}>
+              <Title level={5} style={{ marginBottom: 4, color: "#555" }}>
+                BILL TO
+              </Title>
+              <div
+                style={{
+                  backgroundColor: "#f9f9f9",
+                  padding: 12,
+                  borderRadius: 8,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                  height: "100%",
+                }}
+              >
+                <Text strong style={{ fontSize: 16, display: "block", marginBottom: 6 }}>
+                  {customer?.companyName || ""}
+                </Text>
+                <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
+                  {customer?.address || ""}
+                </Text>
+                <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
+                  {customer?.city ? `${customer.city}, ` : ""}{customer?.country || ""}
+                </Text>
+                <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
+                  {customer?.email || ""}
+                </Text>
+                {customer?.taxId && (
+                  <Text style={{ display: "block", marginTop: 8, fontSize: 13, color: "#888" }}>
+                    <strong>Tax ID:</strong> {customer.taxId}
+                  </Text>
+                )}
+              </div>
+            </div>
 
-
-            {/* Bill To Section */}
-<div style={{ flex: 1 }}>
-  <Title level={5} style={{ marginBottom: 4, color: "#555" }}>
-    BILL TO
-  </Title>
-  <div
-    style={{
-      backgroundColor: "#f9f9f9",
-      padding: 12,
-      borderRadius: 8,
-      boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-      height: "100%", 
-    }}
-  >
-    <Text strong style={{ fontSize: 16, display: "block", marginBottom: 6 }}>
-      {customer?.companyName || ""}
-    </Text>
-    <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
-      {customer?.address || ""}
-    </Text>
-    <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
-      {customer?.city ? `${customer.city}, ` : ""}{customer?.country || ""}
-    </Text>
-    <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
-      {customer?.email || ""}
-    </Text>
-    {customer?.taxId && (
-      <Text style={{ display: "block", marginTop: 8, fontSize: 13, color: "#888" }}>
-        <strong>Tax ID:</strong> {customer.taxId}
-      </Text>
-    )}
-  </div>
-</div>
-
-
-
-
-
-
-            {/* Invoice Details */}
+            {/* Invoice Details with Payment Info */}
             <div style={{ flex: 1 }}>
               <Title
                 level={5}
@@ -494,7 +444,7 @@ const totalQty = invoice.items.reduce(
                   padding: 20,
                   borderRadius: 8,
                   boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                  textAlign: "left", // front-aligned inside card
+                  textAlign: "left",
                   minWidth: 220,
                 }}
               >
@@ -523,105 +473,24 @@ const totalQty = invoice.items.reduce(
                   </Text>
                 </div>
 
-                <div>
+                <div style={{ marginBottom: 8 }}>
                   <Text strong>Type:</Text>{" "}
                   <Text style={{ color: settings?.general?.primaryColor || "#1890ff" }}>
                     {invoice.invoiceType || "Standard"}
                   </Text>
                 </div>
+
+                
+                
               </div>
             </div>
+
+
+
+
           </div>
 
-          {/* Editable Invoice Description */}
-
-          <div style={{ marginBottom: 32 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 8,
-              }}
-            >
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                }}
-              >
-                Description
-              </Text>
-
-              {!descriptionEditorOpen && (
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => setDescriptionEditorOpen(true)}
-                >
-                  Edit
-                </Button>
-              )}
-            </div>
-
-            {descriptionEditorOpen ? (
-              <>
-                <TiptapEditor
-                  content={editorContent}
-                  onChange={setEditorContent}
-                  placeholder="Add description..."
-                  minHeight={150}
-                />
-
-                <div
-                  style={{
-                    marginTop: 8,
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: 8,
-                  }}
-                >
-                  <Button
-                    size="small"
-                    onClick={() => setDescriptionEditorOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-
-                  <Button
-                    type="primary"
-                    size="small"
-                    
-                  >
-                    Done
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div
-                onClick={() => setDescriptionEditorOpen(true)}
-                style={{
-                  minHeight: 40,
-                  cursor: "text",
-                  padding: 12,
-                  borderRadius: 6,
-                  border: "1px dashed #d9d9d9",
-                }}
-              >
-                {editorContent ? (
-                  <div dangerouslySetInnerHTML={{ __html: editorContent }} />
-                ) : (
-                  <Text type="secondary" italic>
-                    Click to add a description…
-                  </Text>
-                )}
-              </div>
-            )}
-          </div>
-
+          {/* Items Table */}
           <Table
             dataSource={tableData}
             columns={columns}
@@ -631,7 +500,7 @@ const totalQty = invoice.items.reduce(
             size="small"
             summary={() => (
               <>
-                {/* ===== SUBTOTAL ===== */}
+                {/* SUBTOTAL */}
                 <Table.Summary.Row>
                   <Table.Summary.Cell index={SNO_COL} />
                   <Table.Summary.Cell index={ITEM_COL} align="right">
@@ -641,13 +510,11 @@ const totalQty = invoice.items.reduce(
                   <Table.Summary.Cell index={PRICE_COL} />
                   {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
                   <Table.Summary.Cell index={TOTAL_COL} align="right">
-                    <Text>
-                      {currencySymbol} {subtotal.toFixed(2)}
-                    </Text>
+                    <Text>{formatCurrency(subtotal, currencySymbol)}</Text>
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
 
-                {/* ===== TAX ===== */}
+                {/* TAX */}
                 {hasTax && taxTotal > 0 && (
                   <Table.Summary.Row>
                     <Table.Summary.Cell index={SNO_COL} />
@@ -658,14 +525,12 @@ const totalQty = invoice.items.reduce(
                     <Table.Summary.Cell index={PRICE_COL} />
                     <Table.Summary.Cell index={TAX_COL!} />
                     <Table.Summary.Cell index={TOTAL_COL} align="right">
-                      <Text>
-                        {currencySymbol} {taxTotal.toFixed(2)}
-                      </Text>
+                      <Text>{formatCurrency(taxTotal, currencySymbol)}</Text>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
                 )}
 
-                {/* ===== DISCOUNT ===== */}
+                {/* DISCOUNT */}
                 {discount > 0 && (
                   <Table.Summary.Row>
                     <Table.Summary.Cell index={SNO_COL} />
@@ -676,14 +541,12 @@ const totalQty = invoice.items.reduce(
                     <Table.Summary.Cell index={PRICE_COL} />
                     {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
                     <Table.Summary.Cell index={TOTAL_COL} align="right">
-                      <Text>
-                        -{currencySymbol} {discount.toFixed(2)}
-                      </Text>
+                      <Text>-{formatCurrency(discount, currencySymbol)}</Text>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
                 )}
 
-                {/* ===== GRAND TOTAL ===== */}
+                {/* GRAND TOTAL */}
                 <Table.Summary.Row
                   style={{
                     backgroundColor: "#fafafa",
@@ -704,7 +567,7 @@ const totalQty = invoice.items.reduce(
 
                   <Table.Summary.Cell index={TOTAL_COL} align="right">
                     <Text strong style={{ fontSize: 16, color: "#1890ff" }}>
-                      {currencySymbol} {grandTotal.toFixed(2)}
+                      {formatCurrency(grandTotal, currencySymbol)}
                     </Text>
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
@@ -712,6 +575,7 @@ const totalQty = invoice.items.reduce(
             )}
           />
 
+          {/* Amount in Words */}
           <div
             style={{
               marginTop: 12,
@@ -725,7 +589,9 @@ const totalQty = invoice.items.reduce(
             <Text strong>Amount in Words:</Text> <Text>{totalInWords}</Text>
           </div>
 
-          {/* Payment / Bank Details + sign */}
+
+
+          {/* Payment / Bank Details + signature */}
           {settings?.payment && (
             <div
               style={{
@@ -739,7 +605,7 @@ const totalQty = invoice.items.reduce(
                 alignItems: "flex-start",
               }}
             >
-              {/* ================= COLUMN 1 : BANK + QR ================= */}
+              {/* Bank Details */}
               <div>
                 <Title level={4} style={{ marginBottom: 8, color: "#555" }}>
                   Bank Details
@@ -809,7 +675,7 @@ const totalQty = invoice.items.reduce(
                 </div>
               </div>
 
-              {/* ================= COLUMN 2 : SIGNATURE ================= */}
+              {/* Signature */}
               {settings.general?.signature && (
                 <div style={{ textAlign: "center" }}>
                   <Title level={4} style={{ marginBottom: 8, color: "#555" }}>
@@ -853,6 +719,7 @@ const totalQty = invoice.items.reduce(
             </div>
           )}
 
+          {/* Notes & Terms */}
           {(invoice.notes || invoice.terms) && (
             <div
               style={{
@@ -904,7 +771,7 @@ const totalQty = invoice.items.reduce(
             </div>
           )}
 
-          {/* =================  INVOICE FOOTER ================= */}
+          {/* Invoice Footer */}
           <div
             style={{
               marginTop: "auto",
@@ -912,7 +779,6 @@ const totalQty = invoice.items.reduce(
               textAlign: "center",
             }}
           >
-            {/* ===== LINE ONE ===== */}
             <div
               style={{
                 display: "flex",
@@ -931,7 +797,6 @@ const totalQty = invoice.items.reduce(
                 Crafted with ease using
               </span>
 
-              {/* Brand inline */}
               <div
                 style={{
                   display: "flex",
@@ -939,7 +804,6 @@ const totalQty = invoice.items.reduce(
                   flexShrink: 0,
                 }}
               >
-                {/* Logo */}
                 {settings?.general?.companyLogo && (
                   <img
                     src={settings.general.companyLogo}
@@ -953,7 +817,6 @@ const totalQty = invoice.items.reduce(
                   />
                 )}
 
-                {/* Company name + Invoice stacked */}
                 <div
                   style={{
                     display: "flex",
@@ -983,7 +846,6 @@ const totalQty = invoice.items.reduce(
               </div>
             </div>
 
-            {/* ===== LINE TWO ===== */}
             <div
               style={{
                 marginTop: 2,

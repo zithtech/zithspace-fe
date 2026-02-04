@@ -39,9 +39,167 @@ import {
 import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
+import { MembersService } from "@/services/membersService";
 import dayjs from "dayjs";
 const { Text } = Typography;
 const { Title } = Typography;
+const leaveTypesData = [
+  {
+    name: "Casual Leave",
+    description: "Leave taken for personal reasons or short-term needs.",
+  },
+  {
+    name: "Sick Leave",
+    description: "Leave taken when an employee is ill or unwell.",
+  },
+  {
+    name: "Earned Leave",
+    description: "Leave accumulated over time based on work tenure.",
+  },
+  {
+    name: "Paid Leave",
+    description: "Leave where salary is fully paid during absence.",
+  },
+  {
+    name: "Unpaid Leave",
+    description: "Leave taken without salary payment.",
+  },
+  {
+    name: "Loss of Pay",
+    description:
+      "Leave resulting in salary deduction due to insufficient balance.",
+  },
+  {
+    name: "Comp-Off",
+    description: "Leave granted for working on holidays or weekends.",
+  },
+  {
+    name: "Permission",
+    description: "Short-duration leave taken for a few hours.",
+  },
+  {
+    name: "On Duty",
+    description:
+      "Marked when employee is working outside office for official work.",
+  },
+  {
+    name: "Emergency Leave",
+    description: "Leave taken due to urgent or unexpected situations.",
+  },
+  {
+    name: "Medical Leave",
+    description: "Extended leave taken for medical treatment or recovery.",
+  },
+  {
+    name: "Festival Holiday",
+    description: "Holiday granted for religious or cultural festivals.",
+  },
+  {
+    name: "Weekly Off",
+    description: "Regular weekly holiday such as Sunday or scheduled off day.",
+  },
+  {
+    name: "Marriage Leave",
+    description: "Leave granted for employee’s marriage.",
+  },
+  {
+    name: "Bereavement Leave",
+    description: "Leave taken due to death of a close family member.",
+  },
+
+  // Office / Corporate (IT + Non-IT)
+  {
+    name: "Work From Home",
+    description: "Employee works remotely instead of office.",
+  },
+  {
+    name: "Optional Holiday",
+    description: "Employee can choose to take this holiday optionally.",
+  },
+  {
+    name: "Floating Holiday",
+    description: "Flexible holiday chosen by the employee.",
+  },
+  {
+    name: "Privilege Leave",
+    description: "Long-term leave granted as per company policy.",
+  },
+  {
+    name: "Annual Leave",
+    description: "Yearly leave entitlement for employees.",
+  },
+  {
+    id: 21,
+    name: "Training Leave",
+    description: "Leave taken to attend training or skill programs.",
+  },
+  {
+    name: "Sabbatical Leave",
+    description: "Extended leave for personal or professional development.",
+  },
+
+  // Hospital / Healthcare
+  {
+    name: "Night Shift Off",
+    description: "Off granted after night shift duty.",
+  },
+  {
+    name: "Quarantine Leave",
+    description: "Leave during isolation due to contagious illness.",
+  },
+  {
+    name: "Accident Leave",
+    description: "Leave taken due to injury or accident.",
+  },
+  {
+    name: "Duty Roster Leave",
+    description: "Leave based on duty roster schedule.",
+  },
+  {
+    name: "Emergency Duty Off",
+    description: "Off given after emergency duty hours.",
+  },
+  {
+    name: "Maternity Leave",
+    description: "Leave granted to female employees during childbirth.",
+  },
+  {
+    name: "Paternity Leave",
+    description: "Leave granted to male employees after childbirth.",
+  },
+
+  // Factory / Manufacturing
+  {
+    name: "Shift Leave",
+    description: "Leave taken due to shift schedule changes.",
+  },
+  {
+    name: "Production Shutdown Leave",
+    description: "Leave during factory or production shutdown.",
+  },
+  {
+    name: "Compensatory Leave",
+    description: "Leave given in return for extra working hours.",
+  },
+  {
+    name: "Special Leave",
+    description: "Leave granted for special circumstances.",
+  },
+  {
+    name: "Layoff Leave",
+    description: "Leave during temporary workforce layoff.",
+  },
+  {
+    name: "Menstrual Leave",
+    description:
+      "Menstrual Leave is a paid leave granted to eligible female employees to address health and wellness needs during their menstrual cycle. This leave is provided in accordance with company policy and may require prior approval.",
+  },
+  {
+    name: "Sandwich Leave",
+    description:
+      "Sandwich Leave is applied when an employee takes leave before and after a holiday or weekend, causing the intervening non-working days to be counted as leave, as per company policy.",
+  },
+];
 
 interface LeaveAdjustment {
   key: string;
@@ -68,6 +226,7 @@ export default function LeaveAdjustmentPage() {
   );
   const [searchText, setSearchText] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<{ label: string; value: string }[]>([]);
 
   useEffect(() => {
     const fetchAdjustments = async () => {
@@ -143,11 +302,28 @@ export default function LeaveAdjustmentPage() {
     fetchAdjustments();
   }, [api]);
 
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const data = await MembersService.getMembersForSelect();
+        setEmployees(data);
+      } catch (error) {
+        console.error("Failed to fetch employees:", error);
+      }
+    };
+    fetchEmployees();
+  }, []);
+
   const handleSaveAdjustment = (values: any) => {
+    const employee = employees.find((emp) => emp.value === values.employee);
+    const employeeName = employee ? employee.label : values.employee;
+
     if (editingKey) {
       setDataSource((prev) =>
         prev.map((item) =>
-          item.key === editingKey ? { ...item, ...values } : item,
+          item.key === editingKey
+            ? { ...item, ...values, employee: employeeName }
+            : item,
         ),
       );
       api.success({
@@ -159,6 +335,7 @@ export default function LeaveAdjustmentPage() {
       const newEntry = {
         key: Date.now().toString(),
         ...values,
+        employee: employeeName,
       };
       setDataSource((prev) => [...prev, newEntry]);
       api.success({
@@ -174,10 +351,12 @@ export default function LeaveAdjustmentPage() {
   };
 
   const handleEdit = (record: LeaveAdjustment) => {
+    const employee = employees.find((emp) => emp.label === record.employee);
     setEditingKey(record.key);
     setSelectedLeaveType(record.leaveType);
     form.setFieldsValue({
       ...record,
+      employee: employee ? employee.value : record.employee,
       unit: record.unit || "Days",
       compOffWorkDate: record.compOffWorkDate
         ? dayjs(record.compOffWorkDate)
@@ -393,25 +572,27 @@ export default function LeaveAdjustmentPage() {
                   </Text>
                 </div>
               </div>
-               <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
+              <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
 
   <Input.Search
     size="large"
     placeholder="Search adjustments...."
     allowClear
-    style={{ width: 350,height: 35}}
+    style={{ width: 350 }}
     onChange={(e) => setSearchText(e.target.value)}
   />
 
   <Button
     type="primary"
-    style={{ width: 160,height: 35 }}
+    size="large"
+    style={{ width: 160 }}
     onClick={() => setIsModalVisible(true)}
   >
     + Add New Adjustment
   </Button>
 
 </div>
+
 
             </div>
             <Table
@@ -464,13 +645,10 @@ export default function LeaveAdjustmentPage() {
                     <Select
                       placeholder="Select Employee"
                       showSearch
-                      options={[
-                        { label: "Alice Johnson", value: "Alice Johnson" },
-                        { label: "Bob Smith", value: "Bob Smith" },
-                        { label: "Charlie Brown", value: "Charlie Brown" },
-                        { label: "David Wilson", value: "David Wilson" },
-                        { label: "Eva Green", value: "Eva Green" },
-                      ]}
+                      options={employees}
+                      filterOption={(input, option) =>
+                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
                     />
                   </Form.Item>
                 </Col>
@@ -492,16 +670,10 @@ export default function LeaveAdjustmentPage() {
                           form.setFieldsValue({ unit: "Days" });
                         }
                       }}
-                      options={[
-                        { label: "Sick Leave (SL)", value: "Sick Leave" },
-                        { label: "Casual Leave (CL)", value: "Casual Leave" },
-                        {
-                          label: "Work From Home (WFH)",
-                          value: "Work From Home",
-                        },
-                        { label: "Permission (PRM)", value: "Permission" },
-                        { label: "Comp-Off (CO)", value: "Comp-Off" },
-                      ]}
+                      options={leaveTypesData.map((l) => ({
+                        label: l.name,
+                        value: l.name,
+                      }))}
                     />
                   </Form.Item>
                 </Col>

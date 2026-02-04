@@ -35,7 +35,7 @@ interface CustomerSnapshot {
   taxId?: string | null;
 }
 
-export function numberToWords(num: number): string {
+function numberToWords(num: number): string {
   if (num === 0) return "Zero";
 
   const a = [

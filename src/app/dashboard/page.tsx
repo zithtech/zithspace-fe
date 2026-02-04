@@ -37,7 +37,7 @@ import {
   PlusOutlined,
   FileTextOutlined,
 } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 
 const { Title, Text } = Typography;
 
@@ -65,38 +65,28 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      if (!user) return;
 
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await dashboardService.getDashboardSummary();
-        setDashboardData(data);
-      } catch (err: any) {
-        console.error("Failed to fetch dashboard data:", err);
-        setError(err.message || "Failed to load dashboard data");
-      } finally {
-        setLoading(false);
+      if (user) {
+        try {
+          setLoading(true);
+          setError(null);
+          const data = await dashboardService.getDashboardSummary();
+          setDashboardData(data);
+        } catch (err: any) {
+          console.error("Failed to fetch dashboard data:", err);
+          setError(err.message || "Failed to load dashboard data");
+        } finally {
+          setLoading(false);
+        }
+
       }
+
+
+
     };
 
     fetchDashboardData();
   }, [user]);
-
-  // Show loading spinner while authentication is being checked
-  if (authLoading) {
-    return (
-      <MainLayout>
-        <LoadingSpinner message="Loading dashboard..." />
-      </MainLayout>
-    );
-  }
-
-  // Don't render if no user
-  if (!user) {
-    return null;
-  }
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
@@ -166,37 +156,37 @@ export default function DashboardPage() {
   // Statistics cards configuration
   const stats = dashboardData
     ? [
-        {
-          title: "Total Members",
-          value: dashboardData.stats.totalMembers,
-          icon: <TeamOutlined style={{ color: "#1677ff" }} />,
-          color: "#1677ff",
-          change: dashboardData.trends.memberGrowth,
-        },
-        {
-          title: "Active Projects",
-          value: dashboardData.stats.activeProjects,
-          icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
-          color: "#52c41a",
-          change: dashboardData.trends.projectGrowth,
-        },
-        {
-          title: "Assigned Tickets / Closed Tickets",
-          value: dashboardData.stats.tickets.display,
-          icon: <UserOutlined style={{ color: "#faad14" }} />,
-          color: "#faad14",
-          change: dashboardData.trends.ticketCompletionRate,
-        },
-        {
-          title: "Today's Attendance",
-          value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-          icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
-          color: "#722ed1",
-          change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
-          isAttendance: true,
-          stats: dashboardData.stats.attendance,
-        },
-      ]
+      {
+        title: "Total Members",
+        value: dashboardData.stats.totalMembers,
+        icon: <TeamOutlined style={{ color: "#1677ff" }} />,
+        color: "#1677ff",
+        change: dashboardData.trends.memberGrowth,
+      },
+      {
+        title: "Active Projects",
+        value: dashboardData.stats.activeProjects,
+        icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
+        color: "#52c41a",
+        change: dashboardData.trends.projectGrowth,
+      },
+      {
+        title: "Assigned Tickets / Closed Tickets",
+        value: dashboardData.stats.tickets.display,
+        icon: <UserOutlined style={{ color: "#faad14" }} />,
+        color: "#faad14",
+        change: dashboardData.trends.ticketCompletionRate,
+      },
+      {
+        title: "Today's Attendance",
+        value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
+        icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
+        color: "#722ed1",
+        change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
+        isAttendance: true,
+        stats: dashboardData.stats.attendance,
+      },
+    ]
     : [];
 
   // Pie Chart Helper

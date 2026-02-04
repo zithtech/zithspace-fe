@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import Highlight from '@tiptap/extension-highlight';
-import { Spin } from 'antd';
+import React from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import { Spin } from "antd";
 
 interface TiptapViewerProps {
   content: string;
@@ -30,19 +30,19 @@ export default function TiptapViewer({
       Image.configure({
         inline: true,
         HTMLAttributes: {
-          class: 'tiptap-image',
+          class: "tiptap-image",
         },
       }),
       Link.configure({
         openOnClick: true,
         HTMLAttributes: {
-          target: '_blank',
-          rel: 'noopener noreferrer',
+          target: "_blank",
+          rel: "noopener noreferrer",
         },
       }),
       Underline,
       TextAlign.configure({
-        types: ['heading', 'paragraph'],
+        types: ["heading", "paragraph"],
       }),
       Highlight.configure({
         multicolor: false,
@@ -52,7 +52,7 @@ export default function TiptapViewer({
     editable: false,
     editorProps: {
       attributes: {
-        class: 'tiptap-viewer-content',
+        class: "tiptap-viewer-content",
         style: `min-height: ${minHeight}px;`,
       },
     },
@@ -70,8 +70,8 @@ export default function TiptapViewer({
   }
 
   return (
-    <div className="tiptap-viewer-wrapper">
-      <EditorContent editor={editor} />
+    <div className="tiptap-viewer-wrapper  prose prose-lg max-w-none focus:outline-none ">
+        <EditorContent editor={editor} />
 
       <style jsx global>{`
         .tiptap-viewer-content {
@@ -141,7 +141,7 @@ export default function TiptapViewer({
           background-color: #f5f5f5;
           padding: 2px 6px;
           border-radius: 3px;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
           font-size: 0.9em;
         }
 

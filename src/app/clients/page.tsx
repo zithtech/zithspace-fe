@@ -19,6 +19,9 @@ import {
   Row,
   Col,
   Statistic,
+  Segmented,
+  Avatar,
+  DatePicker,
 } from "antd";
 import {
   PlusOutlined,
@@ -31,12 +34,25 @@ import {
   MailOutlined,
   PhoneOutlined,
   UserOutlined,
+  AppstoreOutlined,
+  BarsOutlined,
+  TeamOutlined,
+  ExclamationCircleOutlined,
+  CalendarOutlined,
+  UserAddOutlined,
+  EnvironmentOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { ClientService, Client, CreateClientData, UpdateClientData } from '@/services/clientService';
+import {
+  ClientService,
+  Client,
+  CreateClientData,
+  UpdateClientData,
+} from "@/services/clientService";
 import type { ColumnsType } from "antd/es/table";
 import { useRBAC } from "@/lib/rbac";
-import dayjs from 'dayjs';
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -61,13 +77,19 @@ export default function ClientsPage() {
     total: 0,
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(
+    undefined,
+  );
 
   // Modal states
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<"add" | "edit" | "delete" | "view">("add");
+  const [modalType, setModalType] = useState<
+    "add" | "edit" | "delete" | "view"
+  >("add");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
 
   // RBAC permissions
   const rbac = useRBAC(user?.role as any);
@@ -75,7 +97,7 @@ export default function ClientsPage() {
 
   // Check permissions
   useEffect(() => {
-    if (user && !['super_admin', 'admin', 'user'].includes(user.role)) {
+    if (user && !["super_admin", "admin", "user"].includes(user.role)) {
       router.push("/dashboard");
     }
   }, [user, router]);
@@ -143,7 +165,10 @@ export default function ClientsPage() {
       };
 
       if (modalType === "edit" && selectedClient) {
-        await ClientService.updateClient(selectedClient.id, formData as UpdateClientData);
+        await ClientService.updateClient(
+          selectedClient.id,
+          formData as UpdateClientData,
+        );
         setSuccess("Client updated successfully");
       } else {
         await ClientService.createClient(formData);
@@ -271,13 +296,13 @@ export default function ClientsPage() {
       render: (_, record: Client) => (
         <div>
           <Space size={4}>
-            <MailOutlined style={{ fontSize: 11, color: '#8c8c8c' }} />
+            <MailOutlined style={{ fontSize: 11, color: "#8c8c8c" }} />
             <Text style={{ fontSize: 12 }}>{record.email}</Text>
           </Space>
           <br />
           {record.phone && (
             <Space size={4}>
-              <PhoneOutlined style={{ fontSize: 11, color: '#8c8c8c' }} />
+              <PhoneOutlined style={{ fontSize: 11, color: "#8c8c8c" }} />
               <Text type="secondary" style={{ fontSize: 11 }}>
                 {record.phone}
               </Text>
@@ -293,7 +318,7 @@ export default function ClientsPage() {
       width: 150,
       render: (contactPerson: string) => (
         <Space size={4}>
-          <UserOutlined style={{ fontSize: 11, color: '#8c8c8c' }} />
+          <UserOutlined style={{ fontSize: 11, color: "#8c8c8c" }} />
           <Text style={{ fontSize: 12 }}>{contactPerson || "-"}</Text>
         </Space>
       ),
@@ -319,7 +344,7 @@ export default function ClientsPage() {
       width: 120,
       render: (date: string) => (
         <Text type="secondary" style={{ fontSize: 11 }}>
-          {dayjs(date).format('MMM DD, YYYY')}
+          {dayjs(date).format("MMM DD, YYYY")}
         </Text>
       ),
     },
@@ -328,7 +353,7 @@ export default function ClientsPage() {
       key: "actions",
       width: 80,
       align: "center",
-      fixed: 'right',
+      fixed: "right",
       render: (_, record: Client) => {
         const menuItems = [
           {
@@ -337,21 +362,23 @@ export default function ClientsPage() {
             label: "View",
             onClick: () => showViewModal(record),
           },
-          ...(canManage ? [
-            {
-              key: "edit",
-              icon: <EditOutlined />,
-              label: "Edit",
-              onClick: () => showEditModal(record),
-            },
-            {
-              key: "delete",
-              icon: <DeleteOutlined />,
-              label: "Delete",
-              danger: true,
-              onClick: () => showDeleteModal(record),
-            },
-          ] : []),
+          ...(canManage
+            ? [
+                {
+                  key: "edit",
+                  icon: <EditOutlined />,
+                  label: "Edit",
+                  onClick: () => showEditModal(record),
+                },
+                {
+                  key: "delete",
+                  icon: <DeleteOutlined />,
+                  label: "Delete",
+                  danger: true,
+                  onClick: () => showDeleteModal(record),
+                },
+              ]
+            : []),
         ];
 
         return (
@@ -360,11 +387,7 @@ export default function ClientsPage() {
             trigger={["click"]}
             placement="bottomRight"
           >
-            <Button
-              type="text"
-              icon={<MoreOutlined />}
-              size="small"
-            />
+            <Button type="text" icon={<MoreOutlined />} size="small" />
           </Dropdown>
         );
       },
@@ -385,13 +408,12 @@ export default function ClientsPage() {
   if (!user) {
     return null;
   }
-
   return (
     <MainLayout>
       <div style={{ padding: 20 }}>
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
-          <Space
+          {/* <Space
             align="center"
             style={{ width: "100%", justifyContent: "space-between" }}
           >
@@ -411,7 +433,81 @@ export default function ClientsPage() {
                 Add Client
               </Button>
             )}
-          </Space>
+          </Space> */}
+          <Row align="middle" justify="space-between">
+            {/* Left side - Title */}
+            <Col>
+              <Space align="center">
+                <ShopOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+                <Title level={3} style={{ margin: 0 }}>
+                  Client Management
+                </Title>
+              </Space>
+            </Col>
+
+            {/* Right side - Toggle + Add Button */}
+            <Col>
+              <Space>
+                {/* Card / List Button Toggle */}
+                <div
+                  style={{
+                    display: "flex",
+                    background: "#f5f5f5",
+                    borderRadius: 10,
+                    padding: 2,
+                    boxShadow: "inset 0 0 0 1px #d9d9d9",
+                  }}
+                >
+                  {/* Card View Button */}
+                  <Button
+                    type="text"
+                    icon={<AppstoreOutlined />}
+                    onClick={() => setViewMode("card")}
+                    style={{
+                      borderRadius: 8,
+                      padding: "4px 14px",
+                      fontWeight: 500,
+                      background:
+                        viewMode === "card" ? "#1677ff" : "transparent",
+                      color: viewMode === "card" ? "#fff" : "#595959",
+                      transition: "all 0.25s ease",
+                    }}
+                  >
+                    Card
+                  </Button>
+
+                  {/* List View Button */}
+                  <Button
+                    type="text"
+                    icon={<BarsOutlined />}
+                    onClick={() => setViewMode("list")}
+                    style={{
+                      borderRadius: 8,
+                      padding: "4px 14px",
+                      fontWeight: 500,
+                      background:
+                        viewMode === "list" ? "#1677ff" : "transparent",
+                      color: viewMode === "list" ? "#fff" : "#595959",
+                      transition: "all 0.25s ease",
+                    }}
+                  >
+                    List
+                  </Button>
+                </div>
+
+                {/* Add Client Button */}
+                {canManage && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={showAddModal}
+                  >
+                    Add Client
+                  </Button>
+                )}
+              </Space>
+            </Col>
+          </Row>
         </div>
 
         {/* Alerts */}
@@ -444,7 +540,7 @@ export default function ClientsPage() {
                 <Statistic
                   title="Total Clients"
                   value={stats.overview.totalClients}
-                  valueStyle={{ color: '#1677ff' }}
+                  valueStyle={{ color: "#1677ff" }}
                 />
               </Card>
             </Col>
@@ -453,7 +549,7 @@ export default function ClientsPage() {
                 <Statistic
                   title="Active Clients"
                   value={stats.overview.activeClients}
-                  valueStyle={{ color: '#52c41a' }}
+                  valueStyle={{ color: "#52c41a" }}
                 />
               </Card>
             </Col>
@@ -462,7 +558,7 @@ export default function ClientsPage() {
                 <Statistic
                   title="Inactive Clients"
                   value={stats.overview.inactiveClients}
-                  valueStyle={{ color: '#ff4d4f' }}
+                  valueStyle={{ color: "#ff4d4f" }}
                 />
               </Card>
             </Col>
@@ -494,242 +590,586 @@ export default function ClientsPage() {
           </Space>
         </Card>
 
-        {/* Clients Table */}
-        <Card size="small">
-          <Table
-            columns={columns}
-            dataSource={clients}
-            rowKey="id"
-            loading={loading}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} clients`,
-              onChange: (page, pageSize) => {
-                setPagination((prev) => ({
-                  ...prev,
-                  current: page,
-                  pageSize: pageSize || 10,
-                }));
-              },
-              size: 'small',
-            }}
-            size="small"
-            scroll={{ x: 900 }}
-          />
-        </Card>
+        {viewMode === "card" ? (
+          <Row gutter={[24, 24]}>
+            {loading
+              ? [1, 2, 3, 4].map((i) => (
+                  <Col xs={24} sm={12} lg={8} xl={6} key={i}>
+                    <Card
+                      loading
+                      style={{
+                        height: 320,
+                        borderRadius: 18,
+                      }}
+                    />
+                  </Col>
+                ))
+              : clients.map((client) => (
+                  <Col xs={24} sm={12} lg={8} xl={6} key={client.id}>
+                    <Card
+                      hoverable
+                      className="client-card"
+                      onClick={() => showViewModal(client)}
+                      style={{
+                        height: "100%",
+                        borderRadius: 18,
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                        border: "1px solid rgba(22,119,255,0.15)",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+                        transition: "all 0.35s cubic-bezier(.4,0,.2,1)",
+                        background:
+                          "linear-gradient(180deg, #ffffff 0%, #fafcff 100%)",
+                      }}
+                      bodyStyle={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        padding: 18,
+                      }}
+                    >
+                      {/* ===== HEADER ===== */}
+                      <div
+                        style={{
+                          display: "flex",
+                          marginBottom: 18,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Avatar
+                          size={52}
+                          style={{
+                            background:
+                              "linear-gradient(135deg, #1677ff, #69b1ff)",
+                            //boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
+                            fontWeight: "bold",
+                            fontSize: 18,
+                          }}
+                        >
+                          {client.name?.[0]?.toUpperCase()}
+                        </Avatar>
 
-        {/* Modal */}
+                        <div style={{ marginLeft: 14, flex: 1 }}>
+                          <Title
+                            level={5}
+                            style={{
+                              margin: 0,
+                              lineHeight: 1.3,
+                              fontWeight: 600,
+                            }}
+                            ellipsis={{ tooltip: client.name }}
+                          >
+                            {client.name}
+                          </Title>
+
+                          {client.company && (
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {client.company}
+                            </Text>
+                          )}
+
+                          <div style={{ marginTop: 6 }}>
+                            <Tag
+                              color={client.isActive ? "green" : "red"}
+                              style={{
+                                fontWeight: 600,
+                                borderRadius: 6,
+                              }}
+                            >
+                              {client.isActive ? "ACTIVE" : "INACTIVE"}
+                            </Tag>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ===== CLIENT INFO ===== */}
+                      <div
+                        style={{
+                          background: "rgba(245,248,250,0.9)",
+                          backdropFilter: "blur(6px)",
+                          padding: 14,
+                          borderRadius: 12,
+                          marginBottom: 18,
+                          flex: 1,
+                          border: "1px solid #e6f4ff",
+                        }}
+                      >
+                        <Space direction="vertical" size={8}>
+                          <Space>
+                            <MailOutlined style={{ color: "#1677ff" }} />
+                            <Text style={{ fontSize: 13 }}>
+                              {client.email || "—"}
+                            </Text>
+                          </Space>
+
+                          {client.phone && (
+                            <Space>
+                              <PhoneOutlined style={{ color: "#1677ff" }} />
+                              <Text style={{ fontSize: 13 }}>
+                                {client.phone}
+                              </Text>
+                            </Space>
+                          )}
+
+                          {client.contactPerson && (
+                            <Space>
+                              <UserOutlined style={{ color: "#1677ff" }} />
+                              <Text style={{ fontSize: 13 }}>
+                                {client.contactPerson}
+                              </Text>
+                            </Space>
+                          )}
+                        </Space>
+                      </div>
+
+                      {/* ===== FOOTER ===== */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {dayjs(client.createdAt).format("MMM DD, YYYY")}
+                        </Text>
+
+                        <Space>
+                          {canManage && (
+                            <>
+                              <Button
+                                type="text"
+                                icon={<EditOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  showEditModal(client);
+                                }}
+                              />
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  showDeleteModal(client);
+                                }}
+                              />
+                            </>
+                          )}
+                        </Space>
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+          </Row>
+        ) : (
+          <Card size="small">
+            <Table
+              columns={columns}
+              dataSource={clients}
+              rowKey="id"
+              loading={loading}
+              onRow={(record) => ({
+                onClick: () => showViewModal(record),
+              })}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} clients`,
+                onChange: (page, pageSize) =>
+                  setPagination((prev) => ({
+                    ...prev,
+                    current: page,
+                    pageSize: pageSize || 10,
+                  })),
+              }}
+              size="small"
+              scroll={{ x: 900 }}
+            />
+          </Card>
+        )}
+
+        {/*Modal*/}
         <Modal
-          title={
-            modalType === "add"
-              ? "Add New Client"
-              : modalType === "edit"
-              ? "Edit Client"
-              : modalType === "view"
-              ? "Client Details"
-              : "Delete Client"
-          }
           open={isModalVisible}
           onCancel={() => {
             setIsModalVisible(false);
             form.resetFields();
             setSelectedClient(null);
           }}
-          footer={modalType === "view" ? [
-            <Button key="close" onClick={() => setIsModalVisible(false)}>
-              Close
-            </Button>
-          ] : null}
-          width={modalType === "delete" ? 400 : modalType === "view" ? 600 : 700}
+          footer={null}
+          width={700}
+          centered
+          destroyOnClose
+          styles={{
+            content: {
+              borderRadius: 20,
+              padding: 0,
+              overflow: "hidden",
+            },
+          }}
         >
-          {modalType === "delete" ? (
-            <div>
-              <Text>
-                Are you sure you want to delete{" "}
-                <strong>{selectedClient?.name}</strong>? This action will
-                deactivate the client account.
-              </Text>
-              <div style={{ marginTop: 20, textAlign: "right" }}>
-                <Space>
-                  <Button onClick={() => setIsModalVisible(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    danger
-                    loading={formLoading}
-                    onClick={handleDelete}
-                  >
-                    Delete
-                  </Button>
-                </Space>
-              </div>
-            </div>
-          ) : modalType === "view" ? (
-            <div>
-              {selectedClient && (
-                <div>
-                  <Row gutter={[16, 16]}>
-                    <Col span={12}>
-                      <Text strong>Name:</Text>
-                      <br />
-                      <Text>{selectedClient.name}</Text>
-                    </Col>
-                    <Col span={12}>
-                      <Text strong>Email:</Text>
-                      <br />
-                      <Text>{selectedClient.email}</Text>
-                    </Col>
-                    {selectedClient.phone && (
-                      <Col span={12}>
-                        <Text strong>Phone:</Text>
-                        <br />
-                        <Text>{selectedClient.phone}</Text>
-                      </Col>
-                    )}
-                    {selectedClient.company && (
-                      <Col span={12}>
-                        <Text strong>Company:</Text>
-                        <br />
-                        <Text>{selectedClient.company}</Text>
-                      </Col>
-                    )}
-                    {selectedClient.contactPerson && (
-                      <Col span={12}>
-                        <Text strong>Contact Person:</Text>
-                        <br />
-                        <Text>{selectedClient.contactPerson}</Text>
-                      </Col>
-                    )}
-                    <Col span={12}>
-                      <Text strong>Status:</Text>
-                      <br />
-                      <Tag color={selectedClient.isActive ? "green" : "red"}>
-                        {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
-                      </Tag>
-                    </Col>
-                    {selectedClient.address && (
-                      <Col span={24}>
-                        <Text strong>Address:</Text>
-                        <br />
-                        <Text>{selectedClient.address}</Text>
-                      </Col>
-                    )}
-                    {selectedClient.notes && (
-                      <Col span={24}>
-                        <Text strong>Notes:</Text>
-                        <br />
-                        <Text>{selectedClient.notes}</Text>
-                      </Col>
-                    )}
-                    <Col span={12}>
-                      <Text strong>Created:</Text>
-                      <br />
-                      <Text type="secondary">
-                        {dayjs(selectedClient.createdAt).format('MMM DD, YYYY HH:mm')}
-                      </Text>
-                    </Col>
-                    {selectedClient.createdBy && (
-                      <Col span={12}>
-                        <Text strong>Created By:</Text>
-                        <br />
-                        <Text type="secondary">{selectedClient.createdBy.name}</Text>
-                      </Col>
-                    )}
-                  </Row>
+          {selectedClient && modalType === "view" && (
+            <>
+              {/* ===== CLIENT HEADER (same as project modal header) ===== */}
+              {/* <div
+                className="client-view-header"
+                style={{
+                  padding: "22px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                  //background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                  color: "#fff",
+                }}
+              >
+                {/* Avatar 
+                <Avatar
+                  size={52}
+                  style={{
+                    //backgroundColor: "rgba(255,255,255,0.25)",
+                    background:
+                      "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                    fontWeight: 700,
+                    fontSize: 20,
+                  }}
+                >
+                  {selectedClient.name?.[0]?.toUpperCase()}
+                </Avatar>
+
+                {/* Name & Email 
+                <div style={{ flex: 1 }}>
+                  <Title level={4} style={{ margin: 0, color: "black" }}>
+                    {selectedClient.name}
+                  </Title>
+                  <Text style={{ color: "black" }}>
+                    {selectedClient.email || "—"}
+                  </Text>
                 </div>
-              )}
-            </div>
-          ) : (
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              size="middle"
-            >
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="name"
-                    label="Client Name"
-                    rules={[
-                      { required: true, message: "Please enter client name" },
-                    ]}
-                  >
-                    <Input placeholder="Enter client name" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="email"
-                    label="Email"
-                    rules={[
-                      { required: true, message: "Please enter email" },
-                      { type: "email", message: "Please enter valid email" },
-                    ]}
-                  >
-                    <Input placeholder="Enter email address" />
-                  </Form.Item>
-                </Col>
-              </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="phone"
-                    label="Phone"
-                  >
-                    <Input placeholder="Enter phone number" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="company"
-                    label="Company"
-                  >
-                    <Input placeholder="Enter company name" />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                name="contactPerson"
-                label="Contact Person"
+                {/* Status Tag 
+                <Tag
+                  color={selectedClient.isActive ? "blue" : "red"}
+                  style={{
+                    fontWeight: 600,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    transform: "translateX(-11px)",
+                  }}
+                >
+                  {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
+                </Tag>
+              </div> */}
+              <div
+                className="client-view-header"
+                style={{
+                  padding: "22px 24px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 16,
+                }}
               >
-                <Input placeholder="Enter contact person name" />
-              </Form.Item>
+                {/* Avatar */}
+                <Avatar
+                  size={52}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
+                    fontWeight: 700,
+                    fontSize: 20,
+                  }}
+                >
+                  {selectedClient.name?.[0]?.toUpperCase()}
+                </Avatar>
 
-              <Form.Item
-                name="address"
-                label="Address"
-              >
-                <TextArea rows={2} placeholder="Enter full address" />
-              </Form.Item>
-
-              <Form.Item name="notes" label="Notes">
-                <TextArea rows={3} placeholder="Enter any additional notes" />
-              </Form.Item>
-
-              <div style={{ textAlign: "right", marginTop: 20 }}>
-                <Space>
-                  <Button onClick={() => setIsModalVisible(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={formLoading}
+                {/* Text block */}
+                <div style={{ flex: 1 }}>
+                  {/* Name + Status (same row) */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline", // 🔥 name straight, tag slightly lower
+                      gap: 8,
+                    }}
                   >
-                    {modalType === "add" ? "Add Client" : "Update Client"}
-                  </Button>
-                </Space>
+                    <Title level={4} style={{ margin: 0, color: "black" }}>
+                      {selectedClient.name}
+                    </Title>
+
+                    {/* <Tag
+                      color={selectedClient.isActive ? "blue" : "red"}
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 11,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        display: "inline-block",
+                       
+                      }}
+                    >
+                      {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
+                    </Tag> */}
+                    <Tag
+                      color={selectedClient.isActive ? "green" : "red"}
+                      style={{
+                        fontWeight: 500,
+                        fontSize: 11, // 🔽 smaller text
+                        padding: "1px 5px", // 🔽 less height & width
+                        borderRadius: 3,
+                        //lineHeight: "14px", 
+                        display: "inline-block",
+                      }}
+                    >
+                      {selectedClient.isActive ? "ACTIVE" : "INACTIVE"}
+                    </Tag>
+                  </div>
+
+                  {/* Email below */}
+                  <Text style={{ color: "black", fontSize: 13 }}>
+                    {selectedClient.email || "—"}
+                  </Text>
+                </div>
               </div>
-            </Form>
+
+              {/* ===== BODY ===== */}
+              {/* <div style={{ padding: 24, background: "#fafcff" }}>
+                <Row gutter={[16, 16]}>
+                  
+                   {selectedClient.company && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Company</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.company}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                 
+                  {selectedClient.contactPerson && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Contact Person</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.contactPerson}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                  {selectedClient.phone && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Phone</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.phone}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                  {selectedClient.address && (
+                    <Col span={24}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Address</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.address}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                  {selectedClient.notes && (
+                    <Col span={24}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Notes</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.notes}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                  <Col span={12}>
+                    <Card
+                      size="small"
+                      bordered={false}
+                      className="client-view-card"
+                    >
+                      <Text strong>Created</Text>
+                      <div style={{ marginTop: 6, color: "#595959" }}>
+                        {dayjs(selectedClient.createdAt).format(
+                          "MMM DD, YYYY HH:mm"
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+                  {selectedClient.createdBy && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Created By</Text>
+                        <div style={{ marginTop: 6, color: "#595959" }}>
+                          {selectedClient.createdBy.name}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                </Row>
+              </div> */}
+              <div style={{ padding: 24, background: "#fafcff" }}>
+                <Row gutter={[16, 16]} align="stretch">
+                  {selectedClient.company && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Company</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.company}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.contactPerson && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Contact Person</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.contactPerson}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.phone && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Phone</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.phone}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.address && (
+                    <Col span={24}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Address</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.address}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {selectedClient.notes && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Notes</Text>
+                        <div style={{ marginTop: 6 }}>
+                          {selectedClient.notes}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+
+                  <Col span={12}>
+                    <Card
+                      size="small"
+                      bordered={false}
+                      className="client-view-card"
+                    >
+                      <Text strong>Created</Text>
+                      <div style={{ marginTop: 6, color: "#595959" }}>
+                        {dayjs(selectedClient.createdAt).format(
+                          "MMM DD, YYYY HH:mm",
+                        )}
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {selectedClient.createdBy && (
+                    <Col span={12}>
+                      <Card
+                        size="small"
+                        bordered={false}
+                        className="client-view-card"
+                      >
+                        <Text strong>Created By</Text>
+                        <div style={{ marginTop: 6, color: "#595959" }}>
+                          {selectedClient.createdBy.name}
+                        </div>
+                      </Card>
+                    </Col>
+                  )}
+                </Row>
+              </div>
+
+              {/* ===== FOOTER ===== */}
+              <div
+                style={{
+                  padding: "14px 20px",
+                  borderTop: "1px solid #f0f0f0",
+                  background: "#fff",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 10,
+                }}
+              >
+                <Button
+                  onClick={() => setIsModalVisible(false)}
+                  className="client-view-close-btn"
+                >
+                  Close
+                </Button>
+              </div>
+            </>
           )}
         </Modal>
       </div>

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { useTenant } from '@/context/TenantContext';
+
 import {
   Layout,
   Menu,
@@ -14,6 +14,7 @@ import {
   Space,
   Divider,
   Badge,
+  App,
 } from "antd";
 import {
   MenuFoldOutlined,
@@ -37,9 +38,10 @@ import {
   FolderOpenOutlined,
   AccountBookOutlined,
   BarChartOutlined,
+  FileZipOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
-import { useTrashTickets } from '@/hooks/useTrash';
-import { useBuckets } from '@/hooks/useBuckets';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -49,25 +51,58 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const { user, logout } = useAuth();
-  const { tenantId } = useTenant();
+  const { user, logout, isLoading: authLoading } = useAuth();
+  const { notification } = App.useApp();
+
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+
+  // Connect to user stream for global notifications
+  React.useEffect(() => {
+    if (user?.id) {
+      const { streamClient } = require('@/services/streamClient');
+
+      streamClient.connectUser(user.id);
+
+      streamClient.onNotification((data: any) => {
+        // Don't show notification if we are already on the channel page
+        // This is a simple check, could be more robust with path checking
+        if (pathname.includes(`/chat/${data.channelId}`)) {
+          return;
+        }
+
+        const key = `notification-${Date.now()}`;
+
+        notification.info({
+          key,
+          message: `New message from ${data.senderName}`,
+          description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+          placement: 'topRight',
+          duration: 4.5,
+          onClick: () => {
+            notification.destroy(key);
+            router.push(`/chat/${data.channelId}`);
+          },
+          style: {
+            cursor: 'pointer'
+          }
+        });
+      });
+
+      return () => {
+        streamClient.disconnectUser();
+      };
+    }
+  }, [user?.id, pathname, router, notification]);
+
 
   // Fetch data (only render badges after mount to prevent hydration errors)
-  const { data: trashData } = useTrashTickets({});
-  const { data: buckets } = useBuckets(tenantId || '');
-  
-  const trashCount = trashData?.pagination?.total || 0;
-  const bucketCount = buckets?.length || 0;
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
-  // Navigation items with modern icons
+
+
+  // Navigation items with icons
   const getNavigationItems = () => [
     {
       key: "/dashboard",
@@ -124,34 +159,24 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: 'Plans',
           onClick: () => handleNavigation('/projects/plans'),
         },
-        // {
-        //   key: '/projects/buckets',
-        //   icon: <InboxOutlined />,
-        //   label: isMounted && bucketCount > 0 ? (
-        //     <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-        //       <span>Buckets</span>
-        //       <Badge count={bucketCount} showZero={false} style={{ backgroundColor: '#1677ff' }} />
-        //     </Space>
-        //   ) : 'Buckets',
-        //   onClick: () => handleNavigation('/projects/buckets'),
-        // },
-        // {
-        //   key: '/projects/trash',
-        //   icon: <DeleteOutlined />,
-        //   label: isMounted && trashCount > 0 ? (
-        //     <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-        //       <span>Trash</span>
-        //       <Badge count={trashCount} showZero={false} style={{ backgroundColor: '#ff4d4f' }} />
-        //     </Space>
-        //   ) : 'Trash',
-        //   onClick: () => handleNavigation('/projects/trash'),
-        // },
-        // {
-        //   key: '/projects/archived',
-        //   icon: <FolderOpenOutlined />,
-        //   label: 'Archived',
-        //   onClick: () => handleNavigation('/projects/archived'),
-        // },
+        {
+          key: '/projects/buckets',
+          icon: <InboxOutlined />,
+          label: 'Buckets',
+          onClick: () => handleNavigation('/projects/buckets'),
+        },
+        {
+          key: '/projects/trash',
+          icon: <DeleteOutlined />,
+          label: 'Trash',
+          onClick: () => handleNavigation('/projects/trash'),
+        },
+        {
+          key: '/projects/archived',
+          icon: <FolderOpenOutlined />,
+          label: 'Archived',
+          onClick: () => handleNavigation('/projects/archived'),
+        },
         {
           key: '/projects/settings',
           icon: <ControlOutlined />,
@@ -194,8 +219,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     {
       key: "/leaves",
       icon: <FileTextOutlined />,
-      label: "Leave & Permission",
-      onClick: () => handleNavigation("/leaves"),
+      label: 'Leave & Permission',
+      onClick: () => handleNavigation('/leaves-dashboard'),
     },
     {
       key: "/accounts",
@@ -246,9 +271,33 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: "Settings",
           onClick: () => handleNavigation("/invoicepro/settings"),
         },
+
       ],
+
+    },
+    {
+      key: "/documenthub",
+      icon: <FileZipOutlined />,
+      label: "Document Hub",
+      onClick: () => handleNavigation("/documenthub"),
     },
   ];
+
+
+
+  if (authLoading) {
+    return (
+      <LoadingSpinner message="Loading..." />
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+
+
+
 
   const handleNavigation = (path: string) => {
     router.push(path);
@@ -437,6 +486,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Right side - User actions */}
           <Space size={16} align="center">
+            {/* Chat */}
+            <Button
+              type="text"
+              icon={<MessageOutlined />}
+              onClick={() => router.push('/chat')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+
             {/* Notifications */}
             <Button
               type="text"

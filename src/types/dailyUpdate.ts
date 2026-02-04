@@ -4,13 +4,13 @@
 // NEW: Work Entry Types
 // ==========================================
 
-export type WorkStatus = 
-  | 'pending' 
-  | 'in_progress' 
-  | 'dev_complete' 
-  | 'in_testing' 
-  | 'pushed_to_staging' 
-  | 'pushed_to_production';
+export type WorkStatus =
+  | "pending"
+  | "in_progress"
+  | "dev_complete"
+  | "in_testing"
+  | "pushed_to_staging"
+  | "pushed_to_production";
 
 export interface WorkEntry {
   id?: string;
@@ -20,8 +20,8 @@ export interface WorkEntry {
   ticketId?: string;
   ticketNumber?: string;
   ticketTitle?: string;
-  startTime: string;  // ISO datetime string
-  endTime: string;    // ISO datetime string
+  startTime: string; // ISO datetime string
+  endTime: string; // ISO datetime string
   hoursWorked?: number;
   workSummary: string;
   status: WorkStatus;
@@ -36,16 +36,16 @@ export interface WorkEntry {
 // ==========================================
 
 export interface Task {
-  type: 'ticket' | 'manual';
-  
+  type: "ticket" | "manual";
+
   // If type === 'ticket'
   ticketId?: string;
   ticketNumber?: string;
   ticketTitle?: string;
-  
+
   // If type === 'manual'
   description?: string;
-  
+
   // Status per task (REQUIRED)
   status: WorkStatus;
 }
@@ -57,21 +57,21 @@ export interface Task {
 export interface ProjectUpdate {
   projectId: string;
   projectName: string;
-  
+
   // Time tracking (REQUIRED)
-  startTime: string;  // ISO datetime
-  endTime: string;    // ISO datetime
-  hoursWorked: number;  // Auto-calculated
-  
+  startTime: string; // ISO datetime
+  endTime: string; // ISO datetime
+  hoursWorked: number; // Auto-calculated
+
   // Work summary - array of tasks (REQUIRED - at least 1)
   tasks: Task[];
-  
+
   // Optional fields (project-level)
   blockers?: string;
   notes?: string;
   imageAttachments?: string[];
   fileAttachments?: string[];
-  
+
   // LEGACY fields (for backward compatibility - will be removed)
   completedTasks?: string[];
   plannedTasks?: string[];
@@ -87,18 +87,36 @@ export interface DailyStatusUpdate {
   id: string;
   userId: string;
   tenantId: string;
+
+  /** Actual work date (due date) */
+  missed_updateAt?: Date | string;
+
+  /** Whether this is a missed update */
+  is_missed?: boolean;
+
+  /** For backward compatibility */
   date: Date | string;
-  
-  // Support both new and old formats
-  workEntries?: WorkEntry[];           // NEW format
-  projectUpdates?: ProjectUpdate[];    // OLD format (for backward compatibility)
-  
-  mood?: 'happy' | 'neutral' | 'stressed' | 'blocked';
+
+  workEntries?: WorkEntry[];
+  projectUpdates?: ProjectUpdate[];
+
+  mood?: "happy" | "neutral" | "stressed" | "blocked";
   totalHoursWorked?: number;
   generalNotes?: string;
+
+  /** Submission time */
   submittedAt: Date | string;
+
   createdAt: Date | string;
   updatedAt: Date | string;
+
+  /** Backend-calculated flag */
+  editable?: boolean;
+  project?: {
+    id: string;
+    name: string;
+  };
+
   user?: {
     id: string;
     name: string;
@@ -108,21 +126,21 @@ export interface DailyStatusUpdate {
 }
 
 export interface CreateDailyUpdateRequest {
-  mood?: 'happy' | 'neutral' | 'stressed' | 'blocked';
-  projectUpdates: ProjectUpdate[];  // Using new ProjectUpdate structure
+  mood?: "happy" | "neutral" | "stressed" | "blocked";
+  projectUpdates: ProjectUpdate[]; // Using new ProjectUpdate structure
   generalNotes?: string;
 }
 
 export interface UpdateDailyUpdateRequest {
-  mood?: 'happy' | 'neutral' | 'stressed' | 'blocked';
-  projectUpdates?: ProjectUpdate[];  // Using new ProjectUpdate structure
+  mood?: "happy" | "neutral" | "stressed" | "blocked";
+  projectUpdates?: ProjectUpdate[]; // Using new ProjectUpdate structure
   generalNotes?: string;
 }
 
 export interface DailyUpdateFilters {
-  date?: string;           // Single date (backward compatible)
-  startDate?: string;      // Start date for range filter
-  endDate?: string;        // End date for range filter
+  date?: string; // Single date (backward compatible)
+  startDate?: string; // Start date for range filter
+  endDate?: string; // End date for range filter
   projectId?: string;
   userId?: string;
   status?: WorkStatus;
@@ -146,6 +164,7 @@ export interface CheckTodayResponse {
   data: DailyStatusUpdate | null;
 }
 
+
 // ==========================================
 // Utility Functions
 // ==========================================
@@ -166,7 +185,7 @@ export function calculateHours(startTime: string, endTime: string): number {
 export function formatHours(decimalHours: number): string {
   const hours = Math.floor(decimalHours);
   const minutes = Math.round((decimalHours - hours) * 60);
-  
+
   if (hours === 0) {
     return `${minutes}m`;
   }
@@ -182,9 +201,11 @@ export function formatHours(decimalHours: number): string {
 export function isSameDay(date1: Date | string, date2: Date | string): boolean {
   const d1 = new Date(date1);
   const d2 = new Date(date2);
-  return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getDate() === d2.getDate();
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
 }
 
 /**
@@ -197,36 +218,36 @@ export function getStatusConfig(status: WorkStatus): {
 } {
   const configs = {
     pending: {
-      label: 'Pending',
-      color: 'default',
-      icon: '⏳'
+      label: "Pending",
+      color: "default",
+      icon: "⏳",
     },
     in_progress: {
-      label: 'In Progress',
-      color: 'processing',
-      icon: '⚙️'
+      label: "In Progress",
+      color: "processing",
+      icon: "⚙️",
     },
     dev_complete: {
-      label: 'Dev Complete',
-      color: 'success',
-      icon: '✅'
+      label: "Dev Complete",
+      color: "success",
+      icon: "✅",
     },
     in_testing: {
-      label: 'In Testing',
-      color: 'warning',
-      icon: '🧪'
+      label: "In Testing",
+      color: "warning",
+      icon: "🧪",
     },
     pushed_to_staging: {
-      label: 'Pushed to Staging',
-      color: 'cyan',
-      icon: '🚀'
+      label: "Pushed to Staging",
+      color: "cyan",
+      icon: "🚀",
     },
     pushed_to_production: {
-      label: 'Pushed to Production',
-      color: 'purple',
-      icon: '🎉'
-    }
+      label: "Pushed to Production",
+      color: "purple",
+      icon: "🎉",
+    },
   };
-  
+
   return configs[status] || configs.pending;
 }

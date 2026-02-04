@@ -1,15 +1,9 @@
+
+
+
+"use client";
 import { FC, useEffect, useRef, useState } from "react";
-import {
-  Card,
-  Form,
-  Input,
-  Button,
-  Upload,
-  Row,
-  Col,
-  Select,
-  message,
-} from "antd";
+import { Card, Form, Input, Upload, Row, Col, Select, message } from "antd";
 import {
   UploadOutlined,
   ApartmentOutlined,
@@ -18,7 +12,7 @@ import {
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
 import { currencyOptions } from "@/utils/currencyOptions";
-import { GeneralDraft } from "@/types/invoice";
+import { GeneralDraft, Currency, DateFormat } from "@/types/invoice";
 
 const { Option } = Select;
 
@@ -32,69 +26,68 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
   onSave,
 }) => {
   const [form] = Form.useForm();
-
   const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
   const [signatureFileList, setSignatureFileList] = useState<UploadFile[]>([]);
-
-  const [loading, setLoading] = useState(false);
-  const [initialized, setInitialized] = useState(false);
 
   const prevLogoRef = useRef<string | null>(null);
   const prevSignatureRef = useRef<string | null>(null);
 
-  const primaryColor = Form.useWatch("primary_color", form);
+  const primaryColor = Form.useWatch("primaryColor", form);
 
-  /* ---------------- INIT FORM ---------------- */
+  /* ====================== SYNC FORM ON EDIT ====================== */
   useEffect(() => {
-    if (initialValues && !initialized) {
+    if (initialValues) {
       form.setFieldsValue(initialValues);
-      setInitialized(true);
     }
-  }, [initialValues, initialized, form]);
+  }, [initialValues, form]);
 
-  /* ---------------- INIT LOGO ---------------- */
-  useEffect(() => {
-    if (prevLogoRef.current !== initialValues.company_logo) {
-      setLogoFileList(
-        initialValues.company_logo
-          ? [
-              {
-                uid: "-1",
-                name: "company-logo",
-                status: "done",
-                url: initialValues.company_logo.startsWith("data:image")
-                  ? initialValues.company_logo
-                  : `data:image/jpeg;base64,${initialValues.company_logo}`,
-              },
-            ]
-          : [],
-      );
-      prevLogoRef.current = initialValues.company_logo || null;
-    }
-  }, [initialValues.company_logo]);
+  /* ====================== INIT LOGO ====================== */
+useEffect(() => {
+  const companyLogo = initialValues.companyLogo ?? null;
 
-  /* ---------------- INIT SIGNATURE ---------------- */
-  useEffect(() => {
-    if (prevSignatureRef.current !== initialValues.company_signature) {
-      setSignatureFileList(
-        initialValues.company_signature
-          ? [
-              {
-                uid: "-2",
-                name: "company-signature",
-                status: "done",
-                url: initialValues.company_signature.startsWith("data:image")
-                  ? initialValues.company_signature
-                  : `data:image/jpeg;base64,${initialValues.company_signature}`,
-              },
-            ]
-          : [],
-      );
-      prevSignatureRef.current = initialValues.company_signature || null;
-    }
-  }, [initialValues.company_signature]);
+  if (prevLogoRef.current !== companyLogo) {
+    setLogoFileList(
+      companyLogo
+        ? [
+            {
+              uid: "-1",
+              name: "company-logo",
+              status: "done",
+              url: companyLogo,
+            },
+          ]
+        : []
+    );
 
-  /* ---------------- HELPERS ---------------- */
+    prevLogoRef.current = companyLogo;
+  }
+}, [initialValues.companyLogo]);
+
+
+  /* ====================== INIT SIGNATURE ====================== */
+ useEffect(() => {
+  const signature = initialValues.signature ?? null;
+
+  if (prevSignatureRef.current !== signature) {
+    setSignatureFileList(
+      signature
+        ? [
+            {
+              uid: "-2",
+              name: "signature",
+              status: "done",
+              url: signature,
+            },
+          ]
+        : []
+    );
+
+    prevSignatureRef.current = signature;
+  }
+}, [initialValues.signature]);
+
+
+  /* ====================== HELPERS ====================== */
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -113,17 +106,17 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
     return isImage && isLt2M;
   };
 
-  /* ---------------- REALTIME SAVE ---------------- */
-  const handleValuesChange = (changed: Partial<GeneralDraft>) => {
-    onSave({
-      ...initialValues,
-      ...changed,
-      company_logo: logoFileList[0]?.url || null,
-      company_signature: signatureFileList[0]?.url || null,
-    });
-  };
+  /* ====================== FORM CHANGE ====================== */
+const handleValuesChange = () => {
+  onSave({
+    ...form.getFieldsValue(),
+    companyLogo: logoFileList[0]?.url ?? null,
+    signature: signatureFileList[0]?.url ?? null,
+  });
+};
 
-  /* ---------------- LOGO UPLOAD ---------------- */
+
+  /* ====================== LOGO UPLOAD ====================== */
   const handleLogoChange: UploadProps["onChange"] = async ({ fileList }) => {
     setLogoFileList(fileList);
 
@@ -133,13 +126,14 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
     }
 
     onSave({
-      ...form.getFieldsValue(),
-      company_logo: base64,
-      company_signature: signatureFileList[0]?.url || null, // preserve signature
-    });
+  ...form.getFieldsValue(),
+  companyLogo: base64 ?? null,
+  signature: signatureFileList[0]?.url ?? null,
+});
+
   };
 
-  /* ---------------- SIGNATURE UPLOAD ---------------- */
+  /* ====================== SIGNATURE UPLOAD ====================== */
   const handleSignatureChange: UploadProps["onChange"] = async ({
     fileList,
   }) => {
@@ -151,111 +145,144 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
     }
 
     onSave({
-      ...form.getFieldsValue(),
-      company_logo: logoFileList[0]?.url || null, // preserve logo
-      company_signature: base64,
-    });
+  ...form.getFieldsValue(),
+  companyLogo: logoFileList[0]?.url ?? null,
+  signature: base64 ?? null,
+});
+
   };
 
   return (
-    <div className="bg-gray-50 p-6">
-      <Form form={form} layout="vertical" onValuesChange={handleValuesChange}>
+    <div className="bg-gray-50 px-4 py-3">
+      <Form
+        form={form}
+        layout="vertical"
+        onValuesChange={handleValuesChange}
+      >
         <Row gutter={[24, 24]}>
-          {/* LEFT COLUMN */}
+          {/* ================= COMPANY INFO ================= */}
           <Col xs={24} md={12}>
             <Card
               title={
                 <span className="flex items-center gap-2">
-                  <ApartmentOutlined />
+                  <ApartmentOutlined style={{color:"#1890ff"}} />
                   Company Information
                 </span>
               }
             >
-              <Form.Item
-                name="company_name"
-                label="Company Name"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-
-              <Form.Item name="company_address" label="Company Address">
-                <Input.TextArea rows={3} />
-              </Form.Item>
-
-              <Form.Item label="Primary Color">
-                <div className="flex gap-3">
-                  <Form.Item name="primary_color" noStyle>
-                    <Input type="color" style={{ width: 60 }} />
+              <Row gutter={[12, 8]}>
+                <Col span={12}>
+                  <Form.Item
+                    name="companyName"
+                    label="Company Name"
+                    rules={[{ required: true }]}
+                  >
+                    <Input />
                   </Form.Item>
-                  <Input value={primaryColor} readOnly />
-                </div>
-              </Form.Item>
+                </Col>
 
-              <Form.Item label="Company Logo">
-                <Upload
-                  listType="picture-card"
-                  fileList={logoFileList}
-                  beforeUpload={beforeUpload}
-                  onChange={handleLogoChange}
-                  maxCount={1}
-                >
-                  {logoFileList.length === 0 && <UploadOutlined />}
-                </Upload>
-                <p className="text-xs text-gray-500">
-                  Recommended: Square logo, max 2MB, PNG or JPG format
-                </p>
-              </Form.Item>
+                <Col span={12}>
+                  <Form.Item name={["address", "plot_no"]} label="Plot No">
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item name={["address", "floor_no"]} label="Floor No">
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item
+                    name={["address", "building_name"]}
+                    label="Building Name"
+                  >
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item name={["address", "street"]} label="Street">
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item name={["address", "area"]} label="Area">
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item name={["address", "city"]} label="City">
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item name={["address", "pincode"]} label="Pincode">
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item name={["address", "country"]} label="Country">
+                    <Input />
+                  </Form.Item>
+                </Col>
+
+                <Col span={12}>
+                  <Form.Item label="Primary Color">
+                    <div className="flex gap-2 items-center">
+                      <Form.Item name="primaryColor" noStyle>
+                        <Input type="color" />
+                      </Form.Item>
+                      <Input value={primaryColor} readOnly />
+                    </div>
+                  </Form.Item>
+                </Col>
+              </Row>
             </Card>
           </Col>
 
-          {/* RIGHT COLUMN (STACKED) */}
+          {/* ================= REGIONAL + UPLOAD ================= */}
           <Col xs={24} md={12}>
-            <div className="flex flex-col gap-7">
-              <Card
-                title={
-                  <span className="flex items-center gap-2">
-                    <FullscreenOutlined />
-                    Regional Settings
-                  </span>
-                }
-              >
-                <Form.Item
-                  name="currency_code"
-                  label="Currency"
-                  rules={[{ required: true }]}
-                >
-                  <Select>
-                    {currencyOptions.map((c) => (
-                      <Option key={c.value} value={c.value}>
-                        {c.symbol} {c.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+            <Card
+              title={
+                <span className="flex items-center gap-2">
+                  <FullscreenOutlined style={{color:"#1890ff"}} />
+                  Regional Settings
+                </span>
+              }
+            >
+              <Form.Item name="currency" label="Currency" rules={[{ required: true }]}>
+                <Select>
+                  {currencyOptions.map((c) => (
+                    <Option key={c.value} value={c.value}>
+                      {c.symbol} {c.label}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
 
-                <Form.Item
-                  name="date_format"
-                  label="Date Format"
-                  rules={[{ required: true }]}
-                >
-                  <Select>
-                    <Option value="MM/DD/YYYY">MM/DD/YYYY</Option>
-                    <Option value="DD/MM/YYYY">DD/MM/YYYY</Option>
-                    <Option value="YYYY-MM-DD">YYYY-MM-DD</Option>
-                  </Select>
-                </Form.Item>
-              </Card>
+              <Form.Item name="dateFormat" label="Date Format" rules={[{ required: true }]}>
+                <Select>
+                  <Option value={DateFormat.MM_DD_YYYY}>MM/DD/YYYY</Option>
+                  <Option value={DateFormat.DD_MM_YYYY}>DD/MM/YYYY</Option>
+                  <Option value={DateFormat.YYYY_MM_DD}>YYYY-MM-DD</Option>
+                </Select>
+              </Form.Item>
+            </Card>
 
-              <Card
-                title={
-                  <span className="flex items-center gap-2">
-                    <EditOutlined />
-                    Signature Settings
+            <Row gutter={16} className="mt-4">
+              <Col span={12}>
+                <Card title={
+                <span className="flex items-center gap-2">
+                    <EditOutlined style={{color:"#1890ff"}}/> 
+                    Signature
                   </span>
-                }
-              >
-                <Form.Item label="Authorized Signature">
+                } style={{height:"255px"}}>
                   <Upload
                     listType="picture-card"
                     fileList={signatureFileList}
@@ -265,12 +292,28 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                   >
                     {signatureFileList.length === 0 && <UploadOutlined />}
                   </Upload>
-                  <p className="text-xs text-gray-500">
-                    Upload PNG/JPG, max 2MB
-                  </p>
-                </Form.Item>
-              </Card>
-            </div>
+                </Card>
+              </Col>
+
+              <Col span={12}>
+                <Card title={
+                  <span className="flex items-center gap-2">
+                    <EditOutlined style={{color:"#1890ff"}}/> 
+                    Company Logo
+                  </span>
+                  } style={{height:"255px"}}>
+                  <Upload
+                    listType="picture-card"
+                    fileList={logoFileList}
+                    beforeUpload={beforeUpload}
+                    onChange={handleLogoChange}
+                    maxCount={1}
+                  >
+                    {logoFileList.length === 0 && <UploadOutlined />}
+                  </Upload>
+                </Card>
+              </Col>
+            </Row>
           </Col>
         </Row>
       </Form>
@@ -279,3 +322,5 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
 };
 
 export default GeneralSettings;
+
+

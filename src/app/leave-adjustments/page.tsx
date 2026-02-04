@@ -24,6 +24,7 @@ import {
   InputNumber,
   DatePicker,
   Tabs,
+  Popconfirm,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -41,6 +42,8 @@ import { useRouter, usePathname } from "next/navigation";
 
 import { MembersService } from "@/services/membersService";
 import dayjs from "dayjs";
+import { useLeaveAdjustments, LeaveAdjustmentViewData } from "@/hooks/useLeaveAdjustments";
+import { LeaveAdjustmentPayload } from "@/services/leaveAdjustmentService";
 const { Text } = Typography;
 const { Title } = Typography;
 const leaveTypesData = [
@@ -201,106 +204,28 @@ const leaveTypesData = [
   },
 ];
 
-interface LeaveAdjustment {
-  key: string;
-  employee: string;
-  leaveType: string;
-  type: string;
-  amount: number;
-  unit?: string;
-  reason: string;
-  approvedBy: string;
-  compOffWorkDate?: string | null;
-  expiryDate?: string | null;
-}
-
 export default function LeaveAdjustmentPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [dataSource, setDataSource] = useState<LeaveAdjustment[]>([]);
   const [api, contextHolder] = notification.useNotification();
+  const [modal, modalContextHolder] = Modal.useModal();
   const [selectedLeaveType, setSelectedLeaveType] = useState<string | null>(
     null,
   );
   const [searchText, setSearchText] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [employees, setEmployees] = useState<{ label: string; value: string }[]>([]);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchAdjustments = async () => {
-      try {
-        // Simulating API call
-        const data: LeaveAdjustment[] = [
-          {
-            key: "1",
-            employee: "Alice Johnson",
-            leaveType: "Sick Leave",
-            type: "Credit",
-            amount: 1,
-            reason: "Worked on weekend (Comp-off)",
-            approvedBy: "Manager Bob",
-          },
-          {
-            key: "2",
-            employee: "Bob Smith",
-            leaveType: "Casual Leave",
-            type: "Debit",
-            amount: 0.5,
-            reason: "Late arrival adjustment",
-            approvedBy: "HR Admin",
-          },
-          {
-            key: "3",
-            employee: "Charlie Brown",
-            leaveType: "Privilege Leave",
-            type: "Credit",
-            amount: 2,
-            reason: "Unused leave carry forward correction",
-            approvedBy: "System",
-          },
-          {
-            key: "5",
-            employee: "Charlie Brown",
-            leaveType: "Privilege Leave",
-            type: "Credit",
-            amount: 2,
-            reason: "Unused leave carry forward correction",
-            approvedBy: "System",
-          },
-          {
-            key: "4",
-            employee: "Charlie Brown",
-            leaveType: "Privilege Leave",
-            type: "Credit",
-            amount: 2,
-            reason: "Unused leave carry forward correction",
-            approvedBy: "System",
-          },
-          {
-            key: "6",
-            employee: "Charlie Brown",
-            leaveType: "Privilege Leave",
-            type: "Credit",
-            amount: 2,
-            reason: "Unused leave carry forward correction",
-            approvedBy: "System",
-          },
-        ];
-        setDataSource(data);
-      } catch (error) {
-        console.error("Error fetching adjustments:", error);
-        api.error({
-          message: "Error",
-          description: "Failed to load leave adjustments.",
-          placement: "bottomRight",
-        });
-      }
-    };
-
-    fetchAdjustments();
-  }, [api]);
+  const {
+    dataSource,
+    loading,
+    addAdjustment,
+    updateAdjustment,
+    deleteAdjustment,
+  } = useLeaveAdjustments();
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -314,49 +239,48 @@ export default function LeaveAdjustmentPage() {
     fetchEmployees();
   }, []);
 
-  const handleSaveAdjustment = (values: any) => {
-    const employee = employees.find((emp) => emp.value === values.employee);
-    const employeeName = employee ? employee.label : values.employee;
-
-    if (editingKey) {
-      setDataSource((prev) =>
-        prev.map((item) =>
-          item.key === editingKey
-            ? { ...item, ...values, employee: employeeName }
-            : item,
-        ),
-      );
-      api.success({
-        message: "Adjustment updated successfully",
-        placement: "bottomRight",
-        duration: 3,
-      });
-    } else {
-      const newEntry = {
-        key: Date.now().toString(),
-        ...values,
-        employee: employeeName,
+  const handleSaveAdjustment = async (values: any) => {
+    setConfirmLoading(true);
+    try {
+      const payload: LeaveAdjustmentPayload = {
+        userId: values.employee,
+        leaveType: values.leaveType,
+        adjustmentType: values.type,
+        amount: values.amount,
+        unit: values.unit,
+        reason: values.reason,
+        approvedById: values.approvedBy,
+        compOffWorkDate: values.compOffWorkDate
+          ? values.compOffWorkDate.toISOString()
+          : null,
+        expiryDate: values.expiryDate ? values.expiryDate.toISOString() : null,
       };
-      setDataSource((prev) => [...prev, newEntry]);
-      api.success({
-        message: "Adjustment added successfully",
-        placement: "bottomRight",
-        duration: 3,
-      });
+
+      let success = false;
+      if (editingKey) {
+        success = await updateAdjustment(editingKey, payload);
+      } else {
+        success = await addAdjustment(payload);
+      }
+
+      if (success) {
+        setIsModalVisible(false);
+        form.resetFields();
+        setSelectedLeaveType(null);
+        setEditingKey(null);
+      }
+    } finally {
+      setConfirmLoading(false);
     }
-    setIsModalVisible(false);
-    form.resetFields();
-    setSelectedLeaveType(null);
-    setEditingKey(null);
   };
 
-  const handleEdit = (record: LeaveAdjustment) => {
-    const employee = employees.find((emp) => emp.label === record.employee);
-    setEditingKey(record.key);
+  const handleEdit = (record: LeaveAdjustmentViewData) => {
+    setEditingKey(record.id);
     setSelectedLeaveType(record.leaveType);
     form.setFieldsValue({
       ...record,
-      employee: employee ? employee.value : record.employee,
+      employee: record.employeeId,
+      approvedBy: record.approvedById,
       unit: record.unit || "Days",
       compOffWorkDate: record.compOffWorkDate
         ? dayjs(record.compOffWorkDate)
@@ -366,11 +290,25 @@ export default function LeaveAdjustmentPage() {
     setIsModalVisible(true);
   };
 
+  const handleDelete = (id: string) => {
+    modal.confirm({
+      title: "Are you sure you want to delete this adjustment?",
+      content: "This action cannot be undone.",
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        await deleteAdjustment(id);
+      },
+    });
+  };
+
   const columns = [
     {
       title: "Employee",
       dataIndex: "employee",
       key: "employee",
+      sorter: (a: LeaveAdjustmentViewData, b: LeaveAdjustmentViewData) =>
+        a.employee.localeCompare(b.employee),
       render: (text: string) => (
         <Space>
           <Avatar
@@ -392,7 +330,7 @@ export default function LeaveAdjustmentPage() {
       key: "type",
       render: (type: string) => (
         <Tag
-          style={{ borderRadius: 10 }}
+          style={{ borderRadius: 12 }}
           color={type === "Credit" ? "success" : "error"}
         >
           {type.toUpperCase()}
@@ -403,7 +341,7 @@ export default function LeaveAdjustmentPage() {
       title: "Amount",
       dataIndex: "amount",
       key: "amount",
-      render: (amount: number, record: LeaveAdjustment) => {
+      render: (amount: number, record: LeaveAdjustmentViewData) => {
         const unit = record.unit || "Days";
         const displayUnit = amount === 1 ? unit.slice(0, -1) : unit;
         return (
@@ -417,6 +355,8 @@ export default function LeaveAdjustmentPage() {
     {
       title: "Reason",
       dataIndex: "reason",
+      width: 320,  
+        
       key: "reason",
       ellipsis: {
         showTitle: false,
@@ -443,7 +383,7 @@ export default function LeaveAdjustmentPage() {
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: LeaveAdjustment) => (
+      render: (_: any, record: LeaveAdjustmentViewData) => (
         <Space>
           <Tooltip title="Edit Leave Adjustment">
             <Button
@@ -451,6 +391,16 @@ export default function LeaveAdjustmentPage() {
               icon={<Settings2 size={16} />}
               onClick={() => handleEdit(record)}
             />
+          </Tooltip>
+          <Tooltip title="Delete Leave Adjustment">
+            <Popconfirm
+              title="Are you sure you want to delete?"
+              onConfirm={() => deleteAdjustment(record.id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button danger type="text" icon={<DeleteOutlined />} />
+            </Popconfirm>
           </Tooltip>
         </Space>
       ),
@@ -462,6 +412,7 @@ export default function LeaveAdjustmentPage() {
       <MainLayout>
         <div style={{ padding: 24 }}>
           {contextHolder}
+          {modalContextHolder}
           <div >
             <Tabs
               activeKey={
@@ -565,27 +516,25 @@ export default function LeaveAdjustmentPage() {
                     Leave Adjustments
                   </Typography.Title>
                 </Space>
-                <div style={{ marginLeft: 10, }}>
+                <div>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Handle special employee-specific leave cases, comp-offs, and
                     manual corrections.
                   </Text>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
+              <div style={{ display: "flex", gap: 12 }}>
 
   <Input.Search
-    size="large"
     placeholder="Search adjustments...."
     allowClear
-    style={{ width: 350 }}
+    style={{ width: 390 }}
     onChange={(e) => setSearchText(e.target.value)}
   />
 
   <Button
     type="primary"
-    size="large"
-    style={{ width: 160 }}
+    style={{ width: 180,height: 30}}
     onClick={() => setIsModalVisible(true)}
   >
     + Add New Adjustment
@@ -595,12 +544,23 @@ export default function LeaveAdjustmentPage() {
 
 
             </div>
+            <Space wrap style={{ marginBottom: 16 }}>
+              <Tag style={{ borderRadius: 12 }}>
+                Total Adjustments: {dataSource.length}
+              </Tag>
+              <Tag color="success" style={{ borderRadius: 12 }}>
+                Credits: {dataSource.filter((item) => item.type === "Credit").length}
+              </Tag>
+              <Tag color="error" style={{ borderRadius: 12 }}>
+                Debits: {dataSource.filter((item) => item.type === "Debit").length}
+              </Tag>
+            </Space>
             <Table
               columns={columns}
               dataSource={dataSource.filter((item) =>
                 item.employee.toLowerCase().includes(searchText.toLowerCase()),
               )}
-              style={{ marginTop: 24 }}
+              loading={loading}
               size="small"
               pagination={{ pageSize: 10 }}
             />
@@ -628,7 +588,7 @@ export default function LeaveAdjustmentPage() {
             }}
             footer={null}
             width={420}
-            //height={100}
+            // height={100}
             destroyOnClose
           >
             <Form form={form} layout="vertical" onFinish={handleSaveAdjustment}>
@@ -662,6 +622,10 @@ export default function LeaveAdjustmentPage() {
                   >
                     <Select
                       placeholder="Select leave type"
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
                       onChange={(value) => {
                         setSelectedLeaveType(value);
                         if (value === "Permission") {
@@ -731,11 +695,11 @@ export default function LeaveAdjustmentPage() {
                   >
                     <Select
                       placeholder="Select Approver"
-                      options={[
-                        { label: "HR Manager", value: "HR" },
-                        { label: "Team Leader", value: "Team Leader" },
-                        { label: "Department Head", value: "Department Head" },
-                      ]}
+                      showSearch
+                      options={employees}
+                      filterOption={(input, option) =>
+                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
                     />
                   </Form.Item>
                 </Col>
@@ -775,25 +739,37 @@ export default function LeaveAdjustmentPage() {
                 </Col>
 
                 {/* Expiry Date */}
-                <Col span={12}>
-                  <Form.Item name="expiryDate" label="Expiry Date">
-                    <DatePicker
-                      style={{ width: "210%" }}
-                      placeholder="Select expiry date"
-                    />
-                  </Form.Item>
-                </Col>
+                {selectedLeaveType === "Comp-Off" && (
+                  <Col span={12}>
+                    <Form.Item name="expiryDate" label="Expiry Date">
+                      <DatePicker
+                        style={{ width: "210%" }}
+                        placeholder="Select expiry date"
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
               </Row>
 
               {/* Footer */}
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "flex-end",
+                  justifyContent: "space-between",
                   gap: 12,
                   marginTop: 24,
                 }}
               >
+                {editingKey && (
+                  <Button
+                    danger
+                    onClick={() => handleDelete(editingKey)}
+                    loading={confirmLoading}
+                  >
+                    Delete
+                  </Button>
+                )}
+                <div style={{ display: "flex", gap: 12, marginLeft: 'auto' }}>
                 <Button
                   onClick={() => {
                     setIsModalVisible(false);
@@ -801,12 +777,14 @@ export default function LeaveAdjustmentPage() {
                     setEditingKey(null);
                     form.resetFields();
                   }}
+                  disabled={confirmLoading}
                 >
                   Cancel
                 </Button>
-                <Button type="primary" htmlType="submit">
+                <Button type="primary" htmlType="submit" loading={confirmLoading}>
                   {editingKey ? "Update Adjustment" : "Save Adjustment"}
                 </Button>
+                </div>
               </div>
             </Form>
           </Modal>

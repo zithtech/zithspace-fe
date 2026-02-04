@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import { ConfigProvider, App } from "antd";
+import { ConfigProvider,App } from "antd";
 import { AuthProvider } from "@/context/AuthContext";
 import { TenantProvider } from "@/context/TenantContext";
 import QueryProvider from "@/providers/QueryProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
 
 import "./globals.css";
-import ClientProviders from "@/providers/ClientProviders";
+
 
 export const metadata: Metadata = {
   title: "Z Internal App",
@@ -98,15 +98,15 @@ export default function RootLayout({
         <AntdRegistry>
           <ConfigProvider theme={theme}>
             <App>
-              <TenantProvider>
-                <AuthProvider>
-                  <QueryProvider>
-                    <SocketProvider>
-                      <ClientProviders>{children}</ClientProviders>
-                    </SocketProvider>
-                  </QueryProvider>
-                </AuthProvider>
-              </TenantProvider>
+            <TenantProvider>
+              <AuthProvider>
+                <QueryProvider>
+                  <SocketProvider>
+                    {children}
+                  </SocketProvider>
+                </QueryProvider>
+              </AuthProvider>
+            </TenantProvider>
             </App>
           </ConfigProvider>
         </AntdRegistry>

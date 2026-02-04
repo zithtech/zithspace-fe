@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useState } from "react";
@@ -7,15 +9,13 @@ import {
   Typography,
   Input,
   Button,
-  Modal,
-  Form,
+  message,
   Row,
   Col,
-  message,
   Card,
   Divider,
   Dropdown,
-  Popconfirm,
+  Modal
 } from "antd";
 import {
   UserAddOutlined,
@@ -28,83 +28,128 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 
+import CustomerModal from "@/components/customer/CustomerModal";
+import { Customer as ServiceCustomer } from "@/services/customersService";
+import {
+  useCustomers,
+  useCreateCustomer,
+  useUpdateCustomer,
+  useDeleteCustomer,
+} from "@/hooks/use-customers";
+import { Form } from "antd";
+
 const { Title } = Typography;
 
-import { useCustomers } from "@/context/CustomerContext";
-import { nanoid } from "nanoid";
-import { Customer } from "@/types/invoice";
-import CustomerModal from "@/components/customer/CustomerModal";
-
 export default function InvoiceproCustomerPage() {
+  const { data: customersData, isLoading } = useCustomers();
+  const customers = customersData?.data || [];
+
+  const createCustomer = useCreateCustomer();
+  const updateCustomer = useUpdateCustomer();
+  const deleteCustomer = useDeleteCustomer();
+
+  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  //const [customers, setCustomers] = useState<Customer[]>([]);
-
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<ServiceCustomer | null>(null);
   const [search, setSearch] = useState("");
-
-  // mock backend
-
-  const { customers, addCustomer, updateCustomer, deleteCustomer } =
-    useCustomers();
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
 
-  // 🔹 MOCK SAVE (replace later with API)
-  // const saveCustomer = async (data: Customer) => {
-  //   addCustomer({
-  //     id: nanoid(), // temporary id
-  //     ...data,
-  //   });
-  // };
 
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
 
-      if (editingCustomer) {
-        updateCustomer(editingCustomer.id, values);
-        message.success("Customer updated");
-      } else {
-        addCustomer({ id: nanoid(), ...values });
-        message.success("Customer added");
-      }
-
-      form.resetFields();
-      setEditingCustomer(null);
-      setIsModalOpen(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredCustomers = customers.filter((customer) =>
-    customer.name?.toLowerCase().includes(search.toLowerCase()),
+  // Filter customers based on search
+  const filteredCustomers = customers.filter(c =>
+    c.companyName?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // 🔹 EDIT
-  const handleEdit = (customer: Customer) => {
+  const creating = createCustomer.status === "pending";
+const updating = updateCustomer.status === "pending";
+
+
+
+
+
+const handleSave = async (
+  values: Omit<
+    ServiceCustomer,
+    "id" | "tenantId" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt"
+  >,
+  id?: string
+) => {
+  const isDuplicate = customers.some(
+    (c) =>
+      c.companyName?.trim().toLowerCase() ===
+        values.companyName.trim().toLowerCase() &&
+      c.id !== id
+  );
+
+  if (isDuplicate) {
+    messageApi.error("Customer with this company name already exists");
+    return;
+  }
+
+  const payload = {
+    companyName: values.companyName.trim(),
+    email: values.email || "",
+    phone: values.phone || "",
+    address: values.address || "",
+    city: values.city || "",
+    country: values.country || "",
+    taxId: values.taxId || "",
+  };
+
+  try {
+    if (id) {
+      await updateCustomer.mutateAsync({ id, data: payload });
+      messageApi.success("Customer updated successfully");
+    } else {
+      await createCustomer.mutateAsync(payload);
+      messageApi.success("Customer created successfully");
+    }
+
+    setIsModalOpen(false);
+    setEditingCustomer(null);
+    form.resetFields();
+  } catch (error: any) {
+    messageApi.error(error.message || "Failed to save customer");
+  }
+};
+
+
+
+
+
+
+
+  // Edit customer
+  const handleEdit = (customer: ServiceCustomer) => {
     setEditingCustomer(customer);
     form.setFieldsValue(customer);
     setIsModalOpen(true);
   };
 
-  // 🔹 DELETE
-  const confirmDelete = (id: string) => {
-    Modal.confirm({
-      title: "Delete customer?",
-      content: "This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      onOk() {
-        deleteCustomer(id);
-        message.success("Customer deleted");
-      },
-    });
-  };
+
+
+const confirmDelete = async () => {
+  if (!deletingCustomerId) return;
+
+  await deleteCustomer.mutateAsync(deletingCustomerId);
+
+  messageApi.success("Customer deleted successfully");
+
+  setIsDeleteModalOpen(false);
+  setDeletingCustomerId(null);
+};
+
+
+
 
   return (
     <MainLayout>
+      {contextHolder}
       <div style={{ padding: 20 }}>
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
@@ -152,7 +197,9 @@ export default function InvoiceproCustomerPage() {
 
         {/* Customers List */}
         <div className="mt-6">
-          {customers.length === 0 ? (
+          {isLoading ? (
+            <div>Loading...</div>
+          ) : customers.length === 0 ? (
             <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-16 text-gray-400">
               No customers added yet
             </div>
@@ -160,31 +207,21 @@ export default function InvoiceproCustomerPage() {
             <Row gutter={[16, 16]}>
               {filteredCustomers.map((customer) => (
                 <Col xs={24} sm={12} md={8} lg={6} key={customer.id}>
-                  {/* 🔹 Gradient border wrapper */}
                   <div className="gradient-border-wrapper">
-                    <Card
-                      hoverable
-                      className="relative bg-white"
-                      bodyStyle={{ padding: 16 }}
-                    >
+                    <Card hoverable className="relative bg-white" bodyStyle={{ padding: 16 }}>
                       {/* Header */}
                       <div className="flex items-start justify-between">
                         <div className="flex gap-3">
-                          {/* Avatar */}
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 text-base font-semibold">
-                            {customer.name?.charAt(0)}
+                            {customer.companyName?.charAt(0)}
                           </div>
 
-                          {/* Company */}
                           <div>
                             <Typography.Text className="block font-medium text-gray-800">
-                              {customer.name}
+                              {customer.companyName}
                             </Typography.Text>
 
-                            <Typography.Text
-                              type="secondary"
-                              className="text-xs"
-                            >
+                            <Typography.Text type="secondary" className="text-xs">
                               {customer.city}
                               {customer.city && customer.country && ", "}
                               {customer.country}
@@ -192,7 +229,6 @@ export default function InvoiceproCustomerPage() {
                           </div>
                         </div>
 
-                        {/* More */}
                         <Dropdown
                           menu={{
                             items: [
@@ -202,26 +238,21 @@ export default function InvoiceproCustomerPage() {
                                 label: "Edit",
                                 onClick: () => handleEdit(customer),
                               },
-                              {
-                                key: "delete",
-                                danger: true,
-                                label: (
-                                  <Popconfirm
-                                    title="Delete customer?"
-                                    description="This action cannot be undone"
-                                    okText="Delete"
-                                    okType="danger"
-                                    onConfirm={() => {
-                                      deleteCustomer(customer.id);
-                                      message.success("Customer deleted");
-                                    }}
-                                  >
-                                    <span>
-                                      <DeleteOutlined /> Delete
-                                    </span>
-                                  </Popconfirm>
-                                ),
-                              },
+{
+  key: "delete",
+  danger: true,
+  label: (
+    <span
+      onClick={() => {
+        setDeletingCustomerId(customer.id);
+        setIsDeleteModalOpen(true);
+      }}
+    >
+      <DeleteOutlined /> Delete
+    </span>
+  ),
+}
+
                             ],
                           }}
                           trigger={["click"]}
@@ -249,22 +280,16 @@ export default function InvoiceproCustomerPage() {
                         {customer.address && (
                           <div className="flex items-center gap-2">
                             <EnvironmentOutlined className="text-gray-400" />
-                            <span className="line-clamp-1">
-                              {customer.address}
-                            </span>
+                            <span className="line-clamp-1">{customer.address}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Divider + Tax ID */}
-                      {customer.taxid && (
+                      {customer.taxId && (
                         <>
                           <Divider className="my-3" />
                           <Typography.Text className="text-xs text-gray-500">
-                            Tax ID:{" "}
-                            <span className="font-medium">
-                              {customer.taxid}
-                            </span>
+                            Tax ID: <span className="font-medium">{customer.taxId}</span>
                           </Typography.Text>
                         </>
                       )}
@@ -276,84 +301,38 @@ export default function InvoiceproCustomerPage() {
           )}
         </div>
 
-        {/* Modal */}
-        {/* <Modal
-          title={editingCustomer ? "Edit Customer" : "Add Customer"}
-          open={isModalOpen}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setEditingCustomer(null);
-            form.resetFields();
-          }}
-          onOk={handleSave}
-          okText="Save"
-          confirmLoading={loading}
-          width={520}
-          destroyOnClose
-        >
-          <Form layout="vertical" form={form}>
-            <Form.Item
-              label="Company Name"
-              name="name"
-              rules={[{ required: true, message: "Enter company name" }]}
-            >
-              <Input placeholder="Acme Corp" size="large" />
-            </Form.Item>
-
-            <Form.Item
-              label="Email"
-              name="email"
-              rules={[{ required: true, message: "Enter email" }]}
-            >
-              <Input placeholder="contact@company.com" size="large" />
-            </Form.Item>
-
-            <Form.Item label="Phone" name="phone">
-              <Input placeholder="+91 98765 43210" size="large" />
-            </Form.Item>
-
-            <Form.Item label="Address" name="address">
-              <Input placeholder="123 Business Ave" size="large" />
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <Form.Item label="City" name="city">
-                  <Input placeholder="San Francisco" size="large" />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} md={12}>
-                <Form.Item label="Country" name="country">
-                  <Input placeholder="USA" size="large" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item label="Tax ID" name="taxid">
-              <Input placeholder="US-12345678" size="large" />
-            </Form.Item>
-          </Form>
-        </Modal> */}
-
         <CustomerModal
           open={isModalOpen}
-          loading={loading}
+          loading={creating || updating}
           customer={editingCustomer}
           onClose={() => {
             setIsModalOpen(false);
             setEditingCustomer(null);
           }}
-          onSave={(values, id) => {
-            if (id) {
-              updateCustomer(id, values);
-            } else {
-              addCustomer({ id: nanoid(), ...values });
-            }
-            setIsModalOpen(false);
-          }}
+          onSave={handleSave}
         />
       </div>
+      <Modal
+  open={isDeleteModalOpen}
+  title="Delete customer"
+  okText="Delete"
+  okType="danger"
+  cancelText="Cancel"
+  confirmLoading={deleteCustomer.status === "pending"}
+  onOk={confirmDelete}
+  onCancel={() => {
+    setIsDeleteModalOpen(false);
+    setDeletingCustomerId(null);
+  }}
+>
+  <p>
+    Are you sure you want to delete this customer?  
+    This action cannot be undone.
+  </p>
+</Modal>
+
     </MainLayout>
   );
 }
+
+

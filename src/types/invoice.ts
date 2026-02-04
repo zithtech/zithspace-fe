@@ -1,59 +1,72 @@
-// GeneralSettings types
-// export interface GeneralDraft {
-//   company_name: string;
-//   company_address: string;
-//   primary_color: string;
-//   company_logo?: File | null;
-//   currency_code: string;
-//   date_format: string;
-// }
+
+
+export enum Currency {
+  USD = "USD",
+  INR = "INR",
+  EUR = "EUR",
+  GBP = "GBP",
+  AUD = "AUD",
+  CAD = "CAD",
+  SGD = "SGD"
+}
+
+export enum DateFormat {
+  DD_MM_YYYY = "DD_MM_YYYY",
+  MM_DD_YYYY = "MM_DD_YYYY",
+  YYYY_MM_DD = "YYYY_MM_DD",
+}
+
+
+export interface Customer {
+  id: string;
+  companyName: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  taxId?: string | null;
+  
+}
+
 
 export interface GeneralDraft {
-  company_name: string;
-  company_address: string;
-  primary_color: string;
-  company_logo: string | null; // ✅ BASE64
-  currency_code: string;
-  date_format: string;
-  company_signature?: string | null;
+  companyName: string;
+  address: {
+    plot_no?: string;
+    floor_no?: string;
+    building_name?: string;
+    street?: string;
+    area?: string;
+    city?: string;
+    pincode?: string;
+    country?: string;
+  };
+  primaryColor: string;
+  companyLogo?: string | null;
+  currency: Currency; 
+  dateFormat: DateFormat;
+  signature?: string | null;
 }
 
 export interface BankPaymentDraft {
-  account_name: string;
-  account_number: string;
-  ifsc_code: string;
-  branch_name: string;
-  qr_code?: string | null; // base64 or url
+  bankName: string;      
+  accountNumber: string; 
+  ifscCode: string;      
+  branchName: string;    
+  qrCode?: string | null; 
 }
 
-// InvoiceSettings types
 export interface InvoiceDraft {
-  invoice_format: string;
+  format: string;        
+  // padding: number;
+  // nextNumber: number;
+  // resetYearly: boolean;
+  // lastResetYear:number
 }
 
-// Parent draft
 export interface Draft {
   general: GeneralDraft;
-  invoices: InvoiceDraft;
-  payments: BankPaymentDraft;
+  invoice: InvoiceDraft;
+  payment: BankPaymentDraft;
 }
-
-// Saved setting (for cards)
-export interface SavedSetting {
-  id: number;
-  name: string;
-  general: GeneralDraft;
-  invoices: InvoiceDraft;
-  payments: BankPaymentDraft;
-}
-
-export type Customer = {
-  id: string; // ✅ REQUIRED
-  name: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  taxid?: string;
-};

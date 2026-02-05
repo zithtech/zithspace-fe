@@ -59,43 +59,18 @@ const { RangePicker } = DatePicker;
 const { Paragraph, Text } = Typography;
 
 const LEAVE_TYPES = [
+  "Work From Home",
   "Casual Leave",
   "Sick Leave",
-  "Earned Leave",
-  "Paid Leave",
-  "Unpaid Leave",
-  "Loss of Pay",
-  "Comp-Off",
-  "Permission",
-  "On Duty",
-  "Emergency Leave",
-  "Medical Leave",
-  "Festival Holiday",
-  "Weekly Off",
-  "Marriage Leave",
-  "Bereavement Leave",
-  "Work From Home",
-  "Optional Holiday",
-  "Floating Holiday",
-  "Privilege Leave",
-  "Annual Leave",
-  "Training Leave",
-  "Sabbatical Leave",
-  "Night Shift Off",
-  "Quarantine Leave",
-  "Accident Leave",
-  "Duty Roster Leave",
-  "Emergency Duty Off",
-  "Maternity Leave",
-  "Paternity Leave",
-  "Shift Leave",
-  "Production Shutdown Leave",
-  "Compensatory Leave",
-  "Special Leave",
-  "Layoff Leave",
-  "Menstrual Leave",
-  "Sandwich Leave",
 ];
+
+const subOriginData: Record<string, string[]> = {
+  Grade: ["Entry Level", "Associate", "Senior Associate", "Manager", "Senior Manager", "Director"],
+  Employee: ["IT", "Non-IT", "Contract"],
+  Department: ["Engineering", "Product", "Human Resources", "Finance", "Operations"],
+  "Sub-department": ["Frontend Development", "Backend Development", "DevOps", "Product Design", "Product Analytics", "Talent Acquisition", "Employee Relations"],
+  Position: ["Software Engineer", "Senior Software Engineer", "Engineering Manager", "Backend Developer", "Engineering Director", "Product Manager", "Head of Product", "HR Specialist", "HR Manager", "Intern", "Full Time", "Contract"],
+};
 
 interface PositionRecord {
   key: string;
@@ -106,6 +81,7 @@ interface PositionRecord {
   period?: string;
   carryForward?: number;
   totalLeaves?: number;
+  subOrigin?: string;
 }
 
 export default function positionConfiguration(){
@@ -114,6 +90,7 @@ export default function positionConfiguration(){
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
   const [form] = Form.useForm();
+  const originType = Form.useWatch("position", form);
   const leaveConfigs = Form.useWatch("leaveConfigs", form);
   const [loading, setLoading] = useState(false);    
   const [viewType, setViewType] = useState("table");
@@ -121,8 +98,8 @@ export default function positionConfiguration(){
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const [currentPosition, setCurrentPosition] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<"group" | "single">("group");
+  const [currentRecord, setCurrentRecord] = useState<PositionRecord | null>(null);
 
   const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
 
@@ -130,7 +107,8 @@ export default function positionConfiguration(){
     setDataSource([
       {
         key: "1",
-        position: "Intern",
+        position: "Position",
+        subOrigin: "Intern",
         status: "Active",
         leaveType: "Casual Leave",
         unit: 1,
@@ -140,7 +118,8 @@ export default function positionConfiguration(){
       },
       {
         key: "2",
-        position: "Intern",
+        position: "Position",
+        subOrigin: "Intern",
         status: "Active",
         leaveType: "Sick Leave",
         unit: 0.5,
@@ -150,7 +129,8 @@ export default function positionConfiguration(){
       },
       {
         key: "3",
-        position: "Full Time",
+        position: "Position",
+        subOrigin: "Full Time",
         status: "Active",
         leaveType: "Casual Leave",
         unit: 1.5,
@@ -160,7 +140,8 @@ export default function positionConfiguration(){
       },
       {
         key: "4",
-        position: "Full Time",
+        position: "Position",
+        subOrigin: "Full Time",
         status: "Active",
         leaveType: "Sick Leave",
         unit: 1,
@@ -170,20 +151,22 @@ export default function positionConfiguration(){
       },
       {
         key: "5",
-        position: "Full Time",
+        position: "Position",
+        subOrigin: "Full Time",
         status: "Active",
-        leaveType: "Privilege Leave",
-        unit: 15,
-        period: "YEAR",
+        leaveType: "Work From Home",
+        unit: 1,
+        period: "MONTH",
         carryForward: 10,
         totalLeaves: 15,
       },
       {
         key: "6",
-        position: "Contract",
+        position: "Position",
+        subOrigin: "Contract",
         status: "Inactive",
-        leaveType: "Loss of Pay",
-        unit: 0,
+        leaveType: "Casual Leave",
+        unit: 1,
         period: "MONTH",
         carryForward: 0,
         totalLeaves: 0,
@@ -193,8 +176,9 @@ export default function positionConfiguration(){
 
   const uniqueDataSource = Object.values(
     dataSource.reduce((acc, item) => {
-      if (!acc[item.position]) {
-        acc[item.position] = {
+      const key = `${item.position}-${item.subOrigin}`;
+      if (!acc[key]) {
+        acc[key] = {
           ...item,
           leaveType: Array.isArray(item.leaveType)
             ? item.leaveType
@@ -203,7 +187,7 @@ export default function positionConfiguration(){
             : [],
         };
       } else {
-        const existingTypes = acc[item.position].leaveType as string[];
+        const existingTypes = acc[key].leaveType as string[];
         const newType = Array.isArray(item.leaveType)
           ? item.leaveType[0]
           : item.leaveType;
@@ -217,10 +201,16 @@ export default function positionConfiguration(){
 
   const columns = [
     {
-      title: "Position",
+      title: "Orgin",
       dataIndex: "position",
       key: "position",
       render: (text: string) => <Text strong>{text}</Text>,
+    },
+    {
+      title: "Sub-Orgin",
+      dataIndex: "subOrigin",
+      key: "subOrigin",
+      render: (text: string) => <Text strong>{text || "-"}</Text>,
     },
     {
       title: "Leave Type",
@@ -256,52 +246,6 @@ export default function positionConfiguration(){
         );
       },
     },
-    // {
-    //   title: "Unit",
-    //   dataIndex: "unit",
-    //   key: "unit",
-    // },
-    // {
-    //   title: "per-month",
-    //   dataIndex: "unit",
-    //   key: "per-month",
-    //   render: (unit: number, record: PositionRecord) => {
-    //     const effectiveUnit = (unit || 0) + (record.carryForward || 0);
-    //     if (record.period === "MONTH") return <Text>{effectiveUnit} <Tag  style={{ borderRadius: 10 }} color="blue">day</Tag></Text>;
-    //     if (record.period === "YEAR") return <Text>{(effectiveUnit / 12).toFixed(1)} <Tag  style={{ borderRadius: 10 }} color="blue">day</Tag></Text>;
-    //     return <Text>-</Text>;
-    //   },
-    // },
-    // {
-    //   title: "per-year",
-    //   dataIndex: "unit",
-    //   key: "per-year",
-    //   render: (unit: number, record: PositionRecord) => {
-    //     const effectiveUnit = (unit || 0) + (record.carryForward || 0);
-    //     if (record.period === "MONTH") return <Text>{effectiveUnit * 12} <Tag  style={{ borderRadius: 10 }} color="blue">days</Tag></Text>;
-    //     if (record.period === "YEAR") return <Text>{effectiveUnit} <Tag  style={{ borderRadius: 10 }} color="blue">days</Tag></Text>;
-    //     return <Text>-</Text>;
-    //   },
-    // },
-    // {
-    //   title: "Carry Forward",
-    //   dataIndex: "carryForward",
-    //   key: "carryForward",
-    //   render: (val: number) => (
-    //     <Tag color={val > 0 ? "blue" : "default"}>{val || 0}</Tag>
-    //   ),
-    // },
-    //  {
-    //   title: "Total Leaves",
-    //   key: "totalLeaves",
-    //   render: (_: any, record: PositionRecord) => {
-    //     const effectiveUnit = (record.unit || 0) + (record.carryForward || 0);
-    //     let total = 0;
-    //     if (record.period === "MONTH") total = effectiveUnit * 12;
-    //     else if (record.period === "YEAR") total = effectiveUnit;
-    //     return <Text strong>{total}</Text>;
-    //   },
-    // },
     {
       title: "Status",
       dataIndex: "status",
@@ -345,14 +289,14 @@ export default function positionConfiguration(){
   ];
 
   const handleView = (record: PositionRecord) => {
-    setCurrentPosition(record.position);
     setIsDrawerVisible(true);
+    setCurrentRecord(record);
   };
 
   const handleEdit = (record: any) => {
     setEditMode("group");
     const configsForPosition = dataSource.filter(
-      (item) => item.position === record.position
+      (item) => item.position === record.position && item.subOrigin === record.subOrigin
     );
 
     setEditingKey(record.key);
@@ -367,6 +311,7 @@ export default function positionConfiguration(){
 
     form.setFieldsValue({
       position: record.position,
+      subOrigin: record.subOrigin,
       leaveConfigs: leaveConfigsForForm.length > 0 ? leaveConfigsForForm : [{}],
     });
     setIsModalVisible(true);
@@ -397,10 +342,11 @@ export default function positionConfiguration(){
   };
 
   const handleSave = (values: any) => {
-    const { position, leaveConfigs } = values;
+    const { position, subOrigin, leaveConfigs } = values;
     
     const newEntries = leaveConfigs.map((config: any) => ({
       position,
+      subOrigin,
       leaveType: config.leaveType,
       unit: config.unit,
       period: config.period,
@@ -420,9 +366,8 @@ export default function positionConfiguration(){
         // We are editing. The position is `position`.
         setDataSource((prev) => {
           // Remove old entries for this position
-          const otherPositionsData = prev.filter(
-            (item) => item.position !== position
-          );
+          const otherPositionsData = prev.filter(item => 
+            item.position !== position || item.subOrigin !== subOrigin);
           // Add new entries
           const entriesWithKeys = newEntries.map((entry: any) => ({
             ...entry,
@@ -461,33 +406,6 @@ export default function positionConfiguration(){
           </div>
            <div style={{ marginBottom: 16 }}>  
             <Tabs
-              tabBarExtraContent={
-               <Segmented
-  options={[
-    {
-      label: (
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <BarsOutlined />
-          Table
-        </span>
-      ),
-      value: "table",
-    },
-    {
-      label: (
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <AppstoreOutlined />
-          Card
-        </span>
-      ),
-      value: "card",
-    },
-  ]}
-  value={viewType}
-  onChange={(value) => setViewType(value as string)}
-/>
-
-              }
   activeKey={
     pathname.includes("government-holidays")
       ? "holidays"
@@ -592,27 +510,65 @@ export default function positionConfiguration(){
                   </Text>
                 </div>
               </div>
+<div
+  style={{
+    display: "flex",
+    gap: 12,
+    margin: "8px 0 0 28px",
+    alignItems: "center",
+    flexWrap: "wrap",
+  }}
+>
+  {/* Search */}
+  <Input.Search
+    size="large"
+    placeholder="Search Leave Types...."
+    allowClear
+    style={{ width: 360 }}
+    onChange={(e) => setSearchText(e.target.value)}
+  />
 
-              <Button
-                type="primary"
-                style={{ height: 40 }}
-                onClick={() => {
-                  setEditingKey(null);
-                  form.resetFields();
-                  setIsModalVisible(true);
-                }}
-              >
-                + Add Configuration
-              </Button>
-            </div>
-            <Divider />
-            <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
-              <Input.Search
-                placeholder="Search Leave Types...."
-                allowClear
-                style={{ width: 480 }}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
+  {/* View Switch */}
+  <Segmented
+    size="large"
+    options={[
+      {
+        label: (
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <BarsOutlined />
+            Table
+          </span>
+        ),
+        value: "table",
+      },
+      {
+        label: (
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <AppstoreOutlined />
+            Card
+          </span>
+        ),
+        value: "card",
+      },
+    ]}
+    value={viewType}
+    onChange={(value) => setViewType(value as string)}
+  />
+
+  {/* Button */}
+  <Button
+    type="primary"
+    size="large"
+    style={{ width: 200 }}
+    onClick={() => {
+      setEditingKey(null);
+      form.resetFields();
+      setIsModalVisible(true);
+    }}
+  >
+    + Add Configuration
+  </Button>
+</div>
             </div>
             {viewType === "table" ? (
               <Table
@@ -802,21 +758,43 @@ export default function positionConfiguration(){
   width={500}
 >
   <Form form={form} layout="vertical" onFinish={handleSave}>
-    {/* Position */}
-    <Form.Item
-      name="position"
-      label="Position Name"
-      rules={[{ required: true, message: "Please select position" }]}
-    >
-      <Select
-        placeholder="Select Position"
-        disabled={!!editingKey}
-        options={["Intern", "Full Time", "Contract"].map(p => ({
-          label: p,
-          value: p,
-        }))}
-      />
-    </Form.Item>
+    {/* Origin and Sub-Origin */}
+    <Row gutter={12}>
+      <Col span={12}>
+        <Form.Item
+          name="position"
+          label="Orgin"
+          rules={[{ required: true, message: "Please select an origin type" }]}
+        >
+          <Select
+            placeholder="Select Type"
+            disabled={!!editingKey}
+            options={["Grade", "Employee", "Department", "Sub-department", "Position"].map(p => ({
+              label: p,
+              value: p,
+            }))}
+            onChange={() => {
+              form.setFieldsValue({ subOrigin: undefined });
+            }}
+          />
+        </Form.Item>
+      </Col>
+      <Col span={12}>
+        <Form.Item name="subOrigin" 
+        label="Sub-Orgin"
+        rules={[{ required: true, message: "Please select a Sub-origin type" }]}
+        >
+          <Select
+            placeholder="Select Name"
+            disabled={!originType}
+            options={(subOriginData[originType] || []).map(opt => ({
+              label: opt,
+              value: opt,
+            }))}
+          />
+        </Form.Item>
+      </Col>
+    </Row>
 
     {/* Dynamic Leave Config */}
     <Form.List name="leaveConfigs" initialValue={[{}]}>
@@ -955,11 +933,14 @@ export default function positionConfiguration(){
 </Modal>
 
 <Drawer
-  title={currentPosition}
+  title={currentRecord ? `${currentRecord.position} - ${currentRecord.subOrigin}` : "Details"}
   placement="right"
   width={900}
-  onClose={() => setIsDrawerVisible(false)}
   open={isDrawerVisible}
+  onClose={() => {
+    setIsDrawerVisible(false);
+    setCurrentRecord(null);
+  }}
 >
   <Table
     columns={[
@@ -1050,7 +1031,7 @@ export default function positionConfiguration(){
         ),
       },
     ]}
-    dataSource={dataSource.filter((item) => item.position === currentPosition)}
+    dataSource={dataSource.filter((item) => item.position === currentRecord?.position && item.subOrigin === currentRecord?.subOrigin)}
     pagination={false}
   />
 </Drawer>

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { message } from "antd";
 import { CompanyService } from "@/services/companyService";
@@ -7,28 +6,39 @@ import type {
   CreateCompanyData,
   UpdateCompanyData,
   CompanyFilters,
-  PaginatedCompanyResponse
+  PaginatedCompanyResponse,
 } from "@/types/company";
 
+/* =======================
+   Query Keys
+======================= */
 
 export const companyKeys = {
   all: ["companies"] as const,
+
   lists: () => [...companyKeys.all, "list"] as const,
-  list: (filters: CompanyFilters) => [...companyKeys.lists(), filters] as const,
+  list: (filters: CompanyFilters) =>
+    [...companyKeys.lists(), filters] as const,
+
   details: () => [...companyKeys.all, "detail"] as const,
   detail: (id: number) => [...companyKeys.details(), id] as const,
+
   active: () => [...companyKeys.all, "active"] as const,
 };
 
+/* =======================
+   Queries
+======================= */
+
 /**
- * Get all companies with pagination and filters
+ * Get all companies (paginated)
  */
 export const useCompanies = (filters: CompanyFilters = {}) => {
   return useQuery<PaginatedCompanyResponse>({
     queryKey: companyKeys.list(filters),
     queryFn: () => CompanyService.getAll(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: (previousData) => previousData,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -44,6 +54,21 @@ export const useCompany = (id: number | null, enabled = true) => {
   });
 };
 
+
+//other page use 
+
+export const useAllCompanies = () => {
+  return useQuery<Company[]>({
+    queryKey: ["companies", "all"], // unique key
+    queryFn: async () => {
+      const response = await CompanyService.getAll({ limit: 1000 }); // fetch all
+      return response.data; // only return the array of companies
+    },
+    staleTime: 5 * 60 * 1000, // cache for 5 min
+  });
+};
+
+
 /**
  * Get active company
  */
@@ -55,6 +80,10 @@ export const useActiveCompany = () => {
   });
 };
 
+/* =======================
+   Mutations
+======================= */
+
 /**
  * Create company
  */
@@ -62,14 +91,24 @@ export const useCreateCompany = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateCompanyData) => CompanyService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: companyKeys.active() });
+    mutationFn: (data: CreateCompanyData) =>
+      CompanyService.create(data),
+
+    onSuccess: (newCompany) => {
+      queryClient.invalidateQueries({
+        queryKey: companyKeys.lists(),
+      });
+
+      queryClient.setQueryData(
+        companyKeys.detail(newCompany.id),
+        newCompany
+      );
+
       message.success("Company created successfully");
     },
+
     onError: (error: Error) => {
-      message.error(error.message);
+      message.error(error.message || "Failed to create company");
     },
   });
 };
@@ -83,82 +122,99 @@ export const useUpdateCompany = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateCompanyData }) =>
       CompanyService.update(id, data),
+
     onSuccess: (updatedCompany) => {
-      // Update detail cache
-      queryClient.setQueryData(companyKeys.detail(updatedCompany.id), updatedCompany);
-      
-      // Invalidate lists
-      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: companyKeys.active() });
-      
+      queryClient.setQueryData(
+        companyKeys.detail(updatedCompany.id),
+        updatedCompany
+      );
+
+     
+     
+      queryClient.invalidateQueries({
+        queryKey: companyKeys.lists(),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: companyKeys.active(),
+      });
+
       message.success("Company updated successfully");
     },
+
     onError: (error: Error) => {
-      message.error(error.message);
+      message.error(error.message || "Failed to update company");
     },
   });
 };
 
 /**
- * Set company as active
+ * Toggle company active status
+ * (Allows multiple active companies)
  */
-export const useSetActiveCompany = () => {
+export const useToggleActiveCompany = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => CompanyService.setActive(id),
-    onMutate: async (id: number) => {
-      // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: companyKeys.lists() });
-      await queryClient.cancelQueries({ queryKey: companyKeys.active() });
+    mutationFn: (id: number) =>
+      CompanyService.toggleActive(id),
 
-      // Snapshot previous values
-      const previousCompanies = queryClient.getQueryData(companyKeys.lists());
-      const previousActive = queryClient.getQueryData(companyKeys.active());
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({
+        queryKey: companyKeys.lists(),
+      });
 
-      // Optimistically update
-      queryClient.setQueriesData(
+      const previousLists = queryClient.getQueriesData<PaginatedCompanyResponse>({
+        queryKey: companyKeys.lists(),
+      });
+
+      queryClient.setQueriesData<PaginatedCompanyResponse>(
         { queryKey: companyKeys.lists() },
-        (old: any) => {
+        (old) => {
           if (!old?.data) return old;
+
           return {
             ...old,
-            data: old.data.map((company: Company) => ({
-              ...company,
-              isActive: company.id === id,
-            })),
+            data: old.data.map((company) =>
+              company.id === id
+                ? { ...company, isActive: !company.isActive }
+                : company
+            ),
           };
         }
       );
 
-      // Set new active company
-      const companiesData = queryClient.getQueryData<PaginatedCompanyResponse>(companyKeys.list({}));
-      const newActive = companiesData?.data.find(c => c.id === id) || null;
-      queryClient.setQueryData(companyKeys.active(), newActive);
+      return { previousLists };
+    },
 
-      return { previousCompanies, previousActive };
-    },
-    onError: (error: Error, id, context) => {
-      // Revert on error
-      if (context?.previousCompanies) {
-        queryClient.setQueryData(companyKeys.lists(), context.previousCompanies);
+    onError: (error: Error, _id, context) => {
+      if (context?.previousLists) {
+        context.previousLists.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
       }
-      if (context?.previousActive) {
-        queryClient.setQueryData(companyKeys.active(), context.previousActive);
-      }
-      message.error(error.message);
+      message.error(error.message || "Failed to update company status");
     },
+
     onSettled: () => {
-      // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: companyKeys.active() });
+      queryClient.invalidateQueries({
+        queryKey: companyKeys.lists(),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: companyKeys.active(),
+      });
     },
-    onSuccess: () => {
-      message.success("Company set as active");
+
+    onSuccess: (updatedCompany) => {
+      message.success(
+        updatedCompany.isActive
+          ? "Company activated successfully"
+          : "Company deactivated successfully"
+      );
     },
   });
 };
-
 
 /**
  * Delete company
@@ -167,18 +223,69 @@ export const useDeleteCompany = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => CompanyService.delete(id),
+    mutationFn: (id: number) =>
+      CompanyService.delete(id),
 
-    onSuccess: () => {
-      // company list refresh
-      queryClient.invalidateQueries({ queryKey: companyKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: companyKeys.active() });
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({
+        queryKey: companyKeys.lists(),
+      });
 
-      message.success("Company deleted successfully");
+      const previousLists =
+        queryClient.getQueriesData<PaginatedCompanyResponse>({
+          queryKey: companyKeys.lists(),
+        });
+
+      queryClient.setQueriesData<PaginatedCompanyResponse>(
+        { queryKey: companyKeys.lists() },
+        (old) => {
+          if (!old?.data) return old;
+
+          return {
+            ...old,
+            data: old.data.filter(
+              (company) => company.id !== id
+            ),
+            pagination: {
+              ...old.pagination,
+              total: old.pagination.total - 1,
+              totalPages: Math.ceil(
+                (old.pagination.total - 1) /
+                  old.pagination.pageSize
+              ),
+            },
+          };
+        }
+      );
+
+      queryClient.removeQueries({
+        queryKey: companyKeys.detail(id),
+      });
+
+      return { previousLists };
     },
 
-    onError: (error: Error) => {
-      message.error(error.message);
+    onError: (error: Error, _id, context) => {
+      if (context?.previousLists) {
+        context.previousLists.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+      message.error(error.message || "Failed to delete company");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: companyKeys.lists(),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: companyKeys.active(),
+      });
+    },
+
+    onSuccess: () => {
+      message.success("Company deleted successfully");
     },
   });
 };

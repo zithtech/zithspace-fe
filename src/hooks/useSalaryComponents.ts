@@ -11,7 +11,6 @@ import {
 import { PaginatedResponse } from "@/lib/axios";
 
 
-
 export const salaryComponentKeys = {
   all: ["salary-components"] as const,
 
@@ -36,8 +35,6 @@ export const useSalaryComponents = (
       SalaryComponentsService.getSalaryComponents(filters),
 
     staleTime: 5 * 60 * 1000,
-
-    // ✅ v5 replacement for keepPreviousData
     placeholderData: (previousData) => previousData,
   });
 };

@@ -11,7 +11,7 @@ import {
   Table,
   Dropdown,
   message,
-  Popconfirm,
+  Modal,
 } from "antd";
 import {
   PlusOutlined,
@@ -22,23 +22,34 @@ import {
   ReloadOutlined,
   DeleteOutlined,
   EditOutlined,
+  PauseCircleOutlined,
 } from "@ant-design/icons";
 import NewCompanyDetails from "./newCompanyDetials";
-import { useCompanies, useSetActiveCompany,useDeleteCompany } from "@/hooks/useCompanies";
+import {
+  useCompanies,
+  useDeleteCompany,
+  useToggleActiveCompany,
+} from "@/hooks/useCompanies";
+
 import { Company } from "@/types/company";
 import {
   PhoneOutlined,
   EnvironmentOutlined,
   IdcardOutlined,
   AuditOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import toast from "react-hot-toast";
 import { Toaster } from "react-hot-toast";
 
 const { Title, Text } = Typography;
 
+// interface CompanyPageProps {
+//   onPreview?: (type: "company", data: any) => void;
+// }
+
 interface CompanyPageProps {
-  onPreview?: (type: "company", data: any) => void;
+  onPreview: (type: "company", data: any) => void;
 }
 
 export default function CompanyPage({ onPreview }: CompanyPageProps) {
@@ -46,17 +57,20 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+
   const [filters, setFilters] = useState({
     page: 1,
     limit: 10,
     search: "",
     isActive: undefined as boolean | undefined,
   });
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const { data, isLoading, error, refetch } = useCompanies(filters);
-  const setActiveMutation = useSetActiveCompany();
+  const toggleActiveMutation = useToggleActiveCompany();
   const deleteMutation = useDeleteCompany();
-
 
   const companies = data?.data || [];
 
@@ -79,7 +93,7 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
   // In the handleSetActive function:
   const handleSetActive = async (id: number) => {
     try {
-      await setActiveMutation.mutateAsync(id);
+      await toggleActiveMutation.mutateAsync(id);
       // Add toast for success
       toast.success("Company set as active successfully!");
     } catch (error) {
@@ -120,12 +134,12 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
   }
 
   if (mode === "create" || mode === "edit") {
-    <Toaster position="top-right" />;
     return (
       <NewCompanyDetails
         mode={mode}
         editingId={editingId}
         onBack={handleBack}
+        onPreview={onPreview}
       />
     );
   }
@@ -186,15 +200,15 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
           <Button size="small" onClick={() => handleEdit(record.id)}>
             Edit
           </Button>
-          {!record.isActive && (
-            <Button
-              size="small"
-              onClick={() => handleSetActive(record.id)}
-              loading={setActiveMutation.isPending}
-            >
-              Set Active
-            </Button>
-          )}
+          <Button
+            size="small"
+            onClick={() => handleToggleActive(record.id)}
+            loading={togglingId === record.id}
+            type={record.isActive ? "default" : "primary"}
+            danger={record.isActive}
+          >
+            {record.isActive ? " Inactive" : " Active"}
+          </Button>
         </Space>
       ),
     },
@@ -211,15 +225,24 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
     return [line1, line2, line3].filter(Boolean);
   };
 
-  const handleDeleteConfirm = (id: number) => {
-    // Delete logic here
-    console.log("Deleting item with id:", id);
-    message.success("Successfully deleted");
+  const handleToggleActive = async (id: number) => {
+    try {
+      setTogglingId(id); // 👈 only this card loading
+
+      await toggleActiveMutation.mutateAsync(id);
+
+      toast.success("Company status updated successfully ");
+    } catch (err) {
+      toast.error("Failed to update status");
+    } finally {
+      setTogglingId(null); // 👈 loading stop
+    }
   };
 
   return (
     <div>
       <Card style={{ marginLeft: 5, marginTop: -16 }} size="small">
+        <Toaster position="top-right" reverseOrder={false} />
         {/* Header */}
         <div
           style={{
@@ -290,6 +313,516 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
             {isLoading && <Card loading />}
 
             {!isLoading && companies.length > 0 && (
+              //               <div
+              //                 style={{
+              //                   display: "grid",
+              //                   gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+              //                   gap: 16,
+              //                 }}
+              //               >
+              //                 {companies.map((c) => {
+              //                   const content = (
+              //                     <>
+              //                       {/* Logo, Name & Actions - REORGANIZED SECTION */}
+              // <div
+              //   style={{
+              //     display: "flex",
+              //     alignItems: "flex-start",
+              //     justifyContent: "space-between",
+              //     marginBottom: 16,
+              //   }}
+              // >
+              //                         {/* Left side: Logo and Company Info */}
+              //                         <div
+              //                           style={{
+              //                             display: "flex",
+              //                             alignItems: "flex-start",
+              //                             flex: 1,
+              //                           }}
+              //                         >
+              //                           {/* Logo */}
+              //                           {c.logo && (
+              //                             <div
+              //                               style={{
+              //                                 marginRight: 16,
+              //                                 flexShrink: 0,
+              //                               }}
+              //                             >
+              //                               <img
+              //                                 src={c.logo}
+              //                                 alt={c.name}
+              //                                 style={{
+              //                                   width: 80,
+              //                                   height: 80,
+              //                                   objectFit: "contain",
+              //                                   borderRadius: 10,
+              //                                   border: "1px solid #f0f0f0",
+              //                                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              //                                 }}
+              //                               />
+              //                             </div>
+              //                           )}
+
+              //                           {/* Company Name and Email (vertical alignment) */}
+              //                           <div
+              //                             style={{
+              //                               display: "flex",
+              //                               flexDirection: "column",
+              //                               justifyContent: "center",
+              //                               height: 80, // Match logo height
+              //                             }}
+              //                           >
+              //                             {/* <Title
+              //                               level={4}
+              //                               style={{
+              //                                 margin: 0,
+              //                                 marginBottom: 4,
+              //                                 color: "#1a1a1a",
+              //                                 fontWeight: 600,
+              //                               }}
+              //                             >
+              //                               {c.name}
+              //                             </Title> */}
+              //                             <Title
+              //   level={4}
+              //   style={{
+              //     margin: 0,
+              //     marginBottom: 4,
+              //     color: "#1a1a1a",
+              //     fontWeight: 600,
+              //     whiteSpace: "normal",      // allow wrap
+              //     wordBreak: "break-word",  // long words
+              //     lineHeight: 1.3,
+              //   }}
+              // >
+              //   {c.name}
+              // </Title>
+
+              //                             {/* <Text
+              //                               type="secondary"
+              //                               style={{
+              //                                 fontSize: 14,
+              //                                 color: "#595959",
+              //                               }}
+              //                             >
+              //                               {c.email}
+              //                             </Text> */}
+
+              //                             <Text
+              //   type="secondary"
+              //   style={{
+              //     fontSize: 14,
+              //     color: "#595959",
+              //     whiteSpace: "normal",
+              //     wordBreak: "break-all",   // 🔥 email-ku MUST
+              //     lineHeight: 1.3,
+              //   }}
+              // >
+              //   {c.email}
+              // </Text>
+
+              //                           </div>
+              //                         </div>
+
+              //                         {/* Right side: Action Buttons */}
+              //                         <div
+              //                           style={{
+              //                             display: "flex",
+              //                             flexDirection: "column",
+              //                             gap: 8,
+              //                             alignItems: "flex-end",
+              //                           }}
+              //                         >
+              //                           {/* Dropdown Menu */}
+              //                           <Dropdown
+              //                             menu={{
+              //                               items: [
+              //                                 {
+              //                                   key: "toggle",
+              //                                   label: c.isActive
+              //                                     ? "Inactivate"
+              //                                     : "Set Active",
+              //                                   icon: c.isActive ? (
+              //                                     <PauseCircleOutlined />
+              //                                   ) : (
+              //                                     <CheckCircleOutlined />
+              //                                   ),
+              //                                   danger: c.isActive,
+              //                                   onClick: () => handleToggleActive(c.id),
+              //                                 },
+              //                                 {
+              //                                   key: "edit",
+              //                                   label: "Edit",
+              //                                   icon: <EditOutlined />,
+              //                                   onClick: () => handleEdit(c.id),
+              //                                 },
+              //                                 // {
+              //                                 //   key: "preview",
+              //                                 //   label: "Preview",
+              //                                 //   onClick: () => handlePreview(c),
+              //                                 // },
+              //                                 {
+              //                                   key: "delete",
+              //                                   label: (
+              //                                     <div
+              //                                       onClick={() => {
+              //                                         setCompanyToDelete(c);
+              //                                         setDeleteModalVisible(true);
+              //                                       }}
+              //                                     >
+              //                                       <DeleteOutlined
+              //                                         style={{ marginRight: 8 }}
+              //                                       />
+              //                                       Delete
+              //                                     </div>
+              //                                   ),
+              //                                   danger: true,
+              //                                 },
+              //                               ],
+              //                             }}
+              //                             trigger={["click"]}
+              //                             placement="bottomRight"
+              //                           >
+              //                             <MoreOutlined
+              //                               style={{
+              //                                 fontSize: 20,
+              //                                 cursor: "pointer",
+              //                                 color: "#8c8c8c",
+              //                                 marginTop: "20px",
+              //                                 borderRadius: 4,
+              //                                 transition: "all 0.2s",
+              //                               }}
+              //                               onMouseEnter={(e) =>
+              //                                 (e.currentTarget.style.backgroundColor =
+              //                                   "#f5f5f5")
+              //                               }
+              //                               onMouseLeave={(e) =>
+              //                                 (e.currentTarget.style.backgroundColor =
+              //                                   "transparent")
+              //                               }
+              //                             />
+              //                           </Dropdown>
+              //                         </div>
+              //                       </div>
+
+              //                       {/* Rest of the content remains the same */}
+              //                       {/* Contact & Details Section */}
+              //                       <div style={{ marginTop: 12 }}>
+              //                         {/* Phone with icon */}
+              //                         {c.phone && (
+              //                           <div
+              //                             style={{
+              //                               display: "flex",
+              //                               alignItems: "center",
+              //                               marginBottom: 10,
+              //                             }}
+              //                           >
+              //                             <PhoneOutlined
+              //                               style={{
+              //                                 marginRight: 12,
+              //                                 color: "#1890ff",
+              //                                 fontSize: 16,
+              //                                 backgroundColor: "#e6f7ff",
+              //                                 padding: 6,
+              //                                 borderRadius: 6,
+              //                               }}
+              //                             />
+              //                             <div>
+              //                               <Text
+              //                                 type="secondary"
+              //                                 style={{
+              //                                   fontSize: 12,
+              //                                   color: "#8c8c8c",
+              //                                   display: "block",
+              //                                   marginBottom: 2,
+              //                                 }}
+              //                               >
+              //                                 Phone
+              //                               </Text>
+              //                               <Text
+              //                                 style={{
+              //                                   fontSize: 14,
+              //                                   color: "#1a1a1a",
+              //                                   fontWeight: 500,
+              //                                 }}
+              //                               >
+              //                                 {c.phone}
+              //                               </Text>
+              //                             </div>
+              //                           </div>
+              //                         )}
+
+              //                         {/* Address with icon */}
+              //                         {formatCompanyAddress(c).length > 0 && (
+              //                           <div
+              //                             style={{
+              //                               display: "flex",
+              //                               alignItems: "flex-start",
+              //                               marginBottom: 0,
+              //                             }}
+              //                           >
+              //                             <EnvironmentOutlined
+              //                               style={{
+              //                                 marginRight: 12,
+              //                                 color: "#52c41a",
+              //                                 fontSize: 16,
+              //                                 marginTop: 2,
+              //                                 backgroundColor: "#f6ffed",
+              //                                 padding: 6,
+              //                                 borderRadius: 6,
+              //                               }}
+              //                             />
+              //                             <div>
+              //                               <Text
+              //                                 style={{
+              //                                   fontSize: 13,
+              //                                   fontWeight: 600,
+              //                                   color: "#1a1a1a",
+              //                                   display: "block",
+              //                                   marginBottom: 4,
+              //                                 }}
+              //                               >
+              //                                 Address
+              //                               </Text>
+              //                               <div
+              //                                 style={{
+              //                                   backgroundColor: "white",
+              //                                   padding: "6px 10px",
+              //                                   borderRadius: 6,
+              //                                   border: "1px solid #f0f0f0",
+              //                                 }}
+              //                               >
+              //                                 {formatCompanyAddress(c).map((line, idx) => (
+              //                                   <Text
+              //                                     key={idx}
+              //                                     style={{
+              //                                       display: "block",
+              //                                       fontSize: 13,
+              //                                       lineHeight: "1.4",
+              //                                       marginBottom: 2,
+              //                                       color: "#595959",
+              //                                     }}
+              //                                   >
+              //                                     {line}
+              //                                   </Text>
+              //                                 ))}
+              //                               </div>
+              //                             </div>
+              //                           </div>
+              //                         )}
+
+              //                         {/* CIN & GST in a grid layout */}
+              //                         <div
+              //                           style={{
+              //                             display: "grid",
+              //                             gridTemplateColumns: "1fr 1fr",
+              //                             gap: 10,
+              //                             marginTop: 3,
+              //                             paddingTop: 12,
+              //                             borderTop: "1px solid #e8e8e8",
+
+              //                           }}
+              //                         >
+              //                           {/* CIN */}
+              //                           {c.cin && (
+              //                             <div
+              //                               style={{
+              //                                 backgroundColor: "#f9f0ff",
+              //                                 padding: 10,
+              //                                 borderRadius: 8,
+              //                                 border: "1px solid #d3adf7",
+              //                               }}
+              //                             >
+              //                               <div
+              //                                 style={{
+              //                                   display: "flex",
+              //                                   alignItems: "center",
+              //                                   marginBottom: 4,
+              //                                 }}
+              //                               >
+              //                                 <IdcardOutlined
+              //                                   style={{
+              //                                     marginRight: 8,
+              //                                     color: "#722ed1",
+              //                                     fontSize: 14,
+              //                                   }}
+              //                                 />
+              //                                 <Text
+              //                                   style={{
+              //                                     fontSize: 11,
+              //                                     fontWeight: 600,
+              //                                     color: "#722ed1",
+              //                                     textTransform: "uppercase",
+              //                                     letterSpacing: "0.5px",
+              //                                   }}
+              //                                 >
+              //                                   CIN
+              //                                 </Text>
+              //                               </div>
+              //                               <Text
+              //                                 style={{
+              //                                   fontSize: 13,
+              //                                   fontWeight: 600,
+              //                                   color: "#1a1a1a",
+              //                                   wordBreak: "break-word",
+              //                                 }}
+              //                               >
+              //                                 {c.cin}
+              //                               </Text>
+              //                             </div>
+              //                           )}
+
+              //                           {/* GST */}
+              //                           {c.gst && (
+              //                             <div
+              //                               style={{
+              //                                 backgroundColor: "#fff7e6",
+              //                                 padding: 10,
+              //                                 borderRadius: 8,
+              //                                 border: "1px solid #ffd591",
+              //                               }}
+              //                             >
+              //                               <div
+              //                                 style={{
+              //                                   display: "flex",
+              //                                   alignItems: "center",
+              //                                   marginBottom: 4,
+              //                                 }}
+              //                               >
+              //                                 <AuditOutlined
+              //                                   style={{
+              //                                     marginRight: 8,
+              //                                     color: "#fa8c16",
+              //                                     fontSize: 14,
+              //                                   }}
+              //                                 />
+              //                                 <Text
+              //                                   style={{
+              //                                     fontSize: 11,
+              //                                     fontWeight: 600,
+              //                                     color: "#fa8c16",
+              //                                     textTransform: "uppercase",
+              //                                     letterSpacing: "0.5px",
+              //                                   }}
+              //                                 >
+              //                                   GST
+              //                                 </Text>
+              //                               </div>
+              //                               <Text
+              //                                 style={{
+              //                                   fontSize: 13,
+              //                                   fontWeight: 600,
+              //                                   color: "#1a1a1a",
+              //                                   wordBreak: "break-word",
+              //                                 }}
+              //                               >
+              //                                 {c.gst}
+              //                               </Text>
+              //                             </div>
+              //                           )}
+              //                         </div>
+              //                       </div>
+              //                     </>
+              //                   );
+              //                   const card = (
+              //                   //   <Card
+              //     style={{
+              //   border: c.isActive
+              //     ? "2px solid #0852d2ff"
+              //     : "1px solid #c0bebeff",
+              //   position: "relative",
+              //   transition: "all 0.3s",
+              //   borderRadius: 8,
+              //   minHeight: 280,
+              //   height: "100%",
+              // }}
+              //                   //   >
+              //                 <Card
+              // style={{
+              //   border: c.isActive
+              //     ? "2px solid #0852d2ff"
+              //     : "1px solid #c0bebeff",
+              //   position: "relative",
+              //   transition: "all 0.3s",
+              //   borderRadius: 8,
+              //   minHeight: 280,
+              //   overflow: "hidden",   // 👈 must
+              // }}
+              // >
+
+              //                       {content}
+              //                     </Card>
+              //                   );
+
+              //                   return c.isActive ? (
+              //                     <Badge.Ribbon key={c.id} text="Active" color="blue">
+              //                       {card}
+              //                     </Badge.Ribbon>
+              //                   ) : (
+              //                     <React.Fragment key={c.id}>{card}</React.Fragment>
+              //                   );
+              //                 })}
+
+              //    <Card
+              //               hoverable
+              //               onClick={handleCreate}
+              //               style={{
+              //                 border: "2px dashed #d9d9d9",
+              //                 backgroundColor: "#fafafa",
+              //                 display: "flex",
+              //                 alignItems: "center",
+              //                 justifyContent: "center",
+              //                 minHeight: 280,
+              //                 height: "100%",
+              //                 borderRadius: 8,
+              //                 transition: "all 0.3s",
+              //               }}
+              //               bodyStyle={{
+              //                 display: "flex",
+              //                 flexDirection: "column",
+              //                 alignItems: "center",
+              //                 justifyContent: "center",
+              //                 height: "100%",
+              //                 padding: 20,
+              //                 textAlign: "center",
+              //               }}
+              //             >
+              //               <div
+              //                 style={{
+              //                   width: 48,
+              //                   height: 48,
+              //                   borderRadius: "50%",
+              //                   backgroundColor: "#e6f7ff",
+              //                   display: "flex",
+              //                   alignItems: "center",
+              //                   justifyContent: "center",
+              //                   marginBottom: 12,
+              //                 }}
+              //               >
+              //                 <PlusOutlined style={{ fontSize: 20, color: "#1890ff" }} />
+              //               </div>
+              //               <Title
+              //                 level={5}
+              //                 style={{
+              //                   marginBottom: 6,
+              //                   fontSize: 16,
+              //                   color: "#262626", // Dark gray for title
+              //                 }}
+              //               >
+              //                 Add New Company
+              //               </Title>
+              //               <Text
+              //                 style={{
+              //                   fontSize: 12,
+              //                   lineHeight: 1.4,
+              //                   color: "#595959", // Dark gray for description
+              //                 }}
+              //               >
+              //                Create company profile with required details
+              //               </Text>
+              //             </Card>
+              //               </div>
+
               <div
                 style={{
                   display: "grid",
@@ -300,7 +833,7 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                 {companies.map((c) => {
                   const content = (
                     <>
-                      {/* Logo with inline Actions - UPDATED SECTION */}
+                      {/* Logo, Name & Actions - REORGANIZED SECTION */}
                       <div
                         style={{
                           display: "flex",
@@ -309,36 +842,96 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                           marginBottom: 16,
                         }}
                       >
-                        {/* Logo */}
-                        {c.logo && (
+                        {/* Left side: Logo and Company Info */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            flex: 1,
+                            minWidth: 0, // 🔥 IMPORTANT: Prevents overflow
+                          }}
+                        >
+                          {/* Logo */}
+                          {c.logo && (
+                            <div
+                              style={{
+                                marginRight: 16,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <img
+                                src={c.logo}
+                                alt={c.name}
+                                style={{
+                                  width: 80,
+                                  height: 80,
+                                  objectFit: "contain",
+                                  borderRadius: 10,
+                                  border: "1px solid #f0f0f0",
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          {/* Company Name and Email (vertical alignment) */}
                           <div
                             style={{
-                              marginRight: 16,
-                              flexShrink: 0,
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "center",
+                              height: 80, // Match logo height
+                              flex: 1,
+                              minWidth: 0, // 🔥 IMPORTANT: Allows text wrapping
+                              overflow: "hidden", // 🔥 Prevents content from pushing outside
                             }}
                           >
-                            <img
-                              src={c.logo}
-                              alt={c.name}
+                            <Title
+                              level={4}
                               style={{
-                                width: 80,
-                                height: 80,
-                                objectFit: "contain",
-                                borderRadius: 10,
-                                border: "1px solid #f0f0f0",
-                                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                                margin: 0,
+                                marginBottom: 4,
+                                color: "#1a1a1a",
+                                fontWeight: 600,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                width: "100%",
+                                lineHeight: 1.3,
                               }}
-                            />
-                          </div>
-                        )}
+                              title={c.name} // Shows full name on hover
+                              ellipsis={{ tooltip: c.name }}
+                            >
+                              {c.name}
+                            </Title>
 
-                        {/* Action Buttons on right side */}
+                            <Text
+                              type="secondary"
+                              style={{
+                                fontSize: 14,
+                                color: "#595959",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                width: "100%",
+                                lineHeight: 1.3,
+                              }}
+                              title={c.email} // Shows full email on hover
+                              ellipsis={{ tooltip: c.email }}
+                            >
+                              {c.email}
+                            </Text>
+                          </div>
+                        </div>
+
+                        {/* Right side: Action Buttons */}
                         <div
                           style={{
                             display: "flex",
                             flexDirection: "column",
                             gap: 8,
                             alignItems: "flex-end",
+                            flexShrink: 0, // 🔥 Prevents button from shrinking
                           }}
                         >
                           {/* Dropdown Menu */}
@@ -346,33 +939,38 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                             menu={{
                               items: [
                                 {
+                                  key: "toggle",
+                                  label: c.isActive
+                                    ? "Inactivate"
+                                    : "Set Active",
+                                  icon: c.isActive ? (
+                                    <PauseCircleOutlined />
+                                  ) : (
+                                    <CheckCircleOutlined />
+                                  ),
+                                  danger: c.isActive,
+                                  onClick: () => handleToggleActive(c.id),
+                                },
+                                {
                                   key: "edit",
                                   label: "Edit",
                                   icon: <EditOutlined />,
                                   onClick: () => handleEdit(c.id),
                                 },
-                                // {
-                                //   key: "preview",
-                                //   label: "Preview",
-                                //   onClick: () => handlePreview(c),
-                                // },
                                 {
                                   key: "delete",
                                   label: (
-                                    <Popconfirm
-                                      title="Delete company?"
-  description="This action cannot be undone"
-  okText="Yes"
-  cancelText="No"
-  onConfirm={() => deleteMutation.mutate(c.id)}
+                                    <div
+                                      onClick={() => {
+                                        setCompanyToDelete(c);
+                                        setDeleteModalVisible(true);
+                                      }}
                                     >
-                                      <div>
-                                        <DeleteOutlined
-                                          style={{ marginRight: 8 }}
-                                        />
-                                        Delete
-                                      </div>
-                                    </Popconfirm>
+                                      <DeleteOutlined
+                                        style={{ marginRight: 8 }}
+                                      />
+                                      Delete
+                                    </div>
                                   ),
                                   danger: true,
                                 },
@@ -386,9 +984,10 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                                 fontSize: 20,
                                 cursor: "pointer",
                                 color: "#8c8c8c",
-                                marginTop: 18, // 👈 ithu add pannunga (try 6–10)
+                                marginTop: "20px",
                                 borderRadius: 4,
                                 transition: "all 0.2s",
+                                flexShrink: 0,
                               }}
                               onMouseEnter={(e) =>
                                 (e.currentTarget.style.backgroundColor =
@@ -400,52 +999,7 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                               }
                             />
                           </Dropdown>
-
-                          {/* Set Active Button - ONLY when inactive */}
-                          {!c.isActive && (
-                            <Button
-                              type="primary"
-                              onClick={() => handleSetActive(c.id)}
-                              loading={setActiveMutation.isPending}
-                              style={{
-                                borderRadius: 6,
-                                fontWeight: 600,
-                                fontSize: 12,
-                                height: 28,
-                                padding: "0 12px",
-                                backgroundColor: "#1890ff",
-                                borderColor: "#1890ff",
-                                boxShadow: "0 2px 0 rgba(5, 145, 255, 0.1)",
-                              }}
-                            >
-                              Set Active
-                            </Button>
-                          )}
                         </div>
-                      </div>
-
-                      {/* Header with Name and Email */}
-                      <div style={{ marginBottom: 12 }}>
-                        <Title
-                          level={4}
-                          style={{
-                            margin: 0,
-                            marginBottom: 4,
-                            color: "#1a1a1a",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {c.name}
-                        </Title>
-                        <Text
-                          type="secondary"
-                          style={{
-                            fontSize: 14,
-                            color: "#595959",
-                          }}
-                        >
-                          {c.email}
-                        </Text>
                       </div>
 
                       {/* Rest of the content remains the same */}
@@ -515,7 +1069,12 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                                 borderRadius: 6,
                               }}
                             />
-                            <div>
+                            <div
+                              style={{
+                                flex: 1,
+                                minWidth: 0, // 🔥 Prevents address from overflowing
+                              }}
+                            >
                               <Text
                                 style={{
                                   fontSize: 13,
@@ -544,6 +1103,7 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                                       lineHeight: "1.4",
                                       marginBottom: 2,
                                       color: "#595959",
+                                      wordBreak: "break-word",
                                     }}
                                   >
                                     {line}
@@ -560,7 +1120,7 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                             display: "grid",
                             gridTemplateColumns: "1fr 1fr",
                             gap: 10,
-                            marginTop: 12,
+                            marginTop: 3,
                             paddingTop: 12,
                             borderTop: "1px solid #e8e8e8",
                           }}
@@ -607,7 +1167,10 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                                   fontWeight: 600,
                                   color: "#1a1a1a",
                                   wordBreak: "break-word",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
                                 }}
+                                title={c.cin}
                               >
                                 {c.cin}
                               </Text>
@@ -656,7 +1219,10 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                                   fontWeight: 600,
                                   color: "#1a1a1a",
                                   wordBreak: "break-word",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
                                 }}
+                                title={c.gst}
                               >
                                 {c.gst}
                               </Text>
@@ -668,16 +1234,15 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
                   );
                   const card = (
                     <Card
-                      key={c.id}
-                      hoverable
-                      onMouseEnter={() => setHoveredId(c.id)}
-                      onMouseLeave={() => setHoveredId(null)}
                       style={{
-                        borderRadius: 10,
-                        boxShadow: `
-                  0 12px 30px rgba(0,0,0,0.2),
-                  0 6px 12px rgba(0,0,0,0.15)
-                `,
+                        border: c.isActive
+                          ? "2px solid #0852d2ff"
+                          : "1px solid #c0bebeff",
+                        position: "relative",
+                        transition: "all 0.3s",
+                        borderRadius: 8,
+                        minHeight: 280,
+                        overflow: "hidden",
                       }}
                     >
                       {content}
@@ -695,19 +1260,61 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
 
                 <Card
                   hoverable
+                  onClick={handleCreate}
                   style={{
+                    border: "2px dashed #d9d9d9",
+                    backgroundColor: "#fafafa",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    minHeight: 200,
-                    cursor: "pointer",
+                    minHeight: 280,
+                    height: "100%",
+                    borderRadius: 8,
+                    transition: "all 0.3s",
                   }}
-                  onClick={handleCreate}
+                  bodyStyle={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "100%",
+                    padding: 20,
+                    textAlign: "center",
+                  }}
                 >
-                  <Space direction="vertical" align="center">
-                    <PlusOutlined style={{ fontSize: 24 }} />
-                    <Text>Add New Company</Text>
-                  </Space>
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: "50%",
+                      backgroundColor: "#e6f7ff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <PlusOutlined style={{ fontSize: 20, color: "#1890ff" }} />
+                  </div>
+                  <Title
+                    level={5}
+                    style={{
+                      marginBottom: 6,
+                      fontSize: 16,
+                      color: "#262626",
+                    }}
+                  >
+                    Add New Company
+                  </Title>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.4,
+                      color: "#595959",
+                    }}
+                  >
+                    Create company profile with required details
+                  </Text>
                 </Card>
               </div>
             )}
@@ -734,6 +1341,37 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
           />
         )}
       </Card>
+
+      <Modal
+        title="Delete Company Permanently"
+        open={deleteModalVisible}
+        onCancel={() => setDeleteModalVisible(false)}
+        onOk={() => {
+          if (!companyToDelete) return;
+          deleteMutation.mutate(companyToDelete.id, {
+            onSuccess: () => {
+              toast.success(
+                `Company "${companyToDelete.name}" deleted successfully`,
+              );
+              setDeleteModalVisible(false);
+              setCompanyToDelete(null);
+              refetch(); // optional: refetch list
+            },
+            onError: () => {
+              toast.error("Failed to delete company");
+            },
+          });
+        }}
+        okButtonProps={{ danger: true }}
+        okText="Delete"
+        cancelText="Cancel"
+      >
+        <Text>
+          Are you sure you want to delete{" "}
+          <strong>{companyToDelete?.name}</strong>? This action cannot be
+          undone.
+        </Text>
+      </Modal>
     </div>
   );
 }

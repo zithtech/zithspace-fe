@@ -87,42 +87,8 @@ const SalaryComponentManagement = () => {
   const statusMutation = useUpdateSalaryStatus();
   const deleteMutation = useDeleteSalaryComponent();
 
-  // const [data, setData] = useState<SalaryComponent[]>([
-  //   {
-  //     key: 1,
-  //     componentName: "Basic Salary",
-  //     componentCode: "BASIC",
-  //     type: "Earning",
-  //     status: true,
-  //   },
-  //   {
-  //     key: 2,
-  //     componentName: "Provident Fund",
-  //     componentCode: "PF",
-  //     type: "Deduction",
-  //     status: true,
-  //   },
-  // ]);
-
   const generateComponentCode = (name: string) =>
     name.toUpperCase().trim().replace(/\s+/g, "_");
-
-  // const filteredData = data.filter((item) => {
-  //   const matchesSearch =
-  //     item.componentName.toLowerCase().includes(search.toLowerCase()) ||
-  //     item.componentCode.toLowerCase().includes(search.toLowerCase());
-
-  //   const matchesType = typeFilter ? item.type === typeFilter : true;
-
-  //   const matchesStatus =
-  //     statusFilter === "Active"
-  //       ? item.status
-  //       : statusFilter === "Inactive"
-  //       ? !item.status
-  //       : true;
-
-  //   return matchesSearch && matchesType && matchesStatus;
-  // });
 
   const handleDelete = (id: number) => {
     deleteMutation.mutate(id, {
@@ -199,64 +165,6 @@ const SalaryComponentManagement = () => {
     },
   ];
 
-  // const handleSave = async () => {
-  //   const values = await form.validateFields();
-
-  //   if (isEditMode && editingKey !== null) {
-  //     setData((prev) =>
-  //       prev.map((item) =>
-  //         item.key === editingKey
-  //           ? {
-  //               ...item,
-  //               componentName: values.componentName,
-  //               componentCode: values.componentCode,
-  //               type: values.type,
-  //               status: values.status,
-  //             }
-  //           : item,
-  //       ),
-  //     );
-  //   } else {
-  //     const newComponent: SalaryComponent = {
-  //       key: Date.now(),
-  //       componentName: values.componentName,
-  //       componentCode: values.componentCode,
-  //       type: values.type,
-  //       status: values.status,
-  //     };
-
-  //     setData((prev) => [newComponent, ...prev]);
-  //   }
-
-  //   form.resetFields();
-  //   setIsEditMode(false);
-  //   setEditingKey(null);
-  //   setOpen(false);
-  // };
-
-  //___________________________________________________________________
-
-  // const handleSave = async () => {
-  //   const values = await form.validateFields();
-
-  //   if (isEditMode && editingKey !== null) {
-  //     updateMutation.mutate({
-  //       id: editingKey,
-  //       data: values,
-  //     });
-  //   } else {
-  //     createMutation.mutate(values);
-  //   }
-
-  //   form.resetFields();
-  //   setIsEditMode(false);
-  //   setEditingKey(null);
-  //   setOpen(false);
-  // };
-
-  //________________________________________________________________________________
-
-  //_______________________________________________________________
 
   const handleSave = async () => {
     const values = await form.validateFields();
@@ -294,9 +202,7 @@ const SalaryComponentManagement = () => {
     }
   };
 
-  // const toggleStatus = (id: number, status: boolean) => {
-  //   statusMutation.mutate({ id, status });
-  // };
+  
 
   const toggleStatus = (key: number, status: boolean) => {
   statusMutation.mutate(
@@ -314,12 +220,6 @@ const SalaryComponentManagement = () => {
   );
 };
 
-  // const handleEdit = (record: SalaryComponent) => {
-  //   setIsEditMode(true);
-  //   setEditingKey(record.key);
-  //   form.setFieldsValue(record);
-  //   setOpen(true);
-  // };
 
   const handleEdit = (record: SalaryComponent) => {
     setIsEditMode(true);
@@ -403,14 +303,6 @@ const SalaryComponentManagement = () => {
             setPageSize(pageSize);
           },
         }}
-        pagination={{ pageSize: 7 }}
-      /> */}
-
-      {/* <Table
-        loading={isLoading}
-        columns={columns}
-        dataSource={components}
-        rowKey="key" // use key, not id
         pagination={{ pageSize: 7 }}
       /> */}
 

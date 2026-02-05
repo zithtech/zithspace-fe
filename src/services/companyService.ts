@@ -1,4 +1,4 @@
-import { api, apiUtils, ApiError, PaginatedResponse } from "@/lib/axios";
+import { api, apiUtils, ApiError } from "@/lib/axios";
 import {
   Company,
   CompanyFilters,
@@ -83,32 +83,45 @@ export class CompanyService {
   }
 
   /**
-   * Set company as active
+   * Set/Unset company as active (toggle)
    */
-  static async setActive(id: number): Promise<void> {
+  static async toggleActive(id: number): Promise<Company> {
     try {
-      await api.patch(`/api/companies/${id}/active`);
+      return await api.patch<Company>(`/api/companies/${id}/active`);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error("Failed to set company as active");
+      throw new Error("Failed to toggle company active status");
     }
   }
-
 
   /**
- * Delete company
- */
-static async delete(id: number): Promise<void> {
-  try {
-    await api.delete(`/api/companies/${id}`);
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw new Error(error.message);
+   * Set company as active (only if inactive)
+   */
+  static async activateCompany(id: number): Promise<Company> {
+    try {
+      const company = await this.getById(id);
+      if (company.isActive) {
+        throw new Error("Company is already active");
+      }
+      return await this.toggleActive(id);
+    } catch (error) {
+      throw error;
     }
-    throw new Error("Failed to delete company");
   }
-}
 
+  /**
+   * Delete company
+   */
+  static async delete(id: number): Promise<void> {
+    try {
+      await api.delete(`/api/companies/${id}`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to delete company");
+    }
+  }
 }

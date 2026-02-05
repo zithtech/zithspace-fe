@@ -1,4 +1,5 @@
-import { SalaryStructure,Company,AttendanceResponse,ReimbursementResponse,Employee,EmployeeSalary } from "@/types/salary";
+import {AttendanceResponse,ReimbursementResponse,Employee } from "@/types/salary";
+import {EmployeeSalary} from "@/types/salaryStructure"
 
 // let structures: SalaryStructure[] = [];
 
@@ -41,76 +42,76 @@ import { SalaryStructure,Company,AttendanceResponse,ReimbursementResponse,Employ
 // };
 
 
-let structures: SalaryStructure[] = [];
-export const SalaryStructureService = {
-  getAll(): SalaryStructure[] {
-    return [...structures];
-  },
+// let structures: SalaryStructure[] = [];
+// export const SalaryStructureService = {
+//   getAll(): SalaryStructure[] {
+//     return [...structures];
+//   },
 
-  create(structure: SalaryStructure) {
-    const newStructure = { ...structure, isActive: false }; // Default to inactive
-    structures = [newStructure, ...structures];
-    return newStructure;
-  },
+//   create(structure: SalaryStructure) {
+//     const newStructure = { ...structure, isActive: false }; // Default to inactive
+//     structures = [newStructure, ...structures];
+//     return newStructure;
+//   },
 
-  setActive(id: number) {
-    structures = structures.map((s) => ({
-      ...s,
-      isActive: s.id === id ? !s.isActive : s.isActive // Just toggle the clicked one
-    }));
-  },
+//   setActive(id: number) {
+//     structures = structures.map((s) => ({
+//       ...s,
+//       isActive: s.id === id ? !s.isActive : s.isActive // Just toggle the clicked one
+//     }));
+//   },
 
-  getById(id: number) {
-    return structures.find((s) => s.id === id);
-  },
+//   getById(id: number) {
+//     return structures.find((s) => s.id === id);
+//   },
 
-  update(id: number, data: Partial<SalaryStructure>) {
-    const existing = this.getById(id);
-    if (!existing) return null;
+//   update(id: number, data: Partial<SalaryStructure>) {
+//     const existing = this.getById(id);
+//     if (!existing) return null;
     
-    const updatedData = {
-      ...existing,
-      ...data,
-    };
+//     const updatedData = {
+//       ...existing,
+//       ...data,
+//     };
     
-    structures = structures.map((s) => (s.id === id ? updatedData : s));
-    return updatedData;
-  },
-};
+//     structures = structures.map((s) => (s.id === id ? updatedData : s));
+//     return updatedData;
+//   },
+// };
 
 
 
-let companies: Company[] = [];
+// let companies: Company[] = [];
 
-export const CompanyService = {
-  async getAll(): Promise<Company[]> {
-    return [...companies];
-  },
+// export const CompanyService = {
+//   async getAll(): Promise<Company[]> {
+//     return [...companies];
+//   },
 
-  async getById(id: number): Promise<Company | undefined> {
-    return companies.find((c) => c.id === id);
-  },
+//   async getById(id: number): Promise<Company | undefined> {
+//     return companies.find((c) => c.id === id);
+//   },
 
-  async getActive(): Promise<Company | undefined> {
-    return companies.find((c) => c.isActive);
-  },
+//   async getActive(): Promise<Company | undefined> {
+//     return companies.find((c) => c.isActive);
+//   },
 
-  async create(company: Company) {
-    if (companies.length === 0) company.isActive = true;
-    companies.unshift(company);
-  },
+//   async create(company: Company) {
+//     if (companies.length === 0) company.isActive = true;
+//     companies.unshift(company);
+//   },
 
-  async update(id: number, company: Company) {
-    companies = companies.map((c) => (c.id === id ? company : c));
-  },
+//   async update(id: number, company: Company) {
+//     companies = companies.map((c) => (c.id === id ? company : c));
+//   },
 
-  async setActive(id: number) {
-    companies = companies.map((c) => ({
-      ...c,
-      isActive: c.id === id,
-    }));
-  },
-};
+//   async setActive(id: number) {
+//     companies = companies.map((c) => ({
+//       ...c,
+//       isActive: c.id === id,
+//     }));
+//   },
+// };
 
 
 

@@ -1,269 +1,488 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Typography,
+  Space,
   Button,
+  Table,
+  Tag,
   Switch,
   Input,
-  Space,
-  Divider,
+  Modal,
+  Form,
+  message,
+  Popconfirm,
+  Tooltip,
   Row,
   Col,
-  Modal,
-  Tooltip,
-  Popconfirm,
+  Select,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
-  CheckOutlined,
-  EyeOutlined,
   DeleteOutlined,
-  QuestionCircleOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  SearchOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
+import {
+  useEmployeeFields,
+  useCreateEmployeeField,
+  useUpdateEmployeeField,
+  useToggleFieldVisibility,
+  useDeleteEmployeeField,
+} from "@/hooks/useEmployeeFields";
+import { useAllCompanies } from "@/hooks/useCompanies"; // Assuming you have this hook
+import { EmployeeField } from "@/types/employeeField";
+
 import { PreviewType } from "@/types/salary";
 
 interface Props {
-  onPreview: (type: Exclude<PreviewType, null>, data: EmployeeField[]) => void;
+  onPreview: (type: Exclude<PreviewType, null>, data: any) => void;
 }
 
 const { Title, Text } = Typography;
+const { Column } = Table;
+const { Option } = Select;
 
-export type EmployeeField = {
+interface EmployeeFieldFormData {
+  companyId: number;
   systemKey: string;
   displayName: string;
   isVisible: boolean;
-};
-
-const initialEmployeeFields: EmployeeField[] = [
-  { systemKey: "Employee Name", displayName: "name", isVisible: true },
-  { systemKey: "Employee ID", displayName: "id", isVisible: true },
-  { systemKey: "Department", displayName: "department", isVisible: true },
-  { systemKey: "Designation", displayName: "designation", isVisible: true },
-  { systemKey: "Date of Joining", displayName: "DOJ", isVisible: true },
-  { systemKey: "Bank Account", displayName: "bank", isVisible: false },
-  { systemKey: "PAN Number", displayName: "pan", isVisible: false },
-];
+}
 
 export default function EmployeeSettings({ onPreview }: Props) {
-  const [employeeFields, setEmployeeFields] = useState<EmployeeField[]>(
-    initialEmployeeFields,
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(
+    null,
+  );
+  const [searchText, setSearchText] = useState("");
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingField, setEditingField] = useState<EmployeeField | null>(null);
+  const [form] = Form.useForm();
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  // Get all companies for dropdown
+  const { data: companies = [], isLoading: companiesLoading } =
+    useAllCompanies();
+
+  // Get employee fields for selected company
+  const {
+    data: fields = [],
+    isLoading,
+    error,
+    refetch,
+  } = useEmployeeFields(selectedCompanyId);
+  const createMutation = useCreateEmployeeField();
+  const updateMutation = useUpdateEmployeeField();
+  const toggleVisibilityMutation = useToggleFieldVisibility();
+  const deleteMutation = useDeleteEmployeeField();
+
+  // Auto-select first company if available
+  // useEffect(() => {
+  //   if (companies.length > 0 && !selectedCompanyId) {
+  //     setSelectedCompanyId(companies[0].id);
+  //   }
+  // }, [companies])
+  //
+
+  useEffect(() => {
+    if (companies.length > 0) {
+      setSelectedCompanyId((prev) => prev ?? companies[0].id);
+    }
+  }, [companies]);
+
+  // Filter fields based on search
+  const filteredFields = fields.filter(
+    (field) =>
+      field.displayName.toLowerCase().includes(searchText.toLowerCase()) ||
+      field.systemKey.toLowerCase().includes(searchText.toLowerCase()),
   );
 
-  // modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingField, setEditingField] = useState<EmployeeField | null>(null);
-
-  // form (UI-only naming)
-  const [fieldKeyInput, setFieldKeyInput] = useState("");
-  const [fieldLabelInput, setFieldLabelInput] = useState("");
-
-  const toggleVisibility = (systemKey: string) => {
-    setEmployeeFields((prev) =>
-      prev.map((field) =>
-        field.systemKey === systemKey
-          ? { ...field, isVisible: !field.isVisible }
-          : field,
-      ),
-    );
-  };
-
-  const openAddField = () => {
-    setEditingField(null);
-    setFieldKeyInput("");
-    setFieldLabelInput("");
-    setIsModalOpen(true);
-  };
-
-  const openEditField = (field: EmployeeField) => {
-    setEditingField(field);
-    setFieldKeyInput(field.systemKey);
-    setFieldLabelInput(field.displayName);
-    setIsModalOpen(true);
-  };
-
-  const handleSaveField = () => {
-    if (!fieldKeyInput.trim()) return;
-
-    if (editingField) {
-      // EDIT
-      setEmployeeFields((prev) =>
-        prev.map((field) =>
-          field.systemKey === editingField.systemKey
-            ? {
-                ...field,
-                displayName: fieldLabelInput || fieldKeyInput,
-              }
-            : field,
-        ),
-      );
-    } else {
-      // ADD
-      setEmployeeFields((prev) => [
-        ...prev,
-        {
-          systemKey: fieldKeyInput,
-          displayName: fieldLabelInput || fieldKeyInput,
-          isVisible: true,
-        },
-      ]);
+  const handleCreate = () => {
+    if (!selectedCompanyId) {
+      message.error("Please select a company first");
+      return;
     }
-
-    setIsModalOpen(false);
-    setEditingField(null);
-    setFieldKeyInput("");
-    setFieldLabelInput("");
+    form.resetFields();
+    form.setFieldsValue({ companyId: selectedCompanyId, isVisible: true });
+    setIsCreateModalVisible(true);
   };
 
-  const handleDeleteField = (systemKey: string) => {
-    // Your delete logic here
-    console.log("Deleting field:", systemKey);
-    // Example:
-    // setEmployeeFields(prev => prev.filter(field => field.systemKey !== systemKey));
+  const handleEdit = (field: EmployeeField) => {
+    setEditingField(field);
+    form.setFieldsValue({
+      displayName: field.displayName,
+    });
+    setIsEditModalVisible(true);
   };
+
+  const handleCreateSubmit = async (values: EmployeeFieldFormData) => {
+    try {
+      await createMutation.mutateAsync({
+        companyId: values.companyId,
+        systemKey: values.systemKey,
+        displayName: values.displayName || values.systemKey,
+        isVisible: values.isVisible,
+      });
+      setIsCreateModalVisible(false);
+      form.resetFields();
+    } catch (error) {
+      console.error("Failed to create field:", error);
+    }
+  };
+
+  const handleEditSubmit = async (values: { displayName: string }) => {
+    if (!editingField) return;
+
+    try {
+      await updateMutation.mutateAsync({
+        id: editingField.id,
+        data: { displayName: values.displayName },
+      });
+      setIsEditModalVisible(false);
+      setEditingField(null);
+    } catch (error) {
+      console.error("Failed to update field:", error);
+    }
+  };
+
+  // const handleToggleVisibility = async (id: number) => {
+  //   try {
+  //     await toggleVisibilityMutation.mutateAsync(id);
+  //   } catch (error) {
+  //     console.error("Failed to toggle visibility:", error);
+  //   }
+  // };
+
+  const handleToggleVisibility = async (id: number) => {
+    try {
+      setTogglingId(id);
+      await toggleVisibilityMutation.mutateAsync(id);
+    } catch (error) {
+      console.error("Failed to toggle visibility:", error);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteMutation.mutateAsync(id);
+      message.success("Field deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete field:", error);
+    }
+  };
+
+  if (error) {
+    return (
+      <Card>
+        <div style={{ textAlign: "center", padding: 50 }}>
+          <Title level={4}>Error loading employee fields</Title>
+          <Text type="danger">{(error as Error).message}</Text>
+          <br />
+          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
-    <Card style={{ marginTop: -16, marginLeft: 5 }}>
-      {/* HEADER */}
-      <Space style={{ width: "100%", justifyContent: "space-between" }}>
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            Employee Details Configuration
-          </Title>
-          <Text type="secondary">
-            Configure employee fields shown on payslip
-          </Text>
+    <div>
+      <Card style={{ marginLeft: 5, marginTop: -16 }}>
+        {/* Header */}
+        <div style={{ marginBottom: 20 }}>
+          <Row justify="space-between" align="middle">
+            <Col>
+              <Title level={4} style={{ margin: 0 }}>
+                Employee Field Configuration
+              </Title>
+              <Text type="secondary">
+                Customize which employee fields are visible in the system
+              </Text>
+            </Col>
+            <Col>
+              <Space>
+                <Button
+                  icon={<EyeOutlined />}
+                  onClick={() =>
+                    onPreview(
+                      "employee",
+                      fields
+                        .filter((f) => f.isVisible)
+                        .map((f) => ({
+                          key: f.systemKey, // required
+                          label: f.displayName, // display name
+                          value: "-", // dummy value
+                        })),
+                    )
+                  }
+                >
+                  Preview
+                </Button>
+
+                {/* <Select
+                  placeholder="Select Company"
+                  style={{ width: 200 }}
+                  value={selectedCompanyId}
+                  onChange={setSelectedCompanyId}
+                  loading={companiesLoading}
+                >
+                  {companies.map((company) => (
+                    <Option key={company.id} value={company.id}>
+                      {company.name}
+                    </Option>
+                  ))}
+                </Select> */}
+
+                <Select
+                  placeholder={
+                    companiesLoading ? "Loading companies..." : "Select Company"
+                  }
+                  style={{ width: 200 }}
+                  value={selectedCompanyId}
+                  onChange={setSelectedCompanyId}
+                  loading={companiesLoading}
+                  disabled={companiesLoading}
+                >
+                  {companies.map((company) => (
+                    <Option key={company.id} value={company.id}>
+                      {company.name}
+                    </Option>
+                  ))}
+                </Select>
+
+                <Input
+                  placeholder="Search fields..."
+                  prefix={<SearchOutlined />}
+                  style={{ width: 250 }}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                  disabled={!selectedCompanyId}
+                />
+
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleCreate}
+                  loading={createMutation.isPending}
+                  disabled={!selectedCompanyId}
+                >
+                  Add Field
+                </Button>
+              </Space>
+            </Col>
+          </Row>
         </div>
 
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() =>
-              onPreview(
-                "employee",
-                employeeFields.filter((f) => f.isVisible),
-              )
-            }
-          >
-            Preview
-          </Button>
-
-          <Button icon={<CheckOutlined />}>Save</Button>
-
-          <Button type="primary" icon={<PlusOutlined />} onClick={openAddField}>
-            Add Custom Field
-          </Button>
-        </Space>
-      </Space>
-
-      <Divider style={{ margin: "12px 0" }} />
-
-      {/* FIELDS */}
-      <Row gutter={[16, 12]}>
-        {employeeFields.map((field) => (
-          <Col key={field.systemKey} xs={24} sm={12} md={8}>
-            <Card
-              bordered
-              bodyStyle={{ padding: 12 }}
-              style={{ border: "1px solid #b1adad" }}
-            >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <div style={{ flex: 1 }}>
-                  <Text strong>{field.systemKey}</Text>
-                  <div>
-                    <Text type="secondary">Display: {field.displayName}</Text>
-                  </div>
-                </div>
-
-                <Space size="small">
-                  {/* Edit Button */}
-                  <Tooltip title="Edit">
-                    <EditOutlined
-                      style={{
-                        color: "#1677ff",
-                        cursor: "pointer",
-                        fontSize: "16px",
-                        padding: "4px",
-                      }}
-                      onClick={() => openEditField(field)}
-                    />
-                  </Tooltip>
-
-                  {/* Delete Button with Popconfirm */}
-                  <Popconfirm
-                    title="Delete Field"
-                    description="Are you sure to delete this field?"
-                    onConfirm={() => handleDeleteField(field.systemKey)}
-                    okText="Yes"
-                    cancelText="No"
-                    okType="danger"
-                    icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                  >
-                    <Tooltip title="Delete">
-                      <DeleteOutlined
+        {selectedCompanyId && (
+          <Row gutter={[16, 16]}>
+            {filteredFields.map((field) => (
+              <Col key={field.id} xs={24} sm={12} md={8} lg={6}>
+                <Card
+                  bordered
+                  bodyStyle={{
+                    padding: 16,
+                    backgroundColor: field.isVisible ? "#fafafa" : "#f5f5f5",
+                    borderRadius: 6,
+                    opacity: field.isVisible ? 1 : 0.8,
+                    height: "100%",
+                  }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    border: `1px solid ${field.isVisible ? "#d9d9d9" : "#e8e8e8"}`,
+                    borderRadius: 8,
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start" }}>
+                    <div style={{ flex: 1 }}>
+                      <div
                         style={{
-                          color: "#ff4d4f",
-                          cursor: "pointer",
-                          fontSize: "16px",
-                          padding: "4px",
+                          display: "flex",
+                          alignItems: "center",
+                          marginBottom: 4,
                         }}
-                      />
-                    </Tooltip>
-                  </Popconfirm>
+                      >
+                        <Text
+                          strong
+                          style={{
+                            fontSize: 14,
+                            color: field.isVisible ? "#1a1a1a" : "#8c8c8c",
+                          }}
+                        >
+                          {field.systemKey}
+                        </Text>
+                        {!field.isVisible && (
+                          <Tag
+                            color="default"
+                            style={{ marginLeft: 4, fontSize: 10 }}
+                          >
+                            Inactive
+                          </Tag>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          backgroundColor: "#ffffff",
+                          padding: "4px 8px",
+                          borderRadius: 4,
+                          border: "1px solid #f0f0f0",
+                          minHeight: 32,
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: field.isVisible ? "#595959" : "#bfbfbf",
+                            fontSize: 13,
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {field.displayName}
+                        </Text>
+                      </div>
+                    </div>
 
-                  {/* Show/Hide Toggle */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      marginLeft: "8px",
-                      paddingLeft: "8px",
-                      borderLeft: "1px solid #d9d9d9",
-                    }}
-                  >
-                    <Text style={{ fontSize: "12px" }}>Show</Text>
-                    <Switch
-                      size="small"
-                      checked={field.isVisible}
-                      onChange={() => toggleVisibility(field.systemKey)}
-                    />
+                    <Space
+                      direction="vertical"
+                      align="end"
+                      style={{
+                        marginLeft: 8,
+                        height: "100%",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Space size={4}>
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => handleEdit(field)}
+                          size="small"
+                          style={{ color: "#1890ff" }}
+                          disabled={!field.isVisible}
+                        />
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleDelete(field.id)}
+                          size="small"
+                          loading={deleteMutation.isPending}
+                        />
+                      </Space>
+
+                      <Space size={6}>
+                        <Text type="secondary" style={{ fontSize: 11 }}>
+                          {field.isVisible ? "Visible" : "Hidden"}
+                        </Text>
+                        {/* <Switch
+                          size="small"
+                          checked={field.isVisible}
+                          onChange={() => handleToggleVisibility(field.id)}
+                          loading={toggleVisibilityMutation.isPending}
+                        /> */}
+
+                        <Switch
+                          size="small"
+                          checked={field.isVisible}
+                          onChange={() => handleToggleVisibility(field.id)}
+                          loading={togglingId === field.id}
+                          disabled={
+                            togglingId !== null && togglingId !== field.id
+                          }
+                        />
+                      </Space>
+                    </Space>
                   </div>
-                </Space>
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </Card>
 
-      {/* MODAL */}
+      {/* Create Modal */}
       <Modal
-        title={editingField ? "Edit Field" : "Add Custom Field"}
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onOk={handleSaveField}
-        okText={editingField ? "Update Field" : "Add Field"}
+        title="Create Employee Field"
+        open={isCreateModalVisible}
+        onCancel={() => setIsCreateModalVisible(false)}
+        onOk={() => form.submit()}
+        confirmLoading={createMutation.isPending}
       >
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <div>
-            <Text strong>Field Name (System)</Text>
-            <Input
-              value={fieldKeyInput}
-              onChange={(e) => setFieldKeyInput(e.target.value)}
-              disabled={!!editingField}
-            />
-          </div>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreateSubmit}
+          initialValues={{ isVisible: true }}
+        >
+          <Form.Item name="companyId" label="Company" hidden>
+            <Input type="hidden" />
+          </Form.Item>
 
-          <div>
-            <Text strong>Display Name (Payslip)</Text>
-            <Input
-              value={fieldLabelInput}
-              onChange={(e) => setFieldLabelInput(e.target.value)}
-            />
-          </div>
-        </Space>
+          <Form.Item
+            name="systemKey"
+            label="System Key"
+            rules={[
+              { required: true, message: "Please enter system key" },
+              {
+                pattern: /^[a-zA-Z0-9_]+$/,
+                message: "Only letters, numbers and underscore allowed",
+              },
+            ]}
+          >
+            <Input placeholder="e.g., employee_id, department" />
+          </Form.Item>
+          <Form.Item name="displayName" label="Display Name">
+            <Input placeholder="Leave empty to use system key" />
+          </Form.Item>
+          <Form.Item
+            name="isVisible"
+            label="Visibility"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+          </Form.Item>
+        </Form>
       </Modal>
-    </Card>
+
+      {/* Edit Modal */}
+      <Modal
+        title="Edit Employee Field"
+        open={isEditModalVisible}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          setEditingField(null);
+        }}
+        onOk={() => form.submit()}
+        confirmLoading={updateMutation.isPending}
+      >
+        <Form form={form} layout="vertical" onFinish={handleEditSubmit}>
+          <Form.Item
+            name="displayName"
+            label="Display Name"
+            rules={[{ required: true, message: "Please enter display name" }]}
+          >
+            <Input />
+          </Form.Item>
+          <div style={{ marginTop: 16 }}>
+            <Text type="secondary">
+              System Key: <Tag>{editingField?.systemKey}</Tag>
+            </Text>
+          </div>
+        </Form>
+      </Modal>
+    </div>
   );
 }

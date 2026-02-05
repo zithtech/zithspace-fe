@@ -1,3 +1,6 @@
+
+
+
 "use client";
 
 import MainLayout from "@/components/layout/MainLayout";
@@ -24,15 +27,20 @@ import {
   AttendanceResponse,
   ReimbursementResponse,
 } from "@/types/salary";
+import { Company } from "@/types/company";
+import { useActiveSalaryStructures } from "@/hooks/useSalaryStructures";
+
 
 import PayslipModal from "./PayslipModal";
 import {
   fetchAttendance,
   fetchReimbursements,
   fetchEmployeeSalary,
-   fetchAllowances
 } from "@/services/salarySettings.service";
 import { exportPayslipExcel } from "./exportPayslipExcel";
+import { useCompanies } from "@/hooks/useCompanies";
+import { useSalaryStructure } from "@/hooks/useSalaryStructures";
+import {EmployeeSalary} from "@/types/salaryStructure"
 
 
 const { Title, Text } = Typography;
@@ -45,26 +53,46 @@ type Allowance = {
   ytd: number;
 };
 
+type EmployeeWithCompany = Employee & {
+  company?: Company | null;
+};
+
+
 const Page = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [users, setUsers] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
 
+  // const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
+
+
+const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [selectionType, setSelectionType] = useState<SelectionType>();
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [tableData, setTableData] = useState<Employee[]>([]);
+  // const [tableData, setTableData] = useState<Employee[]>([]);
+
+  const [tableData, setTableData] = useState<EmployeeWithCompany[]>([]);
+const [selectedEmployee, setSelectedEmployee] =
+  useState<EmployeeWithCompany | null>(null);
+
+  
+const [selectedEmployeeSalary, setSelectedEmployeeSalary] = useState<EmployeeSalary | null>(null);
+
+
 
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [deptUsers, setDeptUsers] = useState<Employee[]>([]);
   const [selectedDeptUsers, setSelectedDeptUsers] = useState<string[]>([]);
 
   const [isPayslipModalOpen, setIsPayslipModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
-    null,
-  );
+  // const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+  //   null,
+  // );
+
+  
 
   const [attendance, setAttendance] = useState<AttendanceResponse | null>(null);
 
@@ -76,11 +104,38 @@ const Page = () => {
   const [allowances, setAllowances] = useState<Allowance[]>([]);
 const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
 
-  const isValid =
-    fromDate &&
-    toDate &&
-    selectionType &&
-    (selectionType === "user" ? selectedUser : selectedDepartment);
+const [selectedSalaryStructureId, setSelectedSalaryStructureId] =
+  useState<number | null>(null);
+
+const { data: selectedSalaryStructure } = useSalaryStructure(
+  selectedSalaryStructureId,
+  !!selectedSalaryStructureId
+);
+
+const { data: activeSalaryStructures = []} =
+  useActiveSalaryStructures();
+
+  const filteredSalaryStructures = React.useMemo(() => {
+  if (!selectedCompany) return [];
+
+  return activeSalaryStructures.filter(
+    (ss) => ss.companyId === selectedCompany.id
+  );
+}, [activeSalaryStructures, selectedCompany]);
+
+useEffect(() => {
+  setSelectedSalaryStructureId(null);
+}, [selectedCompany]);
+
+
+const isValid =
+  selectedCompany &&
+  selectedSalaryStructureId &&
+  fromDate &&
+  toDate &&
+  selectionType &&
+  (selectionType === "user" ? selectedUser : selectedDepartment);
+
 
   const mergeUniqueEmployees = (oldList: Employee[], newList: Employee[]) => {
     const map = new Map<string, Employee>();
@@ -91,6 +146,15 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
 
     return Array.from(map.values());
   };
+   
+  const { data, isLoading } = useCompanies({
+  page: 1,
+  limit: 100,
+  isActive: true,
+});
+
+const activeCompanies = data?.data || [];
+
 
   useEffect(() => {
     // 🔴 FUTURE REAL API
@@ -144,14 +208,27 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
     //   setTableData((prev) => mergeUniqueEmployees(prev, data));
     // }
 
+    // if (selectionType === "user") {
+    //   const data = employees.filter((e) => e.employeeName === selectedUser);
+
+    //   setTableData((prev) => mergeUniqueEmployees(prev, data));
+
+    //   // ✅ ADD THIS LINE
+    //   loadSalaryForEmployees(data);
+    // }
+
     if (selectionType === "user") {
-      const data = employees.filter((e) => e.employeeName === selectedUser);
+  const data: EmployeeWithCompany[] = employees
+    .filter((e) => e.employeeName === selectedUser)
+    .map((e) => ({
+      ...e,
+      company: selectedCompany, // 🔥 ADD THIS
+    }));
 
-      setTableData((prev) => mergeUniqueEmployees(prev, data));
+  setTableData((prev) => mergeUniqueEmployees(prev, data));
+  loadSalaryForEmployees(data);
+}
 
-      // ✅ ADD THIS LINE
-      loadSalaryForEmployees(data);
-    }
 
     if (selectionType === "department") {
       const deptEmp = employees.filter(
@@ -217,6 +294,7 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
               setReimbursements(reimbursementData);
 
               const salary = await fetchEmployeeSalary(record.employeeId);
+               setSelectedEmployeeSalary(salary); 
               setSalaryMap((prev) => ({
                 ...prev,
                 [record.employeeId]: {
@@ -232,6 +310,48 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
           >
             View Payslip
           </Button>
+
+{/*       
+<Button
+  type="link"
+  onClick={async () => {
+    if (!record) return;
+    setSelectedEmployee(record);
+
+    // attendance & reimbursement fetch
+    const [attendanceData, reimbursementData] = await Promise.all([
+      fetchAttendance(),
+      fetchReimbursements(),
+    ]);
+
+    setAttendance(attendanceData);
+    setReimbursements(reimbursementData);
+
+    // get salary based on selectedSalaryStructureId
+    let salary: EmployeeSalary | null = null;
+    if (selectedSalaryStructureId) {
+      salary = await fetchEmployeeSalary(record.employeeId, selectedSalaryStructureId);
+    }
+
+    setSelectedEmployeeSalary(salary); // 🔥 updated salary
+
+    setIsPayslipModalOpen(true); // only after salary is ready
+  }}
+>
+  View Payslip
+</Button> */}
+
+
+
+           <Button
+              type="primary"
+              size="small"
+              onClick={() => {
+                exportPayslipExcel(tableData, fromDate, toDate, salaryMap);
+              }}
+            >
+              Export
+            </Button>
 
           <Button
             type="primary"
@@ -367,6 +487,101 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
             alignItems: "end",
           }}
         >
+         <div>
+  <label style={{ fontSize: 12, color: "#6b7280" }}>
+    Select Company
+  </label>
+
+  {/* <select
+    value={selectedCompany ?? ""}
+    onChange={(e) =>
+      setSelectedCompany(
+        e.target.value ? Number(e.target.value) : null
+      )
+    }
+    style={{
+      width: "100%",
+      marginTop: 4,
+      padding: "6px 8px",
+      borderRadius: 6,
+      border: "1px solid #d1d5db",
+      fontSize: 13,
+    }}
+  >
+    <option value="">Select company</option>
+
+    {activeCompanies.map((company) => (
+      <option key={company.id} value={company.id}>
+        {company.name}
+      </option>
+    ))}
+  </select> */}
+
+  <select
+  value={selectedCompany?.id ?? ""}
+  onChange={(e) => {
+    const company = activeCompanies.find(
+      (c) => c.id === Number(e.target.value)
+    );
+    setSelectedCompany(company ?? null);
+  }}
+  style={{
+    width: "100%",
+    marginTop: 4,
+    padding: "6px 8px",
+    borderRadius: 6,
+    border: "1px solid #d1d5db",
+    fontSize: 13,
+  }}
+>
+  <option value="">Select company</option>
+  {activeCompanies.map((company) => (
+    <option key={company.id} value={company.id}>
+      {company.name}
+    </option>
+  ))}
+</select>
+
+
+</div>
+
+<div>
+  <label style={{ fontSize: 12, color: "#6b7280" }}>
+    Salary Structure
+  </label>
+
+  <select
+    value={selectedSalaryStructureId ?? ""}
+    onChange={(e) =>
+      setSelectedSalaryStructureId(
+        e.target.value ? Number(e.target.value) : null
+      )
+    }
+    disabled={!selectedCompany}
+    style={{
+      width: "100%",
+      marginTop: 4,
+      padding: "6px 8px",
+      borderRadius: 6,
+      border: "1px solid #d1d5db",
+      fontSize: 13,
+    }}
+  >
+    <option value="">
+      {selectedCompany
+        ? "Select salary structure"
+        : "Select company first"}
+    </option>
+
+    {filteredSalaryStructures.map((ss) => (
+      <option key={ss.id} value={ss.id}>
+        {ss.name}
+      </option>
+    ))}
+  </select>
+</div>
+
+
           {/* FROM DATE */}
           <div>
             <label style={{ fontSize: 12, color: "#6b7280" }}>From Date</label>
@@ -555,21 +770,41 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
         //   setTableData((prev) => mergeUniqueEmployees(prev, finalUsers));
         //   setIsDeptModalOpen(false);
         // }}
+
+        // onOk={async () => {
+        //   const finalUsers =
+        //     selectedDeptUsers.length === 0
+        //       ? deptUsers
+        //       : deptUsers.filter((u) =>
+        //           selectedDeptUsers.includes(u.employeeId),
+        //         );
+
+        //   setTableData((prev) => mergeUniqueEmployees(prev, finalUsers));
+
+        //   // ✅ ADD THIS LINE
+        //   await loadSalaryForEmployees(finalUsers);
+
+        //   setIsDeptModalOpen(false);
+        // }}
+
         onOk={async () => {
-          const finalUsers =
-            selectedDeptUsers.length === 0
-              ? deptUsers
-              : deptUsers.filter((u) =>
-                  selectedDeptUsers.includes(u.employeeId),
-                );
+  const finalUsers =
+    selectedDeptUsers.length === 0
+      ? deptUsers
+      : deptUsers.filter((u) =>
+          selectedDeptUsers.includes(u.employeeId),
+        );
 
-          setTableData((prev) => mergeUniqueEmployees(prev, finalUsers));
+  const withCompany: EmployeeWithCompany[] = finalUsers.map((u) => ({
+    ...u,
+    company: selectedCompany, // 🔥 ADD THIS
+  }));
 
-          // ✅ ADD THIS LINE
-          await loadSalaryForEmployees(finalUsers);
+  setTableData((prev) => mergeUniqueEmployees(prev, withCompany));
+  await loadSalaryForEmployees(withCompany);
+  setIsDeptModalOpen(false);
+}}
 
-          setIsDeptModalOpen(false);
-        }}
       >
         <Table
           rowKey="employeeId" // 🔴 MUST
@@ -623,17 +858,22 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
       </Modal>*/}
 
       <PayslipModal
-        open={isPayslipModalOpen}
-        onClose={() => setIsPayslipModalOpen(false)}
-        employee={selectedEmployee}
-        fromDate={fromDate}
-        toDate={toDate}
-        attendance={attendance}
-        reimbursements={reimbursements} // ✅ IMPORTANT
-      />
+  open={isPayslipModalOpen}
+  onClose={() => setIsPayslipModalOpen(false)}
+  employee={selectedEmployee}
+  fromDate={fromDate}
+  toDate={toDate}
+  attendance={attendance}
+  reimbursements={reimbursements}
+  company={selectedEmployee?.company ?? null}
+  salaryStructure={selectedEmployeeSalary}
+/>
+
+
 
     </MainLayout>
   );
 };
 
 export default Page;
+

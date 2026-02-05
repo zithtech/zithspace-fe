@@ -8,6 +8,7 @@ import {
   FileTextOutlined,
   UserOutlined,
   DollarOutlined,
+  AuditOutlined,
 } from "@ant-design/icons";
 
 import MainLayout from "@/components/layout/MainLayout";
@@ -157,59 +158,75 @@ const SettingsPage = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs
-          style={{ marginTop: 5 }}
-          activeKey={activeKey}
-          onChange={(key) => setActiveKey(key as any)}
-          type="card"
-          tabBarStyle={{
-            background: "#f5f8ff",
-            padding: 6,
-            borderRadius: 12,
+        {/* <div
+          style={{
+            position: "fixed",
+            top: 64, // ⬅️ MainLayout header height (adjust if needed)
+            zIndex: 100,
+            background: "#fff",
+            paddingTop: 4,
+            paddingBottom: 4,
           }}
-          items={[
-            {
-              key: "company",
-              label: (
-                <span>
-                  <BankOutlined /> Company configuration
-                </span>
-              ),
-            },
-            {
-              key: "payslip",
-              label: (
-                <span>
-                  <FileTextOutlined /> Payslip configuration
-                </span>
-              ),
-            },
-            {
-              key: "employee",
-              label: (
-                <span>
-                  <UserOutlined /> Employee Details
-                </span>
-              ),
-            },
-            {
-              key: "salary",
-              label: (
-                <span>
-                  <DollarOutlined /> Salary Structure
-                </span>
-              ),
-            },
-            {
-              key: "allowance",
-              label: (
-                <span>
-                  <DollarOutlined /> salary component 
-                </span>
-              ),
-            },
-          ]}
-        />
+        > */}
+          <Tabs
+            style={{ marginTop: 5, fontSize: 20 }}
+            activeKey={activeKey}
+            onChange={(key) => setActiveKey(key as any)}
+            // type="card"
+            tabBarStyle={{
+              background: "#f5f8ff",
+              padding: 6,
+              borderRadius: 12,
+              fontSize: 16,
+             
+            }}
+            // Blue color for all tabs
+            tabBarGutter={24}
+            items={[
+              {
+                key: "company",
+                label: (
+                  <span>
+                    <BankOutlined /> Company Configuration
+                  </span>
+                ),
+              },
+              {
+                key: "payslip",
+                label: (
+                  <span>
+                    <FileTextOutlined /> Payslip Configuration
+                  </span>
+                ),
+              },
+              {
+                key: "employee",
+                label: (
+                  <span>
+                    <UserOutlined /> Employee Configuration
+                  </span>
+                ),
+              },
+              {
+                key: "allowance",
+                label: (
+                  <span>
+                    <AuditOutlined />
+                    Salary Components
+                  </span>
+                ),
+              },
+              {
+                key: "salary",
+                label: (
+                  <span>
+                    <DollarOutlined /> Salary Structure
+                  </span>
+                ),
+              },
+            ]}
+          />
+        {/* </div> */}
 
         {/* Dynamic Content */}
         <div style={{ marginTop: 5 }}>{renderContent()}</div>

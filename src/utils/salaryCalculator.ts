@@ -1,5 +1,5 @@
 // utils/salaryCalculator.ts
-import { Earning, Deduction } from "@/types/salary";
+import { Earning, Deduction } from "@/types/salaryStructure";
 
 /* ---------- Types ---------- */
 export interface SalaryStructureCalc {

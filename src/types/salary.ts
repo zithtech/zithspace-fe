@@ -12,37 +12,37 @@
 //   value: number;
 // };
 
-export type DeductionType =
-  | "BASIC_PERCENT"
-  | "GROSS_PERCENT"
-  | "FIXED";
+// export type DeductionType =
+//   | "BASIC_PERCENT"
+//   | "GROSS_PERCENT"
+//   | "FIXED";
 
-export type Earning = {
-  id: number;
-  name: string;
-  percentage: number;
-  description?: string;
-};
+// export type Earning = {
+//   id: number;
+//   name: string;
+//   percentage: number;
+//   description?: string;
+// };
 
-export type Deduction = {
-  id: number;
-  name: string;
-  type: DeductionType;
-  value: number;
-};
+// export type Deduction = {
+//   id: number;
+//   name: string;
+//   type: DeductionType;
+//   value: number;
+// };
 
 
-export interface SalaryStructure {
-  id: number;
-  name: string;
-  description: string;
-  grossSalary: number;
-  earnings: Earning[];
-  deductions: Deduction[];
-  deductionsEnabled: boolean; 
-  createdAt: string;
-  isActive: boolean;
-}
+// export interface SalaryStructure {
+//   id: number;
+//   name: string;
+//   description: string;
+//   grossSalary: number;
+//   earnings: Earning[];
+//   deductions: Deduction[];
+//   deductionsEnabled: boolean; 
+//   createdAt: string;
+//   isActive: boolean;
+// }
 
 
 // export interface Company {
@@ -67,28 +67,31 @@ export interface SalaryStructure {
 // }
 
 
-export interface Company {
-  id: number;
-  name: string;
+// export interface Company {
+//   id: number;
+//   name: string;
 
-  email?: string;
-  phone?: string;
+//   email?: string;
+//   phone?: string;
 
-  plotNo?: string;
-  floorNo?: string;
-  buildingName?: string;
-  street?: string;
-  area?: string;
-  city?: string;
-  pincode?: string;
-  country?: string;
+//   plotNo?: string;
+//   floorNo?: string;
+//   buildingName?: string;
+//   street?: string;
+//   area?: string;
+//   city?: string;
+//   pincode?: string;
+//   country?: string;
 
-  cin?: string;
-  gst?: string;
+//   cin?: string;
+//   gst?: string;
 
-  isActive: boolean;
-  logo?: string;
-}
+//   isActive: boolean;
+//   logo?: string;
+// }
+
+
+
 
 
 export type PreviewType =
@@ -267,10 +270,10 @@ export const mockEmployees: Employee[] = [
 
 
 
- export interface EmployeeSalary {
-  employeeId: string;
-  grossSalary: number;
-  deductionsEnabled: boolean;
-  earnings: Earning[];
-  deductions: Deduction[];
-}
+//  export interface EmployeeSalary {
+//   employeeId: string;
+//   grossSalary: number;
+//   deductionsEnabled: boolean;
+//   earnings: Earning[];
+//   deductions: Deduction[];
+// }

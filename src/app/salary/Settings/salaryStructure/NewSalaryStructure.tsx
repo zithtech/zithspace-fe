@@ -24,23 +24,26 @@ import {
   PlusOutlined,
   DeleteOutlined,
   ArrowLeftOutlined,
-  ReloadOutlined,
   ExpandOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
-import MainLayout from "@/components/layout/MainLayout";
 
-import { Earning, Deduction } from "@/types/salary";
-import { SalaryStructureService } from "@/services/salarySettings.service";
+import { Earning, Deduction } from "@/types/salaryStructure";
 import SalaryPreview from "@/app/salary/SalaryPreview";
-
+import { useSalaryComponents } from "@/hooks/useSalaryComponents";
+import {
+  useSalaryStructure,
+  useCreateSalaryStructure,
+  useUpdateSalaryStructure,
+} from "@/hooks/useSalaryStructures";
 import {
   calculateEarnings,
   calculateDeductionAmounts,
   calculateTotalDeductions,
   calculateNetPay,
 } from "@/utils/salaryCalculator";
-
+import { Toaster, toast } from "react-hot-toast";
+import { useAllCompanies } from "@/hooks/useCompanies";
 const { Title, Text } = Typography;
 
 interface Props {
@@ -53,22 +56,16 @@ interface Props {
 const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
   const isEditMode = mode === "edit";
 
+  const { data: fetchedStructure } = useSalaryStructure(editingId, isEditMode);
+
   const [form] = Form.useForm();
+  const createMutation = useCreateSalaryStructure();
+  const updateMutation = useUpdateSalaryStructure();
 
   const [grossSalary, setGrossSalary] = useState<number>(16500);
   const [deductionsEnabled, setDeductionsEnabled] = useState(false);
-
-  const [earnings, setEarnings] = useState<Earning[]>([
-    { id: 1, name: "Basic Pay", percentage: 50 },
-    { id: 2, name: "House Rent Allowance", percentage: 20 },
-    { id: 3, name: "Medical Allowance", percentage: 10 },
-    { id: 4, name: "Special Allowance", percentage: 20 },
-  ]);
-
-  const [deductions, setDeductions] = useState<Deduction[]>([
-    { id: 1, name: "Provident Fund", type: "BASIC_PERCENT", value: 12 },
-    { id: 2, name: "Professional Tax", type: "FIXED", value: 200 },
-  ]);
+  const [earnings, setEarnings] = useState<Earning[]>([]);
+  const [deductions, setDeductions] = useState<Deduction[]>([]);
 
   const [descModalOpen, setDescModalOpen] = useState(false);
   const [activeEarning, setActiveEarning] = useState<Earning | null>(null);
@@ -78,33 +75,36 @@ const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
   const [visibilityType, setVisibilityType] = useState<"PUBLIC" | "PRIVATE">(
     "PUBLIC",
   );
-
   const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<number | null>(null);
 
+  const { data: salaryComponentData } = useSalaryComponents({
+    status: "Active",
+  });
+
+  const { data: companiesData } = useAllCompanies();
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(
+    null,
+  );
+
   useEffect(() => {
-    if (editingId) {
-      const existing = SalaryStructureService.getById(editingId);
-      if (existing) {
-        form.setFieldsValue({
-          structureName: existing.name,
-          structureDescription: existing.description,
-        });
+    if (!fetchedStructure) return;
 
-        setGrossSalary(existing.grossSalary);
-        setEarnings(existing.earnings);
-        setDeductions(existing.deductions);
-        setDeductionsEnabled(existing.deductionsEnabled);
-      }
-    } else {
-      form.resetFields();
-    }
-  }, [editingId, form]);
+    form.setFieldsValue({
+      structureName: fetchedStructure.name,
+      structureDescription: fetchedStructure.description,
+    });
 
-  const companies = [
-    { id: 1, name: "ABC Pvt Ltd" },
-    { id: 2, name: "XYZ Technologies" },
-  ];
+    setGrossSalary(fetchedStructure.grossSalary);
+    setEarnings(fetchedStructure.earnings || []);
+    setDeductions(fetchedStructure.deductions || []);
+    setDeductionsEnabled(fetchedStructure.deductionsEnabled);
+  }, [fetchedStructure, form]);
+
+  // const companies = [
+  //   { id: 1, name: "ABC Pvt Ltd" },
+  //   { id: 2, name: "XYZ Technologies" },
+  // ];
 
   const roles = [
     { id: 1, name: "Manager" },
@@ -112,51 +112,7 @@ const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
     { id: 3, name: "HR" },
   ];
 
-  /* ---------------- Calculations ---------------- */
-  // const totalEarningPercent = useMemo(
-  //   () => earnings.reduce((sum, e) => sum + e.percentage, 0),
-  //   [earnings]
-  // );
-
-  // const earningAmounts = earnings.map((e) => ({
-  //   ...e,
-  //   amount: Math.round((grossSalary * e.percentage) / 100),
-  // }));
-
-  // const basicPay =
-  //   earningAmounts.find((e) => e.name === "Basic Pay")?.amount || 0;
-
-  // const deductionAmounts = deductions.map((d) => {
-  //   let amount = 0;
-  //   if (d.type === "BASIC_PERCENT") {
-  //     amount = Math.round((basicPay * d.value) / 100);
-  //   } else if (d.type === "GROSS_PERCENT") {
-  //     amount = Math.round((grossSalary * d.value) / 100);
-  //   } else {
-  //     amount = d.value;
-  //   }
-  //   return { ...d, amount };
-  // });
-
-  // const totalDeductions = deductionsEnabled
-  //   ? deductionAmounts.reduce((s, d) => s + d.amount, 0)
-  //   : 0;
-
-  // const netPay = grossSalary - totalDeductions;
-  // const isEarningValid = totalEarningPercent === 100;
-
-  // /* ---------------- Handlers ---------------- */
-  // const addEarning = () =>
-  //   setEarnings((p) => [...p, { id: Date.now(), name: "", percentage: 0 }]);
-
-  // const addDeduction = () =>
-  //   setDeductions((p) => [
-  //     ...p,
-  //     { id: Date.now(), name: "", type: "FIXED", value: 0 },
-  //   ]);
-
-  /* ---------- Calculations (UTILS ONLY) ---------- */
-  const structure = useMemo(
+  const salaryCalcInput = useMemo(
     () => ({
       grossSalary,
       earnings,
@@ -167,21 +123,18 @@ const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
   );
 
   const earningAmounts = useMemo(
-    () => calculateEarnings(structure),
-    [structure],
+    () => calculateEarnings(salaryCalcInput),
+    [salaryCalcInput],
   );
 
   const deductionAmounts = useMemo(
-    () => calculateDeductionAmounts(structure),
-    [structure],
+    () => calculateDeductionAmounts(salaryCalcInput),
+    [salaryCalcInput],
   );
 
-  const totalDeductions = useMemo(
-    () => calculateTotalDeductions(structure),
-    [structure],
-  );
+  useMemo(() => calculateTotalDeductions(salaryCalcInput), [salaryCalcInput]);
 
-  const netPay = useMemo(() => calculateNetPay(structure), [structure]);
+  useMemo(() => calculateNetPay(salaryCalcInput), [salaryCalcInput]);
 
   const totalEarningPercent = useMemo(
     () => earnings.reduce((s, e) => s + e.percentage, 0),
@@ -190,7 +143,6 @@ const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
 
   const isEarningValid = totalEarningPercent === 100;
 
-  /* ---------- Handlers ---------- */
   const addEarning = () =>
     setEarnings((p) => [...p, { id: Date.now(), name: "", percentage: 0 }]);
 
@@ -200,80 +152,61 @@ const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
       { id: Date.now(), name: "", type: "FIXED", value: 0 },
     ]);
 
-  // const confirmSaveStructure = async () => {
-  //   try {
-  //     if (visibilityType === "PRIVATE") {
-  //       if (!selectedCompany || !selectedRole) {
-  //         message.error("Please select company and role");
-  //         return;
-  //       }
-  //     }
-
-  //     const values = await form.validateFields();
-
-  //     const payload = {
-  //       id: isEditMode && editingId ? editingId : Date.now(),
-  //       name: values.structureName,
-  //       description: values.structureDescription,
-  //       grossSalary,
-  //       earnings,
-  //       deductions,
-  //       deductionsEnabled,
-
-  //       visibility: visibilityType, // PUBLIC | PRIVATE
-  //       companyId: visibilityType === "PRIVATE" ? selectedCompany : null,
-  //       roleId: visibilityType === "PRIVATE" ? selectedRole : null,
-
-  //       createdAt: new Date().toLocaleDateString(),
-  //       isActive: false,
-  //     };
-
-  //     if (isEditMode && editingId) {
-  //       SalaryStructureService.update(editingId, payload);
-  //     } else {
-  //       SalaryStructureService.create(payload);
-  //     }
-
-  //     setVisibilityModalOpen(false);
-  //     onBack();
-  //   } catch (err) {
-  //     console.log(err);
-  //   }
-  // };
-
   const handleSaveClick = async () => {
-  try {
-    // 1. Form validation (structure name, description)
-    await form.validateFields();
-    
-    // 2. Earnings validation
-    if (!isEarningValid) {
-      message.error("Earnings total must be exactly 100% to save structure");
-      return;
-    }
-    
-    // 3. എല്ലാം ശരിയാണെങ്കിൽ visibility modal തുറക്കുക
-    setVisibilityModalOpen(true);
-  } catch (err) {
-    console.log("Validation Error:", err);
-    // Form validation failed - AntD automatically shows errors
-  }
-};
+    try {
+      await form.validateFields();
 
-const confirmSaveStructure = async () => {
-  try {
-    // Visibility specific validations
-    if (visibilityType === "PRIVATE") {
-      if (!selectedCompany || !selectedRole) {
-        message.error("Please select company and role");
+      if (!isEarningValid) {
+        toast.error("Earnings total must be exactly 100%");
         return;
       }
+
+      const isEarningsComplete = () => {
+        return earnings.every((e) => e.name && e.percentage > 0);
+      };
+      if (!isEarningsComplete()) {
+        toast.error("Please select earning component for all percentages", {
+          position: "top-center",
+        });
+        return;
+      }
+
+      const isDeductionsComplete = () => {
+        if (!deductionsEnabled) return true;
+
+        return deductions.every(
+          (d) => d.name && d.value !== null && d.value > 0,
+        );
+      };
+
+      if (!isDeductionsComplete()) {
+        toast.error(
+          "Please select deduction component for all entered values",
+          {
+            position: "top-center",
+          },
+        );
+        return;
+      }
+
+      setVisibilityModalOpen(true);
+    } catch (err) {
+      // 🔥 FORM REQUIRED FIELD ERROR
+      toast.error("Please enter Structure Name and Description", {
+        position: "top-center",
+      });
     }
-    
-    const values = form.getFieldsValue(); // Already validated in handleSaveClick
-    
+  };
+
+  const confirmSaveStructure = async () => {
+    if (visibilityType === "PRIVATE" && (!selectedCompany || !selectedRole)) {
+      toast.error("Please select company and role");
+      return;
+    }
+
+    const values = form.getFieldsValue();
+
     const payload = {
-      id: isEditMode && editingId ? editingId : Date.now(),
       name: values.structureName,
       description: values.structureDescription,
       grossSalary,
@@ -283,37 +216,61 @@ const confirmSaveStructure = async () => {
       visibility: visibilityType,
       companyId: visibilityType === "PRIVATE" ? selectedCompany : null,
       roleId: visibilityType === "PRIVATE" ? selectedRole : null,
-      createdAt: new Date().toLocaleDateString(),
-      isActive: false,
     };
-    
+
     if (isEditMode && editingId) {
-      SalaryStructureService.update(editingId, payload);
+      updateMutation.mutate({ id: editingId, data: payload });
     } else {
-      SalaryStructureService.create(payload);
+      createMutation.mutate(payload);
     }
-    
+
     setVisibilityModalOpen(false);
     onBack();
     message.success(
-      isEditMode 
-        ? "Salary structure updated successfully!" 
-        : "Salary structure created successfully!"
+      isEditMode ? "Salary structure updated!" : "Salary structure created!",
     );
-  } catch (err) {
-    console.log(err);
-    message.error("Failed to save structure");
-  }
-};
-  const MAX_INLINE_LENGTH = 40;
+  };
 
+  const MAX_INLINE_LENGTH = 40;
   const isLongText = (text?: string) =>
     !!text && text.length > MAX_INLINE_LENGTH;
 
+  const earningComponentOptions = useMemo(() => {
+    const selected = earnings.map((e) => e.name).filter(Boolean);
+    return (
+      salaryComponentData?.data
+        ?.filter((c) => c.type?.toUpperCase() === "EARNING")
+        .map((c) => ({
+          label: c.componentName,
+          value: c.componentName,
+          disabled: selected.includes(c.componentName),
+        })) || []
+    );
+  }, [salaryComponentData, earnings]);
+
+  const deductionComponentOptions = useMemo(() => {
+    const selected = deductions.map((d) => d.name).filter(Boolean);
+    return (
+      salaryComponentData?.data
+        ?.filter((c) => c.type?.toUpperCase() === "DEDUCTION")
+        .map((c) => ({
+          label: c.componentName,
+          value: c.componentName,
+          disabled: selected.includes(c.componentName),
+        })) || []
+    );
+  }, [salaryComponentData, deductions]);
+
   return (
     <ConfigProvider componentSize="small">
-      {/* <MainLayout> */}
-      <Card>
+      <Card style={{marginLeft: 5, marginTop:-16, marginRight:5}}>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 3000,
+          }}
+        />
+
         <div>
           {/* Header */}
           <div
@@ -322,6 +279,8 @@ const confirmSaveStructure = async () => {
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: 20,
+
+
             }}
           >
             {/* Left section */}
@@ -425,7 +384,10 @@ const confirmSaveStructure = async () => {
                   label="Description"
                   name="structureDescription"
                   rules={[
-                    { required: true, message: "Please enter structure Description" },
+                    {
+                      required: true,
+                      message: "Please enter structure Description",
+                    },
                   ]}
                 >
                   <Input.TextArea
@@ -508,14 +470,15 @@ const confirmSaveStructure = async () => {
                 {earningAmounts.map((e) => (
                   <Row gutter={6} key={e.id} style={{ marginBottom: 6 }}>
                     <Col span={9}>
-                      <Input
+                      <Select
+                        placeholder="Select earning component"
                         value={e.name}
-                        onChange={(ev) =>
+                        options={earningComponentOptions}
+                        style={{ width: "100%" }} // 🔥 IMPORTANT
+                        onChange={(value) =>
                           setEarnings((p) =>
                             p.map((x) =>
-                              x.id === e.id
-                                ? { ...x, name: ev.target.value }
-                                : x,
+                              x.id === e.id ? { ...x, name: value } : x,
                             ),
                           )
                         }
@@ -685,14 +648,15 @@ const confirmSaveStructure = async () => {
                     {deductionAmounts.map((d) => (
                       <Row gutter={6} key={d.id} style={{ marginBottom: 6 }}>
                         <Col span={6}>
-                          <Input
+                          <Select
+                            placeholder="Select deduction component"
                             value={d.name}
-                            onChange={(e) =>
+                            options={deductionComponentOptions}
+                            style={{ width: "100%" }} // 🔥 IMPORTANT
+                            onChange={(value) =>
                               setDeductions((p) =>
                                 p.map((x) =>
-                                  x.id === d.id
-                                    ? { ...x, name: e.target.value }
-                                    : x,
+                                  x.id === d.id ? { ...x, name: value } : x,
                                 ),
                               )
                             }
@@ -768,7 +732,7 @@ const confirmSaveStructure = async () => {
             </Col>
 
             {/* RIGHT */}
-            <Col span={10}>
+            <Col span={10} className="left-divider">
               <SalaryPreview
                 grossSalary={grossSalary}
                 setGrossSalary={setGrossSalary}
@@ -818,7 +782,7 @@ const confirmSaveStructure = async () => {
 
                   <Col span={8}>
                     <Text type="secondary">Percentage</Text>
-                    <div>
+                    <div style={{ color: "#52c41a" }}>
                       <Text strong>{activeEarning.percentage}%</Text>
                     </div>
                   </Col>
@@ -835,6 +799,16 @@ const confirmSaveStructure = async () => {
                   onChange={(e) => setTempDescription(e.target.value)}
                   style={{ marginTop: 6 }}
                 />
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#bfbfbf",
+                    marginTop: "8px",
+                  }}
+                >
+                  Tip: Describe how this component is calculated or any special
+                  conditions.
+                </div>
               </>
             )}
           </Modal>
@@ -871,10 +845,12 @@ const confirmSaveStructure = async () => {
                         placeholder="Select Company"
                         value={selectedCompany}
                         onChange={setSelectedCompany}
-                        options={companies.map((c) => ({
-                          value: c.id,
-                          label: c.name,
-                        }))}
+                        options={
+                          companiesData?.map((c) => ({
+                            value: c.id,
+                            label: c.name,
+                          })) || []
+                        }
                       />
                     </Form.Item>
 
@@ -901,4 +877,5 @@ const confirmSaveStructure = async () => {
     </ConfigProvider>
   );
 };
+
 export default NewSalaryStructure;

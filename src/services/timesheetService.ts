@@ -30,6 +30,7 @@ export interface Timesheet {
   totalHours: number;
   rejectReason?: string;
   approvedById?: string;
+  approvedBy?:string;
   rows: TimesheetRow[];
   employeeName?: string; 
   user?: TimesheetUser;
@@ -67,11 +68,13 @@ export interface TimesheetFilters {
 export const reviewTimesheet = async (
   id: string,
    status: "APPROVED" | "REJECTED",
-  reason?: string
+  // reason?: string
+   rejectReason?: string // <- rename this
 ) => {
   return api.post(`/api/timesheets/${id}/review`, {
     status,  
-    reason,
+    // reason,
+    rejectReason,
   });
 };
 
@@ -141,18 +144,18 @@ export class TimesheetsService {
     console.log("SERVICE RES:", res);
     return res;
 }
-
-  /** Submit a timesheet (changes DRAFT → SUBMITTED) */
 static async submitTimesheet(id: string): Promise<Timesheet> {
-  try {
-    return await api.post<Timesheet>(`/api/timesheets/${id}/submit`);
-  } catch (error) {
-    if (error instanceof ApiError) throw new Error(error.message);
-    throw new Error('Failed to submit timesheet');
-  }
+  const response = await api.post(`/api/timesheets/${id}/submit`);
+  return response.data; // ⭐ MUST
 }
 
-
-
+ catch (error: any) {
+    if (error.response) {
+      // Handle API errors
+      const message = error.response.data?.message || 'Failed to submit timesheet';
+      throw new Error(message);
+    }
+    throw new Error('Network error occurred while submitting timesheet');
+  }
 }
 

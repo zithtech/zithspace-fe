@@ -384,14 +384,16 @@ body {
 .row-action-icon.delete:hover {
   color: #ff4d4f;
 }
-.timesheet-header{
-  position: fixed;
-  top: 64px; /* adjust if MainLayout header height differs */
+/* .timesheet-header{ */
+  /* position: fixed; */
+  /* position:sticky;
+
+  
+  top: 118px;
   left: 80px;
   right: 0;
   z-index: 100;
-  /* background: #eceaea; */
-  /* background: #f7f8fa; */
+
   background: #f5f5f5;
 
   
@@ -399,7 +401,32 @@ body {
 
   padding: 16px 24px;
   border-bottom: 1px solid #f0f0f0;
+} */
+ /* .timesheet-header {
+  position: sticky; 
+  top: 0;  
+ 
+  left: 80px;
+  right: 0;        
+  z-index: 100;
+  background: #f5f5f5;
+ 
+  padding: 16px 24px;
+  margin-bottom: 10px;
+} */
+ .timesheet-header {
+  position: sticky;
+  top: 0;
+  left:0;
+  right: 0;
+  z-index: 100;
+  background: #f5f5f5;
+
+  padding: 8px 16px;
+  margin-bottom: 6px;
 }
+
+
 
 /* Hide icons by default */
 .status-actions {
@@ -626,6 +653,30 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
 }
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+.compact-table .ant-table-cell {
+  padding: 6px 8px !important;
+}
+.compact-table {
+  font-size: 12px;
+}
+.compact-table .ant-table-body {
+  overflow: hidden !important;
+}
+
+
+
+
+
+
+
+
+
+
 /* .fade-table {
   animation: fadeIn 0.6s ease-in-out;
 }
@@ -641,12 +692,12 @@ body {
   }
 } */
 /* Force smooth hover fade */
-.ant-table-tbody > tr.ant-table-row > td {
+/* .ant-table-tbody > tr.ant-table-row > td {
   transition: background-color 0.35s ease-in-out;
-}
+} */
 
 /* Override AntD default hover */
-.ant-table-tbody > tr.ant-table-row:hover > td {
+/* .ant-table-tbody > tr.ant-table-row:hover > td {
   background-color: #f5f7fa !important;
 }
 
@@ -666,48 +717,48 @@ body {
   to {
     opacity: 1;
   }
-}
+} */
 
 /* Default state */
-.table-hover-wrapper {
+/* .table-hover-wrapper {
   transition: all 0.35s ease-in-out;
-}
+} */
 
 /* Hover on full table */
-.table-hover-wrapper:hover {
+/* .table-hover-wrapper:hover {
   transform: translateY(-4px);
-}
+} */
 
 /* Smooth fade inside table */
-.table-hover-wrapper .ant-table {
+/* .table-hover-wrapper .ant-table {
   transition: box-shadow 0.35s ease;
 }
 
 .table-hover-wrapper:hover .ant-table {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-}
+} */
 
 
 
 /* Smooth transition */
-.ant-table-tbody > tr.ant-table-row {
+/* .ant-table-tbody > tr.ant-table-row {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
+} */
 
 /* Hover */
-.ant-table-tbody > tr.ant-table-row:hover {
+/* .ant-table-tbody > tr.ant-table-row:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
+} */
 
 /* CLICK (while mouse pressed) */
-.ant-table-tbody > tr.ant-table-row:active {
+/* .ant-table-tbody > tr.ant-table-row:active {
   transform: translateY(-3px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
+} */
 
 /* When row has input focused (TextArea click) */
-.ant-table-tbody > tr.ant-table-row:focus-within {
+/* .ant-table-tbody > tr.ant-table-row:focus-within {
   transform: translateY(-3px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   background-color: #e6f4ff;
@@ -723,4 +774,4 @@ body {
 
 .table-row-dark {
   background: #fafafa;
-}
+} */

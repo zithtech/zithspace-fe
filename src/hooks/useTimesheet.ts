@@ -4,18 +4,11 @@ import {TimesheetsService}from '@/services/timesheetService';
 
 /** ==================== QUERIES ==================== */
 
-/** Get all timesheets with filters */
-// export const useTimesheets = (filters?: any) => {
-//   return useQuery({
-//     queryKey: ['timesheets', filters],
-//     queryFn: () => TimesheetsService.getTimesheets(filters),
-//     staleTime: 2 * 60 * 1000, // 2 minutes
-//     gcTime: 5 * 60 * 1000,
-//   });
-// };
 export const useTimesheets = (filters?: any) => {
   return useQuery({
     queryKey: ['timesheets', filters],
+ 
+
     queryFn: () => TimesheetsService.getTimesheets(filters),
   });
 }

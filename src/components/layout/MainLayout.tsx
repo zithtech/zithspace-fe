@@ -156,47 +156,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation("/accounts"),
       style: user?.role !== "super_admin" ? { color: "#bfbfbf" } : undefined,
     },
-    {
-      key: "timesheet-group",
+     {
+      key: "/timesheet",
       icon: <ClockCircleOutlined />,
       label: "Timesheet",
-      children: [
-        {
-          key: "/timesheets/dashboard",
-          icon: <DashboardOutlined />,
-          label: "Dashboard",
-          onClick: () => handleNavigation("/timesheets/dashboard"),
-        },
-        {
-          key: "/timesheets/submitTimesheet",
-          icon: <FileTextOutlined />,
-          label: "Submit timesheet",
-          onClick: () => handleNavigation("/timesheets/submitTimesheet"),
-         
-
-        },
-
-        {
-          key: "/timesheets/timesheet",
-          icon: <FileTextOutlined />,
-          label: "Timesheets",
-          onClick: () => handleNavigation("/timesheets/timesheet"),
-        },
-        {
-          key: "/timesheets/teams",
-          icon: <TeamOutlined />,
-          label: "Teams",
-          onClick: () => handleNavigation("/timesheets/teams"),
-        },
-        {
-          key: "/timesheets/settings",
-          icon: <SettingOutlined />,
-          label: "Settings",
-          onClick: () => handleNavigation("/timesheets/settings"),
-        },
-      ],
+      onClick: () => handleNavigation("/timesheet"),
     },
   ];
+  
 
   const handleNavigation = (path: string) => {
     router.push(path);

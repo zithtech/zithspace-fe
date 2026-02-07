@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-
+import React, { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   Layout,
   Menu,
@@ -33,6 +32,11 @@ import {
   UnorderedListOutlined,
   CalendarOutlined,
   ControlOutlined,
+  MoneyCollectOutlined,
+  IdcardOutlined,
+  ProfileOutlined,
+  FileAddOutlined,
+  SnippetsOutlined,
   InboxOutlined,
   DeleteOutlined,
   FolderOpenOutlined,
@@ -40,7 +44,7 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
-} from '@ant-design/icons';
+} from "@ant-design/icons";
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const { Header, Sider, Content } = Layout;
@@ -148,10 +152,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
           onClick: () => handleNavigation("/projects/create"),
         },
         {
-          key: "/projects/tickets",
+          key: "/projects/select",
           icon: <UnorderedListOutlined />,
           label: "Tickets",
-          onClick: () => handleNavigation("/projects/tickets"),
+          onClick: () => handleNavigation("/projects/select"),
         },
         {
           key: "/projects/plans",
@@ -274,6 +278,51 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       ],
 
+    },
+
+    {
+      key: "salary",
+      icon: <MoneyCollectOutlined />,
+      label: "Payroll",
+      children: [
+        // {
+        //   key: "/salary/Dashboard",
+        //   icon: <DashboardOutlined />,
+        //   label: "Dashboard",
+        //   onClick: () => handleNavigation("/salary/Dashboard"),
+        // },
+       
+        {
+          key: "/salary/Create-payslip",
+          icon: <FileAddOutlined />,
+          label: "Create Payslip",
+          onClick: () => handleNavigation("/salary/Create-payslip"),
+        },
+        {
+          key: "/salary/My-Payslip",
+          icon: <ProfileOutlined />,
+          label: "My Payslip",
+          onClick: () => handleNavigation("/salary/My-payslip"),
+        },
+        {
+          key: "/salary/Generate-payslip",
+          icon: <FileAddOutlined />,
+          label: "Generate Payslip",
+          onClick: () => handleNavigation("/salary/Generate-payslip"),
+        },
+        {
+          key: "/salary/Payslips",
+          icon: <SnippetsOutlined />,
+          label: "Payslips",
+          onClick: () => handleNavigation("/salary/Payslips"),
+        },
+         {
+          key: "/salary/Settings",
+          icon: <SettingOutlined />,
+          label: "Settings",
+          onClick: () => handleNavigation("/salary/Settings"),
+        },
+      ],
     },
     {
       key: "/documenthub",

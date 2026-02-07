@@ -257,12 +257,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: "New Invoice",
           onClick: () => handleNavigation("/invoicepro/newinvoice"),
         },
-        {
-          key: "/invoicepro/reports",
-          icon: <BarChartOutlined />,
-          label: "Reports",
-          onClick: () => handleNavigation("/invoicepro/reports"),
-        },
+        // {
+        //   key: "/invoicepro/reports",
+        //   icon: <BarChartOutlined />,
+        //   label: "Reports",
+        //   onClick: () => handleNavigation("/invoicepro/reports"),
+        // },
         {
           key: "/invoicepro/customers",
           icon: <TeamOutlined />,

@@ -1,5 +1,9 @@
+
+
+
+import { Customer } from "@/services/customersService";
 import { Modal, Form, Input, Row, Col } from "antd";
-import { Customer } from "@/types/invoice";
+
 import { useEffect } from "react";
 
 type Props = {
@@ -7,27 +11,34 @@ type Props = {
   loading: boolean;
   customer?: Customer | null;
   onClose: () => void;
-  onSave: (values: any, id?: string) => void;
+  onSave: (values: Omit<Customer, "id" | "tenantId" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt">, id?: string) => void;
 };
 
-export default function CustomerModal({
-  open,
-  loading,
-  customer,
-  onClose,
-  onSave,
-}: Props) {
+export default function CustomerModal({ open, loading, customer, onClose, onSave }: Props) {
   const [form] = Form.useForm();
 
-  // preload values when editing
+  
+useEffect(() => {
+  if (!open) return; // only trigger on open
 
-  useEffect(() => {
-    if (customer) {
-      form.setFieldsValue(customer);
-    } else {
-      form.resetFields();
-    }
-  }, [customer, form]);
+  if (customer) {
+    form.setFieldsValue({
+      companyName: customer.companyName,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      city: customer.city,
+      country: customer.country,
+      taxId: customer.taxId,
+    });
+  } else {
+    form.resetFields();
+  }
+}, [open, customer, form]);
+
+
+
+
 
   return (
     <Modal
@@ -35,19 +46,12 @@ export default function CustomerModal({
       open={open}
       onCancel={onClose}
       okText="Save"
-      //   onOk={() => {
-      //     form.validateFields().then((values) => {
-      //       onSave(values, customer?.id);
-      //     });
-      //   }}
-      // ✅ FIXED: Proper async handling
       onOk={async () => {
         try {
           const values = await form.validateFields();
           onSave(values, customer?.id);
         } catch (error) {
           console.log("Validation failed:", error);
-          // Modal stays open on validation error (correct behavior)
         }
       }}
       confirmLoading={loading}
@@ -56,14 +60,18 @@ export default function CustomerModal({
     >
       <Form layout="vertical" form={form}>
         <Form.Item
-          name="name"
+          name="companyName"
           label="Company Name"
-          rules={[{ required: true }]}
+          rules={[{ required: true, message: "Company name is required" }]}
         >
           <Input />
         </Form.Item>
 
-        <Form.Item name="email" label="Email" rules={[{ required: true }]}>
+        <Form.Item
+          name="email"
+          label="Email"
+          
+        >
           <Input />
         </Form.Item>
 
@@ -88,7 +96,7 @@ export default function CustomerModal({
           </Col>
         </Row>
 
-        <Form.Item name="taxid" label="Tax ID">
+        <Form.Item name="taxId" label="Tax ID">
           <Input />
         </Form.Item>
       </Form>

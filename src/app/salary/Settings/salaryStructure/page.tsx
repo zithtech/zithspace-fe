@@ -27,18 +27,24 @@ import SalaryPreview from "@/app/salary/SalaryPreview";
 
 const { Title, Text } = Typography;
 
-type Props = {
-  onCreate: () => void;
-  onEdit: (id: number) => void;
-};
-
-export default function SalaryStructureSettings({ onCreate, onEdit }: Props) {
+export default function SalaryStructureSettings() {
   const [structures, setStructures] = useState<SalaryStructure[]>([]);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedStructure, setSelectedStructure] =
     useState<SalaryStructure | null>(null);
+
+  // Handle create and edit operations internally
+  const onCreate = () => {
+    console.log("Create new salary structure");
+    // TODO: Navigate to create page or open modal
+  };
+
+  const onEdit = (id: number) => {
+    console.log("Edit salary structure:", id);
+    // TODO: Navigate to edit page or open modal
+  };
 
   /* =========================
      LOAD DATA

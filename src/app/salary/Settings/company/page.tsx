@@ -37,11 +37,7 @@ import { Toaster } from "react-hot-toast";
 
 const { Title, Text } = Typography;
 
-interface CompanyPageProps {
-  onPreview?: (type: "company", data: any) => void;
-}
-
-export default function CompanyPage({ onPreview }: CompanyPageProps) {
+export default function CompanyPage() {
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
@@ -85,14 +81,6 @@ export default function CompanyPage({ onPreview }: CompanyPageProps) {
     } catch (error) {
       console.log("Error at handleSetActive companypage", error);
       toast.error("Failed to set company as active");
-    }
-  };
-
-  const handlePreview = (data: Company) => {
-    if (onPreview) {
-      onPreview("company", data);
-    } else {
-      message.info("Preview function not implemented");
     }
   };
 

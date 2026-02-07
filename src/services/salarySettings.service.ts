@@ -231,6 +231,18 @@ export async function fetchEmployeeSalary(
   };
 }
 
+export async function fetchAllowances() {
+  // 🔁 Later replace with real API
+  // const res = await fetch(`/api/allowances`);
+  // return await res.json();
+
+  // ✅ Mock data for allowances
+  return {
+    allowances: [],
+    total: 0,
+  };
+}
+
 
 
 

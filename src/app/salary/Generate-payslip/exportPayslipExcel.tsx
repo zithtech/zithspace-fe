@@ -1,13 +1,15 @@
-import * as XLSX from "xlsx";
 import { Employee } from "@/types/salary";
 import { calculateNetPay } from "@/utils/salaryCalculator";
 
-export const exportPayslipExcel = (
+export const exportPayslipExcel = async (
   employees: Employee[],
   fromDate: string,
   toDate: string,
   salaryStructures: Record<string, any>, // employeeId -> salaryStructure
 ) => {
+  // Dynamic import to avoid SSR issues
+  const XLSX = await import("xlsx");
+  
   const rows = employees.map((emp, index) => {
     const structure = salaryStructures[emp.employeeId];
     const netPay = structure ? calculateNetPay(structure) : 0;

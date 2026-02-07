@@ -21,7 +21,7 @@ import {
   numberToWords,
 } from "@/utils/salaryCalculator";
 
-import html2pdf from "html2pdf.js";
+
 
 import { Row, Col, Divider, Card, Space, Button } from "antd";
 import {
@@ -217,16 +217,19 @@ const PayslipModal: React.FC<PayslipModalProps> = ({
 
   const totalReimbursements = reimbursements
     ? Object.values(reimbursements.reimbursements).reduce(
-        (sum: number, r: any) => sum + r.amount,
-        0,
-      )
+      (sum: number, r: any) => sum + r.amount,
+      0,
+    )
     : 0;
 
   const TotalnetPay =
     salaryStructure.grossSalary - totalDeductions + totalReimbursements;
 
-  const downloadPayslipPDF = () => {
+  const downloadPayslipPDF = async () => {
     if (!payslipRef.current) return;
+
+    const html2pdf = (await import("html2pdf.js")).default;
+
 
     html2pdf()
       .from(payslipRef.current)
@@ -520,22 +523,22 @@ const PayslipModal: React.FC<PayslipModalProps> = ({
                     const leaveEntries = [
                       ...(attendance.leaves
                         ? Object.entries(attendance.leaves).map(
-                            ([key, value]) => ({
-                              rightLabel:
-                                LEAVE_LABELS[key] ?? key.toUpperCase(),
-                              rightValue: value,
-                            }),
-                          )
+                          ([key, value]) => ({
+                            rightLabel:
+                              LEAVE_LABELS[key] ?? key.toUpperCase(),
+                            rightValue: value,
+                          }),
+                        )
                         : []),
 
                       // 👉 ADD LOP DAYS HERE (RIGHT SIDE)
                       ...(attendance.lopDays !== undefined
                         ? [
-                            {
-                              rightLabel: "LOP Days",
-                              rightValue: attendance.lopDays,
-                            },
-                          ]
+                          {
+                            rightLabel: "LOP Days",
+                            rightValue: attendance.lopDays,
+                          },
+                        ]
                         : []),
                     ];
 

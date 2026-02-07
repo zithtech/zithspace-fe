@@ -32,7 +32,8 @@ import {
   fetchEmployeeSalary,
    fetchAllowances
 } from "@/services/salarySettings.service";
-import { exportPayslipExcel } from "./exportPayslipExcel";
+// Dynamic import to avoid SSR issues with xlsx library
+// import { exportPayslipExcel } from "./exportPayslipExcel";
 
 
 const { Title, Text } = Typography;
@@ -519,7 +520,8 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
             <Button
               type="primary"
               size="small"
-              onClick={() => {
+              onClick={async () => {
+                const { exportPayslipExcel } = await import("./exportPayslipExcel");
                 exportPayslipExcel(tableData, fromDate, toDate, salaryMap);
               }}
             >

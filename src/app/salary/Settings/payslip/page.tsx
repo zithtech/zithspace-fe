@@ -26,10 +26,6 @@ import {
 import { useState } from "react";
 import dayjs from "dayjs";
 
-interface PayslipSettingsProps {
-  onPreview: (type: "payslip", data: any) => void;
-}
-
 interface PayslipField {
   id: number;
   label: string;
@@ -41,7 +37,7 @@ interface PayslipField {
 
 const { Title, Text } = Typography;
 
-export default function PayslipSettings({ onPreview }: PayslipSettingsProps) {
+export default function PayslipSettings() {
   const [fields, setFields] = useState<PayslipField[]>([
     {
       id: 1,
@@ -133,17 +129,6 @@ export default function PayslipSettings({ onPreview }: PayslipSettingsProps) {
     </div>
 
     <Space>
-      <Button
-        icon={<EyeOutlined />}
-        onClick={() =>
-          onPreview("payslip", {
-            fields: fields,
-          })
-        }
-      >
-        Preview
-      </Button>
-
       <Button
         icon={<CheckOutlined />}
         onClick={() => console.log("Save payslip settings")}

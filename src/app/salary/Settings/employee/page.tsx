@@ -23,12 +23,6 @@ import {
   DeleteOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import { PreviewType } from "@/types/salary";
-
-interface Props {
-  onPreview: (type: Exclude<PreviewType, null>, data: EmployeeField[]) => void;
-}
-
 const { Title, Text } = Typography;
 
 export type EmployeeField = {
@@ -47,7 +41,7 @@ const initialEmployeeFields: EmployeeField[] = [
   { systemKey: "PAN Number", displayName: "pan", isVisible: false },
 ];
 
-export default function EmployeeSettings({ onPreview }: Props) {
+export default function EmployeeSettings() {
   const [employeeFields, setEmployeeFields] = useState<EmployeeField[]>(
     initialEmployeeFields,
   );
@@ -137,18 +131,6 @@ export default function EmployeeSettings({ onPreview }: Props) {
         </div>
 
         <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() =>
-              onPreview(
-                "employee",
-                employeeFields.filter((f) => f.isVisible),
-              )
-            }
-          >
-            Preview
-          </Button>
-
           <Button icon={<CheckOutlined />}>Save</Button>
 
           <Button type="primary" icon={<PlusOutlined />} onClick={openAddField}>

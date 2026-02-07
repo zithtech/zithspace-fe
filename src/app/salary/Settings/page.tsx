@@ -91,16 +91,7 @@ const SettingsPage = () => {
     switch (activeKey) {
       case "salary":
         return salaryMode === "list" ? (
-          <SalaryStructureList
-            onCreate={() => {
-              setEditingId(null);
-              setSalaryMode("form");
-            }}
-            onEdit={(id: number) => {
-              setEditingId(id);
-              setSalaryMode("form");
-            }}
-          />
+          <SalaryStructureList />
         ) : (
           <NewSalaryStructure
             mode={editingId ? "edit" : "create"}
@@ -111,13 +102,13 @@ const SettingsPage = () => {
         );
 
       case "company":
-        return <CompanyConfiguration onPreview={openPreview} />;
+        return <CompanyConfiguration />;
 
       case "payslip":
-        return <PayslipSettings onPreview={openPreview} />;
+        return <PayslipSettings />;
 
       case "employee":
-        return <EmployeeSettings onPreview={openPreview} />;
+        return <EmployeeSettings />;
 
       case "allowance":
         return <AllowanceSettings />;

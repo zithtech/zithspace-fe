@@ -757,7 +757,11 @@ export default function governmentLeaves() {
               </Space>
             </div>
             <Divider />
-            <Table columns={columns} dataSource={dataSource} rowKey="id" loading={loading}  pagination={{ pageSize: 10 }}/>
+            <Table columns={columns} 
+             dataSource={dataSource} 
+             rowKey="id" loading={loading}  
+             size="small"
+             pagination={{ pageSize: 10 }}/>
           </Card>
         </div>
         <Modal

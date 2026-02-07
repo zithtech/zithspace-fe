@@ -14,7 +14,8 @@ import {
   message,
   Tooltip,
   Modal,
-  notification
+  notification,
+  Badge
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -167,13 +168,29 @@ export default function UpdateCard({
   const handleEdit = () => {
     router.push(`/daily-updates/submit?edit=${update.id}`);
   };
- 
+ const getUpdateTypeConfig = (type?: string) => {
+  switch (type) {
+    case "BOD":
+      return { text: "BOD", color: "green" };
+    case "EOD":
+      return { text: "EOD", color: "blue" };
+    default:
+      return { text: "UNKNOWN", color: "gray" };
+  }
+};
+
+
   
  
 
   return (
     <>
     {contextHolder}
+    <Badge.Ribbon
+  text={getUpdateTypeConfig(update.updateType).text}
+  color={getUpdateTypeConfig(update.updateType).color}
+  placement="end" // start = top-left, end = top-right
+>
     <Card
       hoverable
       //onClick={onOpen}
@@ -205,15 +222,8 @@ export default function UpdateCard({
         Are you sure you want to delete this update?
       </Modal>
 
-      {/* 🔹 Title Row + MISSED Tag */}
       <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-        {/* <Text strong style={{ fontSize: 13 }}>
-          Daily Update
-        </Text> */}
-
-        {/* {!isMissed && <Tag color="red">MISSED</Tag>} */}
       </Row>
-      {/* Header - Single Line with Name, Mood, Hours */}
       <div>
         <div
           style={{
@@ -252,6 +262,7 @@ export default function UpdateCard({
 
           {/* RIGHT – MISSED + Dropdown */}
           <div style={{ display: "flex", gap: "5px" }}>
+            
             {isMissed && (
               <Tag color="red" style={{ fontSize: 10, margin: 0 }}>
                 MISSED
@@ -492,6 +503,7 @@ export default function UpdateCard({
         </Text>
       </div>
     </Card>
+    </Badge.Ribbon>
     </>
   );
 }

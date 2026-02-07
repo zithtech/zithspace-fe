@@ -103,6 +103,7 @@ export interface DailyStatusUpdate {
   mood?: "happy" | "neutral" | "stressed" | "blocked";
   totalHoursWorked?: number;
   generalNotes?: string;
+  updateType?: "BOD" | "EOD";
 
   /** Submission time */
   submittedAt: Date | string;

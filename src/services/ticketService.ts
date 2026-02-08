@@ -153,6 +153,25 @@ export interface Ticket {
     timestamp: string;
   }>;
   subTasks?: Ticket[];
+  activityLogs?: Array<{
+    id: string;
+    action: string;
+    details: any;
+    timestamp: string;
+    performedBy: {
+      name: string;
+    };
+  }>;
+  attachments?: Array<{
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileType: string;
+    uploadedBy: {
+      name: string;
+    };
+    uploadedAt: string;
+  }>;
 }
 
 export interface TicketListResponse {
@@ -343,6 +362,19 @@ class TicketService {
   }
 
   /**
+   * Get public ticket by ID
+   */
+  static async getPublicTicketById(id: string): Promise<Ticket> {
+    try {
+      const response = await apiClient.get(`/api/public/tickets/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching public ticket:", error);
+      throw new Error("Failed to fetch public ticket");
+    }
+  }
+
+  /**
    * Get ticket by ID
    */
   static async getTicketById(id: string): Promise<Ticket> {
@@ -509,6 +541,34 @@ class TicketService {
       console.error("Error fetching comments:", error);
       const errorMessage =
         error.response?.data?.error || "Failed to fetch comments";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Get activity log for a ticket
+   */
+  static async getActivityLog(ticketId: string): Promise<
+    Array<{
+      id: string;
+      action: string;
+      details: any;
+      timestamp: string;
+      performedBy: {
+        id: string;
+        name: string;
+        workEmail: string;
+        position?: string;
+      };
+    }>
+  > {
+    try {
+      const response = await apiClient.get(`/api/tickets/${ticketId}/activity`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error fetching activity log:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to fetch activity log";
       throw new Error(errorMessage);
     }
   }

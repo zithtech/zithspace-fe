@@ -467,7 +467,7 @@ const activeCompanies = data?.data || [];
               fontSize: 16,
             }}
           >
-            📄
+            <FileTextOutlined style={{ fontSize: 24, color: "#1677ff" }} />
           </div>
 
           <div>
@@ -535,7 +535,7 @@ const activeCompanies = data?.data || [];
   }}
 >
   <option value="">Select company</option>
-  {activeCompanies.map((company) => (
+  {activeCompanies.map((company: Company) => (
     <option key={company.id} value={company.id}>
       {company.name}
     </option>

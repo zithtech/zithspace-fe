@@ -40,6 +40,7 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
+  MoneyCollectOutlined,FileAddOutlined,ProfileOutlined,SnippetsOutlined
 } from '@ant-design/icons';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -281,6 +282,51 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
+
+     {
+      key: "salary",
+      icon: <MoneyCollectOutlined />,
+      label: "salary",
+      children: [
+        // {
+        //   key: "/salary/Dashboard",
+        //   icon: <DashboardOutlined />,
+        //   label: "Dashboard",
+        //   onClick: () => handleNavigation("/salary/Dashboard"),
+        // },
+        {
+          key: "/salary/Settings",
+          icon: <SettingOutlined />,
+          label: "Settings",
+          onClick: () => handleNavigation("/salary/Settings"),
+        },
+        {
+          key: "/salary/Create-payslip",
+          icon: <FileAddOutlined />,
+          label: "Create Payslip",
+          onClick: () => handleNavigation("/salary/Create-payslip"),
+        },
+        {
+          key: "/salary/My-Payslip",
+          icon: <ProfileOutlined />,
+          label: "My-Payslip",
+          onClick: () => handleNavigation("/salary/My-payslip"),
+        },
+        {
+          key: "/salary/Generate-payslip",
+          icon: <FileAddOutlined />,
+          label: "Generate-Payslip",
+          onClick: () => handleNavigation("/salary/Generate-payslip"),
+        },
+        {
+          key: "/salary/Payslips",
+          icon: <SnippetsOutlined />,
+          label: "Payslips",
+          onClick: () => handleNavigation("/salary/Payslips"),
+        },
+      ],
+    },
+
   ];
 
 

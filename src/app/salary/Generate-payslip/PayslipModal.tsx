@@ -775,7 +775,7 @@ import {
 
 import html2pdf from "html2pdf.js";
 
-import { Row, Col, Divider, Card, Space, Button } from "antd";
+import { Row, Col, Divider, Card, Space, Button, message } from "antd";
 import {
   AttendanceResponse,
   ATTENDANCE_LABELS,
@@ -783,6 +783,7 @@ import {
   ReimbursementResponse,
   REIMBURSEMENT_LABELS,
 } from "@/types/salary";
+import { createPayslip } from "@/services/payslipService";
 const { Title, Text } = Typography;
 
 interface PayslipModalProps {
@@ -911,28 +912,94 @@ const PayslipModal: React.FC<PayslipModalProps> = ({
   const TotalnetPay =
     salaryStructure.grossSalary - totalDeductions + totalReimbursements;
 
-  const downloadPayslipPDF = () => {
+  const downloadPayslipPDF = async () => {
     if (!payslipRef.current) return;
 
-    html2pdf()
-      .from(payslipRef.current)
-      .set({
-        margin: [10, 10, 10, 10],
-        filename: `Payslip_${employee.employeeName}.pdf`,
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: {
-          scale: 3,
-          useCORS: true,
-          letterRendering: true, // 🔥 ADD THIS
-          windowWidth: 700,
+    try {
+      // Generate PDF
+      const pdfBlob = await html2pdf()
+        .from(payslipRef.current)
+        .set({
+          margin: [10, 10, 10, 10],
+          filename: `Payslip_${employee.employeeName}.pdf`,
+          image: { type: "jpeg", quality: 1 },
+          html2canvas: {
+            scale: 3,
+            useCORS: true,
+            letterRendering: true,
+            windowWidth: 700,
+          },
+          jsPDF: {
+            unit: "mm",
+            format: "a4",
+            orientation: "portrait",
+          },
+        })
+        .outputPdf('blob');
+
+      // Download the PDF
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Payslip_${employee.employeeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Save payslip data to backend
+      const payslipSnapshot = {
+        employee: {
+          employeeId: employee.employeeId,
+          employeeName: employee.employeeName,
+          department: employee.department,
+          designation: employee.designation,
+          doj: employee.doj,
+          grade: employee.grade,
+          location: employee.location,
+          pan: employee.pan,
+          pfNo: employee.pfNo,
+          esiNo: employee.esiNo,
+          bankName: employee.bankName,
+          accountNo: employee.accountNo,
         },
-        jsPDF: {
-          unit: "mm",
-          format: "a4",
-          orientation: "portrait",
-        },
-      })
-      .save();
+        company: company ? {
+          id: company.id,
+          name: company.name,
+          logo: company.logo,
+          cin: company.cin,
+          gst: company.gst,
+          phone: company.phone,
+          email: company.email,
+          plotNo: company.plotNo,
+          floorNo: company.floorNo,
+          buildingName: company.buildingName,
+          street: company.street,
+          area: company.area,
+          city: company.city,
+          pincode: company.pincode,
+          country: company.country,
+        } : null,
+        salaryStructure: structure,
+        fromDate,
+        toDate,
+        attendance,
+        reimbursements,
+      };
+
+      await createPayslip({
+        employeeId: employee.employeeId,
+        companyId: company?.id || 0,
+        fromDate,
+        toDate,
+        snapshot: payslipSnapshot,
+      });
+
+      message.success("Payslip downloaded and saved successfully!");
+    } catch (error) {
+      console.error("Error saving payslip:", error);
+      message.error("Failed to save payslip data");
+    }
   };
 
   const formatCompanyAddress = (c: Company) => {

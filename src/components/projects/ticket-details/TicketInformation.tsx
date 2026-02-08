@@ -6,7 +6,7 @@ import { EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import TiptapViewer from "@/components/common/TiptapViewer";
 import { TicketDetails } from "@/types/ticket";
-import { getStatusColor, getPriorityColor, getTypeColor } from "@/utils/ticketUtils";
+import { getStatusColor, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor } from "@/utils/ticketUtils";
 
 const { Title, Text } = Typography;
 

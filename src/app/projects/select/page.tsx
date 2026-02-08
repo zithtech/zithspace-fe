@@ -6,6 +6,7 @@ import { SearchOutlined, ProjectOutlined, UserOutlined, TeamOutlined, CheckCircl
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Spin } from 'antd';
+import { Suspense } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
@@ -34,7 +35,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export default function ProjectSelectPage() {
+function ProjectSelectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
@@ -303,3 +304,17 @@ const StatisticItem = ({ icon, value, label, color }: any) => (
   </div>
 );
 
+
+export default function ProjectSelectPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    }>
+      <ProjectSelectContent />
+    </Suspense>
+  );
+}

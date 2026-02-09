@@ -377,6 +377,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => router.push("/profile"),
     },
     {
+      key: "newProfile",
+      icon: <UserOutlined />,
+      label: "New Profile",
+      onClick: () => router.push("/newProfile"),
+    },
+    {
       key: "settings",
       icon: <SettingOutlined />,
       label: "Settings",

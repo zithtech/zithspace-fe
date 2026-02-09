@@ -181,30 +181,6 @@ function SubmitDailyUpdateContent() {
       checkTodaySubmission();
     }
   }, [editId]);
-  /////////////////
-  // useEffect(() => {
-  //   const now = new Date();
-  //   const hour = now.getHours();
-
-  //   if (hour < 14) {
-  //     form.setFieldsValue({ updateType: "BOD" });
-
-  //     const twoPM = new Date();
-  //     twoPM.setHours(14, 0, 0, 0);
-
-  //     const delay = twoPM.getTime() - now.getTime();
-
-  //     if (delay > 0) {
-  //       const timer = setTimeout(() => {
-  //         form.setFieldsValue({ updateType: "EOD" });
-  //       }, delay);
-
-  //       return () => clearTimeout(timer);
-  //     }
-  //   } else {
-  //     form.setFieldsValue({ updateType: "EOD" });
-  //   }
-  // }, []);
   useEffect(() => {
   const now = new Date();
   const hour = now.getHours();
@@ -340,17 +316,30 @@ function SubmitDailyUpdateContent() {
     const newUpdates = projectUpdates.filter((_, i) => i !== index);
     setProjectUpdates(newUpdates);
   };
+  useEffect(() => {
+  if (existingUpdate?.projectUpdates) {
+    // Load tickets for all projects in existing update
+    existingUpdate.projectUpdates.forEach((update: ProjectUpdate) => {
+      if (update.projectId && !projectTickets[update.projectId]) {
+        fetchProjectTickets(update.projectId);
+      }
+    });
+  }
+}, [existingUpdate]);
 
-  const handleProjectChange = async (index: number, projectId: string) => {
-    const project = projects.find((p) => p.value === projectId);
-    const newUpdates = [...projectUpdates];
-    newUpdates[index].projectId = projectId;
-    newUpdates[index].projectName = project?.label || "";
-    setProjectUpdates(newUpdates);
+// Also update the handleProjectChange to ensure tickets are loaded
+const handleProjectChange = async (index: number, projectId: string) => {
+  const project = projects.find((p) => p.value === projectId);
+  const newUpdates = [...projectUpdates];
+  newUpdates[index].projectId = projectId;
+  newUpdates[index].projectName = project?.label || "";
+  setProjectUpdates(newUpdates);
 
-    // Fetch tickets for this project
+  // Fetch tickets for this project if not already fetched
+  if (!projectTickets[projectId]) {
     await fetchProjectTickets(projectId);
-  };
+  }
+};
 
   const handleTimeChange = (
     index: number,
@@ -600,101 +589,6 @@ function SubmitDailyUpdateContent() {
 
     return true;
   };
-
-  // const handleSubmit = async () => {
-  //   if (alreadySubmitted && !isEditAllowed) {
-  //     api.error({
-  //       message: "Edit Locked",
-  //       description: "You can only edit within 24 hours of submission",
-  //     });
-  //     return;
-  //   }
-  //   if (!validateForm()) return;
-
-  //   if (isMissedUpdate && !missedDate) {
-  //     api.error({
-  //       message: "Validation Error",
-  //       description: "Please select a missed update date",
-  //     });
-  //     return;
-  //   }
-
-  //   try {
-  //     setLoading(true);
-  //     const values = form.getFieldsValue();
-  //     console.log("values", values);
-
-  //     const data = {
-  //       date:
-  //         alreadySubmitted && existingUpdate
-  //           ? existingUpdate.working_date // 🔥 EDIT MODE – keep same date
-  //           : isMissedUpdate
-  //             ? missedDate!.format("YYYY-MM-DD")
-  //             : dayjs().format("YYYY-MM-DD"),
-
-  //       mood: values.mood,
-  //       updateType: values.updateType,
-  //       projectUpdates: projectUpdates,
-  //       generalNotes: values.generalNotes,
-  //       is_missed: isMissedUpdate,
-  //       missed_updateAt: isMissedUpdate
-  //         ? missedDate?.format("YYYY-MM-DD")
-  //         : null,
-  //     };
-  //     console.log("data", data);
-
-  //     if (alreadySubmitted && existingUpdate) {
-  //       await DailyUpdateService.updateUpdate(existingUpdate.id, data);
-  //       api.success({
-  //         message: "Success",
-  //         description: "Daily update updated successfully!",
-  //         placement: "bottomRight",
-  //         duration: 3,
-  //       });
-  //       setTimeout(() => {
-  //         router.push("/daily-updates/view");
-  //       }, 1200);
-  //     } else {
-  //       await DailyUpdateService.createUpdate(data);
-  //       api.success({
-  //         message: "Success",
-  //         description: "Daily update submitted successfully!",
-  //         placement: "bottomRight",
-  //         duration: 3,
-  //       });
-  //     }
-
-  //     // router.push("/daily-updates/view");
-  //     setTimeout(() => {
-  //       router.push("/daily-updates/view");
-  //     }, 1200);
-  //   } catch (error: any) {
-  //     console.error("Failed to submit update:", error);
-
-  //     // Extract error message from various error formats
-  //     let errorMessage = "Failed to submit daily update";
-
-  //     if (error?.message) {
-  //       errorMessage = error.message;
-  //     } else if (error?.response?.data?.error) {
-  //       errorMessage = error.response.data.error;
-  //     } else if (error?.response?.data?.message) {
-  //       errorMessage = error.response.data.message;
-  //     } else if (typeof error === "string") {
-  //       errorMessage = error;
-  //     }
-
-  //     // Display error message as toast notification
-  //     api.error({
-  //       message: "Error",
-  //       description: errorMessage,
-  //       placement: "bottomRight",
-  //       duration: 4,
-  //     });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const handleSubmit = async () => {
   if (alreadySubmitted && !isEditAllowed) {
     api.error({

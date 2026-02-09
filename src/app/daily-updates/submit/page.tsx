@@ -182,29 +182,52 @@ function SubmitDailyUpdateContent() {
     }
   }, [editId]);
   /////////////////
+  // useEffect(() => {
+  //   const now = new Date();
+  //   const hour = now.getHours();
+
+  //   if (hour < 14) {
+  //     form.setFieldsValue({ updateType: "BOD" });
+
+  //     const twoPM = new Date();
+  //     twoPM.setHours(14, 0, 0, 0);
+
+  //     const delay = twoPM.getTime() - now.getTime();
+
+  //     if (delay > 0) {
+  //       const timer = setTimeout(() => {
+  //         form.setFieldsValue({ updateType: "EOD" });
+  //       }, delay);
+
+  //       return () => clearTimeout(timer);
+  //     }
+  //   } else {
+  //     form.setFieldsValue({ updateType: "EOD" });
+  //   }
+  // }, []);
   useEffect(() => {
-    const now = new Date();
-    const hour = now.getHours();
+  const now = new Date();
+  const hour = now.getHours();
 
-    if (hour < 14) {
-      form.setFieldsValue({ updateType: "BOD" });
+  // Default when page opens
+  if (hour < 14) {
+    form.setFieldsValue({ updateType: "BOD" });
 
-      const twoPM = new Date();
-      twoPM.setHours(14, 0, 0, 0);
+    const twoPM = new Date();
+    twoPM.setHours(14, 0, 0, 0);
 
-      const delay = twoPM.getTime() - now.getTime();
+    const delay = twoPM.getTime() - now.getTime();
 
-      if (delay > 0) {
-        const timer = setTimeout(() => {
-          form.setFieldsValue({ updateType: "EOD" });
-        }, delay);
-
-        return () => clearTimeout(timer);
-      }
-    } else {
+    const timer = setTimeout(() => {
       form.setFieldsValue({ updateType: "EOD" });
-    }
-  }, []);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  } else {
+    form.setFieldsValue({ updateType: "EOD" });
+  }
+}, [form]);
+
 
   const fetchProjects = async () => {
     try {
@@ -400,6 +423,8 @@ function SubmitDailyUpdateContent() {
 
     setProjectUpdates(newUpdates);
   };
+ 
+
 
   const handleTicketSelect = (
     projectIndex: number,
@@ -576,100 +601,187 @@ function SubmitDailyUpdateContent() {
     return true;
   };
 
+  // const handleSubmit = async () => {
+  //   if (alreadySubmitted && !isEditAllowed) {
+  //     api.error({
+  //       message: "Edit Locked",
+  //       description: "You can only edit within 24 hours of submission",
+  //     });
+  //     return;
+  //   }
+  //   if (!validateForm()) return;
+
+  //   if (isMissedUpdate && !missedDate) {
+  //     api.error({
+  //       message: "Validation Error",
+  //       description: "Please select a missed update date",
+  //     });
+  //     return;
+  //   }
+
+  //   try {
+  //     setLoading(true);
+  //     const values = form.getFieldsValue();
+  //     console.log("values", values);
+
+  //     const data = {
+  //       date:
+  //         alreadySubmitted && existingUpdate
+  //           ? existingUpdate.working_date // 🔥 EDIT MODE – keep same date
+  //           : isMissedUpdate
+  //             ? missedDate!.format("YYYY-MM-DD")
+  //             : dayjs().format("YYYY-MM-DD"),
+
+  //       mood: values.mood,
+  //       updateType: values.updateType,
+  //       projectUpdates: projectUpdates,
+  //       generalNotes: values.generalNotes,
+  //       is_missed: isMissedUpdate,
+  //       missed_updateAt: isMissedUpdate
+  //         ? missedDate?.format("YYYY-MM-DD")
+  //         : null,
+  //     };
+  //     console.log("data", data);
+
+  //     if (alreadySubmitted && existingUpdate) {
+  //       await DailyUpdateService.updateUpdate(existingUpdate.id, data);
+  //       api.success({
+  //         message: "Success",
+  //         description: "Daily update updated successfully!",
+  //         placement: "bottomRight",
+  //         duration: 3,
+  //       });
+  //       setTimeout(() => {
+  //         router.push("/daily-updates/view");
+  //       }, 1200);
+  //     } else {
+  //       await DailyUpdateService.createUpdate(data);
+  //       api.success({
+  //         message: "Success",
+  //         description: "Daily update submitted successfully!",
+  //         placement: "bottomRight",
+  //         duration: 3,
+  //       });
+  //     }
+
+  //     // router.push("/daily-updates/view");
+  //     setTimeout(() => {
+  //       router.push("/daily-updates/view");
+  //     }, 1200);
+  //   } catch (error: any) {
+  //     console.error("Failed to submit update:", error);
+
+  //     // Extract error message from various error formats
+  //     let errorMessage = "Failed to submit daily update";
+
+  //     if (error?.message) {
+  //       errorMessage = error.message;
+  //     } else if (error?.response?.data?.error) {
+  //       errorMessage = error.response.data.error;
+  //     } else if (error?.response?.data?.message) {
+  //       errorMessage = error.response.data.message;
+  //     } else if (typeof error === "string") {
+  //       errorMessage = error;
+  //     }
+
+  //     // Display error message as toast notification
+  //     api.error({
+  //       message: "Error",
+  //       description: errorMessage,
+  //       placement: "bottomRight",
+  //       duration: 4,
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const handleSubmit = async () => {
-    if (alreadySubmitted && !isEditAllowed) {
-      api.error({
-        message: "Edit Locked",
-        description: "You can only edit within 24 hours of submission",
-      });
-      return;
-    }
-    if (!validateForm()) return;
+  if (alreadySubmitted && !isEditAllowed) {
+    api.error({
+      message: "Edit Locked",
+      description: "You can only edit within 24 hours of submission",
+    });
+    return;
+  }
 
-    if (isMissedUpdate && !missedDate) {
-      api.error({
-        message: "Validation Error",
-        description: "Please select a missed update date",
-      });
-      return;
-    }
+  if (!validateForm()) return;
 
-    try {
-      setLoading(true);
-      const values = form.getFieldsValue();
-      console.log("values", values);
+  if (isMissedUpdate && !missedDate) {
+    api.error({
+      message: "Validation Error",
+      description: "Please select a missed update date",
+    });
+    return;
+  }
 
-      const data = {
-        date:
-          alreadySubmitted && existingUpdate
-            ? existingUpdate.working_date // 🔥 EDIT MODE – keep same date
-            : isMissedUpdate
-              ? missedDate!.format("YYYY-MM-DD")
-              : dayjs().format("YYYY-MM-DD"),
+  try {
+    setLoading(true);
 
-        mood: values.mood,
-        updateType: values.updateType,
-        projectUpdates: projectUpdates,
-        generalNotes: values.generalNotes,
-        is_missed: isMissedUpdate,
-        missed_updateAt: isMissedUpdate
-          ? missedDate?.format("YYYY-MM-DD")
-          : null,
-      };
-      console.log("data", data);
+    const values = form.getFieldsValue();
 
-      if (alreadySubmitted && existingUpdate) {
-        await DailyUpdateService.updateUpdate(existingUpdate.id, data);
-        api.success({
-          message: "Success",
-          description: "Daily update updated successfully!",
-          placement: "bottomRight",
-          duration: 3,
-        });
-        setTimeout(() => {
-          router.push("/daily-updates/view");
-        }, 1200);
-      } else {
-        await DailyUpdateService.createUpdate(data);
-        api.success({
-          message: "Success",
-          description: "Daily update submitted successfully!",
-          placement: "bottomRight",
-          duration: 3,
-        });
-      }
+    // 🔒 LOCK updateType based on time
+    const now = new Date();
+    const hour = now.getHours();
+    const finalUpdateType = hour < 14 ? "BOD" : "EOD";
 
-      // router.push("/daily-updates/view");
-      setTimeout(() => {
-        router.push("/daily-updates/view");
-      }, 1200);
-    } catch (error: any) {
-      console.error("Failed to submit update:", error);
+    const data = {
+      date:
+        alreadySubmitted && existingUpdate
+          ? existingUpdate.working_date
+          : isMissedUpdate
+          ? missedDate!.format("YYYY-MM-DD")
+          : dayjs().format("YYYY-MM-DD"),
 
-      // Extract error message from various error formats
-      let errorMessage = "Failed to submit daily update";
+      mood: values.mood,
+      updateType: finalUpdateType, // ✅ IMPORTANT
+      projectUpdates,
+      generalNotes: values.generalNotes,
+      is_missed: isMissedUpdate,
+      missed_updateAt: isMissedUpdate
+        ? missedDate?.format("YYYY-MM-DD")
+        : null,
+    };
 
-      if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (typeof error === "string") {
-        errorMessage = error;
-      }
-
-      // Display error message as toast notification
-      api.error({
-        message: "Error",
-        description: errorMessage,
+    if (alreadySubmitted && existingUpdate) {
+      await DailyUpdateService.updateUpdate(existingUpdate.id, data);
+      api.success({
+        message: "Success",
+        description: "Daily update updated successfully!",
         placement: "bottomRight",
-        duration: 4,
+        duration: 3,
       });
-    } finally {
-      setLoading(false);
+    } else {
+      await DailyUpdateService.createUpdate(data);
+      api.success({
+        message: "Success",
+        description: "Daily update submitted successfully!",
+        placement: "bottomRight",
+        duration: 3,
+      });
     }
-  };
+
+    setTimeout(() => {
+      router.push("/daily-updates/view");
+    }, 1200);
+
+  } catch (error: any) {
+    let errorMessage = "Failed to submit daily update";
+
+    if (error?.message) errorMessage = error.message;
+    else if (error?.response?.data?.error) errorMessage = error.response.data.error;
+    else if (error?.response?.data?.message) errorMessage = error.response.data.message;
+
+    api.error({
+      message: "Error",
+      description: errorMessage,
+      placement: "bottomRight",
+      duration: 4,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (checkingSubmission) {
     return (
@@ -732,75 +844,6 @@ function SubmitDailyUpdateContent() {
       >
         <Form form={form} layout="vertical">
           {/* Mood Section */}
-          {/* <Form.Item
-            // label={
-            //   <span style={{ fontSize: 14, fontWeight: 500 }}>
-            //     How are you feeling today?
-            //   </span>
-
-            // }
-            label={
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  width: "100%",
-                }}
-              >
-                <span style={{ fontSize: 14, fontWeight: 500 }}>
-                  How are you feeling today?
-                </span>
-              </div>
-            }
-            name="mood"
-            style={{ marginBottom: 20 }}
-          >
-            <Space size="small" wrap>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>😊</span>}
-                onClick={() => form.setFieldsValue({ mood: "happy" })}
-                type={
-                  form.getFieldValue("mood") === "happy" ? "primary" : "default"
-                }
-              >
-                Happy
-              </Button>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>😐</span>}
-                onClick={() => form.setFieldsValue({ mood: "neutral" })}
-                type={
-                  form.getFieldValue("mood") === "neutral"
-                    ? "primary"
-                    : "default"
-                }
-              >
-                Neutral
-              </Button>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>😰</span>}
-                onClick={() => form.setFieldsValue({ mood: "stressed" })}
-                type={
-                  form.getFieldValue("mood") === "stressed"
-                    ? "primary"
-                    : "default"
-                }
-              >
-                Stressed
-              </Button>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>🚫</span>}
-                onClick={() => form.setFieldsValue({ mood: "blocked" })}
-                type={
-                  form.getFieldValue("mood") === "blocked"
-                    ? "primary"
-                    : "default"
-                }
-              >
-                Blocked
-              </Button>
-            </Space>
-          </Form.Item> */}
 
           <Form.Item
             label={

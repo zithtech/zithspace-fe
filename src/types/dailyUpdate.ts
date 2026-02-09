@@ -146,6 +146,8 @@ export interface DailyUpdateFilters {
   userId?: string;
   status?: WorkStatus;
   limit?: number;
+  updateType?: "BOD" | "EOD";
+
 }
 
 export interface SubmissionStats {

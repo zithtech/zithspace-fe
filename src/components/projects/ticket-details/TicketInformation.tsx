@@ -6,7 +6,7 @@ import { EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import TiptapViewer from "@/components/common/TiptapViewer";
 import { TicketDetails } from "@/types/ticket";
-import { getStatusColor, getPriorityColor, getTypeColor } from "@/utils/ticketUtils";
+import { getStatusColor, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor } from "@/utils/ticketUtils";
 
 const { Title, Text } = Typography;
 
@@ -123,7 +123,9 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
           </Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Platform">
-          {ticket?.platform || "Not specified"}
+          <Tag color={getPlatformColor(ticket?.platform || "")}>
+            {ticket?.platform || "Not specified"}
+          </Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Task Type">
           <Tag color={getTypeColor(ticket?.type || "")}>
@@ -131,7 +133,9 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
           </Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Task Level">
-          {ticket?.taskLevel || "Not specified"}
+          <Tag color={getTaskLevelColor(ticket?.taskLevel || "")}>
+            {ticket?.taskLevel || "Not specified"}
+          </Tag>
         </Descriptions.Item>
         <Descriptions.Item label="Story Points">
           {ticket?.storyPoint || 0}/5
@@ -166,8 +170,8 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
         <Descriptions.Item label="Duration" span={2}>
           {ticket?.startDate && ticket?.endDate
             ? `${dayjs(ticket.startDate).format("MMM DD")} - ${dayjs(
-                ticket.endDate
-              ).format("MMM DD, YYYY")}`
+              ticket.endDate
+            ).format("MMM DD, YYYY")}`
             : "Not set"}
         </Descriptions.Item>
         {(ticket as any)?.releasePlan && (

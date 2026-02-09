@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { useAuth } from "@/context/AuthContext";
 import { TrendingUpDown, AudioLines } from "lucide-react";
 import {
   Card,
@@ -35,6 +36,8 @@ import { useRouter } from "next/navigation";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
 import { useCompanyGovernmentHolidays } from "@/hooks/useCompanyGovernmentHolidays";
 import dayjs from "dayjs";
+import { useLeaveOrigins } from "@/hooks/useLeaveOrigins";
+import { useLeaveAdjustments } from "@/hooks/useLeaveAdjustments";
 
 // Import images from the assets folder
 import bhogiImage from "../../assets/holidays/bhogi.jpg";
@@ -44,96 +47,6 @@ import defaultHolidayImage from "../../assets/holidays/default.jpg";
 
 
 const { Text } = Typography;
-
-// From position-configuration/page.tsx
-const positionConfigData = [
-  {
-    key: "1",
-    position: "Intern",
-    leaveType: "Casual Leave",
-    unit: 2,
-    period: "MONTH",
-  },
-  {
-    key: "2",
-    position: "Intern",
-    leaveType: "Sick Leave",
-    unit: 0.5,
-    period: "MONTH",
-  },
-  {
-    key: "3",
-    position: "Full Time",
-    leaveType: "Casual Leave",
-    unit: 1.5,
-    period: "MONTH",
-  },
-  {
-    key: "4",
-    position: "Full Time",
-    leaveType: "Sick Leave",
-    unit: 1,
-    period: "MONTH",
-  },
-  {
-    key: "5",
-    position: "Full Time",
-    leaveType: "Privilege Leave",
-    unit: 15,
-    period: "YEAR",
-  },
-  {
-    key: "6",
-    position: "Contract",
-    leaveType: "Loss of Pay",
-    unit: 0,
-    period: "MONTH",
-  },
-];
-
-// From leave-adjustments/page.tsx
-const adjustmentsData = [
-  {
-    key: "1",
-    name: "mani",
-    leavetype: "Casual Leave",
-    type: "Credit",
-    amount: 1,
-    date: dayjs().format("YYYY-MM-DD"),
-  },
-  {
-    key: "2",
-    name: "mani",
-    leavetype: "Casual Leave",
-    type: "Debit",
-    amount: 0.5,
-    date: dayjs().format("YYYY-MM-DD"),
-  },
-  {
-    key: "3",
-    name: "mani",
-    leavetype: "Casual Leave",
-    type: "Credit",
-    amount: 2,
-    date: dayjs().subtract(1, "month").format("YYYY-MM-DD"),
-  },
-  {
-    key: "4",
-    name: "mani",
-    leavetype: "Casual Leave",
-    type: "Credit",
-    amount: 1,
-    date: dayjs().format("YYYY-MM-DD"),
-  },
-  {
-    key: "5",
-    name: "mani",
-    leavetype: "Casual Leave",
-    type: "Debit",
-    amount: 1,
-    date: dayjs().format("YYYY-MM-DD"),
-  },
-];
 
 const holidayImageMap: { [key: string]: any } = {
   "Bhogi": bhogiImage,
@@ -158,6 +71,8 @@ interface DashboardStats {
 
 export default function LeavesDashboardPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "super_admin" || user?.role === "admin";
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
   const {
@@ -170,8 +85,10 @@ export default function LeavesDashboardPage() {
     loading: holidaysLoading,
     fetchHolidays,
   } = useCompanyGovernmentHolidays();
+  const { leaveOrigins, loading: leaveOriginsLoading } = useLeaveOrigins();
+  const { dataSource: adjustments, loading: adjustmentsLoading } = useLeaveAdjustments();
 
-  const loading = leaveTypesLoading || holidaysLoading;
+  const loading = leaveTypesLoading || holidaysLoading || leaveOriginsLoading || adjustmentsLoading;
 
   useEffect(() => {
     fetchLeaveTypes();
@@ -179,7 +96,7 @@ export default function LeavesDashboardPage() {
   }, [fetchLeaveTypes, fetchHolidays]);
 
   useEffect(() => {
-    if (loading || !leaveTypes || !holidays) {
+    if (loading || !leaveTypes || !holidays || !leaveOrigins || !adjustments) {
       return;
     }
 
@@ -191,27 +108,27 @@ export default function LeavesDashboardPage() {
       ).length;
 
       // Position Config Stats
-      const uniquePositions = [
-        ...new Set(positionConfigData.map((p) => p.position)),
-      ];
-      const totalPositions = uniquePositions.length;
-      const totalLeaves = positionConfigData.reduce((sum, p) => {
-        const yearlyLeaves = p.period === "MONTH" ? p.unit * 12 : p.unit;
+      const uniqueOrigins = new Set(leaveOrigins.map((item) => item.origin));
+      const totalPositions = uniqueOrigins.size;
+      const allLeaveTypeConfigs = leaveOrigins.flatMap(
+        (origin) => origin.leaveTypes,
+      );
+      const totalLeaves = allLeaveTypeConfigs.reduce((sum, p) => {
+        const yearlyLeaves =
+          p.period === "MONTH" ? Number(p.unit) * 12 : Number(p.unit);
         return sum + yearlyLeaves;
       }, 0);
       const avgLeavePerPosition =
-        totalPositions > 0 ? Math.round(totalLeaves / totalPositions) : 0;
+        leaveOrigins.length > 0 ? Math.round(totalLeaves / leaveOrigins.length) : 0;
 
       // Adjustments Stats
-      const adjustmentsThisMonth = adjustmentsData.filter((adj) =>
-        dayjs(adj.date).isSame(dayjs(), "month"),
-      ).length;
-      const credits = adjustmentsData
+      const adjustmentsThisMonth = adjustments.length;
+      const credits = adjustments
         .filter((adj) => adj.type === "Credit")
-        .reduce((sum, adj) => sum + adj.amount, 0);
-      const debits = adjustmentsData
+        .reduce((sum, adj) => sum + (Number(adj.amount) || 0), 0);
+      const debits = adjustments
         .filter((adj) => adj.type === "Debit")
-        .reduce((sum, adj) => sum + adj.amount, 0);
+        .reduce((sum, adj) => sum + (Number(adj.amount) || 0), 0);
 
       // Holidays Stats
       const today = dayjs();
@@ -262,7 +179,7 @@ export default function LeavesDashboardPage() {
     };
 
     calculateStats();
-  }, [loading, leaveTypes, holidays]);
+  }, [loading, leaveTypes, holidays, leaveOrigins, adjustments]);
   const cardStyle = {
     borderRadius: 12,
     boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
@@ -464,244 +381,7 @@ export default function LeavesDashboardPage() {
                 </Row>
               </Card>
             </Col>
-            {/* postion configuration */}
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                onClick={() => router.push("/position-configuration")}
-                loading={loading}
-                size="small"
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle,
-                  border: "none",
-                }}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT - Title */}
-                  <Col>
-                    <div style={{ color: "#595959", fontSize: 14 }}>
-                      Total Positions
-                    </div>
-                  </Col>
-
-                  {/* RIGHT - Icon → Number */}
-                  <Col>
-                    <Row align="middle" gutter={12}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: "#2e94e8ff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 18,
-                          }}
-                        >
-                          <ApartmentOutlined />
-                        </div>
-                      </Col>
-
-                      {/* NUMBER */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 22,
-                            fontWeight: 600,
-                            color: "#2e94e8ff",
-                          }}
-                        >
-                          {stats?.totalPositions}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
-            {/* postion configuration */}
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                onClick={() => router.push("/position-configuration")}
-                loading={loading}
-                size="small"
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle,
-                  border: "none",
-                }}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT - Title */}
-                  <Col>
-                    <div style={{ color: "#595959", fontSize: 14 }}>
-                      Avg Leave / Position
-                    </div>
-                  </Col>
-
-                  {/* RIGHT - Icon → Number */}
-                  <Col>
-                    <Row align="middle" gutter={12}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: "#4fef85ff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 18,
-                          }}
-                        >
-                          <CalendarOutlined />
-                        </div>
-                      </Col>
-
-                      {/* NUMBER */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 20,
-                            fontWeight: 600,
-                            color: "#3f8600",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {stats?.avgLeavePerPosition} days
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                onClick={() => router.push("/leave-adjustments")}
-                loading={loading}
-                size="small"
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle,
-                  border: "none",
-                }}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT - Title */}
-                  <Col>
-                    <div style={{ color: "#595959", fontSize: 14 }}>
-                      Adjustments This Month
-                    </div>
-                  </Col>
-
-                  {/* RIGHT - Icon → Number */}
-                  <Col>
-                    <Row align="middle" gutter={12}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: "#ec51e6ff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 18,
-                          }}
-                        >
-                          <EditOutlined />
-                        </div>
-                      </Col>
-
-                      {/* NUMBER */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 22,
-                            fontWeight: 600,
-                            color: "#8543ffff",
-                          }}
-                        >
-                          {stats?.adjustmentsThisMonth}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                onClick={() => router.push("/leave-adjustments")}
-                loading={loading}
-                size="small"
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle,
-                  border: "none",
-                }}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT - Title */}
-                  <Col>
-                    <div style={{ color: "#595959", fontSize: 14 }}>
-                      Credits vs Debits
-                    </div>
-                  </Col>
-
-                  {/* RIGHT - Icon → Number */}
-                  <Col>
-                    <Row align="middle" gutter={12}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: "#ff665bff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 18,
-                          }}
-                        >
-                          <TrendingUpDown size={18} />
-                        </div>
-                      </Col>
-
-                      {/* NUMBER */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 20,
-                            fontWeight: 600,
-                            color: "#ff665bff",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {`${stats?.credits || 0} / ${stats?.debits || 0}`}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={12} md={6}>
+             <Col xs={24} sm={12} md={6}>
               <Card
                 onClick={() => router.push("/government-holidays")}
                 loading={loading}
@@ -843,6 +523,247 @@ export default function LeavesDashboardPage() {
                 </Row>
               </Card>
             </Col>
+         
+            {isAdmin && (
+              <>
+            <Col xs={24} sm={12} md={6}>
+              <Card
+                onClick={() => router.push("/leave-adjustments")}
+                loading={loading}
+                size="small"
+                bodyStyle={{ padding: 16 }}
+                style={{
+                  ...cardStyle,
+                  border: "none",
+                }}
+              >
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Total Adjustments
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#ec51e6ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <EditOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 600,
+                            color: "#8543ffff",
+                          }}
+                        >
+                          {stats?.adjustmentsThisMonth}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Card
+                onClick={() => router.push("/leave-adjustments")}
+                loading={loading}
+                size="small"
+                bodyStyle={{ padding: 16 }}
+                style={{
+                  ...cardStyle,
+                  border: "none",
+                }}
+              >
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Credits vs Debits
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#ff665bff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <TrendingUpDown size={18} />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 600,
+                            color: "#ff665bff",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {`${stats?.credits || 0} / ${stats?.debits || 0}`}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+               {/* postion configuration */}
+            <Col xs={24} sm={12} md={6}>
+              <Card
+                onClick={() => router.push("/position-configuration")}
+                loading={loading}
+                size="small"
+                bodyStyle={{ padding: 16 }}
+                style={{
+                  ...cardStyle,
+                  border: "none",
+                }}
+              >
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Total Origin
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#2e94e8ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <ApartmentOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 600,
+                            color: "#2e94e8ff",
+                          }}
+                        >
+                          {stats?.totalPositions}
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+            {/* postion configuration */}
+            <Col xs={24} sm={12} md={6}>
+              <Card
+                onClick={() => router.push("/position-configuration")}
+                loading={loading}
+                size="small"
+                bodyStyle={{ padding: 16 }}
+                style={{
+                  ...cardStyle,
+                  border: "none",
+                }}
+              >
+                <Row align="middle" justify="space-between">
+                  {/* LEFT - Title */}
+                  <Col>
+                    <div style={{ color: "#595959", fontSize: 14 }}>
+                      Avg Leave / Position
+                    </div>
+                  </Col>
+
+                  {/* RIGHT - Icon → Number */}
+                  <Col>
+                    <Row align="middle" gutter={12}>
+                      {/* ICON */}
+                      <Col>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: "#4fef85ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 18,
+                          }}
+                        >
+                          <CalendarOutlined />
+                        </div>
+                      </Col>
+
+                      {/* NUMBER */}
+                      <Col>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 600,
+                            color: "#3f8600",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {stats?.avgLeavePerPosition} days
+                        </div>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+              </>
+            )}
 
             <Col xs={24} md={12}>
               <Card
@@ -872,7 +793,7 @@ export default function LeavesDashboardPage() {
                   }}
                 >
                   <List
-                    dataSource={adjustmentsData}
+                    dataSource={adjustments || []}
                     renderItem={(item) => {
                       const isCredit = item.type === "Credit";
 
@@ -897,15 +818,15 @@ export default function LeavesDashboardPage() {
                                 fontWeight: 600,
                               }}
                             >
-                              {item.name?.[0]}
+                              {item.employee?.[0]}
                             </Avatar>
 
                             {/* Name + Leave Type */}
                             <div style={{ flex: 1 }}>
-                              <Text strong>{item.name}</Text>
+                              <Text strong>{item.employee}</Text>
                               <br />
                               <Text type="secondary" style={{ fontSize: 12 }}>
-                                {item.leavetype}
+                                {item.leaveType}
                               </Text>
                             </div>
 
@@ -1038,24 +959,6 @@ export default function LeavesDashboardPage() {
                     return content;
                   }}
                 />
-
-                {/* Legend */}
-                {/* <div
-      style={{
-        marginTop: 12,
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
-    > */}
-                {/* <Space size={12}>
-        <Space size={6}>
-          <Badge color="red" />
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            Holiday
-          </Text>
-        </Space>
-      </Space>
-    </div> */}
               </Card>
             </Col>
           </Row>

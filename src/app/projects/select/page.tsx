@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge } from 'antd';
 import { SearchOutlined, ProjectOutlined, UserOutlined, TeamOutlined, CheckCircleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { Spin } from 'antd';
+import { Suspense } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
@@ -33,10 +35,31 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export default function ProjectSelectPage() {
+function ProjectSelectContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
+  const [isRedirecting, setIsRedirecting] = useState(true); // Start true to prevent flash
+
+  // Auto-redirect logic
+  React.useEffect(() => {
+    // If user explicitly wants to select (via query param), skip redirect
+    const isExplicitSelect = searchParams.get('select') === 'true';
+
+    if (!isExplicitSelect) {
+      const lastProjectId = localStorage.getItem('lastProjectId');
+      if (lastProjectId) {
+        // Check if lastProjectId is valid (optional, but good UX)
+        // For speed, we just redirect. If 404, the project page handles it.
+        router.replace(`/projects/${lastProjectId}/tickets`);
+        return;
+      }
+    }
+
+    // If no redirect happens, stop loading
+    setIsRedirecting(false);
+  }, [router, searchParams]);
 
   // Fetch full project details including Stats and Members
   const { data: response, isLoading: projectsLoading } = useQuery({
@@ -65,8 +88,14 @@ export default function ProjectSelectPage() {
     (p?.code?.toLowerCase() || '').includes(search.toLowerCase())
   );
 
-  if (!user && !authLoading) {
-    return null;
+  if ((!user && !authLoading) || isRedirecting) {
+    return (
+      <MainLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Spin size="large" tip="Redirecting to your last project..." />
+        </div>
+      </MainLayout>
+    );
   }
 
   return (
@@ -275,3 +304,17 @@ const StatisticItem = ({ icon, value, label, color }: any) => (
   </div>
 );
 
+
+export default function ProjectSelectPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    }>
+      <ProjectSelectContent />
+    </Suspense>
+  );
+}

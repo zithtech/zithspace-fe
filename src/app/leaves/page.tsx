@@ -450,7 +450,7 @@ export default function LeavesPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: 24 }}>
-          <div style={{ marginBottom: 16 }}>
+          <div>
             {/* {user && (
               <Tag 
                 color={hasApprovalRights ? "orange" : "blue"} 

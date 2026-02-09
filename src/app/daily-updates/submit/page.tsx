@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Form,
@@ -15,24 +15,32 @@ import {
   Radio,
   Row,
   Col,
-} from 'antd';
-import type { NotificationArgsProps } from 'antd';
+  Switch,
+} from "antd";
+import type { NotificationArgsProps } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import MainLayout from '@/components/layout/MainLayout';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { ProjectService } from '@/services/projectService';
-import DailyUpdateService from '@/services/dailyUpdateService';
-import TicketService from '@/services/ticketService';
-import { ProjectUpdate, Task, WorkStatus, calculateHours, formatHours } from '@/types/dailyUpdate';
-import dayjs, { Dayjs } from 'dayjs';
+} from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import MainLayout from "@/components/layout/MainLayout";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import { ProjectService } from "@/services/projectService";
+import DailyUpdateService from "@/services/dailyUpdateService";
+import TicketService from "@/services/ticketService";
+import {
+  ProjectUpdate,
+  Task,
+  WorkStatus,
+  calculateHours,
+  formatHours,
+} from "@/types/dailyUpdate";
+import dayjs, { Dayjs } from "dayjs";
+import { useSearchParams } from "next/navigation";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -52,12 +60,12 @@ interface TicketOption {
 }
 
 const STATUS_OPTIONS = [
-  { label: '⏳ Pending', value: 'pending' },
-  { label: '⚙️ In Progress', value: 'in_progress' },
-  { label: '✅ Dev Complete', value: 'dev_complete' },
-  { label: '🧪 In Testing', value: 'in_testing' },
-  { label: '🚀 Pushed to Staging', value: 'pushed_to_staging' },
-  { label: '🎉 Pushed to Production', value: 'pushed_to_production' },
+  { label: "⏳ Pending", value: "pending" },
+  { label: "⚙️ In Progress", value: "in_progress" },
+  { label: "✅ Dev Complete", value: "dev_complete" },
+  { label: "🧪 In Testing", value: "in_testing" },
+  { label: "🚀 Pushed to Staging", value: "pushed_to_staging" },
+  { label: "🎉 Pushed to Production", value: "pushed_to_production" },
 ];
 
 export default function SubmitDailyUpdatePage() {
@@ -91,41 +99,99 @@ function SubmitDailyUpdateContent() {
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [existingUpdate, setExistingUpdate] = useState<any>(null);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [projectTickets, setProjectTickets] = useState<Record<string, TicketOption[]>>({});
+  const [projectTickets, setProjectTickets] = useState<
+    Record<string, TicketOption[]>
+  >({});
   const [projectUpdates, setProjectUpdates] = useState<ProjectUpdate[]>([
     {
-      projectId: '',
-      projectName: '',
-      startTime: '',
-      endTime: '',
+      projectId: "",
+      projectName: "",
+      startTime: "",
+      endTime: "",
       hoursWorked: 0,
       tasks: [
         {
-          type: 'manual',
-          description: '',
-          status: 'in_progress',
+          type: "manual",
+          description: "",
+          status: "in_progress",
         },
       ],
-      blockers: '',
-      notes: '',
+      blockers: "",
+      notes: "",
     },
   ]);
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
 
+  const [isMissedUpdate, setIsMissedUpdate] = useState(false);
+  const [missedDate, setMissedDate] = useState<Dayjs | null>(null);
+  // 🔐 24-hour edit window check
+  const [isEditAllowed, setIsEditAllowed] = useState(true);
+  // ✅ FETCH UPDATE FOR EDIT MODE
+  const fetchUpdateById = async (id: string) => {
+    try {
+      const data = await DailyUpdateService.getUpdateById(id);
+
+      setExistingUpdate(data);
+      setAlreadySubmitted(true);
+      // setProjectUpdates(data.projectUpdates);
+      setProjectUpdates(data.projectUpdates ?? []);
+      if (data.is_missed) {
+        setIsMissedUpdate(true);
+        setMissedDate(
+          data.missed_updateAt ? dayjs(data.missed_updateAt) : null
+        );
+      }
+
+      // 🔐 24 hour rule
+      const diffHours = dayjs().diff(dayjs(data.createdAt), "hour");
+      if (diffHours >= 24) {
+        setIsEditAllowed(false);
+      }
+
+      form.setFieldsValue({
+        mood: data.mood,
+        generalNotes: data.generalNotes,
+      });
+    } catch (error) {
+      api.error({
+        message: "Error",
+        description: "Failed to load update for editing",
+      });
+    } finally {
+      // 🔥 THIS WAS MISSING
+      setCheckingSubmission(false);
+    }
+  };
+  // ✅ LOAD DATA WHEN editId EXISTS
+  useEffect(() => {
+    if (editId) {
+      fetchUpdateById(editId);
+    }
+  }, [editId]);
+
+  // useEffect(() => {
+  //   fetchProjects();
+  //   checkTodaySubmission();
+  // }, []);
   useEffect(() => {
     fetchProjects();
-    checkTodaySubmission();
-  }, []);
+
+    if (!editId) {
+      checkTodaySubmission();
+    }
+  }, [editId]);
 
   const fetchProjects = async () => {
     try {
       const projectsData = await ProjectService.getUserProjects();
       setProjects(projectsData);
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error("Failed to fetch projects:", error);
       api.error({
-        message: 'Error',
-        description: 'Failed to load projects',
-        placement: 'bottomRight',
+        message: "Error",
+        description: "Failed to load projects",
+        placement: "bottomRight",
         duration: 4,
       });
     }
@@ -141,11 +207,11 @@ function SubmitDailyUpdateContent() {
         [projectId]: tickets,
       }));
     } catch (error) {
-      console.error('Failed to fetch tickets:', error);
+      console.error("Failed to fetch tickets:", error);
       api.error({
-        message: 'Error',
-        description: 'Failed to load tickets for this project',
-        placement: 'bottomRight',
+        message: "Error",
+        description: "Failed to load tickets for this project",
+        placement: "bottomRight",
         duration: 4,
       });
     }
@@ -155,21 +221,38 @@ function SubmitDailyUpdateContent() {
     try {
       setCheckingSubmission(true);
       const result = await DailyUpdateService.checkTodaySubmission();
-      
       if (result.submitted && result.data) {
         setAlreadySubmitted(true);
         setExistingUpdate(result.data);
-        
-        const existingProjectUpdates = result.data.projectUpdates as ProjectUpdate[];
+
+        if (result.data.is_missed) {
+          setIsMissedUpdate(true);
+          setMissedDate(
+            result.data.missed_updateAt
+              ? dayjs(result.data.missed_updateAt)
+              : null
+          );
+        }
+
+        // 🔥 STEP 1: 24 HOURS CHECK
+        const createdAt = dayjs(result.data.createdAt);
+        const diffHours = dayjs().diff(createdAt, "hour");
+
+        if (diffHours >= 24) {
+          setIsEditAllowed(false);
+        }
+
+        const existingProjectUpdates = result.data
+          .projectUpdates as ProjectUpdate[];
         setProjectUpdates(existingProjectUpdates);
-        
+
         form.setFieldsValue({
           mood: result.data.mood,
           generalNotes: result.data.generalNotes,
         });
       }
     } catch (error) {
-      console.error('Failed to check submission:', error);
+      console.error("Failed to check submission:", error);
     } finally {
       setCheckingSubmission(false);
     }
@@ -179,20 +262,20 @@ function SubmitDailyUpdateContent() {
     setProjectUpdates([
       ...projectUpdates,
       {
-        projectId: '',
-        projectName: '',
-        startTime: '',
-        endTime: '',
+        projectId: "",
+        projectName: "",
+        startTime: "",
+        endTime: "",
         hoursWorked: 0,
         tasks: [
           {
-            type: 'manual',
-            description: '',
-            status: 'in_progress',
+            type: "manual",
+            description: "",
+            status: "in_progress",
           },
         ],
-        blockers: '',
-        notes: '',
+        blockers: "",
+        notes: "",
       },
     ]);
   };
@@ -200,9 +283,9 @@ function SubmitDailyUpdateContent() {
   const handleRemoveProject = (index: number) => {
     if (projectUpdates.length === 1) {
       api.warning({
-        message: 'Warning',
-        description: 'At least one project update is required',
-        placement: 'bottomRight',
+        message: "Warning",
+        description: "At least one project update is required",
+        placement: "bottomRight",
         duration: 3,
       });
       return;
@@ -215,20 +298,27 @@ function SubmitDailyUpdateContent() {
     const project = projects.find((p) => p.value === projectId);
     const newUpdates = [...projectUpdates];
     newUpdates[index].projectId = projectId;
-    newUpdates[index].projectName = project?.label || '';
+    newUpdates[index].projectName = project?.label || "";
     setProjectUpdates(newUpdates);
 
     // Fetch tickets for this project
     await fetchProjectTickets(projectId);
   };
 
-  const handleTimeChange = (index: number, field: 'startTime' | 'endTime', value: Dayjs | null) => {
+  const handleTimeChange = (
+    index: number,
+    field: "startTime" | "endTime",
+    value: Dayjs | null
+  ) => {
     const newUpdates = [...projectUpdates];
-    newUpdates[index][field] = value ? value.toISOString() : '';
+    newUpdates[index][field] = value ? value.toISOString() : "";
 
     // Auto-calculate hours if both times are set
     if (newUpdates[index].startTime && newUpdates[index].endTime) {
-      const hours = calculateHours(newUpdates[index].startTime, newUpdates[index].endTime);
+      const hours = calculateHours(
+        newUpdates[index].startTime,
+        newUpdates[index].endTime
+      );
       newUpdates[index].hoursWorked = hours;
     }
 
@@ -238,9 +328,9 @@ function SubmitDailyUpdateContent() {
   const handleAddTask = (projectIndex: number) => {
     const newUpdates = [...projectUpdates];
     newUpdates[projectIndex].tasks.push({
-      type: 'manual',
-      description: '',
-      status: 'in_progress',
+      type: "manual",
+      description: "",
+      status: "in_progress",
     });
     setProjectUpdates(newUpdates);
   };
@@ -249,9 +339,9 @@ function SubmitDailyUpdateContent() {
     const newUpdates = [...projectUpdates];
     if (newUpdates[projectIndex].tasks.length === 1) {
       api.warning({
-        message: 'Warning',
-        description: 'At least one task is required',
-        placement: 'bottomRight',
+        message: "Warning",
+        description: "At least one task is required",
+        placement: "bottomRight",
         duration: 3,
       });
       return;
@@ -260,56 +350,72 @@ function SubmitDailyUpdateContent() {
     setProjectUpdates(newUpdates);
   };
 
-  const handleTaskTypeChange = (projectIndex: number, taskIndex: number, type: 'ticket' | 'manual') => {
+  const handleTaskTypeChange = (
+    projectIndex: number,
+    taskIndex: number,
+    type: "ticket" | "manual"
+  ) => {
     const newUpdates = [...projectUpdates];
     const task = newUpdates[projectIndex].tasks[taskIndex];
-    
-    if (type === 'ticket') {
+
+    if (type === "ticket") {
       newUpdates[projectIndex].tasks[taskIndex] = {
-        type: 'ticket',
-        ticketId: '',
-        ticketNumber: '',
-        ticketTitle: '',
+        type: "ticket",
+        ticketId: "",
+        ticketNumber: "",
+        ticketTitle: "",
         status: task.status,
       };
     } else {
       newUpdates[projectIndex].tasks[taskIndex] = {
-        type: 'manual',
-        description: '',
+        type: "manual",
+        description: "",
         status: task.status,
       };
     }
-    
+
     setProjectUpdates(newUpdates);
   };
 
-  const handleTicketSelect = (projectIndex: number, taskIndex: number, ticketId: string) => {
+  const handleTicketSelect = (
+    projectIndex: number,
+    taskIndex: number,
+    ticketId: string
+  ) => {
     const newUpdates = [...projectUpdates];
     const projectId = newUpdates[projectIndex].projectId;
     const ticket = projectTickets[projectId]?.find((t) => t.id === ticketId);
-    
+
     if (ticket) {
       newUpdates[projectIndex].tasks[taskIndex] = {
-        type: 'ticket',
+        type: "ticket",
         ticketId: ticket.id,
         ticketNumber: ticket.ticketNumber,
         ticketTitle: ticket.title,
         status: newUpdates[projectIndex].tasks[taskIndex].status,
       };
     }
-    
+
     setProjectUpdates(newUpdates);
   };
 
-  const handleTaskDescriptionChange = (projectIndex: number, taskIndex: number, value: string) => {
+  const handleTaskDescriptionChange = (
+    projectIndex: number,
+    taskIndex: number,
+    value: string
+  ) => {
     const newUpdates = [...projectUpdates];
-    if (newUpdates[projectIndex].tasks[taskIndex].type === 'manual') {
+    if (newUpdates[projectIndex].tasks[taskIndex].type === "manual") {
       (newUpdates[projectIndex].tasks[taskIndex] as any).description = value;
     }
     setProjectUpdates(newUpdates);
   };
 
-  const handleTaskStatusChange = (projectIndex: number, taskIndex: number, status: WorkStatus) => {
+  const handleTaskStatusChange = (
+    projectIndex: number,
+    taskIndex: number,
+    status: WorkStatus
+  ) => {
     const newUpdates = [...projectUpdates];
     newUpdates[projectIndex].tasks[taskIndex].status = status;
     setProjectUpdates(newUpdates);
@@ -329,25 +435,42 @@ function SubmitDailyUpdateContent() {
 
   const getAvailableProjects = (currentIndex: number) => {
     const selectedProjectIds = projectUpdates
-      .map((update, index) => (index !== currentIndex ? update.projectId : null))
+      .map((update, index) =>
+        index !== currentIndex ? update.projectId : null
+      )
       .filter(Boolean);
-    
-    return projects.filter((project) => !selectedProjectIds.includes(project.value));
+
+    return projects.filter(
+      (project) => !selectedProjectIds.includes(project.value)
+    );
   };
 
   const getTotalHours = () => {
-    return projectUpdates.reduce((sum, update) => sum + (update.hoursWorked || 0), 0);
+    return projectUpdates.reduce(
+      (sum, update) => sum + (update.hoursWorked || 0),
+      0
+    );
   };
 
   const validateForm = () => {
     for (let i = 0; i < projectUpdates.length; i++) {
       const update = projectUpdates[i];
 
+      if (isMissedUpdate && !missedDate) {
+        api.error({
+          message: "Validation Error",
+          description: "Please select a missed update date",
+          placement: "bottomRight",
+          duration: 4,
+        });
+        return false;
+      }
+
       if (!update.projectId) {
         api.error({
-          message: 'Validation Error',
+          message: "Validation Error",
           description: `Please select a project for update #${i + 1}`,
-          placement: 'bottomRight',
+          placement: "bottomRight",
           duration: 4,
         });
         return false;
@@ -355,9 +478,9 @@ function SubmitDailyUpdateContent() {
 
       if (!update.startTime || !update.endTime) {
         api.error({
-          message: 'Validation Error',
+          message: "Validation Error",
           description: `Please set start and end time for ${update.projectName}`,
-          placement: 'bottomRight',
+          placement: "bottomRight",
           duration: 4,
         });
         return false;
@@ -365,9 +488,9 @@ function SubmitDailyUpdateContent() {
 
       if (update.tasks.length === 0) {
         api.error({
-          message: 'Validation Error',
+          message: "Validation Error",
           description: `Please add at least one task for ${update.projectName}`,
-          placement: 'bottomRight',
+          placement: "bottomRight",
           duration: 4,
         });
         return false;
@@ -376,21 +499,25 @@ function SubmitDailyUpdateContent() {
       for (let j = 0; j < update.tasks.length; j++) {
         const task = update.tasks[j];
 
-        if (task.type === 'ticket' && !task.ticketId) {
+        if (task.type === "ticket" && !task.ticketId) {
           api.error({
-            message: 'Validation Error',
-            description: `Task #${j + 1} in ${update.projectName}: Please select a ticket`,
-            placement: 'bottomRight',
+            message: "Validation Error",
+            description: `Task #${j + 1} in ${
+              update.projectName
+            }: Please select a ticket`,
+            placement: "bottomRight",
             duration: 4,
           });
           return false;
         }
 
-        if (task.type === 'manual' && !task.description?.trim()) {
+        if (task.type === "manual" && !task.description?.trim()) {
           api.error({
-            message: 'Validation Error',
-            description: `Task #${j + 1} in ${update.projectName}: Please provide a description`,
-            placement: 'bottomRight',
+            message: "Validation Error",
+            description: `Task #${j + 1} in ${
+              update.projectName
+            }: Please provide a description`,
+            placement: "bottomRight",
             duration: 4,
           });
           return false;
@@ -398,9 +525,11 @@ function SubmitDailyUpdateContent() {
 
         if (!task.status) {
           api.error({
-            message: 'Validation Error',
-            description: `Task #${j + 1} in ${update.projectName}: Please select a status`,
-            placement: 'bottomRight',
+            message: "Validation Error",
+            description: `Task #${j + 1} in ${
+              update.projectName
+            }: Please select a status`,
+            placement: "bottomRight",
             duration: 4,
           });
           return false;
@@ -412,9 +541,9 @@ function SubmitDailyUpdateContent() {
     const uniqueProjectIds = new Set(projectIds);
     if (projectIds.length !== uniqueProjectIds.size) {
       api.error({
-        message: 'Validation Error',
-        description: 'You cannot select the same project multiple times',
-        placement: 'bottomRight',
+        message: "Validation Error",
+        description: "You cannot select the same project multiple times",
+        placement: "bottomRight",
         duration: 4,
       });
       return false;
@@ -424,60 +553,92 @@ function SubmitDailyUpdateContent() {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    if (alreadySubmitted && !isEditAllowed) {
+      api.error({
+        message: "Edit Locked",
+        description: "You can only edit within 24 hours of submission",
+      });
+      return;
+    }
+    if (!validateForm()) return;
+
+    if (isMissedUpdate && !missedDate) {
+      api.error({
+        message: "Validation Error",
+        description: "Please select a missed update date",
+      });
       return;
     }
 
     try {
       setLoading(true);
       const values = form.getFieldsValue();
+      console.log("values", values);
 
       const data = {
+        date:
+          alreadySubmitted && existingUpdate
+            ? existingUpdate.working_date // 🔥 EDIT MODE – keep same date
+            : isMissedUpdate
+            ? missedDate!.format("YYYY-MM-DD")
+            : dayjs().format("YYYY-MM-DD"),
+
         mood: values.mood,
         projectUpdates: projectUpdates,
         generalNotes: values.generalNotes,
+        is_missed: isMissedUpdate,
+        missed_updateAt: isMissedUpdate
+          ? missedDate?.format("YYYY-MM-DD")
+          : null,
       };
+      console.log("data", data);
 
       if (alreadySubmitted && existingUpdate) {
         await DailyUpdateService.updateUpdate(existingUpdate.id, data);
         api.success({
-          message: 'Success',
-          description: 'Daily update updated successfully!',
-          placement: 'bottomRight',
+          message: "Success",
+          description: "Daily update updated successfully!",
+          placement: "bottomRight",
           duration: 3,
         });
+        setTimeout(() => {
+          router.push("/daily-updates/view");
+        }, 1200);
       } else {
         await DailyUpdateService.createUpdate(data);
         api.success({
-          message: 'Success',
-          description: 'Daily update submitted successfully!',
-          placement: 'bottomRight',
+          message: "Success",
+          description: "Daily update submitted successfully!",
+          placement: "bottomRight",
           duration: 3,
         });
       }
 
-      router.push('/daily-updates/view');
+      // router.push("/daily-updates/view");
+      setTimeout(() => {
+        router.push("/daily-updates/view");
+      }, 1200);
     } catch (error: any) {
-      console.error('Failed to submit update:', error);
-      
+      console.error("Failed to submit update:", error);
+
       // Extract error message from various error formats
-      let errorMessage = 'Failed to submit daily update';
-      
+      let errorMessage = "Failed to submit daily update";
+
       if (error?.message) {
         errorMessage = error.message;
       } else if (error?.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
-      } else if (typeof error === 'string') {
+      } else if (typeof error === "string") {
         errorMessage = error;
       }
-      
+
       // Display error message as toast notification
       api.error({
-        message: 'Error',
+        message: "Error",
         description: errorMessage,
-        placement: 'bottomRight',
+        placement: "bottomRight",
         duration: 4,
       });
     } finally {
@@ -487,9 +648,9 @@ function SubmitDailyUpdateContent() {
 
   if (checkingSubmission) {
     return (
-      <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ maxWidth: 700, margin: "0 auto", padding: "24px 16px" }}>
         <Card loading={true}>
-          <div style={{ textAlign: 'center', padding: 40 }}>
+          <div style={{ textAlign: "center", padding: 40 }}>
             <Text>Checking submission status...</Text>
           </div>
         </Card>
@@ -500,30 +661,34 @@ function SubmitDailyUpdateContent() {
   const totalHours = getTotalHours();
 
   return (
-    <div style={{
-      maxWidth: 900,
-      margin: '0 auto',
-      padding: '24px 16px',
-      minHeight: 'calc(100vh - 64px)'
-    }}>
+    <div
+      style={{
+        maxWidth: 900,
+        margin: "0 auto",
+        padding: "24px 16px",
+        minHeight: "calc(100vh - 64px)",
+      }}
+    >
       {contextHolder}
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
-          {alreadySubmitted ? 'Edit Daily Status Update' : 'Submit Daily Status Update'}
+          {alreadySubmitted
+            ? "Edit Daily Status Update"
+            : "Submit Daily Status Update"}
         </Title>
         <Text type="secondary" style={{ fontSize: 13 }}>
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
+          {new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
           })}
         </Text>
         {alreadySubmitted && (
-          <Tag 
-            icon={<CheckCircleOutlined />} 
-            color="success" 
+          <Tag
+            icon={<CheckCircleOutlined />}
+            color="success"
             style={{ marginLeft: 12, fontSize: 12 }}
           >
             Already Submitted Today
@@ -532,17 +697,17 @@ function SubmitDailyUpdateContent() {
       </div>
 
       {/* Form Card */}
-      <Card 
-        style={{ 
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      <Card
+        style={{
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
           borderRadius: 8,
-          border: '1px solid #e8e8e8'
+          border: "1px solid #e8e8e8",
         }}
         bodyStyle={{ padding: 24 }}
       >
         <Form form={form} layout="vertical">
           {/* Mood Section */}
-          <Form.Item 
+          <Form.Item
             label={
               <span style={{ fontSize: 14, fontWeight: 500 }}>
                 How are you feeling today?
@@ -554,38 +719,105 @@ function SubmitDailyUpdateContent() {
             <Space size="small" wrap>
               <Button
                 icon={<span style={{ fontSize: 16 }}>😊</span>}
-                onClick={() => form.setFieldsValue({ mood: 'happy' })}
-                type={form.getFieldValue('mood') === 'happy' ? 'primary' : 'default'}
+                onClick={() => form.setFieldsValue({ mood: "happy" })}
+                type={
+                  form.getFieldValue("mood") === "happy" ? "primary" : "default"
+                }
               >
                 Happy
               </Button>
               <Button
                 icon={<span style={{ fontSize: 16 }}>😐</span>}
-                onClick={() => form.setFieldsValue({ mood: 'neutral' })}
-                type={form.getFieldValue('mood') === 'neutral' ? 'primary' : 'default'}
+                onClick={() => form.setFieldsValue({ mood: "neutral" })}
+                type={
+                  form.getFieldValue("mood") === "neutral"
+                    ? "primary"
+                    : "default"
+                }
               >
                 Neutral
               </Button>
               <Button
                 icon={<span style={{ fontSize: 16 }}>😰</span>}
-                onClick={() => form.setFieldsValue({ mood: 'stressed' })}
-                type={form.getFieldValue('mood') === 'stressed' ? 'primary' : 'default'}
+                onClick={() => form.setFieldsValue({ mood: "stressed" })}
+                type={
+                  form.getFieldValue("mood") === "stressed"
+                    ? "primary"
+                    : "default"
+                }
               >
                 Stressed
               </Button>
               <Button
                 icon={<span style={{ fontSize: 16 }}>🚫</span>}
-                onClick={() => form.setFieldsValue({ mood: 'blocked' })}
-                type={form.getFieldValue('mood') === 'blocked' ? 'primary' : 'default'}
+                onClick={() => form.setFieldsValue({ mood: "blocked" })}
+                type={
+                  form.getFieldValue("mood") === "blocked"
+                    ? "primary"
+                    : "default"
+                }
               >
                 Blocked
               </Button>
             </Space>
           </Form.Item>
+          {/* Missed Update Toggle */}
+          <Card
+            style={{
+              marginBottom: 16,
+              border: "1px dashed #d9d9d9",
+              background: "#fafafa",
+            }}
+          >
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space
+                align="center"
+                size={6}
+                style={{ display: "flex", flexWrap: "wrap" }}
+              >
+                <Text strong>Missed Update</Text>
+
+                <Switch
+                  size="small"
+                  checked={isMissedUpdate}
+                  onChange={(checked) => {
+                    setIsMissedUpdate(checked);
+                    console.log("checked", checked);
+                    if (!checked) {
+                      setMissedDate(null);
+                    }
+                  }}
+                />
+
+                {isMissedUpdate && (
+                  <Tag color="orange" style={{ margin: 0 }}>
+                    Missed
+                  </Tag>
+                )}
+
+                {isMissedUpdate && (
+                  <DatePicker
+                    placeholder="Select missed update date"
+                    style={{ width: 250 }}
+                    value={missedDate}
+                    onChange={(date) => setMissedDate(date)}
+                    disabledDate={(current) =>
+                      current &&
+                      (current.isAfter(dayjs(), "day") ||
+                        current.isBefore(dayjs().subtract(3, "day"), "day"))
+                    }
+                  />
+                )}
+              </Space>
+            </Space>
+          </Card>
 
           {/* Project Updates Section */}
           <div style={{ marginBottom: 24 }}>
-            <Text strong style={{ fontSize: 15, display: 'block', marginBottom: 16 }}>
+            <Text
+              strong
+              style={{ fontSize: 15, display: "block", marginBottom: 16 }}
+            >
               Project Updates
             </Text>
 
@@ -593,21 +825,23 @@ function SubmitDailyUpdateContent() {
               <div
                 key={projectIndex}
                 style={{
-                  border: '1px solid #e8e8e8',
+                  border: "1px solid #e8e8e8",
                   borderRadius: 8,
                   padding: 16,
                   marginBottom: 16,
-                  backgroundColor: '#fafafa',
-                  position: 'relative'
+                  backgroundColor: "#fafafa",
+                  position: "relative",
                 }}
               >
                 {/* Project Header */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: 16
-                }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 16,
+                  }}
+                >
                   <Text strong style={{ fontSize: 14 }}>
                     Project Entry #{projectIndex + 1}
                   </Text>
@@ -628,33 +862,46 @@ function SubmitDailyUpdateContent() {
                 <Form.Item
                   label={
                     <span style={{ fontSize: 13 }}>
-                      Project <span style={{ color: '#ff4d4f' }}>*</span>
+                      Project <span style={{ color: "#ff4d4f" }}>*</span>
                     </span>
                   }
                   required={false}
-                  validateStatus={!update.projectId ? 'error' : 'success'}
-                  help={!update.projectId && 'Please select a project'}
+                  validateStatus={!update.projectId ? "error" : "success"}
+                  help={!update.projectId && "Please select a project"}
                   style={{ marginBottom: 16 }}
                 >
                   <Select
                     placeholder="Select a project"
                     value={update.projectId || undefined}
-                    onChange={(value) => handleProjectChange(projectIndex, value)}
-                    options={getAvailableProjects(projectIndex).map((project) => ({
-                      label: `${project.label} (${project.code})`,
-                      value: project.value,
-                    }))}
+                    onChange={(value) =>
+                      handleProjectChange(projectIndex, value)
+                    }
+                    options={getAvailableProjects(projectIndex).map(
+                      (project) => ({
+                        label: `${project.label} (${project.code})`,
+                        value: project.value,
+                      })
+                    )}
                     showSearch
                     filterOption={(input, option) =>
-                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
                     }
                   />
                 </Form.Item>
 
                 {/* Time Tracking */}
                 <div style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 8 }}>
-                    ⏰ Time Tracking <span style={{ color: '#ff4d4f' }}>*</span>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      display: "block",
+                      marginBottom: 8,
+                    }}
+                  >
+                    ⏰ Time Tracking <span style={{ color: "#ff4d4f" }}>*</span>
                   </Text>
                   <Row gutter={16}>
                     <Col span={8}>
@@ -667,9 +914,23 @@ function SubmitDailyUpdateContent() {
                           showTime
                           format="DD-MM-YYYY HH:mm"
                           placeholder="dd-mm-yyyy --:--"
-                          value={update.startTime ? dayjs(update.startTime) : null}
-                          onChange={(value) => handleTimeChange(projectIndex, 'startTime', value)}
-                          style={{ width: '100%' }}
+                          value={
+                            update.startTime ? dayjs(update.startTime) : null
+                          }
+                          onChange={(value) =>
+                            handleTimeChange(projectIndex, "startTime", value)
+                          }
+                          style={{ width: "100%" }}
+                          disabledDate={(current) => {
+                            if (!isMissedUpdate) {
+                              // Toggle OFF → disable all past dates (yesterday, missed updates)
+                              return (
+                                current && current < dayjs().startOf("day")
+                              );
+                            }
+                            // Toggle ON → allow everything (past + future)
+                            return false;
+                          }}
                         />
                       </Form.Item>
                     </Col>
@@ -684,21 +945,39 @@ function SubmitDailyUpdateContent() {
                           format="DD-MM-YYYY HH:mm"
                           placeholder="dd-mm-yyyy --:--"
                           value={update.endTime ? dayjs(update.endTime) : null}
-                          onChange={(value) => handleTimeChange(projectIndex, 'endTime', value)}
-                          style={{ width: '100%' }}
+                          onChange={(value) =>
+                            handleTimeChange(projectIndex, "endTime", value)
+                          }
+                          style={{ width: "100%" }}
+                          disabledDate={(current) => {
+                            if (!isMissedUpdate) {
+                              // Toggle OFF → disable all past dates (yesterday, missed updates)
+                              return (
+                                current && current < dayjs().startOf("day")
+                              );
+                            }
+                            // Toggle ON → allow everything (past + future)
+                            return false;
+                          }}
                         />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
                       <Form.Item
-                        label={<span style={{ fontSize: 12 }}>Total Hours</span>}
+                        label={
+                          <span style={{ fontSize: 12 }}>Total Hours</span>
+                        }
                         style={{ marginBottom: 0 }}
                       >
                         <Input
-                          value={update.hoursWorked > 0 ? formatHours(update.hoursWorked) : '0h 0m'}
+                          value={
+                            update.hoursWorked > 0
+                              ? formatHours(update.hoursWorked)
+                              : "0h 0m"
+                          }
                           disabled
                           prefix={<ClockCircleOutlined />}
-                          style={{ backgroundColor: '#f5f5f5' }}
+                          style={{ backgroundColor: "#f5f5f5" }}
                         />
                       </Form.Item>
                     </Col>
@@ -707,30 +986,48 @@ function SubmitDailyUpdateContent() {
 
                 {/* Work Summary - Tasks */}
                 <div style={{ marginBottom: 16 }}>
-                  <Text style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 8 }}>
-                    📝 Work Summary <span style={{ color: '#ff4d4f' }}>*</span>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      display: "block",
+                      marginBottom: 8,
+                    }}
+                  >
+                    📝 Work Summary <span style={{ color: "#ff4d4f" }}>*</span>
                   </Text>
 
                   {update.tasks.map((task, taskIndex) => (
                     <div
                       key={taskIndex}
                       style={{
-                        border: '1px solid #d9d9d9',
+                        border: "1px solid #d9d9d9",
                         borderRadius: 6,
                         padding: 12,
                         marginBottom: 12,
-                        backgroundColor: '#fff',
+                        backgroundColor: "#fff",
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <Text style={{ fontSize: 12, fontWeight: 500 }}>Task #{taskIndex + 1}</Text>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: 500 }}>
+                          Task #{taskIndex + 1}
+                        </Text>
                         {update.tasks.length > 1 && (
                           <Button
                             type="text"
                             danger
                             size="small"
                             icon={<DeleteOutlined />}
-                            onClick={() => handleRemoveTask(projectIndex, taskIndex)}
+                            onClick={() =>
+                              handleRemoveTask(projectIndex, taskIndex)
+                            }
                           />
                         )}
                       </div>
@@ -738,7 +1035,13 @@ function SubmitDailyUpdateContent() {
                       {/* Task Type Selector */}
                       <Radio.Group
                         value={task.type}
-                        onChange={(e) => handleTaskTypeChange(projectIndex, taskIndex, e.target.value)}
+                        onChange={(e) =>
+                          handleTaskTypeChange(
+                            projectIndex,
+                            taskIndex,
+                            e.target.value
+                          )
+                        }
                         style={{ marginBottom: 8 }}
                         size="small"
                       >
@@ -747,27 +1050,39 @@ function SubmitDailyUpdateContent() {
                       </Radio.Group>
 
                       {/* Conditional Input */}
-                      {task.type === 'ticket' ? (
+                      {task.type === "ticket" ? (
                         <Select
                           placeholder="Select ticket"
                           value={task.ticketId || undefined}
-                          onChange={(value) => handleTicketSelect(projectIndex, taskIndex, value)}
-                          options={projectTickets[update.projectId]?.map((ticket) => ({
-                            label: `${ticket.ticketNumber} - ${ticket.title}`,
-                            value: ticket.id,
-                          })) || []}
+                          onChange={(value) =>
+                            handleTicketSelect(projectIndex, taskIndex, value)
+                          }
+                          options={
+                            projectTickets[update.projectId]?.map((ticket) => ({
+                              label: `${ticket.ticketNumber} - ${ticket.title}`,
+                              value: ticket.id,
+                            })) || []
+                          }
                           showSearch
                           filterOption={(input, option) =>
-                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                            (option?.label ?? "")
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
                           }
-                          style={{ width: '100%', marginBottom: 8 }}
+                          style={{ width: "100%", marginBottom: 8 }}
                           disabled={!update.projectId}
                         />
                       ) : (
                         <TextArea
                           placeholder="Describe what you worked on..."
-                          value={task.description || ''}
-                          onChange={(e) => handleTaskDescriptionChange(projectIndex, taskIndex, e.target.value)}
+                          value={task.description || ""}
+                          onChange={(e) =>
+                            handleTaskDescriptionChange(
+                              projectIndex,
+                              taskIndex,
+                              e.target.value
+                            )
+                          }
                           rows={2}
                           style={{ marginBottom: 8 }}
                         />
@@ -777,9 +1092,15 @@ function SubmitDailyUpdateContent() {
                       <Select
                         placeholder="Select status"
                         value={task.status}
-                        onChange={(value) => handleTaskStatusChange(projectIndex, taskIndex, value as WorkStatus)}
+                        onChange={(value) =>
+                          handleTaskStatusChange(
+                            projectIndex,
+                            taskIndex,
+                            value as WorkStatus
+                          )
+                        }
                         options={STATUS_OPTIONS}
-                        style={{ width: '100%' }}
+                        style={{ width: "100%" }}
                       />
                     </div>
                   ))}
@@ -789,7 +1110,7 @@ function SubmitDailyUpdateContent() {
                     icon={<PlusOutlined />}
                     onClick={() => handleAddTask(projectIndex)}
                     size="small"
-                    style={{ padding: 0, height: 'auto', fontSize: 13 }}
+                    style={{ padding: 0, height: "auto", fontSize: 13 }}
                   >
                     Add Task
                   </Button>
@@ -799,7 +1120,10 @@ function SubmitDailyUpdateContent() {
                 <Form.Item
                   label={
                     <span style={{ fontSize: 13 }}>
-                      🚫 Blockers <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
+                      🚫 Blockers{" "}
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        (Optional)
+                      </Text>
                     </span>
                   }
                   style={{ marginBottom: 16 }}
@@ -808,7 +1132,9 @@ function SubmitDailyUpdateContent() {
                     rows={2}
                     placeholder="Any blockers or dependencies..."
                     value={update.blockers}
-                    onChange={(e) => handleBlockersChange(projectIndex, e.target.value)}
+                    onChange={(e) =>
+                      handleBlockersChange(projectIndex, e.target.value)
+                    }
                   />
                 </Form.Item>
 
@@ -816,7 +1142,10 @@ function SubmitDailyUpdateContent() {
                 <Form.Item
                   label={
                     <span style={{ fontSize: 13 }}>
-                      💬 Comments / Notes <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
+                      💬 Comments / Notes{" "}
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        (Optional)
+                      </Text>
                     </span>
                   }
                   style={{ marginBottom: 0 }}
@@ -825,7 +1154,9 @@ function SubmitDailyUpdateContent() {
                     rows={2}
                     placeholder="Additional notes or clarifications..."
                     value={update.notes}
-                    onChange={(e) => handleNotesChange(projectIndex, e.target.value)}
+                    onChange={(e) =>
+                      handleNotesChange(projectIndex, e.target.value)
+                    }
                   />
                 </Form.Item>
               </div>
@@ -836,7 +1167,7 @@ function SubmitDailyUpdateContent() {
               icon={<PlusOutlined />}
               onClick={handleAddProject}
               disabled={projectUpdates.length >= projects.length}
-              style={{ padding: 0, height: 'auto', fontSize: 13 }}
+              style={{ padding: 0, height: "auto", fontSize: 13 }}
             >
               Add Another Project Entry
             </Button>
@@ -846,7 +1177,10 @@ function SubmitDailyUpdateContent() {
           <Form.Item
             label={
               <span style={{ fontSize: 14, fontWeight: 500 }}>
-                General Notes <Text type="secondary" style={{ fontSize: 12 }}>(Optional)</Text>
+                General Notes{" "}
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  (Optional)
+                </Text>
               </span>
             }
             name="generalNotes"
@@ -859,17 +1193,25 @@ function SubmitDailyUpdateContent() {
           </Form.Item>
 
           {/* Total Hours Display */}
-          <div style={{ 
-            padding: 16, 
-            backgroundColor: '#f0f5ff', 
-            borderRadius: 6, 
-            marginBottom: 24,
-            border: '1px solid #adc6ff'
-          }}>
+          <div
+            style={{
+              padding: 16,
+              backgroundColor: "#f0f5ff",
+              borderRadius: 6,
+              marginBottom: 24,
+              border: "1px solid #adc6ff",
+            }}
+          >
             <Text strong style={{ fontSize: 14 }}>
-              ⏱️ Total Hours Today: <span style={{ color: '#1890ff', fontSize: 16 }}>{formatHours(totalHours)}</span>
+              ⏱️ Total Hours Today:{" "}
+              <span style={{ color: "#1890ff", fontSize: 16 }}>
+                {formatHours(totalHours)}
+              </span>
             </Text>
-            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, display: "block", marginTop: 4 }}
+            >
               Auto-calculated from all project entries
             </Text>
           </div>
@@ -877,16 +1219,33 @@ function SubmitDailyUpdateContent() {
           {/* Submit Buttons */}
           <Form.Item style={{ marginBottom: 0 }}>
             <Space>
-              <Button 
-                type="primary" 
-                onClick={handleSubmit} 
+              {/* <Button
+                type="primary"
+                onClick={handleSubmit}
                 loading={loading}
                 size="large"
               >
-                {alreadySubmitted ? 'Update Daily Status' : 'Submit Daily Status'}
+                {alreadySubmitted
+                  ? "Update Daily Status"
+                  : "Submit Daily Status"}
+              </Button> */}
+              <Button
+                type="primary"
+                htmlType="button"
+                onClick={handleSubmit}
+                loading={loading}
+                size="large"
+                disabled={alreadySubmitted && !isEditAllowed} // 🔥 IMPORTANT
+              >
+                {alreadySubmitted
+                  ? isEditAllowed
+                    ? "Update Daily Status"
+                    : "Edit Locked (24 hrs passed)"
+                  : "Submit Daily Status"}
               </Button>
-              <Button 
-                onClick={() => router.push('/daily-updates/view')}
+
+              <Button
+                onClick={() => router.push("/daily-updates/view")}
                 size="large"
               >
                 Cancel

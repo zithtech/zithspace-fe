@@ -44,6 +44,13 @@ export const EditableDate: React.FC<EditableDateProps> = ({
         }
     };
 
+    const handleClose = () => {
+        // Only close if not currently saving
+        if (!loading) {
+            setIsEditing(false);
+        }
+    };
+
     const hasValue = !!value;
     const displayValue = value ? dayjs(value).format(format) : '';
 
@@ -53,7 +60,12 @@ export const EditableDate: React.FC<EditableDateProps> = ({
                 ref={pickerRef}
                 value={value ? dayjs(value) : null}
                 onChange={handleChange}
-                onBlur={() => setIsEditing(false)}
+                onOpenChange={(open) => {
+                    // Close the picker when calendar dropdown closes
+                    if (!open && !loading) {
+                        setIsEditing(false);
+                    }
+                }}
                 style={{ width: '100%' }}
                 placeholder={placeholder}
                 open={true}
@@ -74,6 +86,7 @@ export const EditableDate: React.FC<EditableDateProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 transition: 'background 0.2s',
+                backgroundColor: '#f5f5f5', // Always show background
             }}
             className="editable-field-hover"
             title={label || placeholder}
@@ -81,16 +94,13 @@ export const EditableDate: React.FC<EditableDateProps> = ({
             {hasValue ? (
                 <Text>{displayValue}</Text>
             ) : (
-                <Text type="secondary" style={{ fontStyle: 'italic', fontSize: '13px' }}>{emptyText}</Text>
+                <Text style={{ color: '#bfbfbf', fontSize: '13px' }}>{placeholder || emptyText}</Text>
             )}
 
             {loading && <Spin size="small" style={{ marginLeft: 8 }} />}
             {!loading && <EditOutlined style={{ marginLeft: 8, opacity: 0, transition: 'opacity 0.2s' }} className="edit-icon" />}
 
             <style jsx global>{`
-        .editable-field-hover:hover {
-          background-color: #fafafa;
-        }
         .editable-field-hover:hover .edit-icon {
           opacity: 0.5 !important;
         }

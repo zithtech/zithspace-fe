@@ -46,6 +46,15 @@ export const useTicket = (id: string) => {
   });
 };
 
+export const usePublicTicket = (id: string) => {
+  return useQuery({
+    queryKey: ["public-ticket", id],
+    queryFn: () => TicketService.getPublicTicketById(id),
+    enabled: !!id,
+    retry: false,
+  });
+};
+
 // --- Mutations ---
 
 export const useCreateTicket = () => {
@@ -275,8 +284,16 @@ export const useUpdateTicket = () => {
         }
       }
 
-      // Prepare payload
+      // Prepare payload - preserve existing sprintPlanId if not being updated
       const cacheUpdatePayload = optimisticData || data;
+
+      // CRITICAL: Preserve sprintPlanId from previousTicket if not explicitly changing sprint assignment
+      const isSprintUpdate = 'releasePlan' in cacheUpdatePayload || 'sprintPlan' in cacheUpdatePayload;
+      const preservedPayload = {
+        ...cacheUpdatePayload,
+        // Only preserve sprintPlanId if we're NOT doing a sprint update
+        ...((!isSprintUpdate && previousTicket) ? { sprintPlanId: previousTicket.sprintPlanId } : {})
+      };
 
       // Define targetParentId for subtask updates
       const targetParentId = parentId || (previousTicket && previousTicket.parentId);
@@ -293,12 +310,11 @@ export const useUpdateTicket = () => {
           const listParams = queryKey[2] || {};
           const isBacklogList = listParams.sprintId === 'null';
           const isActiveSprintList = listParams.sprintId === 'active';
-          const isReleasePlanUpdate = 'releasePlan' in cacheUpdatePayload || 'sprintPlan' in cacheUpdatePayload;
 
           let newData = [...oldData.data];
           let total = oldData.pagination?.total || newData.length;
 
-          if (isReleasePlanUpdate) {
+          if (isSprintUpdate) {
             const newReleasePlan = cacheUpdatePayload.releasePlan !== undefined ? cacheUpdatePayload.releasePlan : cacheUpdatePayload.sprintPlan;
             const isMovingToBacklog = newReleasePlan === null || newReleasePlan === 'null';
             const isMovingToSprint = typeof newReleasePlan === 'string' && newReleasePlan !== 'null' && newReleasePlan !== '';
@@ -309,13 +325,14 @@ export const useUpdateTicket = () => {
             } else if (isActiveSprintList && isMovingToBacklog) {
               if (exists) { newData = newData.filter((t: Ticket) => t.id !== id); total = Math.max(0, total - 1); }
             } else if (isBacklogList && isMovingToBacklog) {
-              if (!exists && previousTicket) { const newTicket = { ...previousTicket, ...cacheUpdatePayload }; newData = [newTicket, ...newData]; total = total + 1; }
+              if (!exists && previousTicket) { const newTicket = { ...previousTicket, ...preservedPayload }; newData = [newTicket, ...newData]; total = total + 1; }
             } else if (isActiveSprintList && isMovingToSprint) {
-              if (!exists && previousTicket) { const newTicket = { ...previousTicket, ...cacheUpdatePayload }; newData = [newTicket, ...newData]; total = total + 1; }
+              if (!exists && previousTicket) { const newTicket = { ...previousTicket, ...preservedPayload }; newData = [newTicket, ...newData]; total = total + 1; }
             }
           }
 
-          newData = newData.map((ticket: Ticket) => ticket.id === id ? { ...ticket, ...cacheUpdatePayload } : ticket);
+          // Update ticket data in current list with preserved sprintPlanId
+          newData = newData.map((ticket: Ticket) => ticket.id === id ? { ...ticket, ...preservedPayload } : ticket);
 
           queryClient.setQueryData(queryKey, { ...oldData, data: newData, pagination: { ...oldData.pagination, total } });
         });
@@ -327,7 +344,7 @@ export const useUpdateTicket = () => {
           Object.keys(updatedColumns).forEach(status => {
             updatedColumns[status] = {
               ...updatedColumns[status],
-              tickets: updatedColumns[status].tickets.map((t: Ticket) => t.id === id ? { ...t, ...cacheUpdatePayload } : t)
+              tickets: updatedColumns[status].tickets.map((t: Ticket) => t.id === id ? { ...t, ...preservedPayload } : t)
             };
           });
           queryClient.setQueryData(queryKey, { ...oldData, columns: updatedColumns });
@@ -340,7 +357,7 @@ export const useUpdateTicket = () => {
             return {
               ...oldParent,
               subTasks: oldParent.subTasks.map((t: Ticket) =>
-                t.id === id ? { ...t, ...cacheUpdatePayload } : t
+                t.id === id ? { ...t, ...preservedPayload } : t
               )
             };
           });
@@ -351,7 +368,7 @@ export const useUpdateTicket = () => {
       }
 
       if (previousTicket) {
-        queryClient.setQueryData(ticketKeys.detail(id), (old: any) => ({ ...old, ...cacheUpdatePayload }));
+        queryClient.setQueryData(ticketKeys.detail(id), (old: any) => ({ ...old, ...preservedPayload }));
       }
 
       return { previousTicketLists, previousKanbanData, previousTicket, parentId: targetParentId };
@@ -375,6 +392,7 @@ export const useUpdateTicket = () => {
           queryClient.setQueryData(queryKey, data);
         });
       }
+      message.error("Failed to update ticket");
     },
     onSuccess: (savedTicket) => {
       // Update detail

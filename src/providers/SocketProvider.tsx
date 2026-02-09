@@ -57,7 +57,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     newSocket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err.message);
+      console.log("Socket connection error:", err.message);
     });
 
     setSocket(newSocket);

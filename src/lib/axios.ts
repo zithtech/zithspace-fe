@@ -11,7 +11,7 @@ declare module 'axios' {
 const TenantUtils = {
   getTenantId(): string | null {
     if (typeof window === 'undefined') return null;
-    
+
     try {
       const savedTenant = localStorage.getItem('currentTenant');
       if (savedTenant) {
@@ -26,9 +26,9 @@ const TenantUtils = {
 
   getSubdomain(): string | null {
     if (typeof window === 'undefined') return null;
-    
+
     const hostname = window.location.hostname;
-    
+
     // For localhost development
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return localStorage.getItem('devTenantSubdomain') || null;
@@ -42,7 +42,7 @@ const TenantUtils = {
         return subdomain;
       }
     }
-    
+
     return null;
   },
 };
@@ -122,7 +122,7 @@ const createApiClient = (): AxiosInstance => {
     async (config: InternalAxiosRequestConfig) => {
       // Add Authorization header
       let token = TokenManager.getAccessToken();
-      
+
       // If no token exists, try to refresh from cookie before making request
       if (!token && !config.url?.includes('/auth/refresh') && !config.url?.includes('/auth/login')) {
         console.log('🔄 No access token found, attempting proactive refresh...');
@@ -132,7 +132,7 @@ const createApiClient = (): AxiosInstance => {
             {},
             { withCredentials: true }
           );
-          
+
           if (refreshResponse.data.success && refreshResponse.data.accessToken) {
             token = refreshResponse.data.accessToken;
             if (token) {
@@ -144,7 +144,7 @@ const createApiClient = (): AxiosInstance => {
           console.log('❌ Proactive token refresh failed');
         }
       }
-      
+
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -153,12 +153,12 @@ const createApiClient = (): AxiosInstance => {
       if (config.headers) {
         const tenantId = TenantUtils.getTenantId();
         const subdomain = TenantUtils.getSubdomain();
-        
+
         // Always try to add tenant headers when available
         if (tenantId) {
           config.headers['X-Tenant-ID'] = tenantId;
         }
-        
+
         if (subdomain) {
           config.headers['X-Tenant-Subdomain'] = subdomain;
         }
@@ -234,6 +234,7 @@ const createApiClient = (): AxiosInstance => {
 
             // Retry original request with new token
             if (originalRequest.headers && accessToken) {
+              console.log('🔄 Retrying request with new token...');
               originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             }
 
@@ -241,10 +242,10 @@ const createApiClient = (): AxiosInstance => {
           }
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
-          
+
           // Clear access token - let AuthContext handle the redirect
           TokenManager.clearAccessToken();
-          
+
           return Promise.reject(new ApiError('Session expired. Please login again.', 401, 'TOKEN_EXPIRED'));
         }
       }
@@ -255,7 +256,7 @@ const createApiClient = (): AxiosInstance => {
         const { status, data } = error.response;
         const errorData = data as ErrorResponse;
         const message = errorData?.error || errorData?.message || `HTTP ${status} Error`;
-        
+
         throw new ApiError(message, status, errorData?.code, errorData);
       } else if (error.request) {
         // Request was made but no response received
@@ -343,7 +344,7 @@ export const apiUtils = {
 
   // Handle paginated requests
   async getPaginated<T = any>(
-    url: string, 
+    url: string,
     params: {
       page?: number;
       limit?: number;
@@ -353,9 +354,9 @@ export const apiUtils = {
   ): Promise<PaginatedResponse<T>> {
     const queryString = this.buildQueryString(params);
     const fullUrl = queryString ? `${url}?${queryString}` : url;
-    
+
     const response = await apiClient.get(fullUrl);
-    
+
     // Backend returns: { success: true, data: [...], pagination: {...} }
     // We need to transform it to: { data: [...], pagination: {...} }
     if (response.data.success) {
@@ -369,7 +370,7 @@ export const apiUtils = {
         }
       };
     }
-    
+
     throw new ApiError(response.data.error || 'Failed to fetch data', response.status);
   },
 
@@ -388,4 +389,5 @@ export const apiUtils = {
 export { TokenManager };
 
 // Export types
-export type { AxiosRequestConfig, AxiosResponse, AxiosError };
+export type { AxiosRequestConfig, AxiosResponse, AxiosError };  
+

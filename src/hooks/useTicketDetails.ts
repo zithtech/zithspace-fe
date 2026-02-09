@@ -73,6 +73,20 @@ export const useTicketAttachments = (ticketId: string | undefined) => {
   });
 };
 
+/**
+ * Fetch ticket activity log
+ * Cache: 30 seconds
+ */
+export const useTicketActivityLog = (ticketId: string | undefined) => {
+  return useQuery({
+    queryKey: ['ticket', ticketId, 'activity'],
+    queryFn: () => TicketService.getActivityLog(ticketId!),
+    enabled: !!ticketId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+};
+
 // ==================== MUTATIONS ====================
 
 /**
@@ -117,13 +131,13 @@ export const useUpdateComment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      ticketId, 
-      commentId, 
-      comment 
-    }: { 
-      ticketId: string; 
-      commentId: string; 
+    mutationFn: ({
+      ticketId,
+      commentId,
+      comment
+    }: {
+      ticketId: string;
+      commentId: string;
       comment: string;
     }) => TicketService.updateComment(ticketId, commentId, comment),
     onSuccess: (_, { ticketId }) => {
@@ -156,11 +170,11 @@ export const useAddRelatedLink = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      ticketId, 
-      linkData 
-    }: { 
-      ticketId: string; 
+    mutationFn: ({
+      ticketId,
+      linkData
+    }: {
+      ticketId: string;
       linkData: any;
     }) => TicketService.addRelatedLink(ticketId, linkData),
     onSuccess: (_, { ticketId }) => {
@@ -177,13 +191,13 @@ export const useUpdateRelatedLink = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      ticketId, 
-      linkId, 
-      linkData 
-    }: { 
-      ticketId: string; 
-      linkId: string; 
+    mutationFn: ({
+      ticketId,
+      linkId,
+      linkData
+    }: {
+      ticketId: string;
+      linkId: string;
       linkData: any;
     }) => TicketService.updateRelatedLink(ticketId, linkId, linkData),
     onSuccess: (_, { ticketId }) => {
@@ -216,13 +230,13 @@ export const useUploadAttachment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ 
-      ticketId, 
-      file, 
-      fileName 
-    }: { 
-      ticketId: string; 
-      file: string; 
+    mutationFn: ({
+      ticketId,
+      file,
+      fileName
+    }: {
+      ticketId: string;
+      file: string;
       fileName: string;
     }) => TicketService.uploadAttachment(ticketId, file, fileName),
     onSuccess: (_, { ticketId }) => {

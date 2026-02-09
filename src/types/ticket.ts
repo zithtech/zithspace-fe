@@ -27,12 +27,12 @@ export interface TicketDetails {
     email: string;
   };
   reportTo:
-    | {
-        id: string;
-        name: string;
-        position?: string;
-      }
-    | string;
+  | {
+    id: string;
+    name: string;
+    position?: string;
+  }
+  | string;
   storyPoint?: number;
   estimateHours?: number;
   createdBy: {
@@ -59,12 +59,12 @@ export interface TicketDetails {
   comments?: Array<{
     id: string;
     userId:
-      | string
-      | {
-          id: string;
-          name: string;
-          email: string;
-        };
+    | string
+    | {
+      id: string;
+      name: string;
+      email: string;
+    };
     userName?: string;
     comment: string;
     timestamp: string;
@@ -84,4 +84,49 @@ export interface RelatedLinkFormData {
   url: string;
 }
 
+
 export type LinkType = "ui_design" | "scope_doc" | "sample_response" | "dev_doc";
+
+// Code Integration Types
+
+export interface Repository {
+  id: string;
+  name: string;
+  url: string;
+  description?: string;
+  isActive: boolean;
+  tenantId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketBranch {
+  id: string;
+  ticketId: string;
+  repositoryId: string;
+  name: string;
+  url?: string;
+  isDefault: boolean;
+  repository?: Repository;
+  createdAt: string;
+}
+
+export interface TicketPullRequest {
+  id: string;
+  ticketId: string;
+  repositoryId: string;
+  title?: string;
+  url: string;
+  branchName?: string;
+  branchUrl?: string;
+  number?: number;
+  state: string;
+  repository?: Repository;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TicketCodeMetadata {
+  branches: TicketBranch[];
+  pullRequests: TicketPullRequest[];
+}

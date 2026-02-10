@@ -330,6 +330,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
+     {
+      key: "/releasenotes",
+      icon: < FileTextOutlined />,
+      label: "Release Notes",
+      onClick: () => handleNavigation("/releasenotes"),
+    },
   ];
 
 
@@ -400,6 +406,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
+   
+
       {/* Sidebar */}
       <Sider
         trigger={null}

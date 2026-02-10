@@ -516,5 +516,35 @@ body {
 .client-view-card {
   height: 100%;
 }
+.transparent-select .ant-select-selector {
+  background-color: transparent !important;
+}
+.version-item {
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.version-item:hover {
+  background: #f5f5f5;
+}
+
+.version-item.active {
+  background: #e6f4ff;
+  border-left: 3px solid #1677ff;
+}
+
+.version-item::after {
+  float: right;
+  content: "●";
+  font-size: 10px;
+}
+
+.version-item:contains("Draft")::after {
+  color: orange;
+}
+
+
 
 

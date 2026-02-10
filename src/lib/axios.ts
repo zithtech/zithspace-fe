@@ -288,8 +288,14 @@ export const api = {
   // POST request
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.post(url, data, config);
+
+    // For file uploads, the response structure is different
+    // Backend returns: { success: true, filename: "...", url: "..." }
+    // Not: { success: true, data: {...} }
     if (response.data.success) {
-      return response.data.data;
+      // If data.data exists, use it (normal case)
+      // Otherwise return the whole response.data (file upload case)
+      return response.data.data !== undefined ? response.data.data : response.data;
     }
     throw new ApiError(response.data.error || 'Request failed', response.status);
   },
@@ -387,5 +393,5 @@ export const apiUtils = {
 export { TokenManager };
 
 // Export types
-export type { AxiosRequestConfig, AxiosResponse, AxiosError };  
+export type { AxiosRequestConfig, AxiosResponse, AxiosError };
 

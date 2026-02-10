@@ -16,7 +16,7 @@ export class DailyUpdateService {
   static async createUpdate(data: CreateDailyUpdateRequest): Promise<DailyStatusUpdate> {
     try {
       console.log(data,"is_missed")
-      return await api.post('/api/daily-updates', data);
+      return await api.post('/541', data);
     } catch (error: any) {
       // Extract error message from different error types
       const errorMessage = 

@@ -40,6 +40,7 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
+  TransactionOutlined
 } from '@ant-design/icons';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -230,6 +231,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation("/accounts"),
       style: user?.role !== "super_admin" ? { color: "#bfbfbf" } : undefined,
     },
+    
     {
       key: "invoicepro",
       icon: <AccountBookOutlined />,
@@ -281,6 +283,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
+    {
+      key: "/reimbursement",
+      icon: <TransactionOutlined />,
+      label: "reimbursement",
+      onClick: () => handleNavigation("/reimbursement"),
+    },
+
+
   ];
 
 

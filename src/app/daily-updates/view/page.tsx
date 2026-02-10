@@ -66,6 +66,10 @@ function ViewDailyUpdatesContent() {
   const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(true);
   const [updates, setUpdates] = useState<DailyStatusUpdate[]>([]);
+  const [selectedUpdateType, setSelectedUpdateType] = useState<
+    "BOD" | "EOD" | undefined
+  >(undefined);
+
   // 🔹 Delete a daily update and remove it from the UI
   const handleDeleteUpdate = async (updateId: string) => {
     try {
@@ -111,7 +115,7 @@ function ViewDailyUpdatesContent() {
   useEffect(() => {
     fetchProjects();
     fetchUpdates();
-  }, [dateRange, selectedProject, selectedUser]);
+  }, [dateRange, selectedProject, selectedUser, selectedUpdateType]);
 
   const fetchProjects = async () => {
     try {
@@ -129,6 +133,7 @@ function ViewDailyUpdatesContent() {
       let filters: any = {
         projectId: selectedProject,
         userId: selectedUser,
+        updateType: selectedUpdateType,
       };
 
       // Use date range if available
@@ -136,6 +141,7 @@ function ViewDailyUpdatesContent() {
         filters.startDate = dateRange[0].format("YYYY-MM-DD");
         filters.endDate = dateRange[1].format("YYYY-MM-DD");
       }
+       console.log("TEAM?", canViewTeam, "Filters:", filters);
 
       if (canViewTeam) {
         const teamUpdates = await DailyUpdateService.getTeamUpdates(filters);
@@ -236,96 +242,6 @@ function ViewDailyUpdatesContent() {
           </Col>
         </Row>
 
-        {/* Filters & View Toggle */}
-        {/* <Card
-          style={{ marginBottom: 20, boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}
-        >
-          <Row gutter={16} align="middle">
-            <Col xs={24} sm={12} md={8}>
-              <Space direction="vertical" style={{ width: "100%" }} size={4}>
-                <Text strong style={{ fontSize: 13 }}>
-                  Date Range
-                </Text>
-                <DatePicker.RangePicker
-                  value={dateRange}
-                  onChange={handleDateRangeChange}
-                  style={{ width: "100%" }}
-                  format="YYYY-MM-DD"
-                  placeholder={["Start Date", "End Date"]}
-                />
-              </Space>
-            </Col>
-
-            {canViewTeam && (
-              <>
-                <Col xs={24} sm={12} md={6}>
-                  <Space
-                    direction="vertical"
-                    style={{ width: "100%" }}
-                    size={4}
-                  >
-                    <Text strong style={{ fontSize: 13 }}>
-                      Project
-                    </Text>
-                    <Select
-                      placeholder="All Projects"
-                      style={{ width: "100%" }}
-                      value={selectedProject}
-                      onChange={setSelectedProject}
-                      allowClear
-                      options={projects}
-                    />
-                  </Space>
-                </Col>
-
-                <Col xs={24} sm={12} md={6}>
-                  <Space
-                    direction="vertical"
-                    style={{ width: "100%" }}
-                    size={4}
-                  >
-                    <Text strong style={{ fontSize: 13 }}>
-                      User
-                    </Text>
-                    <Select
-                      placeholder="All Users"
-                      style={{ width: "100%" }}
-                      value={selectedUser}
-                      onChange={setSelectedUser}
-                      allowClear
-                      options={uniqueUsers}
-                    />
-                  </Space>
-                </Col>
-              </>
-            )}
-
-            <Col xs={24} sm={12} md={6}>
-              <Space direction="vertical" style={{ width: "100%" }} size={4}>
-                <Text strong style={{ fontSize: 13 }}>
-                  View
-                </Text>
-                <Segmented
-                  value={viewMode}
-                  onChange={(value) => setViewMode(value as ViewMode)}
-                  options={[
-                    {
-                      label: "Cards",
-                      value: "card",
-                      icon: <AppstoreOutlined />,
-                    },
-                    {
-                      label: "List",
-                      value: "list",
-                      icon: <UnorderedListOutlined />,
-                    },
-                  ]}
-                  style={{ width: "100%" }}
-                />
-              </Space>
-            </Col>
-          </Row>
-        </Card> */}
         <Card
           style={{
             marginBottom: 20,
@@ -396,33 +312,55 @@ function ViewDailyUpdatesContent() {
                     />
                   </Space>
                 </Col>
+                <Col flex="1 1 160px">
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size={4}
+                  >
+                    <Text strong style={{ fontSize: 13 }}>
+                      Update Type
+                    </Text>
+                    <Select
+                      placeholder="All"
+                      style={{ width: "100%" }}
+                      value={selectedUpdateType}
+                      onChange={setSelectedUpdateType}
+                      allowClear
+                      options={[
+                        { label: "BOD", value: "BOD" },
+                        { label: "EOD", value: "EOD" },
+                      ]}
+                    />
+                  </Space>
+                </Col>
               </>
             )}
             {/* <div style={{ display: "flex", justifyContent: "flex-end" }}> */}
-              <Col style={{marginLeft:"auto",flex:"0 0 200px" }}>
-                <Space direction="vertical"  size={4}>
-                  <Text strong style={{ fontSize: 13 }}>
-                    View
-                  </Text>
-                  <Segmented
-                    value={viewMode}
-                    onChange={(value) => setViewMode(value as ViewMode)}
-                    options={[
-                      {
-                        label: "Cards",
-                        value: "card",
-                        icon: <AppstoreOutlined />,
-                      },
-                      {
-                        label: "List",
-                        value: "list",
-                        icon: <UnorderedListOutlined />,
-                      },
-                    ]}
-                    style={{ width: "100%"}}
-                  />
-                </Space>
-              </Col>
+            <Col style={{ marginLeft: "auto", flex: "0 0 200px" }}>
+              <Space direction="vertical" size={4}>
+                <Text strong style={{ fontSize: 13 }}>
+                  View
+                </Text>
+                <Segmented
+                  value={viewMode}
+                  onChange={(value) => setViewMode(value as ViewMode)}
+                  options={[
+                    {
+                      label: "Cards",
+                      value: "card",
+                      icon: <AppstoreOutlined />,
+                    },
+                    {
+                      label: "List",
+                      value: "list",
+                      icon: <UnorderedListOutlined />,
+                    },
+                  ]}
+                  style={{ width: "100%" }}
+                />
+              </Space>
+            </Col>
             {/* </div> */}
           </Row>
         </Card>

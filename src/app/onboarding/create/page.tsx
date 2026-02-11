@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -8,9 +8,9 @@ import { Steps, Button, Form } from "antd";
 import PersonalDetails from "@/components/onboarding/PersonalDetails";
 import EmploymentDetails from "@/components/onboarding/EmploymentDetails";
 import BankPayroll from "@/components/onboarding/BankPayroll";
-import EmployeeHistory from "@/components/onboarding/EmployeeHistory";
-import Documents from "@/components/onboarding/Documents";
+import EmployeHistory from "@/components/onboarding/EmployeeHistory";
 import Assets from "@/components/onboarding/Assets";
+import { useEmployeeOnboarding } from "@/hooks/use-onboarding";
 
 // icons
 import { BsFillPersonLinesFill } from "react-icons/bs";
@@ -21,6 +21,21 @@ import { BsPersonHeart } from "react-icons/bs";
 const { Step } = Steps;
 const onboarding = () => {
   const [current, setCurrent] = useState(0);
+  const [onboardingData, setOnboardingData] = useState<any>({});
+
+  // main state
+
+  const [allData, setAllData] = useState<any>({
+    personal: {},
+    employment: {},
+    bank: {},
+    history: {},
+    assets: {},
+  });
+
+  useEffect(() => {
+    console.log("final check::::::::::::", allData);
+  }, [allData]);
 
   const [form1] = Form.useForm();
   const [form2] = Form.useForm();
@@ -31,33 +46,116 @@ const onboarding = () => {
 
   const forms = [form1, form2, form3, form4, form5, form6];
 
+  const personalRef = useRef<any>(null);
+  const employmentRef = useRef<any>(null);
+  const bankRef = useRef<any>(null);
+  const historyRef = useRef<any>(null);
+  const assetsRef = useRef<any>(null);
+
   const next = async () => {
     try {
-      await forms[current].validateFields(); // ✅ validation
-      const currentFormValues = forms[current].getFieldsValue();
-      console.log("Current Form Values ", currentFormValues);
-      setCurrent(current + 1);
+      const stepKeys = ["personal", "employment", "bank", "history", "assets"];
+      const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
+
+      const currentRef = refs[current];
+
+      if (currentRef?.current?.getData) {
+        const stepData = currentRef.current.getData();
+
+        setAllData((prev: any) => ({
+          ...prev,
+          [stepKeys[current]]: stepData,
+        }));
+
+        console.log(
+          `${stepKeys[current].toUpperCase()} STEP DATA 👉`,
+          stepData,
+        );
+      }
+      setCurrent((prev) => prev + 1);
     } catch (error) {
       console.log("Validation Failed:", error);
     }
   };
 
+  const {
+    createOnboarding,
+    loading: submitting,
+    error: submitError,
+    success,
+  } = useEmployeeOnboarding();
+
   const prev = () => setCurrent(current - 1);
 
-  const submitAll = async () => {
-    const data = {
-      ...form1.getFieldsValue(),
-      ...form2.getFieldsValue(),
-      ...form3.getFieldsValue(),
-      ...form4.getFieldsValue(),
-      ...form5.getFieldsValue(),
-      ...form6.getFieldsValue(),
-    };
-
-    console.log("FINAL DATA 👉", data);
-  };
   const skipStep = () => {
+    const currentFormValues = forms[current].getFieldsValue();
+
+    setOnboardingData((prev: any) => ({
+      ...prev,
+      ...currentFormValues,
+    }));
+
     setCurrent((prev) => prev + 1);
+  };
+  // const submitAll = async () => {
+  //   try {
+  //     const stepKeys = ["personal", "employment", "bank", "history", "assets"];
+  //     const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
+
+  //     const currentRef = refs[current];
+
+  //     // 🔥 STEP 1: get final step data
+  //     if (currentRef?.current?.getData) {
+  //       const finalStepData = currentRef.current.getData();
+
+  //       setAllData((prev: any) => {
+  //         const finalData = {
+  //           ...prev,
+  //           [stepKeys[current]]: finalStepData,
+  //         };
+
+  //         // 🔥 STEP 2: console full collected data
+  //         console.log("🔥 FINAL SUBMIT DATA 👉", finalData);
+
+  //         // 👉 future la API call inga pannalaam
+  //         // await api.post("/employee", finalData);
+
+  //         return finalData;
+  //       });
+  //     }
+  //     setCurrent((prev) => (prev = 0));
+  //   } catch (error) {
+  //     console.log("Submit Failed ❌", error);
+  //   }
+  // };
+
+  const submitAll = async () => {
+    try {
+      const stepKeys = ["personal", "employment", "bank", "history", "assets"];
+      const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
+
+      const currentRef = refs[current];
+
+      if (currentRef?.current?.getData) {
+        const finalStepData = currentRef.current.getData();
+
+        const finalPayload = {
+          ...allData,
+          [stepKeys[current]]: finalStepData,
+        };
+
+        console.log("🔥 FINAL PAYLOAD (UI) 👉", finalPayload);
+
+        // 🔥 SEND TO HOOK
+        await createOnboarding(finalPayload);
+
+        // success handling
+        console.log("✅ Onboarding completed");
+        setCurrent(0);
+      }
+    } catch (error) {
+      console.log("❌ Submit Failed", error);
+    }
   };
 
   return (
@@ -66,16 +164,16 @@ const onboarding = () => {
         <p style={{ fontSize: "20px", fontWeight: "bold", padding: "8px" }}>
           Onboarding
         </p>
-       <div
-  style={{
-    padding: "10px",
-    position: "sticky",
-    top: 0,
-    zIndex: 1000,
-    background: "#fff",
-    borderBottom: "1px solid #e5e7eb",
-  }}
->
+        <div
+          style={{
+            padding: "10px",
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+            background: "#fff",
+            borderBottom: "1px solid #e5e7eb",
+          }}
+        >
           <Steps current={current} size="small">
             <Step
               icon={<BsPersonHeart size={18} />}
@@ -97,30 +195,37 @@ const onboarding = () => {
               icon={<BiSolidBank size={18} />}
               title={<span style={{ fontSize: "12px" }}>Assets</span>}
             />
-            <Step
+            {/* <Step
               icon={<MdOutlineDocumentScanner size={18} />}
               title={<span style={{ fontSize: "12px" }}>Documents</span>}
-            />
+            /> */}
           </Steps>
         </div>
-       <div
-  style={{
-    flex: 1,
-    overflowY: "auto",
-    padding: "12px",
-  }}
->
-  <div>
-          {/* Step Content */}
-          {current === 0 && <PersonalDetails />}
-          {current === 1 && <EmploymentDetails />}
-          {current === 2 && <BankPayroll />}
-          {current === 3 && <EmployeeHistory />}
-          {current === 4 && <Assets />}
-          {current === 5 && <Documents form={form5} />}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "12px",
+          }}
+        >
+          <div>
+            {/* Step Content */}
+            {current === 0 && (
+              <PersonalDetails ref={personalRef} data={allData.personal} />
+            )}
+            {current === 1 && (
+              <EmploymentDetails
+                ref={employmentRef}
+                data={allData.employment}
+              />
+            )}
+            {current === 2 && <BankPayroll ref={bankRef} data={allData.bank} />}
+            {current === 3 && (
+              <EmployeHistory ref={historyRef} data={allData.history} />
+            )}
+            {current === 4 && <Assets ref={assetsRef} data={allData.assets} />}
+          </div>
         </div>
-        </div>
-      
 
         {/* Buttons */}
         <div

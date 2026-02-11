@@ -43,11 +43,33 @@ export default function AttachmentsSection({
   return (
     <div style={{ marginTop: 24 }}>
       <Space style={{ marginBottom: 8 }}>
-        <Typography.Title level={5} style={{ fontSize: 13, margin: 0 }}>Attachments</Typography.Title>
-        {attachments.length > 0 && <Tag style={{ borderRadius: 10, fontSize: 10, lineHeight: '16px', border: 'none', background: '#e6f7ff', color: '#1890ff' }}>{attachments.length}</Tag>}
+        <Typography.Title level={5} style={{ fontSize: 13, margin: 0 }}>
+          Attachments
+        </Typography.Title>
+        {attachments.length > 0 && (
+          <Tag
+            style={{
+              borderRadius: 10,
+              fontSize: 10,
+              lineHeight: "16px",
+              border: "none",
+              background: "#e6f7ff",
+              color: "#1890ff",
+            }}
+          >
+            {attachments.length}
+          </Tag>
+        )}
       </Space>
 
-      <div style={{ border: "1px solid #f0f0f0", borderRadius: 4, background: "#fff", padding: 16 }}>
+      <div
+        style={{
+          border: "1px solid #f0f0f0",
+          borderRadius: 4,
+          background: "#fff",
+          padding: 16,
+        }}
+      >
         {!isEditing && (
           <div style={{ marginBottom: 16 }}>
             <AttachmentUploader

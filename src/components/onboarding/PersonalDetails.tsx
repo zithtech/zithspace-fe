@@ -1,20 +1,42 @@
 import { Form, Input, Select, DatePicker, Row, Col, Checkbox } from "antd";
 import { UserOutlined, HomeOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 const { Option } = Select;
-export default function PersonalDetails() {
+
+const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
   const [basicForm] = Form.useForm();
   const [addressForm] = Form.useForm();
   const [emergencyInfoForm] = Form.useForm();
   const [identityForm] = Form.useForm();
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
   // all information
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     address: {
       current: {},
       permanent: {},
     },
   });
+
+  useEffect(() => {
+    if (data) {
+      setFormData(data);
+    }
+  }, [data]);
+
+  // useImperativeHandle(ref, () => ({
+  //   getData: () => {
+  //     console.log("formData1", formData);
+  //     return formData;
+  //   },
+  // }));
+  useImperativeHandle(ref, () => ({
+    getData: () => {
+      return {
+        ...formData,
+        dob: formData?.dob ? formData.dob.format("YYYY-MM-DD") : null,
+      };
+    },
+  }));
 
   const onSameAddressChange = (e: any) => {
     const checked = e.target.checked;
@@ -43,7 +65,7 @@ export default function PersonalDetails() {
       addressForm.setFieldsValue(permanent);
 
       // ✅ STATE update (IMPORTANT 🔥)
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         address: {
           ...prev.address,
@@ -257,7 +279,7 @@ export default function PersonalDetails() {
           size="small"
           requiredMark={false}
           onValuesChange={(_, allValues) => {
-            setFormData((prev) => ({
+            setFormData((prev: any) => ({
               ...prev,
               address: {
                 current: {
@@ -440,7 +462,7 @@ export default function PersonalDetails() {
           size="small"
           requiredMark={false}
           onValuesChange={(_, allValues) =>
-            setFormData((pre) => {
+            setFormData((pre: any) => {
               return { ...pre, ...allValues };
             })
           } // ✅ store in statee
@@ -515,7 +537,7 @@ export default function PersonalDetails() {
           form={identityForm}
           requiredMark={false}
           onValuesChange={(_, allValues) =>
-            setFormData((pre) => {
+            setFormData((pre: any) => {
               return { ...pre, ...allValues };
             })
           } // ✅ store in state
@@ -590,4 +612,5 @@ export default function PersonalDetails() {
       </div>
     </div>
   );
-}
+});
+export default PersonalDetails;

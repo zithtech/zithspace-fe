@@ -6,27 +6,47 @@ import {
   ProjectOutlined,
   TrophyOutlined,
 } from "@ant-design/icons";
-import { useState,useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { add } from "@dnd-kit/utilities";
 
-export default function EmploymentDetails() {
+const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   // Employement data
- const [employmentData, setEmploymentData] = useState({});
+  const [employmentData, setEmploymentData] = useState<any>({});
 
-   const [workForm] = Form.useForm();
-   const [empoyeeTimelineForm] = Form.useForm();
+  const [workForm] = Form.useForm();
+  const [empoyeeTimelineForm] = Form.useForm();
+  const [additionalForm] = Form.useForm();
   const { Option } = Select;
-  
-  // const workDetails = workForm.getFieldsValue();
-  // console.log("Work Details Form Data: ", workDetails);
 
-  // const employeeTimeline = empoyeeTimelineForm.getFieldsValue();
-  // console.log("Employee Timeline Form Data: ", employeeTimeline);
-  
   useEffect(() => {
-  console.log("Employment Data:", employmentData);
-}, [employmentData]);
+    console.log("Employment Data:", employmentData);
+  }, [employmentData]);
 
-  
+  useEffect(() => {
+    if (data && Object.keys(data).length) {
+      setEmploymentData(data);
+
+      workForm.setFieldsValue(data);
+      empoyeeTimelineForm.setFieldsValue(data);
+      additionalForm.setFieldsValue(data); // third form
+    }
+  }, [data]);
+
+  // useImperativeHandle(ref, () => ({
+  //   getData: () => employmentData,
+  // }));
+  useImperativeHandle(ref, () => ({
+    getData: () => ({
+      ...employmentData,
+      joiningDate: employmentData?.joiningDate
+        ? employmentData.joiningDate.format("YYYY-MM-DD")
+        : null,
+      trainingCompletion: employmentData?.trainingCompletion
+        ? employmentData.trainingCompletion.format("YYYY-MM-DD")
+        : null,
+    }),
+  }));
+
   return (
     <div
       style={{
@@ -45,9 +65,11 @@ export default function EmploymentDetails() {
           size="small"
           form={workForm}
           requiredMark={false}
-          onValuesChange={(_, allValues) => setEmploymentData((pre)=>{
-            return {...pre,...allValues};
-           })}
+          onValuesChange={(_, allValues) =>
+            setEmploymentData((pre: any) => {
+              return { ...pre, ...allValues };
+            })
+          }
           style={{
             width: "100%",
             background: "#ffffff",
@@ -160,11 +182,13 @@ export default function EmploymentDetails() {
         <Form
           layout="vertical"
           size="small"
-           form={empoyeeTimelineForm}
+          form={empoyeeTimelineForm}
           requiredMark={false}
-          onValuesChange={(_, allValues) => setEmploymentData((pre)=>{
-            return {...pre,...allValues};
-           })}
+          onValuesChange={(_, allValues) =>
+            setEmploymentData((pre: any) => {
+              return { ...pre, ...allValues };
+            })
+          }
           style={{
             width: "100%",
             background: "#ffffff",
@@ -279,11 +303,13 @@ export default function EmploymentDetails() {
         <Form
           layout="vertical"
           size="small"
-          form={workForm}
+          form={additionalForm}
           requiredMark={false}
-          onValuesChange={(_, allValues) => setEmploymentData((pre)=>{
-            return {...pre,...allValues};
-           })}
+          onValuesChange={(_, allValues) =>
+            setEmploymentData((pre: any) => {
+              return { ...pre, ...allValues };
+            })
+          }
           style={{
             width: "100%",
             background: "#ffffff",
@@ -346,4 +372,5 @@ export default function EmploymentDetails() {
       </div>
     </div>
   );
-}
+});
+export default EmploymentDetails;

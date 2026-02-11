@@ -1,31 +1,112 @@
 "use client";
-import React, { useState } from "react";
-import { Button, Modal, Form, Input, Upload, Card, Row, Col,Select } from "antd";
+import React, {
+  forwardRef,
+  useEffect,
+  useState,
+  useImperativeHandle,
+} from "react";
+import {
+  Button,
+  Modal,
+  Form,
+  Input,
+  Upload,
+  Card,
+  Row,
+  Col,
+  Select,
+} from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { model } from "mongoose";
 
-const Assets = () => {
+const Assets = forwardRef(({ data }: any, ref: any) => {
   const [open, setOpen] = useState(false);
   const [assetsform] = Form.useForm();
   const [assets, setAssets] = useState<any[]>([]);
+
+  const [allAssets, setAllAssets] = useState<any[]>([]);
+
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
+  useEffect(() => {
+    if (data && Object.keys(data).length) {
+      setAllAssets(data);
+      assetsform.setFieldsValue(data);
+    }
+  }, [data]);
+
+  useImperativeHandle(ref, () => ({
+    getData: () => allAssets,
+  }));
+
   // ADD / UPDATE ASSET
+  // const handleAddOrUpdateAsset = async () => {
+  //   const values = await assetsform.validateFields();
+
+  //   const fileObj = values.image?.[0];
+  //   const imageUrl = fileObj?.originFileObj
+  //     ? URL.createObjectURL(fileObj.originFileObj)
+  //     : fileObj?.url || "";
+
+  //   const assetData = {
+  //     item: values.item,
+  //     brand: values.brand,
+  //     model: values.model,
+  //     modelNumber: values.modelNumber,
+  //     image: imageUrl,
+  //   };
+
+  //   if (editIndex !== null) {
+  //     // UPDATE
+  //     setAssets((prev) =>
+  //       prev.map((a, i) => (i === editIndex ? assetData : a)),
+  //     );
+  //     setEditIndex(null);
+  //   } else {
+  //     // ADD
+  //     setAssets((prev) => [...prev, assetData]);
+  //   }
+
+  //   assetsform.resetFields();
+  //   setOpen(false);
+  // };
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
   const handleAddOrUpdateAsset = async () => {
     const values = await assetsform.validateFields();
 
     const fileObj = values.image?.[0];
-    const imageUrl = fileObj?.originFileObj
-      ? URL.createObjectURL(fileObj.originFileObj)
-      : fileObj?.url || "";
+
+    let imageBase64 = "";
+    let fileName = "";
+
+    // 🔥 If new image selected
+    if (fileObj?.originFileObj) {
+      imageBase64 = await fileToBase64(fileObj.originFileObj);
+      fileName = fileObj.originFileObj.name;
+    }
+    // 🔥 If editing existing asset (already saved URL)
+    else if (fileObj?.url) {
+      imageBase64 = fileObj.url; // already uploaded image URL
+    }
 
     const assetData = {
       item: values.item,
       brand: values.brand,
       model: values.model,
       modelNumber: values.modelNumber,
-      image: imageUrl,
+
+      // 🔥 store base64 (or existing URL)
+      image: imageBase64,
+      imageName: fileName, // optional (useful for backend)
     };
 
     if (editIndex !== null) {
@@ -71,35 +152,21 @@ const Assets = () => {
     });
   };
 
+  console.log("all assets", allAssets);
+
   return (
     <div style={{ padding: 20 }}>
       {/* ADD BUTTON */}{" "}
-      <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)} style={{ marginBottom: 20 }} > Add New Asset </Button>
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => setOpen(true)}
+        style={{ marginBottom: 20 }}
+      >
+        {" "}
+        Add New Asset{" "}
+      </Button>
       <Row gutter={[16, 16]}>
-        {/* ADD NEW ASSET CARD */}
-        {/* <Col span={6}>
-          <Card
-            hoverable
-            onClick={() => {
-              setEditIndex(null);
-              assetsform.resetFields();
-              setOpen(true);
-            }}
-            style={{
-              height: 240,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "1px dashed #1677ff",
-            }}
-          >
-            <div style={{ textAlign: "center", color: "#1677ff" }}>
-              <PlusOutlined style={{ fontSize: 32 }} />
-              <div style={{ marginTop: 8, fontWeight: 500 }}>Add New Asset</div>
-            </div>
-          </Card>
-        </Col> */}
-
         {/* ASSET CARDS */}
         {assets.map((asset, index) => (
           <Col span={6} key={index}>
@@ -196,7 +263,7 @@ const Assets = () => {
                     {asset.model}
                   </span>
                 </p>
-                 <p>
+                <p>
                   <span
                     style={{
                       fontSize: 12,
@@ -252,24 +319,29 @@ const Assets = () => {
         onOk={handleAddOrUpdateAsset}
         okText={editIndex !== null ? "Update Asset" : "Add Asset"}
       >
-        <Form form={assetsform} layout="vertical">
-        <Form.Item
-  label="Item Name"
-  name="item"
-  rules={[{ required: true, message: "Please select an item" }]}
->
-  <Select placeholder="Select item">
-    <Select.Option value="Mobile">Mobile</Select.Option>
-    <Select.Option value="Laptop">Laptop</Select.Option>
-    <Select.Option value="Tab">Tab</Select.Option>
-    <Select.Option value="Monitor">Monitor</Select.Option>
-    <Select.Option value="Keyboard">Keyboard</Select.Option>
-    <Select.Option value="Mouse">Mouse</Select.Option>
-    <Select.Option value="Bag">Bag</Select.Option>
-    <Select.Option value="Headphone">Head phone</Select.Option>
-  </Select>
-</Form.Item>
-
+        <Form
+          form={assetsform}
+          layout="vertical"
+          onValuesChange={(_, allValues) => {
+            setAllAssets(allValues);
+          }}
+        >
+          <Form.Item
+            label="Item Name"
+            name="item"
+            rules={[{ required: true, message: "Please select an item" }]}
+          >
+            <Select placeholder="Select item">
+              <Select.Option value="Mobile">Mobile</Select.Option>
+              <Select.Option value="Laptop">Laptop</Select.Option>
+              <Select.Option value="Tab">Tab</Select.Option>
+              <Select.Option value="Monitor">Monitor</Select.Option>
+              <Select.Option value="Keyboard">Keyboard</Select.Option>
+              <Select.Option value="Mouse">Mouse</Select.Option>
+              <Select.Option value="Bag">Bag</Select.Option>
+              <Select.Option value="Headphone">Head phone</Select.Option>
+            </Select>
+          </Form.Item>
 
           <Form.Item
             label="Brand Name"
@@ -287,7 +359,7 @@ const Assets = () => {
             <Input />
           </Form.Item>
 
-           <Form.Item
+          <Form.Item
             label="Model Number"
             name="modelNumber"
             rules={[{ required: true }]}
@@ -316,6 +388,5 @@ const Assets = () => {
       </Modal>
     </div>
   );
-};
-
+});
 export default Assets;

@@ -1,25 +1,43 @@
 import { Form, Input, Row, Col, Select } from "antd";
-import {  useState,useEffect } from "react";
+import {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  use,
+} from "react";
 
-export default function BankPayroll() {
-
-  const[bankdetailes,setBankDetailes]=useState({});
+const BankPayroll = forwardRef(({ data }: any, ref: any) => {
+  const [bankdetailes, setBankDetailes] = useState({});
 
   const [bankform] = Form.useForm();
-   const [payrollform] = Form.useForm();
+  const [payrollform] = Form.useForm();
 
-  //  const bankDetailes = bankform.getFieldsValue();
-  //  console.log("Bank Details Form Data: ", bankDetailes);
+  // useEffect(() => {
+  //   console.log("Bank Details:", bankdetailes);
+  // }, [bankdetailes]);
 
-  //  const payrollDetails = payrollform.getFieldsValue();
-  //  console.log("Payroll Details Form Data: ", payrollDetails);
-useEffect(() => {
-  console.log("Bank Details:", bankdetailes);
-}, [bankdetailes]);
+  const bankDetailes = bankform.getFieldsValue();
+  const payrollDetails = payrollform.getFieldsValue();
 
+  console.log("Bank Details Form Data: ", bankDetailes);
+  console.log("Payroll Details Form Data: ", payrollDetails);
 
-const bankDetailes = bankform.getFieldsValue();
-console.log("Bank Details Form Data: ", bankDetailes);
+  useEffect(() => {
+    if (data) {
+      setBankDetailes(data);
+    }
+  }, [data]);
+
+  useImperativeHandle(ref, () => ({
+    getData: () => {
+      return {
+        ...bankform.getFieldsValue(),
+        ...payrollform.getFieldsValue(),
+      };
+    },
+  }));
+
   return (
     <div
       style={{
@@ -58,16 +76,22 @@ console.log("Bank Details Form Data: ", bankDetailes);
           🏦 Bank Details
         </div>
 
-        <Form 
-         
-           form={bankform} layout="vertical"
-           onValuesChange={(_, allValues) => setBankDetailes(allValues)}
-           >
+        <Form
+          form={bankform}
+          layout="vertical"
+          onValuesChange={(_, allValues) =>
+            setBankDetailes((prev) => ({
+              ...prev,
+              ...allValues,
+            }))
+          }
+        >
           <Row gutter={[10, 6]}>
             {/* Bank Name */}
 
             <Col span={12}>
               <Form.Item
+                name="bankName"
                 label={<span style={{ fontSize: "12px" }}>Bank Name</span>}
               >
                 <Input
@@ -80,10 +104,9 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* Account Holder Name */}
             <Col span={12}>
               <Form.Item
+                name="accountHolderName"
                 label={
-                  <span style={{ fontSize: "12px" }}>
-                    Account Holder Name <span style={{ color: "red" }}>*</span>
-                  </span>
+                  <span style={{ fontSize: "12px" }}>Account Holder Name</span>
                 }
               >
                 <Input
@@ -96,6 +119,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* Account Number */}
             <Col span={12}>
               <Form.Item
+                name="accountNumber"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     Account Number <span style={{ color: "red" }}>*</span>
@@ -112,6 +136,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* IFSC Code */}
             <Col span={12}>
               <Form.Item
+                name="ifscCode"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     IFSC Code <span style={{ color: "red" }}>*</span>
@@ -128,6 +153,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* Branch Name */}
             <Col span={12}>
               <Form.Item
+                name="branchName"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     Branch Name <span style={{ color: "red" }}>*</span>
@@ -144,6 +170,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* Account Type */}
             <Col span={12}>
               <Form.Item
+                name="accountType"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     Account Type <span style={{ color: "red" }}>*</span>
@@ -186,17 +213,21 @@ console.log("Bank Details Form Data: ", bankDetailes);
           💰 Payroll Identifiers
         </div>
 
-        <Form form={payrollform}
-        onValuesChange={(_, allValues) => setBankDetailes((pre)=> ({
-          ...pre,
-          ...allValues
-        }))}
-         layout="vertical">
+        <Form
+          form={payrollform}
+          onValuesChange={(_, allValues) =>
+            setBankDetailes((pre) => ({
+              ...pre,
+              ...allValues,
+            }))
+          }
+          layout="vertical"
+        >
           <Row gutter={[16, 12]}>
             {/* UAN Number */}
             <Col span={12}>
               <Form.Item
-              name="uanNumber"
+                name="uanNumber"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     UAN Number <span style={{ color: "red" }}>*</span>
@@ -213,7 +244,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* PF Number */}
             <Col span={12}>
               <Form.Item
-              name="pfNumber"
+                name="pfNumber"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     PF Number <span style={{ color: "red" }}>*</span>
@@ -230,8 +261,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* ESI Number */}
             <Col span={12}>
               <Form.Item
-              name="esiNumber"
-
+                name="esiNumber"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     ESI Number <span style={{ color: "red" }}>*</span>
@@ -248,7 +278,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* Tax Regime */}
             <Col span={12}>
               <Form.Item
-              name="taxRegime"
+                name="taxRegime"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     Tax Regime <span style={{ color: "red" }}>*</span>
@@ -268,7 +298,7 @@ console.log("Bank Details Form Data: ", bankDetailes);
             {/* Payment Type (Full Width Row Look) */}
             <Col span={12}>
               <Form.Item
-              name="paymentType"
+                name="paymentType"
                 label={
                   <span style={{ fontSize: "12px" }}>
                     Payment Type <span style={{ color: "red" }}>*</span>
@@ -289,4 +319,5 @@ console.log("Bank Details Form Data: ", bankDetailes);
       </div>
     </div>
   );
-}
+});
+export default BankPayroll;

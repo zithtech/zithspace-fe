@@ -1,4 +1,4 @@
-import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
+import { api, ApiError, apiUtils, PaginatedResponse } from "@/lib/axios";
 
 export interface Project {
   id: string; // Changed from id
@@ -15,7 +15,8 @@ export interface Project {
     workEmail: string; // Changed from email
     position: string;
   };
-  members: Array<{ // Changed from teamMembers
+  members: Array<{
+    // Changed from teamMembers
     user: {
       id: string; // Changed from id
       name: string;
@@ -100,14 +101,16 @@ export class ProjectService {
   /**
    * Get all projects with pagination and filters
    */
-  static async getProjects(filters: ProjectsFilters = {}): Promise<PaginatedResponse<Project>> {
+  static async getProjects(
+    filters: ProjectsFilters = {},
+  ): Promise<PaginatedResponse<Project>> {
     try {
-      return await apiUtils.getPaginated<Project>('/api/projects', filters);
+      return await apiUtils.getPaginated<Project>("/api/projects", filters);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch projects');
+      throw new Error("Failed to fetch projects");
     }
   }
 
@@ -121,7 +124,7 @@ export class ProjectService {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch project');
+      throw new Error("Failed to fetch project");
     }
   }
 
@@ -130,26 +133,29 @@ export class ProjectService {
    */
   static async createProject(data: CreateProjectData): Promise<Project> {
     try {
-      return await api.post<Project>('/api/projects', data);
+      return await api.post<Project>("/api/projects", data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to create project');
+      throw new Error("Failed to create project");
     }
   }
 
   /**
    * Update an existing project
    */
-  static async updateProject(id: string, data: UpdateProjectData): Promise<Project> {
+  static async updateProject(
+    id: string,
+    data: UpdateProjectData,
+  ): Promise<Project> {
     try {
       return await api.put<Project>(`/api/projects/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to update project');
+      throw new Error("Failed to update project");
     }
   }
 
@@ -163,21 +169,30 @@ export class ProjectService {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to delete project');
+      throw new Error("Failed to delete project");
     }
   }
 
   /**
    * Get projects for dropdown/select options
    */
-  static async getProjectsForSelect(): Promise<Array<{ value: string; label: string; code: string }>> {
+  static async getProjectsForSelect(): Promise<
+    Array<{ value: string; label: string; code: string }>
+  > {
     try {
-      return await api.get<Array<{ value: string; label: string; code: string; description: string }>>('/api/projects/select');
+      return await api.get<
+        Array<{
+          value: string;
+          label: string;
+          code: string;
+          description: string;
+        }>
+      >("/api/projects/select");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch projects for selection');
+      throw new Error("Failed to fetch projects for selection");
     }
   }
 
@@ -191,40 +206,58 @@ export class ProjectService {
       // Based on controller it returns `enrichedProjects` array directly in `data`.
       // The `api.get` generic usually matches the response body `data` property or the full response.
       // Assuming valid Axios setup:
-      return await api.get('/api/projects/selection');
+      return await api.get("/api/projects/selection");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch selection projects');
+      throw new Error("Failed to fetch selection projects");
     }
   }
 
   /**
    * Get projects where user is a member (for ticket creation)
    */
-  static async getUserProjects(): Promise<Array<{ value: string; label: string; code: string }>> {
+  static async getUserProjects(): Promise<
+    Array<{ value: string; label: string; code: string }>
+  > {
     try {
-      return await api.get<Array<{ value: string; label: string; code: string; description: string }>>('/api/projects/user-projects');
+      return await api.get<
+        Array<{
+          value: string;
+          label: string;
+          code: string;
+          description: string;
+        }>
+      >("/api/projects/user-projects");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch user projects');
+      throw new Error("Failed to fetch user projects");
     }
   }
 
   /**
    * Get projects where user is a member or project manager (for ticket creation)
    */
-  static async getUserProjectsForTickets(): Promise<Array<{ value: string; label: string; code: string }>> {
+  static async getUserProjectsForTickets(): Promise<
+    Array<{ value: string; label: string; code: string }>
+  > {
     try {
-      return await api.get<Array<{ value: string; label: string; code: string; description: string }>>('/api/projects/user-projects-for-tickets');
+      return await api.get<
+        Array<{
+          value: string;
+          label: string;
+          code: string;
+          description: string;
+        }>
+      >("/api/projects/user-projects-for-tickets");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch user projects for tickets');
+      throw new Error("Failed to fetch user projects for tickets");
     }
   }
 
@@ -233,40 +266,53 @@ export class ProjectService {
    */
   static async getProjectStats(): Promise<ProjectStats> {
     try {
-      return await api.get<ProjectStats>('/api/projects/stats');
+      return await api.get<ProjectStats>("/api/projects/stats");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch project statistics');
+      throw new Error("Failed to fetch project statistics");
     }
   }
 
   /**
    * Add team member to project
    */
-  static async addTeamMember(projectId: string, userId: string): Promise<Project> { // Changed from memberId to userId
+  static async addTeamMember(
+    projectId: string,
+    userId: string,
+  ): Promise<Project> {
+    // Changed from memberId to userId
     try {
-      return await api.post<Project>(`/api/projects/${projectId}/team-members`, { userId }); // Changed from memberId to userId
+      return await api.post<Project>(
+        `/api/projects/${projectId}/team-members`,
+        { userId },
+      ); // Changed from memberId to userId
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to add team member');
+      throw new Error("Failed to add team member");
     }
   }
 
   /**
    * Remove team member from project
    */
-  static async removeTeamMember(projectId: string, userId: string): Promise<Project> { // Changed from memberId to userId
+  static async removeTeamMember(
+    projectId: string,
+    userId: string,
+  ): Promise<Project> {
+    // Changed from memberId to userId
     try {
-      return await api.delete<Project>(`/api/projects/${projectId}/team-members/${userId}`); // Changed from members to team-members
+      return await api.delete<Project>(
+        `/api/projects/${projectId}/team-members/${userId}`,
+      ); // Changed from members to team-members
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to remove team member');
+      throw new Error("Failed to remove team member");
     }
   }
 
@@ -280,21 +326,39 @@ export class ProjectService {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch project statistics');
+      throw new Error("Failed to fetch project statistics");
     }
   }
 
   /**
    * Get project members for dropdown/select options
    */
-  static async getProjectMembers(projectId: string): Promise<Array<{ value: string; label: string; position: string; workEmail: string; isProjectManager: boolean }>> {
+  static async getProjectMembers(
+    projectId: string,
+  ): Promise<
+    Array<{
+      value: string;
+      label: string;
+      position: string;
+      workEmail: string;
+      isProjectManager: boolean;
+    }>
+  > {
     try {
-      return await api.get<Array<{ value: string; label: string; position: string; workEmail: string; isProjectManager: boolean }>>(`/api/projects/${projectId}/members`);
+      return await api.get<
+        Array<{
+          value: string;
+          label: string;
+          position: string;
+          workEmail: string;
+          isProjectManager: boolean;
+        }>
+      >(`/api/projects/${projectId}/members`);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch project members');
+      throw new Error("Failed to fetch project members");
     }
   }
 }

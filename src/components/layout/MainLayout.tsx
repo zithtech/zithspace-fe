@@ -330,6 +330,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
+    {
+  key: "/performance-manage",
+  icon: <BarChartOutlined />,
+  label: "Performance View",
+  onClick: () => handleNavigation("/performance_Management"),
+},
+    
   ];
 
 

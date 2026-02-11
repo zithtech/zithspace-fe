@@ -179,13 +179,12 @@ export default function ReleaseNotesPage() {
 
                 {/* RIGHT : ACTIONS */}
                 <Space>
-                  {/* <Button icon={<EditOutlined />}>Edit</Button> */}
                   <Button
                     icon={<EditOutlined />}
                     onClick={() => {
                       localStorage.setItem(
                         "editReleaseNote",
-                        JSON.stringify(latestRelease),
+                        JSON.stringify(latestRelease), // save the selected release
                       );
                       router.push("/releasenotes/create");
                     }}
@@ -272,7 +271,6 @@ export default function ReleaseNotesPage() {
   );
 }
 
-
 // "use client";
 
 // import MainLayout from "@/components/layout/MainLayout";
@@ -304,7 +302,7 @@ export default function ReleaseNotesPage() {
 //   const router = useRouter();
 //   const [latestRelease, setLatestRelease] = useState<any>(null);
 //   const [releaseHistory, setReleaseHistory] = useState<any[]>([]);
-  
+
 //   // Initialize editors for viewing
 //   const summaryEditor = useCreateBlockNote();
 //   const keyInsightsEditor = useCreateBlockNote();
@@ -322,7 +320,7 @@ export default function ReleaseNotesPage() {
 //     if (stored) {
 //       const parsedData = JSON.parse(stored);
 //       setLatestRelease(parsedData);
-      
+
 //       // Load content into editors for display
 //       setTimeout(() => {
 //         if (parsedData.summaryBlocks) {
@@ -334,7 +332,7 @@ export default function ReleaseNotesPage() {
 //         // ... similarly for other fields
 //       }, 100);
 //     }
-    
+
 //     // Load release history
 //     const history = localStorage.getItem("releaseHistory");
 //     if (history) {
@@ -682,7 +680,7 @@ export default function ReleaseNotesPage() {
 //                           />
 //                         </>
 //                       )}
-                      
+
 //                       {latestRelease.databaseChanges && (
 //                         <>
 //                           <Title level={5} style={{ marginTop: 16 }}>Database Changes</Title>
@@ -693,7 +691,7 @@ export default function ReleaseNotesPage() {
 //                           />
 //                         </>
 //                       )}
-                      
+
 //                       {latestRelease.knownIssues && (
 //                         <>
 //                           <Title level={5} style={{ marginTop: 16 }}>Known Issues</Title>
@@ -722,7 +720,7 @@ export default function ReleaseNotesPage() {
 //                           ))}
 //                         </div>
 //                       )}
-                      
+
 //                       {latestRelease.repositories && latestRelease.repositories.length > 0 && (
 //                         <div>
 //                           <Typography.Text strong>Repositories:</Typography.Text>
@@ -732,7 +730,7 @@ export default function ReleaseNotesPage() {
 //                           ))}
 //                         </div>
 //                       )}
-                      
+
 //                       {latestRelease.pullRequests && latestRelease.pullRequests.length > 0 && (
 //                         <div>
 //                           <Typography.Text strong>Pull Requests:</Typography.Text>
@@ -752,8 +750,8 @@ export default function ReleaseNotesPage() {
 //                     <Typography.Text strong>Visible to: </Typography.Text>
 //                     {latestRelease.visibility && latestRelease.visibility.map((vis: string, index: number) => (
 //                       <Typography.Text key={index}>
-//                         {vis === 'internal' ? 'Internal Team' : 
-//                          vis === 'client' ? 'Clients' : 
+//                         {vis === 'internal' ? 'Internal Team' :
+//                          vis === 'client' ? 'Clients' :
 //                          vis === 'public' ? 'Public' : vis}
 //                         {index < latestRelease.visibility.length - 1 ? ', ' : ''}
 //                       </Typography.Text>
@@ -761,10 +759,10 @@ export default function ReleaseNotesPage() {
 //                   </Card>
 //                 </>
 //               ) : (
-//                 <div style={{ 
-//                   display: 'flex', 
-//                   justifyContent: 'center', 
-//                   alignItems: 'center', 
+//                 <div style={{
+//                   display: 'flex',
+//                   justifyContent: 'center',
+//                   alignItems: 'center',
 //                   height: '100%',
 //                   flexDirection: 'column',
 //                   color: '#999'
@@ -813,7 +811,7 @@ export default function ReleaseNotesPage() {
 //   const router = useRouter();
 //   const [latestRelease, setLatestRelease] = useState<any>(null);
 //   const [releaseHistory, setReleaseHistory] = useState<any[]>([]);
-  
+
 //   // Initialize editors for viewing - using useState to persist them
 //   const [summaryEditor] = useState(useCreateBlockNote());
 //   const [keyInsightsEditor] = useState(useCreateBlockNote());
@@ -832,13 +830,13 @@ export default function ReleaseNotesPage() {
 //     const history = localStorage.getItem("releaseHistory");
 //     console.log("latestReleaseNote:", latest);
 //     console.log("releaseHistory:", history);
-    
+
 //     if (latest) {
 //       const parsed = JSON.parse(latest);
 //       console.log("Parsed latest release:", parsed);
 //       setLatestRelease(parsed);
 //     }
-    
+
 //     if (history) {
 //       setReleaseHistory(JSON.parse(history));
 //     }
@@ -847,16 +845,16 @@ export default function ReleaseNotesPage() {
 //   useEffect(() => {
 //     // Check localStorage on component mount
 //     checkLocalStorage();
-    
+
 //     // Also listen for storage events (in case of multiple tabs)
 //     const handleStorageChange = (e: StorageEvent) => {
 //       if (e.key === "latestReleaseNote" || e.key === "releaseHistory") {
 //         checkLocalStorage();
 //       }
 //     };
-    
+
 //     window.addEventListener('storage', handleStorageChange);
-    
+
 //     return () => {
 //       window.removeEventListener('storage', handleStorageChange);
 //     };
@@ -881,7 +879,7 @@ export default function ReleaseNotesPage() {
 
 //   const loadReleaseIntoEditors = (release: any) => {
 //     setLatestRelease(release);
-    
+
 //     // Clear all editors first
 //     summaryEditor.replaceBlocks(summaryEditor.document, []);
 //     keyInsightsEditor.replaceBlocks(keyInsightsEditor.document, []);
@@ -892,7 +890,7 @@ export default function ReleaseNotesPage() {
 //     apiChangesEditor.replaceBlocks(apiChangesEditor.document, []);
 //     databaseChangesEditor.replaceBlocks(databaseChangesEditor.document, []);
 //     knownIssuesEditor.replaceBlocks(knownIssuesEditor.document, []);
-    
+
 //     // Then load new content
 //     setTimeout(() => {
 //       if (release.summaryBlocks) {
@@ -949,7 +947,7 @@ export default function ReleaseNotesPage() {
 //               <Button onClick={checkLocalStorage} type="dashed">
 //                 Debug
 //               </Button>
-              
+
 //               <Button
 //                 type="primary"
 //                 icon={<PlusOutlined />}
@@ -1031,8 +1029,8 @@ export default function ReleaseNotesPage() {
 //                     </div>
 //                   ))
 //                 ) : (
-//                   <div style={{ 
-//                     textAlign: 'center', 
+//                   <div style={{
+//                     textAlign: 'center',
 //                     padding: '40px 20px',
 //                     color: '#999'
 //                   }}>
@@ -1101,7 +1099,7 @@ export default function ReleaseNotesPage() {
 //                     <span><Text strong>Released:</Text> {latestRelease.releaseDate}</span>
 //                     <span>•</span>
 //                     <span>
-//                       <Text strong>Environment:</Text> 
+//                       <Text strong>Environment:</Text>
 //                       <Tag color={getEnvironmentColor(latestRelease.environment)} style={{ marginLeft: 4 }}>
 //                         {latestRelease.environment?.toUpperCase()}
 //                       </Tag>
@@ -1247,7 +1245,7 @@ export default function ReleaseNotesPage() {
 //                   )}
 
 //                   {/* Technical Issues */}
-//                   {(latestRelease.apiChangesBlocks || latestRelease.databaseChangesBlocks || latestRelease.knownIssuesBlocks || 
+//                   {(latestRelease.apiChangesBlocks || latestRelease.databaseChangesBlocks || latestRelease.knownIssuesBlocks ||
 //                     latestRelease.apiChanges || latestRelease.databaseChanges || latestRelease.knownIssues) && (
 //                     <Card
 //                       title="Technical Issues"
@@ -1264,7 +1262,7 @@ export default function ReleaseNotesPage() {
 //                           </div>
 //                         </>
 //                       )}
-                      
+
 //                       {(latestRelease.databaseChangesBlocks || latestRelease.databaseChanges) && (
 //                         <>
 //                           <Title level={5} style={{ marginTop: 16 }}>Database Changes</Title>
@@ -1276,7 +1274,7 @@ export default function ReleaseNotesPage() {
 //                           </div>
 //                         </>
 //                       )}
-                      
+
 //                       {(latestRelease.knownIssuesBlocks || latestRelease.knownIssues) && (
 //                         <>
 //                           <Title level={5} style={{ marginTop: 16 }}>Known Issues</Title>
@@ -1311,7 +1309,7 @@ export default function ReleaseNotesPage() {
 //                             </div>
 //                           </div>
 //                         )}
-                        
+
 //                         {latestRelease.repositories && latestRelease.repositories.length > 0 && (
 //                           <div>
 //                             <Typography.Text strong>Repositories:</Typography.Text>
@@ -1325,7 +1323,7 @@ export default function ReleaseNotesPage() {
 //                             </div>
 //                           </div>
 //                         )}
-                        
+
 //                         {latestRelease.pullRequests && latestRelease.pullRequests.length > 0 && (
 //                           <div>
 //                             <Typography.Text strong>Pull Requests:</Typography.Text>
@@ -1351,17 +1349,17 @@ export default function ReleaseNotesPage() {
 //                       <Typography.Text strong>Visible to: </Typography.Text>
 //                       <div style={{ marginTop: 8 }}>
 //                         {latestRelease.visibility.map((vis: string, index: number) => (
-//                           <Tag 
-//                             key={index} 
+//                           <Tag
+//                             key={index}
 //                             color={
-//                               vis === 'internal' ? 'blue' : 
-//                               vis === 'client' ? 'gold' : 
+//                               vis === 'internal' ? 'blue' :
+//                               vis === 'client' ? 'gold' :
 //                               vis === 'public' ? 'green' : 'default'
 //                             }
 //                             style={{ marginRight: 8 }}
 //                           >
-//                             {vis === 'internal' ? 'Internal Team' : 
-//                              vis === 'client' ? 'Clients' : 
+//                             {vis === 'internal' ? 'Internal Team' :
+//                              vis === 'client' ? 'Clients' :
 //                              vis === 'public' ? 'Public' : vis}
 //                           </Tag>
 //                         ))}
@@ -1370,10 +1368,10 @@ export default function ReleaseNotesPage() {
 //                   )}
 //                 </>
 //               ) : (
-//                 <div style={{ 
-//                   display: 'flex', 
-//                   justifyContent: 'center', 
-//                   alignItems: 'center', 
+//                 <div style={{
+//                   display: 'flex',
+//                   justifyContent: 'center',
+//                   alignItems: 'center',
 //                   height: '100%',
 //                   flexDirection: 'column',
 //                   color: '#999'
@@ -1381,8 +1379,8 @@ export default function ReleaseNotesPage() {
 //                   <FileTextOutlined style={{ fontSize: 48, marginBottom: 16 }} />
 //                   <Title level={4}>No Release Selected</Title>
 //                   <Paragraph>Select a release from the sidebar or create a new one.</Paragraph>
-//                   <Button 
-//                     type="primary" 
+//                   <Button
+//                     type="primary"
 //                     style={{ marginTop: 16 }}
 //                     onClick={() => router.push("/releasenotes/create")}
 //                   >

@@ -46,36 +46,6 @@ export default function Page() {
   }, []);
   
 
-  const handlePublish = () => {
-    const hardcodedData = {
-      project: "project1",
-      version: "v2.3.0",
-      title: "Q1 2025 Platform Update",
-      releaseDate: "2026-02-10",
-      environment: "prod",
-      summary: "This release focuses on improving performance and security.",
-      keyInsights: "Major updates in UI and API, bug fixes included.",
-      newFeatures: "New dashboard, enhanced reporting, notifications feature.",
-      improvements: "Faster load time, optimized database queries.",
-      bugFixes: "Fixed login bug, corrected date picker issue.",
-      breakingChanges: "Deprecated old API endpoints v1.",
-      apiChanges: "Updated GET /users endpoint response format.",
-      databaseChanges: "Added new tables for logging, modified users table.",
-      knownIssues: "Minor UI glitches in mobile view.",
-      linkedTickets: ["TCK-101", "TCK-102"],
-      repositories: ["repo-ui", "repo-api"],
-      pullRequests: ["PR-45", "PR-46"],
-      visibility: ["internal", "client"],
-    };
-
-    // 1️⃣ Save to localStorage
-    localStorage.setItem("latestReleaseNote", JSON.stringify(hardcodedData));
-
-    message.success("Release Notes published!");
-
-    // 2️⃣ Redirect to main Release Notes page
-    router.push("/releasenotes");
-  };
 
 
   return (
@@ -108,7 +78,7 @@ export default function Page() {
           <Button
             type="primary"
             icon={<SendOutlined />}
-            onClick={handlePublish} // can handle both create & edit
+           // onClick={handlePublish} // can handle both create & edit
           >
             {isEditMode ? "Save Changes" : "Publish"}
           </Button>

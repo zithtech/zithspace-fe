@@ -201,8 +201,12 @@ const UploadField = ({ label, name }: any) => {
 };
 
 /* ================= CONTACT DETAILS BLOCK ================= */
-const ContactDetails = ({ contactIndex, form }: any) => {
-  const role = Form.useWatch([contactIndex, "contactRole"], form);
+/* ================= CONTACT DETAILS BLOCK ================= */
+const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
+  const role = Form.useWatch(
+    ["previousCompanies", companyIndex, "contacts", contactIndex, "contactRole"],
+    form,
+  );
 
   const roleLabelMap: any = {
     hr: "HR",
@@ -217,7 +221,13 @@ const ContactDetails = ({ contactIndex, form }: any) => {
     <>
       {/* CONTACT ROLE */}
       <Form.Item
-        name={[contactIndex, "contactRole"]}
+        name={[
+          "previousCompanies",
+          companyIndex,
+          "contacts",
+          contactIndex,
+          "contactRole",
+        ]}
         label={<span style={labelStyle}>Contact Person Type</span>}
         rules={[{ required: true, message: "Select contact type" }]}
         style={{ marginBottom: 6 }}
@@ -235,13 +245,25 @@ const ContactDetails = ({ contactIndex, form }: any) => {
       {/* CONTACT NAME */}
       <InputField
         label={`${label} Name`}
-        name={[contactIndex, "contactName"]}
+        name={[
+          "previousCompanies",
+          companyIndex,
+          "contacts",
+          contactIndex,
+          "contactName",
+        ]}
       />
 
       {/* CONTACT NUMBER */}
       <InputField
         label={`${label} Contact Number`}
-        name={[contactIndex, "contactNumber"]}
+        name={[
+          "previousCompanies",
+          companyIndex,
+          "contacts",
+          contactIndex,
+          "contactNumber",
+        ]}
       />
     </>
   );
@@ -260,29 +282,47 @@ const CompanyFormBlock = ({ index, form }: any) => {
       {/* LEFT */}
       <div style={{ width: "25%", ...cardStyle }}>
         <Section title="🏢 Company Details" />
-        <InputField name={[index, "companyName"]} label="Previous Company" />
-        <InputField name={[index, "location"]} label="Location" />
-        <InputField name={[index, "industry"]} label="Industry / Domain" />
-        <InputField name={[index, "address"]} label="Company Address" />
+        <InputField
+          name={["previousCompanies", index, "companyName"]}
+          label="Previous Company"
+        />
+        <InputField
+          name={["previousCompanies", index, "location"]}
+          label="Location"
+        />
+        <InputField
+          name={["previousCompanies", index, "industry"]}
+          label="Industry / Domain"
+        />
+        <InputField
+          name={["previousCompanies", index, "address"]}
+          label="Company Address"
+        />
       </div>
 
       {/* MIDDLE */}
       <div style={{ width: "25%", ...cardStyle }}>
         <Section title="📅 Tenure Details" />
         <Form.Item
-          name={[index, "doj"]}
+          name={["previousCompanies", index, "doj"]}
           label={<span style={labelStyle}>Date of Joining</span>}
         >
           <DatePicker style={{ width: "100%", height: 25 }} />
         </Form.Item>
         <Form.Item
-          name={[index, "lwd"]}
+          name={["previousCompanies", index, "lwd"]}
           label={<span style={labelStyle}>Last Working Day</span>}
         >
           <DatePicker style={{ width: "100%", height: 25 }} />
         </Form.Item>
-        <InputField name={[index, "designation"]} label="Designation" />
-        <SelectField name={[index, "employmentType"]} label="Employment Type">
+        <InputField
+          name={["previousCompanies", index, "designation"]}
+          label="Designation"
+        />
+        <SelectField
+          name={["previousCompanies", index, "employmentType"]}
+          label="Employment Type"
+        >
           <Select.Option value="fulltime">Full Time</Select.Option>
           <Select.Option value="contract">Contract</Select.Option>
           <Select.Option value="intern">Intern</Select.Option>
@@ -295,13 +335,19 @@ const CompanyFormBlock = ({ index, form }: any) => {
 
         {/* ✅ These should now work */}
         <UploadField
-          name={[index, "experienceLetter"]}
+          name={["previousCompanies", index, "experienceLetter"]}
           label="Experience Letter"
         />
-        <UploadField name={[index, "offerLetter"]} label="Offer Letter" />
-        <UploadField name={[index, "serviceLetter"]} label="Service Letter" />
         <UploadField
-          name={[index, "relievingLetter"]}
+          name={["previousCompanies", index, "offerLetter"]}
+          label="Offer Letter"
+        />
+        <UploadField
+          name={["previousCompanies", index, "serviceLetter"]}
+          label="Service Letter"
+        />
+        <UploadField
+          name={["previousCompanies", index, "relievingLetter"]}
           label="Relieving Letter"
         />
 
@@ -324,7 +370,7 @@ const CompanyFormBlock = ({ index, form }: any) => {
                 </span>
               }
             >
-              <Form.List name={[index, "form16"]}>
+              <Form.List name={["previousCompanies", index, "form16"]}>
                 {(fields, { add, remove }) => (
                   <>
                     <div
@@ -391,7 +437,12 @@ const CompanyFormBlock = ({ index, form }: any) => {
                         </div>
 
                         <UploadField
-                          name={[index, "form16", field.name]}
+                          name={[
+                            "previousCompanies",
+                            index,
+                            "form16",
+                            field.name,
+                          ]}
                           label={null}
                         />
                       </div>
@@ -417,7 +468,7 @@ const CompanyFormBlock = ({ index, form }: any) => {
                 <span style={{ fontWeight: 500, fontSize: 14 }}>Payslips</span>
               }
             >
-              <Form.List name={[index, "payslips"]}>
+              <Form.List name={["previousCompanies", index, "payslips"]}>
                 {(fields, { add, remove }) => (
                   <>
                     <div
@@ -478,7 +529,12 @@ const CompanyFormBlock = ({ index, form }: any) => {
                         </div>
 
                         <UploadField
-                          name={[index, "payslips", field.name]}
+                          name={[
+                            "previousCompanies",
+                            index,
+                            "payslips",
+                            field.name,
+                          ]}
                           label={null}
                         />
                       </div>
@@ -501,7 +557,7 @@ const CompanyFormBlock = ({ index, form }: any) => {
             padding: 8,
           }}
         >
-          <Form.List name={[index, "contacts"]}>
+          <Form.List name={["previousCompanies", index, "contacts"]}>
             {(fields, { add, remove }) => (
               <>
                 <div
@@ -539,7 +595,11 @@ const CompanyFormBlock = ({ index, form }: any) => {
                         )
                       }
                     >
-                      <ContactDetails contactIndex={field.name} form={form} />
+                      <ContactDetails
+                        contactIndex={field.name}
+                        companyIndex={index}
+                        form={form}
+                      />
                       <Checkbox style={{ fontSize: 12, marginTop: 8 }}>
                         I declare the above information is correct
                       </Checkbox>

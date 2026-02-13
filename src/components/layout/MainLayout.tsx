@@ -44,6 +44,7 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
+  MailOutlined
 } from "@ant-design/icons";
 import LoadingSpinner from '../common/LoadingSpinner';
 import { Network,Star,IdCard,Combine,Share2,Proportions } from 'lucide-react';
@@ -586,7 +587,27 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Right side - User actions */}
           <Space size={16} align="center">
+
+
+            <Button
+              type="text"
+              icon={<MailOutlined />}
+              onClick={() => router.push('/mail')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+
+
+
+
+
+
+
             {/* Chat */}
+
             <Button
               type="text"
               icon={<MessageOutlined />}

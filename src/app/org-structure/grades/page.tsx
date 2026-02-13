@@ -203,6 +203,10 @@ export default function GradesPage() {
             onChange={handleTabChange}
             items={[
               {
+                key: "/org-structure/overview",
+                label: "Overview",
+              },
+              {
                 key: "/org-structure/grades",
                 label: "Grades",
               },

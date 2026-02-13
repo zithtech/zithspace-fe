@@ -182,7 +182,7 @@ export default function PositionsPage() {
       key: "actions",
       width: 120,
       render: (_: any, record: PositionViewData) => (
-        <Space>
+        <Space style={{gap:12}}>
           <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
           <Popconfirm
             title="Delete Position"
@@ -202,6 +202,8 @@ export default function PositionsPage() {
         {contextHolder}
         <div style={{ padding: 24 }}>
           <Tabs activeKey={pathname} onChange={handleTabChange} items={[
+            
+            { key: "/org-structure/overview", label: "Overview" },
             { key: "/org-structure/grades", label: "Grades" },
             { key: "/org-structure/employment-types", label: "Employment Types" },
             { key: "/org-structure/departments", label: "Departments" },

@@ -1,5 +1,6 @@
 "use client";
 
+import PreviewModal from "@/components/common/PreviewModal";
 import {
   Card,
   Table,
@@ -47,130 +48,14 @@ export default function FinanceTab() {
   const [actionText, setActionText] = useState("");
   const [currentRecord, setCurrentRecord] = useState<Reimbursement | null>(null);
 
-
-
   const [showFilter, setShowFilter] = useState(false);
   const filterRef = useRef<HTMLDivElement | null>(null);
 
 
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("accessToken");
-    const tenantId = localStorage.getItem("tenantId");
-    return {
-      "Authorization": `Bearer ${token}`,
-      "x-tenant-id": tenantId || "",
-    };
-  };
-
-  const getFileName = (file: any): string => {
-    if (!file) return "file";
-
-    let name = "";
-    if (typeof file === "string") {
-      name = file;
-    } else if (file && typeof file === "object") {
-      name = file.name || file.fileName || file.url || "file";
-    }
-
-    // If it's a URL, extract the filename
-    if (name.startsWith('http://') || name.startsWith('https://')) {
-      const parts = name.split("/");
-      const lastPart = parts.pop() || "";
-      // Handle potential timestamped files from backend
-      const cleanName = lastPart.includes('_') ? lastPart.split('_').slice(1).join('_') : lastPart;
-      return cleanName || lastPart;
-    }
-
-    return name.split("/").pop()?.split("\\").pop() || name;
-  };
-
-  const getFileUrl = (file: any): string => {
-    if (!file) return "";
-
-    const fileIdentifier = typeof file === 'string' ? file : (file?.url || file?.name || file?.fileName || "");
-
-    if (!fileIdentifier) return "";
-
-    if (fileIdentifier.startsWith('http://') || fileIdentifier.startsWith('https://')) {
-      return fileIdentifier;
-    }
-
-    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/uploads/${fileIdentifier}`;
-  };
-
-  const handlePreview = async (file: any) => {
-    try {
-      const fileName = getFileName(file);
-      const url = getFileUrl(file);
-
-      const response = await fetch(url, {
-        headers: getAuthHeaders() as any
-      });
-
-      if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to load preview");
-        } catch {
-          throw new Error("Failed to load preview");
-        }
-      }
-
-      // Check if response is JSON (error) despite 200 OK
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const json = await response.json();
-        throw new Error(json.error || "Failed to load preview");
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
-      setPreviewFileName(fileName);
-      setPreviewUrl(objectUrl);
-      setPreviewModal(true);
-    } catch (error: any) {
-      message.error(error.message || "Failed to load preview");
-    }
-  };
-
   const getFileExtension = (fileName: string) => {
     return fileName?.split('.').pop()?.toLowerCase() || '';
   };
-
-  const handleDownload = async (file: string) => {
-    try {
-      setDownloadingFile(file);
-      const fileName = getFileName(file);
-      const url = getFileUrl(file);
-
-      const response = await fetch(url, {
-        headers: getAuthHeaders() as any
-      });
-      if (!response.ok) throw new Error("File not found");
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(downloadUrl);
-      message.success("Download started");
-    } catch (error) {
-      console.error("Download error:", error);
-      message.error("Download failed");
-    } finally {
-      setDownloadingFile(null);
-    }
-  };
-
-
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -190,13 +75,142 @@ export default function FinanceTab() {
 
 
 
-  const normalizeFiles = (item: any): string[] => {
-    if (Array.isArray(item.attachments)) return item.attachments;
-    if (Array.isArray(item.files)) return item.files;
-    if (typeof item.attachments === "string") return [item.attachments];
-    if (typeof item.files === "string") return [item.files];
-    return [];
+  // =============================================
+  // ✅ SIMPLE & WORKING VERSION
+  // =============================================
+  const getFileUrl = (file: any): string => {
+    if (!file) return "";
+
+    // 🔥 R2 Configuration
+    const R2_BASE = "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev";
+    const R2_PATH = "b85c1b5b-77a3-4281-9147-51d6bd3ee94d/reimbursements/attachments";
+
+    // ============ CASE 1: STRING ============
+    if (typeof file === 'string') {
+      // Already full URL?
+      if (file.startsWith('http')) return file;
+
+
+      return `${R2_BASE}/${R2_PATH}/${file}`;
+    }
+
+    // ============ CASE 2: OBJECT ============
+    if (typeof file === 'object' && file !== null) {
+      // Try to get URL
+      const url = file.url || file.fileUrl || '';
+      if (url) {
+        if (url.startsWith('http')) return url;
+        return `${R2_BASE}/${R2_PATH}/${url}`;
+      }
+
+      // Try to get filename
+      const name = file.name || file.filename || file.fileName || '';
+      if (name) {
+        return `${R2_BASE}/${R2_PATH}/${name}`;
+      }
+    }
+
+    return '';
   };
+
+  // 2. GET FILE NAME
+  const getFileName = (file: any): string => {
+    if (!file) return "file";
+
+    // Object-ல name இருந்தால்
+    if (typeof file === 'object' && file.name) {
+      return file.name;
+    }
+
+    // URL-ல இருந்து filename எடு
+    const url = getFileUrl(file);
+    if (url) {
+      const parts = url.split('/');
+      const fileName = parts.pop() || 'file';
+      // R2 URL-ல இருந்து clean filename
+      if (fileName.includes('_')) {
+        return fileName.split('_').slice(1).join('_');
+      }
+      return fileName;
+    }
+
+    return "file";
+  };
+
+  // 3. HANDLE PREVIEW - MODAL OPEN!
+  const handlePreview = (file: any) => {
+    const url = getFileUrl(file);
+    const fileName = getFileName(file);
+
+    if (!url) {
+      message.error("File URL not found");
+      return;
+    }
+
+    console.log("✅ Preview URL:", url);
+    setPreviewUrl(url);
+    setPreviewFileName(fileName);
+    setPreviewModal(true);
+  };
+
+
+  const handleDownload = async (file: any) => {
+    try {
+      setDownloadingFile(file);
+
+      const url = getFileUrl(file);
+      const fileName = getFileName(file);
+
+      if (!url) {
+        message.error("File URL not found");
+        return;
+      }
+
+      console.log("✅ Download URL:", url);
+
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+
+      message.success(`Downloading ${fileName}`);
+
+    } catch (error) {
+      console.error("Download error:", error);
+      message.error("Failed to download file");
+    } finally {
+      setDownloadingFile(null);
+    }
+  };
+
+  const normalizeFiles = (item: any): any[] => {
+    const files: any[] = [];
+    if (!item) return files;
+
+    // Helper
+    const addIfValid = (file: any) => {
+      if (file === null || file === undefined) return;
+      if (typeof file === 'string' && !file.trim()) return;
+      if (!files.includes(file)) files.push(file);
+    };
+
+    // Check all possible locations
+    if (item.attachments) {
+      if (Array.isArray(item.attachments)) item.attachments.forEach(addIfValid);
+      else addIfValid(item.attachments);
+    }
+
+    if (item.files) {
+      if (Array.isArray(item.files)) item.files.forEach(addIfValid);
+      else addIfValid(item.files);
+    }
+
+    if (item.file) addIfValid(item.file);
+
+    return files;
+  };
+
 
 
 
@@ -535,8 +549,14 @@ export default function FinanceTab() {
               </Button>
 
               {showFilter && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-50 text-[12px]">
-
+                <div
+                  className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-[9999] text-[12px]"
+                  style={{
+                    position: 'absolute',
+                    backgroundColor: 'white',
+                    zIndex: 9999
+                  }}
+                >
                   {/* HEADER */}
                   <div className="flex justify-between items-center mb-3 border-b pb-2">
                     <span className="font-semibold text-gray-800">
@@ -560,12 +580,9 @@ export default function FinanceTab() {
                       onChange={(v) => handleFilterChange("employee", v)}
                       className="w-full"
                       size="small"
-                    >
-                      <Select.Option value="all">All Employees</Select.Option>
-                      {[...new Set(data.map(d => d.employee?.name || (d as any).user?.name))].filter(Boolean).map(name => (
-                        <Select.Option key={name} value={name}>{name}</Select.Option>
-                      ))}
-                    </Select>
+                      dropdownStyle={{ zIndex: 10000 }}
+                      getPopupContainer={(trigger) => trigger.parentNode} // 🔥 IMPORTANT!
+                    />
                   </div>
 
                   {/* CATEGORY */}
@@ -578,12 +595,9 @@ export default function FinanceTab() {
                       onChange={(v) => handleFilterChange("category", v)}
                       className="w-full"
                       size="small"
-                    >
-                      <Select.Option value="all">All Categories</Select.Option>
-                      {[...new Set(data.map(d => d.category))].filter(Boolean).map(cat => (
-                        <Select.Option key={cat} value={cat}>{cat}</Select.Option>
-                      ))}
-                    </Select>
+                      dropdownStyle={{ zIndex: 10000 }}
+                      getPopupContainer={(trigger) => trigger.parentNode} // 🔥 IMPORTANT!
+                    />
                   </div>
 
                   {/* STATUS */}
@@ -596,28 +610,15 @@ export default function FinanceTab() {
                       onChange={(v) => handleFilterChange("status", v)}
                       className="w-full"
                       size="small"
-                    >
-                      <Select.Option value="all">All Status</Select.Option>
-                      <Select.Option value="PAID">Paid</Select.Option>
-                      <Select.Option value="APPROVED">Pending Payment</Select.Option>
-                      <Select.Option value="ON_HOLD">On Hold</Select.Option>
-                    </Select>
+                      dropdownStyle={{ zIndex: 10000 }}
+                      getPopupContainer={(trigger) => trigger.parentNode} // 🔥 IMPORTANT!
+                    />
                   </div>
 
                   {/* ACTIONS */}
                   <div className="flex justify-end gap-2 pt-2 border-t">
-                    <Button
-                      size="small"
-                      onClick={resetFilters}
-                    >
-                      Clear
-                    </Button>
-
-                    <Button
-                      size="small"
-                      type="primary"
-                      onClick={() => setShowFilter(false)}
-                    >
+                    <Button size="small" onClick={resetFilters}>Clear</Button>
+                    <Button size="small" type="primary" onClick={() => setShowFilter(false)}>
                       Submit
                     </Button>
                   </div>
@@ -679,49 +680,6 @@ export default function FinanceTab() {
         </div>
 
 
-        <Modal
-          open={previewModal}
-          onCancel={() => setPreviewModal(false)}
-          footer={null}
-          width={900}
-          styles={{ body: { padding: 0, height: "80vh" } }}
-        >
-          {/* HEADER */}
-          <div className="p-4 border-b flex items-center justify-between bg-gray-50">
-            <div className="font-semibold text-lg truncate">
-              Preview: {previewFileName}
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={() => setPreviewModal(false)}>Close</Button>
-            </div>
-          </div>
-
-          {/* PREVIEW */}
-          {(() => {
-            const ext = getFileExtension(previewFileName);
-            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
-            const isPdf = ext === 'pdf';
-
-            if (isImage) {
-              return (
-                <div className="w-full h-[calc(100%-70px)] flex items-center justify-center bg-gray-100 overflow-auto">
-                  <img src={previewUrl} alt={previewFileName} className="max-w-full max-h-full object-contain" />
-                </div>
-              );
-            }
-            if (isPdf) {
-              return <iframe src={`${previewUrl}#toolbar=0`} className="w-full h-[calc(100%-70px)] border-0" />;
-            }
-
-            return (
-              <div className="w-full h-[calc(100%-70px)] flex flex-col items-center justify-center bg-gray-50">
-                <div className="text-gray-500 mb-2 text-lg">Preview not available</div>
-                <p className="text-gray-400 mb-6 text-xs">This file type ({ext}) cannot be previewed directly.</p>
-              </div>
-            );
-          })()}
-        </Modal>
 
         {/* ===== DRAWER (UNCHANGED) ===== */}
         <Drawer
@@ -1041,6 +999,13 @@ export default function FinanceTab() {
             </Button>
           </div>
         </Modal>
+
+        <PreviewModal
+          open={previewModal}
+          onCancel={() => setPreviewModal(false)}
+          previewUrl={previewUrl}
+          previewFileName={previewFileName}
+        />
 
 
       </div>

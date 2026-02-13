@@ -140,53 +140,51 @@ export default function ExpenseBuilder({
     setMode("list");
   };
 
-  const handleUpload = async (file: string, fileName: string) => {
-    try {
-      // Convert Data URL/Base64 to Blob for FormData upload
-      const res = await fetch(file);
+const handleUpload = async (file: string, fileName: string) => {
+  try {
+    const res = await fetch(file);
+    const blob = await res.blob();
+    const fileObj = new File([blob], fileName);
 
-      const blob = await res.blob();
-      const fileObj = new File([blob], fileName);
+    const resData = await uploadFile(fileObj);
+    
+    // 🔥 URL வந்துதா? பாருங்க!
+    console.log("📤 Upload Response:", resData);
+    const uploadedUrl = resData.url;
+    console.log("✅ Got URL:", uploadedUrl);
 
-      console.log(res, blob, fileObj, "verify");
+    if (resData.success && uploadedUrl) {
+      // 🔥 CRITICAL: URL-ஐ state-ல save பண்ணுங்க!
+      setItems((prev) => {
+        const copy = [...prev];
+        if (activeIndex >= 0 && activeIndex < copy.length) {
+          const currentItem = copy[activeIndex];
+          const existingFiles = currentItem.files || [];
+          
+          // URL மட்டும் போதும்! filename வேண்டாம்
+          const fileData = {
+            url: uploadedUrl,        // ✅ இது மட்டும் முக்கியம்!
+            name: fileName,
+            uploadedAt: new Date().toISOString()
+          };
 
-      const resData = await uploadFile(fileObj);
-      const uploadedUrl = res.url;
-
-
-      if (resData.success && uploadedUrl) {
-        setItems((prev) => {
-          const copy = [...prev];
-          if (activeIndex >= 0 && activeIndex < copy.length) {
-            const currentItem = copy[activeIndex];
-            const existingFiles = currentItem.files || [];
-
-            // Store file with metadata for better display
-            const fileWithMetadata = {
-              url: uploadedUrl,      // 🔥 MUST
-              name: fileName,
-              size: blob.size,
-              type: blob.type || getFileTypeFromName(fileName),
-              uploadedAt: new Date().toISOString(),
-            };
-
-
-            copy[activeIndex] = {
-              ...currentItem,
-              files: [...existingFiles, fileWithMetadata].slice(0, 4),
-            };
-          }
-          return copy;
-        });
-        message.success("Attachment uploaded successfully");
-      } else {
-        throw new Error("Upload failed");
-      }
-    } catch (error) {
-      console.error("Failed to upload attachment:", error);
-      message.error("Failed to upload attachment");
+          copy[activeIndex] = {
+            ...currentItem,
+            files: [...existingFiles, fileData]
+          };
+          
+          console.log("💾 Saved to state:", copy[activeIndex].files);
+        }
+        return copy;
+      });
+      
+      message.success("Attachment uploaded successfully");
     }
-  };
+  } catch (error) {
+    console.error("Upload error:", error);
+    message.error("Failed to upload attachment");
+  }
+};
 
   // Helper function to detect file type from filename
   const getFileTypeFromName = (fileName: string): string => {
@@ -415,36 +413,61 @@ export default function ExpenseBuilder({
           </Col>
 
           {/* Amount */}
-          <Col span={8}>
-            <label className="text-[11px] text-gray-600 block mb-0.5">
-              Amount *
-            </label>
-            <InputNumber
-              size="small"
-              className="w-full text-xs h-6"
-              style={{ width: "100%" }}
-              prefix="₹"
-              placeholder="0"
-              value={item.amount}
-              onChange={(v) => {
-                updateItem("amount", v);
-                setShowError(false);
-              }}
-            />
-          </Col>
+<Col span={8}>
+  <label className="text-[11px] text-gray-600 block mb-0.5">
+    Amount *
+  </label>
+  <InputNumber
+    size="small"
+    className="w-full text-xs h-6"
+    style={{ width: "100%" }}
+    prefix="₹"
+    placeholder="0"
+    value={item.amount}
+    onChange={(v) => {
+      updateItem("amount", v);
+      setShowError(false);
+    }}
+    min={0}
+    precision={2}
+    controls={true}
+    stringMode={false}
+    keyboard={true}
+    type="number"
+    onKeyDown={(e) => {
+      // 🔥 Alphabet keys-ஐ Block பண்ணு!
+      const key = e.key;
+      if (
+        key === 'e' ||      // Scientific notation
+        key === 'E' ||      
+        key === '-' ||      // Minus sign
+        key === '+' ||      // Plus sign
+        (key.length === 1 && !/[0-9.]/.test(key)) // Any other character
+      ) {
+        e.preventDefault();
+      }
+    }}
+  />
+</Col>
+       {/* Bill No */}
+<Col span={8}>
+  <label className="text-[11px] text-gray-600 block mb-0.5">
+    Bill No
+  </label>
+  <Input
+    size="small"
+    className="w-full text-xs h-6"
+    value={item.billNo}
+    onChange={(e) => {
+      // ✅ Allow letters, numbers, hyphens, slashes
+      const value = e.target.value;
+      updateItem("billNo", value);
+      setShowError(false);
+    }}
+    placeholder="e.g., INV-001"
+  />
+</Col>
 
-          {/* Bill No */}
-          <Col span={8}>
-            <label className="text-[11px] text-gray-600 block mb-0.5">
-              Bill No
-            </label>
-            <Input
-              size="small"
-              className="w-full text-xs h-6"
-              value={item.billNo}
-              onChange={(e) => updateItem("billNo", e.target.value)}
-            />
-          </Col>
         </Row>
 
 
@@ -471,33 +494,18 @@ export default function ExpenseBuilder({
           </div>
           <div className=" h-10 overflow-y-auto [&_.ant-empty-image]:!h-5 [&_.ant-empty-description]:!text-[10px] [&_.ant-empty]:!my-1 [&_.ant-list-item]:!py-1 [&_.ant-list-item]:!px-0">
             <AttachmentList
-              attachments={(item.files || []).map((f: any, i: number) => {
-                // Handle both string filenames and file objects with metadata
-                const isString = typeof f === 'string';
-                const fileIdentifier = isString ? f : (f.name || f.fileName || 'file');
-                const isUrl = fileIdentifier.startsWith('http://') || fileIdentifier.startsWith('https://');
-
-                const fileName = isUrl ? (fileIdentifier.split('/').pop()?.split('_').slice(1).join('_') || fileIdentifier.split('/').pop() || fileIdentifier) : fileIdentifier;
-                const fileUrl = isUrl ? fileIdentifier : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/uploads/${fileIdentifier}`;
-
-                const fileSize = isString ? 0 : (f.size || 0);
-                const fileType = isString ? (fileName.toLowerCase().includes('.pdf') ? 'pdf' : 'unknown') : (f.type || 'unknown');
-
-                return {
-                  id: String(i),
-                  fileName: fileName,
-                  fileUrl: fileUrl,
-                  fileSize: fileSize,
-                  fileType: fileType,
-                  uploadedAt: isString ? new Date().toISOString() : (f.uploadedAt || new Date().toISOString()),
-                  uploadedBy: {
-                    id: "current",
-                    name: "You",
-                    workEmail: "",
-                    position: "",
-                  },
-                };
-              })}
+              attachments={(item.files || []).map((f: any, i: number) => ({
+                id: String(i),
+                fileName: f.fileName || f.name || 'file',
+                fileUrl: f.fileUrl || f.url,  // 🔥 fileUrl முதலில், இல்லைனா url
+                fileSize: f.fileSize || f.size || 0,
+                fileType: f.fileType || f.type || 'unknown',
+                uploadedAt: f.uploadedAt || new Date().toISOString(),
+                uploadedBy: f.uploadedBy || {
+                  id: "current",
+                  name: "You",
+                },
+              }))}
               onDelete={handleDeleteAttachment}
               loading={false}
             />

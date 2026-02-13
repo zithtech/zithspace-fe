@@ -1,5 +1,5 @@
 "use client";
-
+import PreviewModal from "@/components/common/PreviewModal";
 import {
   Card,
   Table,
@@ -59,6 +59,8 @@ export default function EmployeeTab() {
   const handleDelete = (id: string) => {
     deleteRequest(id);
   };
+
+
 
 
   useEffect(() => {
@@ -124,188 +126,146 @@ export default function EmployeeTab() {
   const allCategories = Array.from(new Set(employeeData.map(r => r.category)));
 
 
-
-  /* ===== SEARCH STATE ===== */
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("accessToken");
-    const tenantId = localStorage.getItem("tenantId");
-    return {
-      "Authorization": `Bearer ${token}`,
-      "x-tenant-id": tenantId || "",
-    };
-  };
-
-  const getFileName = (file: any): string => {
-    if (!file) return "file";
-
-    let name = "";
-    if (typeof file === "string") {
-      name = file;
-    } else if (file && typeof file === "object") {
-      name = file.name || file.fileName || file.url || "file";
+// =============================================
+// ✅ SIMPLE & WORKING VERSION
+// =============================================
+const getFileUrl = (file: any): string => {
+  if (!file) return "";
+  
+  // 🔥 R2 Configuration
+  const R2_BASE = "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev";
+  const R2_PATH = "b85c1b5b-77a3-4281-9147-51d6bd3ee94d/reimbursements/attachments";
+  
+  // ============ CASE 1: STRING ============
+  if (typeof file === 'string') {
+    // Already full URL?
+    if (file.startsWith('http')) return file;
+    
+ 
+    return `${R2_BASE}/${R2_PATH}/${file}`;
+  }
+  
+  // ============ CASE 2: OBJECT ============
+  if (typeof file === 'object' && file !== null) {
+    // Try to get URL
+    const url = file.url || file.fileUrl || '';
+    if (url) {
+      if (url.startsWith('http')) return url;
+      return `${R2_BASE}/${R2_PATH}/${url}`;
     }
-
-    if (name.startsWith('data:')) return "Attachment";
-
-    // If it's a URL, extract the filename
-    if (name.startsWith('http://') || name.startsWith('https://')) {
-      const parts = name.split("/");
-      const lastPart = parts.pop() || "";
-      // Handle potential timestamped files from backend (e.g., 1700000000000_filename.png)
-      const cleanName = lastPart.includes('_') ? lastPart.split('_').slice(1).join('_') : lastPart;
-      return cleanName || lastPart;
+    
+    // Try to get filename
+    const name = file.name || file.filename || file.fileName || '';
+    if (name) {
+      return `${R2_BASE}/${R2_PATH}/${name}`;
     }
+  }
+  
+  return '';
+};
 
-    // Handle local paths if any
-    return name.split("/").pop()?.split("\\").pop() || name;
-  };
-
-  const getFileUrl = (file: any): string => {
-    if (!file) return "";
-
-    const fileIdentifier = typeof file === 'string' ? file : (file?.url || file?.fileUrl || file?.response?.url || file?.name || file?.fileName || "");
-
-    if (!fileIdentifier) return "";
-
-    if (fileIdentifier.startsWith('data:')) {
-      return fileIdentifier;
+// 2. GET FILE NAME
+const getFileName = (file: any): string => {
+  if (!file) return "file";
+  
+  // Object-ல name இருந்தால்
+  if (typeof file === 'object' && file.name) {
+    return file.name;
+  }
+  
+  // URL-ல இருந்து filename எடு
+  const url = getFileUrl(file);
+  if (url) {
+    const parts = url.split('/');
+    const fileName = parts.pop() || 'file';
+    // R2 URL-ல இருந்து clean filename
+    if (fileName.includes('_')) {
+      return fileName.split('_').slice(1).join('_');
     }
+    return fileName;
+  }
+  
+  return "file";
+};
 
-    // If it's already a full URL from R2, use our download endpoint
-    if (fileIdentifier.startsWith('https://pub-') && fileIdentifier.includes('.r2.dev/')) {
-      // Extract the file path from the R2 URL
-      const urlParts = fileIdentifier.split('/');
-      const fileName = urlParts.slice(3).join('/'); // Remove https://pub-xxx.r2.dev/
-      return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/files/download/${encodeURIComponent(fileName)}`;
-    }
+// 3. HANDLE PREVIEW - MODAL OPEN!
+const handlePreview = (file: any) => {
+  const url = getFileUrl(file);
+  const fileName = getFileName(file);
+  
+  if (!url) {
+    message.error("File URL not found");
+    return;
+  }
+  
+  console.log("✅ Preview URL:", url);
+  setPreviewUrl(url);
+  setPreviewFileName(fileName);
+  setPreviewModal(true);
+};
 
-    // If it's already a full URL, use it directly
-    if (fileIdentifier.startsWith('http://') || fileIdentifier.startsWith('https://')) {
-      return fileIdentifier;
-    }
 
-    // Otherwise, construct the URL with API endpoint
-    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/files/download/${encodeURIComponent(fileIdentifier)}`;
-  };
-
-  const getPreviewUrl = (file :any): string => {
-    if (!file) return "";
-
-    const fileIdentifier = typeof file === 'string' ? file : (file?.url || file?.fileUrl || file?.response?.url || file?.name || file?.fileName || "");
-
-    if (!fileIdentifier) return "";
-
-    if (fileIdentifier.startsWith('data:')) {
-      return fileIdentifier;
-    }
-
-    // If it's already a full URL from R2, use our preview endpoint
-    if (fileIdentifier.startsWith('https://pub-') && fileIdentifier.includes('.r2.dev/')) {
-      // Extract the file path from the R2 URL
-      const urlParts = fileIdentifier.split('/');
-      const fileName = urlParts.slice(3).join('/'); // Remove https://pub-xxx.r2.dev/
-      return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/files/preview/${encodeURIComponent(fileName)}`;
-    }
-
-    // If it's already a full URL, use it directly
-    if (fileIdentifier.startsWith('http://') || fileIdentifier.startsWith('https://')) {
-      return fileIdentifier;
-    }
-
-    // Otherwise, construct the URL with API endpoint
-    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/files/preview/${encodeURIComponent(fileIdentifier)}`;
-  };
-
-  const normalizeFiles = (item: any): string[] => {
-    if (Array.isArray(item.attachments)) return item.attachments;
-    if (Array.isArray(item.files)) return item.files;
-    if (typeof item.attachments === "string") return [item.attachments];
-    if (typeof item.files === "string") return [item.files];
-    if (item.file) return [item.file];
-    return [];
-  };
-const handlePreview = async (file: any) => {
+const handleDownload = async (file: any) => {
   try {
-    console.log("handlePreview", file);
+    setDownloadingFile(file);
+    
+    const url = getFileUrl(file);
     const fileName = getFileName(file);
-
-    // 🔥 1. If already public URL (R2/S3/local uploads)
-    if (file?.url && file.url.startsWith("http")) {
-      setPreviewUrl(file.url);
-      setPreviewFileName(fileName);
-      setPreviewModal(true);
+    
+    if (!url) {
+      message.error("File URL not found");
       return;
     }
+    
+    console.log("✅ Download URL:", url);
+    
 
-    // 🔥 2. fallback -> backend preview API (optional)
-    const url = getPreviewUrl(file);
-
-    const response = await fetch(url, {
-      headers: getAuthHeaders() as any,
-    });
-
-    if (!response.ok) {
-      throw new Error("Preview failed");
-    }
-
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-
-    setPreviewUrl(objectUrl);
-    setPreviewFileName(fileName);
-    setPreviewModal(true);
-
-  } catch (error: any) {
-    console.error(error);
-    message.error("Preview failed");
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    
+    message.success(`Downloading ${fileName}`);
+    
+  } catch (error) {
+    console.error("Download error:", error);
+    message.error("Failed to download file");
+  } finally {
+    setDownloadingFile(null);
   }
 };
+
+const normalizeFiles = (item: any): any[] => {
+  const files: any[] = [];
+  if (!item) return files;
+  
+  // Helper
+  const addIfValid = (file: any) => {
+    if (file === null || file === undefined) return;
+    if (typeof file === 'string' && !file.trim()) return;
+    if (!files.includes(file)) files.push(file);
+  };
+  
+  // Check all possible locations
+  if (item.attachments) {
+    if (Array.isArray(item.attachments)) item.attachments.forEach(addIfValid);
+    else addIfValid(item.attachments);
+  }
+  
+  if (item.files) {
+    if (Array.isArray(item.files)) item.files.forEach(addIfValid);
+    else addIfValid(item.files);
+  }
+  
+  if (item.file) addIfValid(item.file);
+  
+  return files;
+};
+
 
 
   const getFileExtension = (fileName: string) => {
     return fileName?.split('.').pop()?.toLowerCase() || '';
-  };
-
-  const handleDownload = async (file: any) => {
-    try {
-      setDownloadingFile(file);
-      const fileName = getFileName(file);
-      const url = getFileUrl(file);
-
-      if (url.startsWith('data:')) {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        link.click();
-        message.success('Download started');
-        setDownloadingFile(null);
-        return;
-      }
-
-      const response = await fetch(url, {
-        headers: getAuthHeaders() as any
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch file');
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      link.click();
-
-      window.URL.revokeObjectURL(downloadUrl);
-      message.success('Download started');
-    } catch (error) {
-      console.error('Download error:', error);
-      message.error('Failed to download file');
-    } finally {
-      setDownloadingFile(null);
-    }
   };
 
 
@@ -644,174 +604,6 @@ const handlePreview = async (file: any) => {
           />
         </div>
 
-        {/* ===== PREVIEW MODAL ===== */}
-        <Modal
-          open={previewModal}
-          onCancel={() => setPreviewModal(false)}
-          title={
-            <div className="flex items-center gap-2">
-              <EyeOutlined className="text-blue-600" />
-              <span className="font-semibold">{previewFileName || 'File Preview'}</span>
-            </div>
-          }
-          footer={
-            <div className="flex justify-between items-center">
-              <div className="text-xs text-gray-500">
-                {(() => {
-                  const ext = getFileExtension(previewFileName);
-                  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
-                  const isPdf = ext === 'pdf';
-                  const isVideo = ['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(ext);
-                  const isAudio = ['mp3', 'wav', 'flac', 'ogg'].includes(ext);
-                  const isText = ['txt', 'md', 'json', 'xml', 'csv'].includes(ext);
-
-                  if (isImage) return '📷 Image';
-                  if (isPdf) return '📄 PDF Document';
-                  if (isVideo) return '🎥 Video File';
-                  if (isAudio) return '🎵 Audio File';
-                  if (isText) return '📝 Text File';
-                  return '📎 File';
-                })()}
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = previewUrl;
-                    link.download = previewFileName;
-                    link.click();
-                  }}
-                  icon={<DownloadOutlined />}
-                >
-                  Download
-                </Button>
-                <Button onClick={() => setPreviewModal(false)}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          }
-          width={900}
-          centered
-        >
-          <div className="relative w-full h-[75vh] bg-gray-50 rounded border border-gray-200">
-            {(() => {
-              const ext = getFileExtension(previewFileName);
-              const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
-              const isPdf = ext === 'pdf';
-              const isVideo = ['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(ext);
-              const isAudio = ['mp3', 'wav', 'flac', 'ogg'].includes(ext);
-              const isText = ['txt', 'md', 'json', 'xml', 'csv'].includes(ext);
-
-              if (isImage) {
-                return (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 overflow-auto">
-                    <img 
-                      src={previewUrl} 
-                      alt={previewFileName} 
-                      className="max-w-full max-h-full object-contain shadow-lg"
-                      onError={(e) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxNkMxOC40MDg3IDE2IDE3IDE3LjQwODcgMTcgMTlDMTcgMjAuNTkxMyAxOC40MDg3IDIyIDIwIDIyQzIxLjU5MTMgMjIgMjMgMjAuNTkxMyAyMyAxOUMyMyAxNy40MDg3IDIxLjU5MTMgMTYgMjAgMTZaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0yMCAyNEMxOC40MDg3IDI0IDE3IDI1LjQwODcgMTcgMjdDMTcgMjguNTkxMyAxOC40MDg3IDMwIDIwIDMwQzIxLjU5MTMgMzAgMjMgMjguNTkxMyAyMyAyN0MyMyAyNS40MDg3IDIxLjU5MTMgMjQgMjAgMjRaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=';
-                      }}
-                    />
-                  </div>
-                );
-              }
-              
-              if (isPdf) {
-                return (
-                  <iframe 
-                    src={previewUrl} 
-                    className="w-full h-full border-0" 
-                    title={previewFileName}
-                    onError={() => {
-                      // Fallback for PDF loading errors
-                      const container = document.querySelector('.ant-modal-body');
-                      if (container) {
-                        container.innerHTML = `
-                          <div class="w-full h-full flex flex-col items-center justify-center bg-gray-50">
-                            <div class="text-gray-500 mb-4 text-lg">PDF Preview Error</div>
-                            <p class="text-gray-400 mb-6 text-xs">Unable to load PDF preview. Please download the file to view.</p>
-                            <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onclick="window.open('${previewUrl}', '_blank')">
-                              Open in New Tab
-                            </button>
-                          </div>
-                        `;
-                      }
-                    }}
-                  />
-                );
-              }
-
-              if (isVideo) {
-                return (
-                  <div className="w-full h-full flex items-center justify-center bg-black">
-                    <video 
-                      controls 
-                      className="max-w-full max-h-full"
-                      preload="metadata"
-                    >
-                      <source src={previewUrl} type={`video/${ext}`} />
-                      Your browser does not support the video tag.
-                    </video>
-                  </div>
-                );
-              }
-
-              if (isAudio) {
-                return (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">🎵</div>
-                      <audio 
-                        controls 
-                        className="w-full max-w-md"
-                        preload="metadata"
-                      >
-                        <source src={previewUrl} type={`audio/${ext}`} />
-                        Your browser does not support the audio tag.
-                      </audio>
-                      <p className="text-gray-600 mt-4 text-sm">{previewFileName}</p>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (isText) {
-                return (
-                  <div className="w-full h-full bg-white">
-                    <iframe 
-                      src={previewUrl} 
-                      className="w-full h-full border-0 font-mono text-xs" 
-                      title={previewFileName}
-                    />
-                  </div>
-                );
-              }
-
-              return (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50">
-                  <div className="text-6xl mb-4">📎</div>
-                  <div className="text-gray-500 mb-2 text-lg">Preview not available</div>
-                  <p className="text-gray-400 mb-6 text-xs">This file type ({ext}) cannot be previewed directly.</p>
-                  <Button 
-                    type="primary"
-                    icon={<DownloadOutlined />}
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = previewUrl;
-                      link.download = previewFileName;
-                      link.click();
-                    }}
-                  >
-                    Download File
-                  </Button>
-                </div>
-              );
-            })()}
-          </div>
-        </Modal>
-
         {/* ===== DRAWER ===== */}
         <Drawer
           title={
@@ -998,6 +790,15 @@ const handlePreview = async (file: any) => {
             </div>
           )}
         </Drawer>
+
+           {/* ===== PREVIEW MODAL ===== */}
+              <PreviewModal
+          open={previewModal}
+          onCancel={() => setPreviewModal(false)}
+          previewUrl={previewUrl}
+          previewFileName={previewFileName}
+        />
+
       </div>
     </Card>
   );

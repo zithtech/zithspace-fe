@@ -1,4 +1,5 @@
 "use client";
+import PreviewModal from "@/components/common/PreviewModal";
 import {
   Card,
   Typography,
@@ -103,14 +104,7 @@ export default function ManagerTab() {
     };
   };
 
-
-  const normalizeFiles = (item: any): string[] => {
-    if (Array.isArray(item.attachments)) return item.attachments;
-    if (Array.isArray(item.files)) return item.files;
-    if (typeof item.attachments === "string") return [item.attachments];
-    if (typeof item.files === "string") return [item.files];
-    return [];
-  };
+  
 
   const filteredRequests = data.filter((item) => {
     // Explicitly exclude DRAFT from Manager view
@@ -140,133 +134,152 @@ export default function ManagerTab() {
   });
 
 
+  // =============================================
+  // ✅ SIMPLE & WORKING VERSION
+  // =============================================
+  const getFileUrl = (file: any): string => {
+    if (!file) return "";
 
+    // 🔥 R2 Configuration
+    const R2_BASE = "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev";
+    const R2_PATH = "b85c1b5b-77a3-4281-9147-51d6bd3ee94d/reimbursements/attachments";
+
+    // ============ CASE 1: STRING ============
+    if (typeof file === 'string') {
+      // Already full URL?
+      if (file.startsWith('http')) return file;
+
+
+      return `${R2_BASE}/${R2_PATH}/${file}`;
+    }
+
+    // ============ CASE 2: OBJECT ============
+    if (typeof file === 'object' && file !== null) {
+      // Try to get URL
+      const url = file.url || file.fileUrl || '';
+      if (url) {
+        if (url.startsWith('http')) return url;
+        return `${R2_BASE}/${R2_PATH}/${url}`;
+      }
+
+      // Try to get filename
+      const name = file.name || file.filename || file.fileName || '';
+      if (name) {
+        return `${R2_BASE}/${R2_PATH}/${name}`;
+      }
+    }
+
+    return '';
+  };
+
+  // 2. GET FILE NAME
   const getFileName = (file: any): string => {
     if (!file) return "file";
 
-    let name = "";
-    if (typeof file === "string") {
-      name = file;
-    } else if (file && typeof file === "object") {
-      name = file.name || file.fileName || file.url || "file";
+    // Object-ல name இருந்தால்
+    if (typeof file === 'object' && file.name) {
+      return file.name;
     }
 
-    // If it's a URL, extract the filename
-    if (name.startsWith('http://') || name.startsWith('https://')) {
-      const parts = name.split("/");
-      const lastPart = parts.pop() || "";
-      // Handle potential timestamped files from backend
-      const cleanName = lastPart.includes('_') ? lastPart.split('_').slice(1).join('_') : lastPart;
-      return cleanName || lastPart;
-    }
-
-    return name.split("/").pop()?.split("\\").pop() || name;
-  };
-const getFileUrl = (file: any): string => {
-  if (!file) return "";
-
-  const fileIdentifier =
-    typeof file === "string"
-      ? file
-      : file?.url || file?.fileUrl || file?.response?.url || file?.name || file?.fileName || "";
-
-  if (!fileIdentifier) return "";
-
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-  if (fileIdentifier.startsWith("http://") || fileIdentifier.startsWith("https://")) {
-    return fileIdentifier;
-  }
-  return `${API}/api/files/download/${encodeURIComponent(fileIdentifier)}`;
-};
-
-
- const getPreviewUrl = (file: any): string => {
-  if (!file) return "";
-
-  const fileIdentifier =
-    typeof file === "string"
-      ? file
-      : file?.url || file?.fileUrl || file?.name || file?.fileName || "";
-
-  if (!fileIdentifier) return "";
-
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-  // 🔥 always go through backend preview (private file)
-  return `${API}/api/files/preview/${encodeURIComponent(fileIdentifier)}`;
-};
-
-
-  const handlePreview = async (file: any) => {
-    try {
-      const fileName = getFileName(file);
-      const url = getPreviewUrl(file);
-
-      const response = await fetch(url, {
-        headers: getAuthHeaders() as any
-      });
-
-      if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to load preview");
-        } catch {
-          throw new Error("Failed to load preview");
-        }
+    // URL-ல இருந்து filename எடு
+    const url = getFileUrl(file);
+    if (url) {
+      const parts = url.split('/');
+      const fileName = parts.pop() || 'file';
+      // R2 URL-ல இருந்து clean filename
+      if (fileName.includes('_')) {
+        return fileName.split('_').slice(1).join('_');
       }
-
-      // Check if response is JSON (error) despite 200 OK
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const json = await response.json();
-        throw new Error(json.error || "Failed to load preview");
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-
-      setPreviewFileName(fileName);
-      setPreviewUrl(objectUrl);
-      setPreviewModal(true);
-    } catch (error: any) {
-      message.error(error.message || "Failed to load preview");
+      return fileName;
     }
+
+    return "file";
   };
 
-  const getFileExtension = (fileName: string) => {
-    return fileName?.split('.').pop()?.toLowerCase() || '';
+  // 3. HANDLE PREVIEW - MODAL OPEN!
+  const handlePreview = (file: any) => {
+    const url = getFileUrl(file);
+    const fileName = getFileName(file);
+
+    if (!url) {
+      message.error("File URL not found");
+      return;
+    }
+
+    console.log("✅ Preview URL:", url);
+    setPreviewUrl(url);
+    setPreviewFileName(fileName);
+    setPreviewModal(true);
   };
 
 
   const handleDownload = async (file: any) => {
     try {
       setDownloadingFile(file);
-      const fileName = getFileName(file);
+
       const url = getFileUrl(file);
+      const fileName = getFileName(file);
 
-      const response = await fetch(url, {
-        headers: getAuthHeaders() as any
-      });
-      if (!response.ok) throw new Error('File not found');
+      if (!url) {
+        message.error("File URL not found");
+        return;
+      }
 
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
+      console.log("✅ Download URL:", url);
+
 
       const link = document.createElement('a');
-      link.href = downloadUrl;
+      link.href = url;
       link.download = fileName;
       link.click();
 
-      window.URL.revokeObjectURL(downloadUrl);
-      message.success('Download started');
+      message.success(`Downloading ${fileName}`);
+
     } catch (error) {
-      console.error('Download error:', error);
-      message.error('Download failed');
+      console.error("Download error:", error);
+      message.error("Failed to download file");
     } finally {
       setDownloadingFile(null);
     }
   };
+
+  const normalizeFiles = (item: any): any[] => {
+    const files: any[] = [];
+    if (!item) return files;
+
+    // Helper
+    const addIfValid = (file: any) => {
+      if (file === null || file === undefined) return;
+      if (typeof file === 'string' && !file.trim()) return;
+      if (!files.includes(file)) files.push(file);
+    };
+
+    // Check all possible locations
+    if (item.attachments) {
+      if (Array.isArray(item.attachments)) item.attachments.forEach(addIfValid);
+      else addIfValid(item.attachments);
+    }
+
+    if (item.files) {
+      if (Array.isArray(item.files)) item.files.forEach(addIfValid);
+      else addIfValid(item.files);
+    }
+
+    if (item.file) addIfValid(item.file);
+
+    return files;
+  };
+
+
+
+
+
+
+  const getFileExtension = (fileName: string) => {
+    return fileName?.split('.').pop()?.toLowerCase() || '';
+  };
+
+
 
   //filter logic
   const pendingRequests = data.filter(r => r.status === "PENDING_APPROVAL");
@@ -659,53 +672,6 @@ const getFileUrl = (file: any): string => {
           />
         </div>
 
-
-
-        <Modal
-          open={previewModal}
-          onCancel={() => setPreviewModal(false)}
-          footer={null}
-          width={900}
-          styles={{ body: { padding: 0, height: "80vh" } }}
-        >
-          {/* HEADER */}
-          <div className="p-4 border-b flex items-center justify-between bg-gray-50">
-            <div className="font-semibold text-lg truncate">
-              Preview: {previewFileName}
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={() => setPreviewModal(false)}>Close</Button>
-            </div>
-          </div>
-
-          {/* PREVIEW */}
-          {(() => {
-            const ext = getFileExtension(previewFileName);
-            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
-            const isPdf = ext === 'pdf';
-
-            if (isImage) {
-              return (
-                <div className="w-full h-[calc(100%-70px)] flex items-center justify-center bg-gray-100 overflow-auto">
-                  <img src={previewUrl} alt={previewFileName} className="max-w-full max-h-full object-contain" />
-                </div>
-              );
-            }
-            if (isPdf) {
-              return <iframe src={`${previewUrl}#toolbar=0`} className="w-full h-[calc(100%-70px)] border-0" />;
-            }
-
-            return (
-              <div className="w-full h-[calc(100%-70px)] flex flex-col items-center justify-center bg-gray-50">
-                <div className="text-gray-500 mb-2 text-lg">Preview not available</div>
-                <p className="text-gray-400 mb-6 text-xs">This file type ({ext}) cannot be previewed directly.</p>
-              </div>
-            );
-          })()}
-        </Modal>
-
-
         {/* ===== DRAWER (UI UNCHANGED) ===== */}
         <Drawer
           title={
@@ -1069,6 +1035,13 @@ const getFileUrl = (file: any): string => {
 
           </div>
         </Modal>
+
+        <PreviewModal
+          open={previewModal}
+          onCancel={() => setPreviewModal(false)}
+          previewUrl={previewUrl}
+          previewFileName={previewFileName}
+        />
       </div>
     </Card>
   );

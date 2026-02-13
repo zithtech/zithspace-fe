@@ -11,6 +11,7 @@ import {
   Select,
   Divider,
   Input,
+  message,
 } from "antd";
 import { FileTextOutlined, EyeOutlined, FileProtectOutlined } from "@ant-design/icons";
 import ExpenseBuilder, { ExpenseItem, Mode } from "@/components/reimbursement/ExpenseBuilder";
@@ -75,10 +76,17 @@ export default function ReimburseCreatePage() {
     (sum: number, i: any) => sum + (Number(i.amount) || 0),
     0
   );
-
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+
+      console.log("📦 Expense Items with files:", expenseItems);
+
+      // Check if files have URLs
+      expenseItems.forEach((item, idx) => {
+        console.log(`Item ${idx + 1} files:`, item.files);
+        console.log(`Item ${idx + 1} URLs:`, item.files?.map(f => f.url));
+      });
 
       const payload: any = {
         category: values.category,
@@ -92,11 +100,15 @@ export default function ReimburseCreatePage() {
           amount: Number(i.amount),
           billNo: i.billNo,
           description: i.description,
-          attachments: (i.files || []).map((f: any) =>
-            typeof f === "string" ? f : f.name
-          ),
+          // ✅ CORRECT - Send URL, not just filename!
+          attachments: (i.files || []).map((f: any) => ({
+            url: f.url || f.fileUrl,  // 🔥 URL is must!
+            name: f.name || f.fileName // optional
+          }))
         })),
       };
+
+      console.log("📤 Submitting payload:", JSON.stringify(payload, null, 2));
 
       if (isEditMode && editId) {
         await updateRequest({ id: editId, data: payload });
@@ -104,9 +116,11 @@ export default function ReimburseCreatePage() {
         await createRequest(payload);
       }
 
+      message.success("Expense submitted successfully!");
       router.push("/reimbursement");
     } catch (e) {
-      console.error(e);
+      console.error("❌ Submit error:", e);
+      message.error("Failed to submit expense");
     }
   };
 
@@ -123,10 +137,12 @@ export default function ReimburseCreatePage() {
   };
 
 
+
   const handleSaveDraft = async () => {
     try {
-      // get current form values WITHOUT validation
       const values = form.getFieldsValue();
+
+      console.log("📝 Saving draft with files:", expenseItems);
 
       const draftPayload: any = {
         category: values.category || "Uncategorized",
@@ -140,20 +156,25 @@ export default function ReimburseCreatePage() {
           amount: Number(i.amount) || 0,
           billNo: i.billNo,
           description: i.description,
-          attachments: (i.files || []).map((f: any) => typeof f === "string" ? f : f.name),
+          // ✅ CORRECT - Send URL for draft too!
+          attachments: (i.files || []).map((f: any) => ({
+            url: f.url || f.fileUrl,  // 🔥 URL is must!
+            name: f.name || f.fileName
+          }))
         })),
       };
 
+      console.log("📝 Draft payload:", JSON.stringify(draftPayload, null, 2));
+
       await createRequest(draftPayload);
-
-      // optional success UX
-      console.log("Draft saved successfully");
-
+      message.success("Draft saved successfully!");
       router.push("/reimbursement");
     } catch (error) {
-      console.error("Save draft failed", error);
+      console.error("❌ Save draft failed:", error);
+      message.error("Failed to save draft");
     }
   };
+
   const handleCancel = () => {
     router.push("/reimbursement");
   };
@@ -262,13 +283,14 @@ export default function ReimburseCreatePage() {
                   <Form.Item
                     label={
                       <span className="text-xs font-semibold text-gray-700">
-                        Department
+                        Department <span className="text-red-500">*</span>
                       </span>
                     }
                     name="department"
+                    rules={[{ required: true, message: "Department is required" }]}
                   >
                     <Input
-                      placeholder="Entern a Department"
+                      placeholder="Enter a Department"
                       size="small"
                       className="text-xs rounded-md"
                     />

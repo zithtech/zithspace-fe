@@ -226,6 +226,7 @@ export class CategoryService {
   static async uploadFile(file: File): Promise<{ success: boolean; filename: string; url: string }> {
     const formData = new FormData();
     formData.append('file', file);
+    console.log("datawith file: ", formData)
 
     // Important: Set headers to let axios auto-detect Content-Type for FormData
     return await api.post<{ success: boolean; filename: string; url: string }>(

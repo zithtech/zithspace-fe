@@ -389,132 +389,467 @@ body {
 .ant-drawer-mask {
   backdrop-filter: none;
 }
-
-.project-card {
-  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+/* remove column borders */
+.no-column-border td {
+  border-right: none !important;
+  border-inline-end: none !important;
+  border-top: none !important;
 }
 
-.project-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 0 20px 40px rgba(22, 119, 255, 0.18);
-}
-.client-card {
-  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
-  transition: all 0.35s cubic-bezier(.4,0,.2,1);
-}
+/* fixed background */
+.no-column-border {
+  background: #f5f8fd !important;
 
-.client-card:hover {
-  transform: translateY(-6px) scale(1.01);
-  box-shadow: 0 20px 40px rgba(22, 119, 255, 0.18);
-}
-
-/* ===== Modal Header Animation ===== */
-.view-modal-header {
-  animation: slideFadeIn 0.4s ease-out;
-}
-
-@keyframes slideFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 
-/* ===== Body Cards Animation ===== */
-.view-card {
+.ant-table-tbody > tr.no-column-border:hover > td {
+  background: #fff7e6 !important;
+}
+
+
+
+
+.week-total-row {
+  background-color: hsl(200, 33%, 98%);
+  border-top: 2px solid #d9d9d9;
+  font-weight: 600;
+  padding: 16px 24px;
+}
+
+.week-total-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.week-total-right {
+  display: flex;
+  align-items: center;
+ 
+  gap: 50px;
+}
+/* status */
+/* Hide icons by default */
+.ant-table-tbody .row-actions {
   opacity: 0;
-  animation: fadeUp 0.45s ease forwards;
+  transition: opacity 0.2s ease;
 }
 
-.view-card:nth-child(1) { animation-delay: 0.05s; }
-.view-card:nth-child(2) { animation-delay: 0.1s; }
-.view-card:nth-child(3) { animation-delay: 0.15s; }
-.view-card:nth-child(4) { animation-delay: 0.2s; }
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Show icons only on row hover */
+.ant-table-tbody tr:hover .row-actions {
+  opacity: 1;
 }
 
-.view-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(22, 119, 255, 0.18);
+/* Hover row background */
+.ant-table-tbody tr:hover > td {
+  background: #f5faff !important;
+}
+
+/* Icon styling */
+.row-action-icon {
+  cursor: pointer;
+  color: #8c8c8c;
+  transition: color 0.2s ease;
+}
+
+.row-action-icon:hover {
+  color: #1677ff;
+}
+
+/* Delete hover */
+.row-action-icon.delete:hover {
+  color: #ff4d4f;
+}
+/* .timesheet-header{ */
+  /* position: fixed; */
+  /* position:sticky;
+
+  
+  top: 118px;
+  left: 80px;
+  right: 0;
+  z-index: 100;
+
+  background: #f5f5f5;
+
+  
+  margin-bottom: 10px;
+
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+} */
+ /* .timesheet-header {
+  position: sticky; 
+  top: 0;  
+ 
+  left: 80px;
+  right: 0;        
+  z-index: 100;
+  background: #f5f5f5;
+ 
+  padding: 16px 24px;
+  margin-bottom: 10px;
+} */
+ .timesheet-header {
+  position: sticky;
+  top: 0;
+  left:0;
+  right: 0;
+  z-index: 100;
+  background: #f5f5f5;
+
+  padding: 8px 16px;
+  margin-bottom: 6px;
+}
+
+
+
+/* Hide icons by default */
+.status-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show icons only on row hover */
+.ant-table-row:hover .status-actions {
+  opacity: 1;
+}
+
+/* Icon base style */
+.status-icon {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Approve */
+.status-icon.approve {
+  color: #52c41a;
+}
+
+/* Reject */
+.status-icon.reject {
+  color: #ff4d4f;
+}
+
+/* Hover effect */
+.status-icon:hover {
+  transform: scale(1.15);
+  transition: transform 0.15s ease;
+}
+
+
+/* Hide icons by default */
+.status-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show icons only on row hover */
+.ant-table-row:hover .status-actions {
+  opacity: 1;
+}
+
+/* Icon base */
+.status-icon {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Colors */
+.status-icon.copy {
+  color: #8c8c8c;
+}
+
+.status-icon.delete {
+  color: #ff4d4f;
+}
+
+/* Hover animation */
+.status-icon:hover {
+  transform: scale(1.15);
+  transition: transform 0.15s ease;
+}
+
+
+
+
+/* Hover Animations */
+.date-nav-btn:hover {
+  background: #f0f0f0 !important;
+  transform: scale(1.1);
+}
+
+.date-display-btn:hover {
+  background: #f0f9ff !important;
+  transform: translateY(-1px);
+}
+
+.status-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(22, 119, 255, 0.3) !important;
+}
+
+.action-btn:hover {
+  border-color: #1677ff !important;
+  color: #1677ff !important;
+  transform: translateY(-1px);
+}
+
+.export-btn:hover {
+  background: #1677ff !important;
+  color: white !important;
+  border-color: #1677ff !important;
+  transform: translateY(-2px);
+}
+
+/* Smooth transitions */
+.timesheet-header * {
+  transition: all 0.3s ease;
+}
+
+
+/* .add-entry-btn {
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 999px;         
+  background-color: #1abc9c;     
+  color: #ffffff;
+  font-weight: 500;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  transition: background-color 0.2s ease;
+}
+
+.add-entry-btn .anticon {
+  color:black;
+}
+
+.add-entry-btn:hover {
+  background-color: #17a589;     
+  color: #ffffff;
+} */
+
+
+/* Make the InputNumber arrows thicker and more visible */
+.highlighted-input-number .ant-input-number-handler-wrap {
+  width: 18px; /* slightly bigger container */
+}
+
+.highlighted-input-number .ant-input-number-handler {
+  color: #fa8c16; /* orange arrows */
+  font-weight: bold; /* bolder arrows */
+}
+
+.highlighted-input-number .ant-input-number-handler-up-inner,
+.highlighted-input-number .ant-input-number-handler-down-inner {
+  border-width: 2px; /* thicker arrow lines */
+}
+
+/* .custom-segmented {
+  border: 1px solid #d9d9d9;
+} */
+
+.custom-segmented .ant-segmented-item {
+  border-radius: 8px;
+  font-weight: 500;
+  color: #595959;
+}
+
+.custom-segmented .ant-segmented-item:hover {
+  color: #1677ff;
+}
+
+.custom-segmented .ant-segmented-item-selected {
+  background-color: #1677ff !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(22, 119, 255, 0.25);
+}
+
+
+/* .approve-btn:hover {
+  background-color: #5a83f2 !important;
+  color:"white";
+}
+  /* border-color: #1677ff !important; */
+  /* color: #1677ff !important; */
+
+  .approve-btn {
   transition: all 0.25s ease;
 }
 
-
-.view-close-btn {
-  transition: transform 0.2s ease;
+.approve-btn:hover {
+  background: linear-gradient(135deg, #9ee97d, #b7ef86) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
 }
 
-.view-close-btn:hover {
-  transform: scale(1.05);
+  .reject-btn {
+  transition: all 0.25s ease;
 }
 
-/*client*/
-.client-view-header {
-  animation: headerSlideFade 0.4s ease-out;
+.reject-btn:hover {
+  background: linear-gradient(135deg, #f47644, #f3804b) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
 }
 
-@keyframes headerSlideFade {
+  .export-btn {
+  transition: all 0.25s ease;
+}
+
+.export-btn:hover {
+  background: linear-gradient(135deg, #0557ee, #1d28ff) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
+}
+
+  .filter-btn {
+  transition: all 0.25s ease;
+}
+
+.filter-btn:hover {
+  background: linear-gradient(135deg, #7ba3f3, #8181f4) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
+}
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+.compact-table .ant-table-cell {
+  padding: 6px 8px !important;
+}
+.compact-table {
+  font-size: 12px;
+}
+.compact-table .ant-table-body {
+  overflow: hidden !important;
+}
+
+
+
+
+
+
+
+
+
+
+/* .fade-table {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-14px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+} */
+/* Force smooth hover fade */
+/* .ant-table-tbody > tr.ant-table-row > td {
+  transition: background-color 0.35s ease-in-out;
+} */
+
+/* Override AntD default hover */
+/* .ant-table-tbody > tr.ant-table-row:hover > td {
+  background-color: #f5f7fa !important;
 }
 
-.client-view-card {
-  opacity: 0;
-  animation: cardFadeUp 0.45s ease forwards;
+
+
+.no-column-border td {
+  border-bottom: none !important;
+}
+.ant-table-expanded-row {
+  animation: fadeExpand 0.4s ease;
 }
 
-.client-view-card:nth-child(1) { animation-delay: 0.05s; }
-.client-view-card:nth-child(2) { animation-delay: 0.1s; }
-.client-view-card:nth-child(3) { animation-delay: 0.15s; }
-.client-view-card:nth-child(4) { animation-delay: 0.2s; }
-.client-view-card:nth-child(5) { animation-delay: 0.25s; }
-
-@keyframes cardFadeUp {
+@keyframes fadeExpand {
   from {
     opacity: 0;
-    transform: translateY(14px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
-}
+} */
 
-.client-view-card:hover {
+/* Default state */
+/* .table-hover-wrapper {
+  transition: all 0.35s ease-in-out;
+} */
+
+/* Hover on full table */
+/* .table-hover-wrapper:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 26px rgba(22, 119, 255, 0.18);
-  transition: all 0.25s ease;
+} */
+
+/* Smooth fade inside table */
+/* .table-hover-wrapper .ant-table {
+  transition: box-shadow 0.35s ease;
 }
 
-.client-view-close-btn {
-  transition: all 0.2s ease;
-}
-
-.client-view-close-btn:hover {
-  transform: scale(1.06);
-}
-.client-view-card {
-  height: 100%;
-}
+.table-hover-wrapper:hover .ant-table {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+} */
 
 
+
+/* Smooth transition */
+/* .ant-table-tbody > tr.ant-table-row {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+} */
+
+/* Hover */
+/* .ant-table-tbody > tr.ant-table-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+} */
+
+/* CLICK (while mouse pressed) */
+/* .ant-table-tbody > tr.ant-table-row:active {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+} */
+
+/* When row has input focused (TextArea click) */
+/* .ant-table-tbody > tr.ant-table-row:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  background-color: #e6f4ff;
+}
+
+  
+
+
+
+.table-row-light {
+  background: #ffffff;
+}
+
+.table-row-dark {
+  background: #fafafa;
+} */

@@ -4,10 +4,9 @@ import { ConfigProvider,App } from "antd";
 import { AuthProvider } from "@/context/AuthContext";
 import { TenantProvider } from "@/context/TenantContext";
 import QueryProvider from "@/providers/QueryProvider";
-import { SocketProvider } from "@/providers/SocketProvider";
-
-import "./globals.css";
-
+import { SocketProvider } from '@/providers/SocketProvider';
+import './globals.css';
+import { App as AntdApp } from "antd";
 
 export const metadata: Metadata = {
   title: "Z Internal App",
@@ -95,6 +94,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+         <AntdApp>
         <AntdRegistry>
           <ConfigProvider theme={theme}>
             <App>
@@ -110,6 +110,7 @@ export default function RootLayout({
             </App>
           </ConfigProvider>
         </AntdRegistry>
+        </AntdApp>
       </body>
     </html>
   );

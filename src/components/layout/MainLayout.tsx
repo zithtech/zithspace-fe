@@ -160,8 +160,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {
           key: "/projects/plans",
           icon: <CalendarOutlined />,
-          label: 'Plans',
-          onClick: () => handleNavigation('/projects/plans'),
+          label: "Plans",
+          onClick: () => handleNavigation("/projects/plans"),
         },
         {
           key: '/projects/buckets',
@@ -234,6 +234,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation("/accounts"),
       style: user?.role !== "super_admin" ? { color: "#bfbfbf" } : undefined,
     },
+     {
+      key: "/timesheet",
+      icon: <ClockCircleOutlined />,
+      label: "Timesheet",
+      onClick: () => handleNavigation("/timesheet"),
+     },
     {
       key: "invoicepro",
       icon: <AccountBookOutlined />,
@@ -331,6 +337,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation("/documenthub"),
     },
   ];
+  
 
 
 
@@ -368,6 +375,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       icon: <UserOutlined />,
       label: "Profile",
       onClick: () => router.push("/profile"),
+    },
+    {
+      key: "newProfile",
+      icon: <UserOutlined />,
+      label: "New Profile",
+      onClick: () => router.push("/newProfile"),
     },
     {
       key: "settings",

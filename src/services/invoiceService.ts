@@ -166,6 +166,63 @@ type InvoicePaymentHistory = {
 };
 
 
+export interface PaymentTransaction {
+  id: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:MM AM/PM
+  amount: string;
+  paymentMethod: PaymentMethod;
+  status: PaymentStatus;
+  referenceId?: string;
+  description?: string;
+  balanceBefore: string;
+  balanceAfter: string;
+  totalPaid: string;
+  balanceDue: string;
+  processedBy?: string;
+  paymentDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
+export interface PaymentSummary {
+  invoiceNumber: string;
+  customerName: string;
+  invoiceDate: string;
+  dueDate: string;
+  totalAmount: string;
+  totalPaid: string;
+  totalRefunded: string;
+  netPaid: string;
+  balanceDue: string;
+  invoiceStatus: string;
+  paymentCount: number;
+  completedPayments: number;
+  refundedPayments: number;
+  failedPayments: number;
+  pendingPayments: number;
+  firstPaymentDate?: string;
+  lastPaymentDate?: string;
+  fullyPaidDate?: string;
+  sentAt?: string;
+  paidAt?: string;
+  cancelledAt?: string;
+}
+
+export interface PaymentHistoryData {
+  summary: PaymentSummary;
+  payments: PaymentTransaction[];
+  rawPayments: any[];
+}
+
+
+export interface SendEmailPayload {
+  to: string;
+  subject: string;
+  message?: string; // The custom text from the Drawer
+}
+
 /* ==================== API RESPONSES ==================== */
 
 interface ApiListResponse<T> {
@@ -211,16 +268,32 @@ class InvoiceService {
     }
   }
 
-  static async getNextInvoiceNumber(): Promise<{ invoiceNumber: string }> {
-    try {
-      const response = await apiClient.get<ApiResponse<{ invoiceNumber: string }>>(
-        '/api/invoices/next-number'
-      );
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to get invoice number');
+  // static async getNextInvoiceNumber(): Promise<{ invoiceNumber: string }> {
+  //   try {
+  //     const response = await apiClient.get<ApiResponse<{ invoiceNumber: string }>>(
+  //       '/api/invoices/next-number'
+  //     );
+  //     return response.data.data;
+  //   } catch (error: any) {
+  //     throw new Error(error.response?.data?.error || 'Failed to get invoice number');
+  //   }
+  // }
+
+  static async getNextInvoiceNumber(profileId?: string): Promise<{ invoiceNumber: string }> {
+  try {
+    const params = new URLSearchParams();
+    if (profileId) {
+      params.append('profileId', profileId);
     }
+    
+    const response = await apiClient.get<ApiResponse<{ invoiceNumber: string }>>(
+      `/api/invoices/next-number?${params.toString()}`
+    );
+    return response.data.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.error || 'Failed to get invoice number');
   }
+}
 
   static async createInvoice(data: CreateInvoiceData): Promise<Invoice> {
     try {
@@ -300,20 +373,47 @@ class InvoiceService {
   window.URL.revokeObjectURL(url);
 }
 
+
+static async sendInvoiceEmail(id: string, data: SendEmailPayload): Promise<void> {
+    try {
+      await apiClient.post(`/api/invoices/${id}/send`, data);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to send invoice email');
+    }
+  }
+
  
 
 
 
 
-  static async getPaymentHistory(
+//   static async getPaymentHistory(
+//   invoiceId: string
+// ): Promise<any> {  // Change return type to any for flexibility
+//   try {
+//     const response = await apiClient.get<any>(
+//       `/api/invoices/${invoiceId}/payments`
+//     );
+//     console.log('Payment history API raw response:', response.data);
+//     return response.data.data; // Return the data as-is
+//   } catch (error: any) {
+//     throw new Error(
+//       error.response?.data?.error || 'Failed to fetch payment history'
+//     );
+//   }
+// }
+
+static async getPaymentHistory(
   invoiceId: string
-): Promise<any> {  // Change return type to any for flexibility
+): Promise<any> {
   try {
     const response = await apiClient.get<any>(
       `/api/invoices/${invoiceId}/payments`
     );
     console.log('Payment history API raw response:', response.data);
-    return response.data.data; // Return the data as-is
+    
+    // Return the entire response data
+    return response.data;
   } catch (error: any) {
     throw new Error(
       error.response?.data?.error || 'Failed to fetch payment history'

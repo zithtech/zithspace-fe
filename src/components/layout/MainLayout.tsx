@@ -47,6 +47,7 @@ import {
   MailOutlined
 } from "@ant-design/icons";
 import LoadingSpinner from '../common/LoadingSpinner';
+import { Network,Star,IdCard,Combine,Share2,Proportions } from 'lucide-react';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -337,6 +338,43 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
+    {
+      key: "/orgstructure",
+      icon: <Network  size={18}/>,
+      label: "Org-structure",
+      children: [
+        {
+          key: "/org-structure/grades",
+          icon: <IdCard size={14} />,   
+          label: "Grades",
+          onClick: () => handleNavigation("/org-structure/grades"),
+        },
+         {
+          key: "/org-structure/employment-types",
+          icon: <Star size={14}/>,   
+          label: "Employment Types",
+          onClick: () => handleNavigation("/org-structure/employment-types"),
+        },
+        {
+          key: "/org-structure/departments",
+          icon: <Combine size={14} />,   
+          label: "Departments",
+          onClick: () => handleNavigation("/org-structure/departments"),
+        },
+        {
+          key: "/org-structure/sub-departments",
+          icon: <Share2 size={14}/>,   
+          label: "Sub Departments",
+          onClick: () => handleNavigation("/org-structure/sub-departments"),
+        },
+        {
+          key: "/org-structure/positions",
+          icon: <Proportions size={14} />,   
+          label: "Positions",
+          onClick: () => handleNavigation("/org-structure/positions"),
+        },
+      ]
+      }
   ];
   
 

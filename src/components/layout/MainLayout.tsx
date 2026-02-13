@@ -47,7 +47,7 @@ import {
   MailOutlined
 } from "@ant-design/icons";
 import LoadingSpinner from '../common/LoadingSpinner';
-import { Network,Star,IdCard,Combine,Share2,Proportions } from 'lucide-react';
+import { Network,Star,IdCard,Combine,Share2,Proportions,TableOfContents} from 'lucide-react';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -343,6 +343,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       icon: <Network  size={18}/>,
       label: "Org-structure",
       children: [
+         {
+          key: "/org-structure/overview",
+          icon: <TableOfContents size={14}/>,   
+          label: "Overview",
+          onClick: () => handleNavigation("/org-structure/overview"),
+        },
         {
           key: "/org-structure/grades",
           icon: <IdCard size={14} />,   

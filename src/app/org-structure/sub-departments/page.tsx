@@ -148,11 +148,13 @@ export default function SubDepartmentsPage() {
         {contextHolder}
         <div style={{ padding: 24 }}>
           <Tabs activeKey={pathname} onChange={handleTabChange} items={[
+             { key: "/org-structure/overview", label: "Overview" },
             { key: "/org-structure/grades", label: "Grades" },
             { key: "/org-structure/employment-types", label: "Employment Types" },
             { key: "/org-structure/departments", label: "Departments" },
             { key: "/org-structure/sub-departments", label: "Sub-Departments" },
             { key: "/org-structure/positions", label: "Positions" },
+           
           ]} />
           <Card>
                      <div

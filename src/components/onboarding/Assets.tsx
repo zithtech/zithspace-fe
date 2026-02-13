@@ -15,6 +15,7 @@ import {
   Row,
   Col,
   Select,
+  message,
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { model } from "mongoose";
@@ -24,53 +25,30 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
   const [assetsform] = Form.useForm();
   const [assets, setAssets] = useState<any[]>([]);
 
-  const [allAssets, setAllAssets] = useState<any[]>([]);
-
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (data && Object.keys(data).length) {
-      setAllAssets(data);
-      assetsform.setFieldsValue(data);
+    if (data && Array.isArray(data)) {
+      setAssets(data);
     }
   }, [data]);
 
   useImperativeHandle(ref, () => ({
-    getData: () => allAssets,
+    getData: () => assets,
   }));
 
-  // ADD / UPDATE ASSET
-  // const handleAddOrUpdateAsset = async () => {
-  //   const values = await assetsform.validateFields();
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-  //   const fileObj = values.image?.[0];
-  //   const imageUrl = fileObj?.originFileObj
-  //     ? URL.createObjectURL(fileObj.originFileObj)
-  //     : fileObj?.url || "";
+  const handleBeforeUpload = (file: File) => {
+    if (file.size > MAX_SIZE) {
+      window.alert("File size must be less than 5MB");
+      return Upload.LIST_IGNORE; // ❌ stop file from adding to list
+    }
 
-  //   const assetData = {
-  //     item: values.item,
-  //     brand: values.brand,
-  //     model: values.model,
-  //     modelNumber: values.modelNumber,
-  //     image: imageUrl,
-  //   };
+    return false; // prevent auto upload (because we convert to base64 manually)
+  };
 
-  //   if (editIndex !== null) {
-  //     // UPDATE
-  //     setAssets((prev) =>
-  //       prev.map((a, i) => (i === editIndex ? assetData : a)),
-  //     );
-  //     setEditIndex(null);
-  //   } else {
-  //     // ADD
-  //     setAssets((prev) => [...prev, assetData]);
-  //   }
-
-  //   assetsform.resetFields();
-  //   setOpen(false);
-  // };
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -151,8 +129,6 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
         : [],
     });
   };
-
-  console.log("all assets", allAssets);
 
   return (
     <div style={{ padding: 20 }}>
@@ -319,13 +295,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
         onOk={handleAddOrUpdateAsset}
         okText={editIndex !== null ? "Update Asset" : "Add Asset"}
       >
-        <Form
-          form={assetsform}
-          layout="vertical"
-          onValuesChange={(_, allValues) => {
-            setAllAssets(allValues);
-          }}
-        >
+        <Form form={assetsform} layout="vertical">
           <Form.Item
             label="Item Name"
             name="item"
@@ -375,7 +345,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
           >
             <Upload
               listType="picture-card"
-              beforeUpload={() => false}
+              beforeUpload={handleBeforeUpload}
               maxCount={1}
             >
               <div>

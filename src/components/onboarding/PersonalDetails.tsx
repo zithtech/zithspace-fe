@@ -23,12 +23,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
     }
   }, [data]);
 
-  // useImperativeHandle(ref, () => ({
-  //   getData: () => {
-  //     console.log("formData1", formData);
-  //     return formData;
-  //   },
-  // }));
   useImperativeHandle(ref, () => ({
     getData: () => {
       return {
@@ -215,7 +209,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               <Form.Item
                 label={
                   <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Mobile
+                    Mobile Number
                   </span>
                 }
                 name="mobile"

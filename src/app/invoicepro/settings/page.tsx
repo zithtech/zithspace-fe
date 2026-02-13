@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from "react";
+import { useState ,useRef} from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   Space,
@@ -14,7 +14,8 @@ import {
   Modal,
   Badge,
   Tag,
-  message
+  message,
+  Divider
 
 } from "antd";
 
@@ -45,7 +46,7 @@ import {  useSettingsProfiles ,useDeleteSettingsProfile,useCreateSettingsProfile
 import MiniCard from "@/components/customer/MiniCard";
 
 
-const { Title } = Typography;
+const { Title ,Paragraph} = Typography;
 
 const DEFAULT_DRAFT: Draft = {
   general: {
@@ -100,6 +101,8 @@ export default function InvoiceproSettingPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 const [deleteId, setDeleteId] = useState<string | null>(null);
 const [expanded, setExpanded] = useState(false);
+const generalFormRef = useRef<any>(null);
+
 
 
   
@@ -139,24 +142,64 @@ const [draft, setDraft] = useState<Draft>({
   },
 });
 
-const handleEdit = (id: string) => {
-  const settingToEdit = settingsList.find((s) => s.id === id);
-  if (!settingToEdit) return;
+// const handleEdit = (id: string) => {
+//   const settingToEdit = settingsList.find((s) => s.id === id);
+//   if (!settingToEdit) return;
 
+//   setDraft({
+//     general: {
+//       ...settingToEdit.general,
+//       companyLogo: settingToEdit.general.companyLogo ?? null,
+//       signature: settingToEdit.general.signature ?? null,
+//     },
+//     invoice: { ...settingToEdit.invoice },
+//     payment: { ...settingToEdit.payment },
+//   });
+
+//   setEditingId(id); // mark as editing
+//   setMode("create"); // switch to create/edit mode
+//   setCurrentStep(0); // start from General tab
+// };
+
+const handleEdit = (id: string) => {
+  const s = settingsList.find((s) => s.id === id);
+  if (!s) return;
+
+  // Manually map the data to exclude DB internal fields like 'id', 'createdAt', 'tenantId'
   setDraft({
     general: {
-      ...settingToEdit.general,
-      companyLogo: settingToEdit.general.companyLogo ?? null,
-      signature: settingToEdit.general.signature ?? null,
+      companyName: s.general.companyName,
+      address: s.general.address, // Assuming this is your JSON object
+      primaryColor: s.general.primaryColor,
+      currency: s.general.currency,
+      dateFormat: s.general.dateFormat,
+      companyLogo: s.general.companyLogo,
+      signature: s.general.signature,
     },
-    invoice: { ...settingToEdit.invoice },
-    payment: { ...settingToEdit.payment },
+    invoice: {
+      format: s.invoice.format,
+      // nextNumber: s.invoice.nextNumber, // Add if you want to edit sequence
+    },
+    payment: {
+      bankName: s.payment.bankName,
+      accountNumber: s.payment.accountNumber,
+      ifscCode: s.payment.ifscCode,
+      branchName: s.payment.branchName,
+      qrCode: s.payment.qrCode,
+    },
   });
 
-  setEditingId(id); // mark as editing
-  setMode("create"); // switch to create/edit mode
-  setCurrentStep(0); // start from General tab
+  setEditingId(id); 
+  setMode("create");
+  setCurrentStep(0); 
 };
+
+const activeSettingsCount = settingsList.filter(
+  (s) => s.isActive
+).length;
+
+
+
 
 
 const resetDraft = () => {
@@ -188,10 +231,14 @@ if (isLoading) {
   return (
     <MainLayout>
       
-      <div style={{ padding: 20 }}>
+      <div style={{ padding: 10 }}>
+
+      <Card className="shadow-sm border-gray-200 h-full flex flex-col pb-40">
+
+
         {/* HEADER */}
 
-        <div className="flex items-center justify-between mb-6">
+        {/* <div className="flex items-center justify-between mb-6">
           <Space align="center">
             {mode === "create" && (
               <Button
@@ -210,6 +257,8 @@ if (isLoading) {
     Settings
   </Title>
 </Space>
+
+
 
           </Space>
 
@@ -232,7 +281,7 @@ if (isLoading) {
 
 
 
-    {/* Create Button */}
+    
     <Button
       type="primary"
       icon={<PlusOutlined />}
@@ -245,7 +294,77 @@ if (isLoading) {
     </Button>
   </div>
           )}
-        </div>
+        </div> */}
+
+<div className="flex flex-row items-center justify-between gap-4 mb-3 flex-nowrap">
+  {/* LEFT */}
+  <div className="flex flex-col shrink-0">
+    <div className="flex items-center gap-3">
+      {/* BACK BUTTON – only in create mode */}
+      {mode === "create" && (
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => {
+            resetDraft();
+            setMode("view");
+          }}
+          className="px-0"
+        >
+          Back
+        </Button>
+      )}
+
+      {/* ICON + TITLE */}
+      <SettingOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+      <Title level={3} className="!mb-0 !text-gray-900">
+        Settings
+      </Title>
+    </div>
+
+    {/* DESCRIPTION */}
+    {mode === "view" && (
+    <Paragraph type="secondary" className=" mt-1 !mb-0">
+      Manage invoice configuration, formats, currency, and payment details.
+    </Paragraph>
+    )}
+
+    {/* TAG */}
+    {mode === "view" && (
+      <div className=" mt-2">
+        <Tag color="pink">
+    Total Setting: <strong>{settingsList.length}</strong>
+  </Tag>
+        <Tag color="purple">
+          Active Settings: <strong>{activeSettingsCount}</strong>
+        </Tag>
+        
+      </div>
+    )}
+  </div>
+
+  {/* RIGHT */}
+  {mode === "view" && (
+    <Button
+      type="primary"
+      icon={<PlusOutlined />}
+      onClick={() => {
+        resetDraft();
+        setMode("create");
+      }}
+      className="h-11 shrink-0"
+    >
+      Create New
+    </Button>
+  )}
+</div>
+
+{mode === "view" && (
+  <Divider  style={{marginTop:"0"}}/>
+)}
+
+
+
 
         {/* VIEW MODE */}
         {mode === "view" && (
@@ -580,7 +699,7 @@ if (isLoading) {
             <div className="mt-6">
               {currentStep === 0 && (
   <GeneralSettings
-    
+    formRef={generalFormRef}
     initialValues={draft.general}
     onSave={(data) => setDraft((prev) => ({ ...prev, general: data }))}
   />
@@ -617,12 +736,36 @@ if (isLoading) {
 
               {/* NEXT / SAVE */}
               {currentStep < 2 ? (
+                // <Button
+                //   type="primary"
+                //   onClick={() => setCurrentStep((s) => s + 1)}
+                // >
+                //   Next
+                // </Button>
+
                 <Button
-                  type="primary"
-                  onClick={() => setCurrentStep((s) => s + 1)}
-                >
-                  Next
-                </Button>
+  type="primary"
+  onClick={async () => {
+    if (currentStep === 0) {
+      try {
+        await generalFormRef.current?.validateFields();
+        setCurrentStep(1);
+      } catch {
+        message.error("Please fill required fields");
+      }
+    } else {
+      setCurrentStep((s) => s + 1);
+    }
+  }}
+>
+  Next
+</Button>
+
+
+
+
+
+
               ) : (
                 
                
@@ -634,12 +777,19 @@ if (isLoading) {
 <Button
   type="primary"
   loading={createMutation.isPending || updateMutation.isPending}
-  onClick={() => {
-    if (!draft.general.companyName) {
-      alert("Please enter a company name in the General tab.");
-      setCurrentStep(0);
-      return;
-    }
+  onClick={async() => {
+    // if (!draft.general.companyName) {
+    //   alert("Please enter a company name in the General tab.");
+    //   setCurrentStep(0);
+    //   return;
+    // }
+    try {
+    await generalFormRef.current?.validateFields();
+  } catch {
+    setCurrentStep(0);
+    message.error("Please fix errors in General tab");
+    return;
+  }
 
     const payload = {
       name: draft.general.companyName || "Untitled",
@@ -654,11 +804,16 @@ if (isLoading) {
         { id: editingId, data: payload },
         {
           onSuccess: () => {
+            message.success("Settings updated successfully!");
             refetch();
             resetDraft();
             setMode("view");
           },
-          onError: (err) => console.error(err),
+          // onError: (err) => console.error(err),
+          onError: (err: any) => {
+        // This will show you exactly what the backend complained about
+        message.error(err?.response?.data?.error || "Update failed");
+      },
         }
       );
     } else {
@@ -682,7 +837,12 @@ if (isLoading) {
             </div>
           </>
         )}
+
+
+        </Card>
       </div>
+
+      
 
   
  

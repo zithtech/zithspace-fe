@@ -93,11 +93,11 @@ const columns = (
 
     {
       title: "Accepted By",
-      dataIndex: "accept",
-      render: (accept: string[]) => (
+      dataIndex: "acceptRoles",
+      render: (acceptRoles: string[]) => (
         <div className="flex flex-wrap gap-1">
-          {accept?.length ? (
-            accept.map((role) => {
+          {acceptRoles?.length ? (
+            acceptRoles.map((role) => {
               const colorClass =
                 roleColorMap[role.toUpperCase()] || "bg-gray-100 text-gray-700";
               return (

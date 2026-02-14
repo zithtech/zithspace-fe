@@ -55,19 +55,19 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({ initialValues, onSa
               title={<span className="flex items-center gap-2"><BankOutlined style={{ color: "#1890ff", fontSize: 18 }} />Bank Account Details</span>}
               className="rounded-xl shadow-sm h-full"
             >
-              <Form.Item label="Bank Name" name="bankName" rules={[{ required: true }]}>
+              <Form.Item label="Bank Name" name="bankName" >
                 <Input placeholder="xxxxx" />
               </Form.Item>
 
-              <Form.Item label="Account Number" name="accountNumber" rules={[{ required: true }]}>
+              <Form.Item label="Account Number" name="accountNumber" >
                 <Input placeholder="XXXXXXXXXXXX" />
               </Form.Item>
 
-              <Form.Item label="IFSC Code" name="ifscCode" rules={[{ required: true }]}>
+              <Form.Item label="IFSC Code" name="ifscCode" >
                 <Input placeholder="SBIN0001234" />
               </Form.Item>
 
-              <Form.Item label="Branch Name" name="branchName" rules={[{ required: true }]}>
+              <Form.Item label="Branch Name" name="branchName" >
                 <Input placeholder="Chennai Main Branch" />
               </Form.Item>
             </Card>

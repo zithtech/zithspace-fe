@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState } from "react";
+
 import { useParams, useRouter } from "next/navigation";
 import { Card, Button, Typography, Table, Divider, Space, Tag } from "antd";
 
@@ -341,7 +341,7 @@ export default function ViewInvoicePage() {
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       lineHeight: "1.4",
-                      maxWidth: 500,
+                      maxWidth: 400,
                     }}
                   >
                     {[
@@ -367,7 +367,7 @@ export default function ViewInvoicePage() {
                 </Title>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                   <Text type="secondary">Invoice #{invoice.invoiceNumber}</Text>
-                  <Tag
+                  {/* <Tag
                     color={
                       invoice?.status === 'PAID' ? 'success' :
                       invoice?.status === 'PARTIALLY_PAID' ? 'warning' :
@@ -376,13 +376,13 @@ export default function ViewInvoicePage() {
                     style={{ margin: 0 }}
                   >
                     {invoice?.status?.replace('_', ' ')}
-                  </Tag>
+                  </Tag> */}
                 </div>
-                {(Number(invoice?.balanceDue) || 0) > 0 && (
+                {/* {(Number(invoice?.balanceDue) || 0) > 0 && (
                   <Text type="danger" style={{ fontSize: 12, marginTop: 4 }}>
                     Balance Due: {formatCurrency(invoice?.balanceDue, currencySymbol)}
                   </Text>
-                )}
+                )} */}
               </div>
             </div>
           </div>

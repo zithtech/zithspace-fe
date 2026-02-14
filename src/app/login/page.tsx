@@ -17,6 +17,9 @@ import {
   LockOutlined,
   LoginOutlined,
 } from '@ant-design/icons';
+import Image from 'next/image';
+import Logo from '@/assets/logo/CMPLOGO.jpeg';
+
 
 const { Title, Text } = Typography;
 
@@ -177,28 +180,29 @@ export default function LoginPage() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
+
           <div
-            style={{
-              width: 64,
-              height: 64,
-              background: 'linear-gradient(135deg, #1677ff, #69c0ff)',
-              borderRadius: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-            }}
-          >
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 24,
-                fontWeight: 700,
-              }}
-            >
-              Z
-            </Text>
-          </div>
+  style={{
+    width: 100,
+    height: 100,
+    // background: '#ffffff',
+    // borderRadius: 16,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 20px',
+    // boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+  }}
+>
+  <Image
+    src={Logo}
+    alt="Logo"
+    width={70}
+    height={70}
+    style={{ objectFit: 'contain' }}
+  />
+</div>
+
           
           <Title level={2} style={{ margin: 0, color: '#262626' }}>
             Welcome Back !!!
@@ -215,8 +219,9 @@ export default function LoginPage() {
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            © 2025 Z. All rights reserved.
-          </Text>
+  © {new Date().getFullYear()} Zithtech. All rights reserved.
+</Text>
+
         </div>
       </Card>
     </div>

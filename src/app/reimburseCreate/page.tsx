@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -20,7 +20,9 @@ import { useAuth } from "@/context/AuthContext";
 
 const { Title } = Typography;
 
-export default function ReimburseCreatePage() {
+
+
+function ReimburseCreateContent() {
   const router = useRouter();
   const [form] = Form.useForm();
 
@@ -182,7 +184,7 @@ export default function ReimburseCreatePage() {
 
 
   return (
-    <MainLayout>
+    <>
       <div className="min-h-screen bg-gray-50 p-3">
 
 
@@ -631,6 +633,16 @@ export default function ReimburseCreatePage() {
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function ReimburseCreatePage() {
+  return (
+    <MainLayout>
+      <Suspense fallback={<div className="flex h-[calc(100vh-64px)] items-center justify-center p-10"><div className="text-gray-500">Loading reimbursement details...</div></div>}>
+        <ReimburseCreateContent />
+      </Suspense>
     </MainLayout>
   );
 }

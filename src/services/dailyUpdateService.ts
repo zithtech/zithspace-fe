@@ -7,7 +7,7 @@ import {
   SubmissionStats,
   CheckTodayResponse,
   WorkEntry,
-} from "@/types/dailyUpdate";
+} from "@/types/dailyUpdate"
 
 export class DailyUpdateService {
   /**
@@ -17,6 +17,8 @@ export class DailyUpdateService {
     data: CreateDailyUpdateRequest,
   ): Promise<DailyStatusUpdate> {
     try {
+      console.log(data,"is_missed")
+      return await api.post('/541', data);
       console.log(data, "is_missed");
       return await api.post("/api/daily-updates", data);
     } catch (error: any) {

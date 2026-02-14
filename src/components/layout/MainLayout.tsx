@@ -44,8 +44,10 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
+  TransactionOutlined,
   MailOutlined
-} from "@ant-design/icons";
+} from '@ant-design/icons';
+
 import LoadingSpinner from '../common/LoadingSpinner';
 import { Network,Star,IdCard,Combine,Share2,Proportions,TableOfContents} from 'lucide-react';
 
@@ -236,6 +238,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation("/accounts"),
       style: user?.role !== "super_admin" ? { color: "#bfbfbf" } : undefined,
     },
+    
      {
       key: "/timesheet",
       icon: <ClockCircleOutlined />,
@@ -338,6 +341,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
+    {
+      key: "/reimbursement",
+      icon: <TransactionOutlined />,
+      label: "reimbursement",
+      onClick: () => handleNavigation("/reimbursement"),
+    },
+
+
     {
       key: "/orgstructure",
       icon: <Network  size={18}/>,

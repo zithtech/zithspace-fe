@@ -17,9 +17,9 @@ export class DailyUpdateService {
     data: CreateDailyUpdateRequest,
   ): Promise<DailyStatusUpdate> {
     try {
-      console.log(data,"is_missed")
-      return await api.post('/541', data);
-      console.log(data, "is_missed");
+      // console.log(data,"is_missed")
+      // return await api.post('/541', data);
+      // console.log(data, "is_missed");
       return await api.post("/api/daily-updates", data);
     } catch (error: any) {
       // Extract error message from different error types
@@ -79,7 +79,7 @@ export class DailyUpdateService {
       params.append("updateType", filters.updateType);
     }
     // 🔥 ADD THIS LINE (IMPORTANT)
-// params.append("_t", Date.now().toString());
+    // params.append("_t", Date.now().toString());
 
     return await api.get(`/api/daily-updates/team?${params.toString()}`);
   }

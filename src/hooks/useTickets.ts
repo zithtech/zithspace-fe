@@ -46,6 +46,15 @@ export const useTicket = (id: string) => {
   });
 };
 
+export const usePublicTicket = (id: string) => {
+  return useQuery({
+    queryKey: ["public-ticket", id],
+    queryFn: () => TicketService.getPublicTicketById(id),
+    enabled: !!id,
+    retry: false,
+  });
+};
+
 // --- Mutations ---
 
 export const useCreateTicket = () => {
@@ -277,7 +286,7 @@ export const useUpdateTicket = () => {
 
       // Prepare payload - preserve existing sprintPlanId if not being updated
       const cacheUpdatePayload = optimisticData || data;
-      
+
       // CRITICAL: Preserve sprintPlanId from previousTicket if not explicitly changing sprint assignment
       const isSprintUpdate = 'releasePlan' in cacheUpdatePayload || 'sprintPlan' in cacheUpdatePayload;
       const preservedPayload = {

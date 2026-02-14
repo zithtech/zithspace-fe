@@ -7,3 +7,4 @@ export { default as AttachmentsSection } from "./AttachmentsSection";
 export { default as CommentsSection } from "./CommentsSection";
 export { default as WorkflowProgress } from "./WorkflowProgress";
 export { default as TicketDetailsLoading } from "./TicketDetailsLoading";
+export { default as ActivityTimeline } from "./ActivityTimeline";

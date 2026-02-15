@@ -176,6 +176,84 @@ class DocumentHubService {
       throw error;
     }
   }
+
+
+  static async deleteDocumentHub(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/${id}`);
+    } catch (error: any) {
+      console.error("Error deleting document hub:", error);
+      throw error;
+    }
+  }
+
+  static async restoreDocumentHub(id: string): Promise<void> {
+    try {
+      await apiClient.post(`/api/documenthub/${id}/restore`);
+    } catch (error: any) {
+      console.error("Error restoring document hub:", error);
+      throw error;
+    }
+  }
+
+  static async deleteDocument(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/document/${id}`);
+    } catch (error: any) {
+      console.error("Error deleting document:", error);
+      throw error;
+    }
+  }
+
+  static async restoreDocument(id: string): Promise<void> {
+    try {
+      await apiClient.post(`/api/documenthub/document/${id}/restore`);
+    } catch (error: any) {
+      console.error("Error restoring document:", error);
+      throw error;
+    }
+  }
+
+  static async getTrash(type?: 'hub' | 'document'): Promise<{ hubs: DocumentHub[], documents: any[] }> {
+    try {
+      const response = await apiClient.get('/api/documenthub/trash', {
+        params: { type }
+      });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting trash:", error);
+      throw error;
+    }
+  }
+
+  static async shareDocument(id: string, visibility: 'private' | 'internal' | 'public'): Promise<any> {
+    try {
+      const response = await apiClient.put(`/api/documenthub/document/${id}/share`, { visibility });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error sharing document:", error);
+      throw error;
+    }
+  }
+
+  static async revokeShare(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/document/${id}/share`);
+    } catch (error: any) {
+      console.error("Error revoking share:", error);
+      throw error;
+    }
+  }
+
+  static async getPublicDocument(shareToken: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/public/document/${shareToken}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting public document:", error);
+      throw error;
+    }
+  }
 }
 
 export const documentHubService = DocumentHubService;

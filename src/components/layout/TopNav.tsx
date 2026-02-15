@@ -70,7 +70,14 @@ export default function TopNav({
     const menuItems = NAVIGATION_CONFIG.map(module => ({
         key: module.key,
         label: (
-            <span style={{ fontWeight: 600, padding: '0 8px' }}>
+            <span style={{
+                fontWeight: 600,
+                padding: '0 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+            }}>
+                {module.icon}
                 {module.label}
             </span>
         ),
@@ -160,14 +167,14 @@ export default function TopNav({
                     style={{
                         borderBottom: 'none',
                         flex: 1,
-                        minWidth: 400,
+                        maxWidth: 600,
                         background: 'transparent'
                     }}
                 />
             </div>
 
             {/* Right Side: User Actions */}
-            <Space size={16} align="center">
+            <Space size={16} align="end">
                 <Button
                     type="text"
                     icon={<MailOutlined />}

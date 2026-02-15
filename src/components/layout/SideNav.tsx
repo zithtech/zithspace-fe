@@ -71,10 +71,10 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 flexDirection: 'column'
             }}
         >
-            {/* Collapse Toggle Button at Bottom */}
+            {/* Collapse Toggle Button at Top */}
             <div style={{
-                padding: '16px',
-                borderTop: '1px solid #f0f0f0',
+                padding: '8px',
+                borderBottom: '1px solid #f0f0f0',
                 display: 'flex',
                 justifyContent: collapsed ? 'center' : 'flex-end',
             }}>
@@ -84,8 +84,8 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                     onClick={onCollapse}
                     style={{
                         fontSize: 16,
-                        width: 20,
-                        height: 20,
+                        width: 32,
+                        height: 32,
                     }}
                 />
             </div>

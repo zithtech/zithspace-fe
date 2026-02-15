@@ -23,8 +23,27 @@ import {
     BarChartOutlined,
     FileZipOutlined,
     TransactionOutlined,
+    EyeOutlined,
+    FolderOutlined,
+    RocketOutlined,
+    FormOutlined,
+    CheckSquareOutlined,
+    DatabaseOutlined,
+    ReconciliationOutlined,
+    FileDoneOutlined,
+    WalletOutlined,
+    UserAddOutlined,
+    SafetyOutlined,
+    SolutionOutlined,
+    ApartmentOutlined,
+    BankOutlined,
+    FileSyncOutlined,
+    EditOutlined,
+    EyeInvisibleOutlined,
+    CalendarTwoTone,
+    UsergroupAddOutlined,
+    HomeOutlined,
 } from '@ant-design/icons';
-import { Network, Star, IdCard, Combine, Share2, Proportions, TableOfContents } from 'lucide-react';
 
 export type ModuleType = 'HOME' | 'WORK' | 'HRMS' | 'FINANCE' | 'ADMIN';
 
@@ -40,6 +59,7 @@ export interface NavItem {
 export interface ModuleConfig {
     key: ModuleType;
     label: string;
+    icon?: React.ReactNode; // Icon for TopNav display
     pathPrefixes: string[]; // URLs starting with these belong to this module
     items: NavItem[];
     defaultPath?: string; // Optional default path to navigate to when module is selected
@@ -49,6 +69,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     {
         key: 'HOME',
         label: 'HOME',
+        icon: <HomeOutlined />,
         pathPrefixes: ['/dashboard'],
         defaultPath: '/dashboard',
         items: [
@@ -63,6 +84,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     {
         key: 'WORK',
         label: 'WORK',
+        icon: <ProjectOutlined />,
         pathPrefixes: ['/projects', '/documenthub', '/timesheet', '/daily-updates'],
         defaultPath: '/projects',
         items: [
@@ -71,15 +93,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
                 label: 'Projects & Tickets',
                 icon: <ProjectOutlined />,
                 children: [
-                    { key: '/projects', label: 'Overview', icon: <ProjectOutlined />, path: '/projects' },
-                    { key: '/projects/manage', label: 'Projects', icon: <ProjectOutlined />, path: '/projects/manage' },
-                    { key: '/projects/plans', label: 'Plans', icon: <CalendarOutlined />, path: '/projects/plans' },
-                    { key: '/projects/create', label: 'Create Ticket', icon: <PlusCircleOutlined />, path: '/projects/create' },
-                    { key: '/projects/select', label: 'Tickets', icon: <UnorderedListOutlined />, path: '/projects/select' },
-                    { key: '/projects/buckets', label: 'Buckets', icon: <InboxOutlined />, path: '/projects/buckets' },
+                    { key: '/projects', label: 'Overview', icon: <DashboardOutlined />, path: '/projects' },
+                    { key: '/projects/manage', label: 'Projects', icon: <FolderOutlined />, path: '/projects/manage' },
+                    { key: '/projects/plans', label: 'Plans', icon: <RocketOutlined />, path: '/projects/plans' },
+                    { key: '/projects/create', label: 'Create Ticket', icon: <FormOutlined />, path: '/projects/create' },
+                    { key: '/projects/select', label: 'Tickets', icon: <CheckSquareOutlined />, path: '/projects/select' },
+                    { key: '/projects/buckets', label: 'Buckets', icon: <DatabaseOutlined />, path: '/projects/buckets' },
                     { key: '/projects/settings', label: 'Settings', icon: <ControlOutlined />, path: '/projects/settings' },
                     { key: '/projects/trash', label: 'Trash', icon: <DeleteOutlined />, path: '/projects/trash' },
-                    { key: '/projects/archived', label: 'Archived', icon: <FolderOpenOutlined />, path: '/projects/archived' },
+                    { key: '/projects/archived', label: 'Archived', icon: <InboxOutlined />, path: '/projects/archived' },
                 ],
             },
             {
@@ -91,16 +113,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             {
                 key: 'daily-updates-group',
                 label: 'Daily Updates',
-                icon: <FileTextOutlined />,
+                icon: <ReconciliationOutlined />,
                 children: [
-                    { key: '/daily-updates/submit', label: 'Submit Update', icon: <PlusCircleOutlined />, path: '/daily-updates/submit' },
-                    { key: '/daily-updates/view', label: 'View Updates', icon: <UnorderedListOutlined />, path: '/daily-updates/view' },
+                    { key: '/daily-updates/submit', label: 'Submit Update', icon: <EditOutlined />, path: '/daily-updates/submit' },
+                    { key: '/daily-updates/view', label: 'View Updates', icon: <EyeOutlined />, path: '/daily-updates/view' },
                 ],
             },
             {
                 key: 'documenthub',
                 label: 'Document Hub',
-                icon: <FileZipOutlined />,
+                icon: <FolderOpenOutlined />,
                 path: '/documenthub',
             },
         ],
@@ -108,19 +130,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     {
         key: 'HRMS',
         label: 'HRMS',
+        icon: <TeamOutlined />,
         pathPrefixes: ['/members', '/profile', '/attendance', '/leaves', '/org-structure'],
         defaultPath: '/members',
         items: [
             {
                 key: '/members',
                 label: 'Members',
-                icon: <TeamOutlined />,
+                icon: <UsergroupAddOutlined />,
                 path: '/members',
             },
             {
                 key: '/profile',
                 label: 'My Profile',
-                icon: <UserOutlined />,
+                icon: <SolutionOutlined />,
                 path: '/profile',
             },
             {
@@ -132,20 +155,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             {
                 key: '/leaves-dashboard',
                 label: 'Leave Management',
-                icon: <FileTextOutlined />,
+                icon: <CalendarOutlined />,
                 path: '/leaves-dashboard',
             },
             {
                 key: 'orgstructure',
-                icon: <Network size={18} />,
+                icon: <ApartmentOutlined />,
                 label: 'Org-structure',
                 children: [
-                    { key: '/org-structure/overview', icon: <TableOfContents size={14} />, label: 'Overview', path: '/org-structure/overview' },
-                    { key: '/org-structure/grades', icon: <IdCard size={14} />, label: 'Grades', path: '/org-structure/grades' },
-                    { key: '/org-structure/employment-types', icon: <Star size={14} />, label: 'Employment Types', path: '/org-structure/employment-types' },
-                    { key: '/org-structure/departments', icon: <Combine size={14} />, label: 'Departments', path: '/org-structure/departments' },
-                    { key: '/org-structure/sub-departments', icon: <Share2 size={14} />, label: 'Sub Departments', path: '/org-structure/sub-departments' },
-                    { key: '/org-structure/positions', icon: <Proportions size={14} />, label: 'Positions', path: '/org-structure/positions' },
+                    { key: '/org-structure/overview', icon: <EyeOutlined />, label: 'Overview', path: '/org-structure/overview' },
+                    { key: '/org-structure/grades', icon: <SafetyOutlined />, label: 'Grades', path: '/org-structure/grades' },
+                    { key: '/org-structure/employment-types', icon: <FileDoneOutlined />, label: 'Employment Types', path: '/org-structure/employment-types' },
+                    { key: '/org-structure/departments', icon: <BankOutlined />, label: 'Departments', path: '/org-structure/departments' },
+                    { key: '/org-structure/sub-departments', icon: <ApartmentOutlined />, label: 'Sub Departments', path: '/org-structure/sub-departments' },
+                    { key: '/org-structure/positions', icon: <TeamOutlined />, label: 'Positions', path: '/org-structure/positions' },
                 ],
             },
         ],
@@ -153,13 +176,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     {
         key: 'FINANCE',
         label: 'FINANCE',
+        icon: <WalletOutlined />,
         pathPrefixes: ['/accounts', '/invoicepro', '/reimbursement', '/salary'],
         defaultPath: '/accounts',
         items: [
             {
                 key: '/accounts',
                 label: 'Accounts',
-                icon: <DollarOutlined />,
+                icon: <WalletOutlined />,
                 path: '/accounts',
             },
             {
@@ -168,9 +192,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
                 icon: <AccountBookOutlined />,
                 children: [
                     { key: '/invoicepro/dashboard', label: 'Dashboard', icon: <BarChartOutlined />, path: '/invoicepro/dashboard' },
-                    { key: '/invoicepro/invoices', label: 'Invoices', icon: <FileTextOutlined />, path: '/invoicepro/invoices' },
-                    { key: '/invoicepro/newinvoice', label: 'New Invoice', icon: <PlusCircleOutlined />, path: '/invoicepro/newinvoice' },
-                    { key: '/invoicepro/customers', label: 'Customers', icon: <TeamOutlined />, path: '/invoicepro/customers' },
+                    { key: '/invoicepro/invoices', label: 'Invoices', icon: <FileSyncOutlined />, path: '/invoicepro/invoices' },
+                    { key: '/invoicepro/newinvoice', label: 'New Invoice', icon: <FileAddOutlined />, path: '/invoicepro/newinvoice' },
+                    { key: '/invoicepro/customers', label: 'Customers', icon: <UserAddOutlined />, path: '/invoicepro/customers' },
                     { key: '/invoicepro/settings', label: 'Settings', icon: <SettingOutlined />, path: '/invoicepro/settings' },
                 ],
             },
@@ -185,11 +209,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
                 label: 'Payroll',
                 icon: <MoneyCollectOutlined />,
                 children: [
-                    { key: '/salary/Create-payslip', label: 'Create Payslip', icon: <FileAddOutlined />, path: '/salary/Create-payslip' },
-                    { key: '/salary/My-Payslip', label: 'My Payslip', icon: <ProfileOutlined />, path: '/salary/My-Payslip' },
+                    { key: '/salary/Create-payslip', label: 'Create Payslip', icon: <FormOutlined />, path: '/salary/Create-payslip' },
+                    { key: '/salary/My-Payslip', label: 'My Payslip', icon: <SolutionOutlined />, path: '/salary/My-Payslip' },
                     { key: '/salary/Generate-payslip', label: 'Generate Payslip', icon: <FileAddOutlined />, path: '/salary/Generate-payslip' },
                     { key: '/salary/Payslips', label: 'Payslips', icon: <SnippetsOutlined />, path: '/salary/Payslips' },
-                    { key: '/salary/Settings', label: 'Settings', icon: <SettingOutlined />, path: '/salary/Settings' },
+                    { key: '/salary/Settings', label: 'Settings', icon: <ControlOutlined />, path: '/salary/Settings' },
                 ],
             },
         ],
@@ -197,19 +221,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     {
         key: 'ADMIN',
         label: 'ADMIN',
+        icon: <SettingOutlined />,
         pathPrefixes: ['/clients', '/settings', '/admin'],
         defaultPath: '/clients',
         items: [
             {
                 key: '/clients',
                 label: 'Clients',
-                icon: <UserOutlined />,
+                icon: <UserAddOutlined />,
                 path: '/clients',
             },
             {
                 key: '/settings',
                 label: 'General Settings',
-                icon: <SettingOutlined />,
+                icon: <ControlOutlined />,
                 path: '/settings',
             },
         ],

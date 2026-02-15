@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         AuthService.clearAuth();
 
         // Redirect to login if not already there
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.startsWith('/public')) {
           router.push('/login?error=session_expired');
         }
       } else {

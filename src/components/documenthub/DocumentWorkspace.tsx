@@ -13,7 +13,8 @@ import {
     PanelLeft,
     Share2,
     History,
-    MoreHorizontal
+    MoreHorizontal,
+    Trash
 } from 'lucide-react'
 import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
 import MainLayout from '@/components/layout/MainLayout'
@@ -27,6 +28,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, FullscreenOutlined, FullscreenExitOutlined, ExportOutlined } from '@ant-design/icons'
 import DocumentHistory from '@/components/common/DocumentHistory'
+import ShareModal from '@/components/documenthub/ShareModal'
 
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
@@ -39,7 +41,9 @@ function TreeNode({
     expandedIds,
     onToggleExpand,
     onAddNode,
-    onRenameNode
+
+    onRenameNode,
+    onDeleteDocument
 }: {
     item: TreeItem
     selectedId: string
@@ -48,6 +52,7 @@ function TreeNode({
     onToggleExpand: (id: string) => void
     onAddNode: (parentId: string, type: 'file' | 'folder') => void
     onRenameNode: (id: string, newTitle: string) => void
+    onDeleteDocument: (id: string, type: 'file' | 'folder', documentId?: string) => void
 }) {
     const hasChildren = item.children && item.children.length > 0
     const isExpanded = expandedIds.has(item.id)
@@ -89,6 +94,16 @@ function TreeNode({
             onClick: (e) => {
                 e.domEvent.stopPropagation();
                 onAddNode(item.id, 'file');
+            }
+        },
+        {
+            key: 'delete-node',
+            label: 'Delete',
+            icon: <Trash className="w-4 h-4 text-red-500" />,
+            danger: true,
+            onClick: (e) => {
+                e.domEvent.stopPropagation();
+                onDeleteDocument(item.id, item.type as 'file' | 'folder', item.documentId || undefined);
             }
         }
     ];
@@ -182,6 +197,7 @@ function TreeNode({
                             onToggleExpand={onToggleExpand}
                             onAddNode={onAddNode}
                             onRenameNode={onRenameNode}
+                            onDeleteDocument={onDeleteDocument}
                         />
                     ))}
                 </div>
@@ -204,6 +220,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [previewVersion, setPreviewVersion] = useState<any | null>(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [isShareOpen, setIsShareOpen] = useState(false);
 
     // Add Node State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -213,6 +230,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [form] = Form.useForm();
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
+    const [modal, modalContextHolder] = Modal.useModal();
 
     const { data: documentHub, isLoading: documentHubLoading } = useDocumentHub(documentId)
 
@@ -393,7 +411,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const handleRestoreVersion = async () => {
         if (!previewVersion || !editor) return;
 
-        Modal.confirm({
+        modal.confirm({
             title: 'Restore Version',
             content: 'Are you sure you want to restore this version? Current changes will be overwritten.',
             onOk: async () => {
@@ -443,9 +461,45 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         }
     };
 
+    const handleDeleteDocument = async (id: string, type: 'file' | 'folder', docId?: string) => {
+        // For now only files (documents) deleting are implemented in backend fully as described
+        // Folders are just nodes, but documents are separate entities.
+        // My implementation of deleteDocument expects a documentId (not treeNodeId).
+
+        if (type === 'file' && docId) {
+            modal.confirm({
+                title: 'Delete Document',
+                content: 'Are you sure you want to delete this document?',
+                okText: 'Delete',
+                okType: 'danger',
+                onOk: async () => {
+                    try {
+                        await DocumentHubService.deleteDocument(docId);
+                        messageApi.success('Document deleted');
+                        // Invalidate document hub to refresh tree (removes deleted node)
+                        queryClient.invalidateQueries({ queryKey: [...globalDataKeys.tickets, documentId] });
+                        // Invalidate the individual document cache
+                        queryClient.removeQueries({ queryKey: ['document', docId] });
+                        // Invalidate document history cache
+                        queryClient.removeQueries({ queryKey: ['documentHistory', docId] });
+                        if (selectedDoc === docId) {
+                            setSelectedDoc('api-ref');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        messageApi.error('Failed to delete document');
+                    }
+                }
+            });
+        } else {
+            messageApi.warning('Deleting folders is not yet supported in this version.');
+        }
+    };
+
     return (
         <MainLayout>
             {contextHolder}
+            {modalContextHolder}
             <div className="flex h-[calc(100vh-64px)] w-full bg-white">
                 {/* Sidebar */}
                 {!isFullScreen && (
@@ -488,6 +542,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onToggleExpand={toggleExpand}
                                             onAddNode={handleAddNode}
                                             onRenameNode={handleRenameNode}
+                                            onDeleteDocument={handleDeleteDocument}
                                         />
                                     ))}
                                 </div>
@@ -581,6 +636,19 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onClick={() => window.open(`/document/${selectedDoc}`, '_blank')}
                                         />
                                     </Tooltip>
+                                    <Tooltip title="Share Document">
+                                        <Button
+                                            icon={<Share2 className="w-4 h-4" />}
+                                            onClick={() => setIsShareOpen(true)}
+                                        />
+                                    </Tooltip>
+                                    <Tooltip title="Delete Document">
+                                        <Button
+                                            danger
+                                            icon={<Trash className="w-4 h-4" />}
+                                            onClick={() => handleDeleteDocument(selectedDoc, 'file', selectedDoc)}
+                                        />
+                                    </Tooltip>
                                     <div className="h-6 w-px bg-gray-200 mx-2" />
                                 </>
                             )}
@@ -597,10 +665,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                     }}
                                 />
                             </Tooltip>
-                            <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">
-                                <Share2 className="w-4 h-4" />
-                                Share
-                            </button>
+
                             <button
                                 className={`flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md ${isHistoryOpen ? 'bg-gray-100' : ''}`}
                                 onClick={() => setIsHistoryOpen(true)}
@@ -665,6 +730,15 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     onSelectVersion={handleSelectVersion}
                 />
             </Drawer>
+
+            <ShareModal
+                open={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                documentId={selectedDoc}
+                documentTitle={documentContent?.title || ''}
+                currentVisibility={documentContent?.visibility || 'private'}
+                currentShareToken={documentContent?.shareToken || null}
+            />
 
             <Modal
                 title={`Create New ${addNodeType === 'folder' ? 'Folder' : 'File'}`}

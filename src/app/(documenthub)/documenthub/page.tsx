@@ -18,6 +18,7 @@ import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import dayjs from "dayjs";
 import { DeleteOutlined, RestOutlined } from "@ant-design/icons";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
+import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 
 
 const { Option } = Select;
@@ -202,66 +203,76 @@ const DocumentHubPage = (props: Props) => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex-shrink-0 flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2 w-full">
-              <Input
-                placeholder="Search..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                style={{ width: "40%" }}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">
+              <DocumentHubDashboard
+                documentHubs={documentHubs}
+                isLoading={hubsLoading}
+                onHubClick={(id) => router.push(`/documenthub/${id}`)}
               />
-
             </div>
-            <div className="flex items-center gap-2">
-              <Select
-                placeholder="Project"
-                style={{ width: 150 }}
-                allowClear
-                showSearch
-                optionFilterProp="label"
-                value={filterProjectId}
-                onChange={setFilterProjectId}
-                loading={projectsLoading}
-                options={projects}
-              />
-              <Select
-                placeholder="Created By"
-                showSearch
-                style={{ width: 150 }}
-                allowClear
-                optionFilterProp="label"
-                value={selectedUser}
-                onChange={setSelectedUser}
-                loading={membersLoading}
-                options={members.map((m: any) => ({
-                  label: m.label,
-                  value: m.value,
-                }))}
-              />
 
-              <RangePicker
-                style={{ width: 240 }}
-                value={dateRange}
-                onChange={(dates) => setDateRange(dates as any)}
-              />
+            <div className="p-4 border-b border-gray-100 flex-shrink-0 flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2 w-full">
+                <Input
+                  placeholder="Search..."
+                  prefix={<SearchOutlined className="text-gray-400" />}
+                  style={{ width: "40%" }}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
 
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  placeholder="Project"
+                  style={{ width: 150 }}
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  value={filterProjectId}
+                  onChange={setFilterProjectId}
+                  loading={projectsLoading}
+                  options={projects}
+                />
+                <Select
+                  placeholder="Created By"
+                  showSearch
+                  style={{ width: 150 }}
+                  allowClear
+                  optionFilterProp="label"
+                  value={selectedUser}
+                  onChange={setSelectedUser}
+                  loading={membersLoading}
+                  options={members.map((m: any) => ({
+                    label: m.label,
+                    value: m.value,
+                  }))}
+                />
+
+                <RangePicker
+                  style={{ width: 240 }}
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates as any)}
+                />
+
+              </div>
             </div>
-          </div>
-          <div className="flex-1 overflow-hidden p-2">
-            <Table
-              columns={columns}
-              dataSource={filteredHubs}
-              rowKey="id"
-              loading={hubsLoading}
-              pagination={{ pageSize: 20, showSizeChanger: true }}
-              size="small"
-              onRow={(record) => ({
-                onClick: () => router.push(`/documenthub/${record.id}`),
-                className: "cursor-pointer hover:bg-gray-50",
-              })}
-            />
+            <div className="flex-1 overflow-hidden p-2">
+              <Table
+                columns={columns}
+                dataSource={filteredHubs}
+                rowKey="id"
+                loading={hubsLoading}
+                pagination={{ pageSize: 20, showSizeChanger: true }}
+                size="small"
+                onRow={(record) => ({
+                  onClick: () => router.push(`/documenthub/${record.id}`),
+                  className: "cursor-pointer hover:bg-gray-50",
+                })}
+              />
+            </div>
           </div>
         </div>
       </div>

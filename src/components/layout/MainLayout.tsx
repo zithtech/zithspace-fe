@@ -44,6 +44,7 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
+  AppstoreOutlined 
 } from "@ant-design/icons";
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -285,12 +286,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
       icon: <MoneyCollectOutlined />,
       label: "Payroll",
       children: [
-        // {
-        //   key: "/salary/Dashboard",
-        //   icon: <DashboardOutlined />,
-        //   label: "Dashboard",
-        //   onClick: () => handleNavigation("/salary/Dashboard"),
-        // },
        
         {
           key: "/salary/Create-payslip",
@@ -330,12 +325,58 @@ export default function MainLayout({ children }: MainLayoutProps) {
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
-     {
+    //  {
+    //   key: "/releasenotes",
+    //   icon: < FileTextOutlined />,
+    //   label: "Release Notes",
+    //   onClick: () => handleNavigation("/releasenotes"),
+    // },
+//     {
+//   key: "releasenotes",
+//   icon: <FileTextOutlined />,
+//   label: "Release Notes",
+//   children: [
+//     {
+//       key: "/releasenotes",
+//       icon: <FileTextOutlined />,
+//       label: "Release",
+//       onClick: () => handleNavigation("/releasenotes"),
+//     },
+//     {
+//       key: "/releasenotes/settings",
+//       icon: <SettingOutlined />,
+//       label: "Settings",
+//       onClick: () => handleNavigation("/releasenotes/settings"),
+//     },
+//   ],
+// },
+{
+  key: "releasenotes",
+  icon: <FileTextOutlined />,
+  label: "Release Notes",
+  children: [
+    {
+      key: "/releasenotes/dashboard",
+      icon: <AppstoreOutlined />,
+      label: "Dashboard",
+      onClick: () => handleNavigation("/releasenotes/dashboard"),
+    },
+    {
       key: "/releasenotes",
-      icon: < FileTextOutlined />,
-      label: "Release Notes",
+      icon: <FileTextOutlined />,
+      label: "Release",
       onClick: () => handleNavigation("/releasenotes"),
     },
+    {
+      key: "/releasenotes/settings",
+      icon: <SettingOutlined />,
+      label: "Settings",
+      onClick: () => handleNavigation("/releasenotes/settings"),
+    },
+  ],
+},
+
+
   ];
 
 

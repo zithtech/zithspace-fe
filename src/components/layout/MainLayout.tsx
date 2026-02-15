@@ -44,9 +44,9 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
-  AppstoreOutlined 
+  AppstoreOutlined,
 } from "@ant-design/icons";
-import LoadingSpinner from '../common/LoadingSpinner';
+import LoadingSpinner from "../common/LoadingSpinner";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -66,7 +66,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Connect to user stream for global notifications
   React.useEffect(() => {
     if (user?.id) {
-      const { streamClient } = require('@/services/streamClient');
+      const { streamClient } = require("@/services/streamClient");
 
       streamClient.connectUser(user.id);
 
@@ -82,16 +82,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
         notification.info({
           key,
           message: `New message from ${data.senderName}`,
-          description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
-          placement: 'topRight',
+          description:
+            data.content.substring(0, 50) +
+            (data.content.length > 50 ? "..." : ""),
+          placement: "topRight",
           duration: 4.5,
           onClick: () => {
             notification.destroy(key);
             router.push(`/chat/${data.channelId}`);
           },
           style: {
-            cursor: 'pointer'
-          }
+            cursor: "pointer",
+          },
         });
       });
 
@@ -101,11 +103,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }
   }, [user?.id, pathname, router, notification]);
 
-
   // Fetch data (only render badges after mount to prevent hydration errors)
-
-
-
 
   // Navigation items with icons
   const getNavigationItems = () => [
@@ -161,29 +159,29 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {
           key: "/projects/plans",
           icon: <CalendarOutlined />,
-          label: 'Plans',
-          onClick: () => handleNavigation('/projects/plans'),
+          label: "Plans",
+          onClick: () => handleNavigation("/projects/plans"),
         },
         {
-          key: '/projects/buckets',
+          key: "/projects/buckets",
           icon: <InboxOutlined />,
-          label: 'Buckets',
-          onClick: () => handleNavigation('/projects/buckets'),
+          label: "Buckets",
+          onClick: () => handleNavigation("/projects/buckets"),
         },
         {
-          key: '/projects/trash',
+          key: "/projects/trash",
           icon: <DeleteOutlined />,
-          label: 'Trash',
-          onClick: () => handleNavigation('/projects/trash'),
+          label: "Trash",
+          onClick: () => handleNavigation("/projects/trash"),
         },
         {
-          key: '/projects/archived',
+          key: "/projects/archived",
           icon: <FolderOpenOutlined />,
-          label: 'Archived',
-          onClick: () => handleNavigation('/projects/archived'),
+          label: "Archived",
+          onClick: () => handleNavigation("/projects/archived"),
         },
         {
-          key: '/projects/settings',
+          key: "/projects/settings",
           icon: <ControlOutlined />,
           label: "Settings",
           onClick: () => handleNavigation("/projects/settings"),
@@ -224,8 +222,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     {
       key: "/leaves",
       icon: <FileTextOutlined />,
-      label: 'Leave & Permission',
-      onClick: () => handleNavigation('/leaves-dashboard'),
+      label: "Leave & Permission",
+      onClick: () => handleNavigation("/leaves-dashboard"),
     },
     {
       key: "/accounts",
@@ -276,9 +274,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: "Settings",
           onClick: () => handleNavigation("/invoicepro/settings"),
         },
-
       ],
-
     },
 
     {
@@ -286,7 +282,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
       icon: <MoneyCollectOutlined />,
       label: "Payroll",
       children: [
-       
         {
           key: "/salary/Create-payslip",
           icon: <FileAddOutlined />,
@@ -311,7 +306,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: "Payslips",
           onClick: () => handleNavigation("/salary/Payslips"),
         },
-         {
+        {
           key: "/salary/Settings",
           icon: <SettingOutlined />,
           label: "Settings",
@@ -331,69 +326,60 @@ export default function MainLayout({ children }: MainLayoutProps) {
     //   label: "Release Notes",
     //   onClick: () => handleNavigation("/releasenotes"),
     // },
-//     {
-//   key: "releasenotes",
-//   icon: <FileTextOutlined />,
-//   label: "Release Notes",
-//   children: [
-//     {
-//       key: "/releasenotes",
-//       icon: <FileTextOutlined />,
-//       label: "Release",
-//       onClick: () => handleNavigation("/releasenotes"),
-//     },
-//     {
-//       key: "/releasenotes/settings",
-//       icon: <SettingOutlined />,
-//       label: "Settings",
-//       onClick: () => handleNavigation("/releasenotes/settings"),
-//     },
-//   ],
-// },
-{
-  key: "releasenotes",
-  icon: <FileTextOutlined />,
-  label: "Release Notes",
-  children: [
+    //     {
+    //   key: "releasenotes",
+    //   icon: <FileTextOutlined />,
+    //   label: "Release Notes",
+    //   children: [
+    //     {
+    //       key: "/releasenotes",
+    //       icon: <FileTextOutlined />,
+    //       label: "Release",
+    //       onClick: () => handleNavigation("/releasenotes"),
+    //     },
+    //     {
+    //       key: "/releasenotes/settings",
+    //       icon: <SettingOutlined />,
+    //       label: "Settings",
+    //       onClick: () => handleNavigation("/releasenotes/settings"),
+    //     },
+    //   ],
+    // },
     {
-      key: "/releasenotes/dashboard",
-      icon: <AppstoreOutlined />,
-      label: "Dashboard",
-      onClick: () => handleNavigation("/releasenotes/dashboard"),
-    },
-    {
-      key: "/releasenotes",
+      key: "releasenotes",
       icon: <FileTextOutlined />,
-      label: "Release",
-      onClick: () => handleNavigation("/releasenotes"),
+      label: "Release Notes",
+      children: [
+        {
+          key: "/releasenotes/dashboard",
+          icon: <AppstoreOutlined />,
+          label: "Dashboard",
+          onClick: () => handleNavigation("/releasenotes/dashboard"),
+        },
+        {
+          key: "/releasenotes",
+          icon: <FileTextOutlined />,
+          label: "Release",
+          onClick: () => handleNavigation("/releasenotes"),
+        },
+        {
+          key: "/releasenotes/settings",
+          icon: <SettingOutlined />,
+          label: "Settings",
+          onClick: () => handleNavigation("/releasenotes/settings"),
+        },
+      ],
     },
-    {
-      key: "/releasenotes/settings",
-      icon: <SettingOutlined />,
-      label: "Settings",
-      onClick: () => handleNavigation("/releasenotes/settings"),
-    },
-  ],
-},
-
-
   ];
 
-
-
   if (authLoading) {
-    return (
-      <LoadingSpinner message="Loading..." />
-    );
+    return <LoadingSpinner message="Loading..." />;
   }
 
   if (!user) {
-    router.push('/login');
+    router.push("/login");
     return null;
   }
-
-
-
 
   const handleNavigation = (path: string) => {
     router.push(path);
@@ -447,8 +433,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
-   
-
       {/* Sidebar */}
       <Sider
         trigger={null}
@@ -588,7 +572,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <Button
               type="text"
               icon={<MessageOutlined />}
-              onClick={() => router.push('/chat')}
+              onClick={() => router.push("/chat")}
               style={{
                 display: "flex",
                 alignItems: "center",

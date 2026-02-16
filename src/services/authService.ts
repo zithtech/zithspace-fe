@@ -47,6 +47,7 @@ export interface UserProfile {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  department?: string;
 }
 
 export interface UpdateProfileData {
@@ -71,11 +72,11 @@ export class AuthService {
     try {
       // Use apiClient directly to get full response including accessToken
       const response = await apiClient.post('/api/auth/login', credentials);
-      
+
       if (response.data.success) {
         // Store only access token - refresh token is set as cookie by backend
         TokenManager.setAccessToken(response.data.accessToken);
-        
+
         return response.data;
       } else {
         throw new Error(response.data.error || 'Login failed');
@@ -152,7 +153,7 @@ export class AuthService {
     try {
       // No body needed - refresh token is sent via cookies
       const response = await apiClient.post('/api/auth/refresh');
-      
+
       if (response.data.success) {
         TokenManager.setAccessToken(response.data.accessToken);
         return true;

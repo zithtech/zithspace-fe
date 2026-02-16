@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import {
@@ -42,7 +40,10 @@ import {
   useReleaseNote,
   useReleaseNotes,
 } from "@/hooks/usereleasenotes";
-import { ProjectService, Project as ServiceProject } from "@/services/projectService";
+import {
+  ProjectService,
+  Project as ServiceProject,
+} from "@/services/projectService";
 import TicketService from "@/services/ticketService";
 import { enviromentService } from "@/services/enviromentService";
 
@@ -98,13 +99,18 @@ export default function Page() {
     content: any;
   } | null>(null);
 
+  // ========== NEW: Track which action is loading ==========
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  // =======================================================
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
-  
+
   // Environments state - ONLY from service
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [loadingEnvironments, setLoadingEnvironments] = useState(false);
-  
+
   // Tickets state
   const [allTickets, setAllTickets] = useState<TicketOption[]>([]);
   const [displayTickets, setDisplayTickets] = useState<TicketOption[]>([]);
@@ -152,7 +158,7 @@ export default function Page() {
 
   const createReleaseNote = useCreateReleaseNote();
   const updateReleaseNote = useUpdateReleaseNote();
-  
+
   // NEW: Get all release notes for version checking
   const { data: releaseNotes } = useReleaseNotes({ limit: 100 });
 
@@ -167,13 +173,15 @@ export default function Page() {
         setLoadingProjects(true);
         const response = await ProjectService.getProjects();
         const serviceProjects = response.data || [];
-        
+
         // Map service projects to local Project type (omit tenantId if it exists)
-        const mappedProjects: Project[] = serviceProjects.map((p: ServiceProject) => ({
-          id: p.id,
-          name: p.name,
-        }));
-        
+        const mappedProjects: Project[] = serviceProjects.map(
+          (p: ServiceProject) => ({
+            id: p.id,
+            name: p.name,
+          }),
+        );
+
         setProjects(mappedProjects);
       } catch (error) {
         console.error("Failed to fetch projects:", error);
@@ -192,9 +200,9 @@ export default function Page() {
       try {
         setLoadingEnvironments(true);
         const response = await enviromentService.getEnviroments();
-        
+
         console.log("Environments API response:", response);
-        
+
         if (Array.isArray(response)) {
           setEnvironments(response);
         } else {
@@ -218,7 +226,9 @@ export default function Page() {
     if (selectedProjectId && releaseNotes?.data) {
       // Filter release notes for this project and get versions
       const projectVersions = releaseNotes.data
-        .filter((note: any) => note.projectId === selectedProjectId && note.version)
+        .filter(
+          (note: any) => note.projectId === selectedProjectId && note.version,
+        )
         .map((note: any) => note.version);
 
       setExistingVersions(projectVersions);
@@ -258,18 +268,21 @@ export default function Page() {
       if (releaseData.repositories?.length) {
         setRepositories(releaseData.repositories);
       }
-      
+
       if (releaseData.pullRequests?.length) {
         setPullRequests(releaseData.pullRequests);
       }
 
       form.setFieldsValue({
-        projectId: releaseData.projectId || releaseData.project?.id || undefined,
+        projectId:
+          releaseData.projectId || releaseData.project?.id || undefined,
         version: releaseData.version || "",
         title: releaseData.title || "",
         releaseDate: releaseDateValue,
         environment: releaseData.environment || "",
-        visibility: Array.isArray(releaseData.visibility) ? releaseData.visibility : [],
+        visibility: Array.isArray(releaseData.visibility)
+          ? releaseData.visibility
+          : [],
         linkedTickets: releaseData.linkedTickets?.length
           ? [{ ticket: releaseData.linkedTickets }]
           : undefined,
@@ -288,8 +301,10 @@ export default function Page() {
       const getDocumentArray = (content: any) => {
         if (!content) return null;
         if (Array.isArray(content)) return content;
-        if (content?.document && Array.isArray(content.document)) return content.document;
-        if (content?.blocks && Array.isArray(content.blocks)) return content.blocks;
+        if (content?.document && Array.isArray(content.document))
+          return content.document;
+        if (content?.blocks && Array.isArray(content.blocks))
+          return content.blocks;
         if (typeof content === "string") {
           try {
             const parsed = JSON.parse(content);
@@ -309,19 +324,28 @@ export default function Page() {
 
       const keyInsightsContent = getDocumentArray(releaseData.keyInsights);
       if (keyInsightsContent) {
-        keyInsightsEditor.replaceBlocks(keyInsightsEditor.document, keyInsightsContent);
+        keyInsightsEditor.replaceBlocks(
+          keyInsightsEditor.document,
+          keyInsightsContent,
+        );
         editorContents.current.keyInsights = keyInsightsContent;
       }
 
       const newFeaturesContent = getDocumentArray(releaseData.newFeatures);
       if (newFeaturesContent) {
-        newFeaturesEditor.replaceBlocks(newFeaturesEditor.document, newFeaturesContent);
+        newFeaturesEditor.replaceBlocks(
+          newFeaturesEditor.document,
+          newFeaturesContent,
+        );
         editorContents.current.newFeatures = newFeaturesContent;
       }
 
       const improvementsContent = getDocumentArray(releaseData.improvements);
       if (improvementsContent) {
-        improvementsEditor.replaceBlocks(improvementsEditor.document, improvementsContent);
+        improvementsEditor.replaceBlocks(
+          improvementsEditor.document,
+          improvementsContent,
+        );
         editorContents.current.improvements = improvementsContent;
       }
 
@@ -331,27 +355,43 @@ export default function Page() {
         editorContents.current.bugFixes = bugFixesContent;
       }
 
-      const breakingChangesContent = getDocumentArray(releaseData.breakingChanges);
+      const breakingChangesContent = getDocumentArray(
+        releaseData.breakingChanges,
+      );
       if (breakingChangesContent) {
-        breakingChangesEditor.replaceBlocks(breakingChangesEditor.document, breakingChangesContent);
+        breakingChangesEditor.replaceBlocks(
+          breakingChangesEditor.document,
+          breakingChangesContent,
+        );
         editorContents.current.breakingChanges = breakingChangesContent;
       }
 
       const apiChangesContent = getDocumentArray(releaseData.apiChanges);
       if (apiChangesContent) {
-        apiChangesEditor.replaceBlocks(apiChangesEditor.document, apiChangesContent);
+        apiChangesEditor.replaceBlocks(
+          apiChangesEditor.document,
+          apiChangesContent,
+        );
         editorContents.current.apiChanges = apiChangesContent;
       }
 
-      const databaseChangesContent = getDocumentArray(releaseData.databaseChanges);
+      const databaseChangesContent = getDocumentArray(
+        releaseData.databaseChanges,
+      );
       if (databaseChangesContent) {
-        databaseChangesEditor.replaceBlocks(databaseChangesEditor.document, databaseChangesContent);
+        databaseChangesEditor.replaceBlocks(
+          databaseChangesEditor.document,
+          databaseChangesContent,
+        );
         editorContents.current.databaseChanges = databaseChangesContent;
       }
 
       const knownIssuesContent = getDocumentArray(releaseData.knownIssues);
       if (knownIssuesContent) {
-        knownIssuesEditor.replaceBlocks(knownIssuesEditor.document, knownIssuesContent);
+        knownIssuesEditor.replaceBlocks(
+          knownIssuesEditor.document,
+          knownIssuesContent,
+        );
         editorContents.current.knownIssues = knownIssuesContent;
       }
     }
@@ -368,23 +408,40 @@ export default function Page() {
   }, [editId, duplicateId]);
 
   // ========== NEW: Handle version input change ==========
-  const handleVersionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const version = e.target.value;
-    form.setFieldValue("version", version);
+  // const handleVersionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const version = e.target.value;
+  //   form.setFieldValue("version", version);
 
-    // Only show warning for new entries (not edit mode)
-    if (!version.trim()) {
-      setVersionWarning("");
-      return;
-    }
+  //   // Only show warning for new entries (not edit mode)
+  //   if (!version.trim()) {
+  //     setVersionWarning("");
+  //     return;
+  //   }
 
-    if (!isEditMode && existingVersions.includes(version)) {
-      setVersionWarning(`⚠️ Version "${version}" already exists. Please use a different version.`);
-    } else {
-      setVersionWarning("");
-    }
-  };
+  //   if (!isEditMode && existingVersions.includes(version)) {
+  //     setVersionWarning(
+  //       `⚠️ Version "${version}" already exists. Please use a different version.`,
+  //     );
+  //   } else {
+  //     setVersionWarning("");
+  //   }
+  // };
+const handleVersionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const version = e.target.value;
+  form.setFieldValue("version", version);
 
+  // Only show warning for new entries (not edit mode)
+  if (!version.trim()) {
+    setVersionWarning("");
+    return;
+  }
+
+  if (!isEditMode && existingVersions.includes(version)) {
+    setVersionWarning("duplicate"); // Just set a flag instead of full message
+  } else {
+    setVersionWarning("");
+  }
+};
   // NEW: Handle version field blur
   const handleVersionBlur = () => {
     const version = form.getFieldValue("version");
@@ -403,7 +460,9 @@ export default function Page() {
     const version = form.getFieldValue("version");
 
     if (!isEditMode && version && existingVersions.includes(version)) {
-      message.error(`Version "${version}" already exists. Please use a different version number.`);
+      message.error(
+        `Version "${version}" already exists. Please use a different version number.`,
+      );
       return false;
     }
     return true;
@@ -428,7 +487,7 @@ export default function Page() {
 
   // Handle remove repository
   const handleRemoveRepository = (repoToRemove: string) => {
-    setRepositories(repositories.filter(repo => repo !== repoToRemove));
+    setRepositories(repositories.filter((repo) => repo !== repoToRemove));
   };
 
   // Handle add pull request
@@ -449,19 +508,19 @@ export default function Page() {
 
   // Handle remove pull request
   const handleRemovePullRequest = (prToRemove: string) => {
-    setPullRequests(pullRequests.filter(pr => pr !== prToRemove));
+    setPullRequests(pullRequests.filter((pr) => pr !== prToRemove));
   };
 
   // Handle Enter key for inputs
   const handleRepositoryKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleAddRepository();
     }
   };
 
   const handlePullRequestKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleAddPullRequest();
     }
@@ -471,7 +530,7 @@ export default function Page() {
   const handleProjectChange = async (projectId: string) => {
     // NEW: Set selected project ID for version tracking
     setSelectedProjectId(projectId);
-    
+
     if (!projectId) {
       setAllTickets([]);
       setDisplayTickets([]);
@@ -518,15 +577,16 @@ export default function Page() {
   // Handle ticket search
   const handleTicketSearch = (value: string) => {
     setTicketSearchTerm(value);
-    
+
     if (!value.trim()) {
       const latestTickets = allTickets.slice(0, 10);
       setDisplayTickets(latestTickets);
     } else {
       const searchLower = value.toLowerCase();
-      const filtered = allTickets.filter(ticket => 
-        ticket.ticketNumber.toLowerCase().includes(searchLower) ||
-        ticket.title.toLowerCase().includes(searchLower)
+      const filtered = allTickets.filter(
+        (ticket) =>
+          ticket.ticketNumber.toLowerCase().includes(searchLower) ||
+          ticket.title.toLowerCase().includes(searchLower),
       );
       setDisplayTickets(filtered);
     }
@@ -559,7 +619,11 @@ export default function Page() {
           else if (item.content) extractText(item);
         });
       }
-      if (node.type === "paragraph" && textContent.length > 0 && !textContent.endsWith("\n")) {
+      if (
+        node.type === "paragraph" &&
+        textContent.length > 0 &&
+        !textContent.endsWith("\n")
+      ) {
         textContent += "\n";
       }
       if (node.children && Array.isArray(node.children)) {
@@ -572,14 +636,22 @@ export default function Page() {
 
   const renderPreviewContent = (content: any) => {
     if (!content) return "Start typing to see preview...";
-    if (typeof content === "string") return content || "Start typing to see preview...";
+    if (typeof content === "string")
+      return content || "Start typing to see preview...";
     if (Array.isArray(content)) return extractTextFromBlocks(content);
-    if (content?.document && Array.isArray(content.document)) return extractTextFromBlocks(content.document);
-    if (content?.blocks && Array.isArray(content.blocks)) return extractTextFromBlocks(content.blocks);
+    if (content?.document && Array.isArray(content.document))
+      return extractTextFromBlocks(content.document);
+    if (content?.blocks && Array.isArray(content.blocks))
+      return extractTextFromBlocks(content.blocks);
     return "Start typing to see preview...";
   };
 
-  const handleEditorFocus = (editor: any, title: string, icon: any, color: string) => {
+  const handleEditorFocus = (
+    editor: any,
+    title: string,
+    icon: any,
+    color: string,
+  ) => {
     setActiveEditor({
       title,
       icon,
@@ -588,158 +660,57 @@ export default function Page() {
     });
   };
 
-  // FIXED: Update preview in real-time as user types - with proper dependencies
-  // useEffect(() => {
-  //   if (!activeEditor) return;
-
-  //   let currentContent = null;
-    
-  //   // Get the current content based on active editor title
-  //   if (activeEditor.title === "Release Summary") {
-  //     currentContent = summaryEditor.document;
-  //   } else if (activeEditor.title === "Key Insights") {
-  //     currentContent = keyInsightsEditor.document;
-  //   } else if (activeEditor.title === "New Features") {
-  //     currentContent = newFeaturesEditor.document;
-  //   } else if (activeEditor.title === "Improvements") {
-  //     currentContent = improvementsEditor.document;
-  //   } else if (activeEditor.title === "Bug Fixes") {
-  //     currentContent = bugFixesEditor.document;
-  //   } else if (activeEditor.title === "Breaking Changes") {
-  //     currentContent = breakingChangesEditor.document;
-  //   } else if (activeEditor.title === "API Changes") {
-  //     currentContent = apiChangesEditor.document;
-  //   } else if (activeEditor.title === "Database Changes") {
-  //     currentContent = databaseChangesEditor.document;
-  //   } else if (activeEditor.title === "Known Issues") {
-  //     currentContent = knownIssuesEditor.document;
-  //   }
-
-  //   // Update preview if content changed and we're not already updating
-  //   if (currentContent && JSON.stringify(currentContent) !== JSON.stringify(activeEditor.content)) {
-  //     setActiveEditor(prev => prev ? { ...prev, content: currentContent } : null);
-  //   }
-  // }, [
-  //   activeEditor?.title, // Only depend on the title, not the entire activeEditor object
-  //   summaryEditor.document,
-  //   keyInsightsEditor.document,
-  //   newFeaturesEditor.document,
-  //   improvementsEditor.document,
-  //   bugFixesEditor.document,
-  //   breakingChangesEditor.document,
-  //   apiChangesEditor.document,
-  //   databaseChangesEditor.document,
-  //   knownIssuesEditor.document,
-  // ]);
-
-
-
   // Update preview in real-time as user types
-useEffect(() => {
-  if (!activeEditor) return;
+  useEffect(() => {
+    if (!activeEditor) return;
 
-  // Create a mapping of editor titles to their document references
-  const editorMap: Record<string, any> = {
-    "Release Summary": summaryEditor.document,
-    "Key Insights": keyInsightsEditor.document,
-    "New Features": newFeaturesEditor.document,
-    "Improvements": improvementsEditor.document,
-    "Bug Fixes": bugFixesEditor.document,
-    "Breaking Changes": breakingChangesEditor.document,
-    "API Changes": apiChangesEditor.document,
-    "Database Changes": databaseChangesEditor.document,
-    "Known Issues": knownIssuesEditor.document,
-  };
+    // Create a mapping of editor titles to their document references
+    const editorMap: Record<string, any> = {
+      "Release Summary": summaryEditor.document,
+      "Key Insights": keyInsightsEditor.document,
+      "New Features": newFeaturesEditor.document,
+      Improvements: improvementsEditor.document,
+      "Bug Fixes": bugFixesEditor.document,
+      "Breaking Changes": breakingChangesEditor.document,
+      "API Changes": apiChangesEditor.document,
+      "Database Changes": databaseChangesEditor.document,
+      "Known Issues": knownIssuesEditor.document,
+    };
 
-  // Get the current document for the active editor
-  const currentDocument = editorMap[activeEditor.title];
+    // Get the current document for the active editor
+    const currentDocument = editorMap[activeEditor.title];
 
-  // Only update if we have a document and it's different from what's in activeEditor
-  if (currentDocument) {
-    // Use a timeout to debounce rapid updates
-    const timeoutId = setTimeout(() => {
-      setActiveEditor(prev => 
-        prev ? { ...prev, content: currentDocument } : null
-      );
-    }, 100); // Small delay for performance
+    // Only update if we have a document and it's different from what's in activeEditor
+    if (currentDocument) {
+      // Use a timeout to debounce rapid updates
+      const timeoutId = setTimeout(() => {
+        setActiveEditor((prev) =>
+          prev ? { ...prev, content: currentDocument } : null,
+        );
+      }, 100); // Small delay for performance
 
-    return () => clearTimeout(timeoutId);
-  }
-}, [
-  // Include ALL editor documents as dependencies
-  activeEditor?.title,
-  summaryEditor.document,
-  keyInsightsEditor.document,
-  newFeaturesEditor.document,
-  improvementsEditor.document,
-  bugFixesEditor.document,
-  breakingChangesEditor.document,
-  apiChangesEditor.document,
-  databaseChangesEditor.document,
-  knownIssuesEditor.document,
-]);
-
-  //   useEffect(() => {
-  //   if (!activeEditor) return;
-
-  //   if (activeEditor.title === "Release Summary") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: summaryEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "Key Insights") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: keyInsightsEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "New Features") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: newFeaturesEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "Improvements") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: improvementsEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "Bug Fixes") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: bugFixesEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "Breaking Changes") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: breakingChangesEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "API Changes") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: apiChangesEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "Database Changes") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: databaseChangesEditor.document } : null,
-  //     );
-  //   } else if (activeEditor.title === "Known Issues") {
-  //     setActiveEditor((prev) =>
-  //       prev ? { ...prev, content: knownIssuesEditor.document } : null,
-  //     );
-  //   }
-  // }, [
-  //   summaryEditor.document,
-  //   keyInsightsEditor.document,
-  //   newFeaturesEditor.document,
-  //   improvementsEditor.document,
-  //   bugFixesEditor.document,
-  //   breakingChangesEditor.document,
-  //   apiChangesEditor.document,
-  //   databaseChangesEditor.document,
-  //   knownIssuesEditor.document,
-  //   activeEditor?.title,
-  // ]);
-
-
-
+      return () => clearTimeout(timeoutId);
+    }
+  }, [
+    // Include ALL editor documents as dependencies
+    activeEditor?.title,
+    summaryEditor.document,
+    keyInsightsEditor.document,
+    newFeaturesEditor.document,
+    improvementsEditor.document,
+    bugFixesEditor.document,
+    breakingChangesEditor.document,
+    apiChangesEditor.document,
+    databaseChangesEditor.document,
+    knownIssuesEditor.document,
+  ]);
 
   // MODIFIED: Add version validation to handlePublish
-  
-  
   const handlePublish = async () => {
     try {
+      // Set publishing state to true
+      setIsPublishing(true);
+
       await form.validateFields([
         "projectId",
         "version",
@@ -751,6 +722,7 @@ useEffect(() => {
 
       // NEW: Check version conflict
       if (!validateVersion()) {
+        setIsPublishing(false);
         return;
       }
 
@@ -758,20 +730,25 @@ useEffect(() => {
 
       if (!hasEditorContent(summaryEditor)) {
         message.error("Please enter release summary");
+        setIsPublishing(false);
         return;
       }
 
       const projectId = values.projectId;
       if (!projectId) {
         message.error("Please select a project");
+        setIsPublishing(false);
         return;
       }
 
       const linkedTickets = values.linkedTickets?.[0]?.ticket || [];
 
-      const visibility = Array.isArray(values.visibility) && values.visibility.length > 0
-        ? values.visibility.filter((v) => v !== undefined && v !== null).map((v) => v.toUpperCase())
-        : ["INTERNAL"];
+      const visibility =
+        Array.isArray(values.visibility) && values.visibility.length > 0
+          ? values.visibility
+              .filter((v) => v !== undefined && v !== null)
+              .map((v) => v.toUpperCase())
+          : ["INTERNAL"];
 
       const status = "RELEASED";
 
@@ -798,7 +775,10 @@ useEffect(() => {
       };
 
       if (isEditMode && editId) {
-        await updateReleaseNote.mutateAsync({ id: editId, data: releaseNoteData });
+        await updateReleaseNote.mutateAsync({
+          id: editId,
+          data: releaseNoteData,
+        });
         message.success("✅ Release note updated successfully");
       } else {
         await createReleaseNote.mutateAsync(releaseNoteData);
@@ -813,29 +793,40 @@ useEffect(() => {
         message.error("Please fill in all required fields");
       } else if (error.response) {
         console.error("API Error Response:", error.response.data);
-        message.error(error.response.data?.error || "Failed to publish release note");
+        message.error(
+          error.response.data?.error || "Failed to publish release note",
+        );
       } else if (error.request) {
         message.error("Network error. Please check your connection.");
       } else {
         message.error(error?.message || "Failed to publish release note");
       }
+    } finally {
+      // Always set publishing state to false when done
+      setIsPublishing(false);
     }
   };
 
   const handleSaveDraft = async () => {
     try {
+      // Set saving draft state to true
+      setIsSavingDraft(true);
+
       const values = form.getFieldsValue();
       const projectId = values.projectId;
 
       if (!projectId) {
         message.error("Please select a project to save draft");
+        setIsSavingDraft(false);
         return;
       }
 
       const linkedTickets = values.linkedTickets?.[0]?.ticket || [];
 
       const visibility = Array.isArray(values.visibility)
-        ? values.visibility.filter((v) => v !== undefined && v !== null).map((v) => v.toUpperCase())
+        ? values.visibility
+            .filter((v) => v !== undefined && v !== null)
+            .map((v) => v.toUpperCase())
         : [];
 
       const status = "DRAFT";
@@ -844,7 +835,8 @@ useEffect(() => {
         projectId,
         version: values.version || "",
         title: values.title || "",
-        releaseDate: values.releaseDate?.toISOString() || new Date().toISOString(),
+        releaseDate:
+          values.releaseDate?.toISOString() || new Date().toISOString(),
         environment: values.environment || "",
         visibility,
         summary: getEditorContent(summaryEditor) || {},
@@ -874,6 +866,9 @@ useEffect(() => {
     } catch (error: any) {
       console.error("Save draft failed:", error);
       message.error(error?.message || "Failed to save draft");
+    } finally {
+      // Always set saving draft state to false when done
+      setIsSavingDraft(false);
     }
   };
 
@@ -891,7 +886,14 @@ useEffect(() => {
 
   if (isLoadingRelease) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
         <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
       </div>
     );
@@ -899,48 +901,111 @@ useEffect(() => {
 
   return (
     <App>
-      <div style={{ padding: 20, height: "100vh", display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          padding: 20,
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 16,
+          }}
+        >
           <Space>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/releasenotes")}>
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push("/releasenotes")}
+            >
               Back
             </Button>
-            <Title level={3} style={{ margin: 0 }}>{getPageTitle()}</Title>
+            <Title level={3} style={{ margin: 0 }}>
+              {getPageTitle()}
+            </Title>
           </Space>
           <Space>
-            <Button icon={<EyeOutlined />} onClick={() => setShowPreview(!showPreview)} type={showPreview ? "primary" : "default"}>
+            <Button
+              icon={<EyeOutlined />}
+              onClick={() => setShowPreview(!showPreview)}
+              type={showPreview ? "primary" : "default"}
+            >
               {showPreview ? "Hide Preview" : "Show Preview"}
             </Button>
-            <Button icon={<SaveOutlined />} onClick={handleSaveDraft} loading={createReleaseNote.isPending || updateReleaseNote.isPending}>
+            <Button
+              icon={<SaveOutlined />}
+              onClick={handleSaveDraft}
+              loading={isSavingDraft} // Use separate loading state
+              disabled={isPublishing} // Disable if publishing is in progress
+            >
               Save Draft
             </Button>
-            <Button type="primary" icon={<SendOutlined />} onClick={handlePublish} loading={createReleaseNote.isPending || updateReleaseNote.isPending}>
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={handlePublish}
+              loading={isPublishing} // Use separate loading state
+              disabled={isSavingDraft} // Disable if saving draft is in progress
+            >
               {getPublishButtonText()}
             </Button>
           </Space>
         </div>
 
+        {/* Rest of your JSX remains exactly the same */}
         <Divider style={{ margin: "0 0 16px 0" }} />
 
         {/* Split Layout */}
-        <div style={{ display: "flex", gap: 24, height: "calc(100vh - 120px)", overflow: "hidden" }}>
-          
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            height: "calc(100vh - 120px)",
+            overflow: "hidden",
+          }}
+        >
           {/* ===== LEFT PANEL - FORM ===== */}
-          <div style={{ flex: showPreview ? 0.6 : 1, overflowY: "auto", paddingRight: 8 }}>
+          <div
+            style={{
+              flex: showPreview ? 0.6 : 1,
+              overflowY: "auto",
+              paddingRight: 8,
+            }}
+          >
             <Row justify="start">
               <Col xs={24} sm={24} md={24} lg={24} xl={24}>
-                
                 {/* Basic Information Card */}
                 <Card
-                  title={<span style={{ fontWeight: 600, fontSize: 16 }}>Basic Information</span>}
+                  title={
+                    <span style={{ fontWeight: 600, fontSize: 16 }}>
+                      Basic Information
+                    </span>
+                  }
                   styles={{ body: { padding: "16px 16px 8px 16px" } }}
-                  style={{ border: "1px solid #e5e7eb", boxShadow: "none", marginBottom: 16 }}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "none",
+                    marginBottom: 16,
+                  }}
                 >
                   <Form form={form} layout="vertical">
                     <Row gutter={24}>
                       <Col span={12}>
-                        <Form.Item label="Project" name="projectId" rules={[{ required: true, message: "Please select a project" }]}>
+                        <Form.Item
+                          label="Project"
+                          name="projectId"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please select a project",
+                            },
+                          ]}
+                        >
                           <Select
                             placeholder="Select project"
                             loading={loadingProjects}
@@ -949,7 +1014,10 @@ useEffect(() => {
                             onChange={handleProjectChange}
                           >
                             {projects.map((project) => (
-                              <Select.Option key={project.id} value={project.id}>
+                              <Select.Option
+                                key={project.id}
+                                value={project.id}
+                              >
                                 {project.name}
                               </Select.Option>
                             ))}
@@ -958,18 +1026,34 @@ useEffect(() => {
                       </Col>
                       <Col span={12}>
                         {/* MODIFIED: Version field with last version display */}
-                        <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                        <div
+                          style={{
+                            marginBottom: 8,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                          }}
+                        >
                           <Text strong>Version</Text>
                           {!isEditMode && lastVersion && (
-                            <Text type="secondary" style={{ fontSize: 15, fontWeight: "bold" }}>
-                              Last Version: <Text style={{ color: "#1890ff" }}>{lastVersion}</Text>
+                            <Text
+                              type="secondary"
+                              style={{ fontSize: 15, fontWeight: "bold" }}
+                            >
+                              Last Version:{" "}
+                              <Text style={{ color: "#1890ff" }}>
+                                {lastVersion}
+                              </Text>
                             </Text>
                           )}
                         </div>
 
                         <Form.Item
                           name="version"
-                          rules={[{ required: true, message: "Please enter version" }]}
+                          rules={[
+                            { required: true, message: "Please enter version" },
+                          ]}
                           validateStatus={versionWarning ? "warning" : ""}
                           help={versionWarning}
                           hasFeedback
@@ -984,7 +1068,7 @@ useEffect(() => {
                         </Form.Item>
 
                         {/* NEW: Show warning alert for duplicate version */}
-                        {versionWarning && !isEditMode && (
+                        {/* {versionWarning && !isEditMode && (
                           <Alert
                             message={versionWarning}
                             type="warning"
@@ -992,31 +1076,78 @@ useEffect(() => {
                             icon={<InfoCircleOutlined />}
                             style={{ marginBottom: 16 }}
                           />
+                        )} */}
+                        {/* Show duplicate version warning as text only */}
+                        {versionWarning && !isEditMode && (
+                          <div
+                            style={{
+                              color: "#faad14",
+                              fontSize: "13px",
+                              marginTop: "-12px",
+                              marginBottom: "16px",
+                            }}
+                          >
+                            ⚠️ Version "{form.getFieldValue("version")}" already
+                            exists. Please use a different version.
+                          </div>
                         )}
                       </Col>
                       <Col span={24}>
-                        <Form.Item label="Release Title" name="title" rules={[{ required: true, message: "Please enter release title" }]}>
+                        <Form.Item
+                          label="Release Title"
+                          name="title"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please enter release title",
+                            },
+                          ]}
+                        >
                           <Input placeholder="e.g., Q1 2025 Platform Update" />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
-                        <Form.Item label="Release Date" name="releaseDate" rules={[{ required: true, message: "Please select release date" }]}>
+                        <Form.Item
+                          label="Release Date"
+                          name="releaseDate"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please select release date",
+                            },
+                          ]}
+                        >
                           <DatePicker style={{ width: "100%" }} />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
-                        <Form.Item 
-                          label="Environment" 
-                          name="environment" 
-                          rules={[{ required: true, message: "Please select environment" }]}
+                        <Form.Item
+                          label="Environment"
+                          name="environment"
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please select environment",
+                            },
+                          ]}
                         >
-                          <Select 
-                            placeholder={loadingEnvironments ? "Loading environments..." : "Select environment"}
+                          <Select
+                            placeholder={
+                              loadingEnvironments
+                                ? "Loading environments..."
+                                : "Select environment"
+                            }
                             loading={loadingEnvironments}
                             showSearch
                             optionFilterProp="children"
-                            notFoundContent={loadingEnvironments ? "Loading..." : "No environments found"}
-                            disabled={environments.length === 0 && !loadingEnvironments}
+                            notFoundContent={
+                              loadingEnvironments
+                                ? "Loading..."
+                                : "No environments found"
+                            }
+                            disabled={
+                              environments.length === 0 && !loadingEnvironments
+                            }
                           >
                             {environments.map((env) => (
                               <Select.Option key={env.id} value={env.code}>
@@ -1032,29 +1163,78 @@ useEffect(() => {
 
                 {/* Release Summary Card - EXACTLY as before */}
                 <Card
-                  title={<span style={{ fontWeight: 600, fontSize: 16 }}>Release Summary</span>}
-                  styles={{ header: { background: "transparent" }, body: { background: "transparent", padding: "16px 16px 8px 16px" } }}
-                  style={{ background: "transparent", border: "1px solid #e5e7eb", boxShadow: "none", marginBottom: 16 }}
+                  title={
+                    <span style={{ fontWeight: 600, fontSize: 16 }}>
+                      Release Summary
+                    </span>
+                  }
+                  styles={{
+                    header: { background: "transparent" },
+                    body: {
+                      background: "transparent",
+                      padding: "16px 16px 8px 16px",
+                    },
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "none",
+                    marginBottom: 16,
+                  }}
                 >
                   <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>Summary <span style={{ color: "#ff4d4f" }}>*</span></div>
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      Summary <span style={{ color: "#ff4d4f" }}>*</span>
+                    </div>
                     <div
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(summaryEditor, "Release Summary", "📋", "#1890ff")}
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          summaryEditor,
+                          "Release Summary",
+                          "📋",
+                          "#1890ff",
+                        )
+                      }
                     >
                       <div style={{ height: "150px", overflowY: "auto" }}>
-                        <DocumentEditor editor={summaryEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={summaryEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>Key Insights</div>
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      Key Insights
+                    </div>
                     <div
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(keyInsightsEditor, "Key Insights", "💡", "#faad14")}
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          keyInsightsEditor,
+                          "Key Insights",
+                          "💡",
+                          "#faad14",
+                        )
+                      }
                     >
                       <div style={{ height: "150px", overflowY: "auto" }}>
-                        <DocumentEditor editor={keyInsightsEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={keyInsightsEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1062,51 +1242,134 @@ useEffect(() => {
 
                 {/* Change Log Card - EXACTLY as before */}
                 <Card
-                  title={<span style={{ fontWeight: 600, fontSize: 16 }}>Change Log</span>}
-                  styles={{ header: { background: "transparent" }, body: { background: "transparent", padding: "16px 16px 8px 16px" } }}
-                  style={{ background: "transparent", border: "1px solid #e5e7eb", boxShadow: "none", marginBottom: 16 }}
+                  title={
+                    <span style={{ fontWeight: 600, fontSize: 16 }}>
+                      Change Log
+                    </span>
+                  }
+                  styles={{
+                    header: { background: "transparent" },
+                    body: {
+                      background: "transparent",
+                      padding: "16px 16px 8px 16px",
+                    },
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "none",
+                    marginBottom: 16,
+                  }}
                 >
                   <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>New Features</div>
-                    <div 
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(newFeaturesEditor, "New Features", "✨", "#52c41a")}
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      New Features
+                    </div>
+                    <div
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          newFeaturesEditor,
+                          "New Features",
+                          "✨",
+                          "#52c41a",
+                        )
+                      }
                     >
                       <div style={{ height: "150px" }}>
-                        <DocumentEditor editor={newFeaturesEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={newFeaturesEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
                   <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>Improvements</div>
-                    <div 
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(improvementsEditor, "Improvements", "🚀", "#1890ff")}
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      Improvements
+                    </div>
+                    <div
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          improvementsEditor,
+                          "Improvements",
+                          "🚀",
+                          "#1890ff",
+                        )
+                      }
                     >
                       <div style={{ height: "150px" }}>
-                        <DocumentEditor editor={improvementsEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={improvementsEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
                   <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>Bug Fixes</div>
-                    <div 
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(bugFixesEditor, "Bug Fixes", "🐛", "#ff4d4f")}
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      Bug Fixes
+                    </div>
+                    <div
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          bugFixesEditor,
+                          "Bug Fixes",
+                          "🐛",
+                          "#ff4d4f",
+                        )
+                      }
                     >
                       <div style={{ height: "150px" }}>
-                        <DocumentEditor editor={bugFixesEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={bugFixesEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>Breaking Changes</div>
-                    <div 
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(breakingChangesEditor, "Breaking Changes", "⚠️", "#ff4d4f")}
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      Breaking Changes
+                    </div>
+                    <div
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          breakingChangesEditor,
+                          "Breaking Changes",
+                          "⚠️",
+                          "#ff4d4f",
+                        )
+                      }
                     >
                       <div style={{ height: "150px" }}>
-                        <DocumentEditor editor={breakingChangesEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={breakingChangesEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1114,40 +1377,106 @@ useEffect(() => {
 
                 {/* Technical Issues Card - EXACTLY as before */}
                 <Card
-                  title={<span style={{ fontWeight: 600, fontSize: 16 }}>Technical Issues</span>}
-                  styles={{ header: { background: "transparent" }, body: { background: "transparent", padding: "16px 16px 8px 16px" } }}
-                  style={{ background: "transparent", border: "1px solid #e5e7eb", boxShadow: "none", marginBottom: 16 }}
+                  title={
+                    <span style={{ fontWeight: 600, fontSize: 16 }}>
+                      Technical Issues
+                    </span>
+                  }
+                  styles={{
+                    header: { background: "transparent" },
+                    body: {
+                      background: "transparent",
+                      padding: "16px 16px 8px 16px",
+                    },
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "none",
+                    marginBottom: 16,
+                  }}
                 >
                   <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>API Changes</div>
-                    <div 
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(apiChangesEditor, "API Changes", "🔌", "#722ed1")}
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      API Changes
+                    </div>
+                    <div
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          apiChangesEditor,
+                          "API Changes",
+                          "🔌",
+                          "#722ed1",
+                        )
+                      }
                     >
                       <div style={{ height: "150px", overflowY: "auto" }}>
-                        <DocumentEditor editor={apiChangesEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={apiChangesEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
                   <div style={{ marginBottom: 24 }}>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>Database Changes</div>
-                    <div 
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(databaseChangesEditor, "Database Changes", "💾", "#13c2c2")}
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      Database Changes
+                    </div>
+                    <div
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          databaseChangesEditor,
+                          "Database Changes",
+                          "💾",
+                          "#13c2c2",
+                        )
+                      }
                     >
                       <div style={{ height: "150px", overflowY: "auto" }}>
-                        <DocumentEditor editor={databaseChangesEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={databaseChangesEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontWeight: 500, marginBottom: 8 }}>Known Issues</div>
-                    <div 
-                      style={{ minHeight: 150, borderRadius: 4, padding: 8, cursor: "pointer" }}
-                      onClick={() => handleEditorFocus(knownIssuesEditor, "Known Issues", "❗", "#fa8c16")}
+                    <div style={{ fontWeight: 500, marginBottom: 8 }}>
+                      Known Issues
+                    </div>
+                    <div
+                      style={{
+                        minHeight: 150,
+                        borderRadius: 4,
+                        padding: 8,
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        handleEditorFocus(
+                          knownIssuesEditor,
+                          "Known Issues",
+                          "❗",
+                          "#fa8c16",
+                        )
+                      }
                     >
                       <div style={{ height: "150px", overflowY: "auto" }}>
-                        <DocumentEditor editor={knownIssuesEditor} viewMode="edit" />
+                        <DocumentEditor
+                          editor={knownIssuesEditor}
+                          viewMode="edit"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1155,9 +1484,24 @@ useEffect(() => {
 
                 {/* Linked Items Card - EXACTLY as before */}
                 <Card
-                  title={<span style={{ fontWeight: 600, fontSize: 16 }}>Linked Items</span>}
-                  styles={{ header: { background: "transparent" }, body: { background: "transparent", padding: "16px 16px 8px 16px" } }}
-                  style={{ marginTop: 16, background: "transparent", border: "1px solid #e5e7eb", boxShadow: "none" }}
+                  title={
+                    <span style={{ fontWeight: 600, fontSize: 16 }}>
+                      Linked Items
+                    </span>
+                  }
+                  styles={{
+                    header: { background: "transparent" },
+                    body: {
+                      background: "transparent",
+                      padding: "16px 16px 8px 16px",
+                    },
+                  }}
+                  style={{
+                    marginTop: 16,
+                    background: "transparent",
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "none",
+                  }}
                 >
                   <Form form={form} layout="vertical">
                     <Form.List name="linkedTickets" initialValue={[{}]}>
@@ -1176,28 +1520,43 @@ useEffect(() => {
                             }
                             allowClear
                             loading={loadingTickets}
-                            disabled={!form.getFieldValue("projectId") || loadingTickets}
+                            disabled={
+                              !form.getFieldValue("projectId") || loadingTickets
+                            }
                             showSearch
                             optionFilterProp="children"
                             onSearch={handleTicketSearch}
                             filterOption={false}
-                            notFoundContent={ticketSearchTerm ? "No matching tickets" : "Type to search..."}
+                            notFoundContent={
+                              ticketSearchTerm
+                                ? "No matching tickets"
+                                : "Type to search..."
+                            }
                             style={{ width: "100%" }}
                           >
                             {displayTickets.map((ticket) => (
-                              <Select.Option key={ticket.id} value={ticket.ticketNumber}>
+                              <Select.Option
+                                key={ticket.id}
+                                value={ticket.ticketNumber}
+                              >
                                 {ticket.ticketNumber} - {ticket.title}
-                                <span style={{ 
-                                  marginLeft: 8, 
-                                  padding: "2px 6px", 
-                                  borderRadius: 4, 
-                                  fontSize: 11, 
-                                  backgroundColor: 
-                                    ticket.status === "completed" ? "#52c41a" : 
-                                    ticket.status === "in_progress" ? "#1890ff" : 
-                                    ticket.status === "blocked" ? "#ff4d4f" : "#d9d9d9", 
-                                  color: "#fff" 
-                                }}>
+                                <span
+                                  style={{
+                                    marginLeft: 8,
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
+                                    fontSize: 11,
+                                    backgroundColor:
+                                      ticket.status === "completed"
+                                        ? "#52c41a"
+                                        : ticket.status === "in_progress"
+                                          ? "#1890ff"
+                                          : ticket.status === "blocked"
+                                            ? "#ff4d4f"
+                                            : "#d9d9d9",
+                                    color: "#fff",
+                                  }}
+                                >
                                   {ticket.status}
                                 </span>
                               </Select.Option>
@@ -1209,10 +1568,15 @@ useEffect(() => {
 
                     {/* Repositories Section - Manual Input with Add Button */}
                     <div style={{ marginBottom: 24 }}>
-                      <Text strong style={{ display: "block", marginBottom: 8 }}>
+                      <Text
+                        strong
+                        style={{ display: "block", marginBottom: 8 }}
+                      >
                         Repositories
                       </Text>
-                      <Space.Compact style={{ width: "100%", marginBottom: 12 }}>
+                      <Space.Compact
+                        style={{ width: "100%", marginBottom: 12 }}
+                      >
                         <Input
                           placeholder="Enter repository name"
                           value={repositoryInput}
@@ -1228,7 +1592,7 @@ useEffect(() => {
                           Add
                         </Button>
                       </Space.Compact>
-                      
+
                       {/* Display added repositories as tags with X */}
                       {repositories.length > 0 && (
                         <div style={{ marginTop: 8 }}>
@@ -1256,10 +1620,15 @@ useEffect(() => {
 
                     {/* Pull Requests Section - Manual Input with Add Button */}
                     <div style={{ marginBottom: 24 }}>
-                      <Text strong style={{ display: "block", marginBottom: 8 }}>
+                      <Text
+                        strong
+                        style={{ display: "block", marginBottom: 8 }}
+                      >
                         Pull Requests
                       </Text>
-                      <Space.Compact style={{ width: "100%", marginBottom: 12 }}>
+                      <Space.Compact
+                        style={{ width: "100%", marginBottom: 12 }}
+                      >
                         <Input
                           placeholder="Enter pull request"
                           value={pullRequestInput}
@@ -1275,7 +1644,7 @@ useEffect(() => {
                           Add
                         </Button>
                       </Space.Compact>
-                      
+
                       {/* Display added pull requests as tags with X */}
                       {pullRequests.length > 0 && (
                         <div style={{ marginTop: 8 }}>
@@ -1305,15 +1674,47 @@ useEffect(() => {
 
                 {/* Visibility & Audience Card - EXACTLY as before */}
                 <Card
-                  title={<span style={{ fontWeight: 600, fontSize: 16 }}>Visibility & Audience</span>}
-                  styles={{ header: { background: "transparent" }, body: { background: "transparent", padding: "16px 16px 8px 16px" } }}
-                  style={{ background: "transparent", border: "1px solid #e5e7eb", boxShadow: "none", marginBottom: 16 }}
+                  title={
+                    <span style={{ fontWeight: 600, fontSize: 16 }}>
+                      Visibility & Audience
+                    </span>
+                  }
+                  styles={{
+                    header: { background: "transparent" },
+                    body: {
+                      background: "transparent",
+                      padding: "16px 16px 8px 16px",
+                    },
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "none",
+                    marginBottom: 16,
+                  }}
                 >
                   <Form form={form} layout="vertical">
-                    <Form.Item label="Select Visibility" name="visibility" rules={[{ required: true, message: "Please select at least one" }]}>
+                    <Form.Item
+                      label="Select Visibility"
+                      name="visibility"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please select at least one",
+                        },
+                      ]}
+                    >
                       <Checkbox.Group>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          <Checkbox value="INTERNAL">Internal (Team Only)</Checkbox>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 8,
+                          }}
+                        >
+                          <Checkbox value="INTERNAL">
+                            Internal (Team Only)
+                          </Checkbox>
                           <Checkbox value="CLIENT">Client Visible</Checkbox>
                           <Checkbox value="PUBLIC">Public</Checkbox>
                         </div>
@@ -1327,9 +1728,24 @@ useEffect(() => {
 
           {/* ===== RIGHT PANEL - PREVIEW ===== */}
           {showPreview && (
-            <div style={{ flex: 0.4, overflowY: "auto", background: "#f8f9fa", borderRadius: 12, padding: 20 }}>
+            <div
+              style={{
+                flex: 0.4,
+                overflowY: "auto",
+                background: "#f8f9fa",
+                borderRadius: 12,
+                padding: 20,
+              }}
+            >
               <div style={{ marginBottom: 20 }}>
-                <Text type="secondary" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>
+                <Text
+                  type="secondary"
+                  style={{
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                  }}
+                >
                   LIVE PREVIEW
                 </Text>
               </div>
@@ -1338,42 +1754,96 @@ useEffect(() => {
                 size="small"
                 style={{
                   borderRadius: 12,
-                  border: activeEditor ? `1px solid ${activeEditor.color}` : "1px solid #f0f0f0",
-                  boxShadow: activeEditor ? `0 4px 12px ${activeEditor.color}20` : "0 1px 2px rgba(0,0,0,0.03)",
+                  border: activeEditor
+                    ? `1px solid ${activeEditor.color}`
+                    : "1px solid #f0f0f0",
+                  boxShadow: activeEditor
+                    ? `0 4px 12px ${activeEditor.color}20`
+                    : "0 1px 2px rgba(0,0,0,0.03)",
                 }}
                 bodyStyle={{ padding: 20 }}
               >
                 {activeEditor ? (
                   <>
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-                      <div style={{ 
-                        width: 32, height: 32, borderRadius: 8, background: `${activeEditor.color}10`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        marginRight: 12, color: activeEditor.color, fontSize: 18
-                      }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        marginBottom: 16,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: `${activeEditor.color}10`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: 12,
+                          color: activeEditor.color,
+                          fontSize: 18,
+                        }}
+                      >
                         {activeEditor.icon}
                       </div>
                       <div>
-                        <Text strong style={{ fontSize: 16, display: "block" }}>{activeEditor.title}</Text>
-                        <Text type="secondary" style={{ fontSize: 12 }}>Active Editor • Typing...</Text>
+                        <Text strong style={{ fontSize: 16, display: "block" }}>
+                          {activeEditor.title}
+                        </Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          Active Editor • Typing...
+                        </Text>
                       </div>
                     </div>
-                    <div style={{ 
-                      background: "#fafafa", padding: 20, borderRadius: 8,
-                      fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap",
-                      maxHeight: 400, overflowY: "auto"
-                    }}>
+                    <div
+                      style={{
+                        background: "#fafafa",
+                        padding: 20,
+                        borderRadius: 8,
+                        fontSize: 14,
+                        lineHeight: 1.8,
+                        whiteSpace: "pre-wrap",
+                        maxHeight: 400,
+                        overflowY: "auto",
+                      }}
+                    >
                       {renderPreviewContent(activeEditor.content)}
                     </div>
-                    <Text type="secondary" style={{ display: "block", marginTop: 16, fontSize: 12, textAlign: "center" }}>
+                    <Text
+                      type="secondary"
+                      style={{
+                        display: "block",
+                        marginTop: 16,
+                        fontSize: 12,
+                        textAlign: "center",
+                      }}
+                    >
                       Click on any editor to see live preview
                     </Text>
                   </>
                 ) : (
                   <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                    <EyeOutlined style={{ fontSize: 48, color: "#d9d9d9", marginBottom: 16 }} />
-                    <Title level={5} style={{ margin: 0, color: "#999", fontWeight: "normal" }}>No Editor Selected</Title>
-                    <Text type="secondary" style={{ display: "block", marginTop: 8 }}>Click on any editor field to see live preview</Text>
+                    <EyeOutlined
+                      style={{
+                        fontSize: 48,
+                        color: "#d9d9d9",
+                        marginBottom: 16,
+                      }}
+                    />
+                    <Title
+                      level={5}
+                      style={{ margin: 0, color: "#999", fontWeight: "normal" }}
+                    >
+                      No Editor Selected
+                    </Title>
+                    <Text
+                      type="secondary"
+                      style={{ display: "block", marginTop: 8 }}
+                    >
+                      Click on any editor field to see live preview
+                    </Text>
                   </div>
                 )}
               </Card>

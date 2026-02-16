@@ -1,16 +1,16 @@
+
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Upload, message } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
-
-const { Dragger } = Upload;
+import { Upload, message, Button } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 
 interface AttachmentUploaderProps {
-  onUpload: (file: string, fileName: string) => Promise<void>;
+ onUpload: (file: string, fileName: string) => Promise<void>;
   maxSize?: number; // in MB
   accept?: string;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 export default function AttachmentUploader({
@@ -18,8 +18,9 @@ export default function AttachmentUploader({
   maxSize = 5,
   accept = "*",
   disabled = false,
+  style,
 }: AttachmentUploaderProps) {
-  const [uploading, setUploading] = useState(false);
+  const [activeUploads, setActiveUploads] = useState(0);
 
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -30,6 +31,9 @@ export default function AttachmentUploader({
     });
   };
 
+
+
+
   const handleUpload = async (file: File) => {
     // Validate file size
     const fileSizeInMB = file.size / (1024 * 1024);
@@ -39,46 +43,41 @@ export default function AttachmentUploader({
     }
 
     try {
-      setUploading(true);
-      
+      setActiveUploads((prev) => prev + 1);
+
       // Convert file to base64
       const base64File = await convertFileToBase64(file);
       
-      // Call the upload handler
-      await onUpload(base64File, file.name);
-      
+            // Call the upload handler
+      await onUpload(base64File, file.name); 
       message.success(`${file.name} uploaded successfully`);
     } catch (error: any) {
       console.error("Upload error:", error);
       message.error(error.message || "Failed to upload file");
     } finally {
-      setUploading(false);
+      setActiveUploads((prev) => Math.max(0, prev - 1));
     }
 
     // Prevent default upload behavior
     return false;
   };
 
+  const isUploading = activeUploads > 0;
+
   return (
-    <Dragger
+    <Upload
       name="file"
-      multiple={false}
+      multiple={true}
       beforeUpload={handleUpload}
       showUploadList={false}
-      disabled={disabled || uploading}
+      disabled={disabled}
       accept={accept}
-      style={{ marginBottom: 16 }}
     >
-      <p className="ant-upload-drag-icon">
-        <InboxOutlined />
-      </p>
-      <p className="ant-upload-text">
-        Click or drag file to this area to upload
-      </p>
-      <p className="ant-upload-hint">
-        Support for any file type. Maximum file size: {maxSize}MB
-      </p>
-      {uploading && <p style={{ color: "#1890ff" }}>Uploading...</p>}
-    </Dragger>
+      <Button icon={<UploadOutlined />} loading={isUploading} disabled={disabled} style={style} size="small">
+        {isUploading ? `Uploading (${activeUploads})...` : "Attach File"}
+      </Button>
+    </Upload>
   );
 }
+
+

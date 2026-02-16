@@ -139,7 +139,7 @@ function SubmitDailyUpdateContent() {
       if (data.is_missed) {
         setIsMissedUpdate(true);
         setMissedDate(
-          data.missed_updateAt ? dayjs(data.missed_updateAt) : null
+          data.missed_updateAt ? dayjs(data.missed_updateAt) : null,
         );
       }
 
@@ -181,6 +181,29 @@ function SubmitDailyUpdateContent() {
       checkTodaySubmission();
     }
   }, [editId]);
+  useEffect(() => {
+  const now = new Date();
+  const hour = now.getHours();
+
+  // Default when page opens
+  if (hour < 14) {
+    form.setFieldsValue({ updateType: "BOD" });
+
+    const twoPM = new Date();
+    twoPM.setHours(14, 0, 0, 0);
+
+    const delay = twoPM.getTime() - now.getTime();
+
+    const timer = setTimeout(() => {
+      form.setFieldsValue({ updateType: "EOD" });
+    }, delay);
+
+    return () => clearTimeout(timer);
+  } else {
+    form.setFieldsValue({ updateType: "EOD" });
+  }
+}, [form]);
+
 
   const fetchProjects = async () => {
     try {
@@ -230,7 +253,7 @@ function SubmitDailyUpdateContent() {
           setMissedDate(
             result.data.missed_updateAt
               ? dayjs(result.data.missed_updateAt)
-              : null
+              : null,
           );
         }
 
@@ -293,22 +316,35 @@ function SubmitDailyUpdateContent() {
     const newUpdates = projectUpdates.filter((_, i) => i !== index);
     setProjectUpdates(newUpdates);
   };
+  useEffect(() => {
+  if (existingUpdate?.projectUpdates) {
+    // Load tickets for all projects in existing update
+    existingUpdate.projectUpdates.forEach((update: ProjectUpdate) => {
+      if (update.projectId && !projectTickets[update.projectId]) {
+        fetchProjectTickets(update.projectId);
+      }
+    });
+  }
+}, [existingUpdate]);
 
-  const handleProjectChange = async (index: number, projectId: string) => {
-    const project = projects.find((p) => p.value === projectId);
-    const newUpdates = [...projectUpdates];
-    newUpdates[index].projectId = projectId;
-    newUpdates[index].projectName = project?.label || "";
-    setProjectUpdates(newUpdates);
+// Also update the handleProjectChange to ensure tickets are loaded
+const handleProjectChange = async (index: number, projectId: string) => {
+  const project = projects.find((p) => p.value === projectId);
+  const newUpdates = [...projectUpdates];
+  newUpdates[index].projectId = projectId;
+  newUpdates[index].projectName = project?.label || "";
+  setProjectUpdates(newUpdates);
 
-    // Fetch tickets for this project
+  // Fetch tickets for this project if not already fetched
+  if (!projectTickets[projectId]) {
     await fetchProjectTickets(projectId);
-  };
+  }
+};
 
   const handleTimeChange = (
     index: number,
     field: "startTime" | "endTime",
-    value: Dayjs | null
+    value: Dayjs | null,
   ) => {
     const newUpdates = [...projectUpdates];
     newUpdates[index][field] = value ? value.toISOString() : "";
@@ -317,7 +353,7 @@ function SubmitDailyUpdateContent() {
     if (newUpdates[index].startTime && newUpdates[index].endTime) {
       const hours = calculateHours(
         newUpdates[index].startTime,
-        newUpdates[index].endTime
+        newUpdates[index].endTime,
       );
       newUpdates[index].hoursWorked = hours;
     }
@@ -353,7 +389,7 @@ function SubmitDailyUpdateContent() {
   const handleTaskTypeChange = (
     projectIndex: number,
     taskIndex: number,
-    type: "ticket" | "manual"
+    type: "ticket" | "manual",
   ) => {
     const newUpdates = [...projectUpdates];
     const task = newUpdates[projectIndex].tasks[taskIndex];
@@ -376,11 +412,13 @@ function SubmitDailyUpdateContent() {
 
     setProjectUpdates(newUpdates);
   };
+ 
+
 
   const handleTicketSelect = (
     projectIndex: number,
     taskIndex: number,
-    ticketId: string
+    ticketId: string,
   ) => {
     const newUpdates = [...projectUpdates];
     const projectId = newUpdates[projectIndex].projectId;
@@ -402,7 +440,7 @@ function SubmitDailyUpdateContent() {
   const handleTaskDescriptionChange = (
     projectIndex: number,
     taskIndex: number,
-    value: string
+    value: string,
   ) => {
     const newUpdates = [...projectUpdates];
     if (newUpdates[projectIndex].tasks[taskIndex].type === "manual") {
@@ -414,7 +452,7 @@ function SubmitDailyUpdateContent() {
   const handleTaskStatusChange = (
     projectIndex: number,
     taskIndex: number,
-    status: WorkStatus
+    status: WorkStatus,
   ) => {
     const newUpdates = [...projectUpdates];
     newUpdates[projectIndex].tasks[taskIndex].status = status;
@@ -436,19 +474,19 @@ function SubmitDailyUpdateContent() {
   const getAvailableProjects = (currentIndex: number) => {
     const selectedProjectIds = projectUpdates
       .map((update, index) =>
-        index !== currentIndex ? update.projectId : null
+        index !== currentIndex ? update.projectId : null,
       )
       .filter(Boolean);
 
     return projects.filter(
-      (project) => !selectedProjectIds.includes(project.value)
+      (project) => !selectedProjectIds.includes(project.value),
     );
   };
 
   const getTotalHours = () => {
     return projectUpdates.reduce(
       (sum, update) => sum + (update.hoursWorked || 0),
-      0
+      0,
     );
   };
 
@@ -551,100 +589,93 @@ function SubmitDailyUpdateContent() {
 
     return true;
   };
-
   const handleSubmit = async () => {
-    if (alreadySubmitted && !isEditAllowed) {
-      api.error({
-        message: "Edit Locked",
-        description: "You can only edit within 24 hours of submission",
-      });
-      return;
-    }
-    if (!validateForm()) return;
+  if (alreadySubmitted && !isEditAllowed) {
+    api.error({
+      message: "Edit Locked",
+      description: "You can only edit within 24 hours of submission",
+    });
+    return;
+  }
 
-    if (isMissedUpdate && !missedDate) {
-      api.error({
-        message: "Validation Error",
-        description: "Please select a missed update date",
-      });
-      return;
-    }
+  if (!validateForm()) return;
 
-    try {
-      setLoading(true);
-      const values = form.getFieldsValue();
-      console.log("values", values);
+  if (isMissedUpdate && !missedDate) {
+    api.error({
+      message: "Validation Error",
+      description: "Please select a missed update date",
+    });
+    return;
+  }
 
-      const data = {
-        date:
-          alreadySubmitted && existingUpdate
-            ? existingUpdate.working_date // 🔥 EDIT MODE – keep same date
-            : isMissedUpdate
-            ? missedDate!.format("YYYY-MM-DD")
-            : dayjs().format("YYYY-MM-DD"),
+  try {
+    setLoading(true);
 
-        mood: values.mood,
-        projectUpdates: projectUpdates,
-        generalNotes: values.generalNotes,
-        is_missed: isMissedUpdate,
-        missed_updateAt: isMissedUpdate
-          ? missedDate?.format("YYYY-MM-DD")
-          : null,
-      };
-      console.log("data", data);
+    const values = form.getFieldsValue();
 
-      if (alreadySubmitted && existingUpdate) {
-        await DailyUpdateService.updateUpdate(existingUpdate.id, data);
-        api.success({
-          message: "Success",
-          description: "Daily update updated successfully!",
-          placement: "bottomRight",
-          duration: 3,
-        });
-        setTimeout(() => {
-          router.push("/daily-updates/view");
-        }, 1200);
-      } else {
-        await DailyUpdateService.createUpdate(data);
-        api.success({
-          message: "Success",
-          description: "Daily update submitted successfully!",
-          placement: "bottomRight",
-          duration: 3,
-        });
-      }
+    // 🔒 LOCK updateType based on time
+    const now = new Date();
+    const hour = now.getHours();
+    const finalUpdateType = hour < 14 ? "BOD" : "EOD";
 
-      // router.push("/daily-updates/view");
-      setTimeout(() => {
-        router.push("/daily-updates/view");
-      }, 1200);
-    } catch (error: any) {
-      console.error("Failed to submit update:", error);
+    const data = {
+      date:
+        alreadySubmitted && existingUpdate
+          ? existingUpdate.working_date
+          : isMissedUpdate
+          ? missedDate!.format("YYYY-MM-DD")
+          : dayjs().format("YYYY-MM-DD"),
 
-      // Extract error message from various error formats
-      let errorMessage = "Failed to submit daily update";
+      mood: values.mood,
+      updateType: finalUpdateType, // ✅ IMPORTANT
+      projectUpdates,
+      generalNotes: values.generalNotes,
+      is_missed: isMissedUpdate,
+      missed_updateAt: isMissedUpdate
+        ? missedDate?.format("YYYY-MM-DD")
+        : null,
+    };
 
-      if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (typeof error === "string") {
-        errorMessage = error;
-      }
-
-      // Display error message as toast notification
-      api.error({
-        message: "Error",
-        description: errorMessage,
+    if (alreadySubmitted && existingUpdate) {
+      await DailyUpdateService.updateUpdate(existingUpdate.id, data);
+      api.success({
+        message: "Success",
+        description: "Daily update updated successfully!",
         placement: "bottomRight",
-        duration: 4,
+        duration: 3,
       });
-    } finally {
-      setLoading(false);
+    } else {
+      await DailyUpdateService.createUpdate(data);
+      api.success({
+        message: "Success",
+        description: "Daily update submitted successfully!",
+        placement: "bottomRight",
+        duration: 3,
+      });
     }
-  };
+
+    setTimeout(() => {
+      router.push("/daily-updates/view");
+    }, 1200);
+
+  } catch (error: any) {
+    let errorMessage = "Failed to submit daily update";
+
+    if (error?.message) errorMessage = error.message;
+    else if (error?.response?.data?.error) errorMessage = error.response.data.error;
+    else if (error?.response?.data?.message) errorMessage = error.response.data.message;
+
+    api.error({
+      message: "Error",
+      description: errorMessage,
+      placement: "bottomRight",
+      duration: 4,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (checkingSubmission) {
     return (
@@ -707,6 +738,7 @@ function SubmitDailyUpdateContent() {
       >
         <Form form={form} layout="vertical">
           {/* Mood Section */}
+
           <Form.Item
             label={
               <span style={{ fontSize: 14, fontWeight: 500 }}>
@@ -716,50 +748,77 @@ function SubmitDailyUpdateContent() {
             name="mood"
             style={{ marginBottom: 20 }}
           >
-            <Space size="small" wrap>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>😊</span>}
-                onClick={() => form.setFieldsValue({ mood: "happy" })}
-                type={
-                  form.getFieldValue("mood") === "happy" ? "primary" : "default"
-                }
-              >
-                Happy
-              </Button>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>😐</span>}
-                onClick={() => form.setFieldsValue({ mood: "neutral" })}
-                type={
-                  form.getFieldValue("mood") === "neutral"
-                    ? "primary"
-                    : "default"
-                }
-              >
-                Neutral
-              </Button>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>😰</span>}
-                onClick={() => form.setFieldsValue({ mood: "stressed" })}
-                type={
-                  form.getFieldValue("mood") === "stressed"
-                    ? "primary"
-                    : "default"
-                }
-              >
-                Stressed
-              </Button>
-              <Button
-                icon={<span style={{ fontSize: 16 }}>🚫</span>}
-                onClick={() => form.setFieldsValue({ mood: "blocked" })}
-                type={
-                  form.getFieldValue("mood") === "blocked"
-                    ? "primary"
-                    : "default"
-                }
-              >
-                Blocked
-              </Button>
-            </Space>
+            {/* ONE ROW */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
+              {/* LEFT SIDE – MOOD BUTTONS */}
+              <Space size="small" wrap>
+                <Button
+                  icon={<span style={{ fontSize: 16 }}>😊</span>}
+                  onClick={() => form.setFieldsValue({ mood: "happy" })}
+                  type={
+                    form.getFieldValue("mood") === "happy"
+                      ? "primary"
+                      : "default"
+                  }
+                >
+                  Happy
+                </Button>
+
+                <Button
+                  icon={<span style={{ fontSize: 16 }}>😐</span>}
+                  onClick={() => form.setFieldsValue({ mood: "neutral" })}
+                  type={
+                    form.getFieldValue("mood") === "neutral"
+                      ? "primary"
+                      : "default"
+                  }
+                >
+                  Neutral
+                </Button>
+
+                <Button
+                  icon={<span style={{ fontSize: 16 }}>😰</span>}
+                  onClick={() => form.setFieldsValue({ mood: "stressed" })}
+                  type={
+                    form.getFieldValue("mood") === "stressed"
+                      ? "primary"
+                      : "default"
+                  }
+                >
+                  Stressed
+                </Button>
+
+                <Button
+                  icon={<span style={{ fontSize: 16 }}>🚫</span>}
+                  onClick={() => form.setFieldsValue({ mood: "blocked" })}
+                  type={
+                    form.getFieldValue("mood") === "blocked"
+                      ? "primary"
+                      : "default"
+                  }
+                >
+                  Blocked
+                </Button>
+              </Space>
+
+              {/* RIGHT SIDE – DROPDOWN */}
+              <Form.Item name="updateType" noStyle>
+                <Select
+                  style={{ width: 120 }}
+                  options={[
+                    { label: "BOD", value: "BOD" },
+                    { label: "EOD", value: "EOD" },
+                  ]}
+                />
+              </Form.Item>
+            </div>
           </Form.Item>
           {/* Missed Update Toggle */}
           <Card
@@ -880,7 +939,7 @@ function SubmitDailyUpdateContent() {
                       (project) => ({
                         label: `${project.label} (${project.code})`,
                         value: project.value,
-                      })
+                      }),
                     )}
                     showSearch
                     filterOption={(input, option) =>
@@ -1039,7 +1098,7 @@ function SubmitDailyUpdateContent() {
                           handleTaskTypeChange(
                             projectIndex,
                             taskIndex,
-                            e.target.value
+                            e.target.value,
                           )
                         }
                         style={{ marginBottom: 8 }}
@@ -1080,7 +1139,7 @@ function SubmitDailyUpdateContent() {
                             handleTaskDescriptionChange(
                               projectIndex,
                               taskIndex,
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           rows={2}
@@ -1096,7 +1155,7 @@ function SubmitDailyUpdateContent() {
                           handleTaskStatusChange(
                             projectIndex,
                             taskIndex,
-                            value as WorkStatus
+                            value as WorkStatus,
                           )
                         }
                         options={STATUS_OPTIONS}
@@ -1219,16 +1278,6 @@ function SubmitDailyUpdateContent() {
           {/* Submit Buttons */}
           <Form.Item style={{ marginBottom: 0 }}>
             <Space>
-              {/* <Button
-                type="primary"
-                onClick={handleSubmit}
-                loading={loading}
-                size="large"
-              >
-                {alreadySubmitted
-                  ? "Update Daily Status"
-                  : "Submit Daily Status"}
-              </Button> */}
               <Button
                 type="primary"
                 htmlType="button"

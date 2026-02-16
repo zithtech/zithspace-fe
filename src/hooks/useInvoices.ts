@@ -6,6 +6,12 @@ import InvoiceService, {
   InvoiceStatus,
   InvoiceListParams,
 } from "@/services/invoiceService";
+import type { 
+  PaymentTransaction, 
+  PaymentHistoryData,
+  PaymentStatus,
+  PaymentMethod 
+} from "@/services/invoiceService";
 import { message } from "antd";
 
 /**
@@ -64,16 +70,29 @@ export const useInvoice = (invoiceId: string, enabled: boolean = true) => {
 /**
  * Get next invoice number (pre-fill)
  */
-export const useNextInvoiceNumber = (enabled: boolean = true) => {
+// export const useNextInvoiceNumber = (enabled: boolean = true) => {
+//   return useQuery({
+//     queryKey: invoiceKeys.nextNumber(),
+//     queryFn: InvoiceService.getNextInvoiceNumber,
+//     staleTime: 5 * 60 * 1000,
+//     enabled,
+//   });
+// };
+
+// ==================== Mutations ====================
+
+export const useNextInvoiceNumber = (enabled: boolean = true, profileId?: string) => {
   return useQuery({
-    queryKey: invoiceKeys.nextNumber(),
-    queryFn: InvoiceService.getNextInvoiceNumber,
-    staleTime: 5 * 60 * 1000,
-    enabled,
+    queryKey: [...invoiceKeys.nextNumber(), profileId], // Add profileId to queryKey
+    queryFn: () => InvoiceService.getNextInvoiceNumber(profileId),
+    staleTime: 0, // Always fetch fresh when profile changes
+    enabled: enabled && !!profileId, // Only enable when profileId exists
   });
 };
 
-// ==================== Mutations ====================
+
+
+
 
 /**
  * Create Invoice
@@ -388,6 +407,32 @@ export const useDownloadInvoice = () => {
 
 
 
+/**
+ * Send Invoice Email
+ */
+export const useSendInvoiceEmail = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      InvoiceService.sendInvoiceEmail(id, data),
+
+    onSuccess: (_data, variables) => {
+      // 1. Invalidate queries to show the "SENT" status in the UI
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+
+      message.success("Email sent successfully");
+    },
+
+    onError: (error: any) => {
+      message.error(error.message || "Failed to send email");
+    },
+  });
+};
+
+
+
 
 
 
@@ -397,6 +442,90 @@ export const useDownloadInvoice = () => {
 
       
 
+
+
+// export const useInvoicePaymentHistory = (
+//   invoiceId?: string,
+//   enabled: boolean = true
+// ) => {
+//   const queryClient = useQueryClient();
+
+//   const query = useQuery({
+//     queryKey: ["invoicePayments", invoiceId],
+//     queryFn: async () => {
+//       // Don't throw - return empty data instead
+//       if (!invoiceId) {
+//         console.log('No invoice ID provided, returning empty payment history');
+//         return {
+//           transactions: [],
+//           totalAmount: 0,
+//           totalPaid: 0,
+//           balance: 0
+//         };
+//       }
+      
+//       try {
+//         // 1. Fetch the raw data from API
+//         const rawData = await InvoiceService.getPaymentHistory(invoiceId);
+//         console.log('Raw payment history data:', rawData);
+        
+//         // 2. Check what format we got
+//         // If it's already in the correct format, return it
+//         if (rawData && typeof rawData === 'object' && 'transactions' in rawData) {
+//           console.log('Data is already in correct format');
+//           return rawData;
+//         }
+        
+//         // 3. If it's an array, transform it
+//         if (Array.isArray(rawData)) {
+//           console.log('Data is array, transforming...');
+          
+//           const totalPaid = rawData.reduce((sum: number, transaction: any) => {
+//             return sum + (Number(transaction.amount) || 0);
+//           }, 0);
+          
+//           return {
+//             transactions: rawData,
+//             totalAmount: 0,
+//             totalPaid: totalPaid,
+//             balance: 0
+//           };
+//         }
+        
+//         // 4. Default fallback
+//         return {
+//           transactions: [],
+//           totalAmount: 0,
+//           totalPaid: 0,
+//           balance: 0
+//         };
+//       } catch (error) {
+//         console.error('Error fetching payment history:', error);
+//         // Return empty data on error instead of throwing
+//         return {
+//           transactions: [],
+//           totalAmount: 0,
+//           totalPaid: 0,
+//           balance: 0
+//         };
+//       }
+//     },
+//     enabled: enabled && !!invoiceId,
+//     staleTime: 2 * 60 * 1000,
+//     retry: 1, // Limit retries
+//     retryDelay: 1000,
+//   });
+
+//   const refetch = () => {
+//     if (invoiceId) {
+//       queryClient.invalidateQueries({
+//         queryKey: ["invoicePayments", invoiceId],
+//       });
+//     }
+//   };
+
+//   return { ...query, refetch };
+// };
 
 
 export const useInvoicePaymentHistory = (
@@ -405,84 +534,59 @@ export const useInvoicePaymentHistory = (
 ) => {
   const queryClient = useQueryClient();
 
-  const query = useQuery({
-    queryKey: ["invoicePayments", invoiceId],
-    queryFn: async () => {
-      // Don't throw - return empty data instead
+  const query = useQuery<PaymentHistoryData | null>({
+    queryKey: invoiceId ? invoiceKeys.payments(invoiceId) : ["invoicePayments", "empty"],
+    queryFn: async (): Promise<PaymentHistoryData | null> => {
       if (!invoiceId) {
-        console.log('No invoice ID provided, returning empty payment history');
-        return {
-          transactions: [],
-          totalAmount: 0,
-          totalPaid: 0,
-          balance: 0
-        };
+        return null;
       }
       
       try {
-        // 1. Fetch the raw data from API
-        const rawData = await InvoiceService.getPaymentHistory(invoiceId);
-        console.log('Raw payment history data:', rawData);
+        const response = await InvoiceService.getPaymentHistory(invoiceId);
+        console.log('Payment history API response:', response);
         
-        // 2. Check what format we got
-        // If it's already in the correct format, return it
-        if (rawData && typeof rawData === 'object' && 'transactions' in rawData) {
-          console.log('Data is already in correct format');
-          return rawData;
+        // Extract data from response structure
+        if (response?.success) {
+          // If response has data property
+          if (response.data) {
+            console.log('Using response.data:', response.data);
+            return response.data as PaymentHistoryData;
+          }
+          // If response is the data itself
+          else if (response.payments) {
+            console.log('Using response directly:', response);
+            return response as PaymentHistoryData;
+          }
         }
         
-        // 3. If it's an array, transform it
-        if (Array.isArray(rawData)) {
-          console.log('Data is array, transforming...');
-          
-          const totalPaid = rawData.reduce((sum: number, transaction: any) => {
-            return sum + (Number(transaction.amount) || 0);
-          }, 0);
-          
-          return {
-            transactions: rawData,
-            totalAmount: 0,
-            totalPaid: totalPaid,
-            balance: 0
-          };
+        // If response doesn't have success property but has data
+        if (response?.data) {
+          console.log('Using response.data (no success):', response.data);
+          return response.data as PaymentHistoryData;
         }
         
-        // 4. Default fallback
-        return {
-          transactions: [],
-          totalAmount: 0,
-          totalPaid: 0,
-          balance: 0
-        };
+        console.log('No valid data found in response');
+        return null;
       } catch (error) {
         console.error('Error fetching payment history:', error);
-        // Return empty data on error instead of throwing
-        return {
-          transactions: [],
-          totalAmount: 0,
-          totalPaid: 0,
-          balance: 0
-        };
+        return null;
       }
     },
     enabled: enabled && !!invoiceId,
     staleTime: 2 * 60 * 1000,
-    retry: 1, // Limit retries
-    retryDelay: 1000,
+    retry: 1,
   });
 
   const refetch = () => {
     if (invoiceId) {
       queryClient.invalidateQueries({
-        queryKey: ["invoicePayments", invoiceId],
+        queryKey: invoiceKeys.payments(invoiceId),
       });
     }
   };
 
   return { ...query, refetch };
 };
-
-
 
 
 

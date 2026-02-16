@@ -19,11 +19,13 @@ const { Option } = Select;
 interface GeneralSettingsProps {
   initialValues: GeneralDraft;
   onSave: (data: GeneralDraft) => void;
+  formRef?: any;
 }
 
 const GeneralSettings: FC<GeneralSettingsProps> = ({
   initialValues,
   onSave,
+  formRef,
 }) => {
   const [form] = Form.useForm();
   const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
@@ -40,6 +42,13 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
       form.setFieldsValue(initialValues);
     }
   }, [initialValues, form]);
+
+  useEffect(() => {
+  if (formRef) {
+    formRef.current = form;
+  }
+}, [formRef, form]);
+
 
   /* ====================== INIT LOGO ====================== */
 useEffect(() => {
@@ -158,6 +167,8 @@ const handleValuesChange = () => {
         form={form}
         layout="vertical"
         onValuesChange={handleValuesChange}
+        initialValues={initialValues}
+       
       >
         <Row gutter={[24, 24]}>
           {/* ================= COMPANY INFO ================= */}
@@ -175,7 +186,7 @@ const handleValuesChange = () => {
                   <Form.Item
                     name="companyName"
                     label="Company Name"
-                    rules={[{ required: true }]}
+                    rules={[{ required: true ,message: "Company name is required"}]}
                   >
                     <Input />
                   </Form.Item>

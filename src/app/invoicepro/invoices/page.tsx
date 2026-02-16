@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -53,14 +48,31 @@ import {
   DollarOutlined,
   LoadingOutlined,
   FormOutlined,
-  FunnelPlotOutlined
+  FunnelPlotOutlined,
+  ReloadOutlined,
+  UserOutlined,
+  FileTextOutlined,
+  ArrowUpOutlined,
+  RetweetOutlined,
+  ArrowRightOutlined,
+  CreditCardOutlined
+
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import moment from "moment";
 import isBetween from "dayjs/plugin/isBetween";
 
-import { useInvoices, useDeleteInvoice, useDownloadInvoice, useUpdateInvoiceStatus } from "@/hooks/useInvoices";
+import { useInvoices, useDeleteInvoice, useDownloadInvoice, useUpdateInvoiceStatus, useSendInvoiceEmail } from "@/hooks/useInvoices";
 import { useInvoicePaymentHistory } from "@/hooks/useInvoices";
+
+// In your component file (InvoiceproInvoicesPage)
+import type { 
+  PaymentTransaction, 
+  PaymentHistoryData,
+  PaymentStatus,
+  PaymentMethod 
+} from "@/services/invoiceService";
+import ComposeEmailDrawer from "@/components/customer/ComposeEmailDrawer";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -175,6 +187,11 @@ export default function InvoiceproInvoicesPage() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
 
+
+
+
+
+
   // For bulk delete state
   const [bulkDeleteModalVisible, setBulkDeleteModalVisible] = useState(false);
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{
@@ -207,6 +224,59 @@ export default function InvoiceproInvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   dayjs.extend(isBetween);
+
+    // Add this useEffect after your hook calls
+useEffect(() => {
+  if (paymentHistory && transactionDrawerOpen) {
+    console.log('Payment History Data:', {
+      hasData: !!paymentHistory,
+      hasPayments: !!paymentHistory.payments,
+      paymentsCount: paymentHistory.payments?.length || 0,
+      summary: paymentHistory.summary,
+      firstPayment: paymentHistory.payments?.[0],
+      fullData: paymentHistory
+    });
+  }
+}, [paymentHistory, transactionDrawerOpen]);
+
+
+// Inside the component...
+const [emailDrawerOpen, setEmailDrawerOpen] = useState(false);
+const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<any>(null);
+
+const { mutate: sendEmail, isPending: isSendingEmail } = useSendInvoiceEmail();
+
+// Function to handle the Quick Send (Background)
+const handleQuickSend = (record: any) => {
+  const snapshot = record.customerSnapshot as any;
+  const targetEmail = snapshot?.email || record.customer?.email;
+
+  if (!targetEmail) {
+    messageApi.error("No email found for this customer.");
+    return;
+  }
+
+  const hide = message.loading(`Sending invoice ${record.invoiceNumber}...`, 0);
+
+  sendEmail({
+    id: record.id,
+    data: {
+      to: targetEmail,
+      subject: `Invoice ${record.invoiceNumber} from Your Company`,
+      message: `Dear ${snapshot?.name || 'Customer'},\n\nPlease find your invoice ${record.invoiceNumber} attached.`
+    }
+  }, {
+    onSettled: () => hide(),
+    onSuccess: () => messageApi.success("Email sent successfully!")
+  });
+};
+
+
+
+
+
+
+
 
   /* ================= DELETE SINGLE ================= */
   const openDeleteModal = (record: any) => {
@@ -255,6 +325,164 @@ export default function InvoiceproInvoicesPage() {
  
 
 
+// const startBulkDelete = async () => {
+//   if (selectedInvoices.length === 0) return;
+  
+//   setBulkDeleteModalVisible(false);
+  
+//   setBulkDeleteProgress({
+//     visible: true,
+//     total: selectedInvoices.length,
+//     completed: 0,
+//     failed: 0,
+//     currentInvoice: null,
+//     isDeleting: true
+//   });
+
+//   const deletedInvoices: string[] = [];
+//   const failedInvoices: Array<{ invoiceNumber: string; error: string }> = [];
+  
+//   for (let i = 0; i < selectedInvoices.length; i++) {
+//     const inv = selectedInvoices[i];
+    
+//     setBulkDeleteProgress(prev => ({
+//       ...prev,
+//       currentInvoice: inv.invoiceNumber
+//     }));
+    
+//     try {
+//       console.log(`Deleting invoice ${i + 1}/${selectedInvoices.length}:`, {
+//         id: inv.id,
+//         invoiceNumber: inv.invoiceNumber,
+//         url: `/api/invoices/${inv.id}`
+//       });
+      
+//       // Test if the endpoint exists first
+//       const testResponse = await fetch(`/api/invoices/${inv.id}`, {
+//         method: 'HEAD',
+//       });
+      
+//       console.log('HEAD response status:', testResponse.status);
+      
+//       if (testResponse.status === 404) {
+//         throw new Error(`Invoice not found (404). ID: ${inv.id}, Number: ${inv.invoiceNumber}`);
+//       }
+      
+//       // Now try the DELETE
+//       const response = await fetch(`/api/invoices/${inv.id}`, {
+//         method: 'DELETE',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//       });
+      
+//       console.log('DELETE response status:', response.status);
+      
+//       if (!response.ok) {
+//         let errorMessage = `HTTP error! status: ${response.status}`;
+//         try {
+//           const errorData = await response.json();
+//           errorMessage = errorData.message || errorMessage;
+//         } catch {
+//           // Ignore JSON parse errors
+//         }
+//         throw new Error(errorMessage);
+//       }
+      
+//       deletedInvoices.push(inv.invoiceNumber);
+      
+//       setBulkDeleteProgress(prev => ({
+//         ...prev,
+//         completed: prev.completed + 1
+//       }));
+      
+//       await new Promise(resolve => setTimeout(resolve, 300));
+      
+//     } catch (error: any) {
+//       console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, {
+//         error: error.message,
+//         invoiceId: inv.id,
+//         invoiceNumber: inv.invoiceNumber,
+//         stack: error.stack
+//       });
+      
+//       failedInvoices.push({
+//         invoiceNumber: inv.invoiceNumber,
+//         error: error.message || 'Unknown error'
+//       });
+      
+//       setBulkDeleteProgress(prev => ({
+//         ...prev,
+//         failed: prev.failed + 1,
+//         completed: prev.completed + 1
+//       }));
+//     }
+//   }
+
+
+
+  
+//   // Wait a moment before closing progress modal
+//   setTimeout(() => {
+//     setBulkDeleteProgress({
+//       visible: false,
+//       total: 0,
+//       completed: 0,
+//       failed: 0,
+//       currentInvoice: null,
+//       isDeleting: false
+//     });
+    
+//     // Show results
+//     if (deletedInvoices.length > 0) {
+//       messageApi.success(`Deleted ${deletedInvoices.length} invoice(s) successfully`);
+//     }
+    
+//     if (failedInvoices.length > 0) {
+//       messageApi.warning(`Failed to delete ${failedInvoices.length} invoice(s)`);
+      
+//       // Show detailed error modal
+//       Modal.warning({
+//         title: 'Failed to Delete Some Invoices',
+//         content: (
+//           <div>
+//             <Alert
+//               message={`${failedInvoices.length} invoice(s) could not be deleted`}
+//               description="The following invoices failed to delete:"
+//               type="warning"
+//               showIcon
+//               className="mb-4"
+//             />
+//             <div className="max-h-60 overflow-y-auto border rounded p-2">
+//               <ul className="list-disc pl-4">
+//                 {failedInvoices.map((failed, idx) => (
+//                   <li key={idx} className="mb-1 text-sm">
+//                     <Text strong>{failed.invoiceNumber}</Text>
+//                     <Text type="secondary" className="ml-2">
+//                       - {failed.error}
+//                     </Text>
+//                   </li>
+//                 ))}
+//               </ul>
+//             </div>
+//           </div>
+//         ),
+//         width: 500,
+//         okText: 'OK'
+//       });
+//     }
+    
+//     // Clear selection and refresh data
+//     setSelectedRowKeys([]);
+//     setSelectedInvoices([]);
+//     refetch();
+    
+//   }, 1500);
+  
+//   // ... rest of your code
+// };
+
+
 const startBulkDelete = async () => {
   if (selectedInvoices.length === 0) return;
   
@@ -281,43 +509,8 @@ const startBulkDelete = async () => {
     }));
     
     try {
-      console.log(`Deleting invoice ${i + 1}/${selectedInvoices.length}:`, {
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        url: `/api/invoices/${inv.id}`
-      });
-      
-      // Test if the endpoint exists first
-      const testResponse = await fetch(`/api/invoices/${inv.id}`, {
-        method: 'HEAD',
-      });
-      
-      console.log('HEAD response status:', testResponse.status);
-      
-      if (testResponse.status === 404) {
-        throw new Error(`Invoice not found (404). ID: ${inv.id}, Number: ${inv.invoiceNumber}`);
-      }
-      
-      // Now try the DELETE
-      const response = await fetch(`/api/invoices/${inv.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      console.log('DELETE response status:', response.status);
-      
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // Ignore JSON parse errors
-        }
-        throw new Error(errorMessage);
-      }
+      // THIS IS THE FIX - Use mutateAsync instead of fetch
+      await deleteMutation.mutateAsync(inv.id);
       
       deletedInvoices.push(inv.invoiceNumber);
       
@@ -326,19 +519,12 @@ const startBulkDelete = async () => {
         completed: prev.completed + 1
       }));
       
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
     } catch (error: any) {
-      console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, {
-        error: error.message,
-        invoiceId: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        stack: error.stack
-      });
+      console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, error);
       
       failedInvoices.push({
         invoiceNumber: inv.invoiceNumber,
-        error: error.message || 'Unknown error'
+        error: error?.message || 'Unknown error'
       });
       
       setBulkDeleteProgress(prev => ({
@@ -348,9 +534,6 @@ const startBulkDelete = async () => {
       }));
     }
   }
-
-
-
   
   // Wait a moment before closing progress modal
   setTimeout(() => {
@@ -405,13 +588,10 @@ const startBulkDelete = async () => {
     // Clear selection and refresh data
     setSelectedRowKeys([]);
     setSelectedInvoices([]);
-    refetch();
+    // No need to call refetch() here because your useDeleteInvoice hook already invalidates queries
     
-  }, 1500);
-  
-  // ... rest of your code
+  }, 1000);
 };
-
 
   const cancelBulkDelete = () => {
     setBulkDeleteProgress({
@@ -451,6 +631,21 @@ const startBulkDelete = async () => {
         downloadInvoice(record.id);
       },
     },
+    {
+    key: "send_quick",
+    icon: <MailOutlined />,
+    label: "Quick Send Email",
+    onClick: () => handleQuickSend(record),
+  },
+  {
+    key: "compose_email",
+    icon: <FormOutlined />,
+    label: "Compose & Send",
+    onClick: () => {
+      setSelectedInvoiceForEmail(record);
+      setEmailDrawerOpen(true);
+    },
+  },
     {
       key: "transactions",
       icon: <DollarOutlined />,
@@ -869,47 +1064,7 @@ const startBulkDelete = async () => {
     </div>
   );
 
-  const transactionColumns: ColumnsType<any> = [
-    {
-      title: "Date",
-      dataIndex: "paymentDate",
-      render: (v) => moment(v).format("MMM DD, YYYY HH:mm"),
-    },
-    {
-      title: "Amount",
-      dataIndex: "amount",
-      render: (v) => (
-        <Text strong>${Number(v).toFixed(2)}</Text>
-      ),
-    },
-    {
-      title: "Method",
-      dataIndex: "paymentMethod",
-      render: (v) => <Tag>{v || "—"}</Tag>,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      render: (v) => (
-        <Tag
-          color={
-            v === "COMPLETED"
-              ? "green"
-              : v === "FAILED"
-                ? "red"
-                : "blue"
-          }
-        >
-          {v}
-        </Tag>
-      ),
-    },
-    {
-      title: "Note",
-      dataIndex: "description",
-      render: (v) => v || "—",
-    },
-  ];
+
 
   return (
     <MainLayout>
@@ -918,7 +1073,7 @@ const startBulkDelete = async () => {
         {/* Invoices Table */}
         <Card className="shadow-sm border-gray-200">
           {/* Header */}
-          <div className="flex flex-row items-center justify-between gap-4 mb-6 flex-nowrap">
+          <div className="flex flex-row items-center justify-between gap-4 mb-3 flex-nowrap">
             <div className="flex flex-col shrink-0">
               <div className="flex items-center space-x-3">
                 <FormOutlined style={{ fontSize: 24, color: "#1677ff" }} />
@@ -927,11 +1082,11 @@ const startBulkDelete = async () => {
                 </Title>
               </div>
 
-              <Text type="secondary" className="ml-12 mt-1">
+              <Text type="secondary" className=" mt-1">
                 Manage, track payments, and monitor invoice statuses across customers.
               </Text>
 
-              <div className="flex flex-wrap gap-2 ml-12 mt-2">
+              <div className="flex flex-wrap gap-2  mt-2">
                 <Tag color="pink">
                   Total Invoice: <strong>{totalCount}</strong>
                 </Tag>
@@ -979,7 +1134,7 @@ const startBulkDelete = async () => {
             </div>
           </div>
 
-          <Divider />
+          <Divider style={{marginTop:"0"}} />
 
           {/* Bulk Action Bar */}
           {selectedRowKeys.length > 0 && (
@@ -1425,64 +1580,386 @@ const startBulkDelete = async () => {
       </Modal>
 
       {/* Transaction History Drawer */}
-      <Drawer
-        title={
-          <div>
-            <div className="font-semibold">Transaction History</div>
-            <div className="text-sm text-gray-500">Invoice #{transactionInvoice?.invoiceNumber}</div>
+
+
+<Drawer
+  title={
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+        <DollarOutlined className="text-white text-sm" />
+      </div>
+      <div>
+        <div className="font-semibold text-base text-gray-900">Payment Transaction History</div>
+        <div className="text-xs text-gray-500 flex items-center gap-1.5">
+          <span>Invoice #{paymentHistory?.summary?.invoiceNumber || transactionInvoice?.invoiceNumber}</span>
+          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+          <Badge 
+            status="processing" 
+            text={paymentHistory?.payments?.length ? `${paymentHistory.payments.length} transactions` : 'No transactions'} 
+            className="text-xs"
+          />
+        </div>
+      </div>
+    </div>
+  }
+  open={transactionDrawerOpen}
+  onClose={() => {
+    setTransactionDrawerOpen(false);
+    setTransactionInvoice(null);
+  }}
+  width={900}
+  destroyOnClose
+>
+  {isPaymentLoading ? (
+    <div className="flex flex-col justify-center items-center h-56">
+      <Spin size="default" />
+      <span className="mt-3 text-gray-500 text-xs">Loading payment history...</span>
+    </div>
+  ) : !paymentHistory ? (
+    <div className="flex flex-col items-center justify-center py-12 px-4">
+      <div className="text-5xl mb-3 text-gray-300">💳</div>
+      <div className="text-base font-medium text-gray-700 mb-1">No payment history found</div>
+      <p className="text-xs text-gray-500">This invoice has no recorded payments yet.</p>
+    </div>
+  ) : (
+    <div className="space-y-4">
+      {/* Invoice Summary - Single Line Metrics with Colors */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          {/* Left side - Invoice info */}
+          <div className="flex items-center gap-4">
+            <div>
+              <span className="text-xs text-gray-500">Invoice</span>
+              <div className="font-semibold text-gray-900">
+                {paymentHistory?.summary?.invoiceNumber || transactionInvoice?.invoiceNumber}
+              </div>
+            </div>
+            <div className="w-px h-8 bg-gray-200"></div>
+            <div>
+              <span className="text-xs text-gray-500">Customer</span>
+              <div className="font-medium text-gray-900">
+                {paymentHistory?.summary?.customerName || 
+                 (transactionInvoice?.customerSnapshot as any)?.companyName || 
+                 transactionInvoice?.customer?.companyName || 
+                 'Unknown'}
+              </div>
+            </div>
           </div>
-        }
-        open={transactionDrawerOpen}
-        onClose={() => {
-          setTransactionDrawerOpen(false);
-          setTransactionInvoice(null);
-        }}
-        width={720}
-        destroyOnClose
-      >
-        {isPaymentLoading ? (
-          <div className="flex justify-center py-20">
-            <Spin size="large" />
+          
+          {/* Right side - Metrics in one line with colors */}
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <FileTextOutlined className="text-blue-500 text-xs" />
+                Total
+              </span>
+              <div className="font-semibold text-gray-900">
+                ${Number(paymentHistory?.summary?.totalAmount || transactionInvoice?.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <CheckCircleOutlined className="text-green-600 text-xs" />
+                Paid
+              </span>
+              <div className="font-semibold text-green-700">
+                ${Number(paymentHistory?.summary?.totalPaid || transactionInvoice?.paidAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <RetweetOutlined className="text-orange-600 text-xs" />
+                Refund
+              </span>
+              <div className="font-semibold text-orange-700">
+                ${Number(paymentHistory?.summary?.totalRefunded || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <DollarOutlined className="text-blue-600 text-xs" />
+                Balance
+              </span>
+              <div className="font-semibold text-blue-700">
+                ${Number(paymentHistory?.summary?.balanceDue || transactionInvoice?.balanceDue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </div>
+            </div>
           </div>
-        ) : !paymentHistory || !paymentHistory.transactions || paymentHistory.transactions.length === 0 ? (
-          <Empty description="No payment history found" />
+        </div>
+        
+        {/* Payment Progress Bar - Colored */}
+        {Number(paymentHistory?.summary?.totalAmount || 0) > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">Progress</span>
+              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-green-500"
+                  style={{ width: `${Math.min(100, Math.round((Number(paymentHistory?.summary?.totalPaid || 0) / Number(paymentHistory?.summary?.totalAmount || 1)) * 100))}%` }}
+                ></div>
+              </div>
+              <span className="text-xs font-medium text-blue-600">
+                {Math.round((Number(paymentHistory?.summary?.totalPaid || 0) / Number(paymentHistory?.summary?.totalAmount || 1)) * 100)}%
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Status Counts - Colored Icons, 2-Digit Format */}
+      <div className="grid grid-cols-5 gap-2">
+        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
+          <div className="text-xs text-gray-500">Total</div>
+          <div className="text-lg font-semibold text-gray-800">
+            {String(paymentHistory?.summary?.paymentCount || paymentHistory.payments.length).padStart(2, '0')}
+          </div>
+        </div>
+        
+        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <CheckCircleOutlined className="text-green-600 text-xs" />
+            Completed
+          </div>
+          <div className="text-lg font-semibold text-gray-800">
+            {String(paymentHistory?.summary?.completedPayments || 
+             paymentHistory.payments.filter((p: any) => p.status === 'COMPLETED').length).padStart(2, '0')}
+          </div>
+        </div>
+        
+        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <RetweetOutlined className="text-orange-600 text-xs" />
+            Refunded
+          </div>
+          <div className="text-lg font-semibold text-gray-800">
+            {String(paymentHistory?.summary?.refundedPayments || 
+             paymentHistory.payments.filter((p: any) => p.status === 'REFUNDED').length).padStart(2, '0')}
+          </div>
+        </div>
+        
+        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <CloseCircleOutlined className="text-red-600 text-xs" />
+            Failed
+          </div>
+          <div className="text-lg font-semibold text-gray-800">
+            {String(paymentHistory?.summary?.failedPayments || 
+             paymentHistory.payments.filter((p: any) => p.status === 'FAILED').length).padStart(2, '0')}
+          </div>
+        </div>
+        
+        <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <ClockCircleOutlined className="text-blue-600 text-xs" />
+            Pending
+          </div>
+          <div className="text-lg font-semibold text-gray-800">
+            {String(paymentHistory?.summary?.pendingPayments || 
+             paymentHistory.payments.filter((p: any) => p.status === 'PENDING').length).padStart(2, '0')}
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Table - Compact */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center">
+              <FileTextOutlined className="text-blue-600 text-xs" />
+            </div>
+            <span className="font-medium text-gray-800 text-sm">Payment Transactions</span>
+            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
+              {paymentHistory.payments.length}
+            </span>
+          </div>
+          <Button 
+            size="small" 
+            icon={<ReloadOutlined />}
+            onClick={() => refetchPaymentHistory()}
+            loading={isPaymentLoading}
+            className="text-xs border-gray-300"
+          />
+        </div>
+
+        {!paymentHistory.payments || paymentHistory.payments.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-gray-500 text-sm">No payment transactions found</p>
+          </div>
         ) : (
           <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <Card size="small">
-                <Text type="secondary">Total Amount</Text>
-                <div className="text-xl font-bold">
-                  ${paymentHistory?.totalAmount?.toFixed(2) ?? "0.00"}
-                </div>
-              </Card>
-
-              <Card size="small">
-                <Text type="secondary">Total Paid</Text>
-                <div className="text-xl font-bold text-green-600">
-                  ${paymentHistory?.totalPaid?.toFixed(2) ?? "0.00"}
-                </div>
-              </Card>
-
-              <Card size="small">
-                <Text type="secondary">Balance Due</Text>
-                <div className="text-xl font-bold text-blue-600">
-                  ${paymentHistory?.balance?.toFixed(2) ?? "0.00"}
-                </div>
-              </Card>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-4 py-2.5 text-left text-gray-600 font-medium">Date & Time</th>
+                    <th className="px-4 py-2.5 text-right text-gray-600 font-medium">Amount</th>
+                    <th className="px-4 py-2.5 text-center text-gray-600 font-medium">Status</th>
+                    <th className="px-4 py-2.5 text-right text-gray-600 font-medium">Paid</th>
+                    <th className="px-4 py-2.5 text-right text-gray-600 font-medium">Balance</th>
+                    <th className="px-4 py-2.5 text-left text-gray-600 font-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paymentHistory.payments.map((payment: any, index: number) => (
+                    <tr key={payment.id || index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="font-medium text-gray-800">
+                          {payment.date || moment(payment.paymentDate).format('MMM DD, YYYY')}
+                        </div>
+                        <div className="text-gray-400">
+                          {payment.time || moment(payment.paymentDate).format('HH:mm')}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <span className={`font-medium ${payment.status === 'REFUNDED' ? 'text-orange-600' : 'text-gray-800'}`}>
+                          {payment.status === 'REFUNDED' ? '−' : ''}${Number(payment.amount || 0).toLocaleString()}
+                        </span>
+                        <div className="text-gray-400 text-[10px]">
+                          {payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex justify-center">
+                          <span className={`
+                            px-2 py-0.5 rounded-full text-[10px] font-medium border
+                            ${payment.status === 'COMPLETED' ? 'bg-green-50 text-green-700 border-green-200' : ''}
+                            ${payment.status === 'REFUNDED' ? 'bg-orange-50 text-orange-700 border-orange-200' : ''}
+                            ${payment.status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' : ''}
+                            ${payment.status === 'PENDING' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
+                          `}>
+                            {payment.status?.charAt(0) + payment.status?.slice(1).toLowerCase()}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right font-medium text-green-700">
+                        ${Number(payment.totalPaid || 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right font-medium text-blue-700">
+                        ${Number(payment.balanceDue || 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-gray-600">
+                          {payment.description || <span className="text-gray-400">—</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            {/* Transactions Table */}
-            <Table
-              columns={transactionColumns}
-              dataSource={paymentHistory.transactions}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
+            
+            {/* Simple Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+              <span className="text-xs text-gray-500">
+                Showing 1-{Math.min(5, paymentHistory.payments.length)} of {paymentHistory.payments.length}
+              </span>
+              <div className="flex gap-1">
+                <Button size="small" className="text-xs border-gray-300 px-2">Previous</Button>
+                <Button size="small" className="text-xs bg-gray-700 text-white border-gray-700 px-2">1</Button>
+                <Button size="small" className="text-xs border-gray-300 px-2">2</Button>
+                <Button size="small" className="text-xs border-gray-300 px-2">3</Button>
+                <Button size="small" className="text-xs border-gray-300 px-2">Next</Button>
+              </div>
+            </div>
           </>
         )}
-      </Drawer>
+      </div>
+
+      {/* Payment Timeline - Restored */}
+      {paymentHistory.payments && paymentHistory.payments.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+              <ClockCircleOutlined className="text-blue-600 text-xs" />
+            </div>
+            <span className="font-medium text-gray-800 text-sm">Payment Timeline</span>
+            <span className="text-xs text-gray-500 ml-auto">Recent transactions</span>
+          </div>
+          
+          <div className="space-y-2">
+            {paymentHistory.payments.slice(0, 3).map((payment: any, idx: number) => (
+              <div key={idx} className="flex gap-2 relative">
+                {idx < Math.min(paymentHistory.payments.length, 3) - 1 && (
+                  <div className="absolute left-2 top-5 bottom-0 w-0.5 bg-gray-200"></div>
+                )}
+                <div className={`
+                  w-4 h-4 rounded-full mt-0.5 flex items-center justify-center flex-shrink-0
+                  ${payment.status === 'COMPLETED' ? 'bg-green-500' : ''}
+                  ${payment.status === 'REFUNDED' ? 'bg-orange-500' : ''}
+                  ${payment.status === 'FAILED' ? 'bg-red-500' : ''}
+                  ${payment.status === 'PENDING' ? 'bg-blue-500' : ''}
+                  ${!['COMPLETED','REFUNDED','FAILED','PENDING'].includes(payment.status) ? 'bg-gray-400' : ''}
+                `}>
+                  {payment.status === 'COMPLETED' && <CheckCircleOutlined className="text-white text-[8px]" />}
+                  {payment.status === 'REFUNDED' && <RetweetOutlined className="text-white text-[8px]" />}
+                  {payment.status === 'FAILED' && <CloseCircleOutlined className="text-white text-[8px]" />}
+                  {payment.status === 'PENDING' && <ClockCircleOutlined className="text-white text-[8px]" />}
+                </div>
+                <div className="flex-1 pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-semibold text-gray-900 text-sm">
+                        ${Number(payment.amount || 0).toLocaleString()} 
+                      </span>
+                      <span className="text-xs text-gray-600 ml-2">
+                        {payment.description || 'Payment processed'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                      {payment.date || moment(payment.paymentDate).format('MMM DD · HH:mm')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">
+                      {payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}
+                    </span>
+                    {payment.processedBy && (
+                      <span className="text-[10px] text-gray-500">
+                        by {payment.processedBy}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {paymentHistory.payments.length > 3 && (
+            <div className="text-center mt-3 pt-2 border-t border-gray-100">
+              <button className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 mx-auto">
+                View all {paymentHistory.payments.length} transactions
+                <ArrowRightOutlined className="text-[10px]" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )}
+</Drawer>
+
+{/* ... existing Modals for Delete and Status ... */}
+
+      {/* EMAIL DRAWER */}
+      {selectedInvoiceForEmail && (
+        <ComposeEmailDrawer
+          open={emailDrawerOpen}
+          onClose={() => {
+            setEmailDrawerOpen(false);
+            setSelectedInvoiceForEmail(null);
+          }}
+          invoice={selectedInvoiceForEmail}
+        />
+      )}
+    
+
+
+
+
+
     </MainLayout>
   );
 }

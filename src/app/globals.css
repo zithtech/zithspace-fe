@@ -853,3 +853,54 @@ body {
 .table-row-dark {
   background: #fafafa;
 } */
+/* SideNav.css */
+
+/* Custom scrollbar for sidebar */
+.sidebar-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Icons only mode - ensure icons are centered */
+.ant-layout-sider-collapsed .ant-menu-item {
+    padding: 0 calc(50% - 10px) !important;
+    display: flex;
+    justify-content: center;
+}
+
+.ant-layout-sider-collapsed .ant-menu-submenu-title {
+    padding: 0 calc(50% - 10px) !important;
+    display: flex;
+    justify-content: center;
+}
+
+/* Remove extra padding/margin when collapsed */
+.ant-layout-sider-collapsed .ant-menu-item .anticon,
+.ant-layout-sider-collapsed .ant-menu-submenu-title .anticon {
+    margin-right: 0 !important;
+    font-size: 18px;
+}
+
+/* Ensure submenu popups look good */
+.ant-menu-submenu-popup {
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

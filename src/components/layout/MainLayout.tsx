@@ -21,7 +21,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const router = useRouter();
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [activeModule, setActiveModule] = useState<ModuleType>('WORK');
 
   // Determine active module based on current path

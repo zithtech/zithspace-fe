@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-
+import React, { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   Layout,
   Menu,
@@ -33,6 +32,11 @@ import {
   UnorderedListOutlined,
   CalendarOutlined,
   ControlOutlined,
+  MoneyCollectOutlined,
+  IdcardOutlined,
+  ProfileOutlined,
+  FileAddOutlined,
+  SnippetsOutlined,
   InboxOutlined,
   DeleteOutlined,
   FolderOpenOutlined,
@@ -40,8 +44,10 @@ import {
   BarChartOutlined,
   FileZipOutlined,
   MessageOutlined,
-} from '@ant-design/icons';
+  MailOutlined
+} from "@ant-design/icons";
 import LoadingSpinner from '../common/LoadingSpinner';
+import { Network,Star,IdCard,Combine,Share2,Proportions,TableOfContents} from 'lucide-react';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -148,16 +154,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
           onClick: () => handleNavigation("/projects/create"),
         },
         {
-          key: "/projects/tickets",
+          key: "/projects/select",
           icon: <UnorderedListOutlined />,
           label: "Tickets",
-          onClick: () => handleNavigation("/projects/tickets"),
+          onClick: () => handleNavigation("/projects/select"),
         },
         {
           key: "/projects/plans",
           icon: <CalendarOutlined />,
-          label: 'Plans',
-          onClick: () => handleNavigation('/projects/plans'),
+          label: "Plans",
+          onClick: () => handleNavigation("/projects/plans"),
         },
         {
           key: '/projects/buckets',
@@ -230,6 +236,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       onClick: () => handleNavigation("/accounts"),
       style: user?.role !== "super_admin" ? { color: "#bfbfbf" } : undefined,
     },
+     {
+      key: "/timesheet",
+      icon: <ClockCircleOutlined />,
+      label: "Timesheet",
+      onClick: () => handleNavigation("/timesheet"),
+     },
     {
       key: "invoicepro",
       icon: <AccountBookOutlined />,
@@ -253,12 +265,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: "New Invoice",
           onClick: () => handleNavigation("/invoicepro/newinvoice"),
         },
-        {
-          key: "/invoicepro/reports",
-          icon: <BarChartOutlined />,
-          label: "Reports",
-          onClick: () => handleNavigation("/invoicepro/reports"),
-        },
+        // {
+        //   key: "/invoicepro/reports",
+        //   icon: <BarChartOutlined />,
+        //   label: "Reports",
+        //   onClick: () => handleNavigation("/invoicepro/reports"),
+        // },
         {
           key: "/invoicepro/customers",
           icon: <TeamOutlined />,
@@ -275,13 +287,102 @@ export default function MainLayout({ children }: MainLayoutProps) {
       ],
 
     },
+
+    {
+      key: "salary",
+      icon: <MoneyCollectOutlined />,
+      label: "Payroll",
+      children: [
+        // {
+        //   key: "/salary/Dashboard",
+        //   icon: <DashboardOutlined />,
+        //   label: "Dashboard",
+        //   onClick: () => handleNavigation("/salary/Dashboard"),
+        // },
+       
+        {
+          key: "/salary/Create-payslip",
+          icon: <FileAddOutlined />,
+          label: "Create Payslip",
+          onClick: () => handleNavigation("/salary/Create-payslip"),
+        },
+        {
+          key: "/salary/My-Payslip",
+          icon: <ProfileOutlined />,
+          label: "My Payslip",
+          onClick: () => handleNavigation("/salary/My-payslip"),
+        },
+        {
+          key: "/salary/Generate-payslip",
+          icon: <FileAddOutlined />,
+          label: "Generate Payslip",
+          onClick: () => handleNavigation("/salary/Generate-payslip"),
+        },
+        {
+          key: "/salary/Payslips",
+          icon: <SnippetsOutlined />,
+          label: "Payslips",
+          onClick: () => handleNavigation("/salary/Payslips"),
+        },
+         {
+          key: "/salary/Settings",
+          icon: <SettingOutlined />,
+          label: "Settings",
+          onClick: () => handleNavigation("/salary/Settings"),
+        },
+      ],
+    },
     {
       key: "/documenthub",
       icon: <FileZipOutlined />,
       label: "Document Hub",
       onClick: () => handleNavigation("/documenthub"),
     },
+    {
+      key: "/orgstructure",
+      icon: <Network  size={18}/>,
+      label: "Org-structure",
+      children: [
+         {
+          key: "/org-structure/overview",
+          icon: <TableOfContents size={14}/>,   
+          label: "Overview",
+          onClick: () => handleNavigation("/org-structure/overview"),
+        },
+        {
+          key: "/org-structure/grades",
+          icon: <IdCard size={14} />,   
+          label: "Grades",
+          onClick: () => handleNavigation("/org-structure/grades"),
+        },
+         {
+          key: "/org-structure/employment-types",
+          icon: <Star size={14}/>,   
+          label: "Employment Types",
+          onClick: () => handleNavigation("/org-structure/employment-types"),
+        },
+        {
+          key: "/org-structure/departments",
+          icon: <Combine size={14} />,   
+          label: "Departments",
+          onClick: () => handleNavigation("/org-structure/departments"),
+        },
+        {
+          key: "/org-structure/sub-departments",
+          icon: <Share2 size={14}/>,   
+          label: "Sub Departments",
+          onClick: () => handleNavigation("/org-structure/sub-departments"),
+        },
+        {
+          key: "/org-structure/positions",
+          icon: <Proportions size={14} />,   
+          label: "Positions",
+          onClick: () => handleNavigation("/org-structure/positions"),
+        },
+      ]
+      }
   ];
+  
 
 
 
@@ -319,6 +420,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       icon: <UserOutlined />,
       label: "Profile",
       onClick: () => router.push("/profile"),
+    },
+    {
+      key: "newProfile",
+      icon: <UserOutlined />,
+      label: "New Profile",
+      onClick: () => router.push("/newProfile"),
     },
     {
       key: "settings",
@@ -486,7 +593,27 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
           {/* Right side - User actions */}
           <Space size={16} align="center">
+
+
+            <Button
+              type="text"
+              icon={<MailOutlined />}
+              onClick={() => router.push('/mail')}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+
+
+
+
+
+
+
             {/* Chat */}
+
             <Button
               type="text"
               icon={<MessageOutlined />}

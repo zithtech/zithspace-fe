@@ -1,8 +1,12 @@
+
+
+
+
 "use client";
 
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, Row, Col, Typography, Table, Tag, Button } from "antd";
+import { Card, Row, Col, Typography, Table, Tag, Button,Spin ,Skeleton} from "antd";
 import {
   FileTextOutlined,
   DollarOutlined,
@@ -10,10 +14,17 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { Column } from "@ant-design/plots";
+
+import { Line } from "@ant-design/plots";
+import { Tooltip } from "antd";
+
 import { Calendar, Badge } from "antd";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+import { useInvoices } from "@/hooks/useInvoices";
+import type { ColumnsType } from "antd/es/table";
+
+
 
 import isBetween from "dayjs/plugin/isBetween";
 
@@ -24,68 +35,65 @@ const { Title, Text } = Typography;
 export default function DashboardPage() {
   const router = useRouter();
 
-  const [invoices, setInvoices] = useState<any[]>([]);
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("invoices") || "[]");
-    setInvoices(stored);
-  }, []);
+
+  const [currentMonth, setCurrentMonth] = useState(dayjs());
+
+
+
+  const { data, isLoading } = useInvoices({
+  page: 1,
+  limit: 100, // dashboard needs summary data
+});
+
+const invoices = data?.data ?? [];
+
 
   /* ================= CALCULATE METRICS ================= */
   const totalInvoices = invoices.length;
 
-  const totalRevenue = invoices.reduce((sum, inv) => {
-    const subtotal =
-      inv.items?.reduce(
-        (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-        0,
-      ) || 0;
-    const tax =
-      inv.items?.reduce((s: number, i: any) => {
-        const line = (i.qty || 0) * (i.price || 0);
-        return s + (line * (i.tax || 0)) / 100;
-      }, 0) || 0;
-    return sum + subtotal + tax;
-  }, 0);
 
-  const totalPaid = invoices.reduce((sum, inv) => sum + (inv.paid || 0), 0);
 
-  const pendingAmount = totalRevenue - totalPaid;
+
+  const totalRevenue = invoices.reduce(
+  (sum, inv) => sum + Number(inv.total || 0),
+  0
+);
+
+  const totalPaid = invoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
+
+
+
+  const pendingAmount = invoices.reduce(
+  (sum, inv) => sum + Number(inv.balanceDue || 0),
+  0
+);
+
+
+
+
 
   const now = new Date();
-  const overdueAmount = invoices
-    .filter(
-      (inv) =>
-        new Date(inv.due_date) < now &&
-        (inv.paid || 0) <
-          (inv.items?.reduce(
-            (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-            0,
-          ) || 0),
-    )
-    .reduce((sum, inv) => {
-      const subtotal =
-        inv.items?.reduce(
-          (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-          0,
-        ) || 0;
-      const tax =
-        inv.items?.reduce((s: number, i: any) => {
-          const line = (i.qty || 0) * (i.price || 0);
-          return s + (line * (i.tax || 0)) / 100;
-        }, 0) || 0;
-      const total = subtotal + tax;
-      const balance = total - (inv.paid || 0);
-      return sum + balance;
-    }, 0);
+
+const overdueAmount = invoices
+  .filter(
+    (inv) =>
+      new Date(inv.dueDate) < now &&
+      Number(inv.balanceDue || 0) > 0
+  )
+  .reduce(
+    (sum, inv) => sum + Number(inv.balanceDue || 0),
+    0
+  );
+
 
   /* ================= CALENDAR DATA ================= */
   const calendarMap: Record<string, { created: number; received: number }> = {};
 
   invoices.forEach((inv) => {
     // 1️⃣ Invoice CREATED
-    if (inv.invoice_date) {
-      const createdKey = new Date(inv.invoice_date).toISOString().split("T")[0];
+    if (inv.invoiceDate) {
+      const createdKey = new Date(inv.invoiceDate).toISOString().split("T")[0];
 
       if (!calendarMap[createdKey]) {
         calendarMap[createdKey] = { created: 0, received: 0 };
@@ -95,8 +103,8 @@ export default function DashboardPage() {
     }
 
     // 2️⃣ Invoice RECEIVED (temporary logic)
-    if (inv.paid > 0 && inv.invoice_date) {
-      const paidKey = new Date(inv.invoice_date).toISOString().split("T")[0];
+    if (inv.paidAmount > 0 && inv.invoiceDate) {
+      const paidKey = new Date(inv.invoiceDate).toISOString().split("T")[0];
 
       if (!calendarMap[paidKey]) {
         calendarMap[paidKey] = { created: 0, received: 0 };
@@ -113,58 +121,46 @@ export default function DashboardPage() {
     value: string,
     color: string,
   ) => (
-    <Card
-      style={{
-        borderRadius: 12,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-        padding: "16px 12px",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        height: "100%",
-        minHeight: "90px",
-        border: "none",
-        background: `linear-gradient(135deg, ${color}10, ${color}05)`,
-        position: "relative",
-        overflow: "hidden",
-      }}
-      styles={{
-        body: {
-          padding: 0,
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        },
-      }}
-    >
-      {/* Background accent */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "4px",
-          height: "100%",
-          backgroundColor: color,
-        }}
-      />
+<Card
+  style={{
+    borderRadius: 12,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+    padding: "16px 12px",
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    height: "100%",
+    minHeight: "90px",
+    border: "1px solid #f0f0f0",
+    background: "#ffffff", 
+  }}
+  styles={{
+    body: {
+      padding: 0,
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+    },
+  }}
+>
+      
 
       {/* Icon */}
       <div
         style={{
-          fontSize: 20,
-          color: color,
-          background: `${color}15`,
-          padding: "10px",
-          borderRadius: "10px",
-          marginLeft: "8px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "40px",
-          height: "40px",
-        }}
+    fontSize: 20,
+    color: "#ffffff",          
+    background: color,         
+    padding: "10px",
+    borderRadius: "10px",
+    marginLeft: "8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "40px",
+    height: "40px",
+  }}
       >
         {icon}
       </div>
@@ -198,282 +194,342 @@ export default function DashboardPage() {
     </Card>
   );
 
-  /* ================= RECENT INVOICES TABLE ================= */
-  const statusColors: Record<string, string> = {
-    submitted: "#52c41a",
-    pending: "#faad14",
-    draft: "#8c8c8c",
-    overdue: "#f5222d",
-  };
 
-  /* ================= MONTHLY REVENUE ================= */
-  const monthlyRevenueMap: Record<string, number> = {};
 
-  invoices.forEach((inv) => {
-    if (!inv.invoice_date) return;
 
-    const date = new Date(inv.invoice_date);
-    const month = date.toLocaleString("en-US", {
-      month: "short",
-      year: "numeric",
-    });
 
-    const subtotal =
-      inv.items?.reduce(
-        (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-        0,
-      ) || 0;
 
-    const tax =
-      inv.items?.reduce((s: number, i: any) => {
-        const line = (i.qty || 0) * (i.price || 0);
-        return s + (line * (i.tax || 0)) / 100;
-      }, 0) || 0;
+/* ================= CURRENT YEAR REVENUE (MONTH WISE) ================= */
 
-    monthlyRevenueMap[month] = (monthlyRevenueMap[month] || 0) + subtotal + tax;
-  });
+const currentYear = dayjs().year();
+const yearlyRevenueMap: Record<string, number> = {};
 
-  const monthlyRevenueData = Object.entries(monthlyRevenueMap).map(
-    ([month, revenue]) => ({
-      month,
-      revenue,
-    }),
-  );
+// collect revenue month-wise for CURRENT YEAR
+invoices.forEach((inv) => {
+  if (!inv.invoiceDate) return;
 
-  const monthlyRevenueConfig = {
-    data: monthlyRevenueData,
-    xField: "month",
-    yField: "revenue",
+  const d = dayjs(inv.invoiceDate);
+  if (d.year() !== currentYear) return;
 
-    color: "#1890ff",
+  const month = d.format("MMM"); // Jan, Feb, Mar...
+  yearlyRevenueMap[month] =
+    (yearlyRevenueMap[month] || 0) + Number(inv.total || 0);
+});
 
-    /* 🔽 IMPORTANT SIZE CONTROLS */
-    columnWidthRatio: 0.35, // narrower bars (default ~0.6)
-    maxColumnWidth: 32, // hard limit so bars never get too wide
+// ensure all 12 months appear (even if 0)
+const months = Array.from({ length: 12 }).map((_, i) =>
+  dayjs().month(i).format("MMM")
+);
 
-    radius: [6, 6, 0, 0],
+const yearlyRevenueData = months.map((month) => ({
+  month,
+  revenue: yearlyRevenueMap[month] || 0,
+}));
 
-    xAxis: {
-      label: {
-        autoRotate: false,
-        style: {
-          fontSize: 12,
-          fill: "#595959",
-        },
-      },
+const monthlyRevenueConfig = {
+  data: yearlyRevenueData,
+  xField: "month",
+  yField: "revenue",
+  smooth: true,
+  color: "#2f6df6",
+  lineStyle: { lineWidth: 3 },
+  point: {
+    size: 4,
+    style: {
+      fill: "#fff",
+      stroke: "#2f6df6",
+      lineWidth: 2,
     },
-
-    yAxis: {
-      label: {
-        formatter: (v: string) => `$${Number(v).toFixed(0)}`,
-        style: {
-          fill: "#8c8c8c",
-        },
-      },
-      grid: {
-        line: {
-          style: {
-            stroke: "#f0f0f0",
-            lineDash: [4, 4],
-          },
-        },
-      },
+  },
+  area: {
+    style: {
+      fill: "l(270) 0:rgba(47,109,246,0.25) 1:rgba(47,109,246,0.05)",
     },
-
-    tooltip: {
-      formatter: (datum: any) => ({
-        name: "Revenue",
-        value: `$${datum.revenue.toFixed(2)}`,
-      }),
+  },
+  yAxis: {
+    label: {
+      formatter: (v: string) => `$${Number(v).toFixed(0)}`,
     },
+  },
+};
 
-    animation: {
-      appear: {
-        animation: "scale-in-y",
-        duration: 500,
-      },
-    },
-  };
 
-  const columns = [
-    {
-      title: "INVOICE",
-      dataIndex: "invoice_number",
-      key: "invoice_number",
-      render: (text: string) => (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <Text strong style={{ color: "#1890ff", fontSize: "14px" }}>
-            #{text}
-          </Text>
-        </div>
-      ),
-    },
-    {
-      title: "CUSTOMER",
-      dataIndex: ["customer_snapshot", "name"],
-      key: "customer",
-      render: (name: string) => (
-        <Text style={{ fontWeight: 500, color: "#434343" }}>
-          {name || "N/A"}
-        </Text>
-      ),
-    },
-    {
-      title: "DATE",
-      dataIndex: "invoice_date",
-      key: "invoice_date",
-      render: (date: string) => (
-        <Text type="secondary" style={{ fontSize: "13px" }}>
-          {new Date(date).toLocaleDateString("en-US", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })}
-        </Text>
-      ),
-    },
-    {
-      title: "AMOUNT",
-      key: "amount",
-      align: "right" as const,
-      render: (_: any, record: any) => {
-        const subtotal =
-          record.items?.reduce(
-            (s: number, i: any) => s + (i.qty || 0) * (i.price || 0),
-            0,
-          ) || 0;
-        const tax =
-          record.items?.reduce(
-            (s: number, i: any) =>
-              s + ((i.qty || 0) * (i.price || 0) * (i.tax || 0)) / 100,
-            0,
-          ) || 0;
-        return (
-          <Text strong style={{ fontSize: "15px" }}>
-            $
-            {(subtotal + tax).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-            })}
-          </Text>
-        );
-      },
-    },
-    {
-      title: "STATUS",
-      dataIndex: "status",
-      key: "status",
-      align: "center" as const,
-      render: (status: string | undefined) => {
-        const s = status?.toLowerCase() || "draft";
-        return (
-          <Tag
-            bordered={false}
-            style={{
-              borderRadius: "6px",
-              padding: "2px 10px",
-              fontWeight: 600,
-              fontSize: "11px",
-              textTransform: "uppercase",
-              backgroundColor: `${statusColors[s]}15`, // Light background
-              color: statusColors[s],
-              border: `1px solid ${statusColors[s]}30`,
-            }}
-          >
-            {s}
-          </Tag>
-        );
-      },
-    },
-  ];
 
-  const currentMonth = dayjs(); // today
 
-  const fullCellRender = (value: Dayjs) => {
-    if (!value.isSame(currentMonth, "month")) {
-      return <div style={{ height: "100%" }} />;
-    }
 
-    const dateKey = value.format("YYYY-MM-DD");
-    const data = calendarMap[dateKey];
 
+
+const columns: ColumnsType<any> = [
+  {
+    title: "Invoice No",
+    dataIndex: "invoiceNumber",
+    key: "invoice_number",
+    width: 120,
+    className: "font-mono px-4",
+    render: (value) => (
+      <div className="font-medium text-gray-900 tracking-tight">
+        {value || "-"}
+      </div>
+    ),
+  },
+{
+  title: "Customer",
+  key: "customer",
+  // Removed fixed width to let it grow/shrink, or use a smaller minWidth
+  width: 200, 
+  className: "px-4", 
+  render: (_, record) => {
+    const snapshot = record.customerSnapshot;
+    const companyName = snapshot?.companyName || record.customer?.companyName;
+    
     return (
+      // Removed pr-4 to keep content closer to the next column border
+      <div className="truncate max-w-[180px]"> 
+        <div className="font-semibold text-gray-900 truncate">
+          {companyName || "Unknown Customer"}
+        </div>
+      </div>
+    );
+  },
+},
+{
+  title: "Invoice Date",
+  dataIndex: "invoiceDate",
+  width: 110, // Slightly reduced
+  align: "left", // Changed from center to left to keep it closer to the Customer text
+  className: "px-2", 
+  render: (date: string) => (
+    <div className="text-gray-700 font-medium whitespace-nowrap">
+      {date
+        ? new Date(date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        : "-"}
+    </div>
+  ),
+},
+  {
+    title: "Due Date",
+    dataIndex: "dueDate",
+    width: 140, // Slightly wider
+    align: "center" as const,
+    className: "px-4",
+    render: (date: string) => {
+      const today = new Date();
+      const dueDate = new Date(date);
+      const isPastDue = dueDate < today;
+      
+      return (
+        <div className={`font-medium ${isPastDue ? 'text-red-600' : 'text-gray-700'}`}>
+          {date
+            ? new Date(date).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })
+            : "-"}
+          {isPastDue && date && (
+            <div className="text-xs text-red-500 font-normal">Past due</div>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    title: "Amount",
+    dataIndex: "total",
+    width: 130,
+    align: "right" as const,
+    className: "px-4",
+    render: (v) => (
+      <div className="font-bold text-gray-900">
+        $ {Number(v).toFixed(2)}
+      </div>
+    ),
+  },
+  {
+    title: "Status",
+    dataIndex: "status",
+    width: 140,
+    align: "center" as const,
+    className: "px-4",
+    render: (status: string) => {
+      const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
+        submitted: { color: "text-green-700", bg: "bg-green-100", label: "Submitted" },
+        paid: { color: "text-blue-700", bg: "bg-blue-100", label: "Paid" },
+        draft: { color: "text-yellow-700", bg: "bg-yellow-100", label: "Draft" },
+        overdue: { color: "text-red-700", bg: "bg-red-100", label: "Overdue" },
+        pending: { color: "text-orange-700", bg: "bg-orange-100", label: "Pending" },
+      };
+      
+      const config = statusConfig[status?.toLowerCase()] || 
+                    { color: "text-gray-700", bg: "bg-gray-100", label: status || "Unknown" };
+      
+      return (
+        <span className={`
+          inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+          ${config.color} ${config.bg}
+        `}>
+          {config.label}
+        </span>
+      );
+    },
+  },
+  {
+    title: "Balance Due",
+    dataIndex: "balanceDue",
+    width: 140,
+    align: "right" as const,
+    className: "px-4",
+    render: (v) => {
+      const amount = Number(v);
+      const isZero = amount === 0;
+      
+      return (
+        <div className={`
+          font-semibold 
+          ${isZero ? 'text-green-600' : 'text-gray-900'}
+        `}>
+          $ {amount.toFixed(2)}
+          {isZero && (
+            <div className="text-xs text-green-500 font-normal">Paid</div>
+          )}
+        </div>
+      );
+    },
+  },
+];
+
+
+
+
+  
+
+
+const fullCellRender = (value: Dayjs) => {
+  if (!value.isSame(currentMonth, "month")) {
+    return <div style={{ height: "100%" }} />;
+  }
+
+  const dateKey = value.format("YYYY-MM-DD");
+  const data = calendarMap[dateKey];
+  const isToday = value.isSame(dayjs(), "day");
+
+  // Build tooltip text ONLY if data exists
+  const tooltipText =
+    data && (data.created > 0 || data.received > 0)
+      ? `${data.created > 0 ? `Created: ${data.created}` : ""}${
+          data.created > 0 && data.received > 0 ? " | " : ""
+        }${data.received > 0 ? `Received: ${data.received}` : ""}`
+      : null;
+
+
+
+
+  const cell = (
+  <div
+    style={{
+      height: "100%",
+      width: "100%",
+      padding: 2,
+      borderRadius: 4,
+      cursor: tooltipText ? "pointer" : "default",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 4,
+    }}
+  >
+    {/* Date wrapper (controls today highlight positioning) */}
+    <div
+      style={{
+        position: "relative",
+        width: 24,
+        height: 24,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {/* Today highlight */}
+      {isToday && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            background: "#e6f7ff",
+            border: "1px solid #91d5ff",
+            zIndex: 1,
+          }}
+        />
+      )}
+
+      {/* Date number */}
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: isToday ? 700 : 600,
+          color: isToday ? "#1890ff" : "#262626",
+          zIndex: 2,
+          lineHeight: 1,
+        }}
+      >
+        {value.date()}
+      </span>
+    </div>
+
+    {/* Dots (always below the date) */}
+    {data && (
       <div
         style={{
-          height: "100%",
-          padding: 4,
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "flex-start",
           gap: 2,
         }}
       >
-        {/* Date */}
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#1f1f1f",
-          }}
-        >
-          {value.date()}
-        </div>
-
-        {/* Compact indicators */}
-        {data && (
-          <div
+        {data.created > 0 && (
+          <span
             style={{
-              display: "flex",
-              gap: 4,
-              marginTop: 2,
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "#1890ff",
             }}
-          >
-            {data.created > 0 && (
-              <div
-                title={`${data.created} invoices created`}
-                style={{
-                  minWidth: 16,
-                  height: 14,
-                  padding: "0 4px",
-                  borderRadius: 999,
-                  background: "#1890ff",
-                  color: "#fff",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {data.created}
-              </div>
-            )}
-
-            {data.received > 0 && (
-              <div
-                title={`${data.received} invoices received`}
-                style={{
-                  minWidth: 16,
-                  height: 14,
-                  padding: "0 4px",
-                  borderRadius: 999,
-                  background: "#52c41a",
-                  color: "#fff",
-                  fontSize: 9,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {data.received}
-              </div>
-            )}
-          </div>
+          />
+        )}
+        {data.received > 0 && (
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "#52c41a",
+            }}
+          />
         )}
       </div>
-    );
-  };
+    )}
+  </div>
+);
+
+
+  // ONLY wrap with Tooltip if there is data
+  return tooltipText ? (
+    <Tooltip title={tooltipText} trigger={["hover", "click"]}>
+      {cell}
+    </Tooltip>
+  ) : (
+    cell
+  );
+};
+
+
+
+
+
 
   const monthStart = currentMonth.startOf("month");
   const monthEnd = currentMonth.endOf("month");
@@ -491,6 +547,7 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
+      <Spin spinning={isLoading} tip="Loading dashboard...">
       <div style={{ padding: "20px 24px" }}>
         {/* ================= HEADER ================= */}
         <div style={{ marginBottom: 24 }}>
@@ -506,45 +563,37 @@ export default function DashboardPage() {
         </div>
 
         {/* ================= METRIC CARDS ================= */}
+
+
         <Row gutter={[16, 16]} style={{ marginBottom: 28 }}>
-          <Col xs={24} sm={12} md={6}>
-            {renderCard(
-              <FileTextOutlined />,
-              "Total Invoices",
-              `${totalInvoices}`,
-              "#1890ff",
-            )}
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            {renderCard(
-              <DollarOutlined />,
-              "Total Revenue",
-              `$${totalRevenue.toFixed(2)}`,
-              "#52c41a",
-            )}
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            {renderCard(
-              <ExclamationCircleOutlined />,
-              "Pending Amount",
-              `$${pendingAmount.toFixed(2)}`,
-              "#faad14",
-            )}
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            {renderCard(
-              <ClockCircleOutlined />,
-              "Overdue Amount",
-              `$${overdueAmount.toFixed(2)}`,
-              "#f5222d",
-            )}
-          </Col>
-        </Row>
+  {[1, 2, 3, 4].map((i) => (
+    <Col xs={24} sm={12} md={6} key={i}>
+      {isLoading ? (
+        <Skeleton active paragraph={{ rows: 1 }} />
+      ) : (
+        renderCard(
+          i === 1 ? <FileTextOutlined /> :
+          i === 2 ? <DollarOutlined /> :
+          i === 3 ? <ExclamationCircleOutlined /> :
+          <ClockCircleOutlined />,
+          ["Total Invoices", "Total Revenue", "Pending Amount", "Overdue Amount"][i - 1],
+          [
+            `${totalInvoices}`,
+            `$${totalRevenue.toFixed(2)}`,
+            `$${pendingAmount.toFixed(2)}`,
+            `$${overdueAmount.toFixed(2)}`
+          ][i - 1],
+          ["#1890ff", "#52c41a", "#faad14", "#f5222d"][i - 1]
+        )
+      )}
+    </Col>
+  ))}
+</Row>
+
 
         {/* ================= CHART + CALENDAR (SAME LINE) ================= */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          {/* Monthly Revenue */}
-          <Col xs={24} md={12}>
+          <Col xs={24} md={14}>
             <Card
               title={<span style={{ fontSize: 14 }}>Monthly Revenue</span>}
               style={{ borderRadius: 12, height: "100%" }}
@@ -553,18 +602,28 @@ export default function DashboardPage() {
                 body: { padding: "8px 12px" },
               }}
             >
-              <div style={{ height: 250, overflow: "hidden" }}>
-                {monthlyRevenueData.length ? (
-                  <Column {...monthlyRevenueConfig} />
+              {/* <div style={{ height: 250, overflow: "hidden" }}>
+                {yearlyRevenueData.length ? (
+                  <Line {...monthlyRevenueConfig} />
                 ) : (
-                  <Text type="secondary">No data</Text>
+                  <Text type="secondary">No data for this month</Text>
                 )}
-              </div>
+              </div> */}
+
+
+              <div style={{ height: 250 ,overflow: "hidden"}}>
+  {isLoading ? (
+    <Skeleton active paragraph={{ rows: 6 }} />
+  ) : yearlyRevenueData.length ? (
+    <Line {...monthlyRevenueConfig} />
+  ) : (
+    <Text type="secondary">No data</Text>
+  )}
+</div>
             </Card>
           </Col>
 
-          {/* Invoice Calendar */}
-          <Col xs={24} md={12}>
+          <Col xs={24} md={10}>
             <Card
               title={
                 <div
@@ -609,14 +668,54 @@ export default function DashboardPage() {
                 body: { padding: "12px" },
               }}
             >
+              {isLoading ? (
+  <Skeleton active paragraph={{ rows: 8 }} />
+) : (
               <Calendar
                 fullscreen={false}
-                //cellRender={dateCellRender}
+                value={currentMonth}
+                onChange={(val) => setCurrentMonth(val)}
                 fullCellRender={fullCellRender}
-                //headerRender={() => null}
-                //validRange={[dayjs().startOf("month"), dayjs().endOf("month")]}
-                style={{ borderRadius: 12 }}
+                style={{ height: 280 }}
+                headerRender={({ value, onChange }) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, fontWeight: 700 }}>
+                      {value.format("MMMM YYYY")}
+                    </Text>
+
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const v = value.clone().subtract(1, "month");
+                          setCurrentMonth(v);
+                          onChange(v);
+                        }}
+                      >
+                        ◀
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const v = value.clone().add(1, "month");
+                          setCurrentMonth(v);
+                          onChange(v);
+                        }}
+                      >
+                        ▶
+                      </Button>
+                    </div>
+                  </div>
+                )}
               />
+)}
             </Card>
           </Col>
         </Row>
@@ -695,8 +794,8 @@ export default function DashboardPage() {
               .slice()
               .sort(
                 (a, b) =>
-                  new Date(b.invoice_date).getTime() -
-                  new Date(a.invoice_date).getTime(),
+                  new Date(b.invoiceDate).getTime() -
+                  new Date(a.invoiceDate).getTime(),
               )
               .slice(0, 5)}
             rowKey="invoice_number"
@@ -726,6 +825,7 @@ export default function DashboardPage() {
           />
         </Card>
       </div>
+      </Spin>
     </MainLayout>
   );
 }

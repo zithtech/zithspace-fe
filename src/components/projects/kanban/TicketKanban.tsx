@@ -16,6 +16,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Button } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { Ticket } from '@/services/ticketService';
+import { STATUS_OPTIONS } from '@/utils/ticketUtils';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 
@@ -30,21 +31,19 @@ interface TicketKanbanProps {
   onCompleteSprint?: () => void;
 }
 
-const COLUMNS = [
-  { id: 'not_started', title: 'Not Started' },
-  { id: 'in_progress', title: 'In Progress' },
-  { id: 'in_testing', title: 'In Testing' },
-  { id: 'completed', title: 'Completed' },
-];
+const COLUMNS = STATUS_OPTIONS.map(status => ({
+  id: status.value,
+  title: status.label
+}));
 
 export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, members, onTicketUpdate, activeSprint, kanbanScope, onSprintAssignment, onCompleteSprint }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-        activationConstraint: {
-            distance: 8, // Require 8px movement to start drag (prevents accidental drags on click)
-        }
+      activationConstraint: {
+        distance: 8, // Require 8px movement to start drag (prevents accidental drags on click)
+      }
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -95,24 +94,24 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
     // If over another card, find that card's status
     const activeTicket = tickets.find(t => t.id === activeId);
     let newStatus = overId as string;
-    
+
     // Check if we dropped on a column directly
     const isOverColumn = COLUMNS.some(col => col.id === newStatus);
-    
+
     if (!isOverColumn) {
-        // Dropped on a card?
-        const overTicket = tickets.find(t => t.id === overId);
-        if (overTicket) {
-            newStatus = overTicket.status;
-        } else {
-            // Should not happen if overId exists
-            setActiveId(null);
-            return;
-        }
+      // Dropped on a card?
+      const overTicket = tickets.find(t => t.id === overId);
+      if (overTicket) {
+        newStatus = overTicket.status;
+      } else {
+        // Should not happen if overId exists
+        setActiveId(null);
+        return;
+      }
     }
 
     if (activeTicket && activeTicket.status !== newStatus) {
-        onTicketUpdate(activeId, { status: newStatus as any });
+      onTicketUpdate(activeId, { status: newStatus as any });
     }
 
     setActiveId(null);
@@ -127,8 +126,8 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
         <div style={{
           display: 'flex',
           justifyContent: 'flex-end',
-          paddingBottom:"10px",
-          paddingRight:"10px"
+          paddingBottom: "10px",
+          paddingRight: "10px"
         }}>
           <Button
             type="primary"
@@ -140,7 +139,7 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
           </Button>
         </div>
       )}
-      
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -148,24 +147,24 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
         onDragEnd={handleDragEnd}
       >
         <div style={{ display: 'flex', gap: 16, height: '100%', alignItems: 'flex-start' }}>
-            {COLUMNS.map((col) => (
-                <KanbanColumn
-                    key={col.id}
-                    id={col.id}
-                    title={col.title}
-                    tickets={columns[col.id] || []}
-                    projects={projects}
-                    members={members}
-                    onTicketUpdate={onTicketUpdate}
-                    activeSprint={activeSprint}
-                    kanbanScope={kanbanScope}
-                    onSprintAssignment={onSprintAssignment}
-                />
-            ))}
+          {COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col.id}
+              id={col.id}
+              title={col.title}
+              tickets={columns[col.id] || []}
+              projects={projects}
+              members={members}
+              onTicketUpdate={onTicketUpdate}
+              activeSprint={activeSprint}
+              kanbanScope={kanbanScope}
+              onSprintAssignment={onSprintAssignment}
+            />
+          ))}
         </div>
 
         <DragOverlay dropAnimation={null}>
-            {activeTicket ? <KanbanCard ticket={activeTicket} projects={projects} members={members} onUpdate={() => {}} /> : null}
+          {activeTicket ? <KanbanCard ticket={activeTicket} projects={projects} members={members} onUpdate={() => { }} /> : null}
         </DragOverlay>
       </DndContext>
     </div>

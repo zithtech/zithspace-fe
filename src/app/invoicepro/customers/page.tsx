@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useState } from "react";
@@ -7,15 +9,16 @@ import {
   Typography,
   Input,
   Button,
-  Modal,
-  Form,
+  message,
   Row,
   Col,
-  message,
   Card,
   Divider,
   Dropdown,
-  Popconfirm,
+  Modal,
+  Tag,
+  Segmented,
+  Table
 } from "antd";
 import {
   UserAddOutlined,
@@ -26,98 +29,213 @@ import {
   MoreOutlined,
   EditOutlined,
   DeleteOutlined,
+  MenuFoldOutlined,
+  AppstoreOutlined
 } from "@ant-design/icons";
+
+import CustomerModal from "@/components/customer/CustomerModal";
+import { Customer as ServiceCustomer } from "@/services/customersService";
+import {
+  useCustomers,
+  useCreateCustomer,
+  useUpdateCustomer,
+  useDeleteCustomer,
+} from "@/hooks/use-customers";
+import { Form } from "antd";
 
 const { Title } = Typography;
 
-import { useCustomers } from "@/context/CustomerContext";
-import { nanoid } from "nanoid";
-import { Customer } from "@/types/invoice";
-import CustomerModal from "@/components/customer/CustomerModal";
-
 export default function InvoiceproCustomerPage() {
+  const { data: customersData, isLoading } = useCustomers();
+  const customers = customersData?.data || [];
+
+  const createCustomer = useCreateCustomer();
+  const updateCustomer = useUpdateCustomer();
+  const deleteCustomer = useDeleteCustomer();
+
+  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  //const [customers, setCustomers] = useState<Customer[]>([]);
-
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<ServiceCustomer | null>(null);
   const [search, setSearch] = useState("");
-
-  // mock backend
-
-  const { customers, addCustomer, updateCustomer, deleteCustomer } =
-    useCustomers();
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
+const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
-  // 🔹 MOCK SAVE (replace later with API)
-  // const saveCustomer = async (data: Customer) => {
-  //   addCustomer({
-  //     id: nanoid(), // temporary id
-  //     ...data,
-  //   });
-  // };
 
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
 
-      if (editingCustomer) {
-        updateCustomer(editingCustomer.id, values);
-        message.success("Customer updated");
-      } else {
-        addCustomer({ id: nanoid(), ...values });
-        message.success("Customer added");
-      }
 
-      form.resetFields();
-      setEditingCustomer(null);
-      setIsModalOpen(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredCustomers = customers.filter((customer) =>
-    customer.name?.toLowerCase().includes(search.toLowerCase()),
+  // Filter customers based on search
+  const filteredCustomers = customers.filter(c =>
+    c.companyName?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // 🔹 EDIT
-  const handleEdit = (customer: Customer) => {
+  const creating = createCustomer.status === "pending";
+const updating = updateCustomer.status === "pending";
+
+const totalCustomers = customers.length;
+
+
+
+
+
+
+const handleSave = async (
+  values: Omit<
+    ServiceCustomer,
+    "id" | "tenantId" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt"
+  >,
+  id?: string
+) => {
+  const isDuplicate = customers.some(
+    (c) =>
+      c.companyName?.trim().toLowerCase() ===
+        values.companyName.trim().toLowerCase() &&
+      c.id !== id
+  );
+
+  if (isDuplicate) {
+    messageApi.error("Customer with this company name already exists");
+    return;
+  }
+
+  const payload = {
+    companyName: values.companyName.trim(),
+    email: values.email || "",
+    phone: values.phone || "",
+    address: values.address || "",
+    city: values.city || "",
+    country: values.country || "",
+    taxId: values.taxId || "",
+  };
+
+  try {
+    if (id) {
+      await updateCustomer.mutateAsync({ id, data: payload });
+      messageApi.success("Customer updated successfully");
+    } else {
+      await createCustomer.mutateAsync(payload);
+      messageApi.success("Customer created successfully");
+    }
+
+    setIsModalOpen(false);
+    setEditingCustomer(null);
+    form.resetFields();
+  } catch (error: any) {
+    messageApi.error(error.message || "Failed to save customer");
+  }
+};
+
+
+const columns = [
+  {
+    title: "Company",
+    dataIndex: "companyName",
+    key: "companyName",
+    render: (value: string) => value || "-",
+  },
+  {
+    title: "Email",
+    dataIndex: "email",
+    key: "email",
+    render: (value: string) => value || "-",
+  },
+  {
+    title: "Phone",
+    dataIndex: "phone",
+    key: "phone",
+    render: (value: string) => value || "-",
+  },
+  {
+    title: "Location",
+    key: "location",
+    render: (_: any, record: ServiceCustomer) =>
+      record.city || record.country
+        ? `${record.city || ""} ${record.country || ""}`.trim()
+        : "-",
+  },
+  {
+    title: "Tax ID",
+    dataIndex: "taxId",
+    key: "taxId",
+    render: (value: string) => value || "-",
+  },
+  {
+    title: "Action",
+    key: "action",
+    render: (_: any, record: ServiceCustomer) => (
+      <Dropdown
+        menu={{
+          items: [
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "Edit",
+              onClick: () => handleEdit(record),
+            },
+            {
+              key: "delete",
+              danger: true,
+              label: "Delete",
+              onClick: () => {
+                setDeletingCustomerId(record.id);
+                setIsDeleteModalOpen(true);
+              },
+            },
+          ],
+        }}
+      >
+        <MoreOutlined className="cursor-pointer" />
+      </Dropdown>
+    ),
+  },
+];
+
+  // Edit customer
+  const handleEdit = (customer: ServiceCustomer) => {
     setEditingCustomer(customer);
     form.setFieldsValue(customer);
     setIsModalOpen(true);
   };
 
-  // 🔹 DELETE
-  const confirmDelete = (id: string) => {
-    Modal.confirm({
-      title: "Delete customer?",
-      content: "This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      onOk() {
-        deleteCustomer(id);
-        message.success("Customer deleted");
-      },
-    });
-  };
+
+
+const confirmDelete = async () => {
+  if (!deletingCustomerId) return;
+
+  await deleteCustomer.mutateAsync(deletingCustomerId);
+
+  messageApi.success("Customer deleted successfully");
+
+  setIsDeleteModalOpen(false);
+  setDeletingCustomerId(null);
+};
+
+
+
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
+      {contextHolder}
+      <div style={{ padding: 10 }}>
+
+        <Card className="shadow-sm border-gray-200 h-full flex flex-col pb-40">
+
+
         {/* Header */}
-        <div style={{ marginBottom: 20 }}>
+        {/* <div style={{ marginBottom: 20 }}>
           <Space align="center">
             <UserAddOutlined style={{ fontSize: 24, color: "#1677ff" }} />
             <Title level={3} style={{ margin: 0 }}>
               Customers
             </Title>
           </Space>
-        </div>
+        </div> */}
 
         {/* Search + Add */}
-        <div
+        {/* <div
           style={{
             display: "flex",
             flexWrap: "wrap",
@@ -148,43 +266,102 @@ export default function InvoiceproCustomerPage() {
           >
             Add Customer
           </Button>
-        </div>
+        </div> */}
+
+
+        <div className="flex flex-row items-center justify-between gap-4 mb-3 flex-nowrap">
+  {/* LEFT */}
+  <div className="flex flex-col shrink-0">
+    {/* Icon + Title */}
+    <div className="flex items-center space-x-3">
+      <UserAddOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+      <Title level={3} className="!mb-0 !text-gray-900">
+        Customers
+      </Title>
+    </div>
+
+    {/* Description */}
+    <Typography.Paragraph
+      type="secondary"
+      className=" mt-1 !mb-0"
+    >
+      Manage customer details, contact information, and billing profiles.
+    </Typography.Paragraph>
+
+    {/* TAG */}
+    <div className=" mt-2">
+
+      <Tag color="purple">
+                  Customers: <strong>{totalCustomers}</strong>
+                </Tag>
+    </div>
+  </div>
+
+  {/* RIGHT */}
+  <div className="flex flex-row items-center gap-3 flex-nowrap">
+    <Segmented
+  options={[
+    { label: "Card", value: "card" ,icon:<AppstoreOutlined/>},
+    { label: "Table", value: "table",icon:<MenuFoldOutlined/> },
+  ]}
+  value={viewMode}
+  onChange={(value) => setViewMode(value as "card" | "table")}
+/>
+
+    <Input.Search
+      placeholder="Search customers..."
+      allowClear
+      size="middle"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="w-64"
+    />
+
+    <Button
+      type="primary"
+      icon={<PlusOutlined />}
+      onClick={() => {
+        setEditingCustomer(null);
+        form.resetFields();
+        setIsModalOpen(true);
+      }}
+      className="h-11 shrink-0"
+    >
+      Add Customer
+    </Button>
+  </div>
+</div>
+
+<Divider style={{marginTop:"0"}}/>
+
 
         {/* Customers List */}
         <div className="mt-6">
-          {customers.length === 0 ? (
+          {isLoading ? (
+            <div>Loading...</div>
+          ) : customers.length === 0 ? (
             <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-16 text-gray-400">
               No customers added yet
             </div>
-          ) : (
+          ) : viewMode === "card" ? (
             <Row gutter={[16, 16]}>
               {filteredCustomers.map((customer) => (
                 <Col xs={24} sm={12} md={8} lg={6} key={customer.id}>
-                  {/* 🔹 Gradient border wrapper */}
                   <div className="gradient-border-wrapper">
-                    <Card
-                      hoverable
-                      className="relative bg-white"
-                      bodyStyle={{ padding: 16 }}
-                    >
+                    <Card hoverable className="relative bg-white" bodyStyle={{ padding: 16 }}>
                       {/* Header */}
                       <div className="flex items-start justify-between">
                         <div className="flex gap-3">
-                          {/* Avatar */}
                           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 text-base font-semibold">
-                            {customer.name?.charAt(0)}
+                            {customer.companyName?.charAt(0)}
                           </div>
 
-                          {/* Company */}
                           <div>
                             <Typography.Text className="block font-medium text-gray-800">
-                              {customer.name}
+                              {customer.companyName}
                             </Typography.Text>
 
-                            <Typography.Text
-                              type="secondary"
-                              className="text-xs"
-                            >
+                            <Typography.Text type="secondary" className="text-xs">
                               {customer.city}
                               {customer.city && customer.country && ", "}
                               {customer.country}
@@ -192,7 +369,6 @@ export default function InvoiceproCustomerPage() {
                           </div>
                         </div>
 
-                        {/* More */}
                         <Dropdown
                           menu={{
                             items: [
@@ -202,26 +378,21 @@ export default function InvoiceproCustomerPage() {
                                 label: "Edit",
                                 onClick: () => handleEdit(customer),
                               },
-                              {
-                                key: "delete",
-                                danger: true,
-                                label: (
-                                  <Popconfirm
-                                    title="Delete customer?"
-                                    description="This action cannot be undone"
-                                    okText="Delete"
-                                    okType="danger"
-                                    onConfirm={() => {
-                                      deleteCustomer(customer.id);
-                                      message.success("Customer deleted");
-                                    }}
-                                  >
-                                    <span>
-                                      <DeleteOutlined /> Delete
-                                    </span>
-                                  </Popconfirm>
-                                ),
-                              },
+{
+  key: "delete",
+  danger: true,
+  label: (
+    <span
+      onClick={() => {
+        setDeletingCustomerId(customer.id);
+        setIsDeleteModalOpen(true);
+      }}
+    >
+      <DeleteOutlined /> Delete
+    </span>
+  ),
+}
+
                             ],
                           }}
                           trigger={["click"]}
@@ -231,7 +402,7 @@ export default function InvoiceproCustomerPage() {
                       </div>
 
                       {/* Contact Info */}
-                      <div className="mt-4 space-y-2 text-sm text-gray-600">
+                      {/* <div className="mt-4 space-y-2 text-sm text-gray-600">
                         {customer.email && (
                           <div className="flex items-center gap-2">
                             <MailOutlined className="text-gray-400" />
@@ -249,111 +420,112 @@ export default function InvoiceproCustomerPage() {
                         {customer.address && (
                           <div className="flex items-center gap-2">
                             <EnvironmentOutlined className="text-gray-400" />
-                            <span className="line-clamp-1">
-                              {customer.address}
-                            </span>
+                            <span className="line-clamp-1">{customer.address}</span>
                           </div>
                         )}
-                      </div>
+                      </div> */}
 
-                      {/* Divider + Tax ID */}
-                      {customer.taxid && (
+                      <div className="mt-4 space-y-2 text-sm text-gray-600">
+
+  {/* EMAIL */}
+  <div className="flex items-center gap-2">
+    <MailOutlined className="text-gray-400" />
+    <span className="truncate">
+      {customer.email || "--"}
+    </span>
+  </div>
+
+  {/* PHONE */}
+  <div className="flex items-center gap-2">
+    <PhoneOutlined className="text-gray-400" />
+    <span>
+      {customer.phone || "--"}
+    </span>
+  </div>
+
+  {/* ADDRESS */}
+  <div className="flex items-center gap-2">
+    <EnvironmentOutlined className="text-gray-400" />
+    <span className="line-clamp-1">
+      {customer.address || "--"}
+    </span>
+  </div>
+
+</div>
+
+
+                      {/* {customer.taxId && (
                         <>
                           <Divider className="my-3" />
                           <Typography.Text className="text-xs text-gray-500">
-                            Tax ID:{" "}
-                            <span className="font-medium">
-                              {customer.taxid}
-                            </span>
+                            Tax ID: <span className="font-medium">{customer.taxId}</span>
                           </Typography.Text>
                         </>
-                      )}
+                      )} */}
+                      <>
+  <Divider className="my-3" />
+  <Typography.Text className="text-xs text-gray-500">
+    Tax ID:{" "}
+    <span className="font-medium">
+      {customer.taxId || "--"}
+    </span>
+  </Typography.Text>
+</>
+
                     </Card>
                   </div>
                 </Col>
               ))}
             </Row>
+          ):(
+            <Table
+      rowKey="id"
+      columns={columns}
+      dataSource={filteredCustomers}
+      pagination={{ pageSize: 10 }}
+    />
           )}
         </div>
 
-        {/* Modal */}
-        {/* <Modal
-          title={editingCustomer ? "Edit Customer" : "Add Customer"}
-          open={isModalOpen}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setEditingCustomer(null);
-            form.resetFields();
-          }}
-          onOk={handleSave}
-          okText="Save"
-          confirmLoading={loading}
-          width={520}
-          destroyOnClose
-        >
-          <Form layout="vertical" form={form}>
-            <Form.Item
-              label="Company Name"
-              name="name"
-              rules={[{ required: true, message: "Enter company name" }]}
-            >
-              <Input placeholder="Acme Corp" size="large" />
-            </Form.Item>
-
-            <Form.Item
-              label="Email"
-              name="email"
-              rules={[{ required: true, message: "Enter email" }]}
-            >
-              <Input placeholder="contact@company.com" size="large" />
-            </Form.Item>
-
-            <Form.Item label="Phone" name="phone">
-              <Input placeholder="+91 98765 43210" size="large" />
-            </Form.Item>
-
-            <Form.Item label="Address" name="address">
-              <Input placeholder="123 Business Ave" size="large" />
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col xs={24} md={12}>
-                <Form.Item label="City" name="city">
-                  <Input placeholder="San Francisco" size="large" />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} md={12}>
-                <Form.Item label="Country" name="country">
-                  <Input placeholder="USA" size="large" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item label="Tax ID" name="taxid">
-              <Input placeholder="US-12345678" size="large" />
-            </Form.Item>
-          </Form>
-        </Modal> */}
-
         <CustomerModal
           open={isModalOpen}
-          loading={loading}
+          loading={creating || updating}
           customer={editingCustomer}
           onClose={() => {
             setIsModalOpen(false);
             setEditingCustomer(null);
           }}
-          onSave={(values, id) => {
-            if (id) {
-              updateCustomer(id, values);
-            } else {
-              addCustomer({ id: nanoid(), ...values });
-            }
-            setIsModalOpen(false);
-          }}
+          onSave={handleSave}
         />
+
+        </Card>
       </div>
+
+      {/* hi */}
+
+
+
+      <Modal
+  open={isDeleteModalOpen}
+  title="Delete customer"
+  okText="Delete"
+  okType="danger"
+  cancelText="Cancel"
+  confirmLoading={deleteCustomer.status === "pending"}
+  onOk={confirmDelete}
+  onCancel={() => {
+    setIsDeleteModalOpen(false);
+    setDeletingCustomerId(null);
+  }}
+>
+  <p>
+    Are you sure you want to delete this customer?  
+    This action cannot be undone.
+  </p>
+</Modal>
+
     </MainLayout>
   );
 }
+
+

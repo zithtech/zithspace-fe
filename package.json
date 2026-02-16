@@ -43,8 +43,6 @@
     "@tiptap/pm": "^3.11.0",
     "@tiptap/react": "^3.19.0",
     "@tiptap/starter-kit": "^3.19.0",
-    "@tiptap/react": "^3.11.0",
-    "@tiptap/starter-kit": "^3.11.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-window": "^1.8.8",
     "ag-grid-community": "^34.1.1",

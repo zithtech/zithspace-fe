@@ -213,6 +213,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
                     { key: '/salary/My-Payslip', label: 'My Payslip', icon: <SolutionOutlined />, path: '/salary/My-Payslip' },
                     { key: '/salary/Generate-payslip', label: 'Generate Payslip', icon: <FileAddOutlined />, path: '/salary/Generate-payslip' },
                     { key: '/salary/Payslips', label: 'Payslips', icon: <SnippetsOutlined />, path: '/salary/Payslips' },
+                    { key: '/salary/SalaryPreview', label: 'Salary Preview', icon: <SnippetsOutlined />, path: '/salary/SalaryPreview' },
                     { key: '/salary/Settings', label: 'Settings', icon: <ControlOutlined />, path: '/salary/Settings' },
                 ],
             },

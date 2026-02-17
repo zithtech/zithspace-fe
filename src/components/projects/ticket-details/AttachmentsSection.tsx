@@ -5,6 +5,7 @@ import { Space, Tag, message, Typography } from "antd";
 import AttachmentUploader from "@/components/common/AttachmentUploader";
 import AttachmentList from "@/components/common/AttachmentList";
 
+
 interface AttachmentsSectionProps {
   attachments: any[];
   isLoading: boolean;

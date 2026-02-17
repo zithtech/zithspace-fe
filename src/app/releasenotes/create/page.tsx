@@ -30,7 +30,7 @@ import {
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCreateBlockNote } from "@blocknote/react";
 import DocumentEditor from "@/components/common/DocumentEditor";
@@ -80,7 +80,7 @@ interface Environment {
   status: string;
 }
 
-export default function Page() {
+function CreateReleaseNoteContent() {
   const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1852,5 +1852,26 @@ const handleVersionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
       </div>
     </App>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100vh",
+          }}
+        >
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
+        </div>
+      }
+    >
+      <CreateReleaseNoteContent />
+    </Suspense>
   );
 }

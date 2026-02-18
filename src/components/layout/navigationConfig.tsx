@@ -43,6 +43,7 @@ import {
   CalendarTwoTone,
   UsergroupAddOutlined,
   HomeOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 
 export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
@@ -86,7 +87,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     label: "WORK",
     icon: <ProjectOutlined />,
     pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates"],
-    defaultPath: "/projects",
+    defaultPath: "/projects/select",
     items: [
       {
         key: "projects-group",
@@ -185,6 +186,31 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Document Hub",
         icon: <FolderOpenOutlined />,
         path: "/documenthub",
+      },
+      {
+        key: "releasenotes",
+        icon: <FileTextOutlined />,
+        label: "Release Notes",
+        children: [
+          {
+            key: "/releasenotes/dashboard",
+            path: "/releasenotes/dashboard",
+            icon: <AppstoreOutlined />,
+            label: "Dashboard",
+          },
+          {
+            key: "/releasenotes",
+            path: "/releasenotes",
+            icon: <FileTextOutlined />,
+            label: "Release",
+          },
+          {
+            key: "/releasenotes/settings",
+            path: "/releasenotes/settings",
+            icon: <SettingOutlined />,
+            label: "Settings",
+          },
+        ],
       },
     ],
   },

@@ -58,11 +58,11 @@ function ReimburseCreateContent() {
 
         // Populate Items
         // Transform service items back to builder items
-        const items = (data.expenseItems || []).map((i: any) => ({
-          date: i.date ? dayjs(i.date) : undefined, // parsing helpful if dayjs available, else string
+        const items = (data.expenseItems || data.items || []).map((i: any) => ({
+          date: i.date ? dayjs(i.date) : undefined,
           amount: i.amount,
           description: i.title,
-          files: i.attachments || [],
+          files: i.reimbursementAttachments || i.attachments || [],
           category: data.category,
           department: data.department,
         }));
@@ -78,53 +78,49 @@ function ReimburseCreateContent() {
     (sum: number, i: any) => sum + (Number(i.amount) || 0),
     0
   );
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
+const handleSubmit = async () => {
+  try {
+    const values = await form.validateFields();
 
-      console.log("📦 Expense Items with files:", expenseItems);
+    console.log("📦 Expense Items with files:", expenseItems);
 
-      // Check if files have URLs
-      expenseItems.forEach((item, idx) => {
-        console.log(`Item ${idx + 1} files:`, item.files);
-        console.log(`Item ${idx + 1} URLs:`, item.files?.map(f => f.url));
-      });
+    const payload: any = {
+      category: values.category,
+      department: values.department,
+      policy: values.policy,
+      amount: total,
+      status: "PENDING_APPROVAL",
+      items: expenseItems.map((i) => ({
+        title: i.description || "Expense Item",
+        date: i.date ? i.date.toISOString() : new Date().toISOString(),
+        amount: Number(i.amount),
+        billNo: i.billNo,
+        description: i.description,
+        // ✅ CORRECT FIELD NAMES - BACKEND EXPECTS THESE!
+        attachments: (i.files || []).map((f: any) => ({
+          fileName: f.name || f.fileName,     // ✅ "name" -> "fileName"
+          fileUrl: f.url || f.fileUrl,        // ✅ "url" -> "fileUrl"
+          fileSize: f.fileSize || f.size || 0,
+          fileType: f.fileType || f.type || 'unknown'
+        }))
+      })),
+    };
 
-      const payload: any = {
-        category: values.category,
-        department: values.department,
-        policy: values.policy,
-        amount: total,
-        status: "PENDING_APPROVAL",
-        items: expenseItems.map((i) => ({
-          title: i.description || "Expense Item",
-          date: i.date ? i.date.toISOString() : new Date().toISOString(),
-          amount: Number(i.amount),
-          billNo: i.billNo,
-          description: i.description,
-          // ✅ CORRECT - Send URL, not just filename!
-          attachments: (i.files || []).map((f: any) => ({
-            url: f.url || f.fileUrl,  // 🔥 URL is must!
-            name: f.name || f.fileName // optional
-          }))
-        })),
-      };
+    console.log("📤 Submitting payload:", JSON.stringify(payload, null, 2));
 
-      console.log("📤 Submitting payload:", JSON.stringify(payload, null, 2));
-
-      if (isEditMode && editId) {
-        await updateRequest({ id: editId, data: payload });
-      } else {
-        await createRequest(payload);
-      }
-
-      message.success("Expense submitted successfully!");
-      router.push("/reimbursement");
-    } catch (e) {
-      console.error("❌ Submit error:", e);
-      message.error("Failed to submit expense");
+    if (isEditMode && editId) {
+      await updateRequest({ id: editId, data: payload });
+    } else {
+      await createRequest(payload);
     }
-  };
+
+    message.success("Expense submitted successfully!");
+    router.push("/reimbursement");
+  } catch (e) {
+    console.error("❌ Submit error:", e);
+    message.error("Failed to submit expense");
+  }
+};
 
   const handleCancelAll = () => {
     form.resetFields();
@@ -138,44 +134,41 @@ function ReimburseCreateContent() {
     setPreviewData(form.getFieldsValue());
   };
 
+const handleSaveDraft = async () => {
+  try {
+    const values = form.getFieldsValue();
 
+    const draftPayload: any = {
+      category: values.category || "Uncategorized",
+      department: values.department,
+      policy: values.policy,
+      amount: total || 0,
+      status: "DRAFT",
+      items: expenseItems.map((i) => ({
+        title: i.description || "Expense Item",
+        date: i.date ? i.date.toISOString() : new Date().toISOString(),
+        amount: Number(i.amount) || 0,
+        billNo: i.billNo,
+        description: i.description,
+        // ✅ SAME FIX HERE!
+        attachments: (i.files || []).map((f: any) => ({
+          fileName: f.name || f.fileName,     // ✅ "name" -> "fileName"
+          fileUrl: f.url || f.fileUrl,        // ✅ "url" -> "fileUrl"
+          fileSize: f.fileSize || f.size || 0,
+          fileType: f.fileType || f.type || 'unknown'
+        }))
+      })),
+    };
 
-  const handleSaveDraft = async () => {
-    try {
-      const values = form.getFieldsValue();
+    await createRequest(draftPayload);
+    message.success("Draft saved successfully!");
+    router.push("/reimbursement");
+  } catch (error) {
+    console.error("❌ Save draft failed:", error);
+    message.error("Failed to save draft");
+  }
+};
 
-      console.log("📝 Saving draft with files:", expenseItems);
-
-      const draftPayload: any = {
-        category: values.category || "Uncategorized",
-        department: values.department,
-        policy: values.policy,
-        amount: total || 0,
-        status: "DRAFT",
-        items: expenseItems.map((i) => ({
-          title: i.description || "Expense Item",
-          date: i.date ? i.date.toISOString() : new Date().toISOString(),
-          amount: Number(i.amount) || 0,
-          billNo: i.billNo,
-          description: i.description,
-          // ✅ CORRECT - Send URL for draft too!
-          attachments: (i.files || []).map((f: any) => ({
-            url: f.url || f.fileUrl,  // 🔥 URL is must!
-            name: f.name || f.fileName
-          }))
-        })),
-      };
-
-      console.log("📝 Draft payload:", JSON.stringify(draftPayload, null, 2));
-
-      await createRequest(draftPayload);
-      message.success("Draft saved successfully!");
-      router.push("/reimbursement");
-    } catch (error) {
-      console.error("❌ Save draft failed:", error);
-      message.error("Failed to save draft");
-    }
-  };
 
   const handleCancel = () => {
     router.push("/reimbursement");

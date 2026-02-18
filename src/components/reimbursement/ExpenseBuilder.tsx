@@ -140,51 +140,52 @@ export default function ExpenseBuilder({
     setMode("list");
   };
 
-const handleUpload = async (file: string, fileName: string) => {
-  try {
-    const res = await fetch(file);
-    const blob = await res.blob();
-    const fileObj = new File([blob], fileName);
+  const handleUpload = async (file: string, fileName: string) => {
+    try {
+      const res = await fetch(file);
+      const blob = await res.blob();
+      const fileObj = new File([blob], fileName);
 
-    const resData = await uploadFile(fileObj);
-    
-    // 🔥 URL வந்துதா? பாருங்க!
-    console.log("📤 Upload Response:", resData);
-    const uploadedUrl = resData.url;
-    console.log("✅ Got URL:", uploadedUrl);
+      const resData = await uploadFile(fileObj);
 
-    if (resData.success && uploadedUrl) {
-      // 🔥 CRITICAL: URL-ஐ state-ல save பண்ணுங்க!
-      setItems((prev) => {
-        const copy = [...prev];
-        if (activeIndex >= 0 && activeIndex < copy.length) {
-          const currentItem = copy[activeIndex];
-          const existingFiles = currentItem.files || [];
-          
-          // URL மட்டும் போதும்! filename வேண்டாம்
-          const fileData = {
-            url: uploadedUrl,        // ✅ இது மட்டும் முக்கியம்!
-            name: fileName,
-            uploadedAt: new Date().toISOString()
-          };
+      console.log("📤 Upload Response:", resData);
 
-          copy[activeIndex] = {
-            ...currentItem,
-            files: [...existingFiles, fileData]
-          };
-          
-          console.log("💾 Saved to state:", copy[activeIndex].files);
-        }
-        return copy;
-      });
-      
-      message.success("Attachment uploaded successfully");
+      // ✅ Check what fields are coming from your API
+      // Your API should return: { success, filename, url, fileSize, fileType }
+
+      if (resData.success) {
+        setItems((prev) => {
+          const copy = [...prev];
+          if (activeIndex >= 0 && activeIndex < copy.length) {
+            const currentItem = copy[activeIndex];
+            const existingFiles = currentItem.files || [];
+
+            // ✅ Save ALL metadata from the response
+            const fileData = {
+              url: resData.url,
+              name: resData.filename || fileName,
+              fileSize: resData.fileSize || blob.size,
+              fileType: resData.fileType || blob.type || 'unknown',
+              uploadedAt: new Date().toISOString()
+            };
+
+            copy[activeIndex] = {
+              ...currentItem,
+              files: [...existingFiles, fileData]
+            };
+
+            console.log("💾 Saved to state with metadata:", fileData);
+          }
+          return copy;
+        });
+
+        message.success("Attachment uploaded successfully");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      message.error("Failed to upload attachment");
     }
-  } catch (error) {
-    console.error("Upload error:", error);
-    message.error("Failed to upload attachment");
-  }
-};
+  };
 
   // Helper function to detect file type from filename
   const getFileTypeFromName = (fileName: string): string => {
@@ -413,60 +414,60 @@ const handleUpload = async (file: string, fileName: string) => {
           </Col>
 
           {/* Amount */}
-<Col span={8}>
-  <label className="text-[11px] text-gray-600 block mb-0.5">
-    Amount *
-  </label>
-  <InputNumber
-    size="small"
-    className="w-full text-xs h-6"
-    style={{ width: "100%" }}
-    prefix="₹"
-    placeholder="0"
-    value={item.amount}
-    onChange={(v) => {
-      updateItem("amount", v);
-      setShowError(false);
-    }}
-    min={0}
-    precision={2}
-    controls={true}
-    stringMode={false}
-    keyboard={true}
-    type="number"
-    onKeyDown={(e) => {
-      // 🔥 Alphabet keys-ஐ Block பண்ணு!
-      const key = e.key;
-      if (
-        key === 'e' ||      // Scientific notation
-        key === 'E' ||      
-        key === '-' ||      // Minus sign
-        key === '+' ||      // Plus sign
-        (key.length === 1 && !/[0-9.]/.test(key)) // Any other character
-      ) {
-        e.preventDefault();
-      }
-    }}
-  />
-</Col>
-       {/* Bill No */}
-<Col span={8}>
-  <label className="text-[11px] text-gray-600 block mb-0.5">
-    Bill No
-  </label>
-  <Input
-    size="small"
-    className="w-full text-xs h-6"
-    value={item.billNo}
-    onChange={(e) => {
-      // ✅ Allow letters, numbers, hyphens, slashes
-      const value = e.target.value;
-      updateItem("billNo", value);
-      setShowError(false);
-    }}
-    placeholder="e.g., INV-001"
-  />
-</Col>
+          <Col span={8}>
+            <label className="text-[11px] text-gray-600 block mb-0.5">
+              Amount *
+            </label>
+            <InputNumber
+              size="small"
+              className="w-full text-xs h-6"
+              style={{ width: "100%" }}
+              prefix="₹"
+              placeholder="0"
+              value={item.amount}
+              onChange={(v) => {
+                updateItem("amount", v);
+                setShowError(false);
+              }}
+              min={0}
+              precision={2}
+              controls={true}
+              stringMode={false}
+              keyboard={true}
+              type="number"
+              onKeyDown={(e) => {
+                // 🔥 Alphabet keys-ஐ Block பண்ணு!
+                const key = e.key;
+                if (
+                  key === 'e' ||      // Scientific notation
+                  key === 'E' ||
+                  key === '-' ||      // Minus sign
+                  key === '+' ||      // Plus sign
+                  (key.length === 1 && !/[0-9.]/.test(key)) // Any other character
+                ) {
+                  e.preventDefault();
+                }
+              }}
+            />
+          </Col>
+          {/* Bill No */}
+          <Col span={8}>
+            <label className="text-[11px] text-gray-600 block mb-0.5">
+              Bill No
+            </label>
+            <Input
+              size="small"
+              className="w-full text-xs h-6"
+              value={item.billNo}
+              onChange={(e) => {
+                // ✅ Allow letters, numbers, hyphens, slashes
+                const value = e.target.value;
+                updateItem("billNo", value);
+                setShowError(false);
+              }}
+              placeholder="e.g., INV-001"
+            />
+          </Col>
 
         </Row>
 
@@ -496,10 +497,10 @@ const handleUpload = async (file: string, fileName: string) => {
             <AttachmentList
               attachments={(item.files || []).map((f: any, i: number) => ({
                 id: String(i),
-                fileName: f.fileName || f.name || 'file',
-                fileUrl: f.fileUrl || f.url,  // 🔥 fileUrl முதலில், இல்லைனா url
-                fileSize: f.fileSize || f.size || 0,
-                fileType: f.fileType || f.type || 'unknown',
+                fileName: f.name || f.fileName || 'file',
+                fileUrl: f.url || f.fileUrl,
+                fileSize: f.fileSize || f.size || 0,  // ✅ Make sure this is passed
+                fileType: f.fileType || f.type || 'unknown',  // ✅ Make sure this is passed
                 uploadedAt: f.uploadedAt || new Date().toISOString(),
                 uploadedBy: f.uploadedBy || {
                   id: "current",

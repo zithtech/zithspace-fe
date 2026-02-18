@@ -104,7 +104,7 @@ export default function ManagerTab() {
     };
   };
 
-  
+
 
   const filteredRequests = data.filter((item) => {
     // Explicitly exclude DRAFT from Manager view
@@ -255,7 +255,9 @@ export default function ManagerTab() {
     };
 
     // Check all possible locations
-    if (item.attachments) {
+    if (item.reimbursementAttachments && Array.isArray(item.reimbursementAttachments)) {
+      item.reimbursementAttachments.forEach(addIfValid);
+    } else if (item.attachments) {
       if (Array.isArray(item.attachments)) item.attachments.forEach(addIfValid);
       else addIfValid(item.attachments);
     }

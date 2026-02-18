@@ -4,12 +4,12 @@ import { api, apiUtils, PaginatedResponse } from '@/lib/axios';
 export interface ReimbursementCategory {
   id: string;
   name: string;
-  maxPerRequest?: number;
+  maxRequestsPerMonth?: number;    // ✅ Changed to match API
   monthlyLimit?: number;
   yearlyLimit?: number;
   eligibleRoles: string[];
   approvalRoles: string[];
-  accept: string[];
+  acceptRoles: string[];           // ✅ Changed to match API
   attachmentRequired: boolean;
   isActive: boolean;
   createdAt: string;
@@ -25,7 +25,8 @@ export interface ReimbursementItem {
   amount: number;
   billNo?: string;
   description?: string;
-  attachments: string[];
+  attachments: string[]; // Keeping for backward compatibility if needed temporarily
+  reimbursementAttachments?: ReimbursementAttachment[];
   status?: string;
 }
 
@@ -82,6 +83,7 @@ export interface ReimbursementRequest {
   };
   expenseItems?: ReimbursementItem[];
   items?: ReimbursementItem[];
+  reimbursementAttachments?: ReimbursementAttachment[];
 }
 
 // Input Types
@@ -109,7 +111,12 @@ export interface CreateRequestData {
     amount: number;
     billNo?: string;
     description?: string;
-    attachments?: string[];
+    attachments?: Array<{
+      url: string;
+      name?: string;
+      fileSize?: number;
+      fileType?: string;
+    }>;
   }>;
 }
 
@@ -223,13 +230,13 @@ export class CategoryService {
     return await api.get<ReimbursementAttachment[]>(`/api/reimbursement-categories/requests/${requestId}/attachments`);
   }
 
-  static async uploadFile(file: File): Promise<{ success: boolean; filename: string; url: string }> {
+  static async uploadFile(file: File): Promise<{ success: boolean; filename: string; url: string; fileSize: number; fileType: string }> {
     const formData = new FormData();
     formData.append('file', file);
     console.log("datawith file: ", formData)
 
     // Important: Set headers to let axios auto-detect Content-Type for FormData
-    return await api.post<{ success: boolean; filename: string; url: string }>(
+    return await api.post<{ success: boolean; filename: string; url: string; fileSize: number; fileType: string }>(
       '/api/reimbursement-categories/upload',
       formData,
       {

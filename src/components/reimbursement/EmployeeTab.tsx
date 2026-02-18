@@ -127,142 +127,142 @@ export default function EmployeeTab() {
   const allCategories = Array.from(new Set(employeeData.map(r => r.category)));
 
 
-// =============================================
-// ✅ SIMPLE & WORKING VERSION
-// =============================================
-const getFileUrl = (file: any): string => {
-  if (!file) return "";
-  
-  // 🔥 R2 Configuration
-  const R2_BASE = "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev";
-  const R2_PATH = "b85c1b5b-77a3-4281-9147-51d6bd3ee94d/reimbursements/attachments";
-  
-  // ============ CASE 1: STRING ============
-  if (typeof file === 'string') {
-    // Already full URL?
-    if (file.startsWith('http')) return file;
-    
- 
-    return `${R2_BASE}/${R2_PATH}/${file}`;
-  }
-  
-  // ============ CASE 2: OBJECT ============
-  if (typeof file === 'object' && file !== null) {
-    // Try to get URL
-    const url = file.url || file.fileUrl || '';
+  // =============================================
+  // ✅ SIMPLE & WORKING VERSION
+  // =============================================
+  const getFileUrl = (file: any): string => {
+    if (!file) return "";
+
+    // 🔥 R2 Configuration
+    const R2_BASE = "https://pub-7f315f14b4bb4930bd64cae157207c92.r2.dev";
+    const R2_PATH = "b85c1b5b-77a3-4281-9147-51d6bd3ee94d/reimbursements/attachments";
+
+    // ============ CASE 1: STRING ============
+    if (typeof file === 'string') {
+      // Already full URL?
+      if (file.startsWith('http')) return file;
+
+
+      return `${R2_BASE}/${R2_PATH}/${file}`;
+    }
+
+    // ============ CASE 2: OBJECT ============
+    if (typeof file === 'object' && file !== null) {
+      // Try to get URL
+      const url = file.url || file.fileUrl || '';
+      if (url) {
+        if (url.startsWith('http')) return url;
+        return `${R2_BASE}/${R2_PATH}/${url}`;
+      }
+
+      // Try to get filename
+      const name = file.name || file.filename || file.fileName || '';
+      if (name) {
+        return `${R2_BASE}/${R2_PATH}/${name}`;
+      }
+    }
+
+    return '';
+  };
+
+  // 2. GET FILE NAME
+  const getFileName = (file: any): string => {
+    if (!file) return "file";
+
+    // Object-ல name இருந்தால்
+    if (typeof file === 'object' && file.name) {
+      return file.name;
+    }
+
+    // URL-ல இருந்து filename எடு
+    const url = getFileUrl(file);
     if (url) {
-      if (url.startsWith('http')) return url;
-      return `${R2_BASE}/${R2_PATH}/${url}`;
+      const parts = url.split('/');
+      const fileName = parts.pop() || 'file';
+      // R2 URL-ல இருந்து clean filename
+      if (fileName.includes('_')) {
+        return fileName.split('_').slice(1).join('_');
+      }
+      return fileName;
     }
-    
-    // Try to get filename
-    const name = file.name || file.filename || file.fileName || '';
-    if (name) {
-      return `${R2_BASE}/${R2_PATH}/${name}`;
-    }
-  }
-  
-  return '';
-};
 
-// 2. GET FILE NAME
-const getFileName = (file: any): string => {
-  if (!file) return "file";
-  
-  // Object-ல name இருந்தால்
-  if (typeof file === 'object' && file.name) {
-    return file.name;
-  }
-  
-  // URL-ல இருந்து filename எடு
-  const url = getFileUrl(file);
-  if (url) {
-    const parts = url.split('/');
-    const fileName = parts.pop() || 'file';
-    // R2 URL-ல இருந்து clean filename
-    if (fileName.includes('_')) {
-      return fileName.split('_').slice(1).join('_');
-    }
-    return fileName;
-  }
-  
-  return "file";
-};
+    return "file";
+  };
 
-// 3. HANDLE PREVIEW - MODAL OPEN!
-const handlePreview = (file: any) => {
-  const url = getFileUrl(file);
-  const fileName = getFileName(file);
-  
-  if (!url) {
-    message.error("File URL not found");
-    return;
-  }
-  
-  console.log("✅ Preview URL:", url);
-  setPreviewUrl(url);
-  setPreviewFileName(fileName);
-  setPreviewModal(true);
-};
-
-
-const handleDownload = async (file: any) => {
-  try {
-    setDownloadingFile(file);
-    
+  // 3. HANDLE PREVIEW - MODAL OPEN!
+  const handlePreview = (file: any) => {
     const url = getFileUrl(file);
     const fileName = getFileName(file);
-    
+
     if (!url) {
       message.error("File URL not found");
       return;
     }
-    
-    console.log("✅ Download URL:", url);
-    
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    link.click();
-    
-    message.success(`Downloading ${fileName}`);
-    
-  } catch (error) {
-    console.error("Download error:", error);
-    message.error("Failed to download file");
-  } finally {
-    setDownloadingFile(null);
-  }
-};
+    console.log("✅ Preview URL:", url);
+    setPreviewUrl(url);
+    setPreviewFileName(fileName);
+    setPreviewModal(true);
+  };
+
+
+  const handleDownload = async (file: any) => {
+    try {
+      setDownloadingFile(file);
+
+      const url = getFileUrl(file);
+      const fileName = getFileName(file);
+
+      if (!url) {
+        message.error("File URL not found");
+        return;
+      }
+
+      console.log("✅ Download URL:", url);
+
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+
+      message.success(`Downloading ${fileName}`);
+
+    } catch (error) {
+      console.error("Download error:", error);
+      message.error("Failed to download file");
+    } finally {
+      setDownloadingFile(null);
+    }
+  };
 
 const normalizeFiles = (item: any): any[] => {
+  console.log("🔍 Item received:", item); // Debug
+  
   const files: any[] = [];
   if (!item) return files;
-  
-  // Helper
-  const addIfValid = (file: any) => {
-    if (file === null || file === undefined) return;
-    if (typeof file === 'string' && !file.trim()) return;
-    if (!files.includes(file)) files.push(file);
-  };
-  
-  // Check all possible locations
-  if (item.attachments) {
-    if (Array.isArray(item.attachments)) item.attachments.forEach(addIfValid);
-    else addIfValid(item.attachments);
+
+  // ✅ Direct ah reimbursementAttachments irukka?
+  if (item.reimbursementAttachments && Array.isArray(item.reimbursementAttachments)) {
+    console.log("✅ Found reimbursementAttachments:", item.reimbursementAttachments);
+    item.reimbursementAttachments.forEach((att: any) => files.push(att));
   }
   
-  if (item.files) {
-    if (Array.isArray(item.files)) item.files.forEach(addIfValid);
-    else addIfValid(item.files);
+  // ✅ Attachments property irukka?
+  else if (item.attachments && Array.isArray(item.attachments)) {
+    console.log("✅ Found attachments:", item.attachments);
+    item.attachments.forEach((att: any) => files.push(att));
   }
   
-  if (item.file) addIfValid(item.file);
-  
+  // ✅ Files property irukka?
+  else if (item.files && Array.isArray(item.files)) {
+    console.log("✅ Found files:", item.files);
+    item.files.forEach((f: any) => files.push(f));
+  }
+
+  console.log("📦 Final files array:", files);
   return files;
 };
-
 
 
   const getFileExtension = (fileName: string) => {
@@ -710,44 +710,51 @@ const normalizeFiles = (item: any): any[] => {
 
                           {files.length > 0 && (
                             <div className="space-y-1.5 min-w-[180px]">
-                              {showFiles.map((file, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center justify-between bg-white/90 backdrop-blur-sm p-2 rounded-lg text-xs shadow-sm hover:shadow-md hover:bg-white transition-all duration-200 border border-slate-100 hover:border-blue-100 h-8"
-                                >
-                                  <span className="truncate font-medium text-gray-800 max-w-[90px]">
-                                    {getFileName(file)}
-                                  </span>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="small"
-                                      type="text"
-                                      disabled={!!downloadingFile}
-                                      className="!p-0 w-6 h-6 text-gray-600 hover:text-blue-600 hover:scale-110 flex items-center justify-center"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handlePreview(file);
-                                        
-                                      }}
-                                    >
-                                      <EyeOutlined />
-                                    </Button>
-                                    <Button
-                                      size="small"
-                                      type="text"
-                                      loading={downloadingFile === file}
-                                      disabled={!!downloadingFile && downloadingFile !== file}
-                                      className="!p-0 w-6 h-6 text-gray-600 hover:text-green-600 hover:scale-110 flex items-center justify-center shadow-none"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDownload(file);
-                                      }}
-                                    >
-                                      {downloadingFile !== file && <DownloadOutlined />}
-                                    </Button>
+                              {showFiles.map((file, idx) => {
+                                // ✅ Get URL and filename here
+                                const fileUrl = getFileUrl(file);
+                                const fileName = getFileName(file);
+
+                                console.log(`📎 File ${idx}:`, { fileUrl, fileName }); // Debug
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center justify-between bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs shadow-sm hover:shadow-md hover:bg-white transition-all duration-200 border border-slate-100 hover:border-blue-100 h-8"
+                                  >
+                                    <span className="truncate font-medium text-gray-800 max-w-[90px]">
+                                      {fileName}
+                                    </span>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="small"
+                                        type="text"
+                                        disabled={!!downloadingFile}
+                                        className="!p-0 w-6 h-6 text-gray-600 hover:text-blue-600 hover:scale-110 flex items-center justify-center"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handlePreview(file);  // ✅ This will work now
+                                        }}
+                                      >
+                                        <EyeOutlined />
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        type="text"
+                                        loading={downloadingFile === file}
+                                        disabled={!!downloadingFile && downloadingFile !== file}
+                                        className="!p-0 w-6 h-6 text-gray-600 hover:text-green-600 hover:scale-110 flex items-center justify-center shadow-none"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDownload(file);  // ✅ This will work now
+                                        }}
+                                      >
+                                        {downloadingFile !== file && <DownloadOutlined />}
+                                      </Button>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                               {hasMoreFiles && (
                                 <div className="pt-1">
                                   <Button
@@ -792,8 +799,8 @@ const normalizeFiles = (item: any): any[] => {
           )}
         </Drawer>
 
-           {/* ===== PREVIEW MODAL ===== */}
-              <PreviewModal
+        {/* ===== PREVIEW MODAL ===== */}
+        <PreviewModal
           open={previewModal}
           onCancel={() => setPreviewModal(false)}
           previewUrl={previewUrl}

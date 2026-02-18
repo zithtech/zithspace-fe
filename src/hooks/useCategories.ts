@@ -10,6 +10,34 @@ export const categoryKeys = {
   detail: (id: string) => [...categoryKeys.details(), id] as const,
 };
 
+
+export const useUploadFile = () => {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const response = await CategoryService.uploadFile(file);
+      
+      console.log('📤 Raw API response:', response);
+      console.log('📦 File object:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+      
+      // ✅ Add missing fields from the File object
+      return {
+        success: response.success,
+        filename: response.filename,
+        url: response.url,
+        fileSize: response.fileSize || file.size,  // Add from File if missing
+        fileType: response.fileType || file.type || 'application/octet-stream',  // Add from File if missing
+      };
+    },
+    onError: (error: any) => {
+      message.error(error.message || 'File upload failed');
+    },
+  });
+};
+
 export const requestKeys = {
   all: ['reimbursement-requests'] as const,
   lists: () => [...requestKeys.all, 'list'] as const,
@@ -271,15 +299,6 @@ export const useDeleteAttachment = () => {
     },
     onError: (error: any) => {
       message.error(error.message || 'Failed to delete attachment');
-    },
-  });
-};
-
-export const useUploadFile = () => {
-  return useMutation({
-    mutationFn: (file: File) => CategoryService.uploadFile(file),
-    onError: (error: any) => {
-      message.error(error.message || 'File upload failed');
     },
   });
 };

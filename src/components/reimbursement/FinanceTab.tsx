@@ -196,7 +196,9 @@ export default function FinanceTab() {
     };
 
     // Check all possible locations
-    if (item.attachments) {
+    if (item.reimbursementAttachments && Array.isArray(item.reimbursementAttachments)) {
+      item.reimbursementAttachments.forEach(addIfValid);
+    } else if (item.attachments) {
       if (Array.isArray(item.attachments)) item.attachments.forEach(addIfValid);
       else addIfValid(item.attachments);
     }
@@ -251,49 +253,49 @@ export default function FinanceTab() {
 
 
   /* ===== FILTERED DATA ===== */
- /* ===== FILTERED DATA - FIXED VERSION ===== */
-const filteredData = data.filter((r) => {
-  // Base finance view filtering
-  if (['DRAFT', 'PENDING_APPROVAL', 'CLARIFY'].includes(r.status)) return false;
-  if (r.status === 'REJECTED' && !r.financeStatus) return false;
+  /* ===== FILTERED DATA - FIXED VERSION ===== */
+  const filteredData = data.filter((r) => {
+    // Base finance view filtering
+    if (['DRAFT', 'PENDING_APPROVAL', 'CLARIFY'].includes(r.status)) return false;
+    if (r.status === 'REJECTED' && !r.financeStatus) return false;
 
-  // Search Text filter
-  if (searchText) {
-    const searchLower = searchText.toLowerCase();
-    const matchesName = (r.employee?.name || (r as any).user?.name || "").toLowerCase().includes(searchLower);
-    const matchesDept = ((r as any).department || "").toLowerCase().includes(searchLower);
-    const matchesId = (r.requestId || "").toLowerCase().includes(searchLower);
-    const matchesCategory = (r.category || "").toLowerCase().includes(searchLower);
+    // Search Text filter
+    if (searchText) {
+      const searchLower = searchText.toLowerCase();
+      const matchesName = (r.employee?.name || (r as any).user?.name || "").toLowerCase().includes(searchLower);
+      const matchesDept = ((r as any).department || "").toLowerCase().includes(searchLower);
+      const matchesId = (r.requestId || "").toLowerCase().includes(searchLower);
+      const matchesCategory = (r.category || "").toLowerCase().includes(searchLower);
 
-    if (!matchesName && !matchesId && !matchesDept && !matchesCategory) {
-      return false;
+      if (!matchesName && !matchesId && !matchesDept && !matchesCategory) {
+        return false;
+      }
     }
-  }
 
-  // 🔥 FIX: Employee filter
-  if (filters.employee !== "all") {
-    const employeeName = r.employee?.name || (r as any).user?.name;
-    if (employeeName !== filters.employee) {
-      return false;
+    // 🔥 FIX: Employee filter
+    if (filters.employee !== "all") {
+      const employeeName = r.employee?.name || (r as any).user?.name;
+      if (employeeName !== filters.employee) {
+        return false;
+      }
     }
-  }
 
-  // 🔥 FIX: Category filter
-  if (filters.category !== "all") {
-    if (r.category !== filters.category) {
-      return false;
+    // 🔥 FIX: Category filter
+    if (filters.category !== "all") {
+      if (r.category !== filters.category) {
+        return false;
+      }
     }
-  }
 
-  // 🔥 FIX: Status filter
-  if (filters.status !== "all") {
-    if (r.status !== filters.status) {
-      return false;
+    // 🔥 FIX: Status filter
+    if (filters.status !== "all") {
+      if (r.status !== filters.status) {
+        return false;
+      }
     }
-  }
 
-  return true;
-});
+    return true;
+  });
 
   type StatusChipProps = {
     status: Reimbursement["status"];
@@ -453,15 +455,15 @@ const filteredData = data.filter((r) => {
     }));
   };
 
-// ===== RESET FILTERS =====
-const resetFilters = () => {
-  setFilters({
-    employee: "all",
-    category: "all",
-    status: "all",
-  });
-  setSearchText(""); // Also clear search!
-};
+  // ===== RESET FILTERS =====
+  const resetFilters = () => {
+    setFilters({
+      employee: "all",
+      category: "all",
+      status: "all",
+    });
+    setSearchText(""); // Also clear search!
+  };
 
 
   return (
@@ -541,117 +543,117 @@ const resetFilters = () => {
                 Advanced Filters
               </Button>
 
-            {/* FILTER DROPDOWN - COMPLETE FIXED VERSION */}
-{showFilter && (
-   <div 
-    style={{
-      position: 'fixed',
-      top: (filterRef.current?.getBoundingClientRect().bottom || 0) + 8,
-      right: window.innerWidth - (filterRef.current?.getBoundingClientRect().right || 0),
-      width: '288px',
-      backgroundColor: 'white',
-      border: '1px solid #e5e7eb',
-      borderRadius: '8px',
-      boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
-      padding: '16px',
-      zIndex: 999999,
-    }}
-  >
-    {/* HEADER */}
-    <div className="flex justify-between items-center mb-3 border-b pb-2">
-      <span className="font-semibold text-gray-800">
-        Advanced Filters
-      </span>
-      <Button
-        size="small"
-        type="text"
-        icon={<CloseOutlined />}
-        onClick={() => setShowFilter(false)}
-      />
-    </div>
+              {/* FILTER DROPDOWN - COMPLETE FIXED VERSION */}
+              {showFilter && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: (filterRef.current?.getBoundingClientRect().bottom || 0) + 8,
+                    right: window.innerWidth - (filterRef.current?.getBoundingClientRect().right || 0),
+                    width: '288px',
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+                    padding: '16px',
+                    zIndex: 999999,
+                  }}
+                >
+                  {/* HEADER */}
+                  <div className="flex justify-between items-center mb-3 border-b pb-2">
+                    <span className="font-semibold text-gray-800">
+                      Advanced Filters
+                    </span>
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<CloseOutlined />}
+                      onClick={() => setShowFilter(false)}
+                    />
+                  </div>
 
-    {/* EMPLOYEE - FIXED WITH OPTIONS! */}
-    <div className="mb-3">
-      <label className="block text-[11px] font-medium text-gray-500 mb-1">
-        Employee
-      </label>
-      <Select
-        value={filters.employee}
-        onChange={(v) => handleFilterChange("employee", v)}
-        className="w-full"
-        size="small"
-        dropdownStyle={{ zIndex: 10000 }}
-        getPopupContainer={(trigger) => trigger.parentNode}
-        allowClear
-        placeholder="Select employee"
-      >
-        <Select.Option value="all">All Employees</Select.Option>
-        {[...new Set(data
-          .map(item => item.employee?.name || (item as any).user?.name)
-          .filter(Boolean) // Remove null/undefined
-        )].map(name => (
-          <Select.Option key={name} value={name}>{name}</Select.Option>
-        ))}
-      </Select>
-    </div>
+                  {/* EMPLOYEE - FIXED WITH OPTIONS! */}
+                  <div className="mb-3">
+                    <label className="block text-[11px] font-medium text-gray-500 mb-1">
+                      Employee
+                    </label>
+                    <Select
+                      value={filters.employee}
+                      onChange={(v) => handleFilterChange("employee", v)}
+                      className="w-full"
+                      size="small"
+                      dropdownStyle={{ zIndex: 10000 }}
+                      getPopupContainer={(trigger) => trigger.parentNode}
+                      allowClear
+                      placeholder="Select employee"
+                    >
+                      <Select.Option value="all">All Employees</Select.Option>
+                      {[...new Set(data
+                        .map(item => item.employee?.name || (item as any).user?.name)
+                        .filter(Boolean) // Remove null/undefined
+                      )].map(name => (
+                        <Select.Option key={name} value={name}>{name}</Select.Option>
+                      ))}
+                    </Select>
+                  </div>
 
-    {/* CATEGORY - FIXED WITH OPTIONS! */}
-    <div className="mb-3">
-      <label className="block text-[11px] font-medium text-gray-500 mb-1">
-        Category
-      </label>
-      <Select
-        value={filters.category}
-        onChange={(v) => handleFilterChange("category", v)}
-        className="w-full"
-        size="small"
-        dropdownStyle={{ zIndex: 10000 }}
-        getPopupContainer={(trigger) => trigger.parentNode}
-        allowClear
-        placeholder="Select category"
-      >
-        <Select.Option value="all">All Categories</Select.Option>
-        {[...new Set(data
-          .map(item => item.category)
-          .filter(Boolean)
-        )].map(category => (
-          <Select.Option key={category} value={category}>{category}</Select.Option>
-        ))}
-      </Select>
-    </div>
+                  {/* CATEGORY - FIXED WITH OPTIONS! */}
+                  <div className="mb-3">
+                    <label className="block text-[11px] font-medium text-gray-500 mb-1">
+                      Category
+                    </label>
+                    <Select
+                      value={filters.category}
+                      onChange={(v) => handleFilterChange("category", v)}
+                      className="w-full"
+                      size="small"
+                      dropdownStyle={{ zIndex: 10000 }}
+                      getPopupContainer={(trigger) => trigger.parentNode}
+                      allowClear
+                      placeholder="Select category"
+                    >
+                      <Select.Option value="all">All Categories</Select.Option>
+                      {[...new Set(data
+                        .map(item => item.category)
+                        .filter(Boolean)
+                      )].map(category => (
+                        <Select.Option key={category} value={category}>{category}</Select.Option>
+                      ))}
+                    </Select>
+                  </div>
 
-    {/* STATUS - FIXED WITH CORRECT VALUES! */}
-    <div className="mb-4">
-      <label className="block text-[11px] font-medium text-gray-500 mb-1">
-        Status
-      </label>
-      <Select
-        value={filters.status}
-        onChange={(v) => handleFilterChange("status", v)}
-        className="w-full"
-        size="small"
-        dropdownStyle={{ zIndex: 10000 }}
-        getPopupContainer={(trigger) => trigger.parentNode}
-        allowClear
-        placeholder="Select status"
-      >
-        <Select.Option value="all">All Status</Select.Option>
-        <Select.Option value="PAID">Paid</Select.Option>
-        <Select.Option value="APPROVED">Approved</Select.Option>
-        <Select.Option value="ON_HOLD">On Hold</Select.Option>
-        <Select.Option value="REJECTED">Rejected</Select.Option>
-      </Select>
-    </div>
+                  {/* STATUS - FIXED WITH CORRECT VALUES! */}
+                  <div className="mb-4">
+                    <label className="block text-[11px] font-medium text-gray-500 mb-1">
+                      Status
+                    </label>
+                    <Select
+                      value={filters.status}
+                      onChange={(v) => handleFilterChange("status", v)}
+                      className="w-full"
+                      size="small"
+                      dropdownStyle={{ zIndex: 10000 }}
+                      getPopupContainer={(trigger) => trigger.parentNode}
+                      allowClear
+                      placeholder="Select status"
+                    >
+                      <Select.Option value="all">All Status</Select.Option>
+                      <Select.Option value="PAID">Paid</Select.Option>
+                      <Select.Option value="APPROVED">Approved</Select.Option>
+                      <Select.Option value="ON_HOLD">On Hold</Select.Option>
+                      <Select.Option value="REJECTED">Rejected</Select.Option>
+                    </Select>
+                  </div>
 
-    {/* ACTIONS */}
-    <div className="flex justify-end gap-2 pt-2 border-t">
-      <Button size="small" onClick={resetFilters}>Clear</Button>
-      <Button size="small" type="primary" onClick={() => setShowFilter(false)}>
-        Apply Filters
-      </Button>
-    </div>
-  </div>
-)}
+                  {/* ACTIONS */}
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Button size="small" onClick={resetFilters}>Clear</Button>
+                    <Button size="small" type="primary" onClick={() => setShowFilter(false)}>
+                      Apply Filters
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
 

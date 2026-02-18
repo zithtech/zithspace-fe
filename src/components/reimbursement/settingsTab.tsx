@@ -18,6 +18,7 @@ import {
   Switch,
   ConfigProvider,
   Popconfirm,
+  message,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -40,11 +41,12 @@ const { Text } = Typography;
 export interface Category {
   id: string;
   name: string;
-  maxPerRequest?: number;
+  maxRequestsPerMonth?: number;
   monthlyLimit?: number;
   yearlyLimit?: number;
   eligibleRoles?: string[];
-  accept?: string[];
+  acceptRoles?: string[];
+  approvalRoles?: string[];
   attachmentRequired?: boolean;
   isActive?: boolean;
 }
@@ -65,7 +67,7 @@ const columns = (
   handleConfirmDelete: (id: string) => void
 ): ColumnsType<any> => [
     { title: "Category", dataIndex: "name" },
-    { title: "Max / Request", dataIndex: "maxPerRequest" },
+    { title: "Max / Request", dataIndex: "maxRequestsPerMonth" },
     { title: "Monthly Limit", dataIndex: "monthlyLimit" },
     { title: "Yearly Limit", dataIndex: "yearlyLimit" },
     {
@@ -90,6 +92,27 @@ const columns = (
       ),
     },
 
+    {
+      title: "Approval Roles",
+      dataIndex: "approvalRoles",
+      render: (roles: string[]) => (
+        <div className="flex flex-wrap gap-1">
+          {roles?.length ? (
+            roles.map((role) => {
+              const colorClass =
+                roleColorMap[role.toUpperCase()] || "bg-gray-100 text-gray-700";
+              return (
+                <span key={role} className={`${chipBase} ${colorClass}`}>
+                  {role}
+                </span>
+              );
+            })
+          ) : (
+            <span className="text-gray-400 text-xs">—</span>
+          )}
+        </div>
+      ),
+    },
 
     {
       title: "Accepted By",
@@ -226,31 +249,32 @@ export default function ReimbursementSettings() {
 
       const categoryData: any = {
         name: values.category,
-        maxPerRequest: values.categoryMax,
-        monthlyLimit: values.monthlyLimit,
-        yearlyLimit: values.yearlyLimit,
+        // ✅ FIX: Convert to Number when saving
+        maxPerRequest: values.categoryMax ? Number(values.categoryMax) : null,
+        monthlyLimit: values.monthlyLimit ? Number(values.monthlyLimit) : null,
+        yearlyLimit: values.yearlyLimit ? Number(values.yearlyLimit) : null,
         eligibleRoles: values.eligibleRoles || [],
+        approvalRoles: values.approvalRoles || [],
         accept: values.accept || [],
         attachmentRequired: values.attachment || false,
         isActive: values.status,
       };
 
       if (editingCategory) {
-        // ✅ UPDATE using service
         await CategoryService.updateCategory(editingCategory.id, categoryData);
+        message.success("Category updated successfully");
       } else {
-        // ✅ CREATE using service
         await CategoryService.createCategory(categoryData);
+        message.success("Category created successfully");
       }
-
-      // ✅ REFRESH from service
-      await refreshCategories();
 
       setOpen(false);
       setEditingCategory(null);
       form.resetFields();
+      refreshCategories();
     } catch (error) {
-      console.log("Validation failed:", error);
+      console.error("Error saving category:", error);
+      message.error("Failed to save category");
     } finally {
       setSubmitting(false);
     }
@@ -258,16 +282,20 @@ export default function ReimbursementSettings() {
 
   /* ================= EDIT ================= */
   const handleEdit = (record: Category) => {
+    console.log("🔍 Editing record:", record); // Debug
+
     setEditingCategory(record);
     setOpen(true);
 
+    // ✅ FIX: Convert Decimal to Number for InputNumber
     form.setFieldsValue({
       category: record.name,
-      categoryMax: record.maxPerRequest,
-      monthlyLimit: record.monthlyLimit,
-      yearlyLimit: record.yearlyLimit,
+      categoryMax: record.maxRequestsPerMonth ? Number(record.maxRequestsPerMonth) : undefined,
+      monthlyLimit: record.monthlyLimit ? Number(record.monthlyLimit) : undefined,
+      yearlyLimit: record.yearlyLimit ? Number(record.yearlyLimit) : undefined,
       eligibleRoles: record.eligibleRoles,
-      accept: record.accept,
+      approvalRoles: record.approvalRoles,
+      accept: record.acceptRoles,
       attachment: record.attachmentRequired,
       status: (record as any).isActive,
     });
@@ -289,11 +317,11 @@ export default function ReimbursementSettings() {
 
       <div className="flex flex-col flex-1 overflow-visible">
 
-        <Row justify="space-between" align="middle">
-
-
+        {/* HEADER */}
+        {/* HEADER */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-gray-200">
+          {/* LEFT SIDE - Title and Description */}
           <div className="space-y-1">
-
             <h2 className="text-lg font-semibold text-gray-900">
               <Space>
                 <SettingOutlined />
@@ -301,22 +329,18 @@ export default function ReimbursementSettings() {
               </Space>
             </h2>
 
-
-            {/* DESCRIPTION */}
-            <p className="text-[11px] text-gray-500 leading-tight">
-              Manage reimbursement categories, control active and inactive settings,
-              and configure expense rules for your organization.
+            {/* DESCRIPTION - Now on left side */}
+            <p className="text-[11px] text-gray-500 leading-tight max-w-2xl">
+              Manage reimbursement categories, control active and inactive settings.
+             
             </p>
 
-
-            {/* ✅ CHIPS JUST BELOW DESCRIPTION */}
+            {/* CHIPS - Below description on left */}
             <div className="flex flex-wrap gap-1 pt-1">
               {/* TOTAL CATEGORIES */}
               <div className="px-2 py-[2px] rounded-full bg-blue-100 text-blue-700 text-[10px] font-medium">
                 Total:
-                <span className="ml-1 font-semibold">
-                  {data.length}
-                </span>
+                <span className="ml-1 font-semibold">{data.length}</span>
               </div>
 
               {/* ACTIVE */}
@@ -335,140 +359,132 @@ export default function ReimbursementSettings() {
                 </span>
               </div>
             </div>
-
           </div>
 
+          {/* RIGHT SIDE - Search, Filter, Add Category buttons */}
+          <div className="flex items-center gap-2">
+            {/* SEARCH */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="w-40 px-3 h-8 rounded-md border border-gray-200 text-[11px] focus:outline-none focus:border-blue-500 bg-gray-50/50"
+              />
+            </div>
 
+            {/* FILTER BUTTON */}
+            <div className="relative" ref={filterRef}>
+              <Button
+                icon={<FilterOutlined />}
+                onClick={() => setShowFilter((prev) => !prev)}
+                className={`
+          flex items-center gap-1 px-3 h-8 rounded-md border text-[11px] font-medium
+          ${showFilter ? "border-blue-500 text-blue-600 bg-blue-50" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}
+        `}
+              >
+                Filter
+              </Button>
 
-          {/* RIGHT SIDE – ACTIONS */}
-          <Col>
-            <div className="flex items-center gap-2">
-              {/* SEARCH */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  className="w-40 px-3 h-8 rounded-md border border-gray-200 text-[11px] focus:outline-none focus:border-blue-500 bg-gray-50/50"
-                />
-              </div>
+              {/* FILTER DROPDOWN */}
+              {showFilter && (
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 text-[12px]">
+                  <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
+                    <span className="font-semibold text-gray-800">Filter Settings</span>
+                    <Button size="small" type="text" icon={<CloseOutlined />} onClick={() => setShowFilter(false)} className="text-gray-400 hover:text-gray-600" />
+                  </div>
 
-              {/* FILTER BUTTON */}
-              <div className="relative" ref={filterRef}>
-                <Button
-                  icon={<FilterOutlined />}
-                  onClick={() => setShowFilter((prev) => !prev)}
-                  className={`
-                    flex items-center gap-1 px-3 h-8 rounded-md border text-[11px] font-medium
-                    ${showFilter ? "border-blue-500 text-blue-600 bg-blue-50" : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}
-                  `}
-                >
-                  Filter
-                </Button>
-
-                {/* FILTER DROPDOWN */}
-                {showFilter && (
-                  <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl p-3 z-50 text-[12px]">
-                    <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
-                      <span className="font-semibold text-gray-800">Filter Settings</span>
-                      <Button size="small" type="text" icon={<CloseOutlined />} onClick={() => setShowFilter(false)} className="text-gray-400 hover:text-gray-600" />
+                  <div className="space-y-3">
+                    {/* Category Filter */}
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-500 mb-1">Category</label>
+                      <Select
+                        mode="multiple"
+                        size="small"
+                        placeholder="Select Category"
+                        value={categoryFilter}
+                        onChange={setCategoryFilter}
+                        style={{ width: "100%" }}
+                        className="text-[11px]"
+                        maxTagCount={1}
+                        getPopupContainer={(trigger) => trigger.parentElement}
+                      >
+                        {allCategories.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
+                      </Select>
                     </div>
 
-                    <div className="space-y-3">
-                      {/* Category Filter */}
-                      <div>
-                        <label className="block text-[10px] font-medium text-gray-500 mb-1">Category</label>
-                        <Select
-                          mode="multiple"
-                          size="small"
-                          placeholder="Select Category"
-                          value={categoryFilter}
-                          onChange={setCategoryFilter}
-                          style={{ width: "100%" }}
-                          className="text-[11px]"
-                          maxTagCount={1}
-                          getPopupContainer={(trigger) => trigger.parentElement}
-                        >
-                          {allCategories.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
-                        </Select>
-                      </div>
-
-                      {/* Eligible Role Filter */}
-                      <div>
-                        <label className="block text-[10px] font-medium text-gray-500 mb-1">Eligible Role</label>
-                        <Select
-                          mode="multiple"
-                          size="small"
-                          placeholder="Select Role"
-                          value={roleFilter}
-                          onChange={setRoleFilter}
-                          style={{ width: "100%" }}
-                          className="text-[11px]"
-                          maxTagCount={1}
-                          getPopupContainer={(trigger) => trigger.parentElement}
-                        >
-                          {allRoles.map(r => <Select.Option key={r} value={r}>{r}</Select.Option>)}
-                        </Select>
-                      </div>
-
-                      {/* Status Filter */}
-                      <div>
-                        <label className="block text-[10px] font-medium text-gray-500 mb-1">Status</label>
-                        <select
-                          value={statusFilter}
-                          onChange={(e) => setStatusFilter(e.target.value)}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded text-[11px] focus:border-blue-500 focus:outline-none bg-white"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="ACTIVE">Active</option>
-                          <option value="INACTIVE">Inactive</option>
-                        </select>
-                      </div>
+                    {/* Eligible Role Filter */}
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-500 mb-1">Eligible Role</label>
+                      <Select
+                        mode="multiple"
+                        size="small"
+                        placeholder="Select Role"
+                        value={roleFilter}
+                        onChange={setRoleFilter}
+                        style={{ width: "100%" }}
+                        className="text-[11px]"
+                        maxTagCount={1}
+                        getPopupContainer={(trigger) => trigger.parentElement}
+                      >
+                        {allRoles.map(r => <Select.Option key={r} value={r}>{r}</Select.Option>)}
+                      </Select>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-3 mt-2 border-t border-gray-100">
-                      <Button
-                        size="small"
-                        onClick={() => { setStatusFilter("all"); setCategoryFilter([]); setRoleFilter([]); setSearchText(""); }}
-                        className="text-[10px] h-7 px-2 border-transparent hover:bg-gray-100 text-gray-500"
+                    {/* Status Filter */}
+                    <div>
+                      <label className="block text-[10px] font-medium text-gray-500 mb-1">Status</label>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-[11px] focus:border-blue-500 focus:outline-none bg-white"
                       >
-                        Reset
-                      </Button>
-                      <Button
-                        size="small"
-                        type="primary"
-                        onClick={() => setShowFilter(false)}
-                        className="text-[10px] h-7 px-3 bg-blue-600 hover:bg-blue-700 border-none shadow-sm"
-                      >
-                        Submit
-                      </Button>
+                        <option value="all">All Status</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                      </select>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* CREATE BUTTON */}
-              <Button
-                type="primary"
-                size="middle"
-                icon={<PlusOutlined />}
-                className="h-8 px-4 text-[11px] font-medium bg-blue-600 hover:bg-blue-700 border-none shadow-sm flex items-center gap-1"
-                onClick={() => {
-                  setEditingCategory(null);
-                  setOpen(true);
-                  form.resetFields();
-                }}
-              >
-                Add Category
-              </Button>
+                  <div className="flex justify-end gap-2 pt-3 mt-2 border-t border-gray-100">
+                    <Button
+                      size="small"
+                      onClick={() => { setStatusFilter("all"); setCategoryFilter([]); setRoleFilter([]); setSearchText(""); }}
+                      className="text-[10px] h-7 px-2 border-transparent hover:bg-gray-100 text-gray-500"
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      size="small"
+                      type="primary"
+                      onClick={() => setShowFilter(false)}
+                      className="text-[10px] h-7 px-3 bg-blue-600 hover:bg-blue-700 border-none shadow-sm"
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </Col>
-        </Row>
+
+            {/* ADD CATEGORY BUTTON */}
+            <Button
+              type="primary"
+              size="middle"
+              icon={<PlusOutlined />}
+              className="h-8 px-4 text-[11px] font-medium bg-blue-600 hover:bg-blue-700 border-none shadow-sm flex items-center gap-1"
+              onClick={() => {
+                setEditingCategory(null);
+                setOpen(true);
+                form.resetFields();
+              }}
+            >
+              Add Category
+            </Button>
+          </div>
+        </div>
       </div>
-
-      <div className="border-t border-gray-200 my-2" />
-
 
       {/* ================= TABLE ================= */}
       <style jsx global>{`
@@ -620,6 +636,22 @@ export default function ReimbursementSettings() {
               <Select.Option value="EMPLOYEE">Employee</Select.Option>
               <Select.Option value="HR">HR</Select.Option>
               <Select.Option value="FINANCE">Finance</Select.Option>
+            </Select>
+          </Form.Item>
+
+          {/* ===== APPROVAL ROLES ===== */}
+          <Form.Item
+            name="approvalRoles"
+            label={<span className="text-[11px] font-medium">Approval Roles</span>}
+            className="mb-1"
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              className="w-full"
+              placeholder="Select roles"
+            >
+              {allRoles.map(r => <Select.Option key={r} value={r}>{r}</Select.Option>)}
             </Select>
           </Form.Item>
 

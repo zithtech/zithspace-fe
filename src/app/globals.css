@@ -397,15 +397,15 @@ body {
 }
 
 /* fixed background */
-.no-column-border {
+/* .no-column-border {
   background: #f5f8fd !important;
 
-}
+} */
 
 
-.ant-table-tbody > tr.no-column-border:hover > td {
+/* .ant-table-tbody > tr.no-column-border:hover > td {
   background: #fff7e6 !important;
-}
+} */
 
 
 
@@ -443,14 +443,14 @@ body {
 }
 
 /* Hover row background */
-.ant-table-tbody tr:hover > td {
+/* .ant-table-tbody tr:hover > td {
   background: #f5faff !important;
-}
+} */
 
 /* Icon styling */
 .row-action-icon {
   cursor: pointer;
-  color: #8c8c8c;
+   color: #8c8c8c;
   transition: color 0.2s ease;
 }
 
@@ -615,29 +615,7 @@ body {
 }
 
 
-/* .add-entry-btn {
-  height: 36px;
-  padding: 0 18px;
-  border-radius: 999px;         
-  background-color: #1abc9c;     
-  color: #ffffff;
-  font-weight: 500;
 
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  transition: background-color 0.2s ease;
-}
-
-.add-entry-btn .anticon {
-  color:black;
-}
-
-.add-entry-btn:hover {
-  background-color: #17a589;     
-  color: #ffffff;
-} */
 
 
 /* Make the InputNumber arrows thicker and more visible */
@@ -746,147 +724,3 @@ body {
   overflow: hidden !important;
 }
 
-
-
-
-
-
-
-
-
-
-/* .fade-table {
-  animation: fadeIn 0.6s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-} */
-/* Force smooth hover fade */
-/* .ant-table-tbody > tr.ant-table-row > td {
-  transition: background-color 0.35s ease-in-out;
-} */
-
-/* Override AntD default hover */
-/* .ant-table-tbody > tr.ant-table-row:hover > td {
-  background-color: #f5f7fa !important;
-}
-
-
-
-.no-column-border td {
-  border-bottom: none !important;
-}
-.ant-table-expanded-row {
-  animation: fadeExpand 0.4s ease;
-}
-
-@keyframes fadeExpand {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-} */
-
-/* Default state */
-/* .table-hover-wrapper {
-  transition: all 0.35s ease-in-out;
-} */
-
-/* Hover on full table */
-/* .table-hover-wrapper:hover {
-  transform: translateY(-4px);
-} */
-
-/* Smooth fade inside table */
-/* .table-hover-wrapper .ant-table {
-  transition: box-shadow 0.35s ease;
-}
-
-.client-view-close-btn {
-  transition: all 0.2s ease;
-}
-
-.client-view-close-btn:hover {
-  transform: scale(1.06);
-}
-.client-view-card {
-  height: 100%;
-}
-.transparent-select .ant-select-selector {
-  background-color: transparent !important;
-}
-.version-item {
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.version-item:hover {
-  background: #f5f5f5;
-}
-
-.version-item.active {
-  background: #e6f4ff;
-  border-left: 3px solid #1677ff;
-}
-
-.version-item::after {
-  float: right;
-  content: "●";
-  font-size: 10px;
-}
-
-.version-item:contains("Draft")::after {
-  color: orange;
-}
-
-
-
-
-
-/* Smooth transition */
-/* .ant-table-tbody > tr.ant-table-row {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-} */
-
-/* Hover */
-/* .ant-table-tbody > tr.ant-table-row:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-} */
-
-/* CLICK (while mouse pressed) */
-/* .ant-table-tbody > tr.ant-table-row:active {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-} */
-
-/* When row has input focused (TextArea click) */
-/* .ant-table-tbody > tr.ant-table-row:focus-within {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  background-color: #e6f4ff;
-}
-
-  
-
-
-
-.table-row-light {
-  background: #ffffff;
-}
-
-.table-row-dark {
-  background: #fafafa;
-} */

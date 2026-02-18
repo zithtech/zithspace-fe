@@ -877,6 +877,7 @@ export default function TeamsTab({
                     await queryClient.invalidateQueries({
                       queryKey: ["timesheets"],
                     });
+                    onActionCompleted?.();
                   } catch (err) {
                     console.error("Approval failed:", err);
                   } finally {
@@ -902,7 +903,7 @@ export default function TeamsTab({
             </Text>
           </Modal>
           {/* //approve success modal */}
-          <Modal
+          {/* <Modal
             open={showApprovedModal}
             onCancel={() => setShowApprovedModal(false)}
             centered
@@ -932,7 +933,7 @@ export default function TeamsTab({
                 </Text>
               </div>
             </div>
-          </Modal>
+          </Modal> */}
 
           <Modal
             title="Description"

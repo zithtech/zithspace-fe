@@ -38,6 +38,19 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
     },
   }));
 
+  // useImperativeHandle(ref, () => ({
+  //   async validateAndGetData() {
+  //     // ✅ Validate both forms
+  //     const bankValues = await bankform.validateFields();
+  //     const payrollValues = await payrollform.validateFields();
+
+  //     return {
+  //       ...bankValues,
+  //       ...payrollValues,
+  //     };
+  //   },
+  // }));
+
   return (
     <div
       style={{

@@ -1,6 +1,7 @@
 import { Form, Input, Select, DatePicker, Row, Col, Checkbox } from "antd";
 import { UserOutlined, HomeOutlined } from "@ant-design/icons";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import form from "antd/es/form";
 const { Option } = Select;
 
 const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
@@ -31,6 +32,18 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
       };
     },
   }));
+
+  // useImperativeHandle(ref, () => ({
+  //   async validateAndGetData() {
+  //     // ✅ Validate form first
+  //     const values = await basicForm.validateFields();
+
+  //     return {
+  //       ...values,
+  //       dob: values?.dob ? values.dob.format("YYYY-MM-DD") : null,
+  //     };
+  //   },
+  // }));
 
   const onSameAddressChange = (e: any) => {
     const checked = e.target.checked;

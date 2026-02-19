@@ -19,6 +19,7 @@ import {
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { model } from "mongoose";
+import form from "antd/es/form";
 
 const Assets = forwardRef(({ data }: any, ref: any) => {
   const [open, setOpen] = useState(false);
@@ -37,6 +38,12 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
   useImperativeHandle(ref, () => ({
     getData: () => assets,
   }));
+
+  // useImperativeHandle(ref, () => ({
+  //   async validateAndGetData() {
+  //     return assets || [];
+  //   },
+  // }));
 
   const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 

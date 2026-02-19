@@ -1,51 +1,186 @@
 "use client";
-import { Form, Input, Select, DatePicker } from "antd";
+import {
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  Switch,
+  Checkbox,
+  Divider,
+  Modal,
+  Typography,
+  Row,
+  Col,
+  Card,
+  notification,
+  message,
+} from "antd";
 import {
   BankOutlined,
-  CalendarOutlined,
   ProjectOutlined,
   TrophyOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
+import dayjs from "dayjs";
+
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import { MembersService } from "@/services/membersService";
 import { add } from "@dnd-kit/utilities";
+import form from "antd/es/form";
+// import { Model } from "mongoose";
 
 const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   // Employement data
   const [employmentData, setEmploymentData] = useState<any>({});
+  const [workType, setWorkType] = useState<string>();
+  const [hybridMode, setHybridMode] = useState<"General" | "Fixed">("General");
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [totalHours, setTotalHours] = useState<number>(0);
+  const [generalDays, setGeneralDays] = useState<number | null>(null);
+  const [generalHours, setGeneralHours] = useState<number | null>(null);
+
+  const [isHybridModalOpen, setIsHybridModalOpen] = useState(false);
+  const [tempSelectedDays, setTempSelectedDays] = useState<string[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
 
   const [workForm] = Form.useForm();
   const [empoyeeTimelineForm] = Form.useForm();
   const [additionalForm] = Form.useForm();
   const { Option } = Select;
+  const { Title, Text } = Typography;
+  const [api, contextHolder] = notification.useNotification();
 
   useEffect(() => {
     console.log("Employment Data:", employmentData);
   }, [employmentData]);
 
+  // useEffect(() => {
+  //   if (data && Object.keys(data).length) {
+  //     setEmploymentData(data);
+  //     setWorkType(data.workType);
+  //     setHybridMode(data.hybridMode || "General");
+  //     setSelectedDays(data.fixedDays || []);
+  //     setGeneralDays(data.totalDays || null);
+  //     setGeneralHours(data.totalHours || null);
+  //     setTempSelectedDays(data.fixedDays || []);
+
+  //     workForm.setFieldsValue(data);
+  //     empoyeeTimelineForm.setFieldsValue(data);
+  //     additionalForm.setFieldsValue(data); // third form
+  //   }
+  // }, [data, workForm, empoyeeTimelineForm, additionalForm]);
+
   useEffect(() => {
     if (data && Object.keys(data).length) {
       setEmploymentData(data);
+      setWorkType(data.workType);
+      setHybridMode(data.hybridMode || "General");
+      setSelectedDays(data.fixedDays || []);
+      setGeneralDays(data.totalDays || null);
+      setGeneralHours(data.totalHours || null);
+      setTempSelectedDays(data.fixedDays || []);
 
-      workForm.setFieldsValue(data);
-      empoyeeTimelineForm.setFieldsValue(data);
-      additionalForm.setFieldsValue(data); // third form
+      workForm.setFieldsValue({
+        ...data,
+        employeeJoiningDate: data.employeeJoiningDate
+          ? dayjs(data.employeeJoiningDate)
+          : null,
+      });
+
+      empoyeeTimelineForm.setFieldsValue({
+        ...data,
+        joiningDate: data.joiningDate ? dayjs(data.joiningDate) : null,
+        trainingCompletion: data.trainingCompletion
+          ? dayjs(data.trainingCompletion)
+          : null,
+      });
+
+      additionalForm.setFieldsValue(data);
     }
   }, [data]);
 
-  // useImperativeHandle(ref, () => ({
-  //   getData: () => employmentData,
-  // }));
+  useEffect(() => {
+    const fetchMembersForSelect = async () => {
+      try {
+        const data = await MembersService.getMembersForSelect();
+        setMembers(data);
+      } catch (error) {
+        message.error("Failed to load members");
+      }
+    };
+
+    fetchMembersForSelect();
+  }, []);
+
   useImperativeHandle(ref, () => ({
-    getData: () => ({
-      ...employmentData,
-      joiningDate: employmentData?.joiningDate
-        ? employmentData.joiningDate.format("YYYY-MM-DD")
-        : null,
-      trainingCompletion: employmentData?.trainingCompletion
-        ? employmentData.trainingCompletion.format("YYYY-MM-DD")
-        : null,
-    }),
+    getData: () => {
+      if (workType === "Hybrid" && hybridMode === "Fixed") {
+        return {
+          ...employmentData,
+          workType: "Hybrid",
+          hybridMode: "Fixed",
+          fixedDays: selectedDays,
+          totalDays: selectedDays.length,
+          totalHours: selectedDays.length * 8,
+        };
+      }
+
+      if (workType === "Hybrid" && hybridMode === "General") {
+        return {
+          ...employmentData,
+          workType: "Hybrid",
+          hybridMode: "General",
+          totalDays: generalDays,
+          totalHours: generalHours,
+        };
+      }
+
+      return {
+        ...employmentData,
+        workType,
+      };
+    },
   }));
+
+  // useImperativeHandle(ref, () => ({
+  //   async validateAndGetData() {
+  //     const workValues = await workForm.validateFields();
+  //     const timelineValues = await empoyeeTimelineForm.validateFields();
+  //     const additionalValues = await additionalForm.validateFields();
+
+  //     const baseData = {
+  //       ...workValues,
+  //       ...timelineValues,
+  //       ...additionalValues,
+  //     };
+
+  //     if (workType === "Hybrid" && hybridMode === "Fixed") {
+  //       return {
+  //         ...baseData,
+  //         workType: "Hybrid",
+  //         hybridMode: "Fixed",
+  //         fixedDays: selectedDays,
+  //         totalDays: selectedDays.length,
+  //         totalHours: selectedDays.length * 8,
+  //       };
+  //     }
+
+  //     if (workType === "Hybrid" && hybridMode === "General") {
+  //       return {
+  //         ...baseData,
+  //         workType: "Hybrid",
+  //         hybridMode: "General",
+  //         totalDays: generalDays,
+  //         totalHours: generalHours,
+  //       };
+  //     }
+
+  //     return {
+  //       ...baseData,
+  //       workType,
+  //     };
+  //   },
+  // }));
 
   return (
     <div
@@ -67,7 +202,12 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           requiredMark={false}
           onValuesChange={(_, allValues) =>
             setEmploymentData((pre: any) => {
-              return { ...pre, ...allValues };
+              return {
+                ...pre,
+                ...allValues,
+                employeeJoiningDate:
+                  allValues.employeeJoiningDate?.format("YYYY-MM-DD"),
+              };
             })
           }
           style={{
@@ -106,26 +246,9 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               placeholder="Select Department"
               style={{ height: 25, fontSize: 11 }}
             >
-              <Option value="engineering">Engineering</Option>
-              <Option value="hr">HR</Option>
-              <Option value="finance">Finance</Option>
-            </Select>
-          </Form.Item>
-
-          {/* Team */}
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}>* Team</span>}
-            name="team"
-            rules={[{ required: true, message: "Required" }]}
-            style={{ marginBottom: 10 }}
-          >
-            <Select
-              placeholder="Select Team"
-              style={{ height: 25, fontSize: 11 }}
-            >
-              <Option value="frontend">Frontend</Option>
-              <Option value="backend">Backend</Option>
-              <Option value="design">Design</Option>
+              <Option value="Engineering">Engineering</Option>
+              <Option value="HR">HR</Option>
+              <Option value="Finance">Finance</Option>
             </Select>
           </Form.Item>
 
@@ -140,11 +263,104 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               placeholder="Select Type"
               style={{ height: 25, fontSize: 11 }}
             >
-              <Option value="fulltime">Full Time</Option>
-              <Option value="parttime">Part Time</Option>
-              <Option value="intern">Intern</Option>
+              <Option value="Full Time">Full Time</Option>
+              <Option value="Part Time">Part Time</Option>
+              <Option value="Internship">Intern</Option>
             </Select>
           </Form.Item>
+
+          {/* Work Type */}
+          <Form.Item
+            label={<span style={{ fontSize: 11 }}>* Work Type</span>}
+            name="workType"
+            rules={[{ required: true, message: "Required" }]}
+            style={{ marginBottom: 10 }}
+          >
+            <Select
+              placeholder="Select Work Type"
+              style={{ height: 25, fontSize: 11 }}
+              onChange={(value) => {
+                setWorkType(value);
+                setHybridMode("General");
+                setSelectedDays([]);
+                setGeneralDays(null);
+                setGeneralHours(null);
+              }}
+            >
+              <Option value="Work From Home">Work From Home</Option>
+              <Option value="Work From Office">Work From Office</Option>
+              <Option value="Hybrid">Hybrid</Option>
+            </Select>
+          </Form.Item>
+          {workType === "Hybrid" && (
+            <>
+              <Divider style={{ margin: "10px 0" }} />
+
+              <div style={{ fontSize: 11, marginBottom: 6 }}>Hybrid Mode</div>
+
+              <Switch
+                checkedChildren="Fixed"
+                unCheckedChildren="General"
+                checked={hybridMode === "Fixed"}
+                onChange={(checked) => {
+                  const mode = checked ? "Fixed" : "General";
+                  setHybridMode(mode);
+
+                  if (mode === "Fixed") {
+                    setGeneralDays(null);
+                    setGeneralHours(null);
+                    setTempSelectedDays(selectedDays); // preload existing days
+                    setIsHybridModalOpen(true); // 🔥 OPEN MODAL AUTOMATICALLY
+                  } else {
+                    setSelectedDays([]); // clear if back to general
+                    setGeneralDays(null);
+                    setGeneralHours(null);
+                  }
+                }}
+              />
+            </>
+          )}
+
+          {workType === "Hybrid" && hybridMode === "Fixed" && (
+            <div style={{ marginTop: 10 }}>
+              {selectedDays.length > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11 }}>
+                  <div>
+                    Selected Days: {selectedDays.join(", ").toUpperCase()}
+                  </div>
+                  <div>Total Days: {selectedDays.length}</div>
+                  <div>Total Hours: {selectedDays.length * 8} hrs</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {workType === "Hybrid" && hybridMode === "General" && (
+            <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
+              <Input
+                type="number"
+                placeholder="Days"
+                value={generalDays ?? ""}
+                onChange={(e) => {
+                  const days = Number(e.target.value);
+                  setGeneralDays(days);
+                  setGeneralHours(days ? days * 8 : 0); // auto calculate hours
+                }}
+                style={{ fontSize: 11, height: 25 }}
+              />
+
+              <Input
+                type="number"
+                placeholder="Hrs"
+                value={generalHours ?? ""}
+                addonAfter="hrs"
+                onChange={(e) => {
+                  setGeneralHours(Number(e.target.value));
+                }}
+                style={{ fontSize: 11, height: 25 }}
+              />
+            </div>
+          )}
 
           {/* Work Location */}
           <Form.Item
@@ -170,10 +386,23 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               placeholder="Select Shift"
               style={{ height: 25, fontSize: 11 }}
             >
-              <Option value="day">Day Shift</Option>
-              <Option value="night">Night Shift</Option>
-              <Option value="rotational">Rotational</Option>
+              <Option value="Day Shift">Day Shift</Option>
+              <Option value="Night Shift">Night Shift</Option>
+              <Option value="Rotational">Rotational</Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            label={<span style={{ fontSize: 11 }}> Work Joining Date </span>}
+            name="employeeJoiningDate"
+            rules={[{ required: true, message: "Required" }]}
+            style={{ marginBottom: 10 }}
+          >
+            <DatePicker
+              format="DD-MM-YYYY"
+              placeholder="Select date"
+              style={{ width: "100%", height: 25, fontSize: 11 }}
+            />
           </Form.Item>
         </Form>
       </div>
@@ -186,7 +415,13 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           requiredMark={false}
           onValuesChange={(_, allValues) =>
             setEmploymentData((pre: any) => {
-              return { ...pre, ...allValues };
+              return {
+                ...pre,
+                ...allValues,
+                trainingCompletion:
+                  allValues.trainingCompletion?.format("YYYY-MM-DD"),
+                joiningDate: allValues.joiningDate?.format("YYYY-MM-DD"),
+              };
             })
           }
           style={{
@@ -276,13 +511,13 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               }}
               maxTagCount="responsive" // keeps UI clean
             >
-              <Option value="hrms">HRMS</Option>
-              <Option value="crm">CRM</Option>
-              <Option value="mobile-app">Mobile App</Option>
+              <Option value="HRMS">HRMS</Option>
+              <Option value="CRM">CRM</Option>
+              <Option value="Mobile App">Mobile App</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item
+          {/* <Form.Item
             label={<span style={{ fontSize: 11 }}>* Reporting Manager</span>}
             name="reportingManager"
             rules={[{ required: true, message: "Required" }]}
@@ -292,8 +527,45 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               placeholder="Select Manager"
               style={{ height: 25, fontSize: 11 }}
             >
-              <Option value="manager1">Manager 1</Option>
-              <Option value="manager2">Manager 2</Option>
+              <Option value="Manager 1">Manager 1</Option>
+              <Option value="Manager 2">Manager 2</Option>
+            </Select>
+          </Form.Item> */}
+
+          <Form.Item
+            label={<span style={{ fontSize: 11 }}>* Reporting Manager</span>}
+            name="reportingManager"
+            rules={[{ required: true, message: "Required" }]}
+            style={{ marginBottom: 0 }}
+          >
+            <Select
+              showSearch
+              placeholder="Select Manager"
+              style={{ height: 25, fontSize: 11 }}
+              optionFilterProp="children"
+            >
+              {members?.map((member) => (
+                <Select.Option key={member.id} value={member.label}>
+                  {member.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          {/* Team */}
+          <Form.Item
+            label={<span style={{ fontSize: 11 }}>* Team</span>}
+            name="team"
+            rules={[{ required: true, message: "Required" }]}
+            style={{ marginBottom: 10 }}
+          >
+            <Select
+              placeholder="Select Team"
+              style={{ height: 25, fontSize: 11 }}
+            >
+              <Option value="Frontend">Frontend</Option>
+              <Option value="Backend">Backend</Option>
+              <Option value="Design">Design</Option>
             </Select>
           </Form.Item>
         </Form>
@@ -319,7 +591,6 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
           }}
         >
-          {/* Title */}
           <div
             style={{
               display: "flex",
@@ -335,7 +606,6 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             Additional Details
           </div>
 
-          {/* Promotion Status */}
           <Form.Item
             label={<span style={{ fontSize: 11 }}>* Promotion Status</span>}
             name="promotionStatus"
@@ -346,13 +616,12 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               placeholder="Select Status"
               style={{ height: 25, fontSize: 11 }}
             >
-              <Option value="eligible">Eligible</Option>
-              <Option value="not-eligible">Not Eligible</Option>
-              <Option value="promoted">Promoted</Option>
+              <Option value="Eligible">Eligible</Option>
+              <Option value="Not Eligible">Not Eligible</Option>
+              <Option value="Promoted">Promoted</Option>
             </Select>
           </Form.Item>
 
-          {/* Employee Grade */}
           <Form.Item
             label={<span style={{ fontSize: 11 }}>* Employee Grade</span>}
             name="employeeGrade"
@@ -363,13 +632,78 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               placeholder="Select Grade"
               style={{ height: 25, fontSize: 11 }}
             >
-              <Option value="A">Grade A</Option>
-              <Option value="B">Grade B</Option>
-              <Option value="C">Grade C</Option>
+              <Option value="Grade A">Grade A</Option>
+              <Option value="Grade B">Grade B</Option>
+              <Option value="Grade C">Grade C</Option>
             </Select>
           </Form.Item>
         </Form>
       </div>
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CalendarOutlined style={{ color: "#1677ff" }} />
+            <span>Configure Hybrid Working Days</span>
+          </div>
+        }
+        open={isHybridModalOpen}
+        onCancel={() => setIsHybridModalOpen(false)}
+        onOk={() => {
+          setSelectedDays(tempSelectedDays);
+          setIsHybridModalOpen(false);
+        }}
+        okText="Save"
+        centered
+      >
+        <Card
+          bordered={false}
+          style={{
+            background: "#fafafa",
+            borderRadius: 10,
+          }}
+        >
+          <Title level={5} style={{ marginBottom: 15 }}>
+            Select Working Days
+          </Title>
+
+          <Checkbox.Group
+            style={{ width: "100%" }}
+            value={tempSelectedDays}
+            onChange={(checkedValues: any) => {
+              setTempSelectedDays(checkedValues);
+            }}
+          >
+            <Row gutter={[12, 12]}>
+              {[
+                { label: "Mon", value: "Mon" },
+                { label: "Tue", value: "Tue" },
+                { label: "Wed", value: "Wed" },
+                { label: "Thu", value: "Thu" },
+                { label: "Fri", value: "Fri" },
+                { label: "Sat", value: "Sat" },
+                { label: "Sun", value: "Sun" },
+              ].map((day) => (
+                <Col span={8} key={day.value}>
+                  <Checkbox value={day.value}>{day.label}</Checkbox>
+                </Col>
+              ))}
+            </Row>
+          </Checkbox.Group>
+
+          <Divider />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 13,
+            }}
+          >
+            <Text strong>Total Days: {tempSelectedDays.length}</Text>
+            <Text strong>Total Hours: {tempSelectedDays.length * 8} hrs</Text>
+          </div>
+        </Card>
+      </Modal>
     </div>
   );
 });

@@ -27,6 +27,7 @@ const Onboarding = () => {
     history: [],
     assets: [],
   });
+  const [resetKey, setResetKey] = useState(0);
 
   const stepKeys = ["personal", "employment", "bank", "history", "assets"];
 
@@ -52,7 +53,7 @@ const Onboarding = () => {
 
       if (currentRef?.current?.getData) {
         const stepData = currentRef.current.getData();
-
+        //const stepData = await currentRef.current.validateAndGetData();
         setAllData((prev: any) => ({
           ...prev,
           [stepKeys[current]]: stepData,
@@ -124,6 +125,51 @@ const Onboarding = () => {
     }
   };
 
+  // const saveAndSkip = async () => {
+  //   try {
+  //     const currentRef = refs[current];
+  //     let updatedData = { ...allData };
+
+  //     if (currentRef?.current?.validateAndGetData) {
+  //       const stepData = await currentRef.current.validateAndGetData();
+
+  //       updatedData = {
+  //         ...updatedData,
+  //         [stepKeys[current]]: stepData,
+  //       };
+
+  //       setAllData(updatedData);
+  //     }
+
+  //     // 🔥 Build Partial Payload (only filled steps)
+  //     const partialPayload: any = {};
+
+  //     stepKeys.forEach((key) => {
+  //       const value = updatedData[key];
+
+  //       if (
+  //         (Array.isArray(value) && value.length > 0) ||
+  //         (!Array.isArray(value) &&
+  //           value &&
+  //           typeof value === "object" &&
+  //           Object.keys(value).length > 0)
+  //       ) {
+  //         partialPayload[key] = value;
+  //       }
+  //     });
+
+  //     console.log("💾 SAVE & SKIP PARTIAL PAYLOAD 👉", partialPayload);
+
+  //     await createOnboarding(partialPayload);
+
+  //     if (current < 4) {
+  //       setCurrent((prev) => prev + 1);
+  //     }
+  //   } catch (error) {
+  //     console.log("❌ Save & Skip Failed:", error);
+  //   }
+  // };
+
   const prev = () => setCurrent((prev) => prev - 1);
 
   const submitAll = async () => {
@@ -144,48 +190,151 @@ const Onboarding = () => {
 
       await createOnboarding(finalData);
       window.alert("Onboarding Process Completed");
-
+      setAllData({
+        personal: {},
+        employment: {},
+        bank: {},
+        history: [],
+        assets: [],
+      });
+      setResetKey((prev) => prev + 1);
       setCurrent(0);
     } catch (error) {
       console.log("❌ Submit Failed", error);
     }
   };
 
+  // const submitAll = async () => {
+  //   try {
+  //     const currentRef = refs[current];
+  //     let finalData = { ...allData };
+
+  //     if (currentRef?.current?.validateAndGetData) {
+  //       const finalStepData = await currentRef.current.validateAndGetData();
+
+  //       finalData = {
+  //         ...finalData,
+  //         [stepKeys[current]]: finalStepData,
+  //       };
+  //     }
+
+  //     console.log("🔥 FINAL SUBMIT PAYLOAD 👉", finalData);
+
+  //     await createOnboarding(finalData);
+
+  //     window.alert("Onboarding Process Completed");
+
+  //     // Reset everything properly
+  //     setAllData({
+  //       personal: {},
+  //       employment: {},
+  //       bank: {},
+  //       history: [],
+  //       assets: [],
+  //     });
+
+  //     setResetKey((prev) => prev + 1);
+  //     setCurrent(0);
+  //   } catch (error) {
+  //     console.log("❌ Submit Failed", error);
+  //   }
+  // };
+
   return (
     <MainLayout>
       <div style={{ width: "100%", height: "100%", background: "white" }}>
         <p style={{ fontSize: "20px", fontWeight: "bold", padding: "8px" }}>
-          Onboarding
+          Onboarding...
         </p>
 
         <div style={{ padding: "10px" }}>
           <Steps current={current} size="small">
-            <Step icon={<BsPersonHeart size={20} />} title="Personal Details" />
+            <Step icon={<BsPersonHeart size={18} />} title="Personal Details" />
             <Step
-              icon={<BsFillPersonLinesFill size={20} />}
+              icon={<BsFillPersonLinesFill size={18} />}
               title="Employment"
             />
-            <Step icon={<BiSolidBank size={20} />} title="Bank & Payroll" />
+            <Step icon={<BiSolidBank size={18} />} title="Bank & Payroll" />
             <Step
-              icon={<MdOutlineDocumentScanner size={20} />}
+              icon={<MdOutlineDocumentScanner size={18} />}
               title="Employee History"
             />
-            <Step icon={<BiSolidBank size={20} />} title="Assets" />
+            <Step icon={<BiSolidBank size={18} />} title="Assets" />
           </Steps>
         </div>
 
-        <div style={{ padding: "20px" }}>
+        {/* <div style={{ padding: "20px" }}>
           {current === 0 && (
-            <PersonalDetails ref={personalRef} data={allData.personal} />
+            <PersonalDetails
+               //key={`personal-${resetKey}`}
+              ref={personalRef}
+              data={allData.personal}
+            />
           )}
           {current === 1 && (
-            <EmploymentDetails ref={employmentRef} data={allData.employment} />
+            <EmploymentDetails
+              //key={`employment-${resetKey}`}
+              ref={employmentRef}
+              data={allData.employment}
+            />
           )}
-          {current === 2 && <BankPayroll ref={bankRef} data={allData.bank} />}
+          {current === 2 && (
+            <BankPayroll
+              // key={`bank-${resetKey}`}
+              ref={bankRef}
+              data={allData.bank}
+            />
+          )}
           {current === 3 && (
-            <EmployeHistory ref={historyRef} data={allData.history} />
+            <EmployeHistory
+              //key={`history-${resetKey}`}
+              ref={historyRef}
+              data={allData.history}
+            />
           )}
-          {current === 4 && <Assets ref={assetsRef} data={allData.assets} />}
+          {current === 4 && (
+            <Assets
+              //key={`assets-${resetKey}`}
+              ref={assetsRef}
+              data={allData.assets}
+            />
+          )}
+           </div> */}
+
+        <div style={{ display: current === 0 ? "block" : "none" }}>
+          <PersonalDetails ref={personalRef} data={allData.personal} />
+        </div>
+
+        <div style={{ display: current === 1 ? "block" : "none" }}>
+          <EmploymentDetails
+            //key={`employment-${resetKey}`}
+            ref={employmentRef}
+            data={allData.employment}
+          />
+        </div>
+
+        <div style={{ display: current === 2 ? "block" : "none" }}>
+          <BankPayroll
+            //key={`bank-${resetKey}`}
+            ref={bankRef}
+            data={allData.bank}
+          />
+        </div>
+
+        <div style={{ display: current === 3 ? "block" : "none" }}>
+          <EmployeHistory
+            //key={`history-${resetKey}`}
+            ref={historyRef}
+            data={allData.history}
+          />
+        </div>
+
+        <div style={{ display: current === 4 ? "block" : "none" }}>
+          <Assets
+            // key={`assets-${resetKey}`}
+            ref={assetsRef}
+            data={allData.assets}
+          />
         </div>
 
         {/* Buttons */}

@@ -36,6 +36,7 @@ export interface Timesheet {
   user?: TimesheetUser;
   createdAt: string;
   updatedAt: string;
+  leaveCount?: number;
 }
 
 export interface CreateTimesheetData {
@@ -48,7 +49,9 @@ export interface CreateTimesheetData {
     description?: string;
     hours: number;
     billable?: boolean;
+    
   }[];
+  leaveCount?: number;
 }
 
 export interface UpdateTimesheetData extends Partial<CreateTimesheetData> {

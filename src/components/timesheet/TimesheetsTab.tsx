@@ -26,6 +26,7 @@ import {
   WarningOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useState, useMemo, useEffect } from "react";
@@ -100,24 +101,42 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       refetch();
     }
   }, [previewId, refetch]);
-  const tableData = useMemo(() => {
-    if (!allTimesheets?.data) return [];
-    console.log("TIMESHEETS FROM API 👉", allTimesheets.data);
+  // const tableData = useMemo(() => {
+  //   if (!allTimesheets?.data) return [];
+  //   console.log("TIMESHEETS FROM API 👉", allTimesheets.data);
 
-    return allTimesheets.data.map((t) => ({
-      key: t.id,
-      weekStart: t.weekStart,
-      employeeName: t.user?.name || "-",
-      status: t.status,
-      //approvedBy: t.status === "APPROVED" ? "Manager" : "-",
-      //approvedBy: t.approvedBy?.name || "-",
-      approvedBy: t.approvedBy,
-      createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
-      totalHours: `${t.totalHours}h`,
-      leave: "0",
-      rejectReason: t.rejectReason || "",
-    }));
-  }, [allTimesheets]);
+  //   return allTimesheets.data.map((t) => ({
+  //     key: t.id,
+  //     weekStart: t.weekStart,
+  //     employeeName: t.user?.name || "-",
+  //     status: t.status,
+  //     //approvedBy: t.status === "APPROVED" ? "Manager" : "-",
+  //     //approvedBy: t.approvedBy?.name || "-",
+  //     approvedBy: t.approvedBy,
+  //     createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
+  //     totalHours: `${t.totalHours}h`,
+  //     //leave: "0",
+  //     leave: t.leaveCount || 0,
+  //     rejectReason: t.rejectReason || "",
+  //   }));
+  // }, [allTimesheets]);
+  const tableData = useMemo(() => {
+  if (!allTimesheets?.data) return [];
+  
+  return allTimesheets.data.map((t) => ({
+    key: t.id,
+    weekStart: t.weekStart,
+    employeeName: t.user?.name || "-",
+    status: t.status,
+    approvedBy: t.approvedBy,
+    createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
+    totalHours: `${t.totalHours}h`,
+    // ✅ This will now show the correct value from the database
+    leave: t.leaveCount || 0,
+    rejectReason: t.rejectReason || "",
+  }));
+}, [allTimesheets]);
+  
   const dayIndexMap: Record<string, number> = {
     Sun: 0,
     Mon: 1,
@@ -264,9 +283,24 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         title: "Total Hours",
         dataIndex: "totalHours",
       },
+      // {
+      //   title: "Leave",
+      //   dataIndex: "leave",
+      // },
+      // ✅ NEW COLUMN: Leave (added without changing anything else)
       {
         title: "Leave",
         dataIndex: "leave",
+        render: (leave: number) => {
+          if (leave > 0) {
+            return (
+              <Tag color="red" icon={<ClockCircleOutlined />}>
+                {leave} {leave === 1 ? "Day" : "Days"}
+              </Tag>
+            );
+          }
+          return <Tag color="default">0 Days</Tag>;
+        },
       },
       {
         title: "Actions",
@@ -350,11 +384,9 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   const pendingCount = filteredData.filter(
     (t) => t.status === "SUBMITTED",
   ).length;
-   const rejectedCount = filteredData.filter(
+  const rejectedCount = filteredData.filter(
     (t) => t.status === "REJECTED",
   ).length;
-
-
 
   const getPreviewRows = () => {
     if (previewTimesheetData?.rows?.length) return previewTimesheetData.rows;
@@ -403,9 +435,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                 Approved: {approvedCount}
               </Tag>
               <Tag color="orange">Pending: {pendingCount}</Tag>
-               <Tag color="red">Rejected: {rejectedCount}</Tag>
-              
-
+              <Tag color="red">Rejected: {rejectedCount}</Tag>
             </div>
           </div>
 
@@ -489,7 +519,6 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         bodyStyle={{ padding: 0 }}
       >
         <div style={{ display: "flex" }}>
-
           {/* Content */}
           <div style={{ padding: 24, flex: 1 }}>
             {/* Header */}
@@ -542,7 +571,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
           <Button key="close" onClick={() => setPreviewOpen(false)}>
             Close
           </Button>,
-       ]}
+        ]}
         title={
           previewTimesheetData && (
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>

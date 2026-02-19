@@ -342,14 +342,7 @@ export default function DashboardPage() {
 
         {/* Error Alert */}
         {error && (
-          <Alert
-            message="Error Loading Dashboard"
-            description={error}
-            type="error"
-            closable
-            onClose={() => setError(null)}
-            style={{ marginBottom: 24 }}
-          />
+         <></>
         )}
 
         {/* Loading State */}

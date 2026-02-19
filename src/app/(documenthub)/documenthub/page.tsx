@@ -9,13 +9,17 @@ import {
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
 import { TicketDetails } from "@/types/ticket";
 import { FileZipOutlined, PlusOutlined, SearchOutlined, FilterOutlined } from "@ant-design/icons";
-import { Button, Col, Form, Input, Modal, Row, Select, Table, Tag, Tooltip, DatePicker, Space } from "antd";
+import { Button, Col, Form, Input, Modal, Row, Select, Table, Tag, Tooltip, DatePicker, Space, message } from "antd";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnsType } from "antd/es/table";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import dayjs from "dayjs";
+import { DeleteOutlined, RestOutlined } from "@ant-design/icons";
+import TrashDrawer from "@/components/documenthub/TrashDrawer";
+import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
+
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -32,6 +36,9 @@ const DocumentHubPage = (props: Props) => {
   const [selectedUser, setSelectedUser] = useState<string | undefined>(undefined);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [trashVisible, setTrashVisible] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [modal, modalContextHolder] = Modal.useModal();
 
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
   const { data: tickets = [], isLoading: ticketsLoading } = useUserTicketsByProjects(selectedProjectId);
@@ -61,6 +68,26 @@ const DocumentHubPage = (props: Props) => {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleDeleteHub = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    modal.confirm({
+      title: "Delete Document Hub",
+      content: `Are you sure you want to delete "${name}"? This will move it to trash.`,
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          await DocumentHubService.deleteDocumentHub(id);
+          messageApi.success("Document Hub moved to trash");
+          queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+        } catch (error) {
+          console.error(error);
+          messageApi.error("Failed to delete Document Hub");
+        }
+      },
+    });
   };
 
   const filteredHubs = documentHubs.filter((hub) => {
@@ -129,11 +156,26 @@ const DocumentHubPage = (props: Props) => {
       key: "updatedAt",
       render: (date) => <span className="text-gray-500">{format(new Date(date), "MMM d, yyyy")}</span>,
       sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (text, record) => (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={(e) => handleDeleteHub(e, record.id, record.name)}
+        />
+      ),
     },
   ];
 
   return (
     <MainLayout>
+      {contextHolder}
+      {modalContextHolder}
       <div className="h-[calc(100vh-64px)] flex flex-col p-6">
         <div className="flex justify-between items-center mb-6 flex-shrink-0">
           <div>
@@ -143,76 +185,94 @@ const DocumentHubPage = (props: Props) => {
             </h1>
             <p className="text-gray-500 mt-1">Manage all your documentation in one place</p>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setModalVisible(true)}
-          >
-            Create Document
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              icon={<RestOutlined />}
+              onClick={() => setTrashVisible(true)}
+            >
+              Trash
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setModalVisible(true)}
+            >
+              Create Document
+            </Button>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex-shrink-0 flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2 w-full">
-              <Input
-                placeholder="Search..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                style={{ width: "40%" }}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">
+              <DocumentHubDashboard
+                documentHubs={documentHubs}
+                isLoading={hubsLoading}
+                onHubClick={(id) => router.push(`/documenthub/${id}`)}
               />
-
             </div>
-            <div className="flex items-center gap-2">
-              <Select
-                placeholder="Project"
-                style={{ width: 150 }}
-                allowClear
-                showSearch
-                optionFilterProp="label"
-                value={filterProjectId}
-                onChange={setFilterProjectId}
-                loading={projectsLoading}
-                options={projects}
-              />
-              <Select
-                placeholder="Created By"
-                showSearch
-                style={{ width: 150 }}
-                allowClear
-                optionFilterProp="label"
-                value={selectedUser}
-                onChange={setSelectedUser}
-                loading={membersLoading}
-                options={members.map((m: any) => ({
-                  label: m.label,
-                  value: m.value,
-                }))}
-              />
 
-              <RangePicker
-                style={{ width: 240 }}
-                value={dateRange}
-                onChange={(dates) => setDateRange(dates as any)}
-              />
+            <div className="p-4 border-b border-gray-100 flex-shrink-0 flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2 w-full">
+                <Input
+                  placeholder="Search..."
+                  prefix={<SearchOutlined className="text-gray-400" />}
+                  style={{ width: "40%" }}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
 
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  placeholder="Project"
+                  style={{ width: 150 }}
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  value={filterProjectId}
+                  onChange={setFilterProjectId}
+                  loading={projectsLoading}
+                  options={projects}
+                />
+                <Select
+                  placeholder="Created By"
+                  showSearch
+                  style={{ width: 150 }}
+                  allowClear
+                  optionFilterProp="label"
+                  value={selectedUser}
+                  onChange={setSelectedUser}
+                  loading={membersLoading}
+                  options={members.map((m: any) => ({
+                    label: m.label,
+                    value: m.value,
+                  }))}
+                />
+
+                <RangePicker
+                  style={{ width: 240 }}
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates as any)}
+                />
+
+              </div>
             </div>
-          </div>
-          <div className="flex-1 overflow-hidden p-2">
-            <Table
-              columns={columns}
-              dataSource={filteredHubs}
-              rowKey="id"
-              loading={hubsLoading}
-              pagination={{ pageSize: 20, showSizeChanger: true }}
-              size="small"
-              onRow={(record) => ({
-                onClick: () => router.push(`/documenthub/${record.id}`),
-                className: "cursor-pointer hover:bg-gray-50",
-              })}
-            />
+            <div className="flex-1 overflow-hidden p-2">
+              <Table
+                columns={columns}
+                dataSource={filteredHubs}
+                rowKey="id"
+                loading={hubsLoading}
+                pagination={{ pageSize: 20, showSizeChanger: true }}
+                size="small"
+                onRow={(record) => ({
+                  onClick: () => router.push(`/documenthub/${record.id}`),
+                  className: "cursor-pointer hover:bg-gray-50",
+                })}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -298,7 +358,13 @@ const DocumentHubPage = (props: Props) => {
           </div>
         </Form>
       </Modal>
-    </MainLayout>
+
+
+      <TrashDrawer
+        open={trashVisible}
+        onClose={() => setTrashVisible(false)}
+      />
+    </MainLayout >
   );
 };
 

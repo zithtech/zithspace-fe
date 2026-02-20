@@ -209,6 +209,8 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       render: (v: boolean) => (v ? "Yes" : "No"),
     },
   ];
+// In TimesheetsTab.tsx - Update previewColumns
+
 
   /* ------------------ Columns ------------------ */
   const columns = useMemo(

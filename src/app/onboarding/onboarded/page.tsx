@@ -43,6 +43,7 @@ import {
   ProjectOutlined,
   TrophyOutlined,
   IdcardOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -50,6 +51,7 @@ import { MembersService } from "@/services/membersService";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import EmployeeHistoryEditForm from "./Employeehistoryeditform";
 import EmployeeHistoryView from "./EmployeeHistoryViews";
+import router from "next/dist/shared/lib/router/router";
 
 const { Option } = Select;
 
@@ -2092,10 +2094,10 @@ const Onboarded = () => {
             style={{ cursor: "pointer" }}
             onClick={() => openView(r, k)}
           >
-            View
+            <EyeOutlined />
           </Tag>
           <EditOutlined
-            style={{ color: "#1677ff", cursor: "pointer" }}
+            style={{ color: c, cursor: "pointer" }}
             onClick={() => openEdit(r, k)}
           />
         </Space>
@@ -2204,13 +2206,27 @@ const Onboarded = () => {
           padding: "20px",
           display: "flex",
           flexDirection: "column",
-          gap: "20px",
+          gap: "15px",
         }}
       >
-        <h2 style={{ marginBottom: 16, fontSize: "26px", fontWeight: "bold" }}>
-          <ApartmentOutlined style={{ fontSize: "24px", fontWeight: "bold" }} />{" "}
-          Employee Management
-        </h2>
+        <div>
+          <h2
+            style={{ marginBottom: 16, fontSize: "26px", fontWeight: "bold" }}
+          >
+            <ApartmentOutlined
+              style={{ fontSize: "24px", fontWeight: "bold" }}
+            />{" "}
+            Employee Management
+          </h2>
+          <p
+            style={{
+              color: "grey",
+              paddingBottom: "10px",
+            }}
+          >
+            Managing employee records and activities.
+          </p>
+        </div>
 
         <div
           style={{
@@ -2218,6 +2234,7 @@ const Onboarded = () => {
             flexDirection: "row",
             gap: "20px",
             alignItems: "center", // 👈 Align both properly
+            justifyContent: "start",
           }}
         >
           <Input
@@ -2272,7 +2289,7 @@ const Onboarded = () => {
                     width: 28,
                     height: 28,
                     borderRadius: "50%",
-                    background: "#1677ff",
+                    background: "#6397df",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -2295,6 +2312,13 @@ const Onboarded = () => {
               </div>
             </div>
           </Card>
+          <Button
+            style={{ width: "220px", height: "40px" }}
+            type="primary"
+            // onClick={() => router.push("/onboarding/create")}
+          >
+            + Add Employee
+          </Button>
         </div>
 
         {loading ? (

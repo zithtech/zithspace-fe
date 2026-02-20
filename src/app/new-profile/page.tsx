@@ -3,9 +3,13 @@
 import React from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useState } from "react";
+import { Segmented, Card } from "antd";
+import PersonalDetails from "@/components/new-profile/personaldetailes";
+import BankAndPayroll from "@/components/new-profile/bankAndPayroll";
 
 const NewProfilePage = () => {
   //const [name, setName] = useState("");
+  const [selectedTab, setSelectedTab] = useState("personal");
 
   const color = {
     primary: "#1677ff",
@@ -34,15 +38,13 @@ const NewProfilePage = () => {
     input: "0 0 0 2px rgba(22,119,255,0.2)",
   };
 
-  const InfoCard = ({
-    icon,
-    label,
-    value,
-  }: {
-    icon: any;
-    label: any;
-    value: any;
-  }) => {
+  interface InfoCardProps {
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+  }
+
+  const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value }) => {
     const [hover, setHover] = useState(false);
 
     return (
@@ -53,30 +55,30 @@ const NewProfilePage = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "18px 20px",
-          borderRadius: "12px",
+          padding: "10px 14px", // 👈 Reduced padding
+          borderRadius: "8px", // 👈 Smaller radius
           background: "#f5f5f5",
           border: "1px solid #e5e5e5",
           cursor: "pointer",
-          transition: "all 0.3s ease",
+          transition: "all 0.2s ease",
           boxShadow: hover
-            ? "0 8px 20px rgba(0,0,0,0.08)"
-            : "0 1px 3px rgba(0,0,0,0.04)",
-          transform: hover ? "translateY(-4px)" : "translateY(0px)",
+            ? "0 4px 10px rgba(0,0,0,0.06)"
+            : "0 1px 2px rgba(0,0,0,0.03)",
+          transform: hover ? "translateY(-2px)" : "translateY(0px)",
         }}
       >
         {/* Left */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <div
             style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "10px",
+              width: "24px", // 👈 Reduced
+              height: "24px", // 👈 Reduced
+              borderRadius: "6px",
               background: "#e6f0ff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "18px",
+              fontSize: "13px", // 👈 Smaller icon
             }}
           >
             {icon}
@@ -84,7 +86,7 @@ const NewProfilePage = () => {
 
           <span
             style={{
-              fontSize: "16px",
+              fontSize: "13px", // 👈 Reduced
               fontWeight: 500,
               color: "#595959",
             }}
@@ -96,10 +98,10 @@ const NewProfilePage = () => {
         {/* Right */}
         <span
           style={{
-            fontSize: "16px",
+            fontSize: "12px", // 👈 Reduced
             background: "#f0f0f0",
-            padding: "4px 12px",
-            borderRadius: "6px",
+            padding: "3px 8px", // 👈 Reduced
+            borderRadius: "4px",
             fontWeight: 600,
             color: "#262626",
           }}
@@ -127,32 +129,31 @@ const NewProfilePage = () => {
         }}
       >
         {/* left Side Div */}
-
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            width: "25%",
+            width: "20%", // 👈 Reduced from 25%
             height: "100vh",
             background: "white",
             position: "fixed",
-            //padding: "20px",
-            gap: "12px",
+            gap: "10px",
             alignItems: "center",
           }}
         >
-          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div style={{ textAlign: "center", marginBottom: "18px" }}>
             <h2
               style={{
+                paddingTop: "20px",
                 margin: "0 0 4px",
-                fontSize: "21px",
+                fontSize: "17px", // 👈 Slightly reduced
                 fontWeight: 600,
                 color: color.text,
               }}
             >
               Employee Profile
             </h2>
-            <p style={{ margin: 0, fontSize: "18px", color: color.textMuted }}>
+            <p style={{ margin: 0, fontSize: "14px", color: color.textMuted }}>
               Manage your personal information
             </p>
           </div>
@@ -167,16 +168,15 @@ const NewProfilePage = () => {
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              width: "80%",
-
-              height: "370px",
-              gap: "12px", // 👈 Fixed height
+              width: "75%", // 👈 Reduced from 85%
+              height: "280px", // 👈 Reduced from 320px
+              //gap: "6px",
             }}
           >
-            {/* 🔥 Top 40% Cover Image */}
+            {/* Cover Image */}
             <div
               style={{
-                height: "70%",
+                height: "55%", // 👈 Slightly reduced
                 width: "100%",
                 overflow: "hidden",
               }}
@@ -192,11 +192,11 @@ const NewProfilePage = () => {
               />
             </div>
 
-            {/* 🔥 Bottom 60% Content */}
+            {/* Content */}
             <div
               style={{
-                height: "30%",
-                padding: "20px",
+                height: "45%",
+                //padding: "12px", // 👈 Reduced padding
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -206,9 +206,9 @@ const NewProfilePage = () => {
               <div>
                 <h1
                   style={{
-                    margin: "0 0 4px",
-                    fontSize: "18px",
-                    fontWeight: 700,
+                    margin: "0 0 3px",
+                    fontSize: "14px", // 👈 Smaller font
+                    fontWeight: 600,
                     color: color.text,
                   }}
                 >
@@ -217,8 +217,8 @@ const NewProfilePage = () => {
 
                 <p
                   style={{
-                    margin: "0 0 12px",
-                    fontSize: "12px",
+                    margin: "0 0 10px",
+                    fontSize: "10px",
                     color: color.textMuted,
                     fontWeight: 500,
                   }}
@@ -230,34 +230,33 @@ const NewProfilePage = () => {
                 <div
                   style={{
                     display: "flex",
-                    gap: "6px",
+                    gap: "4px",
                     flexWrap: "wrap",
-                    marginBottom: "12px",
+                    marginBottom: "6px",
                     justifyContent: "center",
                   }}
                 >
                   <span
                     style={{
-                      padding: "2px 10px",
+                      padding: "2px 6px",
                       borderRadius: "4px",
-                      fontSize: "11px",
+                      fontSize: "9px",
                       fontWeight: 500,
                       background: color.primaryLight,
                       color: color.primary,
-                      border: `1px solid #bae0ff`,
                     }}
                   >
                     Senior Developer
                   </span>
+
                   <span
                     style={{
-                      padding: "2px 10px",
+                      padding: "2px 6px",
                       borderRadius: "4px",
-                      fontSize: "11px",
+                      fontSize: "9px",
                       fontWeight: 500,
                       background: "#f5f5f5",
                       color: color.textSecondary,
-                      border: `1px solid ${color.borderLight}`,
                     }}
                   >
                     4 Years Exp
@@ -269,7 +268,8 @@ const NewProfilePage = () => {
               <div
                 style={{
                   borderTop: `1px solid ${color.borderLight}`,
-                  paddingTop: "12px",
+
+                  paddingBottom: "6px",
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
                 }}
@@ -277,10 +277,9 @@ const NewProfilePage = () => {
                 <div style={{ textAlign: "center" }}>
                   <p
                     style={{
-                      margin: "0 0 4px",
-                      fontSize: "10px",
+                      margin: "0 0 3px",
+                      fontSize: "8px",
                       textTransform: "uppercase",
-                      letterSpacing: "0.05em",
                       color: color.textLight,
                       fontWeight: 600,
                     }}
@@ -290,7 +289,7 @@ const NewProfilePage = () => {
                   <p
                     style={{
                       margin: 0,
-                      fontSize: "13px",
+                      fontSize: "11px",
                       fontWeight: 500,
                       color: color.textSecondary,
                     }}
@@ -307,10 +306,9 @@ const NewProfilePage = () => {
                 >
                   <p
                     style={{
-                      margin: "0 0 4px",
-                      fontSize: "10px",
+                      margin: "0 0 3px",
+                      fontSize: "8px",
                       textTransform: "uppercase",
-                      letterSpacing: "0.05em",
                       color: color.textLight,
                       fontWeight: 600,
                     }}
@@ -320,7 +318,7 @@ const NewProfilePage = () => {
                   <p
                     style={{
                       margin: 0,
-                      fontSize: "13px",
+                      fontSize: "11px",
                       fontWeight: 500,
                       color: color.textSecondary,
                     }}
@@ -331,16 +329,18 @@ const NewProfilePage = () => {
               </div>
             </div>
           </div>
-          {/* date of joining card */}
+
+          {/* Info Cards */}
           <div
             style={{
               display: "flex",
-              gap: "10px",
+              paddingTop: "40px",
+              gap: "17px",
               flexDirection: "column",
+              width: "85%",
             }}
           >
             <InfoCard icon="📅" label="Date of Joining" value="12 Jan 2020" />
-
             <InfoCard icon="🏢" label="Department" value="Engineering" />
           </div>
         </div>
@@ -350,12 +350,13 @@ const NewProfilePage = () => {
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             background: "white",
-            // width: "75%",
+            width: "80%",
             height: "100vh",
-            marginLeft: "26%",
-            width: "calc(100% - 25%)",
-            padding: "20px",
+            marginLeft: "22%",
+            // width: "calc(100% - 20%)",
+            padding: "10px",
             gap: "12px",
           }}
         >
@@ -363,7 +364,7 @@ const NewProfilePage = () => {
             <h1
               style={{
                 margin: "0 0 4px",
-                fontSize: "22px",
+                fontSize: "18px",
                 fontWeight: 700,
                 color: color.text,
                 display: "flex",
@@ -372,9 +373,25 @@ const NewProfilePage = () => {
             >
               Employee Details
             </h1>
-            <p style={{ margin: 0, fontSize: "16px", color: color.textMuted }}>
+            <p style={{ margin: 0, fontSize: "12px", color: color.textMuted }}>
               View employee information...!
             </p>
+          </div>
+          <div style={{ position: "sticky" }}>
+            {/* 🔹 Segmented Header */}
+            <Segmented
+              options={[
+                { label: "Personal Details", value: "personal" },
+                { label: "Bank & Payroll", value: "bank" },
+              ]}
+              value={selectedTab}
+              onChange={(value) => setSelectedTab(value as string)}
+              style={{ marginBottom: 20 }}
+            />
+
+            {/* 🔹 Conditional Rendering */}
+            {selectedTab === "personal" && <PersonalDetails />}
+            {selectedTab === "bank" && <BankAndPayroll />}
           </div>
 
           {/* end div */}

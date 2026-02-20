@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -49,10 +49,22 @@ import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+import { useLeaveOrigins } from "@/hooks/useLeaveOrigins";
+import { MembersService } from "@/services/membersService";
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 const { Paragraph, Text } = Typography;
+
+interface OriginLeaveType {
+  id: string;
+  leaveType: string;
+  unit: number;
+  period: string;
+  carryForward: boolean;
+  status: string;
+} 
 
 export default function LeavesPage() {
   const { user } = useAuth();
@@ -60,6 +72,8 @@ export default function LeavesPage() {
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
   const [form] = Form.useForm();
+  const { leaveTypes: apiLeaveTypes, fetchLeaveTypes } = useLeaveTypes();
+  const { leaveOrigins } = useLeaveOrigins();
   const [loading, setLoading] = useState(false);
   const [myLeaves, setMyLeaves] = useState<Leave[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<Leave[]>([]);
@@ -75,6 +89,8 @@ export default function LeavesPage() {
   const [cancellingLeaveId, setCancellingLeaveId] = useState<string | null>(
     null,
   );
+  const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
+  const [hasLeaveConfig, setHasLeaveConfig] = useState(false);
 
   // Determine if user has approval rights
   const hasApprovalRights =
@@ -88,16 +104,55 @@ export default function LeavesPage() {
     (l) => l.status === "approved",
   ).length;
 
-  const leaveTypes = [
-    { label: "Sick Leave", value: "sick_leave" },
-    { label: "Casual Leave", value: "casual_leave" },
-    { label: "Work From Home", value: "work_from_home" },
-    { label: "Permission", value: "permission" },
-  ];
+  // Merge types from balances into available options if they are missing from apiLeaveTypes
+  const availableLeaveTypes = useMemo(() => {
+    const baseTypes = apiLeaveTypes || [];
+    const baseTypeNames = new Set(baseTypes.map((lt: any) => lt.name?.toLowerCase()));
+
+    const extraTypes = leaveBalances
+      .filter((b) => !baseTypeNames.has(b.type?.toLowerCase()))
+      .map((b) => ({
+        id: `generated-${b.type}`,
+        name: b.type,
+        isActive: true,
+        type: "Days", // Default assumption for config-only types
+      }));
+
+    return [...baseTypes, ...extraTypes];
+  }, [apiLeaveTypes, leaveBalances]);
+
+  const leaveTypes = availableLeaveTypes
+    ? availableLeaveTypes
+        .filter((lt: any) => lt.isActive)
+        .filter((lt: any) => {
+          if (lt.name === "Loss of Pay") return true;
+          if (hasLeaveConfig) {
+            return leaveBalances.some((b) => b.type?.toLowerCase() === lt.name?.toLowerCase());
+          }
+          return false;
+        })
+        .map((lt: any) => {
+          const balance = leaveBalances.find((b) => b.type?.toLowerCase() === lt.name?.toLowerCase());
+          const isLossOfPay = lt.name === "Loss of Pay";
+          const disabled = !isLossOfPay && balance && balance.remaining <= 0;
+          let label = lt.name;
+          if (balance && !isLossOfPay) {
+            label += ` (${balance.remaining}/${balance.allowed})`;
+          }
+          return {
+            label,
+            value: lt.name,
+            disabled,
+          };
+        })
+    : [];
+
+  const isSelectedLeaveHourly = availableLeaveTypes?.find((lt: any) => lt.name?.toLowerCase() === selectedLeaveType?.toLowerCase())?.type === "Hours";
 
   // Dynamic duration types based on leave type
   const getDurationTypes = (leaveType: string) => {
-    if (leaveType === "permission") {
+    const isHourly = availableLeaveTypes?.find((lt: any) => lt.name?.toLowerCase() === leaveType?.toLowerCase())?.type === "Hours";
+    if (isHourly) {
       return [{ label: "Hours", value: "HOURS" }];
     }
     return [
@@ -110,7 +165,7 @@ export default function LeavesPage() {
 
   // Auto-calculate duration when date range or duration type changes
   useEffect(() => {
-    if (selectedLeaveType === "permission") {
+    if (isSelectedLeaveHourly) {
       // For permission, duration is manual (hours)
       setCalculatedDuration(0);
       return;
@@ -142,12 +197,118 @@ export default function LeavesPage() {
     } else {
       setCalculatedDuration(0);
     }
-  }, [dateRange, selectedDurationType, selectedLeaveType, form]);
+  }, [dateRange, selectedDurationType, selectedLeaveType, form, isSelectedLeaveHourly]);
+  // Add this useEffect after approval actions
+useEffect(() => {
+  const timer = setTimeout(() => {
+    fetchMyLeaves();
+    fetchPendingApprovals();
+  }, 1000); // Refresh 1s after state changes
+  
+  return () => clearTimeout(timer);
+}, [approvingLeaveId, rejectingLeaveId, cancellingLeaveId]);
+
 
   useEffect(() => {
+    fetchLeaveTypes();
     fetchMyLeaves();
     fetchPendingApprovals();
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLeaveBalances = async () => {
+      if (!user?.id || !leaveOrigins) return;
+      try {
+        // 1. Get Member details to find positionId
+        let member;
+
+        // Try to find member by email first to avoid 404 errors from missing ID endpoint
+        if (user.email) {
+          try {
+            const response = await MembersService.getMembers({ search: user.email });
+            member = response.data.find(
+              (m: any) =>
+                m.workEmail?.toLowerCase() === user.email.toLowerCase() ||
+                m.personalEmail?.toLowerCase() === user.email.toLowerCase(),
+            );
+          } catch (e) { /* ignore */ }
+        }
+
+        // Fallback to ID lookup if email search didn't find the member
+        if (!member) {
+          try {
+            member = await MembersService.getMemberByUserId(user.id);
+          } catch (error) {
+            // ignore
+          }
+        }
+
+        if (!isMounted) return;
+
+        if (!member?.position?.id) {
+          setHasLeaveConfig(false);
+          setLeaveBalances([]);
+          return;
+        }
+
+        // 2. Get Position Configuration from leaveOrigins
+        const positionConfig = leaveOrigins.find(
+          (config) => config.origin === "Position" && config.subOriginId === member.position?.id
+        );
+
+        setHasLeaveConfig(!!positionConfig);
+        
+        // 3. Calculate balances based on configuration and history
+        if (positionConfig?.leaveTypes) {
+          const balances = positionConfig.leaveTypes
+            .filter((config: OriginLeaveType) => config.status === "Active")
+            .map((config: OriginLeaveType) => {
+            const now = dayjs();
+            const used = myLeaves
+              .filter((l) => {
+                // Normalize types to handle "casual_leave" vs "Casual Leave" mismatch
+                const normalize = (s: string) => (s || "").toLowerCase().replace(/_/g, " ").trim();
+                if (normalize(l.type) !== normalize(config.leaveType)) return false;
+                
+                const status = l.status?.toLowerCase();
+                if (status !== "approved" && status !== "pending") return false;
+
+                const leaveDate = dayjs(l.startDate);
+                return config.period === "MONTH" ? leaveDate.isSame(now, "month") : leaveDate.isSame(now, "year");
+              })
+              .reduce((sum, l) => sum + (l.duration || 0), 0);
+            
+            return {
+              type: config.leaveType,
+              allowed: Number(config.unit),
+              used,
+              remaining: Number(config.unit) - used,
+              period: config.period,
+            };
+          });
+          if (isMounted) {
+            setLeaveBalances(balances);
+          }
+        } else {
+          if (isMounted) {
+            setLeaveBalances([]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch leave balances:", error);
+      }
+    };
+
+    if (user && leaveOrigins) {
+      fetchLeaveBalances();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, myLeaves, leaveOrigins]);
 
   const fetchMyLeaves = async () => {
     try {
@@ -169,6 +330,13 @@ export default function LeavesPage() {
 
   const handleApplyLeave = async (values: any) => {
     try {
+      // Check leave balance before submitting
+      const balance = leaveBalances.find((b) => b.type?.toLowerCase() === values.type?.toLowerCase());
+      if (balance && balance.remaining <= 0 && values.type !== "Loss of Pay") {
+        message.error(`Cannot apply for ${values.type}. Leave limit reached.`);
+        return;
+      }
+
       setLoading(true);
       const startDate = values.dateRange[0].format("YYYY-MM-DD");
       const endDate = values.dateRange[1].format("YYYY-MM-DD");
@@ -319,17 +487,12 @@ export default function LeavesPage() {
     }
   };
 
-  const getLeaveTypeLabel = (type: string) => {
-    const leaveType = leaveTypes.find((lt) => lt.value === type);
-    return leaveType?.label || type;
-  };
-
   const myLeavesColumns = [
     {
       title: "Type",
       dataIndex: "type",
       key: "type",
-      render: (type: string) => getLeaveTypeLabel(type),
+      render: (type: string) => type,
     },
     {
       title: "Start Date",
@@ -392,7 +555,7 @@ export default function LeavesPage() {
       title: "Type",
       dataIndex: "type",
       key: "type",
-      render: (type: string) => getLeaveTypeLabel(type),
+      render: (type: string) => type,
     },
     {
       title: "Start Date",
@@ -887,7 +1050,7 @@ export default function LeavesPage() {
 
           <Row gutter={24}>
             <Col xs={24} lg={10}>
-              <Card title="Apply Leave" style={{ marginTop: 10, height: 380 }}>
+              <Card title="Apply Leave" style={{ marginTop: 10, height: 410}}>
                 <Form form={form} layout="vertical" onFinish={handleApplyLeave}>
                   <Row gutter={16}>
                     <Col span={12}>
@@ -903,6 +1066,7 @@ export default function LeavesPage() {
                       >
                         <Select
                           options={leaveTypes}
+                          allowClear
                           placeholder="Select leave type"
                           onChange={(value) => {
                             setSelectedLeaveType(value);
@@ -916,14 +1080,31 @@ export default function LeavesPage() {
                             setSelectedDurationType("");
                             setCalculatedDuration(0);
 
+                            const isHourly = availableLeaveTypes?.find((lt: any) => lt.name === value)?.type === "Hours";
                             // Auto-select HOURS for permission
-                            if (value === "permission") {
+                            if (isHourly) {
                               form.setFieldsValue({ durationType: "HOURS" });
                               setSelectedDurationType("HOURS");
                             }
                           }}
                         />
                       </Form.Item>
+                      {selectedLeaveType && (
+                        <div style={{ marginTop: -20, marginBottom: 20, paddingLeft: 4 }}>
+                          {(() => {
+                            const balance = leaveBalances.find(b => b.type?.toLowerCase() === selectedLeaveType?.toLowerCase());
+                            if (!balance) return null;
+                            return (
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                Balance: <Text strong>{balance.remaining}</Text> / {balance.allowed} 
+                                {balance.period && <span style={{ marginLeft: 4 }}>({balance.period === "MONTH" ? "Monthly" : "Yearly"})</span>}
+                                {balance.remaining === 0 && <Text type="warning" style={{ marginLeft: 8 }}>(Limit Reached)</Text>}
+                                {balance.remaining < 0 && <Text type="danger" style={{ marginLeft: 8 }}>(Limit Exceeded)</Text>}
+                              </Text>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </Col>
                     <Col span={12}>
                       <Form.Item
@@ -939,7 +1120,7 @@ export default function LeavesPage() {
                         <Select
                           options={durationTypes}
                           placeholder="Select duration type"
-                          disabled={selectedLeaveType === "permission"}
+                          disabled={isSelectedLeaveHourly}
                           onChange={(value) => {
                             setSelectedDurationType(value);
                           }}
@@ -949,11 +1130,11 @@ export default function LeavesPage() {
                   </Row>
 
                   <Row gutter={16}>
-                    <Col span={selectedLeaveType === "permission" ? 12 : 16}>
+                    <Col span={isSelectedLeaveHourly ? 12 : 16}>
                       <Form.Item
                         name="dateRange"
                         label={
-                          selectedLeaveType === "permission"
+                          isSelectedLeaveHourly
                             ? "Date"
                             : "Date Range"
                         }
@@ -961,13 +1142,13 @@ export default function LeavesPage() {
                           {
                             required: true,
                             message:
-                              selectedLeaveType === "permission"
+                              isSelectedLeaveHourly
                                 ? "Please select date"
                                 : "Please select date range",
                           },
                         ]}
                       >
-                        {selectedLeaveType === "permission" ? (
+                        {isSelectedLeaveHourly ? (
                           <DatePicker
                             style={{ width: "100%" }}
                             onChange={(date) => {
@@ -989,7 +1170,7 @@ export default function LeavesPage() {
                       </Form.Item>
                     </Col>
 
-                    {selectedLeaveType === "permission" ? (
+                    {isSelectedLeaveHourly ? (
                       <Col span={12}>
                         <Form.Item
                           name="duration"
@@ -1021,13 +1202,13 @@ export default function LeavesPage() {
                             type="number"
                             step="0.5"
                             placeholder="Enter hours (max 4)"
-                            max={4}
+                            max={2}
                           />
                         </Form.Item>
                       </Col>
                     ) : (
                       <Col span={8}>
-                        <Form.Item label="Calculated Duration">
+                        <Form.Item label="Calculated">
                           <div
                             style={{
                               padding: "4px 8px", // ⬇️ reduced
@@ -1035,7 +1216,7 @@ export default function LeavesPage() {
                               border: "1px solid #adc6ff",
                               borderRadius: "6px",
                               textAlign: "center",
-                              minHeight: 34, // ⬇️ fixed compact height
+                              minHeight: 20, // ⬇️ fixed compact height
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -1109,6 +1290,7 @@ export default function LeavesPage() {
                       htmlType="submit"
                       loading={loading}
                       icon={<PlusOutlined />}
+                      style={{top:10}}
                     >
                       Submit Application
                     </Button>
@@ -1117,7 +1299,7 @@ export default function LeavesPage() {
               </Card>
             </Col>
             <Col xs={24} lg={14}>
-              <Card bodyStyle={{ paddingTop: 8 }} style={{ marginTop: 10, height: 380 }}>
+              <Card bodyStyle={{ paddingTop: 8 }} style={{ marginTop: 10, height: 410 }}>
                 <Tabs
                   defaultActiveKey="history"
                   items={[
@@ -1136,8 +1318,8 @@ export default function LeavesPage() {
                         <Table
                           columns={myLeavesColumns}
                           dataSource={myLeaves}
-                          rowKey="id"
-                          pagination={{ pageSize: 10 }}
+                          rowKey="id"        
+                          pagination={{ pageSize: 4}}
                         />
                       ),
                     },
@@ -1159,7 +1341,7 @@ export default function LeavesPage() {
                                 columns={approvalsColumns}
                                 dataSource={pendingApprovals}
                                 rowKey="id"
-                                pagination={{ pageSize: 10 }}
+                                pagination={{ pageSize: 4 }}
                               />
                             ),
                           },
@@ -1187,7 +1369,7 @@ export default function LeavesPage() {
                   <strong>Employee:</strong> {selectedLeave.user?.name}
                 </p>
                 <p>
-                  <strong>Type:</strong> {getLeaveTypeLabel(selectedLeave.type)}
+                  <strong>Type:</strong> {selectedLeave.type}
                 </p>
                 <p>
                   <strong>Start Date:</strong>{" "}

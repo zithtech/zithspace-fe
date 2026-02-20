@@ -6,7 +6,6 @@ export interface GradeViewData {
   key: string;
   id: string;
   code: string;
-  codes: string;
   name: string;
   levelOrder: number;
   description?: string;
@@ -18,7 +17,6 @@ const transformApiToView = (grade: GradeAPIResponse): GradeViewData => ({
   key: grade.id,
   id: grade.id,
   code: grade.code,
-  codes: grade.codes || "",
   name: grade.name,
   levelOrder: grade.levelOrder,
   description: grade.description || "",

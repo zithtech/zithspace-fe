@@ -154,7 +154,7 @@ const NewProfilePage = () => {
               Employee Profile
             </h2>
             <p style={{ margin: 0, fontSize: "14px", color: color.textMuted }}>
-              Manage your personal information
+              Employee personal information
             </p>
           </div>
 

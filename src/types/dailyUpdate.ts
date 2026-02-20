@@ -107,6 +107,7 @@ export interface DailyStatusUpdate {
 
   /** Submission time */
   submittedAt: Date | string;
+  dueDate?: string; //
 
   createdAt: Date | string;
   updatedAt: Date | string;

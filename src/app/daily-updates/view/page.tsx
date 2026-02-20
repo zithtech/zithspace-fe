@@ -30,7 +30,15 @@ import UpdateCard from "@/components/daily-updates/UpdateCard";
 import UpdateTable from "@/components/daily-updates/UpdateTable";
 import UpdateDetailsDrawer from "@/components/daily-updates/UpdateDetailsDrawer";
 import DailyUpdateService from "@/services/dailyUpdateService";
-import { ProjectService } from "@/services/projectService";
+//import { ProjectService} from "@/services/projectService";
+import {
+  ProjectService,
+  Project,
+  CreateProjectData,
+  UpdateProjectData,
+  ProjectsFilters,
+} from "@/services/projectService";
+import { MembersService } from "@/services/membersService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
 import { useAuth } from "@/context/AuthContext";
 
@@ -63,6 +71,7 @@ export default function ViewDailyUpdatesPage() {
 function ViewDailyUpdatesContent() {
   const router = useRouter();
   const { user } = useAuth();
+
   const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(true);
   const [updates, setUpdates] = useState<DailyStatusUpdate[]>([]);
@@ -94,6 +103,8 @@ function ViewDailyUpdatesContent() {
   const [projects, setProjects] = useState<
     Array<{ value: string; label: string }>
   >([]);
+
+
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>([
     dayjs().subtract(1, "day"),
     dayjs(),
@@ -141,7 +152,7 @@ function ViewDailyUpdatesContent() {
         filters.startDate = dateRange[0].format("YYYY-MM-DD");
         filters.endDate = dateRange[1].format("YYYY-MM-DD");
       }
-       console.log("TEAM?", canViewTeam, "Filters:", filters);
+      console.log("TEAM?", canViewTeam, "Filters:", filters);
 
       if (canViewTeam) {
         const teamUpdates = await DailyUpdateService.getTeamUpdates(filters);
@@ -218,9 +229,11 @@ function ViewDailyUpdatesContent() {
             >
               Daily Status Updates
             </Title>
+
             <Text type="secondary" style={{ fontSize: 14 }}>
               {canViewTeam ? "Team Updates" : "My Updates"}
             </Text>
+           
           </Col>
           <Col>
             <Space>

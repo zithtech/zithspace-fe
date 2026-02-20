@@ -54,10 +54,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
         notification.info({
           key,
           message: `New message from ${data.senderName}`,
-          description:
-            data.content.substring(0, 50) +
-            (data.content.length > 50 ? "..." : ""),
-          placement: "topRight",
+          description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+          placement: 'topRight',
           duration: 4.5,
           onClick: () => {
             notification.destroy(key);

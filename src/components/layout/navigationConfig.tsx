@@ -43,6 +43,7 @@ import {
     CalendarTwoTone,
     UsergroupAddOutlined,
     HomeOutlined,
+    AppstoreOutlined,
 } from '@ant-design/icons';
 
 export type ModuleType = 'HOME' | 'WORK' | 'HRMS' | 'FINANCE' | 'ADMIN';

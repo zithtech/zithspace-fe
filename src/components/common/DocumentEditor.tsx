@@ -10,13 +10,11 @@ export type ViewMode = "edit" | "preview" | "combined";
 interface DocumentEditorProps {
   editor: BlockNoteEditor | null;
   viewMode: ViewMode;
-  initialContent?: any;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({
   editor,
   viewMode,
-  initialContent,
 }) => {
   // Secondary editor for the "Combined" view's preview pane
   const previewEditor = useCreateBlockNote();

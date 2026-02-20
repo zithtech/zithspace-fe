@@ -145,7 +145,7 @@ const PersonalDetails = () => {
               }}
             >
               <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
-                <FaHome size={20} />
+                <FaHome size={18} />
                 <Text strong style={{ display: "block", marginBottom: 8 }}>
                   Current Address
                 </Text>
@@ -168,7 +168,7 @@ const PersonalDetails = () => {
             {/* Permanent Address */}
             <Card style={{ borderRadius: 8 }}>
               <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
-                <FaHome size={20} />
+                <FaHome size={18} />
                 <Text strong style={{ display: "block", marginBottom: 8 }}>
                   Permanent Address
                 </Text>

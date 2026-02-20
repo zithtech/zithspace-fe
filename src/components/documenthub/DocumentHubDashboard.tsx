@@ -96,7 +96,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     }
 
     return (
-        <div style={{ marginBottom: 24 }}>
+        <div>
             {/* Stats Grid */}
             <div
                 style={{
@@ -147,7 +147,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
             </div>
 
             {/* Recent Document Hubs */}
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom:10}}>
                 <Text strong style={{ fontSize: 15 }}>
                     <ClockCircleOutlined style={{ marginRight: 6 }} />
                     Recently Updated

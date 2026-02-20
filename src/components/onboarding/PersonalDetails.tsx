@@ -1,7 +1,8 @@
 import { Form, Input, Select, DatePicker, Row, Col, Checkbox } from "antd";
-import { UserOutlined, HomeOutlined } from "@ant-design/icons";
+import { HomeOutlined } from "@ant-design/icons";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
-import form from "antd/es/form";
+import dayjs from "dayjs";
+
 const { Option } = Select;
 
 const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
@@ -10,7 +11,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
   const [emergencyInfoForm] = Form.useForm();
   const [identityForm] = Form.useForm();
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
-  // all information
+
   const [formData, setFormData] = useState<any>({
     address: {
       current: {},
@@ -18,37 +19,121 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
     },
   });
 
+  /* =====================================================
+    Repopulate all 4 form instances when `data` prop arrives.
+    This fires when the user clicks "Previous" and comes back
+    to this step — allData.personal is passed as `data` and
+    we restore every field exactly as the user left it.
+  ====================================================== */
   useEffect(() => {
-    if (data) {
+    if (data && Object.keys(data).length > 0) {
       setFormData(data);
+
+      // ── Basic form fields ──────────────────────────────
+      basicForm.setFieldsValue({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        gender: data.gender,
+        dob: data.dob ? dayjs(data.dob) : null,
+        bloodGroup: data.bloodGroup,
+        mobile: data.mobile,
+        personalEmail: data.personalEmail,
+        workEmail: data.workEmail,
+      });
+
+      // ── Address form fields ────────────────────────────
+      const cur = data.address?.current || {};
+      const per = data.address?.permanent || {};
+      addressForm.setFieldsValue({
+        c_flat: cur.c_flat,
+        c_area: cur.c_area,
+        c_city: cur.c_city,
+        c_state: cur.c_state,
+        c_pincode: cur.c_pincode,
+        c_country: cur.c_country,
+        p_flat: per.p_flat,
+        p_area: per.p_area,
+        p_city: per.p_city,
+        p_state: per.p_state,
+        p_pincode: per.p_pincode,
+        p_country: per.p_country,
+      });
+
+      // ── Emergency Info form fields ─────────────────────
+      emergencyInfoForm.setFieldsValue({
+        relationship: data.relationship,
+        relationName: data.relationName,
+        relationMobile: data.relationMobile,
+      });
+
+      // ── Identity form fields ───────────────────────────
+      identityForm.setFieldsValue({
+        aadhaar: data.aadhaar,
+        pan: data.pan,
+        passport: data.passport,
+      });
     }
   }, [data]);
 
+  /* =====================================================
+    getData() — called by the parent (Onboarding) when the
+    user clicks Continue / Previous / Submit.
+    We read live values from all 4 form instances and merge
+    them into one object so nothing is missed.
+  ====================================================== */
   useImperativeHandle(ref, () => ({
     getData: () => {
+      // Pull live values straight from every form instance
+      const basicValues = basicForm.getFieldsValue();
+      const addressValues = addressForm.getFieldsValue();
+      const emergencyValues = emergencyInfoForm.getFieldsValue();
+      const identityValues = identityForm.getFieldsValue();
+
       return {
-        ...formData,
-        dob: formData?.dob ? formData.dob.format("YYYY-MM-DD") : null,
+        // Basic
+        ...basicValues,
+        dob: basicValues?.dob
+          ? typeof basicValues.dob === "string"
+            ? basicValues.dob
+            : basicValues.dob.format("YYYY-MM-DD")
+          : null,
+
+        // Address (structured)
+        address: {
+          current: {
+            c_flat: addressValues.c_flat,
+            c_area: addressValues.c_area,
+            c_city: addressValues.c_city,
+            c_state: addressValues.c_state,
+            c_pincode: addressValues.c_pincode,
+            c_country: addressValues.c_country,
+          },
+          permanent: {
+            p_flat: addressValues.p_flat,
+            p_area: addressValues.p_area,
+            p_city: addressValues.p_city,
+            p_state: addressValues.p_state,
+            p_pincode: addressValues.p_pincode,
+            p_country: addressValues.p_country,
+          },
+        },
+
+        // Emergency
+        ...emergencyValues,
+
+        // Identity
+        ...identityValues,
       };
     },
   }));
 
-  // useImperativeHandle(ref, () => ({
-  //   async validateAndGetData() {
-  //     // ✅ Validate form first
-  //     const values = await basicForm.validateFields();
-
-  //     return {
-  //       ...values,
-  //       dob: values?.dob ? values.dob.format("YYYY-MM-DD") : null,
-  //     };
-  //   },
-  // }));
-
+  /* =====================================================
+    "Same as current address" checkbox handler
+  ====================================================== */
   const onSameAddressChange = (e: any) => {
     const checked = e.target.checked;
     setSameAsCurrent(checked);
-    console.log("Checked:", checked);
+
     if (checked) {
       const current = addressForm.getFieldsValue([
         "c_flat",
@@ -68,25 +153,22 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
         p_country: current.c_country,
       };
 
-      // ✅ UI update
+      // Update the UI
       addressForm.setFieldsValue(permanent);
 
-      // ✅ STATE update (IMPORTANT 🔥)
+      // Update local state so getData() also returns the copied values
       setFormData((prev: any) => ({
         ...prev,
         address: {
           ...prev.address,
-          permanent: {
-            ...permanent,
-          },
+          permanent,
         },
       }));
     }
   };
+
   const labelStyle = { fontSize: 11 };
   const inputStyle = { height: 25, fontSize: 11 };
-
-  console.log("formData", formData);
 
   return (
     <div
@@ -97,19 +179,26 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
         gap: "10px",
       }}
     >
-      {/* first div */}
+      {/* ── COLUMN 1 : Basic Information ─────────────────── */}
       <div style={{ width: "30%", background: "white" }}>
         <Form
           form={basicForm}
           layout="vertical"
           requiredMark={false}
           size="small"
-          onValuesChange={(_, allValues) => setFormData(allValues)} // ✅ store in state
+          /* 
+            BUG FIX: Previously this did setFormData(allValues) which
+            completely replaced formData (including the `address` key).
+            Now we merge with spread so address is never wiped out.
+          */
+          onValuesChange={(_, allValues) =>
+            setFormData((prev: any) => ({ ...prev, ...allValues }))
+          }
           style={{
             background: "#ffffff",
             borderRadius: "12px",
             padding: "16px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)", // soft elevation
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
             border: "1px solid rgba(0, 0, 0, 0.04)",
           }}
         >
@@ -121,16 +210,13 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               Basic Information
             </span>
           </div>
+
           <Row gutter={[8, 4]}>
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    First Name
-                  </span>
-                }
+                label={<span style={labelStyle}>First Name</span>}
                 name="firstName"
-                rules={[{ required: true, message: "Enter your name " }]}
+                rules={[{ required: true, message: "Enter your name" }]}
                 style={{ marginBottom: 6 }}
               >
                 <Input
@@ -142,11 +228,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Last Name
-                  </span>
-                }
+                label={<span style={labelStyle}>Last Name</span>}
                 name="lastName"
                 rules={[{ required: true, message: "Required" }]}
                 style={{ marginBottom: 6 }}
@@ -160,11 +242,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Gender
-                  </span>
-                }
+                label={<span style={labelStyle}>Gender</span>}
                 name="gender"
                 rules={[{ required: true }]}
                 style={{ marginBottom: 6 }}
@@ -181,11 +259,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Date of Birth
-                  </span>
-                }
+                label={<span style={labelStyle}>Date of Birth</span>}
                 name="dob"
                 rules={[{ required: true }]}
                 style={{ marginBottom: 6 }}
@@ -198,11 +272,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Blood Group
-                  </span>
-                }
+                label={<span style={labelStyle}>Blood Group</span>}
                 name="bloodGroup"
                 rules={[{ required: true }]}
                 style={{ marginBottom: 6 }}
@@ -220,11 +290,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Mobile Number
-                  </span>
-                }
+                label={<span style={labelStyle}>Mobile Number</span>}
                 name="mobile"
                 rules={[
                   { required: true },
@@ -242,11 +308,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Personal Email
-                  </span>
-                }
+                label={<span style={labelStyle}>Personal Email</span>}
                 name="personalEmail"
                 rules={[{ required: true, type: "email" }]}
                 style={{ marginBottom: 6 }}
@@ -260,11 +322,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={12}>
               <Form.Item
-                label={
-                  <span style={{ fontSize: "11px", fontWeight: 500 }}>
-                    Work Email
-                  </span>
-                }
+                label={<span style={labelStyle}>Work Email</span>}
                 name="workEmail"
                 rules={[{ required: true, type: "email" }]}
                 style={{ marginBottom: 6 }}
@@ -278,7 +336,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           </Row>
         </Form>
       </div>
-      {/* second div */}
+
+      {/* ── COLUMN 2 : Address Information ───────────────── */}
       <div style={{ width: "40%" }}>
         <Form
           form={addressForm}
@@ -307,7 +366,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 },
               },
             }));
-          }} // ✅ store in state
+          }}
           style={{
             background: "#ffffff",
             padding: "16px",
@@ -324,11 +383,11 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               Address Information
             </span>
           </div>
+
           {/* CURRENT ADDRESS */}
           <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 8 }}>
             Current Address
           </div>
-
           <Row gutter={8}>
             <Col span={8}>
               <Form.Item
@@ -357,7 +416,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 <Input placeholder="City" style={inputStyle} />
               </Form.Item>
             </Col>
-
             <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>State</span>}
@@ -387,7 +445,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             </Col>
           </Row>
 
-          {/* CHECKBOX */}
           <Checkbox
             checked={sameAsCurrent}
             onChange={onSameAddressChange}
@@ -400,7 +457,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 8 }}>
             Permanent Address
           </div>
-
           <Row gutter={8}>
             <Col span={8}>
               <Form.Item
@@ -426,7 +482,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 <Input placeholder="City" style={inputStyle} />
               </Form.Item>
             </Col>
-
             <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>State</span>}
@@ -454,7 +509,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           </Row>
         </Form>
       </div>
-      {/* third div */}
+
+      {/* ── COLUMN 3 : Emergency + Identity ──────────────── */}
       <div
         style={{
           width: "30%",
@@ -463,16 +519,15 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           gap: "10px",
         }}
       >
+        {/* Emergency Information */}
         <Form
           layout="vertical"
           form={emergencyInfoForm}
           size="small"
           requiredMark={false}
           onValuesChange={(_, allValues) =>
-            setFormData((pre: any) => {
-              return { ...pre, ...allValues };
-            })
-          } // ✅ store in statee
+            setFormData((prev: any) => ({ ...prev, ...allValues }))
+          }
           style={{
             width: "90%",
             background: "#ffffff",
@@ -489,7 +544,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               Emergency Information
             </span>
           </div>
-          {/* Relationship */}
+
           <Form.Item
             label={<span style={{ fontSize: 11 }}>Relationship</span>}
             name="relationship"
@@ -507,7 +562,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             </Select>
           </Form.Item>
 
-          {/* Name */}
           <Form.Item
             label={<span style={{ fontSize: 11 }}>Name</span>}
             name="relationName"
@@ -517,7 +571,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             <Input placeholder="Name" style={{ height: 25, fontSize: 11 }} />
           </Form.Item>
 
-          {/* Mobile */}
           <Form.Item
             label={<span style={{ fontSize: 11 }}>Mobile</span>}
             name="relationMobile"
@@ -538,16 +591,15 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           </Form.Item>
         </Form>
 
+        {/* Identity Information */}
         <Form
           layout="vertical"
           size="small"
           form={identityForm}
           requiredMark={false}
           onValuesChange={(_, allValues) =>
-            setFormData((pre: any) => {
-              return { ...pre, ...allValues };
-            })
-          } // ✅ store in state
+            setFormData((prev: any) => ({ ...prev, ...allValues }))
+          }
           style={{
             width: "90%",
             background: "#ffffff",
@@ -556,7 +608,15 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
           }}
         >
-          {/* Aadhaar Number */}
+          <div
+            style={{ display: "flex", alignItems: "center", marginBottom: 12 }}
+          >
+            <HomeOutlined style={{ color: "#1677ff", marginRight: 6 }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
+              Identity Information
+            </span>
+          </div>
+
           <Form.Item
             label={<span style={{ fontSize: 11 }}>Aadhaar Number</span>}
             name="aadhaar"
@@ -576,7 +636,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             />
           </Form.Item>
 
-          {/* PAN Number */}
           <Form.Item
             label={<span style={{ fontSize: 11 }}>PAN Number</span>}
             name="pan"
@@ -595,7 +654,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             />
           </Form.Item>
 
-          {/* Passport (Optional) */}
           <Form.Item
             label={
               <span style={{ fontSize: 11 }}>Passport Number (Optional)</span>
@@ -620,4 +678,5 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
     </div>
   );
 });
+
 export default PersonalDetails;

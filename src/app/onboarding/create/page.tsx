@@ -42,18 +42,14 @@ const Onboarding = () => {
   const { createOnboarding, loading: submitting } = useEmployeeOnboarding();
 
   /* =====================================================
-      CONTINUE → Merge + Full API + Next
+      CONTINUE → Save current step data into allData, then go Next
   ====================================================== */
   const next = async () => {
     try {
-      const stepKeys = ["personal", "employment", "bank", "history", "assets"];
-      const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
-
       const currentRef = refs[current];
 
       if (currentRef?.current?.getData) {
         const stepData = currentRef.current.getData();
-        //const stepData = await currentRef.current.validateAndGetData();
         setAllData((prev: any) => ({
           ...prev,
           [stepKeys[current]]: stepData,
@@ -71,7 +67,24 @@ const Onboarding = () => {
   };
 
   /* =====================================================
-      SKIP → Just Next
+      PREVIOUS → Save current step data first, then go back
+      This ensures edits on current step are not lost when going back
+  ====================================================== */
+  const prev = () => {
+    // Save the current step's data before going back
+    const currentRef = refs[current];
+    if (currentRef?.current?.getData) {
+      const stepData = currentRef.current.getData();
+      setAllData((prev: any) => ({
+        ...prev,
+        [stepKeys[current]]: stepData,
+      }));
+    }
+    setCurrent((prev) => prev - 1);
+  };
+
+  /* =====================================================
+      SKIP → Just move to Next without saving
   ====================================================== */
   const skipStep = () => {
     if (current < 4) {
@@ -99,7 +112,7 @@ const Onboarding = () => {
         setAllData(updatedData);
       }
 
-      // 🔥 Build Partial Payload (only filled steps)
+      // Build Partial Payload (only filled steps)
       const partialPayload: any = {};
 
       stepKeys.forEach((key) => {
@@ -125,53 +138,9 @@ const Onboarding = () => {
     }
   };
 
-  // const saveAndSkip = async () => {
-  //   try {
-  //     const currentRef = refs[current];
-  //     let updatedData = { ...allData };
-
-  //     if (currentRef?.current?.validateAndGetData) {
-  //       const stepData = await currentRef.current.validateAndGetData();
-
-  //       updatedData = {
-  //         ...updatedData,
-  //         [stepKeys[current]]: stepData,
-  //       };
-
-  //       setAllData(updatedData);
-  //     }
-
-  //     // 🔥 Build Partial Payload (only filled steps)
-  //     const partialPayload: any = {};
-
-  //     stepKeys.forEach((key) => {
-  //       const value = updatedData[key];
-
-  //       if (
-  //         (Array.isArray(value) && value.length > 0) ||
-  //         (!Array.isArray(value) &&
-  //           value &&
-  //           typeof value === "object" &&
-  //           Object.keys(value).length > 0)
-  //       ) {
-  //         partialPayload[key] = value;
-  //       }
-  //     });
-
-  //     console.log("💾 SAVE & SKIP PARTIAL PAYLOAD 👉", partialPayload);
-
-  //     await createOnboarding(partialPayload);
-
-  //     if (current < 4) {
-  //       setCurrent((prev) => prev + 1);
-  //     }
-  //   } catch (error) {
-  //     console.log("❌ Save & Skip Failed:", error);
-  //   }
-  // };
-
-  const prev = () => setCurrent((prev) => prev - 1);
-
+  /* =====================================================
+      SUBMIT → Collect last step data + submit everything
+  ====================================================== */
   const submitAll = async () => {
     try {
       const currentRef = refs[current];
@@ -204,42 +173,6 @@ const Onboarding = () => {
     }
   };
 
-  // const submitAll = async () => {
-  //   try {
-  //     const currentRef = refs[current];
-  //     let finalData = { ...allData };
-
-  //     if (currentRef?.current?.validateAndGetData) {
-  //       const finalStepData = await currentRef.current.validateAndGetData();
-
-  //       finalData = {
-  //         ...finalData,
-  //         [stepKeys[current]]: finalStepData,
-  //       };
-  //     }
-
-  //     console.log("🔥 FINAL SUBMIT PAYLOAD 👉", finalData);
-
-  //     await createOnboarding(finalData);
-
-  //     window.alert("Onboarding Process Completed");
-
-  //     // Reset everything properly
-  //     setAllData({
-  //       personal: {},
-  //       employment: {},
-  //       bank: {},
-  //       history: [],
-  //       assets: [],
-  //     });
-
-  //     setResetKey((prev) => prev + 1);
-  //     setCurrent(0);
-  //   } catch (error) {
-  //     console.log("❌ Submit Failed", error);
-  //   }
-  // };
-
   return (
     <MainLayout>
       <div style={{ width: "100%", height: "100%", background: "white" }}>
@@ -263,51 +196,45 @@ const Onboarding = () => {
           </Steps>
         </div>
 
-        {/* <div style={{ padding: "20px" }}>
-          {current === 0 && (
-            <PersonalDetails
-               //key={`personal-${resetKey}`}
-              ref={personalRef}
-              data={allData.personal}
-            />
-          )}
-          {current === 1 && (
-            <EmploymentDetails
-              //key={`employment-${resetKey}`}
-              ref={employmentRef}
-              data={allData.employment}
-            />
-          )}
-          {current === 2 && (
-            <BankPayroll
-              // key={`bank-${resetKey}`}
-              ref={bankRef}
-              data={allData.bank}
-            />
-          )}
-          {current === 3 && (
-            <EmployeHistory
-              //key={`history-${resetKey}`}
-              ref={historyRef}
-              data={allData.history}
-            />
-          )}
-          {current === 4 && (
-            <Assets
-              //key={`assets-${resetKey}`}
-              ref={assetsRef}
-              data={allData.assets}
-            />
-          )}
-           </div> */}
+        {/*
+          KEY STRATEGY: All steps are always mounted (display:block/none).
+          This keeps the Ant Design form instances alive in memory,
+          so values are not lost when switching steps.
+          The `data` prop carries the saved allData back into each step
+          so the forms are repopulated when going back/forward.
+        */}
 
-        <div style={{ display: current === 0 ? "block" : "none" }}>
+        {/* <div style={{ display: current === 0 ? "block" : "none" }}>
           <PersonalDetails ref={personalRef} data={allData.personal} />
         </div>
 
         <div style={{ display: current === 1 ? "block" : "none" }}>
+          <EmploymentDetails ref={employmentRef} data={allData.employment} />
+        </div>
+
+        <div style={{ display: current === 2 ? "block" : "none" }}>
+          <BankPayroll ref={bankRef} data={allData.bank} />
+        </div>
+
+        <div style={{ display: current === 3 ? "block" : "none" }}>
+          <EmployeHistory ref={historyRef} data={allData.history} />
+        </div>
+
+        <div style={{ display: current === 4 ? "block" : "none" }}>
+          <Assets ref={assetsRef} data={allData.assets} />
+        </div> */}
+
+        <div style={{ display: current === 0 ? "block" : "none" }}>
+          <PersonalDetails
+            key={`personal-${resetKey}`} // ← ADD THIS
+            ref={personalRef}
+            data={allData.personal}
+          />
+        </div>
+
+        <div style={{ display: current === 1 ? "block" : "none" }}>
           <EmploymentDetails
-            //key={`employment-${resetKey}`}
+            key={`employment-${resetKey}`} // ← ADD THIS
             ref={employmentRef}
             data={allData.employment}
           />
@@ -315,7 +242,7 @@ const Onboarding = () => {
 
         <div style={{ display: current === 2 ? "block" : "none" }}>
           <BankPayroll
-            //key={`bank-${resetKey}`}
+            key={`bank-${resetKey}`} // ← ADD THIS
             ref={bankRef}
             data={allData.bank}
           />
@@ -323,7 +250,7 @@ const Onboarding = () => {
 
         <div style={{ display: current === 3 ? "block" : "none" }}>
           <EmployeHistory
-            //key={`history-${resetKey}`}
+            key={`history-${resetKey}`} // ← ADD THIS
             ref={historyRef}
             data={allData.history}
           />
@@ -331,7 +258,7 @@ const Onboarding = () => {
 
         <div style={{ display: current === 4 ? "block" : "none" }}>
           <Assets
-            // key={`assets-${resetKey}`}
+            key={`assets-${resetKey}`} // ← ADD THIS
             ref={assetsRef}
             data={allData.assets}
           />
@@ -355,8 +282,6 @@ const Onboarding = () => {
           <div style={{ display: "flex", gap: 8 }}>
             {current < 4 && (
               <>
-                {/* <Button onClick={skipStep}>Skip</Button> */}
-
                 <Button onClick={saveAndSkip}>Save & Skip</Button>
 
                 <Button type="primary" onClick={next} loading={submitting}>

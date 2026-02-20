@@ -2224,8 +2224,12 @@ const Onboarded = () => {
             prefix={<SearchOutlined />}
             placeholder="Search employees..."
             style={{
-              width: 300,
-              height: 50, // 👈 Same height as card
+              borderRadius: 12,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              height: 50,
+              width: 240, // 👈 Increased width
+              display: "flex",
+              alignItems: "center",
             }}
             onChange={(e) => setSearch(e.target.value)}
           />

@@ -1,11 +1,5 @@
 import { Form, Input, Row, Col, Select } from "antd";
-import {
-  useState,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-  use,
-} from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 
 const BankPayroll = forwardRef(({ data }: any, ref: any) => {
   const [bankdetailes, setBankDetailes] = useState({});
@@ -13,22 +7,44 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
   const [bankform] = Form.useForm();
   const [payrollform] = Form.useForm();
 
-  // useEffect(() => {
-  //   console.log("Bank Details:", bankdetailes);
-  // }, [bankdetailes]);
+  /* =====================================================
+    Repopulate both forms when `data` prop arrives.
+    This fires when the user clicks "Previous" and comes back
+    to this step — allData.bank is passed as `data`.
 
-  const bankDetailes = bankform.getFieldsValue();
-  const payrollDetails = payrollform.getFieldsValue();
-
-  console.log("Bank Details Form Data: ", bankDetailes);
-  console.log("Payroll Details Form Data: ", payrollDetails);
-
+    BUG FIX: The original code had NO useEffect to restore
+    form values, so going back always showed empty fields.
+  ====================================================== */
   useEffect(() => {
-    if (data) {
+    if (data && Object.keys(data).length > 0) {
       setBankDetailes(data);
+
+      // Bank Details fields
+      bankform.setFieldsValue({
+        bankName: data.bankName,
+        accountHolderName: data.accountHolderName,
+        accountNumber: data.accountNumber,
+        ifscCode: data.ifscCode,
+        branchName: data.branchName,
+        accountType: data.accountType,
+      });
+
+      // Payroll Identifier fields
+      payrollform.setFieldsValue({
+        uanNumber: data.uanNumber,
+        pfNumber: data.pfNumber,
+        esiNumber: data.esiNumber,
+        taxRegime: data.taxRegime,
+        paymentType: data.paymentType,
+      });
     }
   }, [data]);
 
+  /* =====================================================
+    getData() — reads live values from both form instances
+    and merges them into one flat object (same payload
+    format as before).
+  ====================================================== */
   useImperativeHandle(ref, () => ({
     getData: () => {
       return {
@@ -37,19 +53,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
       };
     },
   }));
-
-  // useImperativeHandle(ref, () => ({
-  //   async validateAndGetData() {
-  //     // ✅ Validate both forms
-  //     const bankValues = await bankform.validateFields();
-  //     const payrollValues = await payrollform.validateFields();
-
-  //     return {
-  //       ...bankValues,
-  //       ...payrollValues,
-  //     };
-  //   },
-  // }));
 
   return (
     <div
@@ -65,7 +68,7 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
         justifyContent: "space-evenly",
       }}
     >
-      {/* first div */}
+      {/* ── Bank Details ─────────────────────────────────── */}
       <div
         style={{
           width: "45%",
@@ -93,15 +96,10 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
           form={bankform}
           layout="vertical"
           onValuesChange={(_, allValues) =>
-            setBankDetailes((prev) => ({
-              ...prev,
-              ...allValues,
-            }))
+            setBankDetailes((prev) => ({ ...prev, ...allValues }))
           }
         >
           <Row gutter={[10, 6]}>
-            {/* Bank Name */}
-
             <Col span={12}>
               <Form.Item
                 name="bankName"
@@ -114,7 +112,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* Account Holder Name */}
             <Col span={12}>
               <Form.Item
                 name="accountHolderName"
@@ -129,7 +126,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* Account Number */}
             <Col span={12}>
               <Form.Item
                 name="accountNumber"
@@ -146,7 +142,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* IFSC Code */}
             <Col span={12}>
               <Form.Item
                 name="ifscCode"
@@ -163,7 +158,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* Branch Name */}
             <Col span={12}>
               <Form.Item
                 name="branchName"
@@ -180,7 +174,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* Account Type */}
             <Col span={12}>
               <Form.Item
                 name="accountType"
@@ -202,7 +195,8 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
           </Row>
         </Form>
       </div>
-      {/* second div */}
+
+      {/* ── Payroll Identifiers ───────────────────────────── */}
       <div
         style={{
           width: "45%",
@@ -229,15 +223,11 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
         <Form
           form={payrollform}
           onValuesChange={(_, allValues) =>
-            setBankDetailes((pre) => ({
-              ...pre,
-              ...allValues,
-            }))
+            setBankDetailes((prev) => ({ ...prev, ...allValues }))
           }
           layout="vertical"
         >
           <Row gutter={[16, 12]}>
-            {/* UAN Number */}
             <Col span={12}>
               <Form.Item
                 name="uanNumber"
@@ -254,7 +244,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* PF Number */}
             <Col span={12}>
               <Form.Item
                 name="pfNumber"
@@ -271,7 +260,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* ESI Number */}
             <Col span={12}>
               <Form.Item
                 name="esiNumber"
@@ -288,7 +276,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* Tax Regime */}
             <Col span={12}>
               <Form.Item
                 name="taxRegime"
@@ -308,7 +295,6 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            {/* Payment Type (Full Width Row Look) */}
             <Col span={12}>
               <Form.Item
                 name="paymentType"
@@ -333,4 +319,5 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
     </div>
   );
 });
+
 export default BankPayroll;

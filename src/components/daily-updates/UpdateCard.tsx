@@ -159,11 +159,6 @@ export default function UpdateCard({
   };
   //const isMissed = update.is_missed === true;
   const isMissed = Boolean(update.is_missed);
-
-
-
-  //  console.log("isMissed",update.is_missed)
-  // const isMissed = !!update?.missed_updateAt;
   console.log("isMissed", isMissed);
   // const isMissed = Boolean(update.is_missed);
   const router = useRouter();
@@ -174,16 +169,6 @@ export default function UpdateCard({
   const handleEdit = () => {
     router.push(`/daily-updates/submit?edit=${update.id}`);
   };
-  // const getUpdateTypeConfig = (type?: string) => {
-  //   switch (type) {
-  //     case "BOD":
-  //       return { text: "BOD", color: "green" };
-  //     case "EOD":
-  //       return { text: "EOD", color: "blue" };
-  //     default:
-  //       return { text: "UNKNOWN", color: "gray" };
-  //   }
-  // };
   const getUpdateTypeConfig = (type?: string) => {
   if (type === "BOD") return { text: "BOD", color: "green" };
   if (type === "EOD") return { text: "EOD", color: "blue" };

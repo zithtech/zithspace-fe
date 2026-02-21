@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
@@ -48,7 +48,7 @@ import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
@@ -1267,5 +1267,13 @@ export default function DashboardPage() {
         ) : null}
       </div>
     </MainLayout>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
+      <DashboardContent />
+    </Suspense>
   );
 }

@@ -30,7 +30,7 @@ export default function GradesPage() {
     if (!search.trim()) return dataSource;
     const q = search.toLowerCase();
     return dataSource.filter((r) =>
-      [r.code, r.name, String(r.levelOrder), r.description || "", r.status]
+      [r.code, r.codes, r.name, String(r.levelOrder), r.description || "", r.status]
         .join(" ")
         .toLowerCase()
         .includes(q)
@@ -52,6 +52,12 @@ export default function GradesPage() {
 
     // Always return non-padded numeric suffix (e.g., G1, G2, ...)
     return `${prefix}${maxNum + 1}`;
+  };
+   const generateCodeFromName = (name: string): string => {
+    if (!name || typeof name !== 'string') {
+      return '';
+    }
+    return name.trim().toUpperCase().replace(/\s+/g, '_');
   };
 
   const handleAdd = () => {
@@ -100,6 +106,7 @@ export default function GradesPage() {
       const values = {
         name: formValues.name,
         code: formValues.code,
+        codes: formValues.codes,
         levelOrder: formValues.levelOrder,
         description: formValues.description,
         isActive: !!formValues.status, // Convert Switch value to boolean
@@ -134,18 +141,28 @@ export default function GradesPage() {
   };
 
   const columns = [
+    {
+      title: "Code",
+      dataIndex: "codes",
+      key: "codes",
+      width: 200,
+    },
       {
-        title: "Grade Code",
+        title: "Grade ",
         dataIndex: "code",
         key: "code",
+        align: "center",
+        width:100,
          sorter: (a: GradeViewData, b: GradeViewData) =>
           a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: "base" }),
         sortDirections: ["ascend", "descend"],
+
       },
       {
         title: "Grade Name",
         dataIndex: "name",
         key: "name",
+        width: 200,
         sorter: (a: GradeViewData, b: GradeViewData) =>
           a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
         sortDirections: ["ascend", "descend"],
@@ -154,8 +171,7 @@ export default function GradesPage() {
         title: "Level Order",
         dataIndex: "levelOrder",
         key: "levelOrder",
-        width: 140,
-        sorter: (a: GradeViewData, b: GradeViewData) => a.levelOrder - b.levelOrder,
+        width: 100,
       },
       {
         title: "Description",
@@ -175,7 +191,6 @@ export default function GradesPage() {
         title: "Status",
         dataIndex: "status",
         key: "status",
-        width: 140,
         render: (value: string) => (
           <Tag color={value === "Active" ? "green" : "red"}>{value}</Tag>
         ),
@@ -184,7 +199,6 @@ export default function GradesPage() {
         title: "Actions",
         key: "actions",
         fixed: "right" as const,
-        width: 180,
         render: (_: any, record: GradeViewData) => (
           <Space style={{gap:18}}>
             <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}></Button>
@@ -290,13 +304,21 @@ export default function GradesPage() {
   width={450}
 >
   <Form form={form} layout="vertical">
+     <Form.Item
+                      name="codes"
+                      label="Code"
+                      rules={[{ required: true, message: "Please enter a code" }]}
+                    
+                    >
+                      <Input placeholder="Enter code" disabled />
+                    </Form.Item>
 
     {/* Row 1 — Code + Name */}
     <Row gutter={12}>
       <Col span={12}>
         <Form.Item
           name="code"
-          label="Grade Code"
+          label="Grade"
           rules={[{ required: true, message: "Please enter grade code" }]}
         >
           <Input placeholder="Auto-generated (e.g., G1)" disabled />
@@ -309,24 +331,17 @@ export default function GradesPage() {
           label="Grade Name"
           normalize={(value) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : value)}
           validateTrigger={['onBlur','onSubmit']}
-          rules={[
-            { required: true, message: "Please enter grade name" },
-            {
-              validator: async () => {
-                const value = (form.getFieldValue('name') ?? '').trim();
-                if (!value) return Promise.resolve();
-                const duplicate = dataSource.some(
-                  (g) => g.name.trim().toLowerCase() === value.toLowerCase() && g.key !== editingKey
-                );
-                if (duplicate) {
-                  return Promise.reject(new Error("This grade name already exists."));
-                }
-                return Promise.resolve();
-              },
-            },
-          ]}
+          rules={[{ required: true, message: "Please enter grade name" },]}
         >
-          <Input placeholder="e.g. Junior" />
+          <Input
+                             placeholder="Enter Grade name"
+                             onChange={(e) => {
+                               if (!editingKey) {
+                                 const codes = generateCodeFromName(e.target.value);
+                                 form.setFieldsValue({ codes });
+                               }
+                             }}
+                           />
         </Form.Item>
       </Col>
     </Row>
@@ -350,8 +365,8 @@ export default function GradesPage() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "12px 0",       // ✅ increases height
-        minHeight: 64,           // ✅ fixed row height
+        padding: "12px 0",       
+        minHeight: 64,   
       }}
     >
       <div>

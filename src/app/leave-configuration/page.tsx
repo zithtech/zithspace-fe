@@ -56,14 +56,6 @@ const { Option } = Select;
 
 const leaveTypesData = [
   {
-    name: "Casual Leave",
-    description: "Leave taken for personal reasons or short-term needs.",
-  },
-  {
-    name: "Sick Leave",
-    description: "Leave taken when an employee is ill or unwell.",
-  },
-  {
     name: "Earned Leave",
     description: "Leave accumulated over time based on work tenure.",
   },
@@ -83,10 +75,6 @@ const leaveTypesData = [
   {
     name: "Comp-Off",
     description: "Leave granted for working on holidays or weekends.",
-  },
-  {
-    name: "Permission",
-    description: "Short-duration leave taken for a few hours.",
   },
   {
     name: "On Duty",
@@ -691,7 +679,7 @@ export default function leaveConfiguration() {
                       placeholder="Select or type to add a leave"
                       options={leaveTypesData
                         .filter(
-                          (l) => !dataSource.some((existing) => existing.name === l.name)
+                          (l) => !dataSource.some((existing) => existing.name.toLowerCase() === l.name.toLowerCase())
                         )
                         .map((l) => ({
                           label: l.name,

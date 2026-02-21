@@ -15,13 +15,13 @@ export interface OriginLeaveType {
 export interface LeaveOriginStructure {
   id: string;
   origin: string;
-  subOrigin: string;
+  subOriginId: string;
   leaveTypes: OriginLeaveType[];
 }
 
 export interface CreateLeaveOriginStructureData {
   origin: string;
-  subOrigin: string;
+  subOriginId: string;
   leaveTypes?: Omit<CreateOriginLeaveTypeData, "leaveOriginId">[];
 }
 

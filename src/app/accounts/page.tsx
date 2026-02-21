@@ -383,7 +383,7 @@ export default function AccountsPage() {
       key: 'member',
       width: 150,
       render: (_, record: Transaction) => {
-        const member = typeof record.member === 'object' ? record.member : null;
+        const member:any = typeof record.member === 'object' ? record.member : null;
         return member ? (
           <Space>
             <Avatar
@@ -400,7 +400,7 @@ export default function AccountsPage() {
               <Text strong style={{ fontSize: 12 }}>{member.name}</Text>
               <br />
               <Text type="secondary" style={{ fontSize: 10 }}>
-                {member.position}
+                {member.position?.title || 'N/A'}
               </Text>
             </div>
           </Space>
@@ -928,9 +928,9 @@ export default function AccountsPage() {
                       <Option key={member.id} value={member.id}>
                         <Space>
                           <Avatar size={20} style={{ fontSize: 10 }}>
-                            {member.name.charAt(0)}
+                            {member?.name.charAt(0)}
                           </Avatar>
-                          {member.name} - {member.position}
+                          {member?.name} - {member?.position?.title || 'N/A'}
                         </Space>
                       </Option>
                     ))}

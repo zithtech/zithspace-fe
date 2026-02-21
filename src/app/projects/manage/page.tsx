@@ -54,7 +54,7 @@ const { RangePicker } = DatePicker;
 interface Member {
   value: string;
   label: string;
-  position: string;
+  position: string | { id: string; title: string; code: string; } | null;
 }
 
 const ProjectsManagePage: React.FC = () => {
@@ -231,13 +231,13 @@ const ProjectsManagePage: React.FC = () => {
     {
       title: "Project Manager",
       key: "projectManager",
-      render: (_, record) => (
+      render: (_, record:any) => (
         <div className="flex items-center space-x-2">
           <Avatar size="small">{record?.projectManager?.name.charAt(0)}</Avatar>
           <div>
             <div className="font-medium">{record?.projectManager?.name}</div>
             <div className="text-sm text-gray-500">
-              {record.projectManager?.position}
+              {record.projectManager?.position?.title || 'N/A'}
             </div>
           </div>
         </div>
@@ -463,17 +463,15 @@ const ProjectsManagePage: React.FC = () => {
               showSearch
               filterOption={(input, option) => {
                 const member = members.find((m) => m.value === option?.value);
-                return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                      member.position
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                  : false;
+                if (!member) return false;
+                const positionText = typeof member.position === 'object' ? member.position?.title || '' : member.position || '';
+                return member.label.toLowerCase().includes(input.toLowerCase()) ||
+                       positionText.toLowerCase().includes(input.toLowerCase());
               }}
             >
               {members.map((member) => (
                 <Option key={member.value} value={member.value}>
-                  {member.label} - {member.position}
+                  {member.label} - {typeof member.position === 'object' ? member.position?.title : member.position || 'N/A'}
                 </Option>
               ))}
             </Select>

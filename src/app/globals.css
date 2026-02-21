@@ -5,17 +5,93 @@
 @import '../styles/_keyframe-animations.scss'; */
 
 /* Reset and base styles */
+
 * {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
 }
 
+
+@layer utilities {
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+}
+
+
+
+
+@layer base {
+  .prose :where(li):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+    font-size: 0.95rem;
+  }
+
+  .prose :where(ol > li):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    padding-inline-start: 0.2em;
+  }
+
+  .prose :where(ul > li):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+    padding-inline-start: 0.2em;
+  }
+
+  .prose :where(.prose > ul > li p),
+  .prose :where(.prose > ol > li p) {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+    line-height: 1.5;
+  }
+
+  .prose :where(.prose > ul > li > p:first-child),
+  .prose :where(.prose > ol > li > p:first-child) {
+    margin-top: 0.4em;
+  }
+
+  .prose :where(.prose > ul > li > p:last-child),
+  .prose :where(.prose > ol > li > p:last-child) {
+    margin-bottom: 0.4em;
+  }
+
+  .prose :where(ul ul, ul ol, ol ul, ol ol) {
+    margin-top: 0.4em;
+    margin-bottom: 0.4em;
+  }
+
+  .prose :where(dl) {
+    margin-top: 0.6em;
+    margin-bottom: 0.6em;
+  }
+
+  .prose :where(dd) {
+    margin-top: 0.25em;
+    padding-inline-start: 1rem;
+  }
+
+  .prose :where(.prose > ul > li > p):not( :where([class~="not-prose"], [class~="not-prose"] *)) {
+    margin-bottom: 0.25em !important;
+    margin-top: 0.25em !important;
+  }
+}
+
 html,
 body {
   max-width: 100vw;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
   background-color: #f5f5f5;
   color: #262626;
   line-height: 1.5;
@@ -39,7 +115,7 @@ body {
 }
 
 /* Compact table styles */
-.ant-table-thead > tr > th {
+.ant-table-thead>tr>th {
   background: #fafafa;
   border-bottom: 1px solid #f0f0f0;
   font-weight: 600;
@@ -48,13 +124,13 @@ body {
   font-size: 13px;
 }
 
-.ant-table-tbody > tr > td {
+.ant-table-tbody>tr>td {
   padding: 8px 12px;
   border-bottom: 1px solid #f5f5f5;
   font-size: 13px;
 }
 
-.ant-table-tbody > tr:hover > td {
+.ant-table-tbody>tr:hover>td {
   background: #f8f9fa;
 }
 
@@ -63,7 +139,7 @@ body {
   margin-bottom: 16px;
 }
 
-.ant-form-item-label > label {
+.ant-form-item-label>label {
   font-size: 13px;
   font-weight: 500;
   color: #262626;
@@ -139,7 +215,9 @@ body {
 /* Modern card styles */
 .ant-card {
   border-radius: 8px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02);
+  box-shadow:
+    0 1px 2px 0 rgba(0, 0, 0, 0.03),
+    0 1px 6px -1px rgba(0, 0, 0, 0.02);
   border: 1px solid #f0f0f0;
 }
 
@@ -248,11 +326,11 @@ body {
     height: 100vh;
     z-index: 999;
   }
-  
+
   .ant-table-wrapper {
     overflow-x: auto;
   }
-  
+
   .ant-modal {
     margin: 16px;
     max-width: calc(100vw - 32px);
@@ -260,8 +338,8 @@ body {
 }
 
 /* Custom utility classes */
-.compact-table .ant-table-thead > tr > th,
-.compact-table .ant-table-tbody > tr > td {
+.compact-table .ant-table-thead>tr>th,
+.compact-table .ant-table-tbody>tr>td {
   padding: 6px 8px;
   font-size: 12px;
 }
@@ -271,7 +349,7 @@ body {
   line-height: 1.4;
 }
 
-.space-compact > * + * {
+.space-compact>*+* {
   margin-top: 8px;
 }
 
@@ -311,4 +389,518 @@ body {
 .ant-drawer-mask {
   backdrop-filter: none;
 }
+/* remove column borders */
+.no-column-border td {
+  border-right: none !important;
+  border-inline-end: none !important;
+  border-top: none !important;
+}
 
+/* fixed background */
+.no-column-border {
+  background: #f5f8fd !important;
+
+}
+
+
+.ant-table-tbody > tr.no-column-border:hover > td {
+  background: #fff7e6 !important;
+}
+
+
+
+
+.week-total-row {
+  background-color: hsl(200, 33%, 98%);
+  border-top: 2px solid #d9d9d9;
+  font-weight: 600;
+  padding: 16px 24px;
+}
+
+.week-total-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.week-total-right {
+  display: flex;
+  align-items: center;
+ 
+  gap: 50px;
+}
+/* status */
+/* Hide icons by default */
+.ant-table-tbody .row-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show icons only on row hover */
+.ant-table-tbody tr:hover .row-actions {
+  opacity: 1;
+}
+
+/* Hover row background */
+.ant-table-tbody tr:hover > td {
+  background: #f5faff !important;
+}
+
+/* Icon styling */
+.row-action-icon {
+  cursor: pointer;
+  color: #8c8c8c;
+  transition: color 0.2s ease;
+}
+
+.row-action-icon:hover {
+  color: #1677ff;
+}
+
+/* Delete hover */
+.row-action-icon.delete:hover {
+  color: #ff4d4f;
+}
+/* .timesheet-header{ */
+  /* position: fixed; */
+  /* position:sticky;
+
+  
+  top: 118px;
+  left: 80px;
+  right: 0;
+  z-index: 100;
+
+  background: #f5f5f5;
+
+  
+  margin-bottom: 10px;
+
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+} */
+ /* .timesheet-header {
+  position: sticky; 
+  top: 0;  
+ 
+  left: 80px;
+  right: 0;        
+  z-index: 100;
+  background: #f5f5f5;
+ 
+  padding: 16px 24px;
+  margin-bottom: 10px;
+} */
+ .timesheet-header {
+  position: sticky;
+  top: 0;
+  left:0;
+  right: 0;
+  z-index: 100;
+  background: #f5f5f5;
+
+  padding: 8px 16px;
+  margin-bottom: 6px;
+}
+
+
+
+/* Hide icons by default */
+.status-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show icons only on row hover */
+.ant-table-row:hover .status-actions {
+  opacity: 1;
+}
+
+/* Icon base style */
+.status-icon {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Approve */
+.status-icon.approve {
+  color: #52c41a;
+}
+
+/* Reject */
+.status-icon.reject {
+  color: #ff4d4f;
+}
+
+/* Hover effect */
+.status-icon:hover {
+  transform: scale(1.15);
+  transition: transform 0.15s ease;
+}
+
+
+/* Hide icons by default */
+.status-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show icons only on row hover */
+.ant-table-row:hover .status-actions {
+  opacity: 1;
+}
+
+/* Icon base */
+.status-icon {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* Colors */
+.status-icon.copy {
+  color: #8c8c8c;
+}
+
+.status-icon.delete {
+  color: #ff4d4f;
+}
+
+/* Hover animation */
+.status-icon:hover {
+  transform: scale(1.15);
+  transition: transform 0.15s ease;
+}
+
+
+
+
+/* Hover Animations */
+.date-nav-btn:hover {
+  background: #f0f0f0 !important;
+  transform: scale(1.1);
+}
+
+.date-display-btn:hover {
+  background: #f0f9ff !important;
+  transform: translateY(-1px);
+}
+
+.status-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(22, 119, 255, 0.3) !important;
+}
+
+.action-btn:hover {
+  border-color: #1677ff !important;
+  color: #1677ff !important;
+  transform: translateY(-1px);
+}
+
+.export-btn:hover {
+  background: #1677ff !important;
+  color: white !important;
+  border-color: #1677ff !important;
+  transform: translateY(-2px);
+}
+
+/* Smooth transitions */
+.timesheet-header * {
+  transition: all 0.3s ease;
+}
+
+
+/* .add-entry-btn {
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 999px;         
+  background-color: #1abc9c;     
+  color: #ffffff;
+  font-weight: 500;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  transition: background-color 0.2s ease;
+}
+
+.add-entry-btn .anticon {
+  color:black;
+}
+
+.add-entry-btn:hover {
+  background-color: #17a589;     
+  color: #ffffff;
+} */
+
+
+/* Make the InputNumber arrows thicker and more visible */
+.highlighted-input-number .ant-input-number-handler-wrap {
+  width: 18px; /* slightly bigger container */
+}
+
+.highlighted-input-number .ant-input-number-handler {
+  color: #fa8c16; /* orange arrows */
+  font-weight: bold; /* bolder arrows */
+}
+
+.highlighted-input-number .ant-input-number-handler-up-inner,
+.highlighted-input-number .ant-input-number-handler-down-inner {
+  border-width: 2px; /* thicker arrow lines */
+}
+
+/* .custom-segmented {
+  border: 1px solid #d9d9d9;
+} */
+
+.custom-segmented .ant-segmented-item {
+  border-radius: 8px;
+  font-weight: 500;
+  color: #595959;
+}
+
+.custom-segmented .ant-segmented-item:hover {
+  color: #1677ff;
+}
+
+.custom-segmented .ant-segmented-item-selected {
+  background-color: #1677ff !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(22, 119, 255, 0.25);
+}
+
+
+/* .approve-btn:hover {
+  background-color: #5a83f2 !important;
+  color:"white";
+}
+  /* border-color: #1677ff !important; */
+  /* color: #1677ff !important; */
+
+  .approve-btn {
+  transition: all 0.25s ease;
+}
+
+.approve-btn:hover {
+  background: linear-gradient(135deg, #9ee97d, #b7ef86) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
+}
+
+  .reject-btn {
+  transition: all 0.25s ease;
+}
+
+.reject-btn:hover {
+  background: linear-gradient(135deg, #f47644, #f3804b) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
+}
+
+  .export-btn {
+  transition: all 0.25s ease;
+}
+
+.export-btn:hover {
+  background: linear-gradient(135deg, #0557ee, #1d28ff) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
+}
+
+  .filter-btn {
+  transition: all 0.25s ease;
+}
+
+.filter-btn:hover {
+  background: linear-gradient(135deg, #7ba3f3, #8181f4) !important;
+  color: #ffffff !important;
+  /* border-color: transparent !important; */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(90, 131, 242, 0.35);
+}
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+.compact-table .ant-table-cell {
+  padding: 6px 8px !important;
+}
+.compact-table {
+  font-size: 12px;
+}
+.compact-table .ant-table-body {
+  overflow: hidden !important;
+}
+
+
+
+
+
+
+
+
+
+
+/* .fade-table {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} */
+/* Force smooth hover fade */
+/* .ant-table-tbody > tr.ant-table-row > td {
+  transition: background-color 0.35s ease-in-out;
+} */
+
+/* Override AntD default hover */
+/* .ant-table-tbody > tr.ant-table-row:hover > td {
+  background-color: #f5f7fa !important;
+}
+
+
+
+.no-column-border td {
+  border-bottom: none !important;
+}
+.ant-table-expanded-row {
+  animation: fadeExpand 0.4s ease;
+}
+
+@keyframes fadeExpand {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+} */
+
+/* Default state */
+/* .table-hover-wrapper {
+  transition: all 0.35s ease-in-out;
+} */
+
+/* Hover on full table */
+/* .table-hover-wrapper:hover {
+  transform: translateY(-4px);
+} */
+
+/* Smooth fade inside table */
+/* .table-hover-wrapper .ant-table {
+  transition: box-shadow 0.35s ease;
+}
+
+.table-hover-wrapper:hover .ant-table {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+} */
+
+
+
+/* Smooth transition */
+/* .ant-table-tbody > tr.ant-table-row {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+} */
+
+/* Hover */
+/* .ant-table-tbody > tr.ant-table-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+} */
+
+/* CLICK (while mouse pressed) */
+/* .ant-table-tbody > tr.ant-table-row:active {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+} */
+
+/* When row has input focused (TextArea click) */
+/* .ant-table-tbody > tr.ant-table-row:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  background-color: #e6f4ff;
+}
+
+  
+
+
+
+.table-row-light {
+  background: #ffffff;
+}
+
+.table-row-dark {
+  background: #fafafa;
+} */
+/* SideNav.css */
+
+/* Custom scrollbar for sidebar */
+.sidebar-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Icons only mode - ensure icons are centered */
+.ant-layout-sider-collapsed .ant-menu-item {
+    padding: 0 calc(50% - 10px) !important;
+    display: flex;
+    justify-content: center;
+}
+
+.ant-layout-sider-collapsed .ant-menu-submenu-title {
+    padding: 0 calc(50% - 10px) !important;
+    display: flex;
+    justify-content: center;
+}
+
+/* Remove extra padding/margin when collapsed */
+.ant-layout-sider-collapsed .ant-menu-item .anticon,
+.ant-layout-sider-collapsed .ant-menu-submenu-title .anticon {
+    margin-right: 0 !important;
+    font-size: 18px;
+}
+
+/* Ensure submenu popups look good */
+.ant-menu-submenu-popup {
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

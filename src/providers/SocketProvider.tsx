@@ -29,17 +29,17 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Only connect if user is authenticated and we have a tenant context
     if (!token || !tenantInfo) {
-        if (socket) {
-            socket.disconnect();
-            setSocket(null);
-        }
-        return;
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+      return;
     }
 
     // Initialize socket connection
     const newSocket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000", {
-      auth: {
-        token,
+      auth: (cb) => {
+        cb({ token: AuthService.getAccessToken() });
       },
       reconnection: true,
       reconnectionAttempts: 10,
@@ -56,14 +56,17 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       setConnected(false);
     });
 
-    newSocket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err.message);
+    newSocket.on("connect_error", (err: any) => {
+      console.log("Socket connection error:", err.message);
+       if (err.message.includes("Invalid token") || err.message.includes("Authentication error")) {
+        newSocket.disconnect();
+      }
     });
 
     setSocket(newSocket);
 
     return () => {
-        newSocket.disconnect();
+      newSocket.disconnect();
     };
   }, [user?.id, tenantInfo?.tenantId]); // specific deps to avoid re-renders
 

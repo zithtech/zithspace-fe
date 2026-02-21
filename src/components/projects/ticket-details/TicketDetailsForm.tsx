@@ -1,12 +1,21 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Form, Input, Select, DatePicker, InputNumber, Button, Space, Row, Col } from "antd";
+import { Form, Input, Select, DatePicker, InputNumber, Button, Space, Row, Col, Tag } from "antd";
 import { SaveOutlined, CloseOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import TiptapEditor from "@/components/common/TiptapEditor";
 import { TicketDetails } from "@/types/ticket";
-import { STATUS_OPTIONS, PRIORITY_OPTIONS, TYPE_OPTIONS } from "@/utils/ticketUtils";
+import {
+  STATUS_OPTIONS,
+  PRIORITY_OPTIONS,
+  TYPE_OPTIONS,
+  getStatusColor,
+  getPriorityColor,
+  getTypeColor,
+  getPlatformColor,
+  getTaskLevelColor
+} from "@/utils/ticketUtils";
 
 interface TicketDetailsFormProps {
   ticket: TicketDetails;
@@ -122,7 +131,7 @@ export default function TicketDetailsForm({
                     key={platform.value}
                     value={platform.value}
                   >
-                    {platform.label}
+                    <Tag color={getPlatformColor(platform.value)}>{platform.label}</Tag>
                   </Select.Option>
                 ))}
               </Select>
@@ -142,7 +151,7 @@ export default function TicketDetailsForm({
                     key={project.value}
                     value={project.value}
                   >
-                    {project.label}
+                    <Tag color="blue">{project.label}</Tag>
                   </Select.Option>
                 ))}
               </Select>
@@ -171,7 +180,7 @@ export default function TicketDetailsForm({
                       key={stack.value}
                       value={stack.value}
                     >
-                      {stack.label}
+                      <Tag>{stack.label}</Tag>
                     </Select.Option>
                   ))}
                 </Select>
@@ -210,7 +219,7 @@ export default function TicketDetailsForm({
                     key={priority.value}
                     value={priority.value}
                   >
-                    {priority.label}
+                    <Tag color={getPriorityColor(priority.value)}>{priority.label}</Tag>
                   </Select.Option>
                 ))}
               </Select>
@@ -227,7 +236,7 @@ export default function TicketDetailsForm({
               <Select loading={dataLoading}>
                 {STATUS_OPTIONS.map((status) => (
                   <Select.Option key={status.value} value={status.value}>
-                    {status.label}
+                    <Tag color={getStatusColor(status.value)}>{status.label}</Tag>
                   </Select.Option>
                 ))}
               </Select>
@@ -256,7 +265,7 @@ export default function TicketDetailsForm({
                     key={taskType.value}
                     value={taskType.value}
                   >
-                    {taskType.label}
+                    <Tag color={getTypeColor(taskType.value)}>{taskType.label}</Tag>
                   </Select.Option>
                 ))}
               </Select>
@@ -279,7 +288,7 @@ export default function TicketDetailsForm({
                     key={taskLevel.value}
                     value={taskLevel.value}
                   >
-                    {taskLevel.label}
+                    <Tag color={getTaskLevelColor(taskLevel.value)}>{taskLevel.label}</Tag>
                   </Select.Option>
                 ))}
               </Select>
@@ -324,11 +333,11 @@ export default function TicketDetailsForm({
                   );
                   return member
                     ? member.label
-                        .toLowerCase()
-                        .includes(input.toLowerCase()) ||
-                        member.position
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
+                      .toLowerCase()
+                      .includes(input.toLowerCase()) ||
+                    member.position
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
                     : false;
                 }}
               >
@@ -364,11 +373,11 @@ export default function TicketDetailsForm({
                   );
                   return member
                     ? member.label
-                        .toLowerCase()
-                        .includes(input.toLowerCase()) ||
-                        member.position
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
+                      .toLowerCase()
+                      .includes(input.toLowerCase()) ||
+                    member.position
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
                     : false;
                 }}
               >

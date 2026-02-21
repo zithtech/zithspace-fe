@@ -18,6 +18,7 @@ interface User {
   isActive: boolean;
   tenantId: string; // Add tenant context
   tenantName?: string; // Optional tenant name
+  department?: string;
 }
 
 interface AuthContextType {
@@ -58,9 +59,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       const response = await AuthService.login({ email, password });
-      
+
       // Transform the response to match our User interface
       const userData: User = {
         id: response.user.id,
@@ -75,15 +76,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isActive: response.user.isActive,
         tenantId: response.user.tenantId,
         tenantName: response.user.tenantName,
+        department: (response.user as any).department,
       };
 
       setUser(userData);
-      
+
       // Handle redirect after login (like traditional SPAs)
       const urlParams = new URLSearchParams(window.location.search);
       const redirectTo = urlParams.get('redirect');
       const targetUrl = redirectTo || '/dashboard';
-      
+
       router.push(targetUrl);
       return true;
     } catch (error) {
@@ -132,13 +134,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Check if we have a stored token
       const hasToken = AuthService.isAuthenticated();
-      
+
       if (!hasToken) {
         // No access token found - try to refresh from cookie before giving up
         console.log('🔄 No access token found, attempting to refresh from cookie...');
         const refreshed = await refreshToken();
         if (!refreshed) {
-          console.log('❌ Token refresh failed, user not authenticated');
+          console.log(' Token refresh failed, user not authenticated');
           setUser(null);
           return;
         }
@@ -147,7 +149,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Try to get user profile - axios interceptor will handle token refresh automatically
       const userProfile = await AuthService.getProfile();
-      
+
       // Transform the profile to match our User interface
       const userData: User = {
         id: userProfile.id, // Backend returns "id"
@@ -162,20 +164,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isActive: userProfile.isActive,
         tenantId: userProfile.tenantId,
         tenantName: userProfile.tenant?.name,
+        department: userProfile.department,
       };
 
       setUser(userData);
     } catch (error) {
-      console.error('❌ Auth check failed:', error);
-      
+      console.error('Auth check failed:', error);
+
       // Only clear tokens on actual authentication errors (401), not parsing errors
       if (error instanceof ApiError && error.status === 401) {
         console.log('🔒 Authentication error (401), clearing tokens and redirecting to login');
         setUser(null);
         AuthService.clearAuth();
-        
+
         // Redirect to login if not already there
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.startsWith('/public')) {
           router.push('/login?error=session_expired');
         }
       } else {

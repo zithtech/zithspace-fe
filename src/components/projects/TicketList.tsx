@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
   Button,
@@ -25,6 +25,9 @@ import {
   Divider,
   Collapse,
   notification,
+  Alert,
+  Dropdown,
+  MenuProps,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -42,6 +45,8 @@ import {
   ArrowLeftOutlined,
   MinusCircleOutlined,
   CheckCircleOutlined,
+  ShareAltOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -56,6 +61,8 @@ import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
 import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
+import { SprintCompletionModal } from "./sprint-completion";
+import { SprintCreationForm, type SprintFormData } from "./sprint-completion/SprintCreationForm";
 
 const { Title, Text } = Typography;
 
@@ -74,6 +81,7 @@ interface TicketListProps {
 
 export default function TicketList({ projectId, projectName, projectCode }: TicketListProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [modal, contextHolder] = Modal.useModal();
 
   // Local state for filters only
@@ -89,8 +97,13 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-    // Handle Complete Sprint
-  const [completingSprint, setCompletingSprint] = useState(false);
+
+  // Sprint Completion Modal state
+  const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
+
+  // Create Sprint Modal state
+  const [createSprintModalOpen, setCreateSprintModalOpen] = useState(false);
+  const [creatingSprintLoading, setCreatingSprintLoading] = useState(false);
 
   // Inline editing state
   const [editingField, setEditingField] = useState<{
@@ -98,8 +111,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint";
   } | null>(null);
 
-  // For hover effect on title
-  const [hoveredTicketId, setHoveredTicketId] = useState<string | null>(null);
+
 
   // Use cached global data hooks
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
@@ -113,10 +125,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   // --- React Query Hooks ---
 
-  // Prepare params for useTickets - always scoped to projectId
-  const queryParams = {
-    page: pagination.current,
-    limit: pagination.pageSize,
+  // Base params (without pagination) for filters
+  const baseQueryParams = {
     projectId, // From props, mandatory project context
     status: filters.status.length > 0 ? filters.status[0] : undefined,
     priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
@@ -133,18 +143,27 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     enabled: !!projectId,
   });
   const activeSprint = activeSprints && activeSprints.length > 0 ? activeSprints[0] : null;
-  console.log("Active Sprint:", activeSprint);
 
-  // Query Params for Active Sprint List
+  // Persist current project as last visited
+  useEffect(() => {
+    if (projectId) {
+      localStorage.setItem('lastProjectId', projectId);
+    }
+  }, [projectId]);
+
+  // Query Params for Active Sprint List (NO PAGINATION - fetch ALL tickets)
   const activeSprintParams = {
-    ...queryParams,
-    sprintId: 'active'
+    ...baseQueryParams,
+    sprintId: 'active',
+    limit: 9999 // Fetch all tickets in active sprint (no pagination)
   };
 
-  // Query Params for Backlog List
+  // Query Params for Backlog List (WITH PAGINATION)
   const backlogParams = {
-    ...queryParams,
-    sprintId: 'null'
+    ...baseQueryParams,
+    sprintId: 'null',
+    page: pagination.current,
+    limit: pagination.pageSize,
   };
 
   // 1. Fetch Active Sprint Tickets
@@ -214,34 +233,77 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   };
 
 
-  
-  const handleCompleteSprint = async () => {
+
+  const handleCompleteSprint = () => {
     if (!activeSprint?.id) return;
-    
+    setSprintCompletionModalOpen(true);
+  };
+
+  const handleSprintCompletionSuccess = () => {
+    setSprintCompletionModalOpen(false);
+    notifyApi.success({
+      message: 'Sprint Completed',
+      description: 'Sprint completed successfully',
+      placement: 'bottomLeft',
+      style: {
+        borderLeft: '4px solid #52c41a',
+      }
+    });
+    // Refresh both ticket lists and active sprint query
+    refetchActive();
+    refetchBacklog();
+    queryClient.invalidateQueries({ queryKey: ['activeSprint', projectId] });
+  };
+
+  // Handle sprint creation from backlog
+  const handleCreateSprintFromBacklog = async (data: SprintFormData) => {
     try {
-      setCompletingSprint(true);
-      await ReleasePlanService.completeSprint(activeSprint.id);
-      
-      notifyApi.success({
-        message: 'Sprint Completed',
-        description: 'Completed tickets archived, incomplete tickets returned to backlog',
-        placement: 'bottomLeft',
-        style: {
-          borderLeft: '4px solid #52c41a',
-        }
+      setCreatingSprintLoading(true);
+
+      // Determine sprint status based on whether active sprint exists
+      const hasActiveSprint = !!activeSprint;
+      const sprintStatus = hasActiveSprint ? 'planning' : 'active';
+
+      // Create sprint
+      const newSprint = await ReleasePlanService.createReleasePlan({
+        version: data.name,
+        description: data.goal || '',
+        projectId: projectId,
+        releaseDate: data.endDate.format('YYYY-MM-DD'),
+        startDate: data.startDate.format('YYYY-MM-DD'),
+        endDate: data.endDate.format('YYYY-MM-DD'),
+        type: 'sprint_plan',
+        status: sprintStatus,
       });
-      
-      // Refresh both ticket lists
+
+      setCreateSprintModalOpen(false);
+
+      // Show appropriate success message
+      if (sprintStatus === 'active') {
+        notifyApi.success({
+          message: 'Active Sprint Created',
+          description: `${newSprint.version} is now your active sprint! Start adding tickets.`,
+          placement: 'bottomLeft',
+          style: { borderLeft: '4px solid #52c41a' }
+        });
+      } else {
+        notifyApi.success({
+          message: 'Planning Sprint Created',
+          description: `${newSprint.version} created as a draft. You can start it after completing the current sprint.`,
+          placement: 'bottomLeft',
+          style: { borderLeft: '4px solid #1890ff' }
+        });
+      }
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['activeSprint', projectId] });
       refetchActive();
       refetchBacklog();
+
     } catch (error: any) {
-      console.error(error);
-      notifyApi.error({
-        message: 'Error',
-        description: error.message || 'Failed to complete sprint'
-      });
+      message.error(error.message || 'Failed to create sprint');
     } finally {
-      setCompletingSprint(false);
+      setCreatingSprintLoading(false);
     }
   };
 
@@ -453,14 +515,24 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   // Table columns generator
   const getColumns = (context: 'active' | 'backlog') => [
     {
-      title: "Ticket",
+      title: "ID",
       dataIndex: "ticketNumber",
       key: "ticketNumber",
-      width: 130,
-      render: (text: string) => (
-        <Text strong style={{ color: "#1677ff" }}>
+      width: 100,
+      render: (text: string, record: Ticket) => (
+        <span
+          onClick={() => handleViewTicket(record)}
+          style={{
+            cursor: 'pointer',
+            color: '#1677ff',
+            fontWeight: 500
+          }}
+          className="hover:underline"
+          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+        >
           {text}
-        </Text>
+        </span>
       ),
     },
     {
@@ -472,7 +544,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         const isEditing =
           editingField?.ticketId === record.id &&
           editingField?.field === "title";
-        const isHovered = hoveredTicketId === record.id;
+
         const isUpdating = updateTicketMutation.isPending && updateTicketMutation.variables?.id === record.id;
 
         if (isEditing) {
@@ -491,12 +563,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
         return (
           <div
+            className="group"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', minHeight: 22 }}
             onClick={() => setEditingField({ ticketId: record.id, field: "title" })}
             title={text} // Show full text on native tooltip as well
           >
             <Text ellipsis={{ tooltip: true }} style={{ flex: 1 }}>{displayText}</Text>
-            {isHovered && <EditOutlined style={{ color: '#1677ff', opacity: 0.7 }} />}
+            <EditOutlined
+              className="opacity-0 group-hover:opacity-70 transition-opacity"
+              style={{ color: '#1677ff' }}
+            />
           </div>
         );
       },
@@ -523,12 +599,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
-              options={[
-                { label: "Not Started", value: "not_started" },
-                { label: "In Progress", value: "in_progress" },
-                { label: "In Testing", value: "in_testing" },
-                { label: "Completed", value: "completed" },
-              ]}
+              options={STATUS_OPTIONS}
             />
           );
         }
@@ -746,55 +817,86 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       key: "actions",
       pinned: true,
       width: 150,
-      render: (_: any, record: Ticket) => (
-        <Space>
-          {/* Sprint Management Actions */}
-          <Space>
-            {context === 'backlog' && (
-              <Tooltip title="Add to Sprint">
-                <Button
-                  type="text"
-                  icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
-                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
-                />
-              </Tooltip>
-            )}
-            {context === 'active' && (
-              <Tooltip title="Remove from Sprint">
-                <Button
-                  type="text"
-                  danger
-                  icon={<MinusCircleOutlined />}
-                  onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
-                />
-              </Tooltip>
-            )}
-          </Space>
-          <Button
-            type="text"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewTicket(record)}
-          />
-          <Popconfirm
-            title="Delete Ticket"
-            description="Are you sure you want to delete this ticket?"
-            onConfirm={() => handleDeleteTicket(record)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              loading={deleteTicketMutation.isPending && deleteTicketMutation.variables === record.id}
-            >
+      render: (_: any, record: Ticket) => {
+        const handleShare = () => {
+          const url = `${window.location.origin}/public/tickets/${record.id}`;
+          navigator.clipboard.writeText(url);
+        };
 
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
+        const content = (
+          <div>
+            <p>Public link copied to clipboard!</p>
+          </div>
+        );
+
+        return (
+          <Space>
+            {/* Sprint Management Actions */}
+            <Space>
+              {context === 'backlog' && (
+                <Tooltip title="Add to Sprint">
+                  <Button
+                    type="text"
+                    icon={<PlusCircleOutlined style={{ color: '#52c41a' }} />}
+                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'add'); }}
+                  />
+                </Tooltip>
+              )}
+              {context === 'active' && (
+                <Tooltip title="Remove from Sprint">
+                  <Button
+                    type="text"
+                    danger
+                    icon={<MinusCircleOutlined />}
+                    onClick={(e) => { e.stopPropagation(); handleSprintAssignment(record.id, 'remove'); }}
+                  />
+                </Tooltip>
+              )}
+            </Space>
+
+            {/* Share Action with Popover */}
+            <Popover content="Link copied!" trigger="click">
+              <Tooltip title="Share Public Link">
+                <Button
+                  type="text"
+                  icon={<ShareAltOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShare();
+                  }}
+                />
+              </Tooltip>
+            </Popover>
+
+            {/* Delete Action with Popconfirm */}
+            <Popconfirm
+              title="Delete Ticket"
+              description="Are you sure you want to delete this ticket?"
+              onConfirm={() => handleDeleteTicket(record)}
+              onCancel={(e) => e?.stopPropagation()}
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Popconfirm>
+
+            {/* View Details */}
+            <Tooltip title="View Details">
+              <Button
+                type="text"
+                icon={<EyeOutlined />}
+                onClick={(e) => { e.stopPropagation(); handleViewTicket(record); }}
+              />
+            </Tooltip>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -843,28 +945,41 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       <Row justify="space-between" align="middle" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #f0f0f0' }}>
         <Col>
           <Space size="large">
-            {/* Project Name with Back Button */}
-            <Space size="small" className="items-center">
-              <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.push('/projects/select')}
-                style={{ padding: '4px 0', height: 'auto' }}
-              />
+            {/* Project Name with Back/Switch Buttons */}
+            <Space size="small" className="items-center gap-4">
+              <div className="flex items-center">
+                <Button
+                  type="link"
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => router.push('/projects/select?select=true')}
+                // style={{ padding: '4px 0', height: 'auto' }}
+                />
+                <Button
+                  size="small"
+                  // type="dashed"
+                  onClick={() => router.push('/projects/select?select=true')}
+                // style={{ marginLeft: 8 }}
+                >
+                  Switch Project
+                </Button>
+              </div>
+
               <Title level={3} style={{ margin: 0 }}>{projectName}</Title>
               <Tag color="blue">{projectCode}</Tag>
+              <Input
+                placeholder="Search requests..."
+                prefix={<SearchOutlined />}
+                style={{ width: 250 }}
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, search: e.target.value }))
+                }
+                allowClear
+              />
+
             </Space>
             {/* Search in Top Bar */}
-            <Input
-              placeholder="Search requests..."
-              prefix={<SearchOutlined />}
-              style={{ width: 250 }}
-              value={filters.search}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, search: e.target.value }))
-              }
-              allowClear
-            />
+
           </Space>
         </Col>
         <Col>
@@ -961,22 +1076,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     </Space>
                     <Space>
                       {activeSprint?.status === 'active' && (
-                        <Popconfirm
-                          title="Complete Sprint"
-                          description="Archive completed tickets and return incomplete tickets to backlog?"
-                          onConfirm={handleCompleteSprint}
-                          okText="Complete"
-                          cancelText="Cancel"
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<CheckCircleOutlined />}
+                          onClick={handleCompleteSprint}
                         >
-                          <Button
-                            type="primary"
-                            size="small"
-                            icon={<CheckCircleOutlined />}
-                            loading={completingSprint}
-                          >
-                            Complete Sprint
-                          </Button>
-                        </Popconfirm>
+                          Complete Sprint
+                        </Button>
                       )}
                       <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
                         {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
@@ -996,18 +1103,28 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   loading={activeSprintLoading}
                   pagination={false}
                   scroll={{ x: 1200 }}
-                  onRow={(record) => {
-                    return {
-                      onMouseEnter: () => setHoveredTicketId(record.id),
-                      onMouseLeave: () => setHoveredTicketId(null),
-                    };
-                  }}
+
                 />
               </Card>
             )}
 
           {/* Backlog Section */}
-          <Card title="Backlog" bodyStyle={{ padding: 10 }}>
+          <Card
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Text style={{ fontSize: '16px', fontWeight: 600 }}>Backlog</Text>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => setCreateSprintModalOpen(true)}
+                >
+                  Create Sprint
+                </Button>
+              </div>
+            }
+            bodyStyle={{ padding: 10 }}
+          >
             <Table
               columns={getColumns('backlog')}
               dataSource={backlogTickets}
@@ -1030,12 +1147,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 },
               }}
               scroll={{ x: 1200 }}
-              onRow={(record) => {
-                return {
-                  onMouseEnter: () => setHoveredTicketId(record.id),
-                  onMouseLeave: () => setHoveredTicketId(null),
-                };
-              }}
+
               locale={{
                 emptyText:
                   backlogTickets.length === 0 && !backlogLoading ? (
@@ -1099,6 +1211,62 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         open={!!selectedTicketId}
         onClose={() => setSelectedTicketId(null)}
       />
+
+      {/* Sprint Completion Modal */}
+      <SprintCompletionModal
+        sprintId={activeSprint?.id || null}
+        open={sprintCompletionModalOpen}
+        onClose={() => setSprintCompletionModalOpen(false)}
+        onSuccess={handleSprintCompletionSuccess}
+      />
+
+      {/* Create Sprint Modal */}
+      <Modal
+        title={
+          <Space direction="vertical" size={0}>
+            <Text strong>Create New Sprint</Text>
+            {activeSprint ? (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Will be created as "Planning" (draft sprint)
+              </Text>
+            ) : (
+              <Text type="success" style={{ fontSize: 12 }}>
+                Will become your active sprint immediately
+              </Text>
+            )}
+          </Space>
+        }
+        open={createSprintModalOpen}
+        onCancel={() => setCreateSprintModalOpen(false)}
+        footer={null}
+        width={500}
+      >
+        {activeSprint && (
+          <Alert
+            message="Creating Planning Sprint"
+            description={`You have an active sprint (${activeSprint.version}). This new sprint will be created as a draft and can be started after completing the current sprint.`}
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {!activeSprint && (
+          <Alert
+            message="Creating Active Sprint"
+            description="No active sprint found. This sprint will become active immediately and you can start adding tickets to it."
+            type="success"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        <SprintCreationForm
+          projectId={projectId}
+          loading={creatingSprintLoading}
+          onSubmit={handleCreateSprintFromBacklog}
+          onCancel={() => setCreateSprintModalOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }

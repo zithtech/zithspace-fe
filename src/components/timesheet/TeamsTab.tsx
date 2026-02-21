@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -32,7 +33,6 @@ import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
 import { useQueryClient } from "@tanstack/react-query";
 
-//import { TimesheetService } from "@/services/timesheetService";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useTimesheets, useTimesheetById } from "@/hooks/useTimesheet";
@@ -43,28 +43,20 @@ interface TimesheetRowUI {
   key: string;
   day: string;
   date: string;
-  // date: Dayjs;
   projectId?: string;
   taskId?: string;
   description?: string;
   hours?: number;
   billable?: boolean;
-  // status?: "Draft" | "Submitted";
   status?: "Draft" | "Submitted" | "Approved" | "Rejected";
   isSummary?: boolean;
-  employeeName: string; // ✅ Add this
+  employeeName: string;
   projectName?: string;
   taskName?: string;
 }
 
 const { Title, Text } = Typography;
 
-// type Props = {
-//   goToSubmitTimesheet: (
-//     id?: string,
-//     mode?: "edit" | "resubmit" | "view",
-//   ) => void;
-// };
 type Props = {
   goToSubmitTimesheet: (id?: string, mode?: "edit" | "resubmit") => void;
   onActionCompleted?: () => void;
@@ -82,11 +74,6 @@ export default function TeamsTab({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // const [selectedTimesheetId, setSelectedTimesheetId] = useState<string | null>(
-  //   null,
-  // );
-  // const { data: timesheetData, isLoading: isTimesheetLoading } =
-  //   useTimesheetById(selectedTimesheetId || undefined);
   const [selectedTimesheet, setSelectedTimesheet] = useState<any | null>(null);
 
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -107,31 +94,77 @@ export default function TeamsTab({
     setIsDescModalOpen(false);
     setSelectedDesc("");
   };
+  
   const openDesc = (desc: string) => {
     setSelectedDesc(desc);
     setIsDescModalOpen(true);
   };
 
-  const timesheetRows: TimesheetRowUI[] = selectedTimesheet
-    ? selectedTimesheet.rows.map((row: any, index: number) => ({
-        key: row.id,
-        id: row.id,
-        day: row.day,
-        date: dayjs(selectedTimesheet.weekStart)
-          .add(index, "day")
-          .format("MMM DD"),
-        employeeName:
-          selectedTimesheet.employeeName ||
-          selectedTimesheet.user?.name ||
-          "Unknown",
-        projectName: row.projectName,
-        taskName: row.taskName,
-        description: row.description || "",
-        hours: row.hours,
-        status: selectedTimesheet.status,
-        billable: row.billable,
-      }))
-    : [];
+  // Updated timesheetRows with dynamic date display
+// Updated timesheetRows with proper sorting by date
+// Simpler fix - just sort by date
+const timesheetRows: TimesheetRowUI[] = selectedTimesheet
+  ? [...selectedTimesheet.rows]
+      .sort((a: any, b: any) => {
+        // Sort by date in ascending order
+        let dateA, dateB;
+        
+        if (a.day) {
+          dateA = dayjs(a.day);
+        } else if (a.date) {
+          dateA = dayjs(a.date);
+        } else {
+          dateA = dayjs(selectedTimesheet.weekStart);
+        }
+        
+        if (b.day) {
+          dateB = dayjs(b.day);
+        } else if (b.date) {
+          dateB = dayjs(b.date);
+        } else {
+          dateB = dayjs(selectedTimesheet.weekStart);
+        }
+        
+        return dateA.valueOf() - dateB.valueOf();
+      })
+      .map((row: any, index: number) => {
+        // Get the actual date from the row
+        let displayDate = "";
+        let dayAbbr = "";
+        let dateObj;
+        
+        if (row.day) {
+          dateObj = dayjs(row.day);
+          displayDate = dateObj.format("MMM DD");
+          dayAbbr = dateObj.format("ddd");
+        } else if (row.date) {
+          dateObj = dayjs(row.date);
+          displayDate = dateObj.format("MMM DD");
+          dayAbbr = dateObj.format("ddd");
+        } else {
+          dateObj = dayjs(selectedTimesheet.weekStart).add(index, "day");
+          displayDate = dateObj.format("MMM DD");
+          dayAbbr = dateObj.format("ddd");
+        }
+
+        return {
+          key: row.id || `row-${index}-${Math.random()}`,
+          id: row.id,
+          day: dayAbbr,
+          date: displayDate,
+          employeeName:
+            selectedTimesheet.employeeName ||
+            selectedTimesheet.user?.name ||
+            "Unknown",
+          projectName: row.projectName,
+          taskName: row.taskName,
+          description: row.description || "",
+          hours: row.hours,
+          status: selectedTimesheet.status,
+          billable: row.billable,
+        };
+      })
+  : [];
 
   const { data: timesheetsData, isLoading } = useTimesheets();
   const timesheets = timesheetsData?.data || [];
@@ -151,9 +184,11 @@ export default function TeamsTab({
       return memberOk && weekOk;
     });
   }, [timesheets, selectedMembers, selectedWeek]);
+  
   useEffect(() => {
     console.log("Teams Table Data:", filteredData);
   }, [filteredData]);
+  
   const members = useMemo(() => {
     const map = new Map();
     timesheets.forEach((t) => {
@@ -170,12 +205,12 @@ export default function TeamsTab({
   const weekOptions = useMemo(() => {
     const weeks = [];
     for (let i = 0; i < 6; i++) {
-      const start = dayjs().startOf("week").subtract(i, "week"); // Sunday
-      const end = start.add(6, "day"); // Saturday
+      const start = dayjs().startOf("week").subtract(i, "week");
+      const end = start.add(6, "day");
 
       weeks.push({
         label: `${start.format("MMM DD")} – ${end.format("MMM DD")}`,
-        value: start.format("YYYY-MM-DD"), // IMPORTANT
+        value: start.format("YYYY-MM-DD"),
       });
     }
     return weeks;
@@ -189,7 +224,8 @@ export default function TeamsTab({
   const pendingCount = filteredData.filter(
     (t) => t.status === "SUBMITTED",
   ).length;
-    const rejectedCount = filteredData.filter(
+  
+  const rejectedCount = filteredData.filter(
     (t) => t.status === "REJECTED",
   ).length;
 
@@ -221,19 +257,16 @@ export default function TeamsTab({
         if (r.status === "APPROVED") {
           return (
             <Space>
-              {/* <Tag color="green">Approved</Tag>
-              <CheckCircleOutlined style={{ color: "#52c41a" }} /> */}
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 4, // 👈 control distance here
+                  gap: 4,
                 }}
               >
                 <Tag color="green" style={{ marginRight: 0 }}>
                   Approved
                 </Tag>
-                {/* <CheckCircleOutlined style={{ color: "#52c41a" }} /> */}
               </span>
             </Space>
           );
@@ -243,7 +276,6 @@ export default function TeamsTab({
           return (
             <Space>
               <Tag color="red">Rejected</Tag>
-              {/* <WarningOutlined style={{ color: "#fa8c16" }} /> */}
             </Space>
           );
         }
@@ -275,12 +307,8 @@ export default function TeamsTab({
                 key: "view",
                 icon: <EyeOutlined />,
                 label: "View",
-                // onClick: () => {
-                //   setSelectedTimesheetId(r.id); // save the timesheet ID
-                //   setIsModalOpen(true); // open modal
-                // },
                 onClick: () => {
-                  setSelectedTimesheet(r); // 👈 store full timesheet
+                  setSelectedTimesheet(r);
                   setIsModalOpen(true);
                 },
               },
@@ -292,6 +320,7 @@ export default function TeamsTab({
       ),
     },
   ];
+
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedTimesheet(null);
@@ -377,7 +406,7 @@ export default function TeamsTab({
                 Approved: {approvedCount}
               </Tag>
               <Tag color="orange">Pending: {pendingCount}</Tag>
-               <Tag color="red">Rejected: {rejectedCount}</Tag>
+              <Tag color="red">Rejected: {rejectedCount}</Tag>
             </div>
           </div>
 
@@ -408,7 +437,6 @@ export default function TeamsTab({
         <Divider />
         <div style={{ marginTop: 20 }}>
           <Table
-            //className="compact-table"
             columns={columns}
             dataSource={filteredData}
             rowKey="id"
@@ -460,10 +488,10 @@ export default function TeamsTab({
 
                 <Tag
                   style={{
-                    fontSize: 11, // smaller text
+                    fontSize: 11,
                     fontWeight: 500,
-                    padding: "0 6px", // reduce height
-                    lineHeight: "18px", // compact height
+                    padding: "0 6px",
+                    lineHeight: "18px",
                   }}
                   color={
                     selectedTimesheet?.status === "APPROVED"
@@ -522,7 +550,6 @@ export default function TeamsTab({
                 }}
                 icon={<ExportOutlined />}
                 onClick={() => {
-                  // Prepare rows for export
                   const exportRows: TimesheetRowUI[] = timesheetRows.map(
                     (r) => ({
                       ...r,
@@ -546,7 +573,6 @@ export default function TeamsTab({
           </div>
         }
         open={isModalOpen}
-        //onOk={closeModal}
         onCancel={closeModal}
         footer={[
           <Button key="cancel" onClick={closeModal}>
@@ -557,60 +583,60 @@ export default function TeamsTab({
       >
         {timesheetRows.length > 0 ? (
           <Table<TimesheetRowUI>
-            columns={[
-              { title: "Date", dataIndex: "date", key: "date" },
-              {
-                title: "Project",
-                dataIndex: "projectName",
-                key: "projectName",
-              },
-              { title: "Task", dataIndex: "taskName", key: "taskName" },
-              {
-                title: "Description",
-                render: (_: any, r) => {
-                  const preview = r.description
-                    ? r.description.slice(0, 30)
-                    : ""; // show first 30 chars
-                  const hasMore = r.description && r.description.length > 30;
+  columns={[
+    { title: "Date", dataIndex: "date", key: "date" },
+    { title: "Day", dataIndex: "day", key: "day" },
+    {
+      title: "Project",
+      dataIndex: "projectName",
+      key: "projectName",
+    },
+    { title: "Task", dataIndex: "taskName", key: "taskName" },
+    {
+      title: "Description",
+      render: (_: any, r) => {
+        const preview = r.description
+          ? r.description.slice(0, 30)
+          : "";
+        const hasMore = r.description && r.description.length > 30;
 
-                  return (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <span>
-                        {preview}
-                        {hasMore ? "..." : ""}
-                      </span>
-                      {r.description && r.description.length > 0 && (
-                        <Button
-                          type="text"
-                          icon={<EyeOutlined />}
-                          onClick={() => {
-                            setSelectedDesc(r.description || ""); // set description
-                            setIsDescModalOpen(true); // open modal
-                          }}
-                        />
-                      )}
-                    </div>
-                  );
-                },
-                dataIndex: "description",
-                key: "description",
-              },
-              { title: "Hours", dataIndex: "hours", key: "hours" },
-            ]}
-            dataSource={timesheetRows}
-            rowKey="key"
-            pagination={false}
-            size="small"
-          />
+        return (
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 8 }}
+          >
+            <span>
+              {preview}
+              {hasMore ? "..." : ""}
+            </span>
+            {r.description && r.description.length > 0 && (
+              <Button
+                type="text"
+                icon={<EyeOutlined />}
+                onClick={() => {
+                  setSelectedDesc(r.description || "");
+                  setIsDescModalOpen(true);
+                }}
+              />
+            )}
+          </div>
+        );
+      },
+      dataIndex: "description",
+      key: "description",
+    },
+    { title: "Hours", dataIndex: "hours", key: "hours" },
+  ]}
+  dataSource={timesheetRows}
+  rowKey="key"
+  pagination={false}
+  size="small"
+/>
         ) : (
           <p>No data found</p>
         )}
       </Modal>
 
       {/* rejected drawer */}
-
       <Drawer
         title={
           <Space>
@@ -634,13 +660,11 @@ export default function TeamsTab({
           />
         }
       >
-        {/* Description */}
         <Text type="secondary">
           Provide a reason for rejecting this timesheet. The employee will be
           notified and can make corrections.
         </Text>
 
-        {/* Warning Card */}
         <div
           style={{
             marginTop: 20,
@@ -660,7 +684,6 @@ export default function TeamsTab({
           </Text>
         </div>
 
-        {/* Quick Reasons */}
         <div style={{ marginTop: 28 }}>
           <Text strong style={{ fontSize: 15 }}>
             Quick Reasons
@@ -687,7 +710,6 @@ export default function TeamsTab({
           </Space>
         </div>
 
-        {/* Reason Input */}
         <div style={{ marginTop: 28 }}>
           <Text strong style={{ fontSize: 15 }}>
             Rejection Reason <Text type="danger">*</Text>
@@ -702,7 +724,6 @@ export default function TeamsTab({
           />
         </div>
 
-        {/* Footer */}
         <div
           style={{
             position: "absolute",
@@ -718,49 +739,16 @@ export default function TeamsTab({
           }}
         >
           <Button onClick={() => setRejectOpen(false)}>Cancel</Button>
-          {/* <Button
-            danger
-            type="primary"
-            loading={loading}
-            disabled={!rejectReason}
-            onClick={async () => {
-              if (!timesheetId) return;
-
-              try {
-                setLoading(true);
-                // await reviewTimesheet(timesheetId, "reject", rejectReason);
-                await reviewTimesheet(timesheetId, "REJECTED", rejectReason);
-
-                setStatus("Rejected"); // UI update
-                setRejectOpen(false); // close drawer
-                setRejectedReason(rejectReason);
-                setRejectReason("");
-                setShowRejectedModal(true); // success modal
-              } catch (err) {
-                console.error("Rejection failed:", err);
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            Confirm Rejection
-          </Button> */}
           <Button
             danger
             type="primary"
             loading={loading}
             disabled={!rejectReason}
             onClick={async () => {
-              //if (!selectedTimesheetId) return;
               if (!selectedTimesheet?.id) return;
 
               try {
                 setLoading(true);
-                // await reviewTimesheet(
-                //   selectedTimesheetId,
-                //   "REJECTED",
-                //   rejectReason,
-                // );
                 await reviewTimesheet(
                   selectedTimesheet.id,
                   "REJECTED",
@@ -835,40 +823,15 @@ export default function TeamsTab({
               <Button key="cancel" onClick={() => setApproveOpen(false)}>
                 Cancel
               </Button>,
-              // <Button
-              //   key="confirm"
-              //   type="primary"
-              //   loading={loading}
-              //   onClick={async () => {
-              //     if (!timesheetId) return;
-
-              //     try {
-              //       setLoading(true);
-              //       await reviewTimesheet(timesheetId, "APPROVED");
-
-              //       setStatus("Approved"); // UI update
-              //       setApproveOpen(false); // close modal
-              //       setShowApprovedModal(true); // success modal
-              //     } catch (err) {
-              //       console.error("Approval failed:", err);
-              //     } finally {
-              //       setLoading(false);
-              //     }
-              //   }}
-              // >
-              //   Confirm Approval
-              // </Button>
               <Button
                 key="confirm"
                 type="primary"
                 loading={loading}
                 onClick={async () => {
-                  //if (!selectedTimesheetId) return;
                   if (!selectedTimesheet?.id) return;
 
                   try {
                     setLoading(true);
-                    //await reviewTimesheet(selectedTimesheetId, "APPROVED");
                     await reviewTimesheet(selectedTimesheet.id, "APPROVED");
 
                     setStatus("Approved");
@@ -902,38 +865,6 @@ export default function TeamsTab({
               cannot be edited.
             </Text>
           </Modal>
-          {/* //approve success modal */}
-          {/* <Modal
-            open={showApprovedModal}
-            onCancel={() => setShowApprovedModal(false)}
-            centered
-            footer={[
-              <Button
-                key="ok"
-                type="primary"
-                onClick={() => {
-                  setShowApprovedModal(false);
-                  setIsModalOpen(false);
-                  onActionCompleted?.();
-                }}
-              >
-                OK
-              </Button>,
-            ]}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <CheckCircleOutlined style={{ fontSize: 24, color: "#52c41a" }} />
-              <div>
-                <Text strong style={{ fontSize: 16 }}>
-                  Timesheet Approved
-                </Text>
-                <br />
-                <Text type="secondary">
-                  The timesheet has been successfully approved.
-                </Text>
-              </div>
-            </div>
-          </Modal> */}
 
           <Modal
             title="Description"

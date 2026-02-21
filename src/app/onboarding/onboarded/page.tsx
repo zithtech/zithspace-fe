@@ -52,6 +52,7 @@ import { EmployeeOnboardingService } from "@/services/onboardingService";
 import EmployeeHistoryEditForm from "./Employeehistoryeditform";
 import EmployeeHistoryView from "./EmployeeHistoryViews";
 import router from "next/dist/shared/lib/router/router";
+import { useRouter } from "next/dist/client/components/navigation";
 
 const { Option } = Select;
 
@@ -1688,6 +1689,7 @@ const Onboarded = () => {
     previousCompanyDetails: companyHistoryForm,
     assets: assetsForm,
   };
+  const router = useRouter();
 
   // ✅ Fetch All Employees
   const fetchEmployees = async (background = false) => {
@@ -2089,15 +2091,11 @@ const Onboarded = () => {
       title: t,
       render: (_: any, r: any) => (
         <Space>
-          <Tag
-            color={c}
-            style={{ cursor: "pointer" }}
-            onClick={() => openView(r, k)}
-          >
+          <Tag style={{ cursor: "pointer" }} onClick={() => openView(r, k)}>
             <EyeOutlined />
           </Tag>
           <EditOutlined
-            style={{ color: c, cursor: "pointer" }}
+            style={{ cursor: "pointer" }}
             onClick={() => openEdit(r, k)}
           />
         </Space>
@@ -2209,139 +2207,156 @@ const Onboarded = () => {
           gap: "15px",
         }}
       >
-        <div>
-          <h2
-            style={{ marginBottom: 16, fontSize: "26px", fontWeight: "bold" }}
-          >
-            <ApartmentOutlined
-              style={{ fontSize: "24px", fontWeight: "bold" }}
-            />{" "}
-            Employee Management
-          </h2>
-          <p
-            style={{
-              color: "grey",
-              paddingBottom: "10px",
-            }}
-          >
-            Managing employee records and activities.
-          </p>
-        </div>
-
-        <div
+        <Card
+          bordered={false}
           style={{
-            display: "flex",
-            flexDirection: "row",
-            gap: "20px",
-            alignItems: "center", // 👈 Align both properly
-            justifyContent: "start",
+            borderRadius: 12,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
+            padding: 24,
           }}
         >
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Search employees..."
+          {/* 🔹 Header Section */}
+          <div
             style={{
-              borderRadius: 12,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              height: 50,
-              width: 240, // 👈 Increased width
               display: "flex",
-              alignItems: "center",
-            }}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          <Card
-            bordered={false}
-            bodyStyle={{ padding: "0 20px" }}
-            style={{
-              borderRadius: 12,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              height: 50,
-              width: 240, // 👈 Increased width
-              display: "flex",
-              alignItems: "center",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: 20,
+              flexWrap: "wrap",
+              gap: 16,
             }}
           >
+            {/* Left Side - Title + Description */}
+            <div>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 22,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <ApartmentOutlined style={{ color: "#1677ff" }} />
+                Employee Management
+              </h2>
+
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  color: "#8c8c8c",
+                  fontSize: 13,
+                }}
+              >
+                Managing employee records and activities.
+              </p>
+              <div
+                style={{
+                  marginTop: 6,
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: 8,
+                  alignItems: "center",
+                }}
+              >
+                <Tag
+                  // size="small"
+                  //  icon={<UserOutlined style={{ fontSize: 12 }} />}
+                  style={{
+                    background: "#e6f4ff",
+                    color: "#1677ff",
+                    border: "1px solid #91caff",
+                    borderRadius: 16,
+                    fontSize: 12,
+                    padding: "0 8px",
+                    lineHeight: "20px",
+                  }}
+                >
+                  Total Members : {totalMembers}
+                </Tag>
+
+                <Tag
+                  //size="small"
+                  style={{
+                    background: "#f6ffed",
+                    color: "#52c41a",
+                    border: "1px solid #b7eb8f",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    padding: "0 10px",
+                  }}
+                >
+                  Active : 0
+                </Tag>
+
+                {/* Inactive */}
+                <Tag
+                  // size="small"
+                  style={{
+                    background: "#fff1f0",
+                    color: "#ff4d4f",
+                    border: "1px solid #ffa39e",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    padding: "0 10px",
+                  }}
+                >
+                  Inactive : 0
+                </Tag>
+              </div>
+            </div>
+
+            {/* Right Side - Search + Count + Button */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "30px", // 👈 Gap between title and icon section
-                width: "100%",
+                gap: 14,
+                flexWrap: "wrap",
               }}
             >
-              {/* TITLE */}
-              <div style={{ color: "#595959", fontSize: 14 }}>
-                Total Members
-              </div>
-
-              {/* ICON + NUMBER */}
-              <div
+              {/* Search */}
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder="Search employees..."
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
+                  borderRadius: 8,
+                  width: 240,
+                  height: 36,
                 }}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+
+              {/* Add Button */}
+              <Button
+                type="primary"
+                style={{
+                  height: 36,
+                  borderRadius: 8,
+                  padding: "0 18px",
+                }}
+                onClick={() => router.push("/onboarding/create")}
               >
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: "50%",
-                    background: "#6397df",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    fontSize: 14,
-                  }}
-                >
-                  <UserOutlined />
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: "#1677ff",
-                  }}
-                >
-                  {totalMembers}
-                </div>
-              </div>
+                + Add Employee
+              </Button>
             </div>
-          </Card>
-          <Button
-            style={{ width: "220px", height: "40px" }}
-            type="primary"
-            // onClick={() => router.push("/onboarding/create")}
-          >
-            + Add Employee
-          </Button>
-        </div>
-
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "50px" }}>
-            <Spin size="large" />
           </div>
-        ) : (
-          <>
+
+          {/* 🔹 Table Section */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin size="large" />
+            </div>
+          ) : (
             <Table
               dataSource={filtered}
               columns={columns}
               rowKey="id"
               pagination={{ pageSize: 10 }}
             />
-            {filtered.length === 0 && !loading && (
-              <div
-                style={{ textAlign: "center", padding: "50px", color: "#999" }}
-              >
-                No employees found
-              </div>
-            )}
-          </>
-        )}
+          )}
+        </Card>
 
         {/* VIEW DRAWER */}
         <Drawer

@@ -76,7 +76,7 @@ interface DashboardSummary {
 interface PresentEmployee {
   id: string;
   name: string;
-  position: string;
+  position: string | { id: string; title: string; code: string; } | null;
   status: string;
   clockInTime: string;
   shift: {
@@ -491,7 +491,7 @@ export default function AttendancePage() {
       key: 'member',
       width: 180,
       render: (_, record: ExtendedAttendance) => {
-        const member = typeof record.member === 'object' ? record.member : null;
+        const member:any = typeof record.member === 'object' ? record.member : null;
         return member ? (
           <Space>
             <Avatar
@@ -510,7 +510,7 @@ export default function AttendancePage() {
               </Text>
               <br />
               <Text type="secondary" style={{ fontSize: 11 }}>
-                {member.position}
+                {member.position?.title || 'N/A'}
               </Text>
             </div>
           </Space>
@@ -628,7 +628,7 @@ export default function AttendancePage() {
       key: 'member',
       width: 180,
       render: (_, record: ExtendedAttendance) => {
-        const member = typeof record.member === 'object' ? record.member : null;
+        const member:any = typeof record.member === 'object' ? record.member : null;
         return member ? (
           <Space>
             <Avatar
@@ -647,7 +647,7 @@ export default function AttendancePage() {
               </Text>
               <br />
               <Text type="secondary" style={{ fontSize: 11 }}>
-                {member.position}
+                {member.position?.title || 'N/A'}
               </Text>
             </div>
           </Space>
@@ -991,7 +991,7 @@ export default function AttendancePage() {
                 }
                 description={
                   <Space split={<Divider type="vertical" />}>
-                    <Text type="secondary">{employee?.position}</Text>
+                    <Text type="secondary">{typeof employee?.position === 'object' ? employee?.position?.title : employee?.position || 'N/A'}</Text>
                     <Text type="secondary">
                       Clock In: {dayjs(employee?.clockInTime).format('HH:mm')}
                     </Text>
@@ -1402,7 +1402,7 @@ export default function AttendancePage() {
               >
                 {members.map((member) => (
                   <Option key={member.id} value={member.id}>
-                    {member.name} - {member.position}
+                    {member.name} - {member.position?.title || 'N/A'}
                   </Option>
                 ))}
               </Select>

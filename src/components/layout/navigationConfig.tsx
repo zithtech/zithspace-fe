@@ -1,69 +1,69 @@
-import React from "react";
+import React from 'react';
 import {
-  DashboardOutlined,
-  TeamOutlined,
-  ProjectOutlined,
-  UserOutlined,
-  ClockCircleOutlined,
-  DollarOutlined,
-  SettingOutlined,
-  FileTextOutlined,
-  PlusCircleOutlined,
-  UnorderedListOutlined,
-  CalendarOutlined,
-  ControlOutlined,
-  MoneyCollectOutlined,
-  ProfileOutlined,
-  FileAddOutlined,
-  SnippetsOutlined,
-  InboxOutlined,
-  DeleteOutlined,
-  FolderOpenOutlined,
-  AccountBookOutlined,
-  BarChartOutlined,
-  FileZipOutlined,
-  TransactionOutlined,
-  EyeOutlined,
-  FolderOutlined,
-  RocketOutlined,
-  FormOutlined,
-  CheckSquareOutlined,
-  DatabaseOutlined,
-  ReconciliationOutlined,
-  FileDoneOutlined,
-  WalletOutlined,
-  UserAddOutlined,
-  SafetyOutlined,
-  SolutionOutlined,
-  ApartmentOutlined,
-  BankOutlined,
-  FileSyncOutlined,
-  EditOutlined,
-  EyeInvisibleOutlined,
-  CalendarTwoTone,
-  UsergroupAddOutlined,
-  HomeOutlined,
-  AppstoreOutlined,
-} from "@ant-design/icons";
+    DashboardOutlined,
+    TeamOutlined,
+    ProjectOutlined,
+    UserOutlined,
+    ClockCircleOutlined,
+    DollarOutlined,
+    SettingOutlined,
+    FileTextOutlined,
+    PlusCircleOutlined,
+    UnorderedListOutlined,
+    CalendarOutlined,
+    ControlOutlined,
+    MoneyCollectOutlined,
+    ProfileOutlined,
+    FileAddOutlined,
+    SnippetsOutlined,
+    InboxOutlined,
+    DeleteOutlined,
+    FolderOpenOutlined,
+    AccountBookOutlined,
+    BarChartOutlined,
+    FileZipOutlined,
+    TransactionOutlined,
+    EyeOutlined,
+    FolderOutlined,
+    RocketOutlined,
+    FormOutlined,
+    CheckSquareOutlined,
+    DatabaseOutlined,
+    ReconciliationOutlined,
+    FileDoneOutlined,
+    WalletOutlined,
+    UserAddOutlined,
+    SafetyOutlined,
+    SolutionOutlined,
+    ApartmentOutlined,
+    BankOutlined,
+    FileSyncOutlined,
+    EditOutlined,
+    EyeInvisibleOutlined,
+    CalendarTwoTone,
+    UsergroupAddOutlined,
+    HomeOutlined,
+    AppstoreOutlined,
+} from '@ant-design/icons';
 
-export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
+export type ModuleType = 'HOME' | 'WORK' | 'HRMS' | 'FINANCE' | 'ADMIN';
 
 export interface NavItem {
-  key: string;
-  label: string;
-  icon?: React.ReactNode;
-  path?: string;
-  children?: NavItem[];
-  disabled?: boolean;
+    key: string;
+    label: string;
+    icon?: React.ReactNode;
+    path?: string;
+    children?: NavItem[];
+    disabled?: boolean;
 }
 
 export interface ModuleConfig {
-  key: ModuleType;
-  label: string;
-  icon?: React.ReactNode; // Icon for TopNav display
-  pathPrefixes: string[]; // URLs starting with these belong to this module
-  items: NavItem[];
-  defaultPath?: string; // Optional default path to navigate to when module is selected
+    key: ModuleType;
+    label: string;
+    icon?: React.ReactNode; // Icon for TopNav display
+    pathPrefixes: string[]; // URLs starting with these belong to this module
+    items: NavItem[];
+    defaultPath?: string; // Optional default path to navigate to when module is selected
 }
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
@@ -87,11 +87,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     label: "WORK",
     icon: <ProjectOutlined />,
     pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates"],
-    defaultPath: "/projects",
+    defaultPath: "/projects/select",
     items: [
       {
         key: "projects-group",
-        label: "Projects & Tickets",
+        label: "Tickets",
         icon: <ProjectOutlined />,
         children: [
           {
@@ -100,12 +100,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <DashboardOutlined />,
             path: "/projects",
           },
-          {
-            key: "/projects/manage",
-            label: "Projects",
-            icon: <FolderOutlined />,
-            path: "/projects/manage",
-          },
+        //   {
+        //     key: "/projects/manage",
+        //     label: "Projects",
+        //     icon: <FolderOutlined />,
+        //     path: "/projects/manage",
+        //   },
           {
             key: "/projects/plans",
             label: "Plans",
@@ -151,30 +151,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        key: "releasenotes",
-        icon: <FileTextOutlined />,
-        label: "Release Notes",
-        children: [
-          {
-            key: "/releasenotes/dashboard",
-            path: "/releasenotes/dashboard",
-            icon: <AppstoreOutlined />,
-            label: "Dashboard",
+            key: "/projects/manage",
+            label: "Projects",
+            icon: <FolderOutlined />,
+            path: "/projects/manage",
           },
-          {
-            key: "/releasenotes",
-            path: "/releasenotes",
-            icon: <FileTextOutlined />,
-            label: "Release",
-          },
-          {
-            key: "/releasenotes/settings",
-            path: "/releasenotes/settings",
-            icon: <SettingOutlined />,
-            label: "Settings",
-          },
-        ],
-      },
       {
         key: "timesheet",
         label: "Timesheet",
@@ -205,6 +186,31 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Document Hub",
         icon: <FolderOpenOutlined />,
         path: "/documenthub",
+      },
+      {
+        key: "releasenotes",
+        icon: <FileTextOutlined />,
+        label: "Release Notes",
+        children: [
+          {
+            key: "/releasenotes/dashboard",
+            path: "/releasenotes/dashboard",
+            icon: <AppstoreOutlined />,
+            label: "Dashboard",
+          },
+          {
+            key: "/releasenotes",
+            path: "/releasenotes",
+            icon: <FileTextOutlined />,
+            label: "Release",
+          },
+          {
+            key: "/releasenotes/settings",
+            path: "/releasenotes/settings",
+            icon: <SettingOutlined />,
+            label: "Settings",
+          },
+        ],
       },
     ],
   },

@@ -724,3 +724,161 @@ body {
   overflow: hidden !important;
 }
 
+
+
+
+
+
+
+
+
+
+/* .fade-table {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} */
+/* Force smooth hover fade */
+/* .ant-table-tbody > tr.ant-table-row > td {
+  transition: background-color 0.35s ease-in-out;
+} */
+
+/* Override AntD default hover */
+/* .ant-table-tbody > tr.ant-table-row:hover > td {
+  background-color: #f5f7fa !important;
+}
+
+
+
+.no-column-border td {
+  border-bottom: none !important;
+}
+.ant-table-expanded-row {
+  animation: fadeExpand 0.4s ease;
+}
+
+@keyframes fadeExpand {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+} */
+
+/* Default state */
+/* .table-hover-wrapper {
+  transition: all 0.35s ease-in-out;
+} */
+
+/* Hover on full table */
+/* .table-hover-wrapper:hover {
+  transform: translateY(-4px);
+} */
+
+/* Smooth fade inside table */
+/* .table-hover-wrapper .ant-table {
+  transition: box-shadow 0.35s ease;
+}
+
+.table-hover-wrapper:hover .ant-table {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+} */
+
+
+
+/* Smooth transition */
+/* .ant-table-tbody > tr.ant-table-row {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+} */
+
+/* Hover */
+/* .ant-table-tbody > tr.ant-table-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+} */
+
+/* CLICK (while mouse pressed) */
+/* .ant-table-tbody > tr.ant-table-row:active {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+} */
+
+/* When row has input focused (TextArea click) */
+/* .ant-table-tbody > tr.ant-table-row:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  background-color: #e6f4ff;
+}
+
+  
+
+
+
+.table-row-light {
+  background: #ffffff;
+}
+
+.table-row-dark {
+  background: #fafafa;
+} */
+/* SideNav.css */
+
+/* Custom scrollbar for sidebar */
+.sidebar-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.sidebar-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Icons only mode - ensure icons are centered */
+.ant-layout-sider-collapsed .ant-menu-item {
+    padding: 0 calc(50% - 10px) !important;
+    display: flex;
+    justify-content: center;
+}
+
+.ant-layout-sider-collapsed .ant-menu-submenu-title {
+    padding: 0 calc(50% - 10px) !important;
+    display: flex;
+    justify-content: center;
+}
+
+/* Remove extra padding/margin when collapsed */
+.ant-layout-sider-collapsed .ant-menu-item .anticon,
+.ant-layout-sider-collapsed .ant-menu-submenu-title .anticon {
+    margin-right: 0 !important;
+    font-size: 18px;
+}
+
+/* Ensure submenu popups look good */
+.ant-menu-submenu-popup {
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

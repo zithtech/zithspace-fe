@@ -8,7 +8,8 @@ import {
     SettingOutlined,
     LogoutOutlined,
     MenuUnfoldOutlined,
-    MenuFoldOutlined
+    MenuFoldOutlined,
+    CalendarOutlined
 } from '@ant-design/icons';
 import { Inbox } from '@novu/nextjs';
 import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
@@ -179,6 +180,12 @@ export default function TopNav({
                     type="text"
                     icon={<MailOutlined />}
                     onClick={() => router.push('/mail')}
+                />
+
+                <Button
+                    type="text"
+                    icon={<CalendarOutlined />}
+                    onClick={() => router.push('/calendar')}
                 />
 
                 <Button

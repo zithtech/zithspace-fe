@@ -22,15 +22,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
-  const [activeModule, setActiveModule] = useState<ModuleType>('WORK');
+  const [activeModule, setActiveModule] = useState<ModuleType>("WORK");
 
   // Determine active module based on current path
   useEffect(() => {
     if (!pathname) return;
 
     // Find module that matches the path prefix
-    const foundModule = NAVIGATION_CONFIG.find(module =>
-      module.pathPrefixes.some(prefix => pathname.startsWith(prefix))
+    const foundModule = NAVIGATION_CONFIG.find((module) =>
+      module.pathPrefixes.some((prefix) => pathname.startsWith(prefix)),
     );
 
     if (foundModule) {
@@ -41,9 +41,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Connect to user stream for global notifications
   useEffect(() => {
     if (user?.id) {
-      // Using require to avoid SSR issues if streamClient is not SSR friendly, 
+      // Using require to avoid SSR issues if streamClient is not SSR friendly,
       // or just following existing pattern.
-      const { streamClient } = require('@/services/streamClient');
+      const { streamClient } = require("@/services/streamClient");
 
       streamClient.connectUser(user.id);
 
@@ -54,14 +54,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
         notification.info({
           key,
           message: `New message from ${data.senderName}`,
-          description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
-          placement: 'topRight',
+          description:
+            data.content.substring(0, 50) +
+            (data.content.length > 50 ? "..." : ""),
+          placement: "topRight",
           duration: 4.5,
           onClick: () => {
             notification.destroy(key);
             router.push(`/chat/${data.channelId}`);
           },
-          style: { cursor: 'pointer' }
+          style: { cursor: "pointer" },
         });
       });
 
@@ -70,7 +72,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
       };
     }
   }, [user?.id, pathname, router, notification]);
-
 
   const handleLogout = async () => {
     try {
@@ -86,7 +87,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }
 
   if (!user) {
-    router.push('/login');
+    router.push("/login");
     return null;
   }
 
@@ -116,7 +117,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             transition: "all 0.2s",
             height: "calc(100vh - 64px)",
             overflow: "auto",
-            position: 'relative'
+            position: "relative",
           }}
         >
           {children}

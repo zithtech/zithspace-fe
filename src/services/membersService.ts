@@ -6,7 +6,10 @@ export interface Member {
   workEmail: string; // Changed from email
   personalEmail: string;
   role: string; // Changed from enum to flexible string
-  position: string; // Changed from enum to flexible string
+  position?: {
+    id: string;
+    title: string;
+  } | null;
   phone: string;
   reportsTo?: {
     id: string; // Changed from id
@@ -24,7 +27,7 @@ export interface CreateMemberData {
   workEmail: string;
   personalEmail: string;
   role: string; // Changed from enum to flexible string
-  position: string; // Changed from enum to flexible string
+  positionId: string; // Changed to ID
   phone: string;
   password: string;
   reportsToId?: string | null; // Changed from reportsTo to reportsToId
@@ -39,7 +42,7 @@ export interface UpdateMemberData {
   workEmail: string;
   personalEmail: string;
   role: string; // Changed from enum to flexible string
-  position: string; // Changed from enum to flexible string
+  positionId?: string; // Changed to ID
   phone: string;
   reportsToId?: string | null; // Changed from reportsTo to reportsToId
   isActive: boolean;
@@ -83,6 +86,20 @@ export class MembersService {
         throw new Error(error.message);
       }
       throw new Error('Failed to fetch member');
+    }
+  }
+
+  /**
+   * Get a single member by User ID
+   */
+  static async getMemberByUserId(userId: string): Promise<Member> {
+    try {
+      return await api.get<Member>(`/api/members/user/${userId}`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to fetch member by user ID');
     }
   }
 

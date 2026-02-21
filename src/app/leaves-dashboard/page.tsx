@@ -473,15 +473,15 @@ export default function LeavesDashboardPage() {
                       <Col>
                         <div
                           style={{
-                            width: 32,
-                            height: 32,
+                            width: 25,
+                            height: 25,
                             borderRadius: "50%",
                             background: "#faad14",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             color: "#fff",
-                            fontSize: 16,
+                            fontSize: 12,
                           }}
                         >
                           <CalendarOutlined />

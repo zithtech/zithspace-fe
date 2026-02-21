@@ -51,7 +51,8 @@ const PersonalDetails = () => {
       <Card
         style={{
           borderRadius: 12,
-          padding: 16, // reduced from default
+          padding: 16,
+          // reduced from default
         }}
       >
         <Row gutter={[16, 10]}>

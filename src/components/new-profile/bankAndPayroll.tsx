@@ -121,7 +121,7 @@ const labelStyle = {
 const ViewBox = ({ label, value }: { label: string; value: string }) => (
   <div>
     <label style={labelStyle}>{label}</label>
-    <Input value={value} readOnly />
+    <Input style={{ fontWeight: 600 }} value={value} readOnly />
   </div>
 );
 

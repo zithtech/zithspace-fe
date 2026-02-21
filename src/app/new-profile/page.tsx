@@ -3,9 +3,10 @@
 import React from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useState } from "react";
-import { Segmented, Card } from "antd";
+import { Segmented, Card, Tabs } from "antd";
 import PersonalDetails from "@/components/new-profile/personaldetailes";
 import BankAndPayroll from "@/components/new-profile/bankAndPayroll";
+import EmployeeHistory from "@/components/new-profile/employeeHistory";
 
 const NewProfilePage = () => {
   //const [name, setName] = useState("");
@@ -355,11 +356,11 @@ const NewProfilePage = () => {
             width: "80%",
             height: "100vh",
             marginLeft: "22%",
-            // width: "calc(100% - 20%)",
             padding: "10px",
             gap: "12px",
           }}
         >
+          {/* 🔹 Header */}
           <div>
             <h1
               style={{
@@ -367,8 +368,6 @@ const NewProfilePage = () => {
                 fontSize: "18px",
                 fontWeight: 700,
                 color: color.text,
-                display: "flex",
-                gap: "6px",
               }}
             >
               Employee Details
@@ -377,24 +376,70 @@ const NewProfilePage = () => {
               View employee information...!
             </p>
           </div>
-          <div style={{ position: "sticky" }}>
-            {/* 🔹 Segmented Header */}
-            <Segmented
-              options={[
-                { label: "Personal Details", value: "personal" },
-                { label: "Bank & Payroll", value: "bank" },
+
+          {/* 🔹 Segmented + Content Wrapper */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+              overflow: "auto",
+            }}
+          >
+            <Tabs
+              activeKey={selectedTab}
+              onChange={(key) => setSelectedTab(key)}
+              items={[
+                {
+                  key: "personal",
+                  label: "Personal Details",
+                  children: (
+                    <div
+                      style={{
+                        height: "100%",
+                        overflowY: "auto",
+                        paddingRight: "6px",
+                      }}
+                    >
+                      <PersonalDetails />
+                    </div>
+                  ),
+                },
+                {
+                  key: "bank",
+                  label: "Bank & Payroll",
+                  children: (
+                    <div
+                      style={{
+                        height: "100%",
+                        overflowY: "auto",
+                        paddingRight: "6px",
+                      }}
+                    >
+                      <BankAndPayroll />
+                    </div>
+                  ),
+                },
+                {
+                  key: "history",
+                  label: "History",
+                  children: (
+                    <div
+                      style={{
+                        height: "100%",
+                        overflowY: "auto",
+                        paddingRight: "6px",
+                      }}
+                    >
+                      <EmployeeHistory />
+                    </div>
+                  ),
+                },
               ]}
-              value={selectedTab}
-              onChange={(value) => setSelectedTab(value as string)}
-              style={{ marginBottom: 20 }}
+              style={{ flex: 1 }}
             />
-
-            {/* 🔹 Conditional Rendering */}
-            {selectedTab === "personal" && <PersonalDetails />}
-            {selectedTab === "bank" && <BankAndPayroll />}
           </div>
-
-          {/* end div */}
         </div>
       </div>{" "}
     </MainLayout>

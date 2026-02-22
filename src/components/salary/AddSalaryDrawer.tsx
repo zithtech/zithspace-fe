@@ -14,7 +14,7 @@ import {
 import { CloseOutlined } from "@ant-design/icons";
 import { EmployeeSalaryRecord } from "../../types/salary";
 import { salaryService } from "../../services/salaryService";
-import { MembersService } from "../../services/membersService";
+import { EmployeeOnboardingService } from "../../services/onboardingService";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -30,7 +30,7 @@ export default function AddSalaryDrawer({
 }: AddSalaryDrawerProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [members, setMembers] = useState<{ label: string; value: string; code: string }[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [structures, setStructures] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function AddSalaryDrawer({
         is_additional_pf_active: false,
         is_active: true,
       });
-      fetchMembers();
+      fetchEmployees();
       fetchStructures();
     }
   }, [visible, form]);
@@ -54,37 +54,30 @@ export default function AddSalaryDrawer({
     }
   };
 
-  const fetchMembers = async () => {
+  const fetchEmployees = async () => {
     try {
-      // Fetch all members
-      const allMembers = await MembersService.getMembersForSelect();
+      // Fetch all employees from onboarding service
+      const allEmployees = await EmployeeOnboardingService.getAllEmployees();
       // Fetch current salary records to identify who already has an entry
       const currentSalaries = await salaryService.fetchEmployeeSalaries();
       const existingEmployeeIds = new Set(currentSalaries.map(s => s.employee_id));
 
-      setMembers(
-        allMembers
-          .filter(m => !existingEmployeeIds.has(m.value))
-          .map((m, index) => ({
-            ...m,
-            code: `EMP-${(index + 1).toString().padStart(3, '0')}`,
-          }))
-      );
+      setEmployees(allEmployees.filter((emp: any) => !existingEmployeeIds.has(emp.id)));
     } catch (error) {
-      console.error("Failed to fetch members:", error);
+      console.error("Failed to fetch employees:", error);
     }
   };
 
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
-      const selectedMember = members.find((m) => m.value === values.employee_id);
+      const selectedEmployee = employees.find((emp) => emp.id === values.employee_id);
       
       const payload: Partial<EmployeeSalaryRecord> = {
         employee_id: values.employee_id,
         salary_structure_id: values.salary_structure_id,
-        employee_name: selectedMember?.label || "Unknown Employee",
-        employee_code: selectedMember?.code || "EMP-000",
+        employee_name: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : "Unknown Employee",
+        employee_code: selectedEmployee?.employeeCode || "EMP-000",
         department: "Engineering", // Default mocked
         designation: "Staff", // Default mocked
         current_annual_ctc: values.current_annual_ctc,
@@ -163,9 +156,9 @@ export default function AddSalaryDrawer({
             optionFilterProp="children"
             style={{ height: 40 }}
           >
-            {members.map(m => (
-              <Option key={m.value} value={m.value}>
-                {m.label} ({m.code})
+            {employees.map(emp => (
+              <Option key={emp.id} value={emp.id}>
+                {emp.firstName} {emp.lastName} ({emp.employee_code})
               </Option>
             ))}
           </Select>

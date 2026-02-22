@@ -381,6 +381,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <MoneyCollectOutlined />,
         children: [
           {
+            key: "/salary/management",
+            label: "Salary Management",
+            icon: <AccountBookOutlined />,
+            path: "/salary/management",
+          },
+          {
             key: "/salary/Create-payslip",
             label: "Create Payslip",
             icon: <FormOutlined />,

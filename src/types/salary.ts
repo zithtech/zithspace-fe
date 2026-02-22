@@ -39,7 +39,7 @@ export interface SalaryStructure {
   grossSalary: number;
   earnings: Earning[];
   deductions: Deduction[];
-  deductionsEnabled: boolean; 
+  deductionsEnabled: boolean;
   createdAt: string;
   isActive: boolean;
 }
@@ -267,10 +267,31 @@ export const mockEmployees: Employee[] = [
 
 
 
- export interface EmployeeSalary {
+export interface EmployeeSalary {
   employeeId: string;
   grossSalary: number;
   deductionsEnabled: boolean;
   earnings: Earning[];
   deductions: Deduction[];
+}
+
+export interface EmployeeSalaryRecord {
+  id: string; // UUID
+  tenant_id?: string; // UUID
+  salary_structure_id?: string; // UUID
+  employee_id?: string; // UUID
+  employee_name?: string;
+  employee_code?: string;
+  department?: string;
+  designation?: string;
+  current_annual_ctc?: number; // DECIMAL(15,2)
+  current_monthly_ctc?: number; // DECIMAL(15,2)
+  additional_pf_pct?: number; // DECIMAL(5,2)
+  is_additional_pf_active?: boolean; // BOOLEAN
+  nps_contribution_pct?: number; // DECIMAL(5,2)
+  insurance_topup?: number; // DECIMAL(12,2)
+  fbp_choices?: Record<string, number>; // JSONB
+  salary_timeline?: any[]; // JSONB
+  is_active?: boolean; // BOOLEAN
+  updated_at?: string; // TIMESTAMP
 }

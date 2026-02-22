@@ -38,6 +38,7 @@ export default function AddSalaryDrawer({
       form.resetFields();
       form.setFieldsValue({
         is_additional_pf_active: false,
+        is_nps_active: false,
         is_active: true,
       });
       fetchEmployees();
@@ -85,6 +86,7 @@ export default function AddSalaryDrawer({
         additional_pf_pct: values.additional_pf_pct || 0,
         is_additional_pf_active: values.is_additional_pf_active || false,
         nps_contribution_pct: values.nps_contribution_pct || 0,
+        is_nps_active: values.is_nps_active || false,
         insurance_topup: values.insurance_topup || 0,
         is_active: values.is_active !== undefined ? values.is_active : true,
         fbp_choices: {
@@ -111,6 +113,9 @@ export default function AddSalaryDrawer({
       <div style={{ flex: 1, height: 1, background: '#f3f4f6' }} />
     </div>
   );
+
+  const isVPFActive = Form.useWatch('is_additional_pf_active', form);
+  const isNPSActive = Form.useWatch('is_nps_active', form);
 
   return (
     <Drawer
@@ -221,8 +226,28 @@ export default function AddSalaryDrawer({
         <CustomDivider title="Retirement & Deductions" />
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="additional_pf_pct" label={<span style={{ fontWeight: 500, color: '#374151' }}>Voluntary PF (%)</span>}>
-              <InputNumber style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} min={0} max={100} />
+            <Form.Item 
+              name="additional_pf_pct" 
+              label={<span style={{ fontWeight: 500, color: '#374151' }}>Voluntary PF (%)</span>}
+              dependencies={['is_additional_pf_active']}
+              rules={[
+                {
+                  required: isVPFActive,
+                  message: "Required"
+                },
+                ...(isVPFActive ? [{
+                  type: 'number' as const,
+                  min: 0.01,
+                  message: "Percentage must be greater than 0"
+                }] : [])
+              ]}
+            >
+              <InputNumber 
+                disabled={!isVPFActive}
+                style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} 
+                min={0} 
+                max={100} 
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -238,11 +263,43 @@ export default function AddSalaryDrawer({
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="nps_contribution_pct" label={<span style={{ fontWeight: 500, color: '#374151' }}>NPS Contribution (%)</span>}>
-              <InputNumber style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} min={0} max={100} />
+            <Form.Item 
+              name="nps_contribution_pct" 
+              label={<span style={{ fontWeight: 500, color: '#374151' }}>NPS Contribution (%)</span>}
+              dependencies={['is_nps_active']}
+              rules={[
+                {
+                  required: isNPSActive,
+                  message: "Required"
+                },
+                ...(isNPSActive ? [{
+                  type: 'number' as const,
+                  min: 0.01,
+                  message: "Percentage must be greater than 0"
+                }] : [])
+              ]}
+            >
+              <InputNumber 
+                disabled={!isNPSActive}
+                style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} 
+                min={0} 
+                max={100} 
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
+            <Form.Item
+              name="is_nps_active"
+              label={<span style={{ fontWeight: 500, color: '#374151' }}>NPS Active</span>}
+              valuePropName="checked"
+            >
+              <Switch />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={24}>
             <Form.Item name="insurance_topup" label={<span style={{ fontWeight: 500, color: '#374151' }}>Insurance Top-up (₹)</span>}>
               <InputNumber style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} min={0} />
             </Form.Item>

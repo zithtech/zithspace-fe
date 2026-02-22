@@ -19,7 +19,13 @@ import { Modal, message } from "antd";
 
 const { Text } = Typography;
 
-export default function SalaryManagementTable({ refreshTrigger }: { refreshTrigger?: number }) {
+export default function SalaryManagementTable({ 
+  refreshTrigger,
+  onRefresh
+}: { 
+  refreshTrigger?: number;
+  onRefresh?: () => void;
+}) {
   const [data, setData] = useState<EmployeeSalaryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -83,32 +89,62 @@ export default function SalaryManagementTable({ refreshTrigger }: { refreshTrigg
     setViewDrawerVisible(false);
     setEditDrawerVisible(false);
     setSelectedRecord(null);
-    if (refresh) fetchSalaries();
+    if (refresh) {
+      fetchSalaries();
+      if (onRefresh) onRefresh();
+    }
   };
 
   const handleDelete = (record: EmployeeSalaryRecord) => {
+    const recordId = record.id || (record as any)._id;
+    const employeeName = record.employee 
+      ? `${record.employee.first_name} ${record.employee.last_name}` 
+      : (record.employee_name || record.employee_id || "this employee");
+
+    console.log("Record to delete:", record);
+    console.log("Detected ID:", recordId);
+
+    if (!recordId) {
+      console.error("No record ID found for deletion. Available keys:", Object.keys(record));
+      message.error("Cannot delete: Record ID missing in data");
+      return;
+    }
+
     Modal.confirm({
       title: "Delete Salary Record",
-      content: `Are you sure you want to delete the salary record for ${record.employee_name}? This action cannot be undone.`,
+      content: `Are you sure you want to delete the salary record for ${employeeName}? This action cannot be undone.`,
       okText: "Delete",
       okType: "danger",
       cancelText: "Cancel",
       onOk: async () => {
         try {
-          await salaryService.deleteSalary(record.id);
+          console.log(`Action: Calling deleteSalary service for ID: ${recordId}`);
+          await salaryService.deleteSalary(recordId);
           message.success("Salary record deleted successfully");
-          fetchSalaries();
-        } catch (error) {
-          console.error("Failed to delete salary record:", error);
-          message.error("Failed to delete salary record");
+          
+          // Force immediate local reload
+          await fetchSalaries();
+          
+          // Trigger parent refresh for dashboard dashboard sync
+          if (onRefresh) {
+            console.log("Action: Triggering parent dashboard refresh");
+            onRefresh();
+          }
+        } catch (error: any) {
+          console.error("Delete operation failed:", error);
+          const errorMsg = error.message || "Unknown error";
+          message.error(`Failed to delete record: ${errorMsg}`);
+          throw error;
         }
       },
     });
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return "-";
-    return amount.toLocaleString("en-IN", {
+  const formatCurrency = (amount?: number | string) => {
+    if (amount === undefined || amount === null || amount === "") return "-";
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return "-";
+    return numAmount.toLocaleString("en-IN", {
       style: "currency",
       currency: "INR",
       maximumFractionDigits: 0,
@@ -128,10 +164,10 @@ export default function SalaryManagementTable({ refreshTrigger }: { refreshTrigg
           />
           <div style={{ display: "flex", flexDirection: "column" }}>
             <Text strong style={{ fontSize: 14, color: "#111827" }}>
-              {record.employee_name || "Employee Name"}
+              {record.employee ? `${record.employee.first_name} ${record.employee.last_name}` : (record.employee_name || "Employee Name")}
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.employee_code || "EMP-001"}
+              {record.employee?.employee_code || record.employee_code || "EMP-001"}
             </Text>
           </div>
         </Space>
@@ -141,9 +177,9 @@ export default function SalaryManagementTable({ refreshTrigger }: { refreshTrigg
       title: "Department",
       dataIndex: "department",
       key: "department",
-      render: (dept: string) => (
+      render: (_Dept: string, record: EmployeeSalaryRecord) => (
         <Text type="secondary" style={{ fontSize: 14 }}>
-          {dept || "Engineering"}
+          {record.salary_structure?.name || "Standard Structure"}
         </Text>
       ),
     },
@@ -172,9 +208,25 @@ export default function SalaryManagementTable({ refreshTrigger }: { refreshTrigg
       dataIndex: "vpf_percentage",
       key: "vpf_percentage",
       // width: 130,
-      render: (val: number, record: EmployeeSalaryRecord) => {
+      render: (val: number | string, record: EmployeeSalaryRecord) => {
+        if (!record.is_additional_pf_active) {
+          return (
+            <Tag
+              style={{
+                background: "#f1f5f9",
+                color: "#64748b",
+                borderRadius: 20,
+                border: "none",
+                padding: "0 10px",
+                fontWeight: 500,
+              }}
+            >
+              Inactive
+            </Tag>
+          );
+        }
         const percentage =
-          val ?? (record.is_additional_pf_active ? 12 : undefined);
+          val ?? (record.additional_pf_pct ? record.additional_pf_pct : undefined);
         return percentage ? (
           <Tag
             style={{
@@ -304,10 +356,6 @@ export default function SalaryManagementTable({ refreshTrigger }: { refreshTrigg
 
       <style>{`
         .salary-row .row-actions {
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-        .salary-row:hover .row-actions {
           opacity: 1;
         }
       `}</style>

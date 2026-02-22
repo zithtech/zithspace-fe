@@ -10,6 +10,7 @@ import {
   Col,
   message,
   Select,
+  Input,
 } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { EmployeeSalaryRecord } from "../../types/salary";
@@ -37,15 +38,16 @@ export default function EditSalaryDrawer({
     if (visible && record) {
       form.setFieldsValue({
         salary_structure_id: record.salary_structure_id,
-        current_annual_ctc: record.current_annual_ctc,
-        current_monthly_ctc: record.current_monthly_ctc,
-        additional_pf_pct: record.additional_pf_pct,
+        current_annual_ctc: typeof record.current_annual_ctc === 'string' ? parseFloat(record.current_annual_ctc) : record.current_annual_ctc,
+        current_monthly_ctc: typeof record.current_monthly_ctc === 'string' ? parseFloat(record.current_monthly_ctc) : record.current_monthly_ctc,
+        additional_pf_pct: typeof record.additional_pf_pct === 'string' ? parseFloat(record.additional_pf_pct) : record.additional_pf_pct,
         is_additional_pf_active: record.is_additional_pf_active,
-        nps_contribution_pct: record.nps_contribution_pct,
-        insurance_topup: record.insurance_topup,
+        nps_contribution_pct: typeof record.nps_contribution_pct === 'string' ? parseFloat(record.nps_contribution_pct) : record.nps_contribution_pct,
+        is_nps_active: record.is_nps_active,
+        insurance_topup: typeof record.insurance_topup === 'string' ? parseFloat(record.insurance_topup) : record.insurance_topup,
         is_active: record.is_active,
-        fbp_meal: record.fbp_choices?.meal || 0,
-        fbp_fuel: record.fbp_choices?.fuel || 0,
+        fbp_meal: typeof record.fbp_choices?.meal === 'string' ? parseFloat(record.fbp_choices?.meal as any) : (record.fbp_choices?.meal || 0),
+        fbp_fuel: typeof record.fbp_choices?.fuel === 'string' ? parseFloat(record.fbp_choices?.fuel as any) : (record.fbp_choices?.fuel || 0),
       });
       fetchStructures();
     } else {
@@ -73,12 +75,14 @@ export default function EditSalaryDrawer({
         additional_pf_pct: values.additional_pf_pct,
         is_additional_pf_active: values.is_additional_pf_active,
         nps_contribution_pct: values.nps_contribution_pct,
+        is_nps_active: values.is_nps_active,
         insurance_topup: values.insurance_topup,
         is_active: values.is_active,
         fbp_choices: {
           meal: values.fbp_meal || 0,
           fuel: values.fbp_fuel || 0,
         },
+        note: values.reason,
       };
 
       await salaryService.updateEmployeeSalary(record.id, payload);
@@ -99,6 +103,9 @@ export default function EditSalaryDrawer({
       <div style={{ flex: 1, height: 1, background: '#f3f4f6' }} />
     </div>
   );
+
+  const isVPFActive = Form.useWatch('is_additional_pf_active', form);
+  const isNPSActive = Form.useWatch('is_nps_active', form);
 
   return (
     <Drawer
@@ -135,13 +142,13 @@ export default function EditSalaryDrawer({
           <div>
             <Text type="secondary" style={{ fontSize: 13, color: '#6b7280' }}>Employee Name</Text>
             <div style={{ fontSize: 20, fontWeight: 600, margin: '4px 0 0 0', color: '#111827' }}>
-              {record.employee_name || 'Employee Name'}
+              {record.employee ? `${record.employee.first_name} ${record.employee.last_name}` : (record.employee_name || 'Employee Name')}
             </div>
           </div>
           <div>
             <Text type="secondary" style={{ fontSize: 13, color: '#6b7280' }}>Employee ID</Text>
             <div style={{ fontSize: 20, fontWeight: 600, margin: '4px 0 0 0', color: '#111827' }}>
-              {record.employee_code?.toUpperCase() || '-'}
+              {record.employee?.employee_code?.toUpperCase() || record.employee_code?.toUpperCase() || '-'}
             </div>
           </div>
         </div>
@@ -203,8 +210,28 @@ export default function EditSalaryDrawer({
         <CustomDivider title="Retirement & Deductions" />
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="additional_pf_pct" label={<span style={{ fontWeight: 500, color: '#374151' }}>Voluntary PF (%)</span>}>
-              <InputNumber style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} min={0} max={100} />
+            <Form.Item 
+              name="additional_pf_pct" 
+              label={<span style={{ fontWeight: 500, color: '#374151' }}>Voluntary PF (%)</span>}
+              dependencies={['is_additional_pf_active']}
+              rules={[
+                {
+                  required: isVPFActive,
+                  message: "Required"
+                },
+                ...(isVPFActive ? [{
+                  min: 0.01,
+                  type: 'number' as const,
+                  message: "Percentage must be greater than 0"
+                }] : [])
+              ]}
+            >
+              <InputNumber 
+                disabled={!isVPFActive}
+                style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} 
+                min={0} 
+                max={100} 
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -220,11 +247,43 @@ export default function EditSalaryDrawer({
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="nps_contribution_pct" label={<span style={{ fontWeight: 500, color: '#374151' }}>NPS Contribution (%)</span>}>
-              <InputNumber style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} min={0} max={100} />
+            <Form.Item 
+              name="nps_contribution_pct" 
+              label={<span style={{ fontWeight: 500, color: '#374151' }}>NPS Contribution (%)</span>}
+              dependencies={['is_nps_active']}
+              rules={[
+                {
+                  required: isNPSActive,
+                  message: "Required"
+                },
+                ...(isNPSActive ? [{
+                  type: 'number' as const,
+                  min: 0.01,
+                  message: "Percentage must be greater than 0"
+                }] : [])
+              ]}
+            >
+              <InputNumber 
+                disabled={!isNPSActive}
+                style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} 
+                min={0} 
+                max={100} 
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
+            <Form.Item
+              name="is_nps_active"
+              label={<span style={{ fontWeight: 500, color: '#374151' }}>NPS Active</span>}
+              valuePropName="checked"
+            >
+              <Switch />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={24}>
             <Form.Item name="insurance_topup" label={<span style={{ fontWeight: 500, color: '#374151' }}>Insurance Top-up (₹)</span>}>
               <InputNumber style={{ width: "100%", borderRadius: 6, height: 40, paddingTop: 4 }} min={0} />
             </Form.Item>
@@ -244,6 +303,20 @@ export default function EditSalaryDrawer({
             </Form.Item>
           </Col>
         </Row>
+
+        <div style={{ marginTop: 24 }}>
+          <Form.Item
+            name="reason"
+            label={<span style={{ fontWeight: 500, color: '#374151' }}>Reason for Change</span>}
+            rules={[{ required: false }]}
+          >
+            <Input.TextArea 
+              placeholder="e.g. Annual Hike, Promotion, Correction" 
+              rows={3} 
+              style={{ borderRadius: 6 }}
+            />
+          </Form.Item>
+        </div>
 
         <div style={{ marginTop: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: '#f9fafb', borderRadius: 8 }}>
           <div>

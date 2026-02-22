@@ -9,13 +9,15 @@ import {
   Input,
   Select,
   Avatar,
+  Modal,
+  message,
 } from "antd";
 import { EditOutlined, SearchOutlined, UserOutlined, EyeOutlined, DeleteOutlined } from "@ant-design/icons";
 import { EmployeeSalaryRecord } from "../../types/salary";
 import { salaryService } from "../../services/salaryService";
 import SalaryDetailsDrawer from "./SalaryDetailsDrawer";
 import EditSalaryDrawer from "./EditSalaryDrawer";
-import { Modal, message } from "antd";
+
 
 const { Text } = Typography;
 
@@ -37,6 +39,9 @@ export default function SalaryManagementTable({
   const [editDrawerVisible, setEditDrawerVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] =
     useState<EmployeeSalaryRecord | null>(null);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<EmployeeSalaryRecord | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchSalaries = async () => {
     setLoading(true);
@@ -96,48 +101,33 @@ export default function SalaryManagementTable({
   };
 
   const handleDelete = (record: EmployeeSalaryRecord) => {
-    const recordId = record.id || (record as any)._id;
-    const employeeName = record.employee 
-      ? `${record.employee.first_name} ${record.employee.last_name}` 
-      : (record.employee_name || record.employee_id || "this employee");
+    setRecordToDelete(record);
+    setIsDeleteModalVisible(true);
+  };
 
-    console.log("Record to delete:", record);
-    console.log("Detected ID:", recordId);
-
+  const confirmDelete = async () => {
+    if (!recordToDelete) return;
+    
+    const recordId = recordToDelete.id || (recordToDelete as any)._id;
     if (!recordId) {
-      console.error("No record ID found for deletion. Available keys:", Object.keys(record));
-      message.error("Cannot delete: Record ID missing in data");
+      message.error("Cannot delete: Record ID missing");
       return;
     }
 
-    Modal.confirm({
-      title: "Delete Salary Record",
-      content: `Are you sure you want to delete the salary record for ${employeeName}? This action cannot be undone.`,
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          console.log(`Action: Calling deleteSalary service for ID: ${recordId}`);
-          await salaryService.deleteSalary(recordId);
-          message.success("Salary record deleted successfully");
-          
-          // Force immediate local reload
-          await fetchSalaries();
-          
-          // Trigger parent refresh for dashboard dashboard sync
-          if (onRefresh) {
-            console.log("Action: Triggering parent dashboard refresh");
-            onRefresh();
-          }
-        } catch (error: any) {
-          console.error("Delete operation failed:", error);
-          const errorMsg = error.message || "Unknown error";
-          message.error(`Failed to delete record: ${errorMsg}`);
-          throw error;
-        }
-      },
-    });
+    setDeleteLoading(true);
+    try {
+      await salaryService.deleteSalary(recordId);
+      message.success("Salary record deleted successfully");
+      setIsDeleteModalVisible(false);
+      setRecordToDelete(null);
+      fetchSalaries();
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      console.error("Delete operation failed:", error);
+      message.error(`Failed to delete: ${error.message || "Unknown error"}`);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const formatCurrency = (amount?: number | string) => {
@@ -276,14 +266,20 @@ export default function SalaryManagementTable({
               <Button
                 type="text"
                 icon={<EyeOutlined style={{ color: "#6b7280" }} />}
-                onClick={() => handleView(record)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleView(record);
+                }}
               />
             </Tooltip>
             <Tooltip title="Edit Details">
               <Button
                 type="text"
                 icon={<EditOutlined style={{ color: "#6b7280" }} />}
-                onClick={() => handleEdit(record)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(record);
+                }}
               />
             </Tooltip>
             <Tooltip title="Delete Record">
@@ -291,7 +287,11 @@ export default function SalaryManagementTable({
                 type="text"
                 danger
                 icon={<DeleteOutlined />}
-                onClick={() => handleDelete(record)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log("Delete button clicked!");
+                  handleDelete(record);
+                }}
               />
             </Tooltip>
           </Space>
@@ -384,6 +384,32 @@ export default function SalaryManagementTable({
         onClose={handleDrawerClose}
         record={selectedRecord}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title={<span style={{ color: '#ff4d4f' }}>Delete Salary Record</span>}
+        open={isDeleteModalVisible}
+        onOk={confirmDelete}
+        onCancel={() => {
+          setIsDeleteModalVisible(false);
+          setRecordToDelete(null);
+        }}
+        okText="Delete"
+        cancelText="Cancel"
+        okButtonProps={{ danger: true, loading: deleteLoading }}
+        destroyOnClose
+      >
+        <p style={{ fontSize: 15 }}>
+          Are you sure you want to delete the salary record for <strong>
+            {recordToDelete?.employee 
+              ? `${recordToDelete.employee.first_name} ${recordToDelete.employee.last_name}` 
+              : (recordToDelete?.employee_name || "this employee")}
+          </strong>?
+        </p>
+        <p style={{ color: '#6b7280', fontSize: 13 }}>
+          This action is permanent and will remove all salary history for this employee.
+        </p>
+      </Modal>
     </div>
   );
 }

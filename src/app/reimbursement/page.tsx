@@ -12,12 +12,15 @@ import {
   DollarOutlined,
   SettingOutlined,
   PlusOutlined,
+  ApartmentOutlined 
 } from "@ant-design/icons";
 
 import EmployeeTab from "@/components/reimbursement/EmployeeTab";
 import FinanceTab from "@/components/reimbursement/FinanceTab";
 import ManagerTab from "@/components/reimbursement/ManagerTab";
 import SettingsTab from "@/components/reimbursement/settingsTab";
+import ReimbursementTab from "@/components/reimbursement/ReimbursementTab";
+
 
 const { Title } = Typography;
 
@@ -69,6 +72,15 @@ export default function ReimbursementPage() {
                 </Space>
               ),
               children: <SettingsTab />,
+            },
+             {
+              key: "reimbursement configuration",
+              label: (
+                <Space>
+                  <ApartmentOutlined /> Reimbursement Configuration
+                </Space>
+              ),
+              children: <ReimbursementTab />,
             },
           ]}
         />

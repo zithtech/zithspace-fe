@@ -461,7 +461,7 @@ export default function FinanceTab() {
   };
 
   return (
-    <Card className="rounded-xl shadow-sm bg-white h-[600px] flex flex-col border border-gray-100">
+    // <Card className="rounded-xl shadow-sm bg-white h-[600px] flex flex-col border border-gray-100">
       <div className="flex flex-col flex-1 overflow-hidden p-3">
 
         {/* ===== TOP HEADER ROW ===== */}
@@ -1010,6 +1010,6 @@ export default function FinanceTab() {
           previewFileName={previewFileName}
         />
       </div>
-    </Card>
+    // </Card>
   );
 }

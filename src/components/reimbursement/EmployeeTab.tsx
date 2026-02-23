@@ -386,7 +386,7 @@ export default function EmployeeTab() {
   ];
 
   return (
-    <Card className="rounded-xl shadow-md bg-white min-h-[600px] flex flex-col border border-gray-100">
+    // <Card className="rounded-xl shadow-md bg-white min-h-[600px] flex flex-col border border-gray-100">
       <div className="space-y-4 p-2">
 
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 pb-4">
@@ -757,6 +757,5 @@ export default function EmployeeTab() {
           previewFileName={previewFileName}
         />
       </div>
-    </Card>
   );
 }

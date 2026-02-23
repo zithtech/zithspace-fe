@@ -452,7 +452,7 @@ export default function ManagerTab() {
   ];
 
   return (
-    <Card className="rounded-lg shadow-sm bg-white h-[540px] flex flex-col border border-gray-100">
+    // <Card className="rounded-lg shadow-sm bg-white h-[540px] flex flex-col border border-gray-100">
       <div className="space-y-3 p-3">
 
         <style jsx global>{`
@@ -1014,6 +1014,6 @@ export default function ManagerTab() {
           previewFileName={previewFileName}
         />
       </div>
-    </Card>
+    // </Card>
   );
 }

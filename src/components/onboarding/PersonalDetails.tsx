@@ -211,7 +211,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             </span>
           </div>
 
-          <Row gutter={[8, 4]}>
+          {/* <Row gutter={[8, 4]}>
             <Col span={12}>
               <Form.Item
                 label={<span style={labelStyle}>First Name</span>}
@@ -282,8 +282,13 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                   style={{ height: 25, fontSize: 12 }}
                 >
                   <Option value="A+">A+</Option>
+                  <Option value="A-">A-</Option>
                   <Option value="B+">B+</Option>
+                  <Option value="B-">B-</Option>
+                  <Option value="AB+">AB+</Option>
+                  <Option value="AB-">AB-</Option>
                   <Option value="O+">O+</Option>
+                  <Option value="O-">O-</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -306,6 +311,141 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
+            <Col span={12}>
+              <Form.Item
+                label={<span style={labelStyle}>Personal Email</span>}
+                name="personalEmail"
+                rules={[{ required: true, type: "email" }]}
+                style={{ marginBottom: 6 }}
+              >
+                <Input
+                  placeholder="Personal Email"
+                  style={{ height: 25, fontSize: 12 }}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label={<span style={labelStyle}>Work Email</span>}
+                name="workEmail"
+                rules={[{ required: true, type: "email" }]}
+                style={{ marginBottom: 6 }}
+              >
+                <Input
+                  placeholder="Work Email"
+                  style={{ height: 25, fontSize: 12 }}
+                />
+              </Form.Item>
+            </Col>
+          </Row> */}
+
+          <Row gutter={[8, 4]}>
+            {/* First Name - Full Width */}
+            <Col span={24}>
+              <Form.Item
+                label={<span style={labelStyle}>First Name</span>}
+                name="firstName"
+                rules={[{ required: true, message: "Enter your name" }]}
+                style={{ marginBottom: 6 }}
+              >
+                <Input
+                  placeholder="First Name"
+                  style={{ height: 25, fontSize: 12 }}
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Last Name - Full Width */}
+            <Col span={24}>
+              <Form.Item
+                label={<span style={labelStyle}>Last Name</span>}
+                name="lastName"
+                rules={[{ required: true, message: "Required" }]}
+                style={{ marginBottom: 6 }}
+              >
+                <Input
+                  placeholder="Last Name"
+                  style={{ height: 25, fontSize: 12 }}
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Gender - Full Width */}
+            <Col span={24}>
+              <Form.Item
+                label={<span style={labelStyle}>Gender</span>}
+                name="gender"
+                rules={[{ required: true }]}
+                style={{ marginBottom: 6 }}
+              >
+                <Select
+                  placeholder="Select"
+                  style={{ height: 25, fontSize: 12 }}
+                >
+                  <Option value="male">Male</Option>
+                  <Option value="female">Female</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            {/* Date of Birth - Full Width */}
+            <Col span={24}>
+              <Form.Item
+                label={<span style={labelStyle}>Date of Birth</span>}
+                name="dob"
+                rules={[{ required: true }]}
+                style={{ marginBottom: 6 }}
+              >
+                <DatePicker
+                  style={{ width: "100%", height: 25, fontSize: 12 }}
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Blood Group | Mobile Number */}
+            <Col span={12}>
+              <Form.Item
+                label={<span style={labelStyle}>Blood Group</span>}
+                name="bloodGroup"
+                rules={[{ required: true }]}
+                style={{ marginBottom: 6 }}
+              >
+                <Select
+                  placeholder="Select"
+                  style={{ height: 25, fontSize: 12 }}
+                >
+                  <Option value="A+">A+</Option>
+                  <Option value="A-">A-</Option>
+                  <Option value="B+">B+</Option>
+                  <Option value="B-">B-</Option>
+                  <Option value="AB+">AB+</Option>
+                  <Option value="AB-">AB-</Option>
+                  <Option value="O+">O+</Option>
+                  <Option value="O-">O-</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label={<span style={labelStyle}>Mobile Number</span>}
+                name="mobile"
+                rules={[
+                  { required: true },
+                  { pattern: /^[0-9]{10}$/, message: "Invalid" },
+                ]}
+                style={{ marginBottom: 6 }}
+              >
+                <Input
+                  placeholder="Mobile"
+                  maxLength={10}
+                  style={{ height: 25, fontSize: 12 }}
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Personal Email | Work Email */}
             <Col span={12}>
               <Form.Item
                 label={<span style={labelStyle}>Personal Email</span>}
@@ -603,7 +743,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           style={{
             width: "90%",
             background: "#ffffff",
-            padding: "16px",
+            padding: "13px",
             borderRadius: "12px",
             boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
           }}
@@ -636,43 +776,52 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             />
           </Form.Item>
 
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}>PAN Number</span>}
-            name="pan"
-            rules={[
-              { required: true, message: "PAN is required" },
-              {
-                pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
-                message: "Enter valid PAN (ABCDE1234F)",
-              },
-            ]}
-            style={{ marginBottom: 10 }}
+          <div
+            style={{
+              display: "flex",
+              //alignItems: "",
+              flexDirection: "row",
+              gap: "10px",
+            }}
           >
-            <Input
-              placeholder="PAN Number"
-              style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
-            />
-          </Form.Item>
+            <Form.Item
+              label={<span style={{ fontSize: 11 }}>PAN Number</span>}
+              name="pan"
+              rules={[
+                { required: true, message: "PAN is required" },
+                {
+                  pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+                  message: "Enter valid PAN (ABCDE1234F)",
+                },
+              ]}
+              style={{ marginBottom: 10 }}
+            >
+              <Input
+                placeholder="PAN Number"
+                style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
+              />
+            </Form.Item>
 
-          <Form.Item
-            label={
-              <span style={{ fontSize: 11 }}>Passport Number (Optional)</span>
-            }
-            name="passport"
-            rules={[
-              {
-                required: true,
-                pattern: /^[A-Z]{1}[0-9]{7}$/,
-                message: "Enter valid Passport number",
-              },
-            ]}
-            style={{ marginBottom: 0 }}
-          >
-            <Input
-              placeholder="Passport Number"
-              style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
-            />
-          </Form.Item>
+            <Form.Item
+              label={
+                <span style={{ fontSize: 11 }}>Passport Number (Optional)</span>
+              }
+              name="passport"
+              rules={[
+                {
+                  required: true,
+                  pattern: /^[A-Z]{1}[0-9]{7}$/,
+                  message: "Enter valid Passport number",
+                },
+              ]}
+              style={{ marginBottom: 0 }}
+            >
+              <Input
+                placeholder="Passport Number"
+                style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
+              />
+            </Form.Item>
+          </div>
         </Form>
       </div>
     </div>

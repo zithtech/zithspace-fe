@@ -38,6 +38,7 @@ import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
 import type { ColumnsType } from "antd/es/table";
 import { useRBAC } from "@/lib/rbac";
+import { usePositions } from "@/hooks/usePositions";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -68,6 +69,7 @@ export default function MembersPage() {
   }
   const router = useRouter();
   const [form] = Form.useForm();
+  const { dataSource: positions, loading: positionsLoading } = usePositions();
 
   // State management
   const [members, setMembers] = useState<Member[]>([]);
@@ -146,7 +148,7 @@ export default function MembersPage() {
             ({
               id: m.value,
               name: m.label,
-              position: m.position,
+              position: m.position ? { title: m.position, id: "" } : null,
             } as Member)
         )
       );
@@ -194,7 +196,7 @@ export default function MembersPage() {
           personalEmail: values.personalEmail,
           workEmail: values.workEmail,
           role: values.role,
-          position: values.position,
+          positionId: values.position,
           reportsToId: values.reportsTo || null,
           isActive: values.isActive !== undefined ? values.isActive : true,
           workDays: values.workDays || [1, 2, 3, 4, 5], // FIXED: Include workDays
@@ -209,7 +211,7 @@ export default function MembersPage() {
           personalEmail: values.personalEmail,
           workEmail: values.workEmail,
           role: values.role,
-          position: values.position,
+          positionId: values.position,
           password: "temp123", // Default password - should be changed on first login
           reportsToId: values.reportsTo || null,
           workDays: values.workDays || [1, 2, 3, 4, 5], // FIXED: Include workDays
@@ -276,7 +278,7 @@ export default function MembersPage() {
       personalEmail: member?.personalEmail,
       workEmail: member?.workEmail,
       role: member?.role,
-      position: member?.position,
+      position: member?.position?.id,
       reportsTo:
         typeof member.reportsTo === "object"
           ? member?.reportsTo?.id
@@ -333,7 +335,7 @@ export default function MembersPage() {
             </Text>
             <br />
             <Text type="secondary" style={{ fontSize: 11 }}>
-              {record?.position}
+              {record?.position?.title}
             </Text>
           </div>
         </Space>
@@ -359,7 +361,7 @@ export default function MembersPage() {
       width: 200,
       render: (_, record: Member) => (
         <div>
-          <Text style={{ fontSize: 12 }}>{record?.position}</Text>
+          <Text style={{ fontSize: 12 }}>{record?.position?.title}</Text>
         </div>
       ),
     },
@@ -544,14 +546,13 @@ export default function MembersPage() {
               onChange={setPositionFilter}
               style={{ width: 200 }}
               allowClear
+              loading={positionsLoading}
             >
-              <Option value="Developer">Developer</Option>
-              <Option value="CEO">CEO</Option>
-              <Option value="DevOps">DevOps</Option>
-              <Option value="Project Manager">Project Manager</Option>
-              <Option value="Product Manager">Product Manager</Option>
-              <Option value="UI/UX">UI/UX</Option>
-              <Option value="Business Management">Business Management</Option>
+              {positions.map((position) => (
+                <Option key={position.id} value={position.title}>
+                  {position.title}
+                </Option>
+              ))}
             </Select>
           </div>
         </Card>
@@ -721,16 +722,12 @@ export default function MembersPage() {
                     { required: true, message: "Please select position" },
                   ]}
                 >
-                  <Select placeholder="Select position">
-                    <Option value="Developer">Developer</Option>
-                    <Option value="CEO">CEO</Option>
-                    <Option value="DevOps">DevOps</Option>
-                    <Option value="Project Manager">Project Manager</Option>
-                    <Option value="Product Manager">Product Manager</Option>
-                    <Option value="UI/UX">UI/UX</Option>
-                    <Option value="Business Management">
-                      Business Management
-                    </Option>
+                  <Select placeholder="Select position" loading={positionsLoading}>
+                    {positions.map((position) => (
+                      <Option key={position.id} value={position.id}>
+                        {position.title}
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </div>
@@ -740,9 +737,9 @@ export default function MembersPage() {
                   {managers
                     .filter((m) => m.id !== selectedMember?.id)
                     .map((manager) => (
-                      <Option key={manager.id} value={manager.id}>
-                        {manager.name} ({manager.position})
-                      </Option>
+                      <Option key={manager.id} value={manager.id}>{`${
+                        manager.name
+                      } - ${manager.id.substring(0, 8)}`}</Option>
                     ))}
                 </Select>
               </Form.Item>

@@ -43,6 +43,7 @@ import {
   CalendarTwoTone,
   UsergroupAddOutlined,
   HomeOutlined,
+  PlusOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
 
@@ -224,6 +225,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/attendance",
       "/leaves",
       "/org-structure",
+      "/onboarding",
     ],
     defaultPath: "/members",
     items: [
@@ -257,6 +259,27 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <CalendarOutlined />,
         path: "/leaves-dashboard",
       },
+
+      {
+        key: "Onbording",
+        icon: <PlusOutlined />,
+        label: "Onbording",
+        children: [
+          {
+            key: "/onbording/create",
+            icon: <EyeOutlined />,
+            label: "Create",
+            path: "/onboarding/create",
+          },
+          {
+            key: "/onbording/create",
+            icon: <SafetyOutlined />,
+            label: "Onborded",
+            path: "/onboarding/onboarded",
+          },
+        ],
+      },
+
       {
         key: "orgstructure",
         icon: <ApartmentOutlined />,

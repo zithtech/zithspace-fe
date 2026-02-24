@@ -373,6 +373,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             borderRadius: "12px",
             border: "1px solid #e6f0ff",
             boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+            //height: "350px",
           }}
         >
           {/* Title */}
@@ -385,6 +386,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               color: "#1677ff",
               fontWeight: 600,
               fontSize: 14,
+              paddingBottom: 10,
             }}
           >
             <BankOutlined />

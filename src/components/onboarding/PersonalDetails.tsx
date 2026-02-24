@@ -200,6 +200,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             padding: "16px",
             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
             border: "1px solid rgba(0, 0, 0, 0.04)",
+            height: "450px",
           }}
         >
           <div
@@ -513,6 +514,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             borderRadius: "12px",
             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
             border: "1px solid rgba(0, 0, 0, 0.05)",
+            height: "450px",
           }}
         >
           <div
@@ -657,6 +659,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           display: "flex",
           flexDirection: "column",
           gap: "10px",
+          // height: "450px",
         }}
       >
         {/* Emergency Information */}
@@ -746,6 +749,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             padding: "13px",
             borderRadius: "12px",
             boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+            height: "190px",
           }}
         >
           <div
@@ -779,7 +783,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           <div
             style={{
               display: "flex",
-              //alignItems: "",
+              // alignItems: "center",
+              justifyContent: "space-around",
               flexDirection: "row",
               gap: "10px",
             }}
@@ -794,7 +799,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                   message: "Enter valid PAN (ABCDE1234F)",
                 },
               ]}
-              style={{ marginBottom: 10 }}
+              style={{ marginBottom: 10, width: "50%" }}
             >
               <Input
                 placeholder="PAN Number"
@@ -814,7 +819,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                   message: "Enter valid Passport number",
                 },
               ]}
-              style={{ marginBottom: 0 }}
+              style={{ marginBottom: 0, width: "50%" }}
             >
               <Input
                 placeholder="Passport Number"

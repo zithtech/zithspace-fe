@@ -577,7 +577,7 @@ export default function governmentLeaves() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div>
           {/* Tabs Navigation */}
           <div >
             <Tabs
@@ -654,7 +654,7 @@ export default function governmentLeaves() {
               ]}
             />
           </div>
-          <Card>
+       
             <div
               style={{
                 display: "flex",
@@ -762,7 +762,7 @@ export default function governmentLeaves() {
              rowKey="id" loading={loading}  
              size="small"
              pagination={{ pageSize: 10 }}/>
-          </Card>
+          
         </div>
         <Modal
           title={

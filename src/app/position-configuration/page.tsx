@@ -636,7 +636,7 @@ export default function positionConfiguration() {
     <ProtectedRoute>
       <MainLayout>
         {contextHolder}
-        <div style={{ padding: 24 }}>
+        <div >
           <div >
             <Tabs
               activeKey={
@@ -722,7 +722,7 @@ export default function positionConfiguration() {
               ]}
             />
           </div>
-          <Card>
+          
             <div
               style={{
                 display: "flex",
@@ -949,7 +949,7 @@ export default function positionConfiguration() {
                 pagination={{ pageSize: 9 }}
               />
             )}
-          </Card>
+        
 
           <Modal
             title={

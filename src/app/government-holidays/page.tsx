@@ -494,10 +494,10 @@ render: (date: string | Date) => (
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div>
           {contextHolder}
 
-          <div style={{ marginBottom: 16 }}>
+          <div >
             <Tabs
               activeKey={
                 pathname.includes("leave-adjustments")
@@ -582,12 +582,14 @@ render: (date: string | Date) => (
             />
           </div>
 
-          <Card>
+         
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 16,
                 marginBottom: 16,
               }}
             >
@@ -607,13 +609,13 @@ render: (date: string | Date) => (
                 </div>
                 <div style={{ marginTop: 8, marginLeft: 28 }}>
                   <Space>
-                    <Tag color="processing">
+                    <Tag style={{borderRadius:12}} color="processing">
                       Total: {holidays.length}
                     </Tag>
-                    <Tag color="success">
+                    <Tag style={{borderRadius:12}} color="success">
                       Active: {holidays.filter((h) => h.status === 'ACTIVE').length}
                     </Tag>
-                    <Tag color="default">
+                    <Tag style={{borderRadius:12}} color="default">
                       Inactive:{" "}
                       {holidays.filter((h) => h.status === 'INACTIVE').length}
                     </Tag>
@@ -639,7 +641,7 @@ render: (date: string | Date) => (
   key={dataSource.length}  // Keep the re-render strategy, but based on the new dataSource
 />
 
-          </Card>
+x
 
           {/* Modals */}
           <Modal

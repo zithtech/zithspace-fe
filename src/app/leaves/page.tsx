@@ -604,7 +604,7 @@ useEffect(() => {
   ];
   const cardStyle = {
     borderRadius: 16,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    //boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
     transition: "all 0.3s ease",
     cursor: "pointer",
   };
@@ -612,7 +612,7 @@ useEffect(() => {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div>
           <div>
             {/* {user && (
               <Tag 

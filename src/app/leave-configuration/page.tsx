@@ -495,7 +495,7 @@ export default function leaveConfiguration() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div >
           {contextHolder}
           <div>
             <Tabs
@@ -570,7 +570,7 @@ export default function leaveConfiguration() {
               ]}
             />
           </div>
-          <Card  >
+          
             <div
               style={{
                 display: "flex",
@@ -643,7 +643,7 @@ export default function leaveConfiguration() {
               style={{ marginTop:5 }}
               pagination={{ pageSize:10}}
             />
-          </Card>
+         
 
           <Modal
             title={

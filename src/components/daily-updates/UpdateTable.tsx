@@ -222,7 +222,7 @@ export default function UpdateTable({
       key: update.id,
       update,
       userName: update.user?.name || "Unknown",
-      userPosition: update.user?.position || "",
+      userPosition: update.user?.position?.title || "",
       mood: update.mood || "neutral",
       totalHours,
       projectCount,

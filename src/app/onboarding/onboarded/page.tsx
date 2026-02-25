@@ -44,6 +44,8 @@ import {
   TrophyOutlined,
   IdcardOutlined,
   EyeOutlined,
+  CloseCircleTwoTone,
+  CheckCircleTwoTone,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -1673,6 +1675,8 @@ const Onboarded = () => {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [totalMembers, setTotalMembers] = useState(0);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Separate forms for each section
   const [personalDetailsForm] = Form.useForm();
@@ -1860,6 +1864,22 @@ const Onboarded = () => {
     setViewLoading(false);
   };
 
+  const handleStatusChange = (id: string, checked: boolean) => {
+    const updatedData: any = data.map((item: any) =>
+      item.id === id ? { ...item, status: checked } : item,
+    );
+
+    setData(updatedData);
+  };
+
+  const handleLoginAccess = (id: string) => {
+    const updated: any = data.map((item: any) =>
+      item.id === id ? { ...item, loginAccess: !item.loginAccess } : item,
+    );
+
+    setData(updated);
+  };
+
   const openEdit = async (emp: any, sec: string) => {
     setEdit(false); // Close any existing edit modal first
     setViewLoading(true);
@@ -1876,6 +1896,10 @@ const Onboarded = () => {
     } else {
       setViewLoading(false);
     }
+  };
+  const handleLoginClick = (record: any) => {
+    setSelectedUser(record);
+    setIsModalOpen(true);
   };
 
   const saveEdit = async () => {
@@ -2102,21 +2126,67 @@ const Onboarded = () => {
     })),
 
     {
+      title: "Login Access",
+      dataIndex: "loginAccess",
+      key: "loginAccess",
+      render: (_: any, record: any) =>
+        record.loginAccess ? (
+          <CheckCircleTwoTone
+            twoToneColor="#52c41a"
+            style={{ fontSize: 18, cursor: "pointer" }}
+            // onClick={() => handleLoginAccess(record.id)}
+          />
+        ) : (
+          <CloseCircleTwoTone
+            twoToneColor="#ff4d4f"
+            style={{ fontSize: 18, cursor: "pointer" }}
+            // onClick={() => handleLoginAccess(record.id)}
+          />
+        ),
+    },
+
+    {
       title: "Status",
       dataIndex: "status",
       key: "status",
       render: (_: any, record: any) => (
         <Switch
-          size={"small"}
+          size="small"
           checked={record.status}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
           style={{
             backgroundColor: record.status ? "#52c41a" : "#ff4d4f",
+            minWidth: 36,
           }}
-          //onChange={(checked) => handleStatusChange(record.key, checked)}
+          onChange={(checked) => handleStatusChange(record.id, checked)}
         />
       ),
+    },
+
+    {
+      title: "Login Status",
+      key: "loginStatus",
+      render: (_: any, record: any) =>
+        record.loginAccess ? (
+          <Typography.Text
+            style={{ color: "#1677ff", cursor: "pointer" }}
+            onClick={() => handleLoginClick(record)}
+          >
+            Login
+          </Typography.Text>
+        ) : (
+          <span
+            style={{
+              color: "#1677ff",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            onClick={() => handleLoginClick(record)}
+          >
+            Connect
+          </span>
+        ),
     },
   ];
 
@@ -2412,6 +2482,35 @@ const Onboarded = () => {
         >
           <Form layout="vertical" form={sectionFormMap[section]}>
             {renderEditForm()}
+          </Form>
+        </Modal>
+
+        <Modal
+          title="Connect User"
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          footer={null}
+        >
+          <Form layout="vertical">
+            <Form.Item
+              label="Username"
+              name="username"
+              rules={[{ required: true, message: "Please enter username" }]}
+            >
+              <Input placeholder="Enter username" />
+            </Form.Item>
+
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[{ required: true, message: "Please enter password" }]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+
+            <Button type="primary" htmlType="submit" block>
+              Submit
+            </Button>
           </Form>
         </Modal>
       </div>

@@ -1,8 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+} from "react";
 import { useRouter } from "next/navigation";
-import { AuthService, LoginCredentials, LoginResponse } from "@/services/authService";
+import {
+  AuthService,
+  LoginCredentials,
+  LoginResponse,
+} from "@/services/authService";
 import { ApiError } from "@/lib/axios";
 
 interface User {
@@ -34,7 +44,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -48,9 +60,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     if (user && AuthService.isAuthenticated()) {
       // Refresh token every 50 minutes (tokens expire in 1 hour)
-      const interval = setInterval(() => {
-        refreshToken();
-      }, 50 * 60 * 1000);
+      const interval = setInterval(
+        () => {
+          refreshToken();
+        },
+        50 * 60 * 1000,
+      );
 
       return () => clearInterval(interval);
     }
@@ -83,8 +98,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Handle redirect after login (like traditional SPAs)
       const urlParams = new URLSearchParams(window.location.search);
-      const redirectTo = urlParams.get('redirect');
-      const targetUrl = redirectTo || '/dashboard';
+      const redirectTo = urlParams.get("redirect");
+      const targetUrl = redirectTo || "/dashboard";
 
       router.push(targetUrl);
       return true;
@@ -100,7 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await AuthService.logout();
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     } finally {
       // Clear local state regardless of API call success
       setUser(null);
@@ -120,7 +135,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       return true;
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      console.error("Token refresh failed:", error);
       setUser(null);
       AuthService.clearAuth();
       setIsLoading(false);
@@ -137,14 +152,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (!hasToken) {
         // No access token found - try to refresh from cookie before giving up
-        console.log('🔄 No access token found, attempting to refresh from cookie...');
+        console.log(
+          "🔄 No access token found, attempting to refresh from cookie...",
+        );
         const refreshed = await refreshToken();
         if (!refreshed) {
-          console.log(' Token refresh failed, user not authenticated');
+          console.log(" Token refresh failed, user not authenticated");
           setUser(null);
           return;
         }
-        console.log('✅ Token refreshed successfully from cookie');
+        console.log("✅ Token refreshed successfully from cookie");
       }
 
       // Try to get user profile - axios interceptor will handle token refresh automatically
@@ -169,21 +186,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setUser(userData);
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
 
       // Only clear tokens on actual authentication errors (401), not parsing errors
       if (error instanceof ApiError && error.status === 401) {
-        console.log('🔒 Authentication error (401), clearing tokens and redirecting to login');
+        console.log(
+          "🔒 Authentication error (401), clearing tokens and redirecting to login",
+        );
         setUser(null);
         AuthService.clearAuth();
 
         // Redirect to login if not already there
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.startsWith('/public')) {
-          router.push('/login?error=session_expired');
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("/login") &&
+          !window.location.pathname.startsWith("/public")
+        ) {
+          router.push("/login?error=session_expired");
         }
       } else {
         // Keep tokens but clear user for non-auth errors (like parsing errors)
-        console.log('⚠️ Non-auth error, clearing user but keeping tokens for retry');
+        console.log(
+          "⚠️ Non-auth error, clearing user but keeping tokens for retry",
+        );
         setUser(null);
       }
     } finally {

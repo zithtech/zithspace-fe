@@ -1,16 +1,41 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useState } from "react";
 import { Segmented, Card, Tabs } from "antd";
 import PersonalDetails from "@/components/new-profile/personaldetailes";
 import BankAndPayroll from "@/components/new-profile/bankAndPayroll";
 import EmployeeHistory from "@/components/new-profile/employeeHistory";
+import { ProfileService } from "@/services/newProfile";
+import { useAuth } from "@/context/AuthContext";
+import { AuthService } from "@/services/authService";
 
 const NewProfilePage = () => {
   //const [name, setName] = useState("");
   const [selectedTab, setSelectedTab] = useState("personal");
+  const { user, isLoading } = useAuth();
+
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const data = await AuthService.getProfile();
+        setProfile(data);
+        console.log("Profile data:", data);
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const color = {
     primary: "#1677ff",

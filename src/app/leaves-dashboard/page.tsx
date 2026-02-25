@@ -191,7 +191,7 @@ export default function LeavesDashboardPage() {
     <ProtectedRoute>
       <MainLayout>
         <div  >
-          <div >
+          <div  style={{marginTop: 20}} >
             <Tabs
               activeKey="dashboard"
               onChange={(key) => {
@@ -241,7 +241,7 @@ export default function LeavesDashboardPage() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -249,7 +249,7 @@ export default function LeavesDashboardPage() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },

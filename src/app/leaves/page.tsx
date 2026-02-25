@@ -623,7 +623,7 @@ useEffect(() => {
               </Tag>
             )} */}
           </div>
-
+          <div style={{marginTop:20}}>
           <Tabs
             activeKey="leaves"
             onChange={(key) => {
@@ -672,7 +672,7 @@ useEffect(() => {
                 key: "configuration",
                 label: (
                   <span>
-                    <SettingOutlined /> Leave Configuration
+                    <SettingOutlined /> Leave Types
                   </span>
                 ),
               },
@@ -680,7 +680,7 @@ useEffect(() => {
                 key: "positions",
                 label: (
                   <span>
-                    <ApartmentOutlined /> Position Configuration
+                    <ApartmentOutlined /> Leave Policy
                   </span>
                 ),
               },
@@ -694,7 +694,7 @@ useEffect(() => {
               },
             ]}
           />
-
+          </div>
           {/* My Leave Status Section */}
           <div style={{ marginBottom: 8 }}>
             {/* <Typography.Title

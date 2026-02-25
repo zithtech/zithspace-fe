@@ -255,7 +255,7 @@ export default function LeaveAdjustmentPage() {
           ? values.compOffWorkDate.toISOString()
           : null,
         expiryDate: values.expiryDate ? values.expiryDate.toISOString() : null,
-        isTaken: !!values.isTaken,
+        
       };
 
       let success = false;
@@ -427,7 +427,7 @@ export default function LeaveAdjustmentPage() {
         <div >
           {contextHolder}
           {modalContextHolder}
-          <div >
+          <div style={{marginTop:20}} >
             <Tabs
               activeKey={
                 pathname.includes("leave-adjustments")
@@ -489,7 +489,7 @@ export default function LeaveAdjustmentPage() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -497,7 +497,7 @@ export default function LeaveAdjustmentPage() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -518,8 +518,6 @@ export default function LeaveAdjustmentPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 16,
                 marginBottom: 16,
               }}
             >
@@ -528,7 +526,7 @@ export default function LeaveAdjustmentPage() {
                   <ScheduleOutlined
                      style={{ color: "#1a64c4ff", fontSize: 20 }}
                   />
-                  <Typography.Title  level={4} style={{ margin: 0 }}>
+                  <Typography.Title  level={4} >
                     Leave Adjustments
                   </Typography.Title>
                 </Space>
@@ -560,7 +558,7 @@ export default function LeaveAdjustmentPage() {
 
 
             </div>
-            <Space wrap style={{ marginBottom: 16 }}>
+            <Space wrap>
               <Tag style={{ borderRadius: 12 }}>
                 Total Adjustments: {dataSource.length}
               </Tag>
@@ -571,6 +569,7 @@ export default function LeaveAdjustmentPage() {
                 Debits: {dataSource.filter((item) => item.type === "Debit").length}
               </Tag>
             </Space>
+            <Divider style={{marginTop:20}} />
             <Table
               columns={columns}
               dataSource={dataSource.filter((item) =>

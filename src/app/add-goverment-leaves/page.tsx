@@ -579,7 +579,7 @@ export default function governmentLeaves() {
       <MainLayout>
         <div>
           {/* Tabs Navigation */}
-          <div >
+          <div style={{marginTop:20}} >
             <Tabs
               activeKey="addLeaves"
               onChange={(key) => {
@@ -631,7 +631,7 @@ export default function governmentLeaves() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -639,7 +639,7 @@ export default function governmentLeaves() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -672,14 +672,14 @@ export default function governmentLeaves() {
                     Added the Goverment Holidays
                   </Typography.Title>
                 </Space>
-                <div style={{ marginLeft: 28, marginTop: 4 }}>
+                <div style={{ marginTop: 4 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Handle special employee-specific leave cases, comp-offs, and
                     manual corrections.
                   </Text>
                 </div>
-                <div style={{ marginTop: 8, marginLeft: 28 }}>
-                                <Space>
+                
+                                <Space style={{ marginTop:12 }}>
                                   <Tag color="processing" style={{borderRadius:10}}>
                                     Total leave: {allHolidays.length}
                                   </Tag>
@@ -689,7 +689,7 @@ export default function governmentLeaves() {
                                   </Tag>
                                  
                                 </Space>
-                              </div>
+                             
               </div>
                 
 
@@ -748,7 +748,7 @@ export default function governmentLeaves() {
                 />
                 <Button
                   icon={<PlusOutlined />}
-                  style={{ height: 40 }}
+                  style={{ height: 35 }}
                   type="primary"
                   onClick={showModal}
                 >
@@ -756,7 +756,7 @@ export default function governmentLeaves() {
                 </Button>
               </Space>
             </div>
-            <Divider />
+            <Divider style={{marginTop:5}}/>
             <Table columns={columns} 
              dataSource={dataSource} 
              rowKey="id" loading={loading}  

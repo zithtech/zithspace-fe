@@ -29,6 +29,8 @@ interface User {
   tenantId: string; // Add tenant context
   tenantName?: string; // Optional tenant name
   department?: string;
+  employeeId?: string; // Optional employee ID for linking to employee records
+  employee?: any; // Include employee object if needed for future use
 }
 
 interface AuthContextType {
@@ -92,6 +94,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         tenantId: response.user.tenantId,
         tenantName: response.user.tenantName,
         department: (response.user as any).department,
+        employeeId: (response.user as any).employee?.id, // Include employee ID if available
+        employee: (response.user as any).employee || null, // Include employee object if available
       };
 
       setUser(userData);
@@ -167,6 +171,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       // Try to get user profile - axios interceptor will handle token refresh automatically
       const userProfile = await AuthService.getProfile();
 
+      console.log("Fetched user profile:", userProfile);
+
       // Transform the profile to match our User interface
       const userData: User = {
         id: userProfile.id, // Backend returns "id"
@@ -182,6 +188,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         tenantId: userProfile.tenantId,
         tenantName: userProfile.tenant?.name,
         department: userProfile.department,
+        employeeId: (userProfile as any).employee?.id, // Include employee ID if available
+        employee: (userProfile as any).employee || null, // Include employee object if available
       };
 
       setUser(userData);

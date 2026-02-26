@@ -64,7 +64,11 @@ export class EmployeeOnboardingService {
   /**
    * Update employee (full update)
    */
-  static async updateEmployee(employeeId: string, data: any): Promise<any> {
+  static async updateEmployee(employeeId: any, data: any): Promise<any> {
+    if (!employeeId || employeeId === "undefined") {
+      throw new Error("Employee ID is required for update");
+    }
+
     try {
       return await api.put<any>(`/api/onboarding/${employeeId}`, data);
     } catch (error) {

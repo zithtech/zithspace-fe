@@ -1,34 +1,130 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useState } from "react";
-import { Segmented, Card, Tabs } from "antd";
+import { Segmented, Card, Tabs, message } from "antd";
 import PersonalDetails from "@/components/new-profile/personaldetailes";
 import BankAndPayroll from "@/components/new-profile/bankAndPayroll";
 import EmployeeHistory from "@/components/new-profile/employeeHistory";
 import { ProfileService } from "@/services/newProfile";
 import { useAuth } from "@/context/AuthContext";
 import { AuthService } from "@/services/authService";
+import { EmployeeOnboardingService } from "@/services/onboardingService";
+import EditOutlined from "@ant-design/icons/lib/icons/EditOutlined";
+import { EmployeeService } from "@/services/employeeServices";
+import { PositionService } from "@/services/positionService 3";
 
 const NewProfilePage = () => {
   //const [name, setName] = useState("");
+  const defaultImage = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [selectedTab, setSelectedTab] = useState("personal");
   const { user, isLoading } = useAuth();
 
+  console.log("Authenticated User 👉", user);
+
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isHover, setIsHover] = useState(false);
   const [error, setError] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [image, setImage] = useState<string>(defaultImage);
+  const [positions, setPositions] = useState<any>(null);
+
+  // useEffect(() => {
+  //   const fetchProfile = async () => {
+  //     try {
+  //       setLoading(true);
+
+  //       // ✅ 1. Get logged in user
+  //       const userRes = await AuthService.getProfile();
+  //       // const userData = userRes?.data?.data || userRes?.data || userRes;
+  //       const userData =
+  //         (userRes as any)?.data?.data || (userRes as any)?.data || userRes;
+
+  //       setCurrentUser(userData);
+
+  //       if (!userData?.employeeId) return;
+
+  //       // ✅ 2. Get employee by ID
+  //       const empRes = await EmployeeOnboardingService.getEmployeeById(
+  //         userData.employeeId,
+  //       );
+
+  //       const employeeData = empRes?.data?.data || empRes?.data || empRes;
+
+  //       if (!employeeData) return;
+
+  //       setProfile(employeeData);
+  //       // Set image from fetched profile
+  //       if (employeeData.personal?.profile_pic) {
+  //         setImage(employeeData.personal.profile_pic);
+  //       }
+  //     } catch (error) {
+  //       console.error(error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchProfile();
+  // }, []);
+
+  useEffect(() => {}, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const data = await AuthService.getProfile();
-        setProfile(data);
-        console.log("Profile data:", data);
+
+        // 1️⃣ Get logged-in user
+        const userRes = await AuthService.getProfile();
+        const userData =
+          (userRes as any)?.data?.data || (userRes as any)?.data || userRes;
+        setCurrentUser(userData);
+
+        const positionData = async () => {
+          if (userData?.position) {
+            try {
+              const positions = await PositionService.getById(
+                userData.position.id as any,
+              );
+              setPositions(positions);
+              console.log("Positions 👉", positions);
+            } catch (error) {
+              console.error("Error fetching positions:", error);
+            }
+          }
+        };
+
+        positionData();
+
+        if (!userData?.employeeId) return;
+
+        // 2️⃣ Get employee by ID
+        const empRes = await EmployeeOnboardingService.getEmployeeById(
+          userData.employeeId,
+        );
+        const employeeData = empRes?.data?.data || empRes?.data || empRes;
+
+        if (!employeeData) return;
+
+        setProfile(employeeData);
+
+        // 3️⃣ Set the image for display
+        const profileImage =
+          employeeData.personal?.profilePic ||
+          employeeData.personal?.profile_pic;
+
+        if (profileImage) {
+          setImage(profileImage);
+        } else {
+          setImage(defaultImage); // fallback if no profile image exists
+        }
       } catch (error) {
-        console.error("Profile fetch error:", error);
+        console.error("Error fetching profile:", error);
       } finally {
         setLoading(false);
       }
@@ -36,6 +132,9 @@ const NewProfilePage = () => {
 
     fetchProfile();
   }, []);
+
+  const personal = profile?.personal;
+  const employment = profile?.employment;
 
   const color = {
     primary: "#1677ff",
@@ -138,6 +237,77 @@ const NewProfilePage = () => {
     );
   };
 
+  const getBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+
+  //   try {
+  //     const base64 = await getBase64(file);
+
+  //     console.log("Base64 Image:", base64);
+  //     setImage(base64);
+  //   } catch (error) {
+  //     console.error("Error converting image:", error);
+  //   }
+  // };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // 1️⃣ Convert to base64
+
+      const base64 = await getBase64(file);
+
+      // 2️⃣ Preview update
+      setImage(base64);
+
+      // 3️⃣ Direct backend call
+      await EmployeeOnboardingService.updateEmployee(user?.employeeId, {
+        personal: {
+          profilePic: base64, // 👈 direct send
+        },
+      });
+
+      console.log("Profile image updated successfully");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+
+  const calculateExperience = (joiningDate?: string) => {
+    if (!joiningDate) return "-";
+
+    const start = new Date(joiningDate);
+    const end = new Date();
+
+    let years = end.getFullYear() - start.getFullYear();
+    let months = end.getMonth() - start.getMonth();
+
+    // If current day less than joining day, reduce month
+    if (end.getDate() < start.getDate()) {
+      months -= 1;
+    }
+
+    // Adjust if months negative
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+
+    return `${years} Years ${months} Months`;
+  };
+
   return (
     <MainLayout>
       {" "}
@@ -194,21 +364,23 @@ const NewProfilePage = () => {
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              width: "75%", // 👈 Reduced from 85%
-              height: "280px", // 👈 Reduced from 320px
-              //gap: "6px",
+              width: "75%",
+              height: "300px",
             }}
           >
-            {/* Cover Image */}
+            {/* 🔥 IMAGE SECTION - 65% */}
+
             <div
               style={{
-                height: "55%", // 👈 Slightly reduced
+                height: "60%",
                 width: "100%",
                 overflow: "hidden",
+                cursor: "pointer",
               }}
+              onClick={() => fileInputRef.current?.click()}
             >
               <img
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e"
+                src={image}
                 alt="Employee"
                 style={{
                   width: "100%",
@@ -218,11 +390,18 @@ const NewProfilePage = () => {
               />
             </div>
 
-            {/* Content */}
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+
+            {/* 🔥 DETAILS SECTION - 35% */}
             <div
               style={{
-                height: "45%",
-                //padding: "12px", // 👈 Reduced padding
+                flex: "0 0 35%",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
@@ -232,39 +411,38 @@ const NewProfilePage = () => {
               <div>
                 <h1
                   style={{
-                    margin: "0 0 3px",
-                    fontSize: "14px", // 👈 Smaller font
+                    margin: "6px 0 2px",
+                    fontSize: "14px",
                     fontWeight: 600,
                     color: color.text,
                   }}
                 >
-                  Alex Morgan
+                  {personal?.firstName} {personal?.lastName}
                 </h1>
 
                 <p
                   style={{
-                    margin: "0 0 10px",
+                    margin: "0 0 6px",
                     fontSize: "10px",
                     color: color.textMuted,
                     fontWeight: 500,
                   }}
                 >
-                  EMP-2024-892
+                  {personal?.employee_code}
                 </p>
 
-                {/* Badges */}
                 <div
                   style={{
                     display: "flex",
+                    justifyContent: "center",
                     gap: "4px",
                     flexWrap: "wrap",
-                    marginBottom: "6px",
-                    justifyContent: "center",
+                    flexDirection: "row",
                   }}
                 >
                   <span
                     style={{
-                      padding: "2px 6px",
+                      padding: "2px 4px",
                       borderRadius: "4px",
                       fontSize: "9px",
                       fontWeight: 500,
@@ -272,39 +450,26 @@ const NewProfilePage = () => {
                       color: color.primary,
                     }}
                   >
-                    Senior Developer
-                  </span>
-
-                  <span
-                    style={{
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      fontSize: "9px",
-                      fontWeight: 500,
-                      background: "#f5f5f5",
-                      color: color.textSecondary,
-                    }}
-                  >
-                    4 Years Exp
+                    {currentUser?.positionTitle}{" "}
+                    {positions?.subDepartment?.name}
                   </span>
                 </div>
               </div>
 
-              {/* Dept / Location */}
+              {/* Department / Location */}
               <div
                 style={{
                   borderTop: `1px solid ${color.borderLight}`,
-
-                  paddingBottom: "6px",
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
+                  padding: "6px 0",
                 }}
               >
-                <div style={{ textAlign: "center" }}>
+                <div>
                   <p
                     style={{
-                      margin: "0 0 3px",
-                      fontSize: "8px",
+                      margin: "0 0 2px",
+                      fontSize: "9px",
                       textTransform: "uppercase",
                       color: color.textLight,
                       fontWeight: 600,
@@ -320,20 +485,19 @@ const NewProfilePage = () => {
                       color: color.textSecondary,
                     }}
                   >
-                    Engineering
+                    {employment?.department}
                   </p>
                 </div>
 
                 <div
                   style={{
-                    textAlign: "center",
                     borderLeft: `1px solid ${color.borderLight}`,
                   }}
                 >
                   <p
                     style={{
-                      margin: "0 0 3px",
-                      fontSize: "8px",
+                      margin: "0 0 2px",
+                      fontSize: "9px",
                       textTransform: "uppercase",
                       color: color.textLight,
                       fontWeight: 600,
@@ -349,7 +513,7 @@ const NewProfilePage = () => {
                       color: color.textSecondary,
                     }}
                   >
-                    New York, USA
+                    {employment?.workLocation}
                   </p>
                 </div>
               </div>
@@ -366,8 +530,30 @@ const NewProfilePage = () => {
               width: "85%",
             }}
           >
-            <InfoCard icon="📅" label="Date of Joining" value="12 Jan 2020" />
-            <InfoCard icon="🏢" label="Department" value="Engineering" />
+            <InfoCard
+              icon="🏢"
+              label="Reports To"
+              value={`${profile?.employment?.reportingManager}`}
+            />
+
+            <InfoCard
+              icon="⏳"
+              label="Experience"
+              value={calculateExperience(employment?.employeeJoiningDate)}
+            />
+
+            <InfoCard
+              icon="📅"
+              label="Date of Joining"
+              value={
+                employment?.employeeJoiningDate
+                  ? new Date(employment.employeeJoiningDate).toLocaleDateString(
+                      "en-IN", // Indian format DD/MM/YYYY
+                      { day: "2-digit", month: "short", year: "numeric" },
+                    )
+                  : "-"
+              }
+            />
           </div>
         </div>
 
@@ -402,7 +588,6 @@ const NewProfilePage = () => {
             </p>
           </div>
 
-          {/* 🔹 Segmented + Content Wrapper */}
           <div
             style={{
               display: "flex",
@@ -418,37 +603,47 @@ const NewProfilePage = () => {
               items={[
                 {
                   key: "personal",
-                  label: "Personal Details",
+                  label: (
+                    <span style={{ fontWeight: 600 }}>Personal Details</span>
+                  ),
                   children: (
                     <div
                       style={{
                         height: "100%",
-                        overflowY: "auto",
-                        paddingRight: "6px",
+                        overflowY: "hidden", // ❌ No scroll
                       }}
                     >
-                      <PersonalDetails />
+                      <PersonalDetails
+                        profile={profile}
+                        personal={personal}
+                        employment={employment}
+                        currentUser={currentUser}
+                      />
                     </div>
                   ),
                 },
                 {
                   key: "bank",
-                  label: "Bank & Payroll",
+                  label: (
+                    <span style={{ fontWeight: 600 }}>Bank & Payroll</span>
+                  ),
                   children: (
                     <div
                       style={{
                         height: "100%",
-                        overflowY: "auto",
-                        paddingRight: "6px",
+                        overflowY: "hidden", // ❌ No scroll
                       }}
                     >
-                      <BankAndPayroll />
+                      <BankAndPayroll
+                        profile={profile}
+                        employment={employment}
+                      />
                     </div>
                   ),
                 },
                 {
                   key: "history",
-                  label: "History",
+                  label: <span style={{ fontWeight: 600 }}>History</span>,
                   children: (
                     <div
                       style={{
@@ -457,7 +652,7 @@ const NewProfilePage = () => {
                         paddingRight: "6px",
                       }}
                     >
-                      <EmployeeHistory />
+                      <EmployeeHistory profile={profile} />
                     </div>
                   ),
                 },

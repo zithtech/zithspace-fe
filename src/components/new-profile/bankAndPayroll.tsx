@@ -3,7 +3,12 @@ import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { PiBankLight } from "react-icons/pi";
 
-const bankAndPayroll = () => {
+interface BankAndPayrollProps {
+  profile: any;
+  employment: any;
+}
+
+const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
   const [showAccount, setShowAccount] = useState(false);
 
   // 🔹 Hardcoded Data
@@ -54,18 +59,21 @@ const bankAndPayroll = () => {
       {/* 🔹 Main Fields */}
       <Row gutter={[24, 16]}>
         <Col span={8}>
-          <ViewBox label="Bank Name" value={data.bankName} />
+          <ViewBox label="Bank Name" value={profile?.bank.bankName || "--"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="Account Holder Name" value={data.accountHolderName} />
+          <ViewBox
+            label="Account Holder Name"
+            value={profile?.bank.accountHolderName || "--"}
+          />
         </Col>
 
         <Col span={8}>
           <div>
             <label style={labelStyle}>Account Number</label>
             <Input
-              value={data.accountNumber}
+              value={profile?.bank.accountNumber || "--"}
               readOnly
               type={showAccount ? "text" : "password"}
               suffix={
@@ -80,11 +88,14 @@ const bankAndPayroll = () => {
         </Col>
 
         <Col span={8}>
-          <ViewBox label="IFSC Code" value={data.ifscCode} />
+          <ViewBox label="IFSC Code" value={profile?.bank.ifscCode || "--"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="Branch Name" value={data.branchName} />
+          <ViewBox
+            label="Branch Name"
+            value={profile?.bank.branchName || "--"}
+          />
         </Col>
       </Row>
 
@@ -96,15 +107,15 @@ const bankAndPayroll = () => {
 
       <Row gutter={[24, 16]}>
         <Col span={8}>
-          <ViewBox label="PF Number" value={data.pfNumber} />
+          <ViewBox label="PF Number" value={profile?.bank.pfNumber || "--"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="UAN Number" value={data.uanNumber} />
+          <ViewBox label="UAN Number" value={profile?.bank.uanNumber || "--"} />
         </Col>
 
         <Col span={8}>
-          <ViewBox label="ESI Number" value={data.esiNumber} />
+          <ViewBox label="ESI Number" value={profile?.bank.esiNumber || "--"} />
         </Col>
       </Row>
     </Card>

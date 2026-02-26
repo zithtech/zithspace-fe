@@ -4,46 +4,26 @@ import { Card, Row, Col, Typography } from "antd";
 import { FaHome } from "react-icons/fa";
 
 import ViewField from "@/components/common/ViewField";
+import { useEffect } from "react";
 
 const { Text } = Typography;
 
-const PersonalDetails = () => {
-  const data = {
-    personalDetails: {
-      firstName: "Alex",
-      lastName: "Morgan",
-      employeeId: "EMP-2024-892",
-      dob: "12-05-1998",
-      bloodGroup: "O+",
-      mobile: "+91 9876543210",
-      personalEmail: "alex.m@gmail.com",
-      workEmail: "alex.morgan@company.com",
-      panNumber: "ABCDE1234F",
-    },
-    address: {
-      currentAddress: {
-        flatNo: "123",
-        area: "Main Street",
-        city: "New York",
-        state: "NY",
-        pincode: "10001",
-        country: "USA",
-      },
-      permanentAddress: {
-        flatNo: "456",
-        area: "Second Street",
-        city: "Los Angeles",
-        state: "CA",
-        pincode: "90001",
-        country: "USA",
-      },
-    },
-    relation: {
-      name: "Emily Morgan",
-      type: "Spouse",
-      contactNumber: "+91 9876543210",
-    },
-  };
+interface PersonalDetailsProps {
+  profile: any;
+  personal: any;
+  employment: any;
+  currentUser: any;
+}
+
+const PersonalDetails: React.FC<PersonalDetailsProps> = ({
+  profile,
+  personal,
+  employment,
+  currentUser,
+}) => {
+  useEffect(() => {
+    console.log("Profile Data:", profile);
+  }, [profile]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -61,7 +41,7 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="First Name"
-              value={data.personalDetails.firstName}
+              value={profile?.personal?.firstName || "—"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -69,7 +49,7 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="Last Name"
-              value={data.personalDetails.lastName}
+              value={profile?.personal?.lastName || "-"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -77,7 +57,7 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="Employee ID"
-              value={data.personalDetails.employeeId}
+              value={profile?.personal?.employee_code || "—"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -85,7 +65,11 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="Date of Birth"
-              value={data.personalDetails.dob}
+              value={
+                profile?.personal?.dob
+                  ? new Date(profile.personal.dob).toLocaleDateString("en-GB")
+                  : "—"
+              }
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -93,7 +77,7 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="Blood Group"
-              value={data.personalDetails.bloodGroup}
+              value={profile?.personal?.bloodGroup || "—"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -101,7 +85,7 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="Mobile Number"
-              value={data.personalDetails.mobile}
+              value={profile?.personal?.mobile || "—"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -109,7 +93,7 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="Personal Email"
-              value={data.personalDetails.personalEmail}
+              value={profile?.personal?.personalEmail || "—"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -117,15 +101,7 @@ const PersonalDetails = () => {
           <Col span={8}>
             <ViewField
               label="Work Email"
-              value={data.personalDetails.workEmail}
-              labelStyle={{ fontSize: 12 }}
-              valueStyle={{ fontSize: 13 }}
-            />
-          </Col>
-          <Col span={8}>
-            <ViewField
-              label="PAN Number"
-              value={data.personalDetails.panNumber}
+              value={profile?.personal?.workEmail || "—"}
               labelStyle={{ fontSize: 12 }}
               valueStyle={{ fontSize: 13 }}
             />
@@ -134,7 +110,7 @@ const PersonalDetails = () => {
       </Card>
 
       {/* 🔹 Address Card */}
-      <Card style={{ borderRadius: 12, padding: 20 }}>
+      <Card style={{ borderRadius: 12 }}>
         <Row gutter={24} align="stretch">
           {/* 🔹 LEFT SIDE - ADDRESSES */}
           <Col span={14}>
@@ -154,12 +130,12 @@ const PersonalDetails = () => {
 
               <Text>
                 {[
-                  data.address.currentAddress.flatNo,
-                  data.address.currentAddress.area,
-                  data.address.currentAddress.city,
-                  data.address.currentAddress.state,
-                  data.address.currentAddress.pincode,
-                  data.address.currentAddress.country,
+                  profile?.personal?.address?.current?.c_flat || "-",
+                  profile?.personal?.address?.current?.c_area || "-",
+                  profile?.personal?.address?.current?.c_city || "-",
+                  profile?.personal?.address?.current?.c_state || "-",
+                  profile?.personal?.address?.current?.c_pincode || "-",
+                  profile?.personal?.address?.current?.c_country || "-",
                 ]
                   .filter(Boolean)
                   .join(", ") || "-"}
@@ -174,15 +150,14 @@ const PersonalDetails = () => {
                   Permanent Address
                 </Text>
               </div>
-
               <Text>
                 {[
-                  data.address.permanentAddress.flatNo,
-                  data.address.permanentAddress.area,
-                  data.address.permanentAddress.city,
-                  data.address.permanentAddress.state,
-                  data.address.permanentAddress.pincode,
-                  data.address.permanentAddress.country,
+                  profile?.personal?.address?.permanent?.p_flat || "-",
+                  profile?.personal?.address?.permanent?.p_area || "-",
+                  profile?.personal?.address?.permanent?.p_city || "-",
+                  profile?.personal?.address?.permanent?.p_state || "-",
+                  profile?.personal?.address?.permanent?.p_pincode || "-",
+                  profile?.personal?.address?.permanent?.p_country || "-",
                 ]
                   .filter(Boolean)
                   .join(", ") || "-"}
@@ -204,17 +179,17 @@ const PersonalDetails = () => {
 
               <div style={{ marginBottom: 10 }}>
                 <Text type="secondary">Name</Text>
-                <div>{data.relation?.name || "-"}</div>
+                <div>{profile?.personal.relationName || "-"}</div>
               </div>
 
               <div style={{ marginBottom: 10 }}>
                 <Text type="secondary">Type</Text>
-                <div>{data.relation?.type || "-"}</div>
+                <div>{profile?.personal.relationship || "-"}</div>
               </div>
 
               <div>
                 <Text type="secondary">Contact Number</Text>
-                <div>{data.relation?.contactNumber || "-"}</div>
+                <div>{profile?.personal.relationMobile || "-"}</div>
               </div>
             </Card>
           </Col>

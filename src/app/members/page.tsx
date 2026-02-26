@@ -86,7 +86,7 @@ export default function MembersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
   const [positionFilter, setPositionFilter] = useState<string | undefined>(
-    undefined
+    undefined,
   );
 
   // Modal states
@@ -149,8 +149,8 @@ export default function MembersPage() {
               id: m.value,
               name: m.label,
               position: m.position ? { title: m.position, id: "" } : null,
-            } as Member)
-        )
+            }) as Member,
+        ),
       );
     } catch (error) {
       console.error("Failed to fetch managers:", error);
@@ -317,8 +317,8 @@ export default function MembersPage() {
                 record.role === "super_admin"
                   ? "#ff4d4f"
                   : record.role === "admin"
-                  ? "#faad14"
-                  : "#52c41a",
+                    ? "#faad14"
+                    : "#52c41a",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -376,8 +376,8 @@ export default function MembersPage() {
             role === "super_admin"
               ? "red"
               : role === "admin"
-              ? "orange"
-              : "green"
+                ? "orange"
+                : "green"
           }
           style={{ fontSize: 11, fontWeight: 500 }}
         >
@@ -596,8 +596,8 @@ export default function MembersPage() {
             modalType === "add"
               ? "Add New Member"
               : modalType === "edit"
-              ? "Edit Member"
-              : "Delete Member"
+                ? "Edit Member"
+                : "Delete Member"
           }
           open={isModalVisible}
           onCancel={() => {
@@ -722,7 +722,10 @@ export default function MembersPage() {
                     { required: true, message: "Please select position" },
                   ]}
                 >
-                  <Select placeholder="Select position" loading={positionsLoading}>
+                  <Select
+                    placeholder="Select position"
+                    loading={positionsLoading}
+                  >
                     {positions.map((position) => (
                       <Option key={position.id} value={position.id}>
                         {position.title}

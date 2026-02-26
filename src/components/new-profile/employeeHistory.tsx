@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Collapse, Tag, Modal, Image } from "antd";
+import { Collapse, Modal, Image } from "antd";
 import {
   BankOutlined,
   CalendarOutlined,
@@ -9,6 +9,7 @@ import {
   FileImageOutlined,
   UserOutlined,
   PhoneOutlined,
+  MailOutlined,
   DownloadOutlined,
   FolderOpenOutlined,
   IdcardOutlined,
@@ -17,40 +18,40 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface ContactPerson {
+  id: string;
+  contactName: string;
+  contactNumber: string;
+  contactEmail: string;
+  contactRole: string;
+}
+
+interface DocumentItem {
+  id: string;
+  url: string;
+}
+
 interface Experience {
-  employeeId: string;
+  id: string;
   companyName: string;
   location: string;
   industry: string;
-  companyAddress: string;
-  joiningDate: string;
-  lastWorkingDate: string;
+  address: string;
+  doj: string;
+  lwd: string;
   designation: string;
   employmentType: string;
   contacts?: ContactPerson[];
+  experienceLetter?: DocumentItem;
+  offerLetter?: DocumentItem;
+  serviceLetter?: DocumentItem;
+  relievingLetter?: DocumentItem;
+  form16?: DocumentItem[];
+  payslips?: DocumentItem[];
 }
 
-interface Document {
-  employeeId: string;
-  documentType:
-    | "PAYSLIP"
-    | "FORM_16"
-    | "EXPERIENCE_LETTER"
-    | "OFFER_LETTER"
-    | "SERVICE_LETTER"
-    | "RELIEVING_LETTER";
-  documentUrl: string;
-}
-
-interface ContactPerson {
-  contactPersonType: string;
-  contactPersonName: string;
-  contactPersonNumber: string;
-}
-
-interface ProfilePayload {
-  experiences: Experience[];
-  documents: Document[];
+interface ProfileHistory {
+  history: Experience[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -59,6 +60,8 @@ const isImageUrl = (url: string) =>
   /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(url);
 
 const isPdfUrl = (url: string) => /\.pdf(\?.*)?$/i.test(url);
+
+const isDocxUrl = (url: string) => /\.(docx?|xlsx?|pptx?)(\?.*)?$/i.test(url);
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return "—";
@@ -70,7 +73,7 @@ const formatDate = (dateStr: string) => {
 };
 
 const formatEmploymentType = (type: string) =>
-  type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  type ? type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—";
 
 const getFileName = (url: string) =>
   url.split("/").pop()?.split("?")[0] ?? "Document";
@@ -84,6 +87,7 @@ const DocumentViewer: React.FC<{ url: string; label: string }> = ({
   const [open, setOpen] = useState(false);
   const isImg = isImageUrl(url);
   const isPdf = isPdfUrl(url);
+  const isDocx = isDocxUrl(url);
 
   return (
     <>
@@ -133,7 +137,14 @@ const DocumentViewer: React.FC<{ url: string; label: string }> = ({
             title={label}
           />
         )}
-        {!isImg && !isPdf && (
+        {isDocx && (
+          <iframe
+            src={`https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`}
+            style={{ width: "100%", height: 600, border: "none" }}
+            title={label}
+          />
+        )}
+        {!isImg && !isPdf && !isDocx && (
           <div style={{ textAlign: "center", padding: 32, color: "#8c8c8c" }}>
             <FileTextOutlined style={{ fontSize: 48 }} />
             <p style={{ marginTop: 12 }}>
@@ -153,28 +164,23 @@ const DocumentViewer: React.FC<{ url: string; label: string }> = ({
 
 const DocumentSection: React.FC<{
   title: string;
-  docs: Document[];
+  docs: DocumentItem[];
   labelPrefix?: string;
 }> = ({ title, docs, labelPrefix }) => {
-  if (!docs.length) return null;
+  if (!docs || !docs.length) return null;
   return (
     <div className="doc-section">
       <div className="doc-section-header">
         <FolderOpenOutlined />
         <span>{title}</span>
-        {/* <Tag color="blue" style={{ marginLeft: 8 }}>
-          {docs.length}
-        </Tag> */}
       </div>
       <div className="doc-list">
         {docs.map((doc, i) => (
           <DocumentViewer
-            key={i}
-            url={doc.documentUrl}
+            key={doc.id || i}
+            url={doc.url}
             label={
-              labelPrefix
-                ? `${labelPrefix} ${i + 1}`
-                : getFileName(doc.documentUrl)
+              labelPrefix ? `${labelPrefix} ${i + 1}` : getFileName(doc.url)
             }
           />
         ))}
@@ -211,9 +217,9 @@ const ContactDetails: React.FC<{ contacts: ContactPerson[] }> = ({
     label: (
       <span>
         Contact {i + 1}
-        {c.contactPersonName && (
+        {c.contactName && (
           <span style={{ color: "#8c8c8c", fontWeight: 400, marginLeft: 4 }}>
-            — {c.contactPersonName}
+            — {c.contactName}
           </span>
         )}
       </span>
@@ -222,18 +228,23 @@ const ContactDetails: React.FC<{ contacts: ContactPerson[] }> = ({
       <div style={{ padding: "4px 0" }}>
         <InfoRow
           icon={<UserOutlined />}
-          label="Contact Person Type"
-          value={c.contactPersonType}
+          label="Contact Role"
+          value={c.contactRole}
         />
         <InfoRow
           icon={<UserOutlined />}
           label="Contact Person Name"
-          value={c.contactPersonName}
+          value={c.contactName}
         />
         <InfoRow
           icon={<PhoneOutlined />}
           label="Contact Number"
-          value={c.contactPersonNumber}
+          value={c.contactNumber}
+        />
+        <InfoRow
+          icon={<MailOutlined />}
+          label="Contact Email"
+          value={c.contactEmail}
         />
       </div>
     ),
@@ -252,32 +263,27 @@ const ContactDetails: React.FC<{ contacts: ContactPerson[] }> = ({
 
 // ─── Experience Panel Content ─────────────────────────────────────────────────
 
-const ExperiencePanel: React.FC<{
-  experience: Experience;
-  documents: Document[];
-}> = ({ experience, documents }) => {
-  const payslips = documents.filter((d) => d.documentType === "PAYSLIP");
-  const form16s = documents.filter((d) => d.documentType === "FORM_16");
-  const expLetters = documents.filter(
-    (d) => d.documentType === "EXPERIENCE_LETTER",
-  );
-  const offerLetters = documents.filter(
-    (d) => d.documentType === "OFFER_LETTER",
-  );
-  const serviceLetters = documents.filter(
-    (d) => d.documentType === "SERVICE_LETTER",
-  );
-  const relievingLetters = documents.filter(
-    (d) => d.documentType === "RELIEVING_LETTER",
-  );
+const ExperiencePanel: React.FC<{ experience: Experience }> = ({
+  experience,
+}) => {
+  // Normalize single-item docs to array for DocumentSection
+  const toArray = (doc?: DocumentItem | null): DocumentItem[] =>
+    doc && doc.url ? [doc] : [];
+
+  const expLetters = toArray(experience.experienceLetter);
+  const offerLetters = toArray(experience.offerLetter);
+  const serviceLetters = toArray(experience.serviceLetter);
+  const relievingLetters = toArray(experience.relievingLetter);
+  const form16s = experience.form16 ?? [];
+  const payslips = experience.payslips ?? [];
 
   const hasDocuments =
-    payslips.length ||
-    form16s.length ||
     expLetters.length ||
     offerLetters.length ||
     serviceLetters.length ||
-    relievingLetters.length;
+    relievingLetters.length ||
+    form16s.length ||
+    payslips.length;
 
   const hasContacts = experience.contacts && experience.contacts.length > 0;
 
@@ -309,7 +315,7 @@ const ExperiencePanel: React.FC<{
           <InfoRow
             icon={<EnvironmentOutlined />}
             label="Company Address"
-            value={experience.companyAddress}
+            value={experience.address}
           />
         </div>
 
@@ -322,12 +328,12 @@ const ExperiencePanel: React.FC<{
           <InfoRow
             icon={<CalendarOutlined />}
             label="Date of Joining"
-            value={formatDate(experience.joiningDate)}
+            value={formatDate(experience.doj)}
           />
           <InfoRow
             icon={<CalendarOutlined />}
             label="Last Working Day"
-            value={formatDate(experience.lastWorkingDate)}
+            value={formatDate(experience.lwd)}
           />
           <InfoRow
             icon={<IdcardOutlined />}
@@ -404,10 +410,11 @@ const ExperiencePanel: React.FC<{
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const PreviousExperience: React.FC<{ payload: ProfilePayload }> = ({
-  payload,
-}) => {
-  const { experiences = [], documents = [] } = payload;
+const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
+  // Support both { history: [...] } and direct array
+  const experiences: Experience[] = Array.isArray(profile)
+    ? profile
+    : (profile?.history ?? []);
 
   const [activeKey, setActiveKey] = useState<string | string[]>(
     experiences.length > 0 ? ["exp-0"] : [],
@@ -418,7 +425,6 @@ const PreviousExperience: React.FC<{ payload: ProfilePayload }> = ({
     label: (
       <span>
         <BankOutlined style={{ marginRight: 8 }} />
-
         {exp.companyName && (
           <span style={{ color: "#8c8c8c", fontWeight: 400, marginLeft: 4 }}>
             {exp.companyName}
@@ -426,14 +432,14 @@ const PreviousExperience: React.FC<{ payload: ProfilePayload }> = ({
         )}
       </span>
     ),
-    children: <ExperiencePanel experience={exp} documents={documents} />,
+    children: <ExperiencePanel experience={exp} />,
   }));
 
   return (
     <>
       <style>{`
         .exp-root {
-          padding: 24px;
+          // padding: 10px;
           background: white;
           min-height: 100vh;
           box-sizing: border-box;
@@ -543,7 +549,6 @@ const PreviousExperience: React.FC<{ payload: ProfilePayload }> = ({
           letter-spacing: 0.3px;
         }
 
-        /* fontWeight 600 on all values */
         .info-value {
           font-size: 13px;
           color: #262626;
@@ -663,101 +668,4 @@ const PreviousExperience: React.FC<{ payload: ProfilePayload }> = ({
   );
 };
 
-// ─── Sample Payload ───────────────────────────────────────────────────────────
-
-const SAMPLE_PAYLOAD: ProfilePayload = {
-  experiences: [
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      companyName: "ABC Technologies",
-      location: "Chennai",
-      industry: "IT Services",
-      companyAddress: "Tidel Park, Chennai",
-      joiningDate: "2022-01-10",
-      lastWorkingDate: "2023-12-31",
-      designation: "Software Engineer",
-      employmentType: "FULL_TIME",
-      contacts: [
-        {
-          contactPersonType: "HR Manager",
-          contactPersonName: "Priya Sharma",
-          contactPersonNumber: "+91 98765 43210",
-        },
-        {
-          contactPersonType: "Reporting Manager",
-          contactPersonName: "Rahul Verma",
-          contactPersonNumber: "+91 91234 56789",
-        },
-      ],
-    },
-    {
-      employeeId: "EMPLOYEE_UUID_2",
-      companyName: "XYZ Solutions",
-      location: "Bengaluru",
-      industry: "Product",
-      companyAddress: "Koramangala, Bengaluru",
-      joiningDate: "2020-03-01",
-      lastWorkingDate: "2021-12-31",
-      designation: "Junior Developer",
-      employmentType: "FULL_TIME",
-      contacts: [],
-    },
-  ],
-  documents: [
-    // Experience Letter
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "EXPERIENCE_LETTER",
-      documentUrl: "https://s3.bucket/experience-letter.pdf",
-    },
-    // Offer Letter
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "OFFER_LETTER",
-      documentUrl: "https://s3.bucket/offer-letter.pdf",
-    },
-    // Service Letter
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "SERVICE_LETTER",
-      documentUrl: "https://s3.bucket/service-letter.pdf",
-    },
-    // Relieving Letter
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "RELIEVING_LETTER",
-      documentUrl: "https://s3.bucket/relieving-letter.pdf",
-    },
-    // Form 16
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "FORM_16",
-      documentUrl: "https://s3.bucket/form16-2022-23.pdf",
-    },
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "FORM_16",
-      documentUrl: "https://s3.bucket/form16-2023-24.pdf",
-    },
-    // Payslips
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "PAYSLIP",
-      documentUrl: "https://s3.bucket/payslip-jan-2024.pdf",
-    },
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "PAYSLIP",
-      documentUrl: "https://s3.bucket/payslip-feb-2024.pdf",
-    },
-    {
-      employeeId: "EMPLOYEE_UUID_1",
-      documentType: "PAYSLIP",
-      documentUrl: "https://s3.bucket/payslip-mar-2024.pdf",
-    },
-  ],
-};
-
-export default function App() {
-  return <PreviousExperience payload={SAMPLE_PAYLOAD} />;
-}
+export default PreviousExperience;

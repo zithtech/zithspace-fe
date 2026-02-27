@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -26,12 +27,12 @@ import {
   WarningOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useRouter } from "next/navigation";
-//import { TimesheetService } from "@/services/timesheetService";
 import { useSearchParams } from "next/navigation";
 import {
   useTimesheets,
@@ -71,10 +72,12 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   const { message, notification } = App.useApp();
   const [isDescModalOpen, setIsDescModalOpen] = useState(false);
   const [selectedDesc, setSelectedDesc] = useState("");
+  
   const closeDesc = () => {
     setIsDescModalOpen(false);
     setSelectedDesc("");
   };
+  
   const { data: previewTimesheetData, refetch } = useTimesheetById(
     previewId || undefined,
   );
@@ -84,10 +87,10 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
 
   useEffect(() => {
     const calculateHeight = () => {
-      const vh = window.innerHeight; // full viewport height
-      const headerHeight = 160; // approx header + filters + tags + margins
-      const paginationHeight = 54; // antd table pagination default height
-      const padding = 24 * 2; // outer div padding top + bottom
+      const vh = window.innerHeight;
+      const headerHeight = 160;
+      const paginationHeight = 54;
+      const padding = 24 * 2;
       setTableHeight(vh - headerHeight - paginationHeight - padding);
     };
 
@@ -95,29 +98,29 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
     window.addEventListener("resize", calculateHeight);
     return () => window.removeEventListener("resize", calculateHeight);
   }, []);
+  
   useEffect(() => {
     if (previewId) {
       refetch();
     }
   }, [previewId, refetch]);
+
   const tableData = useMemo(() => {
     if (!allTimesheets?.data) return [];
-    console.log("TIMESHEETS FROM API 👉", allTimesheets.data);
-
+    
     return allTimesheets.data.map((t) => ({
       key: t.id,
       weekStart: t.weekStart,
       employeeName: t.user?.name || "-",
       status: t.status,
-      //approvedBy: t.status === "APPROVED" ? "Manager" : "-",
-      //approvedBy: t.approvedBy?.name || "-",
       approvedBy: t.approvedBy,
       createdAt: dayjs(t.createdAt).format("YYYY-MM-DD"),
       totalHours: `${t.totalHours}h`,
-      leave: "0",
+      leave: t.leaveCount || 0,
       rejectReason: t.rejectReason || "",
     }));
   }, [allTimesheets]);
+  
   const dayIndexMap: Record<string, number> = {
     Sun: 0,
     Mon: 1,
@@ -128,34 +131,38 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
     Sat: 6,
   };
 
+  // Updated previewColumns to show dynamic dates based on each row's actual date
   const previewColumns = [
     {
       title: "Date",
-      render: (_: any, r: any, index: number) => {
+      render: (_: any, row: any) => {
         if (!previewTimesheetData?.weekStart) return "-";
 
-        // Start of the week
-        const weekStart = dayjs(previewTimesheetData.weekStart).startOf("week");
-
-        // Display date = weekStart + row index
-        const displayDate = weekStart.add(index, "day").format("MMM DD");
-
-        return displayDate;
+        // Try to get the date from the row data
+        if (row.day) {
+          // If row has a day field (ISO date), use it
+          return dayjs(row.day).format("MMM DD");
+        } else if (row.date) {
+          // If row has a date field, use it
+          return dayjs(row.date).format("MMM DD");
+        }
+        return "-";
       },
     },
-
     {
       title: "Project",
       dataIndex: "projectName",
+      render: (text: string) => text || "-",
     },
     {
       title: "Task",
       dataIndex: "taskName",
+      render: (text: string) => text || "-",
     },
     {
       title: "Description",
       render: (_: any, row: any) => {
-        const preview = row.description ? row.description.slice(0, 30) : ""; // first 30 chars
+        const preview = row.description ? row.description.slice(0, 30) : "";
         const hasMore = row.description && row.description.length > 30;
 
         return (
@@ -169,8 +176,8 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                 type="text"
                 icon={<EyeOutlined />}
                 onClick={() => {
-                  setSelectedDesc(row.description || ""); // set modal content
-                  setIsDescModalOpen(true); // open modal
+                  setSelectedDesc(row.description || "");
+                  setIsDescModalOpen(true);
                 }}
               />
             )}
@@ -182,7 +189,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
     {
       title: "Hours",
       dataIndex: "hours",
-      render: (h: number) => `${h}h`,
+      render: (h: number) => (h ? `${h}h` : "0h"),
     },
     {
       title: "Billable",
@@ -190,6 +197,84 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       render: (v: boolean) => (v ? "Yes" : "No"),
     },
   ];
+
+  // Updated getPreviewRows to preserve row data
+  // const getPreviewRows = () => {
+  //   if (previewTimesheetData?.rows?.length) {
+  //     // Sort rows by date to ensure chronological order
+  //     const sortedRows = [...previewTimesheetData.rows].sort((a, b) => {
+  //       const dateA = a.day ? dayjs(a.day) : dayjs(a.date);
+  //       const dateB = b.day ? dayjs(b.day) : dayjs(b.date);
+  //       return dateA.valueOf() - dateB.valueOf();
+  //     });
+
+  //     return sortedRows.map((row: any, index: number) => ({
+  //       ...row,
+  //       key: row.id || `row-${index}`,
+  //     }));
+  //   }
+
+  //   // If no data, create 7 empty rows for the week
+  //   return Array.from({ length: 7 }).map((_, index) => ({
+  //     id: index,
+  //     key: `empty-${index}`,
+  //     projectName: "-",
+  //     taskName: "-",
+  //     description: "-",
+  //     hours: 0,
+  //     billable: false,
+  //   }));
+  // };
+  const getPreviewRows = () => {
+  if (previewTimesheetData?.rows?.length) {
+    // Sort rows by date to ensure chronological order
+    const sortedRows = [...previewTimesheetData.rows].sort((a: any, b: any) => {
+      // Check if properties exist
+      let dateA, dateB;
+      
+      if (a.day) {
+        dateA = dayjs(a.day);
+      } else if (a.date) {
+        dateA = dayjs(a.date);
+      } else {
+        dateA = dayjs(previewTimesheetData.weekStart);
+      }
+      
+      if (b.day) {
+        dateB = dayjs(b.day);
+      } else if (b.date) {
+        dateB = dayjs(b.date);
+      } else {
+        dateB = dayjs(previewTimesheetData.weekStart);
+      }
+      
+      return dateA.valueOf() - dateB.valueOf();
+    });
+
+    return sortedRows.map((row: any, index: number) => ({
+      ...row,
+      key: row.id || `row-${index}`,
+    }));
+  }
+
+  // If no data, create 7 empty rows for the week
+  return Array.from({ length: 7 }).map((_, index) => {
+    const date = dayjs(previewTimesheetData?.weekStart)
+      .startOf("week")
+      .add(index, "day");
+    
+    return {
+      id: `empty-${index}`,
+      key: `empty-${index}`,
+      projectName: "-",
+      taskName: "-",
+      description: "-",
+      hours: 0,
+      billable: false,
+      day: date.toISOString(),
+    };
+  });
+};
 
   /* ------------------ Columns ------------------ */
   const columns = useMemo(
@@ -220,7 +305,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4, // 👈 control distance here
+                    gap: 4,
                   }}
                 >
                   <Tag color="green" style={{ marginRight: 0 }}>
@@ -267,6 +352,16 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       {
         title: "Leave",
         dataIndex: "leave",
+        render: (leave: number) => {
+          if (leave > 0) {
+            return (
+              <Tag color="red" icon={<ClockCircleOutlined />}>
+                {leave} {leave === 1 ? "Day" : "Days"}
+              </Tag>
+            );
+          }
+          return <Tag color="default">0 Days</Tag>;
+        },
       },
       {
         title: "Actions",
@@ -281,30 +376,26 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                   icon: <EyeOutlined />,
                   label: "Preview",
                   onClick: () => {
-                    setPreviewId(record.key); // set the ID to fetch
-                    setPreviewOpen(true); // open the modal
-                    //refetchPreview(); // fetch the timesheet
+                    setPreviewId(record.key);
+                    setPreviewOpen(true);
                   },
                 },
-
                 {
                   key: "edit",
                   icon: <EditOutlined />,
                   label: "Edit",
                   disabled: ["APPROVED", "REJECTED"].includes(record.status),
-                  // inside Edit action
                   onClick: () => {
                     goToSubmitTimesheet(record.key, "edit");
                   },
                 },
-
                 {
                   key: "resubmit",
                   icon: <RedoOutlined />,
                   label: "Resubmit",
                   onClick: () => {
                     goToSubmitTimesheet?.();
-                    setPreviewId(record.key); // for resubmission
+                    setPreviewId(record.key);
                   },
                 },
                 {
@@ -314,7 +405,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                   danger: true,
                   onClick: () => {
                     setDeleteId(record.key);
-                    setShowDeleteModal(true); // open confirmation modal
+                    setShowDeleteModal(true);
                   },
                 },
               ],
@@ -329,7 +420,6 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   );
 
   const filteredData = useMemo(() => {
-    //return dataSource.filter((item) => {
     return tableData.filter((item) => {
       const search = searchText.toLowerCase();
 
@@ -343,6 +433,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       return matchesSearch && matchesStatus;
     });
   }, [tableData, searchText, statusFilter]);
+  
   const approvedCount = filteredData.filter(
     (t) => t.status === "APPROVED",
   ).length;
@@ -350,25 +441,10 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   const pendingCount = filteredData.filter(
     (t) => t.status === "SUBMITTED",
   ).length;
-   const rejectedCount = filteredData.filter(
+  
+  const rejectedCount = filteredData.filter(
     (t) => t.status === "REJECTED",
   ).length;
-
-
-
-  const getPreviewRows = () => {
-    if (previewTimesheetData?.rows?.length) return previewTimesheetData.rows;
-
-    // If no data, create 7 empty rows for the week
-    return Array.from({ length: 7 }).map((_, index) => ({
-      id: index,
-      projectName: "-",
-      taskName: "-",
-      description: "-", // <-- important
-      hours: 0,
-      billable: false,
-    }));
-  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -403,9 +479,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                 Approved: {approvedCount}
               </Tag>
               <Tag color="orange">Pending: {pendingCount}</Tag>
-               <Tag color="red">Rejected: {rejectedCount}</Tag>
-              
-
+              <Tag color="red">Rejected: {rejectedCount}</Tag>
             </div>
           </div>
 
@@ -449,7 +523,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
               type="primary"
               icon={<PlusOutlined />}
               loading={loading}
-              onClick={() => goToSubmitTimesheet()} // no id, opens create mode
+              onClick={() => goToSubmitTimesheet()}
             >
               Create Timesheet
             </Button>
@@ -489,10 +563,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         bodyStyle={{ padding: 0 }}
       >
         <div style={{ display: "flex" }}>
-
-          {/* Content */}
           <div style={{ padding: 24, flex: 1 }}>
-            {/* Header */}
             <div
               style={{
                 display: "flex",
@@ -512,7 +583,6 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
               </div>
             </div>
 
-            {/* Reason Card */}
             <div
               style={{
                 background: "#ffffff",
@@ -532,6 +602,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
           </div>
         </div>
       </Modal>
+      
       <Modal
         open={previewOpen}
         onCancel={() => setPreviewOpen(false)}
@@ -542,7 +613,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
           <Button key="close" onClick={() => setPreviewOpen(false)}>
             Close
           </Button>,
-       ]}
+        ]}
         title={
           previewTimesheetData && (
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -555,7 +626,6 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
 
               <div>
                 <Title level={4} style={{ margin: 0 }}>
-                  {/* //{previewTimesheetData.employeeName} */}
                   {previewTimesheetData.user?.name || "-"}
                 </Title>
                 <Tag color="blue" style={{ marginTop: 4 }}>
@@ -598,7 +668,6 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         {/* Timesheet Table */}
         <Table
           columns={previewColumns}
-          //   dataSource={previewTimesheetData?.rows || []}
           dataSource={getPreviewRows()}
           pagination={false}
           bordered
@@ -607,9 +676,10 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
           rowClassName={(_, index) =>
             index % 2 === 0 ? "table-row-light" : "table-row-dark"
           }
-          loading={!previewTimesheetData} // optional, shows spinner while loading
+          loading={!previewTimesheetData}
         />
       </Modal>
+      
       <Modal
         open={showDeleteModal}
         onCancel={() => setShowDeleteModal(false)}

@@ -229,7 +229,7 @@ export default function OverviewPage() {
           }
         `}</style>
         {contextHolder}
-        <div style={{ padding: 24 }}>
+        <div style={{marginTop:20}}>
           <Tabs
             activeKey={pathname}
             onChange={handleTabChange}
@@ -339,17 +339,7 @@ export default function OverviewPage() {
 
               {/* RIGHT SIDE */}
               <Col span={16}>
-                <Card
-                  loading={gradesLoading || positionsLoading}
-                  style={{
-                    borderRadius: 18,
-                    height: "calc(100vh - 180px)",
-                    boxShadow: "0 12px 32px rgba(0,0,0,0.08)",
-                    background: "linear-gradient(180deg,#ffffff,#fafcff)",
-                    border: "1px solid #f0f0f0",
-                  }}
-                  bodyStyle={{ padding: 20, height: "100%", display: "flex", flexDirection: "column" }}
-                >
+                
                   {selectedGrade ? (
                     <>
                       {/* ✅ Header */}
@@ -431,7 +421,7 @@ export default function OverviewPage() {
                       </Text>
                     </div>
                   )}
-                </Card>
+              
               </Col>
             </Row>
         </div>

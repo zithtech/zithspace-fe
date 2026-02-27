@@ -25,6 +25,7 @@ import {
   DatePicker,
   Tabs,
   Popconfirm,
+  Switch,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -254,6 +255,7 @@ export default function LeaveAdjustmentPage() {
           ? values.compOffWorkDate.toISOString()
           : null,
         expiryDate: values.expiryDate ? values.expiryDate.toISOString() : null,
+        
       };
 
       let success = false;
@@ -307,6 +309,7 @@ export default function LeaveAdjustmentPage() {
       title: "Employee",
       dataIndex: "employee",
       key: "employee",
+      width: 150,
       sorter: (a: LeaveAdjustmentViewData, b: LeaveAdjustmentViewData) =>
         a.employee.localeCompare(b.employee),
       render: (text: string) => (
@@ -323,6 +326,8 @@ export default function LeaveAdjustmentPage() {
       title: "Leave Type",
       dataIndex: "leaveType",
       key: "leaveType",
+      width: 150,
+
     },
     {
       title: " Type",
@@ -355,7 +360,7 @@ export default function LeaveAdjustmentPage() {
     {
       title: "Reason",
       dataIndex: "reason",
-      width: 320,  
+      width: 300,  
         
       key: "reason",
       ellipsis: {
@@ -371,6 +376,7 @@ export default function LeaveAdjustmentPage() {
       title: "Approved By",
       dataIndex: "approvedBy",
       key: "approvedBy",
+     width: 150,
       render: (text: string) => (
         <Space>
           <Avatar size="small" style={{ backgroundColor: "#1890ff" }}>
@@ -380,6 +386,14 @@ export default function LeaveAdjustmentPage() {
         </Space>
       ),
     },
+    // {
+    //   title: "Taken",
+    //   dataIndex: "isTaken",
+    //   key: "isTaken",
+    //   render: (isTaken: boolean) => (
+    //     <Tag color={isTaken ? "blue" : "default"}>{isTaken ? "Yes" : "No"}</Tag>
+    //   ),
+    // },
     {
       title: "Actions",
       key: "actions",
@@ -410,10 +424,10 @@ export default function LeaveAdjustmentPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div >
           {contextHolder}
           {modalContextHolder}
-          <div >
+          <div style={{marginTop:20}} >
             <Tabs
               activeKey={
                 pathname.includes("leave-adjustments")
@@ -475,7 +489,7 @@ export default function LeaveAdjustmentPage() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -483,7 +497,7 @@ export default function LeaveAdjustmentPage() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -498,7 +512,7 @@ export default function LeaveAdjustmentPage() {
               ]}
             />
           </div>
-          <Card>
+          
             <div
               style={{
                 display: "flex",
@@ -510,9 +524,9 @@ export default function LeaveAdjustmentPage() {
               <div>
                 <Space align="center" size={8}>
                   <ScheduleOutlined
-                    style={{ color: "#1a64c4ff", fontSize: 20 }}
+                     style={{ color: "#1a64c4ff", fontSize: 20 }}
                   />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
+                  <Typography.Title  level={4} >
                     Leave Adjustments
                   </Typography.Title>
                 </Space>
@@ -523,18 +537,18 @@ export default function LeaveAdjustmentPage() {
                   </Text>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "flex-end" }}>
 
   <Input.Search
     placeholder="Search adjustments...."
     allowClear
-    style={{ width: 390 }}
+    style={{ minWidth: 240, flex: 1 }}
     onChange={(e) => setSearchText(e.target.value)}
   />
 
   <Button
     type="primary"
-    style={{ width: 180,height: 30}}
+    style={{ height: 30}}
     onClick={() => setIsModalVisible(true)}
   >
     + Add New Adjustment
@@ -544,7 +558,7 @@ export default function LeaveAdjustmentPage() {
 
 
             </div>
-            <Space wrap style={{ marginBottom: 16 }}>
+            <Space wrap>
               <Tag style={{ borderRadius: 12 }}>
                 Total Adjustments: {dataSource.length}
               </Tag>
@@ -555,6 +569,7 @@ export default function LeaveAdjustmentPage() {
                 Debits: {dataSource.filter((item) => item.type === "Debit").length}
               </Tag>
             </Space>
+            <Divider style={{marginTop:20}} />
             <Table
               columns={columns}
               dataSource={dataSource.filter((item) =>
@@ -564,7 +579,7 @@ export default function LeaveAdjustmentPage() {
               size="small"
               pagination={{ pageSize: 10 }}
             />
-          </Card>
+        
 
           <Modal
             title={
@@ -737,6 +752,30 @@ export default function LeaveAdjustmentPage() {
                     />
                   </Form.Item>
                 </Col>
+
+               <Col span={12}>
+  <Form.Item
+    name="isTaken"
+    valuePropName="checked"
+    initialValue={false}
+    style={{ marginBottom: 0 }}
+  >
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",   // 👈 important
+      }}
+    >
+      <span style={{ fontWeight: 500 }}>
+        Is Leave Taken?
+      </span>
+
+      <Switch style={{left:200}}/>
+    </div>
+  </Form.Item>
+</Col>
 
                 {/* Expiry Date */}
                 {selectedLeaveType === "Comp-Off" && (

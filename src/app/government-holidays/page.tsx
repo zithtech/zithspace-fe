@@ -494,10 +494,10 @@ render: (date: string | Date) => (
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div>
           {contextHolder}
 
-          <div style={{ marginBottom: 16 }}>
+          <div style={{marginTop:20}}>
             <Tabs
               activeKey={
                 pathname.includes("leave-adjustments")
@@ -558,7 +558,7 @@ render: (date: string | Date) => (
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -566,7 +566,7 @@ render: (date: string | Date) => (
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -582,12 +582,14 @@ render: (date: string | Date) => (
             />
           </div>
 
-          <Card>
+         
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                //flexWrap: "wrap",
+                //gap: 16,
                 marginBottom: 16,
               }}
             >
@@ -600,20 +602,20 @@ render: (date: string | Date) => (
                     Government Holidays
                   </Typography.Title>
                 </Space>
-                <div style={{ marginLeft: 28, marginTop: 4 }}>
+                <div style={{  marginTop: 4 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Manage official government holidays for your organization
                   </Text>
                 </div>
-                <div style={{ marginTop: 8, marginLeft: 28 }}>
-                  <Space>
-                    <Tag color="processing">
+                <div style={{ marginTop: 8}}>
+                  <Space style={{ marginTop: 8}}>
+                    <Tag style={{borderRadius:12}} color="processing">
                       Total: {holidays.length}
                     </Tag>
-                    <Tag color="success">
+                    <Tag style={{borderRadius:12}} color="success">
                       Active: {holidays.filter((h) => h.status === 'ACTIVE').length}
                     </Tag>
-                    <Tag color="default">
+                    <Tag style={{borderRadius:12}} color="default">
                       Inactive:{" "}
                       {holidays.filter((h) => h.status === 'INACTIVE').length}
                     </Tag>
@@ -629,7 +631,7 @@ render: (date: string | Date) => (
                 + Apply Government Holidays
               </Button>
             </div>
-            <Divider />
+            <Divider style={{marginTop:5}} />
             <Table
   loading={holidaysLoading}
   columns={holidayColumns as any}
@@ -639,7 +641,7 @@ render: (date: string | Date) => (
   key={dataSource.length}  // Keep the re-render strategy, but based on the new dataSource
 />
 
-          </Card>
+x
 
           {/* Modals */}
           <Modal

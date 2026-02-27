@@ -308,7 +308,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, DatePicker, Checkbox, Space, Button, Divider, Select, Popconfirm, Typography, Radio, Row, Col } from 'antd';
 import { VideoCameraOutlined, CalendarOutlined, ClockCircleOutlined, UserOutlined, TeamOutlined, TagOutlined, FileTextOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
-import { ZohoEvent, CreateEventData } from '@/services/zohoCalendarService';
+import { CalendarEvent, CreateEventData, CalendarProvider } from '@/services/calendarService';
 import { api } from '@/lib/axios';
 
 const { TextArea } = Input;
@@ -319,9 +319,9 @@ const { Title, Text } = Typography;
 interface EventModalProps {
     open: boolean;
     onClose: () => void;
-    onSave: (data: CreateEventData) => Promise<void>;
+    onSave: (data: any) => Promise<void>;
     onDelete?: (action?: number, occurrenceDate?: string) => Promise<void>;
-    editEvent?: ZohoEvent | null;
+    editEvent?: CalendarEvent | null;
     initialDate?: Dayjs;
     loading: boolean;
 }
@@ -403,27 +403,67 @@ export default function EventModal({
         }
     }, [open, editEvent, initialDate, form]);
 
-    const handleSubmit = async () => {
-        try {
-            const values = await form.validateFields();
+    // const handleSubmit = async () => {
+    //     try {
+    //         const values = await form.validateFields();
 
-            await onSave({
-                title: values.title,
-                description: values.description,
-                location: values.location,
-                startTime: values.startTime.toISOString(),
-                endTime: values.endTime.toISOString(),
-                isRecurring: values.isRecurring,
-                isAllDay: values.isAllDay,
-                calendar: values.calendar,
-                sourceType: values.sourceType,
-                attendees: values.attendees || [],
-                generateMeeting: values.generateMeeting,
-            });
-        } catch (error) {
-            console.error('Validation failed:', error);
+    //         await onSave({
+    //             title: values.title,
+    //             description: values.description,
+    //             location: values.location,
+    //             startTime: values.startTime.toISOString(),
+    //             endTime: values.endTime.toISOString(),
+    //             isRecurring: values.isRecurring,
+    //             isAllDay: values.isAllDay,
+    //             calendar: values.calendar,
+    //             sourceType: values.sourceType,
+    //             attendees: values.attendees || [],
+    //             generateMeeting: values.generateMeeting,
+    //             provider: editEvent?.provider || 'GOOGLE' // Default to first for new series
+    //         });
+    //     } catch (error) {
+    //         console.error('Validation failed:', error);
+    //     }
+    // };
+
+const handleSubmit = async () => {
+    try {
+        const values = await form.validateFields();
+        console.log("Form values:", values);
+
+        // Create base event data
+        const baseEventData = {
+            title: values.title,
+            description: values.description || '',
+            location: values.location || '',
+            startTime: values.startTime.toISOString(),
+            endTime: values.endTime.toISOString(),
+            isRecurring: values.isRecurring || false,
+            isAllDay: values.isAllDay || false,
+            calendar: values.calendar || 'Personal Calendar',
+            sourceType: values.sourceType || 'Manual',
+            attendees: values.attendees || [],
+            generateMeeting: values.generateMeeting || false
+        };
+
+        // If editing an existing event, create a new object with provider
+        if (editEvent) {
+            const eventDataWithProvider = {
+                ...baseEventData,
+                provider: editEvent.provider
+            };
+            console.log("Sending to onSave (with provider):", eventDataWithProvider);
+            await onSave(eventDataWithProvider);
+        } else {
+            // For new events, send base data without provider
+            console.log("Sending to onSave (no provider):", baseEventData);
+            await onSave(baseEventData);
         }
-    };
+    } catch (error) {
+        console.error('Validation failed:', error);
+    }
+};
+
 
     const handleDelete = async (action?: number) => {
         if (onDelete && editEvent) {

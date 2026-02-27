@@ -4,15 +4,15 @@ import React from 'react';
 import { Typography, Badge, Space } from 'antd';
 import { VideoCameraOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
-import { ZohoEvent } from '@/services/zohoCalendarService';
+import { CalendarEvent } from '@/services/calendarService';
 
 const { Text } = Typography;
 
 interface MonthViewProps {
     currentDate: Dayjs;
-    events: ZohoEvent[];
+    events: CalendarEvent[];
     onDayClick: (date: Dayjs) => void;
-    onEventClick: (event: ZohoEvent, occurrenceDate?: Dayjs) => void;
+    onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
 }
 
 export default function MonthView({ currentDate, events, onDayClick, onEventClick }: MonthViewProps) {
@@ -198,11 +198,11 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
                                                                     transition: 'transform 0.2s',
                                                                 }}
                                                                 onClick={(ev) => {
-  ev.stopPropagation();
-  if (typeof e.meetingLink === "string") {
-    window.open(e.meetingLink, "_blank", "noopener,noreferrer");
-  }
-}}
+                                                                    ev.stopPropagation();
+                                                                    if (typeof e.meetingLink === "string") {
+                                                                        window.open(e.meetingLink, "_blank", "noopener,noreferrer");
+                                                                    }
+                                                                }}
                                                                 onMouseEnter={(ev) => (ev.currentTarget.style.transform = 'scale(1.2)')}
                                                                 onMouseLeave={(ev) => (ev.currentTarget.style.transform = 'scale(1)')}
                                                             />

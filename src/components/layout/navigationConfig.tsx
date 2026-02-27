@@ -72,7 +72,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "HOME",
     label: "HOME",
     icon: <HomeOutlined />,
-    pathPrefixes: ["/dashboard"],
+    pathPrefixes: ["/dashboard","/integrations"],
     defaultPath: "/dashboard",
     items: [
       {
@@ -80,6 +80,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Dashboard",
         icon: <DashboardOutlined />,
         path: "/dashboard",
+      },
+      {
+        key: "/integrations",
+        label: "Integrations",
+        icon: <DashboardOutlined />,
+        path: "/integrations",
       },
     ],
   },

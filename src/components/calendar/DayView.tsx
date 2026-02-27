@@ -4,14 +4,14 @@ import React from 'react';
 import { Typography } from 'antd';
 import { VideoCameraOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
-import { ZohoEvent } from '@/services/zohoCalendarService';
+import { CalendarEvent } from '@/services/calendarService';
 
 const { Text, Title } = Typography;
 
 interface DayViewProps {
     currentDate: Dayjs;
-    events: ZohoEvent[];
-    onEventClick: (event: ZohoEvent, occurrenceDate?: Dayjs) => void;
+    events: CalendarEvent[];
+    onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
     onTimeSlotClick: (date: Dayjs) => void;
 }
 
@@ -59,7 +59,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
         });
     };
 
-    const getEventStyle = (event: ZohoEvent) => {
+    const getEventStyle = (event: CalendarEvent) => {
         const start = dayjs(event.startTime);
         const end = dayjs(event.endTime);
         const startHour = start.hour() + start.minute() / 60;
@@ -155,7 +155,7 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
                                                 fontSize: '13px'
                                             }}
                                         >
-                                            <VideoCameraOutlined /> Join Zoho Meeting
+                                            <VideoCameraOutlined /> Join Meeting
                                         </a>
                                     </div>
                                 )}

@@ -37,7 +37,7 @@ import {
 import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
 import type { ColumnsType } from "antd/es/table";
-import { useRBAC } from "@/lib/rbac";
+import { usePermission } from "@/hooks/usePermission";
 import { usePositions } from "@/hooks/usePositions";
 
 const { Title, Text } = Typography;
@@ -62,14 +62,15 @@ interface MemberFormData {
 
 export default function MembersPage() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const [form] = Form.useForm();
+  const { canReadUser, canManageUsers: canManage } = usePermission();
+  const { dataSource: positions, loading: positionsLoading } = usePositions();
 
   // Show loading spinner while authentication is being checked
   if (isLoading) {
     return <LoadingSpinner message="Loading members..." />;
   }
-  const router = useRouter();
-  const [form] = Form.useForm();
-  const { dataSource: positions, loading: positionsLoading } = usePositions();
 
   // State management
   const [members, setMembers] = useState<Member[]>([]);
@@ -101,12 +102,12 @@ export default function MembersPage() {
   // Available shifts for dropdown
   const [shifts, setShifts] = useState<Shift[]>([]);
 
-  // Check permissions - Allow all users to view, but redirect if no access
+  // Protect route - requires user.read permission
   useEffect(() => {
-    if (user && !["super_admin", "admin", "user"].includes(user.role)) {
+    if (user && !canReadUser) {
       router.push("/dashboard");
     }
-  }, [user, router]);
+  }, [user, canReadUser, router]);
 
   // Fetch members
   const fetchMembers = async () => {
@@ -405,7 +406,7 @@ export default function MembersPage() {
       width: 80,
       align: "center",
       render: (_, record: Member) => {
-        if (!rbac?.canManageMembers) return null;
+        if (!canManage) return null;
 
         const menuItems = [
           {
@@ -456,10 +457,6 @@ export default function MembersPage() {
   if (!user) {
     return null;
   }
-
-  // RBAC permissions
-  const rbac = useRBAC(user.role as any);
-  const canManage = rbac?.canManageMembers;
 
   return (
     <MainLayout>

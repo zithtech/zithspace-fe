@@ -41,6 +41,7 @@ import {
 import { MembersService } from "@/services/membersService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Title, Text } = Typography;
 
@@ -120,8 +121,8 @@ function ViewDailyUpdatesContent() {
     useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  const canViewTeam =
-    user?.role === "super_admin" || user?.position === "Project Manager";
+  const { canManageDailyUpdates } = usePermission();
+  const canViewTeam = canManageDailyUpdates || user?.position === "Project Manager";
 
   useEffect(() => {
     fetchProjects();

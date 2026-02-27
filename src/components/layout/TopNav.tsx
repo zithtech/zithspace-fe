@@ -14,6 +14,7 @@ import {
 import { Inbox } from '@novu/nextjs';
 import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -34,6 +35,14 @@ export default function TopNav({
     collapsed,
 }: TopNavProps) {
     const router = useRouter();
+    const { hasPermission, hasAnyPermission } = useAuth();
+
+    // Filter modules the current user is allowed to see
+    const visibleModules = NAVIGATION_CONFIG.filter(module => {
+        if (module.requiredPermission && !hasPermission(module.requiredPermission)) return false;
+        if (module.requiredAnyPermission && !hasAnyPermission(...module.requiredAnyPermission)) return false;
+        return true;
+    });
 
     // User dropdown menu
     const userMenuItems = [
@@ -68,7 +77,7 @@ export default function TopNav({
         }
     };
 
-    const menuItems = NAVIGATION_CONFIG.map(module => ({
+    const menuItems = visibleModules.map(module => ({
         key: module.key,
         label: (
             <span style={{

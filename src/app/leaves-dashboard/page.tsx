@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import { TrendingUpDown, AudioLines } from "lucide-react";
 import {
   Card,
@@ -72,7 +73,7 @@ interface DashboardStats {
 export default function LeavesDashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const isAdmin = user?.role === "super_admin" || user?.role === "admin";
+  const { canManageLeaves: isAdmin } = usePermission();
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
   const {

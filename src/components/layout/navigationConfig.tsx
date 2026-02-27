@@ -1,4 +1,5 @@
 import React from "react";
+import { Permissions } from "@/types/permissions";
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -56,15 +57,23 @@ export interface NavItem {
   path?: string;
   children?: NavItem[];
   disabled?: boolean;
+  /** Permission required to see this item. If absent, item is always visible. */
+  requiredPermission?: string;
+  /** Show if user has ANY of these permissions. */
+  requiredAnyPermission?: string[];
 }
 
 export interface ModuleConfig {
   key: ModuleType;
   label: string;
-  icon?: React.ReactNode; // Icon for TopNav display
-  pathPrefixes: string[]; // URLs starting with these belong to this module
+  icon?: React.ReactNode;
+  pathPrefixes: string[];
   items: NavItem[];
-  defaultPath?: string; // Optional default path to navigate to when module is selected
+  defaultPath?: string;
+  /** Permission required to see this module in the top nav. */
+  requiredPermission?: string;
+  /** Show module if user has ANY of these permissions. */
+  requiredAnyPermission?: string[];
 }
 
 export const NAVIGATION_CONFIG: ModuleConfig[] = [
@@ -228,12 +237,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/onboarding",
     ],
     defaultPath: "/members",
+    requiredPermission: Permissions.USER_READ,
     items: [
       {
         key: "/members",
         label: "Members",
         icon: <UsergroupAddOutlined />,
         path: "/members",
+        requiredPermission: Permissions.USER_READ,
       },
       {
         key: "/profile",
@@ -246,30 +257,35 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Attendance",
         icon: <ClockCircleOutlined />,
         path: "/attendance",
+        requiredPermission: Permissions.ATTENDANCE_READ,
       },
       {
         key: "/leaves-dashboard",
         label: "Leave Management",
         icon: <CalendarOutlined />,
         path: "/leaves-dashboard",
+        requiredPermission: Permissions.LEAVE_READ,
       },
 
       {
         key: "Onbording",
         icon: <PlusOutlined />,
         label: "Onbording",
+        requiredPermission: Permissions.ONBOARDING_READ,
         children: [
           {
             key: "/onbording/create",
             icon: <EyeOutlined />,
             label: "Create",
             path: "/onboarding/create",
+            requiredPermission: Permissions.ONBOARDING_CREATE,
           },
           {
             key: "/onbording/create",
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
+            requiredPermission: Permissions.ONBOARDING_READ,
           },
         ],
       },
@@ -278,42 +294,49 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         key: "orgstructure",
         icon: <ApartmentOutlined />,
         label: "Org-structure",
+        requiredPermission: Permissions.ORG_READ,
         children: [
           {
             key: "/org-structure/overview",
             icon: <EyeOutlined />,
             label: "Overview",
             path: "/org-structure/overview",
+            requiredPermission: Permissions.ORG_READ,
           },
           {
             key: "/org-structure/grades",
             icon: <SafetyOutlined />,
             label: "Grades",
             path: "/org-structure/grades",
+            requiredPermission: Permissions.ORG_MANAGE,
           },
           {
             key: "/org-structure/employment-types",
             icon: <FileDoneOutlined />,
             label: "Employment Types",
             path: "/org-structure/employment-types",
+            requiredPermission: Permissions.ORG_MANAGE,
           },
           {
             key: "/org-structure/departments",
             icon: <BankOutlined />,
             label: "Departments",
             path: "/org-structure/departments",
+            requiredPermission: Permissions.ORG_MANAGE,
           },
           {
             key: "/org-structure/sub-departments",
             icon: <ApartmentOutlined />,
             label: "Sub Departments",
             path: "/org-structure/sub-departments",
+            requiredPermission: Permissions.ORG_MANAGE,
           },
           {
             key: "/org-structure/positions",
             icon: <TeamOutlined />,
             label: "Positions",
             path: "/org-structure/positions",
+            requiredPermission: Permissions.ORG_MANAGE,
           },
         ],
       },
@@ -325,47 +348,55 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: <WalletOutlined />,
     pathPrefixes: ["/accounts", "/invoicepro", "/reimbursement", "/salary"],
     defaultPath: "/accounts",
+    requiredAnyPermission: [Permissions.TRANSACTION_READ, Permissions.INVOICE_READ, Permissions.SALARY_READ],
     items: [
       {
         key: "/accounts",
         label: "Accounts",
         icon: <WalletOutlined />,
         path: "/accounts",
+        requiredPermission: Permissions.TRANSACTION_READ,
       },
       {
         key: "invoicepro",
         label: "InvoicePro",
         icon: <AccountBookOutlined />,
+        requiredPermission: Permissions.INVOICE_READ,
         children: [
           {
             key: "/invoicepro/dashboard",
             label: "Dashboard",
             icon: <BarChartOutlined />,
             path: "/invoicepro/dashboard",
+            requiredPermission: Permissions.INVOICE_READ,
           },
           {
             key: "/invoicepro/invoices",
             label: "Invoices",
             icon: <FileSyncOutlined />,
             path: "/invoicepro/invoices",
+            requiredPermission: Permissions.INVOICE_READ,
           },
           {
             key: "/invoicepro/newinvoice",
             label: "New Invoice",
             icon: <FileAddOutlined />,
             path: "/invoicepro/newinvoice",
+            requiredPermission: Permissions.INVOICE_CREATE,
           },
           {
             key: "/invoicepro/customers",
             label: "Customers",
             icon: <UserAddOutlined />,
             path: "/invoicepro/customers",
+            requiredPermission: Permissions.INVOICE_READ,
           },
           {
             key: "/invoicepro/settings",
             label: "Settings",
             icon: <SettingOutlined />,
             path: "/invoicepro/settings",
+            requiredPermission: Permissions.SETTINGS_UPDATE,
           },
         ],
       },
@@ -374,41 +405,48 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Reimbursement",
         icon: <TransactionOutlined />,
         path: "/reimbursement",
+        requiredPermission: Permissions.REIMBURSEMENT_READ,
       },
       {
         key: "salary",
         label: "Payroll",
         icon: <MoneyCollectOutlined />,
+        requiredPermission: Permissions.SALARY_READ,
         children: [
           {
             key: "/salary/Create-payslip",
             label: "Create Payslip",
             icon: <FormOutlined />,
             path: "/salary/Create-payslip",
+            requiredPermission: Permissions.SALARY_MANAGE,
           },
           {
             key: "/salary/My-Payslip",
             label: "My Payslip",
             icon: <SolutionOutlined />,
             path: "/salary/My-Payslip",
+            requiredPermission: Permissions.SALARY_READ,
           },
           {
             key: "/salary/Generate-payslip",
             label: "Generate Payslip",
             icon: <FileAddOutlined />,
             path: "/salary/Generate-payslip",
+            requiredPermission: Permissions.SALARY_MANAGE,
           },
           {
             key: "/salary/Payslips",
             label: "Payslips",
             icon: <SnippetsOutlined />,
             path: "/salary/Payslips",
+            requiredPermission: Permissions.SALARY_READ,
           },
           {
             key: "/salary/Settings",
             label: "Settings",
             icon: <ControlOutlined />,
             path: "/salary/Settings",
+            requiredPermission: Permissions.SALARY_MANAGE,
           },
         ],
       },
@@ -418,20 +456,30 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "ADMIN",
     label: "ADMIN",
     icon: <SettingOutlined />,
-    pathPrefixes: ["/clients", "/settings", "/admin"],
+    pathPrefixes: ["/clients", "/settings", "/admin", "/roles"],
     defaultPath: "/clients",
+    requiredAnyPermission: [Permissions.CLIENT_READ, Permissions.SETTINGS_READ, Permissions.ROLE_READ],
     items: [
       {
         key: "/clients",
         label: "Clients",
         icon: <UserAddOutlined />,
         path: "/clients",
+        requiredPermission: Permissions.CLIENT_READ,
       },
       {
         key: "/settings",
         label: "General Settings",
         icon: <ControlOutlined />,
         path: "/settings",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/roles",
+        label: "Roles & Permissions",
+        icon: <SafetyOutlined />,
+        path: "/roles",
+        requiredPermission: Permissions.ROLE_READ,
       },
     ],
   },

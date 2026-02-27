@@ -1,9 +1,10 @@
 
 import { Layout, Menu, Button } from 'antd';
-import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
+import { NavItem, ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
 import { usePathname, useRouter } from 'next/navigation';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 const { Sider } = Layout;
 
@@ -17,9 +18,29 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const router = useRouter();
     const pathname = usePathname();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
+    const { hasPermission, hasAnyPermission } = useAuth();
 
     const currentModuleConfig = NAVIGATION_CONFIG.find(m => m.key === activeModule);
     const items = currentModuleConfig?.items || [];
+
+    // Filter nav items recursively based on requiredPermission / requiredAnyPermission
+    const filterItems = (navItems: NavItem[]): NavItem[] => {
+        return navItems.reduce<NavItem[]>((acc, item) => {
+            if (item.requiredPermission && !hasPermission(item.requiredPermission)) return acc;
+            if (item.requiredAnyPermission && !hasAnyPermission(...item.requiredAnyPermission)) return acc;
+            if (item.children) {
+                const filteredChildren = filterItems(item.children);
+                // Only include parent if it has at least one visible child
+                if (filteredChildren.length === 0) return acc;
+                acc.push({ ...item, children: filteredChildren });
+            } else {
+                acc.push(item);
+            }
+            return acc;
+        }, []);
+    };
+
+    const filteredItems = filterItems(items);
 
     // Helper to map Items to Antd Menu format
     const mapItemsToMenu = (navItems: any[]) => {
@@ -41,11 +62,11 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
         });
     };
 
-    const menuItems = mapItemsToMenu(items);
+    const menuItems = mapItemsToMenu(filteredItems);
 
     // Find the key of the parent that contains the current path
     const findParentKey = () => {
-        for (const item of items) {
+        for (const item of filteredItems) {
             if (item.children) {
                 const found = item.children.find((child: any) => child.path === pathname);
                 if (found) return item.key;
@@ -75,7 +96,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             return undefined;
         };
         
-        const selectedKey = findKey(items);
+        const selectedKey = findKey(filteredItems);
         return selectedKey ? [selectedKey] : [pathname];
     };
 

@@ -103,7 +103,7 @@ interface ExtendedAttendanceFilters extends AttendanceFilters {
   member?: string;
 }
 import type { ColumnsType } from 'antd/es/table';
-import { useRBAC } from '@/lib/rbac';
+import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -157,15 +157,14 @@ export default function AttendancePage() {
   const [customDateRange, setCustomDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   // RBAC permissions
-  const rbac = useRBAC(user?.role as any);
-  const canManage = rbac?.canManageAttendance;
+  const { canReadAttendance, canManageAttendance: canManage } = usePermission();
 
   // Check permissions
   useEffect(() => {
-    if (user && !rbac?.canViewAttendance) {
+    if (user && !canReadAttendance) {
       router.push('/dashboard');
     }
-  }, [user, rbac, router]);
+  }, [user, canReadAttendance, router]);
 
   // Fetch dashboard summary
   const fetchDashboardSummary = async () => {

@@ -46,6 +46,7 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
+import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -93,10 +94,8 @@ export default function LeavesPage() {
   const [hasLeaveConfig, setHasLeaveConfig] = useState(false);
 
   // Determine if user has approval rights
-  const hasApprovalRights =
-    user?.role === "super_admin" ||
-    user?.role === "admin" ||
-    pendingApprovals.length > 0;
+  const { canApproveLeave } = usePermission();
+  const hasApprovalRights = canApproveLeave || pendingApprovals.length > 0;
 
   // Calculate personal leave stats
   const myPendingLeaves = myLeaves.filter((l) => l.status === "pending").length;

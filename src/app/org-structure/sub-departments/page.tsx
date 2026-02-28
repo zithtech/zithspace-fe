@@ -1,7 +1,5 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -21,7 +19,6 @@ import {
   Row,
   Col,
   Popconfirm,
-  Divider
 } from "antd";
 import {
   ScheduleOutlined,
@@ -30,52 +27,21 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
-import { useSubDepartments } from "@/hooks/useSubDepartments";
 import { useDepartments } from "@/hooks/useDepartments";
-import { SubDepartment } from "@/services/subDepartmentService";
-
+import { useSubDepartments } from "@/hooks/useSubDepartments";
 const { Text } = Typography;
 
 export default function SubDepartmentsPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const { isLoading: authLoading } = useAuth();
-  const { canReadOrg, canManageOrg } = usePermission();
-  
-  // Protect route - requires org.read permission
-  useEffect(() => {
-    if (!authLoading && !canReadOrg) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canReadOrg, router]);
-
-  // Show loading while auth is being checked
-  if (authLoading) {
-    return null;
-  }
-
-  // Don't render if no read permission
-  if (!canReadOrg) {
-    return null;
-  }
-
+  const [form] = Form.useForm();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
-  const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [submitting, setSubmitting] = useState(false);
-
-  const {
-    subDepartments,
-    loading,
-    createSubDepartment,
-    updateSubDepartment,
-    deleteSubDepartment
-  } = useSubDepartments();
-
   const { departments, loading: departmentsLoading } = useDepartments();
   const {
     subDepartments,
@@ -121,103 +87,71 @@ export default function SubDepartmentsPage() {
   };
 
   const handleAdd = () => {
-    setEditingKey(null);
+    setEditingId(null);
     form.resetFields();
     form.setFieldsValue({ isActive: true });
     setIsModalOpen(true);
   };
 
-  const handleEdit = (record: SubDepartment) => {
-    setEditingKey(record.id);
-    form.setFieldsValue({
-      ...record,
-      subDepartmentName: record.name,
-    });
+  const handleEdit = (record: any) => {
+    setEditingId(record.id);
+    form.setFieldsValue(record);
     setIsModalOpen(true);
   };
-
   const handleSave = async () => {
     try {
-      const formValues = await form.validateFields();
-      const payload = {
-        code: formValues.code,
-        name: formValues.subDepartmentName,
-        parentDepartmentId: formValues.departmentId,
-        description: formValues.description,
-        isActive: formValues.isActive,
-      };
-
+      const values = await form.validateFields();
       setSubmitting(true);
-      try {
-        if (editingKey) {
-          await updateSubDepartment(editingKey, payload);
-        } else {
-          await createSubDepartment(payload);
-        }
-        setSubmitting(false);
-        setIsModalOpen(false);
+      if (editingId) {
+        await updateSubDepartment(editingId, values);
         api.success({
-          message: `Sub-Department ${editingKey ? "Updated" : "Added"}`,
-          description: `The sub-department "${payload.name}" has been ${editingKey ? "updated" : "added"} successfully.`,
+          message: "Sub-Department updated successfully",
           placement: "topRight",
-          duration: 1,
         });
-      } catch (error) {
-        setSubmitting(false);
-        throw error;
+      } else {
+        await createSubDepartment(values);
+        api.success({
+          message: "Sub-Department created successfully",
+          placement: "topRight",
+        });
       }
-    } catch (error) {
-      setSubmitting(false);
+      fetchSubDepartments();
+      setIsModalOpen(false);
+    } catch (error: any) {
       console.error("Validation failed:", error);
-      api.error({
-        message: "Error",
-        description: `Failed to ${editingKey ? "update" : "add"} sub-department.`,
-        placement: "topRight",
-      });
+      if (!error.errorFields) {
+        api.error({ message: "Operation failed", placement: "topRight" });
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
-
-  const filteredData = useMemo(() => {
-    return subDepartments.filter((item) => {
-      const q = searchText.toLowerCase();
-      const matchesSearch =
-        !searchText.trim() ||
-        item.code.toLowerCase().includes(q) ||
-        item.name.toLowerCase().includes(q) ||
-        (item.parentDepartment?.name || "").toLowerCase().includes(q) ||
-        (item.description || "").toLowerCase().includes(q);
-      const matchesStatus =
-        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      const matchesDepartment =
-        !departmentFilter || item.parentDepartmentId === departmentFilter;
-      return matchesSearch && matchesStatus && matchesDepartment;
-    });
-  }, [subDepartments, searchText, statusFilter, departmentFilter]);
 
   const columns = [
     {
       title: "Code",
       dataIndex: "code",
       key: "code",
-      width: 120,
-      sorter: (a: SubDepartment, b: SubDepartment) => a.code.localeCompare(b.code),
     },
     {
-      title: "Name",
+      title: "Sub-Department Name",
       dataIndex: "name",
       key: "name",
-      sorter: (a: SubDepartment, b: SubDepartment) => a.name.localeCompare(b.name),
     },
     {
       title: "Parent Department",
-      key: "parentDepartment",
-      render: (_: any, record: SubDepartment) => record.parentDepartment?.name || "-",
+      dataIndex: "parentDepartmentId",
+      key: "parentDepartmentId",
+      render: (parentDepartmentId: string, record: any) => {
+        if (record.parentDepartment?.name) return record.parentDepartment.name;
+        const dept = departments.find((d) => d.id === parentDepartmentId);
+        return dept ? dept.name : "-";
+      },
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      ellipsis: true,
     },
     {
       title: "Status",
@@ -248,7 +182,7 @@ export default function SubDepartmentsPage() {
     <ProtectedRoute>
       <MainLayout>
         {contextHolder}
-        <div style={{marginTop:20}}>
+        <div style={{ padding: 24 }}>
           <Tabs
             activeKey={pathname}
             onChange={handleTabChange}
@@ -267,7 +201,7 @@ export default function SubDepartmentsPage() {
               { key: "/org-structure/positions", label: "Positions" },
             ]}
           />
-          
+          <Card>
             <div
               style={{
                 display: "flex",
@@ -332,7 +266,7 @@ export default function SubDepartmentsPage() {
               </div>
             </div>
 
-            <Space>
+            <Space style={{ marginBottom: 16 }}>
               <Tag style={{ borderRadius: 12 }}>
                 Total Sub-Departments: {totalSubDepartments}
               </Tag>
@@ -343,7 +277,7 @@ export default function SubDepartmentsPage() {
                 Inactive: {inactiveSubDepartments}
               </Tag>
             </Space>
-                  <Divider style={{marginTop:20}}/>
+
             <Table
               size="small"
               columns={columns}
@@ -351,7 +285,7 @@ export default function SubDepartmentsPage() {
               rowKey="id"
               loading={subDepartmentsLoading}
             />
-        
+          </Card>
 
           <Modal
             title={editingId ? "Edit Sub-Department" : "Add Sub-Department"}

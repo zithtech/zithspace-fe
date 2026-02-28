@@ -1,21 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { Spin } from 'antd';
 import TicketDashboard from '@/components/projects/TicketDashboard';
 
 export default function ProjectsDashboardPage() {
-  const { user, isLoading } = useAuth();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadProject } = usePermission();
+  const router = useRouter();
 
-  // Show loading spinner while authentication is being checked
-  if (isLoading) {
-    return <LoadingSpinner message="Loading dashboard..." />;
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadProject) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadProject, router]);
+
+  // Loading state
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading dashboard..." />
+        </div>
+      </MainLayout>
+    );
   }
 
-  // Don't render if no user
-  if (!user) {
+  // Permission check
+  if (!canReadProject) {
     return null;
   }
 

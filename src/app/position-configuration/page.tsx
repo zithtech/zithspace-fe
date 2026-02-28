@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { Settings2, Columns3Cog } from "lucide-react";
 import {
   Card,
@@ -35,6 +35,7 @@ import {
   Avatar,
   Drawer,
   Collapse,
+  Spin,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -265,7 +266,8 @@ const switchDesc = {
 };
 
 export default function positionConfiguration() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageOrg } = usePermission();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
@@ -284,6 +286,13 @@ export default function positionConfiguration() {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canManageOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageOrg, router]);
 
   const [members, setMembers] = useState<{ value: string; label: string }[]>([]);
   const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
@@ -632,9 +641,23 @@ export default function positionConfiguration() {
     }
   };
 
-  return (
-    <ProtectedRoute>
+  // Loading & permission check
+  if (authLoading) {
+    return (
       <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canManageOrg) {
+    return null;
+  }
+
+  return (
+    <MainLayout>
         {contextHolder}
         <div style={{ padding: 24 }}>
           <div >
@@ -1240,6 +1263,5 @@ export default function positionConfiguration() {
           </Drawer>
         </div>
       </MainLayout>
-    </ProtectedRoute>
   );
 }

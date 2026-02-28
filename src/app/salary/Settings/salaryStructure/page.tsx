@@ -20,7 +20,7 @@ import {
   EyeOutlined,
   MoreOutlined,
 } from "@ant-design/icons";
-
+import { usePermission } from "@/hooks/usePermission";
 import { SalaryStructure } from "@/types/salary";
 import { SalaryStructureService } from "@/services/salarySettings.service";
 import SalaryPreview from "@/app/salary/SalaryPreview";
@@ -28,6 +28,8 @@ import SalaryPreview from "@/app/salary/SalaryPreview";
 const { Title, Text } = Typography;
 
 export default function SalaryStructureSettings() {
+  const { canManageSalary } = usePermission();
+  
   const [structures, setStructures] = useState<SalaryStructure[]>([]);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
@@ -146,22 +148,26 @@ const toggleActive = (id: number) => {
             Preview
           </Button>
 
-          {record.isActive ? (
-            <Button
-              danger
-              size="small"
-              onClick={() => toggleActive(record.id)}
-            >
-              Inactive
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => toggleActive(record.id)}
-            >
-              Set Active
-            </Button>
+          {canManageSalary && (
+            <>
+              {record.isActive ? (
+                <Button
+                  danger
+                  size="small"
+                  onClick={() => toggleActive(record.id)}
+                >
+                  Inactive
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => toggleActive(record.id)}
+                >
+                  Set Active
+                </Button>
+              )}
+            </>
           )}
         </Space>
       ),
@@ -204,9 +210,11 @@ const toggleActive = (id: number) => {
               onChange={(val) => setViewMode(val as "card" | "table")}
             />
 
-            <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-              New Structure
-            </Button>
+            {canManageSalary && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
+                New Structure
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -254,19 +262,21 @@ const toggleActive = (id: number) => {
                         Preview
                       </Button>
 
-                      <Dropdown
-                        menu={{
-                          items: [
-                            {
-                              key: "edit",
-                              label: "Edit",
-                              onClick: () => onEdit(s.id),
-                            },
-                          ],
-                        }}
-                      >
-                        <MoreOutlined style={{ fontSize: 18 }} />
-                      </Dropdown>
+                      {canManageSalary && (
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: "edit",
+                                label: "Edit",
+                                onClick: () => onEdit(s.id),
+                              },
+                            ],
+                          }}
+                        >
+                          <MoreOutlined style={{ fontSize: 18 }} />
+                        </Dropdown>
+                      )}
                     </Space>
                   </div>
 
@@ -284,24 +294,28 @@ const toggleActive = (id: number) => {
                     </Card>
                   </div>
 
-                  {s.isActive ? (
-                    <Button
-                      danger
-                      block
-                      style={{ marginTop: 16 }}
-                      onClick={() => toggleActive(s.id)}
-                    >
-                      Inactive
-                    </Button>
-                  ) : (
-                    <Button
-                      type="primary"
-                      block
-                      style={{ marginTop: 16 }}
-                      onClick={() => toggleActive(s.id)}
-                    >
-                      Set Active
-                    </Button>
+                  {canManageSalary && (
+                    <>
+                      {s.isActive ? (
+                        <Button
+                          danger
+                          block
+                          style={{ marginTop: 16 }}
+                          onClick={() => toggleActive(s.id)}
+                        >
+                          Inactive
+                        </Button>
+                      ) : (
+                        <Button
+                          type="primary"
+                          block
+                          style={{ marginTop: 16 }}
+                          onClick={() => toggleActive(s.id)}
+                        >
+                          Set Active
+                        </Button>
+                      )}
+                    </>
                   )}
                 </>
               );
@@ -326,16 +340,18 @@ const toggleActive = (id: number) => {
             })}
 
             {/* ADD NEW */}
-            <Card hoverable onClick={onCreate}>
-              <Space
-                direction="vertical"
-                align="center"
-                style={{ width: "100%" }}
-              >
-                <PlusOutlined style={{ fontSize: 24 }} />
-                <Text>Add New Structure</Text>
-              </Space>
-            </Card>
+            {canManageSalary && (
+              <Card hoverable onClick={onCreate}>
+                <Space
+                  direction="vertical"
+                  align="center"
+                  style={{ width: "100%" }}
+                >
+                  <PlusOutlined style={{ fontSize: 24 }} />
+                  <Text>Add New Structure</Text>
+                </Space>
+              </Card>
+            )}
           </div>
         ) : (
           <Table

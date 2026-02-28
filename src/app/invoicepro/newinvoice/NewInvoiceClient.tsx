@@ -3,6 +3,9 @@
 "use client";
 
 import MainLayout from "@/components/layout/MainLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import {
   Space,
   Typography,
@@ -18,7 +21,8 @@ import {
   Tooltip,
   Modal,
   App,
-  Divider
+  Divider,
+  Spin
 } from "antd";
 import {
   SnippetsOutlined,
@@ -39,7 +43,7 @@ import { useMemo } from "react";
 
 const { Title } = Typography;
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
 
 import CustomerModal from "@/components/customer/CustomerModal";
@@ -47,7 +51,7 @@ import { CustomersService, Customer ,UpdateCustomerData} from "@/services/custom
 import { useCustomers, useUpdateCustomer } from "@/hooks/use-customers";
 import { message as antdMessage } from "antd";
 import { InvoiceType } from "@/services/invoiceService";
-import {  useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
+import { useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
 import { SettingsProfile } from "@/services/invoiceSettingsService";
 
 interface CustomerDraft {
@@ -69,6 +73,8 @@ interface Totals {
 
 export default function InvoiceproNewinvoicePage() {
   const router = useRouter();
+  const { canCreateInvoice, canUpdateInvoice } = usePermission();
+  const { isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const editInvoiceId = searchParams.get("edit");
   const [form] = Form.useForm();

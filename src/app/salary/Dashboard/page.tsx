@@ -1,13 +1,38 @@
 "use client";
 
-import React from "react";
-import { Typography, Space } from "antd";
+import React, { useEffect } from "react";
+import { Typography, Space, Spin } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 
 const { Title, Text } = Typography;
 
 const page = () => {
+  const { canReadSalary } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !canReadSalary) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadSalary, router]);
+
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+          <Spin tip="Loading..." size="large" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadSalary) return null;
+
   return (
     <MainLayout>
       <div style={{ padding: 24 }}>

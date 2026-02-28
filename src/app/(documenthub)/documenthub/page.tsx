@@ -1,4 +1,8 @@
 "use client";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import Header from "@/components/common/Header";
 import MainLayout from "@/components/layout/MainLayout";
 import {
@@ -13,6 +17,8 @@ import {
   PlusOutlined,
   SearchOutlined,
   FilterOutlined,
+  DeleteOutlined,
+  RestOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -28,14 +34,12 @@ import {
   DatePicker,
   Space,
   message,
+  Spin,
 } from "antd";
-import { useRouter } from "next/navigation";
-import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnsType } from "antd/es/table";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import dayjs from "dayjs";
-import { DeleteOutlined, RestOutlined } from "@ant-design/icons";
 import TrashDrawer from "@/components/documenthub/TrashDrawer";
 import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 
@@ -43,10 +47,19 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 type Props = {};
-
 const DocumentHubPage = (props: Props) => {
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadDocument, canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadDocument) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadDocument, router]);
+
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [form] = Form.useForm();
   const [selectedProjectId, setSelectedProjectId] = useState<
     string | undefined
@@ -143,6 +156,21 @@ const DocumentHubPage = (props: Props) => {
 
     return matchesSearch && matchesUser && matchesProject && matchesDate;
   });
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadDocument) {
+    return null;
+  }
 
   const columns: ColumnsType<DocumentHub> = [
     {

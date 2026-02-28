@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, notification, Select, Row, Col, Popconfirm } from "antd";
@@ -15,6 +17,26 @@ const { Text } = Typography;
 export default function DepartmentsPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOrg, canManageOrg } = usePermission();
+  
+  // Protect route - requires org.read permission
+  useEffect(() => {
+    if (!authLoading && !canReadOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOrg, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no read permission
+  if (!canReadOrg) {
+    return null;
+  }
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");

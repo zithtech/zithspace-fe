@@ -41,7 +41,8 @@ import {
 } from "@/services/projectService";
 import { MembersService } from "@/services/membersService";
 import { useAuth } from "@/context/AuthContext";
-import { RBAC } from "@/lib/rbac";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 
 // Extend dayjs with relativeTime plugin
@@ -58,7 +59,16 @@ interface Member {
 }
 
 const ProjectsManagePage: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canReadProject, canCreateProject, canUpdateProject, canDeleteProject } = usePermission();
+  const router = useRouter();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadProject) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadProject, router]);
 
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
@@ -301,32 +311,24 @@ const ProjectsManagePage: React.FC = () => {
     }
   }, [success, error]);
 
-  // Don't render if no user and not loading
-  if (!user && !isLoading) {
-    return null;
-  }
-
-  // Check permissions
-  if (
-    user &&
-    (!user.role || !RBAC.hasPermission(user.role as any, "projects", "read"))
-  ) {
+  // Loading & permission check
+  if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 20 }}>
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900">
-                Access Denied
-              </h3>
-              <p className="text-gray-500">
-                You don't have permission to view projects.
-              </p>
-            </div>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <div style={{ minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Space direction="vertical" align="center">
+              <div className="loading-spinner" />
+              <Text>Loading projects...</Text>
+            </Space>
           </div>
         </div>
       </MainLayout>
     );
+  }
+
+  if (!canReadProject) {
+    return null;
   }
 
   const openViewModal = (project: Project) => {

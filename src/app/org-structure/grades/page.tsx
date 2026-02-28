@@ -1,18 +1,28 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Card, Typography, Button, Table, Space, Input, Tag, Modal, Form, Select, InputNumber, message, Row, Col, Switch, notification, Tabs, Tooltip } from "antd";
+import { Card, Typography, Button, Table, Space, Input, Tag, Modal, Form, Select, InputNumber, message, Row, Col, Switch, notification, Tabs, Tooltip, Spin } from "antd";
 import { ScheduleOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { useGrades, GradeViewData } from "@/hooks/useGrades";
 import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Text } = Typography;
 
 export default function GradesPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOrg, canManageOrg } = usePermission();
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOrg, router]);
+
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -136,6 +146,21 @@ export default function GradesPage() {
     }
   };
 
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadOrg) {
+    return null;
+  }
+
   const handleTabChange = (key: string) => {
     router.push(key);
   };
@@ -199,17 +224,19 @@ export default function GradesPage() {
         title: "Actions",
         key: "actions",
         fixed: "right" as const,
-        render: (_: any, record: GradeViewData) => (
-          <Space style={{gap:18}}>
-            <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}></Button>
-          </Space>
-        ),
+        render: (_: any, record: GradeViewData) => {
+          if (!canManageOrg) return null;
+          return (
+            <Space style={{gap:18}}>
+              <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}></Button>
+            </Space>
+          );
+        },
       },
     ];
 
   return (
-    <ProtectedRoute>
-      <MainLayout>
+    <MainLayout>
         <div style={{ padding: 24 }}>
           {contextHolder}
           <Tabs
@@ -271,7 +298,9 @@ export default function GradesPage() {
                   style={{ width: 320 }}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Grade</Button>
+                {canManageOrg && (
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Grade</Button>
+                )}
               </div>
             </div>
 
@@ -403,6 +432,5 @@ export default function GradesPage() {
           </Card>
         </div>
       </MainLayout>
-    </ProtectedRoute>
   );
 }

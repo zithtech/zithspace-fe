@@ -68,7 +68,7 @@ interface OriginLeaveType {
 } 
 
 export default function LeavesPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
@@ -93,9 +93,34 @@ export default function LeavesPage() {
   const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
   const [hasLeaveConfig, setHasLeaveConfig] = useState(false);
 
+  // RBAC permissions
+  const {
+    canReadLeave,
+    canCreateLeave,
+    canUpdateLeave,
+    canApproveLeave,
+    canManageLeaves
+  } = usePermission();
+  
   // Determine if user has approval rights
-  const { canApproveLeave } = usePermission();
   const hasApprovalRights = canApproveLeave || pendingApprovals.length > 0;
+
+  // Protect route - requires leave.read permission
+  useEffect(() => {
+    if (!authLoading && !canReadLeave) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadLeave, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no read permission
+  if (!canReadLeave) {
+    return null;
+  }
 
   // Calculate personal leave stats
   const myPendingLeaves = myLeaves.filter((l) => l.status === "pending").length;
@@ -529,18 +554,22 @@ useEffect(() => {
     {
       title: "Action",
       key: "action",
-      render: (_: any, record: Leave) =>
-        record.status === "pending" && (
-          <Button
-            size="small"
-            danger
-            loading={cancellingLeaveId === record.id}
-            disabled={!!cancellingLeaveId}
-            onClick={() => handleCancel(record.id)}
-          >
-            Cancel
-          </Button>
-        ),
+      render: (_: any, record: Leave) => {
+        if (record.status === "pending" && (canUpdateLeave || canManageLeaves)) {
+          return (
+            <Button
+              size="small"
+              danger
+              loading={cancellingLeaveId === record.id}
+              disabled={!!cancellingLeaveId}
+              onClick={() => handleCancel(record.id)}
+            >
+              Cancel
+            </Button>
+          );
+        }
+        return null;
+      },
     },
   ];
 
@@ -584,21 +613,25 @@ useEffect(() => {
     {
       title: "Action",
       key: "action",
-      render: (_: any, record: Leave) => (
-        <Space>
-          <Button
-            type="primary"
-            size="small"
-            icon={<CheckCircleOutlined />}
-            onClick={() => {
-              setSelectedLeave(record);
-              setApprovalModalVisible(true);
-            }}
-          >
-            Review
-          </Button>
-        </Space>
-      ),
+      render: (_: any, record: Leave) => {
+        if (!canApproveLeave) return null;
+        
+        return (
+          <Space>
+            <Button
+              type="primary"
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => {
+                setSelectedLeave(record);
+                setApprovalModalVisible(true);
+              }}
+            >
+              Review
+            </Button>
+          </Space>
+        );
+      },
     },
   ];
   const cardStyle = {
@@ -1283,17 +1316,19 @@ useEffect(() => {
                     <TextArea rows={3} placeholder="Enter reason for leave" />
                   </Form.Item>
 
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      icon={<PlusOutlined />}
-                      style={{top:10}}
-                    >
-                      Submit Application
-                    </Button>
-                  </Form.Item>
+                  {canCreateLeave && (
+                    <Form.Item>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={loading}
+                        icon={<PlusOutlined />}
+                        style={{top:10}}
+                      >
+                        Submit Application
+                      </Button>
+                    </Form.Item>
+                  )}
                 </Form>
               </Card>
             </Col>
@@ -1394,26 +1429,28 @@ useEffect(() => {
                     onChange={(e) => setRejectionReason(e.target.value)}
                     style={{ marginBottom: 16 }}
                   />
-                  <Space>
-                    <Button
-                      type="primary"
-                      icon={<CheckCircleOutlined />}
-                      loading={approvingLeaveId === selectedLeave.id}
-                      disabled={!!approvingLeaveId || !!rejectingLeaveId}
-                      onClick={() => handleApprove(selectedLeave.id)}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      danger
-                      icon={<CloseCircleOutlined />}
-                      loading={rejectingLeaveId === selectedLeave.id}
-                      disabled={!!approvingLeaveId || !!rejectingLeaveId}
-                      onClick={() => handleReject(selectedLeave.id)}
-                    >
-                      Reject
-                    </Button>
-                  </Space>
+                  {canApproveLeave && (
+                    <Space>
+                      <Button
+                        type="primary"
+                        icon={<CheckCircleOutlined />}
+                        loading={approvingLeaveId === selectedLeave.id}
+                        disabled={!!approvingLeaveId || !!rejectingLeaveId}
+                        onClick={() => handleApprove(selectedLeave.id)}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        danger
+                        icon={<CloseCircleOutlined />}
+                        loading={rejectingLeaveId === selectedLeave.id}
+                        disabled={!!approvingLeaveId || !!rejectingLeaveId}
+                        onClick={() => handleReject(selectedLeave.id)}
+                      >
+                        Reject
+                      </Button>
+                    </Space>
+                  )}
                 </div>
               </div>
             )}

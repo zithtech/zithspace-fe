@@ -37,11 +37,22 @@ export default function TopNav({
     const router = useRouter();
     const { hasPermission, hasAnyPermission } = useAuth();
 
-    // Filter modules the current user is allowed to see
+    // Filter modules by permission
     const visibleModules = NAVIGATION_CONFIG.filter(module => {
-        if (module.requiredPermission && !hasPermission(module.requiredPermission)) return false;
-        if (module.requiredAnyPermission && !hasAnyPermission(...module.requiredAnyPermission)) return false;
-        return true;
+        // No permission requirement = always visible
+        if (!module.requiredPermission && !module.requiredAnyPermission) return true;
+        
+        // Check single permission
+        if (module.requiredPermission) {
+            return hasPermission(module.requiredPermission);
+        }
+        
+        // Check any of multiple permissions
+        if (module.requiredAnyPermission) {
+            return hasAnyPermission(...module.requiredAnyPermission);
+        }
+        
+        return false;
     });
 
     // User dropdown menu

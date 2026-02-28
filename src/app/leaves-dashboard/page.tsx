@@ -72,9 +72,26 @@ interface DashboardStats {
 
 export default function LeavesDashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { canManageLeaves: isAdmin } = usePermission();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  // Protect route - requires leave.manage permission (admin dashboard)
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
 
   const {
     leaveTypes,
@@ -525,7 +542,7 @@ export default function LeavesDashboardPage() {
               </Card>
             </Col>
          
-            {isAdmin && (
+            {canManageLeaves && (
               <>
             <Col xs={24} sm={12} md={6}>
               <Card

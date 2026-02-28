@@ -24,23 +24,44 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const items = currentModuleConfig?.items || [];
 
     // Filter nav items recursively based on requiredPermission / requiredAnyPermission
-    const filterItems = (navItems: NavItem[]): NavItem[] => {
-        return navItems.reduce<NavItem[]>((acc, item) => {
-            if (item.requiredPermission && !hasPermission(item.requiredPermission)) return acc;
-            if (item.requiredAnyPermission && !hasAnyPermission(...item.requiredAnyPermission)) return acc;
-            if (item.children) {
-                const filteredChildren = filterItems(item.children);
-                // Only include parent if it has at least one visible child
-                if (filteredChildren.length === 0) return acc;
-                acc.push({ ...item, children: filteredChildren });
-            } else {
-                acc.push(item);
-            }
-            return acc;
-        }, []);
+    const filterItemsByPermission = (navItems: NavItem[]): NavItem[] => {
+        return navItems
+            .filter(item => {
+                // No permission requirement = always visible
+                if (!item.requiredPermission && !item.requiredAnyPermission) return true;
+                
+                // Check single permission
+                if (item.requiredPermission) {
+                    return hasPermission(item.requiredPermission);
+                }
+                
+                // Check any of multiple permissions
+                if (item.requiredAnyPermission) {
+                    return hasAnyPermission(...item.requiredAnyPermission);
+                }
+                
+                return false;
+            })
+            .map(item => {
+                // Recursively filter children
+                if (item.children) {
+                    return {
+                        ...item,
+                        children: filterItemsByPermission(item.children)
+                    };
+                }
+                return item;
+            })
+            .filter(item => {
+                // Remove parent items with no visible children
+                if (item.children) {
+                    return item.children.length > 0;
+                }
+                return true;
+            });
     };
 
-    const filteredItems = filterItems(items);
+    const filteredItems = filterItemsByPermission(items);
 
     // Helper to map Items to Antd Menu format
     const mapItemsToMenu = (navItems: any[]) => {

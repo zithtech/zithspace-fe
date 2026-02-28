@@ -109,6 +109,7 @@ export const usePermission = () => {
     // ─── Reimbursement ──────────────────────────────────────────────
     canCreateReimbursement:  hasPermission(Permissions.REIMBURSEMENT_CREATE),
     canReadReimbursement:    hasPermission(Permissions.REIMBURSEMENT_READ),
+    canUpdateReimbursement:  hasPermission(Permissions.REIMBURSEMENT_UPDATE),
     canApproveReimbursement: hasPermission(Permissions.REIMBURSEMENT_APPROVE),
     canManageReimbursements: hasPermission(Permissions.REIMBURSEMENT_MANAGE),
 
@@ -124,12 +125,15 @@ export const usePermission = () => {
     canManageDocuments: hasPermission(Permissions.DOCUMENT_MANAGE),
 
     // ─── Onboarding ─────────────────────────────────────────────────
+    canCreateOnboarding: hasPermission(Permissions.ONBOARDING_CREATE),
     canReadOnboarding:   hasPermission(Permissions.ONBOARDING_READ),
+    canUpdateOnboarding: hasPermission(Permissions.ONBOARDING_UPDATE),
     canManageOnboarding: hasPermission(Permissions.ONBOARDING_MANAGE),
 
     // ─── Timesheet ──────────────────────────────────────────────────
     canCreateTimesheet:  hasPermission(Permissions.TIMESHEET_CREATE),
     canReadTimesheet:    hasPermission(Permissions.TIMESHEET_READ),
+    canUpdateTimesheet:  hasPermission(Permissions.TIMESHEET_UPDATE),
     canApproveTimesheet: hasPermission(Permissions.TIMESHEET_APPROVE),
     canManageTimesheets: hasPermission(Permissions.TIMESHEET_MANAGE),
 

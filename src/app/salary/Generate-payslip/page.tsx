@@ -17,7 +17,11 @@ import {
   Modal,
   Checkbox,
   Popconfirm,
+  Spin,
 } from "antd";
+import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 import {
   Employee,
   mockEmployees,
@@ -47,6 +51,10 @@ type Allowance = {
 };
 
 const Page = () => {
+  const { canManageSalary } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [users, setUsers] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -92,6 +100,12 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
 
     return Array.from(map.values());
   };
+
+  useEffect(() => {
+    if (!authLoading && !canManageSalary) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canManageSalary, router]);
 
   useEffect(() => {
     // 🔴 FUTURE REAL API
@@ -234,31 +248,35 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
             View Payslip
           </Button>
 
-          <Button
-            type="primary"
-            shape="circle"
-            icon={<PlusOutlined />}
-            size="small"
-            onClick={() => {
-              console.log("Add clicked for", record.employeeId);
-            }}
-          />
+          {canManageSalary && (
+            <>
+              <Button
+                type="primary"
+                shape="circle"
+                icon={<PlusOutlined />}
+                size="small"
+                onClick={() => {
+                  console.log("Add clicked for", record.employeeId);
+                }}
+              />
 
-          <Popconfirm
-            title="Delete payslip?"
-            description="This action cannot be undone"
-            okText="Delete"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => handleDeleteRow(record.employeeId)}
-          >
-            <Button
-              danger
-              shape="circle"
-              icon={<DeleteOutlined />}
-              size="small"
-            />
-          </Popconfirm>
+              <Popconfirm
+                title="Delete payslip?"
+                description="This action cannot be undone"
+                okText="Delete"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => handleDeleteRow(record.employeeId)}
+              >
+                <Button
+                  danger
+                  shape="circle"
+                  icon={<DeleteOutlined />}
+                  size="small"
+                />
+              </Popconfirm>
+            </>
+          )}
         </div>
       ),
     },
@@ -288,6 +306,18 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
       key: "department",
     },
   ];
+
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+          <Spin tip="Loading..." size="large" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canManageSalary) return null;
 
   return (
     <MainLayout>
@@ -488,17 +518,19 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
 
           {/* BUTTON – SAME ROW */}
           <div>
-            <Button
-              type="primary"
-              disabled={!isValid}
-              onClick={handleGeneratePayslip}
-              style={{
-                width: "100%",
-                height: 34,
-              }}
-            >
-              Generate Payslip
-            </Button>
+            {canManageSalary && (
+              <Button
+                type="primary"
+                disabled={!isValid}
+                onClick={handleGeneratePayslip}
+                style={{
+                  width: "100%",
+                  height: 34,
+                }}
+              >
+                Generate Payslip
+              </Button>
+            )}
           </div>
         </div>
       </Card>
@@ -517,16 +549,18 @@ const [isAllowanceModalOpen, setIsAllowanceModalOpen] = useState(false);
               Generated Payslips
             </div>
 
-            <Button
-              type="primary"
-              size="small"
-              onClick={async () => {
-                const { exportPayslipExcel } = await import("./exportPayslipExcel");
-                exportPayslipExcel(tableData, fromDate, toDate, salaryMap);
-              }}
-            >
-              Export
-            </Button>
+            {canManageSalary && (
+              <Button
+                type="primary"
+                size="small"
+                onClick={async () => {
+                  const { exportPayslipExcel } = await import("./exportPayslipExcel");
+                  exportPayslipExcel(tableData, fromDate, toDate, salaryMap);
+                }}
+              >
+                Export
+              </Button>
+            )}
           </div>
 
           <Table

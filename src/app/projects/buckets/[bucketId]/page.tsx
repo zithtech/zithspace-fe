@@ -1,6 +1,8 @@
 'use client';
 // commit merge merge
-import React, { useState, use } from 'react';
+import React, { useState, use, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import MainLayout from '@/components/layout/MainLayout';
 import {
   Card,
@@ -17,6 +19,7 @@ import {
   Breadcrumb,
   Popconfirm,
   message as antdMessage,
+  Spin,
 } from 'antd';
 import {
   FolderOutlined,
@@ -61,9 +64,18 @@ interface BucketTicket {
 export default function BucketDetailPage({ params }: { params: Promise<{ bucketId: string }> }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadProject } = usePermission();
   
   // Unwrap the params promise using React's use() hook (Next.js 15 requirement)
   const { bucketId } = use(params);
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadProject) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadProject, router]);
 
   const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -221,6 +233,21 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       render: (name) => name || <Text type="secondary">Unassigned</Text>,
     },
   ];
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading bucket..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadProject) {
+    return null;
+  }
 
   return (
     <MainLayout>

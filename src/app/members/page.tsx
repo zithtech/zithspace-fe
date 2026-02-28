@@ -64,13 +64,14 @@ export default function MembersPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
-  const { canReadUser, canManageUsers: canManage } = usePermission();
+  const {
+    canReadUser,
+    canCreateUser,
+    canUpdateUser,
+    canDeleteUser,
+    canManageUsers
+  } = usePermission();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
-
-  // Show loading spinner while authentication is being checked
-  if (isLoading) {
-    return <LoadingSpinner message="Loading members..." />;
-  }
 
   // State management
   const [members, setMembers] = useState<Member[]>([]);
@@ -104,10 +105,20 @@ export default function MembersPage() {
 
   // Protect route - requires user.read permission
   useEffect(() => {
-    if (user && !canReadUser) {
+    if (!isLoading && !canReadUser) {
       router.push("/dashboard");
     }
-  }, [user, canReadUser, router]);
+  }, [isLoading, canReadUser, router]);
+
+  // Show loading spinner while authentication is being checked
+  if (isLoading) {
+    return <LoadingSpinner message="Loading members..." />;
+  }
+
+  // Don't render if no read permission
+  if (!canReadUser) {
+    return null;
+  }
 
   // Fetch members
   const fetchMembers = async () => {
@@ -406,23 +417,28 @@ export default function MembersPage() {
       width: 80,
       align: "center",
       render: (_, record: Member) => {
-        if (!canManage) return null;
+        if (!canUpdateUser && !canDeleteUser && !canManageUsers) return null;
 
-        const menuItems = [
-          {
+        const menuItems = [];
+        if (canUpdateUser || canManageUsers) {
+          menuItems.push({
             key: "edit",
             icon: <EditOutlined />,
             label: "Edit",
             onClick: () => showEditModal(record),
-          },
-          {
+          });
+        }
+        if (canDeleteUser || canManageUsers) {
+          menuItems.push({
             key: "delete",
             icon: <DeleteOutlined />,
             label: "Delete",
             danger: true,
             onClick: () => showDeleteModal(record),
-          },
-        ];
+          });
+        }
+
+        if (menuItems.length === 0) return null;
 
         return (
           <Dropdown
@@ -473,7 +489,7 @@ export default function MembersPage() {
                 Members Management
               </Title>
             </Space>
-            {canManage && (
+            {(canCreateUser || canManageUsers) && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}

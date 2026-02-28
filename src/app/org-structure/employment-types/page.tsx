@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, Popconfirm, notification, Spin } from "antd";
+import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, Popconfirm, notification, Spin ,Divider} from "antd";
 import { ScheduleOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
@@ -180,7 +180,7 @@ export default function EmploymentTypesPage() {
   return (
     <MainLayout>
         {contextHolder}
-        <div style={{ padding: 24 }}>
+        <div style={{marginTop:20}} >
           <Tabs activeKey={pathname} onChange={handleTabChange} items={[
             { key: "/org-structure/overview", label: "Overview" },
             { key: "/org-structure/grades", label: "Grades" },
@@ -190,7 +190,7 @@ export default function EmploymentTypesPage() {
              { key: "/org-structure/positions", label: "Positions" },
              
           ]} />
-          <Card>
+         
             <div
               style={{
                 display: "flex",
@@ -225,12 +225,12 @@ export default function EmploymentTypesPage() {
               </div>
             </div>
 
-            <Space style={{ marginBottom: 16 }}>
+            <Space >
               <Tag style={{ borderRadius: 12 }}>Total Types: {totalTypes}</Tag>
               <Tag style={{ borderRadius: 12 }} color="green">Active: {activeTypes}</Tag>
               <Tag style={{ borderRadius: 12 }} color="red">Inactive: {inactiveTypes}</Tag>
             </Space>
-
+              <Divider style={{marginTop:20}} />
             <Table
               rowKey="id"
               size="small"
@@ -298,7 +298,7 @@ export default function EmploymentTypesPage() {
 </Form.Item>
               </Form>
             </Modal>
-          </Card>
+  
         </div>
       </MainLayout>
   );

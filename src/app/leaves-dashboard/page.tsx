@@ -200,7 +200,7 @@ export default function LeavesDashboardPage() {
   }, [loading, leaveTypes, holidays, leaveOrigins, adjustments]);
   const cardStyle = {
     borderRadius: 12,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    // boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
     transition: "all 0.3s ease",
     cursor: "pointer",
   };
@@ -208,8 +208,8 @@ export default function LeavesDashboardPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
-          <div >
+        <div  >
+          <div  style={{marginTop: 20}} >
             <Tabs
               activeKey="dashboard"
               onChange={(key) => {
@@ -259,7 +259,7 @@ export default function LeavesDashboardPage() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -267,7 +267,7 @@ export default function LeavesDashboardPage() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -348,9 +348,7 @@ export default function LeavesDashboardPage() {
                 size="small"
                 bodyStyle={{ padding: 16 }}
                 style={{
-                  ...cardStyle,
-                  border: "none",
-                }}
+                  ...cardStyle}}
               >
                 <Row align="middle" justify="space-between">
                   {/* LEFT - Name */}
@@ -407,7 +405,6 @@ export default function LeavesDashboardPage() {
                 bodyStyle={{ padding: 16 }}
                 style={{
                   ...cardStyle,
-                  border: "none",
                 }}
               >
                 <Row align="middle" justify="space-between">
@@ -510,7 +507,7 @@ export default function LeavesDashboardPage() {
                       <Col>
                         <div
                           style={{
-                            fontSize: 19,
+                            fontSize: 16,
                             fontWeight: 600,
                             color: "#8b8b8bff",
                             whiteSpace: "nowrap",
@@ -521,9 +518,9 @@ export default function LeavesDashboardPage() {
                               {stats.nextHoliday.name}
                               <span
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 8,
                                   color: "#8c8c8c",
-                                  marginLeft: 6,
+                                
                                 }}
                               >
                                 {dayjs(stats.nextHoliday.from_date).format(
@@ -552,7 +549,7 @@ export default function LeavesDashboardPage() {
                 bodyStyle={{ padding: 16 }}
                 style={{
                   ...cardStyle,
-                  border: "none",
+                 
                 }}
               >
                 <Row align="middle" justify="space-between">
@@ -610,7 +607,6 @@ export default function LeavesDashboardPage() {
                 bodyStyle={{ padding: 16 }}
                 style={{
                   ...cardStyle,
-                  border: "none",
                 }}
               >
                 <Row align="middle" justify="space-between">
@@ -670,7 +666,6 @@ export default function LeavesDashboardPage() {
                 bodyStyle={{ padding: 16 }}
                 style={{
                   ...cardStyle,
-                  border: "none",
                 }}
               >
                 <Row align="middle" justify="space-between">
@@ -729,7 +724,6 @@ export default function LeavesDashboardPage() {
                 bodyStyle={{ padding: 16 }}
                 style={{
                   ...cardStyle,
-                  border: "none",
                 }}
               >
                 <Row align="middle" justify="space-between">
@@ -791,7 +785,7 @@ export default function LeavesDashboardPage() {
                 bordered={false}
                 style={{
                   borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  // boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
                   width: "100%",
                 }}
                 extra={
@@ -876,7 +870,7 @@ export default function LeavesDashboardPage() {
                 size="small"
                 style={{
                   borderRadius: 14,
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+                  // boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
                   width: "100%",
                   //right: 260,
                 }}

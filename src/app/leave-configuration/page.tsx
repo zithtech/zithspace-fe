@@ -520,9 +520,9 @@ export default function leaveConfiguration() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div >
           {contextHolder}
-          <div>
+          <div style={{marginTop:20}}>
             <Tabs
               activeKey="configuration"
               onChange={(key) => {
@@ -572,7 +572,7 @@ export default function leaveConfiguration() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -580,7 +580,7 @@ export default function leaveConfiguration() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -595,7 +595,7 @@ export default function leaveConfiguration() {
               ]}
             />
           </div>
-          <Card  >
+          
             <div
               style={{
                 display: "flex",
@@ -608,7 +608,7 @@ export default function leaveConfiguration() {
                 <Space align="center" size={8}>
                   <Columns3Cog style={{ color: "#1a64c4ff", fontSize: 20 }} />
                   <Typography.Title level={4} style={{ margin: 0 }}>
-                    Leave Configuration
+                    Leave Types
                   </Typography.Title>
                 </Space>
                 <div>
@@ -645,7 +645,7 @@ export default function leaveConfiguration() {
 
             </div>
             {/* <Divider /> */}
-            <Space style={{ marginBottom: 8}}>
+            <Space >
               <Tag color="blue" style={{borderRadius:10}}>
                 Total Leave Types: {dataSource.length}
               </Tag>
@@ -658,6 +658,8 @@ export default function leaveConfiguration() {
                 {dataSource.filter((item) => item.status === "Inactive").length}
               </Tag>
             </Space>
+            <Divider style={{marginTop:20}} />
+          
             <Table
               columns={columns}
               dataSource={dataSource.filter(
@@ -670,7 +672,7 @@ export default function leaveConfiguration() {
               style={{ marginTop:5 }}
               pagination={{ pageSize:10}}
             />
-          </Card>
+         
 
           <Modal
             title={

@@ -659,8 +659,8 @@ export default function positionConfiguration() {
   return (
     <MainLayout>
         {contextHolder}
-        <div style={{ padding: 24 }}>
-          <div >
+        <div >
+          <div style={{marginTop:20}} >
             <Tabs
               activeKey={
                 pathname.includes("government-holidays")
@@ -722,7 +722,7 @@ export default function positionConfiguration() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -730,7 +730,7 @@ export default function positionConfiguration() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -745,7 +745,7 @@ export default function positionConfiguration() {
               ]}
             />
           </div>
-          <Card>
+          
             <div
               style={{
                 display: "flex",
@@ -760,7 +760,7 @@ export default function positionConfiguration() {
                     style={{ color: "#1a64c4ff", fontSize: 20 }}
                   />
                   <Typography.Title level={4} style={{ margin: 0 }}>
-                    Position Configuration
+                    Leave Policy
                   </Typography.Title>
                 </Space>
                 <div>
@@ -769,7 +769,7 @@ export default function positionConfiguration() {
                   </Text>
                 </div>
                 <div style={{ marginTop: 10 }}>
-                  <Space>
+                  <Space  style={{ marginTop: 8 }}>
                     <Tag color="processing" style={{ borderRadius: 12 }}>
                       Total Origin : {uniqueDataSource.length}
                     </Tag>
@@ -851,6 +851,7 @@ export default function positionConfiguration() {
                 </Button>
               </div>
             </div>
+                        <Divider style={{marginTop:5}} />
             {viewType === "table" ? (
               <Table
                 columns={columns}
@@ -972,7 +973,7 @@ export default function positionConfiguration() {
                 pagination={{ pageSize: 9 }}
               />
             )}
-          </Card>
+        
 
           <Modal
             title={

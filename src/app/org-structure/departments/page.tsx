@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, notification, Select, Row, Col, Popconfirm } from "antd";
+import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, notification, Select, Row, Col, Divider } from "antd";
 import { ScheduleOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
@@ -229,7 +229,7 @@ export default function DepartmentsPage() {
     <ProtectedRoute>
       <MainLayout>
         {contextHolder}
-        <div style={{ padding: 24 }}>
+        <div style={{marginTop:20}}>
           <Tabs activeKey={pathname} onChange={handleTabChange} items={[
              { key: "/org-structure/overview", label: "Overview" },
             { key: "/org-structure/grades", label: "Grades" },
@@ -239,7 +239,7 @@ export default function DepartmentsPage() {
             { key: "/org-structure/positions", label: "Positions" },
             
           ]} />
-          <Card>
+         
             <div
               style={{
                 display: "flex",
@@ -294,12 +294,12 @@ export default function DepartmentsPage() {
               </div>
             </div>
 
-            <Space style={{ marginBottom: 16 }}>
+            <Space >
               <Tag style={{ borderRadius: 12 }}>Total Departments: {totalDepartments}</Tag>
               <Tag style={{ borderRadius: 12 }} color="green">Active: {activeDepartments}</Tag>
               <Tag style={{ borderRadius: 12 }} color="red">Inactive: {inactiveDepartments}</Tag>
             </Space>
-
+            <Divider style={{marginTop:20}} />
             <Table
               rowKey="id"
               size="small"
@@ -409,7 +409,7 @@ export default function DepartmentsPage() {
 
               </Form>
             </Modal>
-          </Card>
+          
         </div>
       </MainLayout>
     </ProtectedRoute>

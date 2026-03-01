@@ -2,6 +2,7 @@ import { Form, Input, Select, DatePicker, Row, Col, Checkbox } from "antd";
 import { HomeOutlined } from "@ant-design/icons";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import dayjs from "dayjs";
+import bcrypt from "bcryptjs";
 
 const { Option } = Select;
 
@@ -211,135 +212,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               Basic Information
             </span>
           </div>
-
-          {/* <Row gutter={[8, 4]}>
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>First Name</span>}
-                name="firstName"
-                rules={[{ required: true, message: "Enter your name" }]}
-                style={{ marginBottom: 6 }}
-              >
-                <Input
-                  placeholder="First Name"
-                  style={{ height: 25, fontSize: 12 }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Last Name</span>}
-                name="lastName"
-                rules={[{ required: true, message: "Required" }]}
-                style={{ marginBottom: 6 }}
-              >
-                <Input
-                  placeholder="Last Name"
-                  style={{ height: 25, fontSize: 12 }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Gender</span>}
-                name="gender"
-                rules={[{ required: true }]}
-                style={{ marginBottom: 6 }}
-              >
-                <Select
-                  placeholder="Select"
-                  style={{ height: 25, fontSize: 12 }}
-                >
-                  <Option value="male">Male</Option>
-                  <Option value="female">Female</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Date of Birth</span>}
-                name="dob"
-                rules={[{ required: true }]}
-                style={{ marginBottom: 6 }}
-              >
-                <DatePicker
-                  style={{ width: "100%", height: 25, fontSize: 12 }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Blood Group</span>}
-                name="bloodGroup"
-                rules={[{ required: true }]}
-                style={{ marginBottom: 6 }}
-              >
-                <Select
-                  placeholder="Select"
-                  style={{ height: 25, fontSize: 12 }}
-                >
-                  <Option value="A+">A+</Option>
-                  <Option value="A-">A-</Option>
-                  <Option value="B+">B+</Option>
-                  <Option value="B-">B-</Option>
-                  <Option value="AB+">AB+</Option>
-                  <Option value="AB-">AB-</Option>
-                  <Option value="O+">O+</Option>
-                  <Option value="O-">O-</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Mobile Number</span>}
-                name="mobile"
-                rules={[
-                  { required: true },
-                  { pattern: /^[0-9]{10}$/, message: "Invalid" },
-                ]}
-                style={{ marginBottom: 6 }}
-              >
-                <Input
-                  placeholder="Mobile"
-                  maxLength={10}
-                  style={{ height: 25, fontSize: 12 }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Personal Email</span>}
-                name="personalEmail"
-                rules={[{ required: true, type: "email" }]}
-                style={{ marginBottom: 6 }}
-              >
-                <Input
-                  placeholder="Personal Email"
-                  style={{ height: 25, fontSize: 12 }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label={<span style={labelStyle}>Work Email</span>}
-                name="workEmail"
-                rules={[{ required: true, type: "email" }]}
-                style={{ marginBottom: 6 }}
-              >
-                <Input
-                  placeholder="Work Email"
-                  style={{ height: 25, fontSize: 12 }}
-                />
-              </Form.Item>
-            </Col>
-          </Row> */}
 
           <Row gutter={[8, 4]}>
             {/* First Name - Full Width */}

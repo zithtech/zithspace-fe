@@ -46,6 +46,7 @@ import {
   PlusOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
+import { IoSettingsOutline } from "react-icons/io5";
 
 export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
 
@@ -270,6 +271,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
+          },
+          {
+            key: "/onbording/create",
+            icon: <IoSettingsOutline />,
+            label: "Settings",
+            path: "/onboarding/settings",
           },
         ],
       },

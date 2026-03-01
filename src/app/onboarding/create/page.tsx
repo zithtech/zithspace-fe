@@ -133,6 +133,13 @@ const Onboarding = () => {
       if (current < 4) {
         setCurrent((prev) => prev + 1);
       }
+      setAllData({
+        personal: {},
+        employment: {},
+        bank: {},
+        history: [],
+        assets: [],
+      });
     } catch (error) {
       console.log("❌ Save & Skip Failed:", error);
     }

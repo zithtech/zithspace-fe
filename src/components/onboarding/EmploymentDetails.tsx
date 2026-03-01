@@ -26,9 +26,11 @@ import {
   CalendarOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import moment from "moment";
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { MembersService } from "@/services/membersService";
+import { ProjectService } from "@/services/projectService";
 import { add } from "@dnd-kit/utilities";
 import form from "antd/es/form";
 import { PositionService } from "@/services/positionService";
@@ -56,33 +58,42 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   const { Option } = Select;
   const { Title, Text } = Typography;
   const [api, contextHolder] = notification.useNotification();
-
-  const [open, setOpen] = useState(false);
   //const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [open, setOpen] = useState(false);
+
   const [shiftData, setShiftData] = useState<any>({});
+  const [workShift, setWorkShift] = useState("");
   const [selectAll, setSelectAll] = useState(false);
   const [commonStart, setCommonStart] = useState<any>(null);
   const [commonEnd, setCommonEnd] = useState<any>(null);
 
+  const [projects, setProjects] = useState<any[]>([]);
+
+  const [error, setError] = useState("");
+
+  const [dayTimes, setDayTimes] = useState({
+    Monday: { start: null, end: null },
+    Tuesday: { start: null, end: null },
+    Wednesday: { start: null, end: null },
+    Thursday: { start: null, end: null },
+    Friday: { start: null, end: null },
+    Saturday: { start: null, end: null },
+    Sunday: { start: null, end: null },
+  });
+
+  const weekDays = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+
   useEffect(() => {
     console.log("Employment Data:", employmentData);
   }, [employmentData]);
-
-  // useEffect(() => {
-  //   if (data && Object.keys(data).length) {
-  //     setEmploymentData(data);
-  //     setWorkType(data.workType);
-  //     setHybridMode(data.hybridMode || "General");
-  //     setSelectedDays(data.fixedDays || []);
-  //     setGeneralDays(data.totalDays || null);
-  //     setGeneralHours(data.totalHours || null);
-  //     setTempSelectedDays(data.fixedDays || []);
-
-  //     workForm.setFieldsValue(data);
-  //     empoyeeTimelineForm.setFieldsValue(data);
-  //     additionalForm.setFieldsValue(data); // third form
-  //   }
-  // }, [data, workForm, empoyeeTimelineForm, additionalForm]);
 
   useEffect(() => {
     if (data && Object.keys(data).length) {
@@ -110,6 +121,41 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       });
 
       additionalForm.setFieldsValue(data);
+
+      // Parse workShift for display and modal state
+      if (data.workShift) {
+        try {
+          const parsed =
+            typeof data.workShift === "string"
+              ? JSON.parse(data.workShift)
+              : data.workShift;
+
+          if (parsed.type === "all") {
+            setWorkShift("All Days");
+            setSelectAll(true);
+            setCommonStart(parsed.start ? dayjs(parsed.start, "HH:mm") : null);
+            setCommonEnd(parsed.end ? dayjs(parsed.end, "HH:mm") : null);
+            setSelectedDays(weekDays);
+            const newShiftData: any = {};
+            weekDays.forEach((day) => {
+              newShiftData[day] = { start: parsed.start, end: parsed.end };
+            });
+            setShiftData(newShiftData);
+          } else if (parsed.type === "custom") {
+            const days = Object.keys(parsed.data || {});
+            setWorkShift(days.join(", "));
+            setSelectAll(false);
+            setCommonStart(null);
+            setCommonEnd(null);
+            setSelectedDays(days);
+            setShiftData(parsed.data || {});
+          } else {
+            setWorkShift(data.workShift);
+          }
+        } catch (e) {
+          setWorkShift(data.workShift);
+        }
+      }
     }
   }, [data]);
 
@@ -149,7 +195,28 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
     fetchPositions();
   }, []);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+
+        const response = await ProjectService.getProjects({
+          page: 1,
+          limit: 20,
+        });
+
+        if (response?.data) {
+          setProjects(response.data);
+        }
+      } catch (err: any) {
+        setError(err.message || "Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   useImperativeHandle(ref, () => ({
     getData: () => {
@@ -181,57 +248,6 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
     },
   }));
 
-  // useImperativeHandle(ref, () => ({
-  //   async validateAndGetData() {
-  //     const workValues = await workForm.validateFields();
-  //     const timelineValues = await empoyeeTimelineForm.validateFields();
-  //     const additionalValues = await additionalForm.validateFields();
-
-  //     const baseData = {
-  //       ...workValues,
-  //       ...timelineValues,
-  //       ...additionalValues,
-  //     };
-
-  //     if (workType === "Hybrid" && hybridMode === "Fixed") {
-  //       return {
-  //         ...baseData,
-  //         workType: "Hybrid",
-  //         hybridMode: "Fixed",
-  //         fixedDays: selectedDays,
-  //         totalDays: selectedDays.length,
-  //         totalHours: selectedDays.length * 8,
-  //       };
-  //     }
-
-  //     if (workType === "Hybrid" && hybridMode === "General") {
-  //       return {
-  //         ...baseData,
-  //         workType: "Hybrid",
-  //         hybridMode: "General",
-  //         totalDays: generalDays,
-  //         totalHours: generalHours,
-  //       };
-  //     }
-
-  //     return {
-  //       ...baseData,
-  //       workType,
-  //     };
-  //   },
-  // }));
-
-  const weekDays = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ];
-
-  // ✅ Select All
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
 
@@ -293,10 +309,22 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           checked={selectedDays.includes(record.day)}
           onChange={(e) => {
             const checked = e.target.checked;
+
             if (checked) {
               setSelectedDays([...selectedDays, record.day]);
+              // initialize shiftData for that day if not exists
+              setShiftData((prev: any) => ({
+                ...prev,
+                [record.day]: prev[record.day] || { start: null, end: null },
+              }));
             } else {
               setSelectedDays(selectedDays.filter((d) => d !== record.day));
+              // optionally clear shiftData for unselected day
+              setShiftData((prev: any) => {
+                const copy = { ...prev };
+                delete copy[record.day];
+                return copy;
+              });
             }
           }}
         />
@@ -311,8 +339,21 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       render: (_: any, record: any) => (
         <TimePicker
           format="HH:mm"
-          value={shiftData[record.day]?.start}
+          value={
+            shiftData[record.day]?.start
+              ? dayjs(shiftData[record.day].start, "HH:mm")
+              : null
+          }
           disabled={!selectedDays.includes(record.day)}
+          onChange={(time) => {
+            setShiftData((prev: any) => ({
+              ...prev,
+              [record.day]: {
+                ...prev[record.day],
+                start: time ? time.format("HH:mm") : null,
+              },
+            }));
+          }}
         />
       ),
     },
@@ -321,8 +362,21 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       render: (_: any, record: any) => (
         <TimePicker
           format="HH:mm"
-          value={shiftData[record.day]?.end}
+          value={
+            shiftData[record.day]?.end
+              ? dayjs(shiftData[record.day].end, "HH:mm")
+              : null
+          }
           disabled={!selectedDays.includes(record.day)}
+          onChange={(time) => {
+            setShiftData((prev: any) => ({
+              ...prev,
+              [record.day]: {
+                ...prev[record.day],
+                end: time ? time.format("HH:mm") : null,
+              },
+            }));
+          }}
         />
       ),
     },
@@ -334,7 +388,66 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   }));
 
   const handleSave = () => {
-    console.log("Selected Shift Data:", shiftData);
+    let payload: any;
+    let displayString = "";
+
+    if (selectAll && commonStart && commonEnd) {
+      // ✅ "All" Format
+      const allDaysData: any = {};
+      weekDays.forEach((day) => {
+        allDaysData[day] = {
+          start: commonStart.format("HH:mm"),
+          end: commonEnd.format("HH:mm"),
+        };
+      });
+
+      payload = {
+        type: "all",
+        start: commonStart.format("HH:mm"),
+        end: commonEnd.format("HH:mm"),
+        days: weekDays,
+        data: allDaysData,
+      };
+      displayString = "All Days";
+    } else {
+      // ✅ "Custom" Format (Specific Days)
+      const perDayData: any = {};
+
+      if (selectedDays.length === 0) {
+        message.error("Please select at least one day.");
+        return;
+      }
+
+      for (const day of selectedDays) {
+        const dayShift = shiftData[day];
+        if (dayShift && dayShift.start && dayShift.end) {
+          // Ensure we send strings "HH:mm"
+          perDayData[day] = {
+            start:
+              typeof dayShift.start === "string"
+                ? dayShift.start
+                : dayjs(dayShift.start).format("HH:mm"),
+            end:
+              typeof dayShift.end === "string"
+                ? dayShift.end
+                : dayjs(dayShift.end).format("HH:mm"),
+          };
+        } else {
+          message.error(`Please set start and end time for ${day}.`);
+          return;
+        }
+      }
+
+      payload = {
+        type: "custom",
+        data: perDayData,
+      };
+      displayString = selectedDays.join(", ");
+    }
+    console.log("Modal data to save:", payload);
+    const workShiftValue = JSON.stringify(payload);
+    workForm.setFieldsValue({ workShift: workShiftValue });
+    setWorkShift(displayString);
     setOpen(false);
   };
 
@@ -549,16 +662,24 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
           </Row>
 
           {/* Work Shift */}
+
+          <Form.Item name="workShift" hidden>
+            <Input />
+          </Form.Item>
+
           <Form.Item
             label={<span style={{ fontSize: 11 }}>* Work Shift</span>}
-            name="workShift"
-            rules={[{ required: true, message: "Required" }]}
+            required
+            help={workForm.getFieldError("workShift")?.[0]}
+            validateStatus={
+              workForm.getFieldError("workShift")?.length ? "error" : ""
+            }
             style={{ marginBottom: 0 }}
           >
-            {/* Input instead of Select */}
             <Input
               placeholder="Select Work Shift"
               readOnly
+              value={workShift}
               onClick={() => setOpen(true)}
               style={{ height: 35, cursor: "pointer" }}
             />
@@ -683,9 +804,11 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               }}
               maxTagCount="responsive" // keeps UI clean
             >
-              <Option value="HRMS">HRMS</Option>
-              <Option value="CRM">CRM</Option>
-              <Option value="Mobile App">Mobile App</Option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name} ({project.code})
+                </option>
+              ))}
             </Select>
           </Form.Item>
 

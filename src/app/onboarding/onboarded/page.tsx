@@ -23,6 +23,7 @@ import {
   Typography,
   Upload,
   Switch,
+  TimePicker,
 } from "antd";
 import {
   SearchOutlined,
@@ -46,15 +47,18 @@ import {
   EyeOutlined,
   CloseCircleTwoTone,
   CheckCircleTwoTone,
+  FieldTimeOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
 import { MembersService } from "@/services/membersService";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import { ProjectService } from "@/services/projectService";
 import EmployeeHistoryEditForm from "./Employeehistoryeditform";
 import EmployeeHistoryView from "./EmployeeHistoryViews";
 import router from "next/dist/shared/lib/router/router";
 import { useRouter } from "next/dist/client/components/navigation";
+import { PositionService } from "@/services/positionService";
 
 const { Option } = Select;
 
@@ -488,6 +492,29 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
   const [totalMembers, setTotalMembers] = useState(0);
   const { Title, Text } = Typography;
 
+  const [openWorkShiftModal, setOpenWorkShiftModal] = useState(false);
+  const [shiftData, setShiftData] = useState<any>({});
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [commonStart, setCommonStart] = useState<any>(null);
+  const [commonEnd, setCommonEnd] = useState<any>(null);
+  const [workShiftDisplay, setWorkShiftDisplay] = useState("");
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [positions, setPositions] = useState<any[]>([]);
+  const [selectedPosition, setSelectedPosition] = useState<any>([]);
+
+  const weekDays = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+
   useEffect(() => {
     if (initialData) {
       // Clear form first
@@ -504,7 +531,7 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
         team: initialData.team || "",
         employeeType: initialData.employeeType || "",
         workLocation: initialData.workLocation || "",
-        workShift: initialData.workShift || "",
+        workShift: initialData.workShift || "", // This holds the JSON string
         joiningDate: initialData.joiningDate
           ? dayjs(initialData.joiningDate)
           : null,
@@ -525,6 +552,41 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
         totalHours: initialData.totalHours || null,
       });
       setTempSelectedDays(initialData.fixedDays || []);
+
+      // Parse workShift for display and modal state
+      if (initialData.workShift) {
+        try {
+          const parsed =
+            typeof initialData.workShift === "string"
+              ? JSON.parse(initialData.workShift)
+              : initialData.workShift;
+
+          if (parsed.type === "all") {
+            setWorkShiftDisplay("All Days");
+            setSelectAll(true);
+            setCommonStart(parsed.start ? dayjs(parsed.start, "HH:mm") : null);
+            setCommonEnd(parsed.end ? dayjs(parsed.end, "HH:mm") : null);
+            setSelectedDays(weekDays);
+            const newShiftData: any = {};
+            weekDays.forEach((day) => {
+              newShiftData[day] = { start: parsed.start, end: parsed.end };
+            });
+            setShiftData(newShiftData);
+          } else if (parsed.type === "custom") {
+            const days = Object.keys(parsed.data || {});
+            setWorkShiftDisplay(days.join(", "));
+            setSelectAll(false);
+            setCommonStart(null);
+            setCommonEnd(null);
+            setSelectedDays(days);
+            setShiftData(parsed.data || {});
+          } else {
+            setWorkShiftDisplay(initialData.workShift);
+          }
+        } catch (e) {
+          setWorkShiftDisplay(initialData.workShift);
+        }
+      }
     }
   }, [initialData, form]);
 
@@ -541,6 +603,212 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
 
     fetchMembersForSelect();
   }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+
+        const response = await ProjectService.getProjects({
+          page: 1,
+          limit: 20,
+        });
+
+        if (response?.data) {
+          setProjects(response.data);
+        }
+      } catch (err: any) {
+        setError(err.message || "Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    const fetchPositions = async () => {
+      try {
+        setLoading(true);
+        const data = await PositionService.getAll();
+        const mapData = data.map((pos) => ({
+          id: pos.id,
+          name: pos.title,
+        }));
+        setPositions(mapData); // 🔥 store in state
+        console.log("Fetched Positions:", mapData); // 🔥 debug log
+      } catch (error) {
+        console.error("Failed to fetch positions", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPositions();
+  }, []);
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedDays(weekDays);
+      if (commonStart && commonEnd) {
+        applyCommonTime(commonStart, commonEnd);
+      }
+    } else {
+      setSelectedDays([]);
+      setShiftData({});
+      setCommonStart(null);
+      setCommonEnd(null);
+    }
+  };
+
+  const applyCommonTime = (start: any, end: any) => {
+    if (!start || !end) return;
+    const newData: any = {};
+    weekDays.forEach((day) => {
+      newData[day] = {
+        start: start.format("HH:mm"),
+        end: end.format("HH:mm"),
+      };
+    });
+    setShiftData(newData);
+  };
+
+  const handleSaveWorkShift = () => {
+    let payload: any;
+
+    if (selectAll && commonStart && commonEnd) {
+      const allDaysData: any = {};
+      weekDays.forEach((day) => {
+        allDaysData[day] = {
+          start: commonStart.format("HH:mm"),
+          end: commonEnd.format("HH:mm"),
+        };
+      });
+
+      payload = {
+        type: "all",
+        start: commonStart.format("HH:mm"),
+        end: commonEnd.format("HH:mm"),
+        days: weekDays,
+        data: allDaysData,
+      };
+      setWorkShiftDisplay("All Days");
+    } else {
+      const perDayData: any = {};
+      if (selectedDays.length === 0) {
+        message.error("Please select at least one day.");
+        return;
+      }
+
+      for (const day of selectedDays) {
+        const dayShift = shiftData[day];
+        if (dayShift && dayShift.start && dayShift.end) {
+          perDayData[day] = {
+            start:
+              typeof dayShift.start === "string"
+                ? dayShift.start
+                : dayjs(dayShift.start).format("HH:mm"),
+            end:
+              typeof dayShift.end === "string"
+                ? dayShift.end
+                : dayjs(dayShift.end).format("HH:mm"),
+          };
+        } else {
+          message.error(`Please set start and end time for ${day}.`);
+          return;
+        }
+      }
+      payload = {
+        type: "custom",
+        data: perDayData,
+      };
+      setWorkShiftDisplay(Object.keys(perDayData).join(", "));
+    }
+
+    const jsonString = JSON.stringify(payload);
+    form.setFieldsValue({ workShift: jsonString });
+    setOpenWorkShiftModal(false);
+  };
+
+  const columns = [
+    {
+      title: "",
+      render: (_: any, record: any) => (
+        <Checkbox
+          checked={selectedDays.includes(record.day)}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            if (checked) {
+              setSelectedDays([...selectedDays, record.day]);
+              setShiftData((prev: any) => ({
+                ...prev,
+                [record.day]: prev[record.day] || { start: null, end: null },
+              }));
+            } else {
+              setSelectedDays(selectedDays.filter((d) => d !== record.day));
+              setShiftData((prev: any) => {
+                const copy = { ...prev };
+                delete copy[record.day];
+                return copy;
+              });
+            }
+          }}
+        />
+      ),
+    },
+    {
+      title: "Week Day",
+      dataIndex: "day",
+    },
+    {
+      title: "Start Time",
+      render: (_: any, record: any) => (
+        <TimePicker
+          format="HH:mm"
+          value={
+            shiftData[record.day]?.start
+              ? dayjs(shiftData[record.day].start, "HH:mm")
+              : null
+          }
+          disabled={!selectedDays.includes(record.day)}
+          onChange={(time) => {
+            setShiftData((prev: any) => ({
+              ...prev,
+              [record.day]: {
+                ...prev[record.day],
+                start: time ? time.format("HH:mm") : null,
+              },
+            }));
+          }}
+        />
+      ),
+    },
+    {
+      title: "End Time",
+      render: (_: any, record: any) => (
+        <TimePicker
+          format="HH:mm"
+          value={
+            shiftData[record.day]?.end
+              ? dayjs(shiftData[record.day].end, "HH:mm")
+              : null
+          }
+          disabled={!selectedDays.includes(record.day)}
+          onChange={(time) => {
+            setShiftData((prev: any) => ({
+              ...prev,
+              [record.day]: {
+                ...prev[record.day],
+                end: time ? time.format("HH:mm") : null,
+              },
+            }));
+          }}
+        />
+      ),
+    },
+  ];
 
   return (
     <div
@@ -564,13 +832,19 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
           <Form.Item
             label={<span style={labelStyle}>Department</span>}
             name="department"
-            rules={[{ required: true, message: "Required" }]}
+            rules={[{ message: "Required" }]}
           >
-            <Select placeholder="Select Department" style={inputStyle}>
-              <Option value="engineering">Engineering</Option>
-              <Option value="hr">HR</Option>
-              <Option value="finance">Finance</Option>
-            </Select>
+            <Select
+              placeholder="Select Position"
+              loading={loading}
+              style={{ width: "100%", height: 30 }}
+              value={selectedPosition}
+              onChange={(value) => setSelectedPosition(value)}
+              options={positions.map((pos) => ({
+                label: pos.name, // 🔥 this will show in dropdown
+                value: pos.id,
+              }))}
+            />
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -611,15 +885,27 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
         </Col>
         <Col span={8}>
           <Form.Item
-            label={<span style={labelStyle}>Work Shift</span>}
             name="workShift"
             rules={[{ required: true, message: "Required" }]}
+            hidden
           >
-            <Select placeholder="Select Shift" style={inputStyle}>
-              <Option value="day">Day Shift</Option>
-              <Option value="night">Night Shift</Option>
-              <Option value="rotational">Rotational</Option>
-            </Select>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label={<span style={labelStyle}>Work Shift</span>}
+            required
+            help={form.getFieldError("workShift")?.[0]}
+            validateStatus={
+              form.getFieldError("workShift")?.length ? "error" : ""
+            }
+          >
+            <Input
+              placeholder="Select Work Shift"
+              readOnly
+              value={workShiftDisplay}
+              onClick={() => setOpenWorkShiftModal(true)}
+              style={{ ...inputStyle, cursor: "pointer" }}
+            />
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -780,9 +1066,12 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
               style={inputStyle}
               maxTagCount="responsive"
             >
-              <Option value="hrms">HRMS</Option>
-              <Option value="crm">CRM</Option>
-              <Option value="mobile-app">Mobile App</Option>
+              <option value="">Select Project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name} ({project.code})
+                </option>
+              ))}
             </Select>
           </Form.Item>
         </Col>
@@ -898,6 +1187,74 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
             <Text strong>Total Hours: {tempSelectedDays.length * 8} hrs</Text>
           </div>
         </Card>
+      </Modal>
+
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FieldTimeOutlined style={{ color: "black" }} />
+            <span>Set Work Shift</span>
+          </div>
+        }
+        open={openWorkShiftModal}
+        onCancel={() => setOpenWorkShiftModal(false)}
+        footer={[
+          <Button key="close" onClick={() => setOpenWorkShiftModal(false)}>
+            Close
+          </Button>,
+          <Button key="save" type="primary" onClick={handleSaveWorkShift}>
+            Save
+          </Button>,
+        ]}
+        width={800}
+      >
+        {/* ✅ Select All + Common Time */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col>
+            <Checkbox
+              checked={selectAll}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+            >
+              Select All
+            </Checkbox>
+          </Col>
+
+          {selectAll && (
+            <>
+              <Col>
+                <TimePicker
+                  format="HH:mm"
+                  placeholder="Common Start"
+                  value={commonStart}
+                  onChange={(time) => {
+                    setCommonStart(time);
+                    applyCommonTime(time, commonEnd);
+                  }}
+                />
+              </Col>
+              <Col>
+                <TimePicker
+                  format="HH:mm"
+                  placeholder="Common End"
+                  value={commonEnd}
+                  onChange={(time) => {
+                    setCommonEnd(time);
+                    applyCommonTime(commonStart, time);
+                  }}
+                />
+              </Col>
+            </>
+          )}
+        </Row>
+
+        <Table
+          columns={columns}
+          dataSource={weekDays.map((day) => ({
+            key: day,
+            day,
+          }))}
+          pagination={false}
+        />
       </Modal>
     </div>
   );
@@ -1382,6 +1739,66 @@ const PersonalDetailsView = ({ data }: any) => {
 const EmploymentView = ({ data }: any) => {
   if (!data) return <div>No data available</div>;
 
+  const renderWorkShiftDetails = () => {
+    if (!data.workShift) {
+      return (
+        <Col span={12}>
+          <RowItem label="Work Shift" value={null} />
+        </Col>
+      );
+    }
+
+    try {
+      const workShiftData =
+        typeof data.workShift === "string"
+          ? JSON.parse(data.workShift)
+          : data.workShift;
+
+      if (workShiftData.type === "custom") {
+        const workDays = Object.entries(workShiftData.data)
+          .map(
+            ([day, times]: [string, any]) =>
+              `${day.charAt(0).toUpperCase() + day.slice(1)}: ${times.start} - ${
+                times.end
+              }`,
+          )
+          .join(", ");
+
+        return (
+          <>
+            <Col span={12}>
+              <RowItem label="Work Shift Type" value="Custom" />
+            </Col>
+            <Col span={24}>
+              <RowItem label="Work Days" value={workDays} />
+            </Col>
+          </>
+        );
+      }
+
+      if (workShiftData.type === "all") {
+        const workTime = `${workShiftData.start} - ${workShiftData.end}`;
+        return (
+          <>
+            <Col span={12}>
+              <RowItem label="Work Shift Type" value="All Days" />
+            </Col>
+            <Col span={12}>
+              <RowItem label="Work Time" value={workTime} />
+            </Col>
+          </>
+        );
+      }
+    } catch (e) {}
+
+    // Fallback for unknown format or parsing error
+    return (
+      <Col span={12}>
+        <RowItem label="Work Shift" value={data.workShift} />
+      </Col>
+    );
+  };
+
   return (
     <Card
       title={
@@ -1396,7 +1813,7 @@ const EmploymentView = ({ data }: any) => {
         <Col span={12}>
           <RowItem
             label="Department"
-            value={data.department}
+            value={data.department.titleName}
             icon={<BankOutlined />}
           />
         </Col>
@@ -1413,10 +1830,7 @@ const EmploymentView = ({ data }: any) => {
           <RowItem label="Work Location" value={data.workLocation} />
         </Col>
 
-        <Col span={12}>
-          <RowItem label="Work Shift" value={data.workShift} />
-        </Col>
-
+        {renderWorkShiftDetails()}
         <Col span={12}>
           <RowItem
             label="Work Joining Date"
@@ -1678,6 +2092,8 @@ const Onboarded = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [error, setError] = useState("");
+
   // Separate forms for each section
   const [personalDetailsForm] = Form.useForm();
   const [employmentForm] = Form.useForm();
@@ -1736,6 +2152,8 @@ const Onboarded = () => {
               employee.mobile ||
               "",
           },
+          status: employee.status,
+          loginAccess: employee.loginAccess,
           _rawData: employee,
         };
       });
@@ -1851,6 +2269,9 @@ const Onboarded = () => {
     const fullName = `${firstName} ${lastName}`.toLowerCase();
     return fullName.includes(search.toLowerCase());
   });
+
+  const activeCount = data.filter((item: any) => item.status).length;
+  const inactiveCount = data.length - activeCount;
 
   const openView = async (emp: any, sec: string) => {
     setSection(sec);
@@ -2358,7 +2779,7 @@ const Onboarded = () => {
                   padding: "0 10px",
                 }}
               >
-                Active : 0
+                Active : {activeCount}
               </Tag>
 
               {/* Inactive */}
@@ -2373,7 +2794,7 @@ const Onboarded = () => {
                   padding: "0 10px",
                 }}
               >
-                Inactive : 0
+                Inactive : {inactiveCount}
               </Tag>
             </div>
           </div>

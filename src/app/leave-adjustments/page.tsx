@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -208,7 +210,26 @@ const leaveTypesData = [
 export default function LeaveAdjustmentPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const [form] = Form.useForm();
+
+  // Protect route - requires leave.manage permission
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [api, contextHolder] = notification.useNotification();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -397,27 +418,31 @@ export default function LeaveAdjustmentPage() {
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: LeaveAdjustmentViewData) => (
-        <Space>
-          <Tooltip title="Edit Leave Adjustment">
-            <Button
-              type="text"
-              icon={<Settings2 size={16} />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete Leave Adjustment">
-            <Popconfirm
-              title="Are you sure you want to delete?"
-              onConfirm={() => deleteAdjustment(record.id)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button danger type="text" icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
+      render: (_: any, record: LeaveAdjustmentViewData) => {
+        if (!canManageLeaves) return null;
+        
+        return (
+          <Space>
+            <Tooltip title="Edit Leave Adjustment">
+              <Button
+                type="text"
+                icon={<Settings2 size={16} />}
+                onClick={() => handleEdit(record)}
+              />
+            </Tooltip>
+            <Tooltip title="Delete Leave Adjustment">
+              <Popconfirm
+                title="Are you sure you want to delete?"
+                onConfirm={() => deleteAdjustment(record.id)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button danger type="text" icon={<DeleteOutlined />} />
+              </Popconfirm>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -546,13 +571,15 @@ export default function LeaveAdjustmentPage() {
     onChange={(e) => setSearchText(e.target.value)}
   />
 
-  <Button
-    type="primary"
-    style={{ height: 30}}
-    onClick={() => setIsModalVisible(true)}
-  >
-    + Add New Adjustment
-  </Button>
+  {canManageLeaves && (
+    <Button
+      type="primary"
+      style={{ width: 180,height: 30}}
+      onClick={() => setIsModalVisible(true)}
+    >
+      + Add New Adjustment
+    </Button>
+  )}
 
 </div>
 

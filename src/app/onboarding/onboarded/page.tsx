@@ -1,5 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import {
   Table,
   Modal,
@@ -51,8 +54,6 @@ import { MembersService } from "@/services/membersService";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
 import EmployeeHistoryEditForm from "./Employeehistoryeditform";
 import EmployeeHistoryView from "./EmployeeHistoryViews";
-import router from "next/dist/shared/lib/router/router";
-import { useRouter } from "next/dist/client/components/navigation";
 
 const { Option } = Select;
 
@@ -1663,6 +1664,7 @@ const AssetsView = ({ data }: any) => {
 
 /* ---------------- MAIN COMPONENT ---------------- */
 const Onboarded = () => {
+  const { canUpdateOnboarding } = usePermission();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -2418,4 +2420,34 @@ const Onboarded = () => {
   );
 };
 
-export default Onboarded;
+// Wrap with loading and permission checks
+export default function OnboardedPage() {
+  const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOnboarding } = usePermission();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadOnboarding) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOnboarding, router]);
+
+  // Loading state
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Permission check
+  if (!canReadOnboarding) {
+    return null;
+  }
+
+  return <Onboarded />;
+}

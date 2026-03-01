@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Typography, Space, Tabs } from "antd";
+import React, { useState, useEffect } from "react";
+import { Typography, Space, Tabs, Spin } from "antd";
 import {
   SettingOutlined,
   BankOutlined,
@@ -9,8 +9,10 @@ import {
   UserOutlined,
   DollarOutlined,
 } from "@ant-design/icons";
-
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 import SalaryStructureList from "./salaryStructure/page"; // LIST VIEW
 import NewSalaryStructure from "./salaryStructure/NewSalaryStructure"; // FORM VIEW
 import CompanyConfiguration from "./company/page";
@@ -23,6 +25,10 @@ import { PreviewType } from "@/types/salary";
 const { Title, Text } = Typography;
 
 const SettingsPage = () => {
+  const { canManageSalary } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [activeKey, setActiveKey] = useState<
     "company" | "payslip" | "employee" | "salary" | "allowance"
   >("company");
@@ -76,6 +82,12 @@ const SettingsPage = () => {
     salary: null,
   });
 
+  useEffect(() => {
+    if (!authLoading && !canManageSalary) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canManageSalary, router]);
+
   const openPreview = (
     type: "company" | "payslip" | "employee" | "salary",
     data: any,
@@ -117,6 +129,18 @@ const SettingsPage = () => {
         return <div>Company settings content</div>;
     }
   };
+
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+          <Spin tip="Loading..." size="large" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canManageSalary) return null;
 
   return (
     <MainLayout>

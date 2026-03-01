@@ -9,16 +9,18 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: string; // Flexible string instead of enum
-  position: string; // Flexible string instead of enum
+  role: string;
+  position: string;
   personalEmail: string;
   workEmail: string;
   phone: string;
   reportsTo?: string | null;
   isActive: boolean;
-  tenantId: string; // Add tenant context
-  tenantName?: string; // Optional tenant name
+  tenantId: string;
+  tenantName?: string;
   department?: string;
+  /** Effective permissions returned by /api/auth/me — source of truth for UI */
+  permissions: string[];
 }
 
 interface AuthContextType {
@@ -30,6 +32,12 @@ interface AuthContextType {
   updateUser: (userData: Partial<User>) => void;
   checkAuth: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
+  /** Returns true if the user has the given permission string */
+  hasPermission: (permission: string) => boolean;
+  /** Returns true if the user has ALL of the given permissions */
+  hasAllPermissions: (...permissions: string[]) => boolean;
+  /** Returns true if the user has ANY of the given permissions */
+  hasAnyPermission: (...permissions: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +85,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         tenantId: response.user.tenantId,
         tenantName: response.user.tenantName,
         department: (response.user as any).department,
+        // Login response doesn't include permissions yet — will be loaded by checkAuth
+        permissions: (response.user as any).permissions ?? [],
       };
 
       setUser(userData);
@@ -152,7 +162,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Transform the profile to match our User interface
       const userData: User = {
-        id: userProfile.id, // Backend returns "id"
+        id: userProfile.id,
         name: userProfile.name,
         email: userProfile.workEmail || userProfile.personalEmail,
         role: userProfile.role,
@@ -160,11 +170,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         personalEmail: userProfile.personalEmail,
         workEmail: userProfile.workEmail,
         phone: userProfile.phone,
-        reportsTo: userProfile.reportsTo?.id || null, // Updated to use 'id' instead of 'id'
+        reportsTo: userProfile.reportsTo?.id || null,
         isActive: userProfile.isActive,
         tenantId: userProfile.tenantId,
         tenantName: userProfile.tenant?.name,
         department: userProfile.department,
+        permissions: (userProfile as any).permissions ?? [],
       };
 
       setUser(userData);
@@ -197,6 +208,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    return user.permissions.includes(permission);
+  };
+
+  const hasAllPermissions = (...permissions: string[]): boolean => {
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    return permissions.every((p) => user.permissions.includes(p));
+  };
+
+  const hasAnyPermission = (...permissions: string[]): boolean => {
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    return permissions.some((p) => user.permissions.includes(p));
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -206,6 +235,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateUser,
     checkAuth,
     refreshToken,
+    hasPermission,
+    hasAllPermissions,
+    hasAnyPermission,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

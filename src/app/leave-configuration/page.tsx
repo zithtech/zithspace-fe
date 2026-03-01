@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { Settings2, Columns3Cog } from "lucide-react";
@@ -47,7 +49,7 @@ import {
   ApartmentOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -215,8 +217,27 @@ interface LeaveType {
 export default function leaveConfiguration() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
+
+  // Protect route - requires leave.manage permission
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
@@ -354,32 +375,36 @@ export default function leaveConfiguration() {
     {
       title: "Actions",
       key: "actions",
-      render: (_: unknown, record: LeaveType) => (
-        <Space>
-          <Tooltip title="Edit Leave Type">
-            <Button
-              type="text"
-              icon={<Settings2 size={16} />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete Leave Type">
-            <Popconfirm
-              title="Delete this leave type?"
-              description="Are you sure you want to delete this leave type?"
-              onConfirm={() => handleDelete(record.key)}
-              okButtonProps={{ loading: deletingKey === record.key }}
-              cancelButtonProps={{ disabled: deletingKey === record.key }}
-              okText="Yes"
-              cancelText="No"
-            >
+      render: (_: unknown, record: LeaveType) => {
+        if (!canManageLeaves) return null;
+        
+        return (
+          <Space>
+            <Tooltip title="Edit Leave Type">
               <Button
-                danger type="text" icon={<DeleteOutlined />}
+                type="text"
+                icon={<Settings2 size={16} />}
+                onClick={() => handleEdit(record)}
               />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
+            </Tooltip>
+            <Tooltip title="Delete Leave Type">
+              <Popconfirm
+                title="Delete this leave type?"
+                description="Are you sure you want to delete this leave type?"
+                onConfirm={() => handleDelete(record.key)}
+                okButtonProps={{ loading: deletingKey === record.key }}
+                cancelButtonProps={{ disabled: deletingKey === record.key }}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button
+                  danger type="text" icon={<DeleteOutlined />}
+                />
+              </Popconfirm>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -601,18 +626,20 @@ export default function leaveConfiguration() {
     style={{ width: 390, height: 36 }}
   />
 
-  <Button
-    type="primary"
-    style={{ width: 150, height: 30 }}
-    onClick={() => {
-      setEditingKey(null);
-      form.resetFields();
-      setLeaveUnit("Days");
-      setIsModalVisible(true);
-    }}
-  >
-    + Add Leave Type
-  </Button>
+  {canManageLeaves && (
+    <Button
+      type="primary"
+      style={{ width: 150, height: 30 }}
+      onClick={() => {
+        setEditingKey(null);
+        form.resetFields();
+        setLeaveUnit("Days");
+        setIsModalVisible(true);
+      }}
+    >
+      + Add Leave Type
+    </Button>
+  )}
 
 </div>
 

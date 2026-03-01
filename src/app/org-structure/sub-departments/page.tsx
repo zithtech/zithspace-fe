@@ -19,7 +19,6 @@ import {
   Row,
   Col,
   Popconfirm,
-  Divider
 } from "antd";
 import {
   ScheduleOutlined,
@@ -183,7 +182,7 @@ export default function SubDepartmentsPage() {
     <ProtectedRoute>
       <MainLayout>
         {contextHolder}
-        <div style={{marginTop:20}}>
+        <div style={{ padding: 24 }}>
           <Tabs
             activeKey={pathname}
             onChange={handleTabChange}
@@ -202,7 +201,7 @@ export default function SubDepartmentsPage() {
               { key: "/org-structure/positions", label: "Positions" },
             ]}
           />
-          
+          <Card>
             <div
               style={{
                 display: "flex",
@@ -267,7 +266,7 @@ export default function SubDepartmentsPage() {
               </div>
             </div>
 
-            <Space>
+            <Space style={{ marginBottom: 16 }}>
               <Tag style={{ borderRadius: 12 }}>
                 Total Sub-Departments: {totalSubDepartments}
               </Tag>
@@ -278,7 +277,7 @@ export default function SubDepartmentsPage() {
                 Inactive: {inactiveSubDepartments}
               </Tag>
             </Space>
-                  <Divider style={{marginTop:20}}/>
+
             <Table
               size="small"
               columns={columns}
@@ -286,7 +285,7 @@ export default function SubDepartmentsPage() {
               rowKey="id"
               loading={subDepartmentsLoading}
             />
-        
+          </Card>
 
           <Modal
             title={editingId ? "Edit Sub-Department" : "Add Sub-Department"}

@@ -685,18 +685,40 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             />
           </Form.Item>
 
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}> Work Joining Date </span>}
-            name="employeeJoiningDate"
-            rules={[{ required: true, message: "Required" }]}
-            style={{ marginBottom: 10 }}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "10px",
+            }}
           >
-            <DatePicker
-              format="DD-MM-YYYY"
-              placeholder="Select date"
-              style={{ width: "100%", height: 30, fontSize: 11 }}
-            />
-          </Form.Item>
+            <Form.Item
+              label={<span style={{ fontSize: 11 }}> Work Joining Date </span>}
+              name="employeeJoiningDate"
+              rules={[{ required: true, message: "Required" }]}
+              style={{ marginBottom: 10, width: "50%" }}
+            >
+              <DatePicker
+                format="DD-MM-YYYY"
+                placeholder="Select date"
+                style={{ width: "100%", height: 30, fontSize: 11 }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label={<span style={{ fontSize: 11 }}>Notice Period </span>}
+              name="noticePeriod"
+              rules={[{ required: true, message: "Required" }]}
+              style={{ marginBottom: 10, width: "50%" }}
+            >
+              <Input
+                placeholder="Notice Period"
+                style={{ width: "100%", height: 30, fontSize: 11 }}
+              />
+            </Form.Item>
+          </div>
         </Form>
       </div>
       {/* second div */}

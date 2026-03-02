@@ -479,7 +479,7 @@ const PersonalDetailsEditForm = ({ form, initialData }: any) => {
 };
 
 // Employment Edit Form
-const EmploymentEditForm = ({ form, initialData }: any) => {
+const EmploymentEditForm = ({ form, initialData, projects }: any) => {
   const workType = Form.useWatch("workType", form);
   const hybridMode = Form.useWatch("hybridMode", form);
   const fixedDays = Form.useWatch("fixedDays", form) || [];
@@ -499,9 +499,7 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
   const [commonStart, setCommonStart] = useState<any>(null);
   const [commonEnd, setCommonEnd] = useState<any>(null);
   const [workShiftDisplay, setWorkShiftDisplay] = useState("");
-  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [positions, setPositions] = useState<any[]>([]);
   const [selectedPosition, setSelectedPosition] = useState<any>([]);
 
@@ -550,6 +548,7 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
         fixedDays: initialData.fixedDays || [],
         totalDays: initialData.totalDays || null,
         totalHours: initialData.totalHours || null,
+        noticePeriod: initialData.noticePeriod || "",
       });
       setTempSelectedDays(initialData.fixedDays || []);
 
@@ -605,29 +604,6 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
   }, []);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
-
-        const response = await ProjectService.getProjects({
-          page: 1,
-          limit: 20,
-        });
-
-        if (response?.data) {
-          setProjects(response.data);
-        }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProjects();
-  }, []);
-
-  useEffect(() => {
     const fetchPositions = async () => {
       try {
         setLoading(true);
@@ -637,7 +613,6 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
           name: pos.title,
         }));
         setPositions(mapData); // 🔥 store in state
-        console.log("Fetched Positions:", mapData); // 🔥 debug log
       } catch (error) {
         console.error("Failed to fetch positions", error);
       } finally {
@@ -1066,8 +1041,7 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
               style={inputStyle}
               maxTagCount="responsive"
             >
-              <option value="">Select Project</option>
-              {projects.map((project) => (
+              {projects.map((project: any) => (
                 <option key={project.id} value={project.id}>
                   {project.name} ({project.code})
                 </option>
@@ -1120,6 +1094,15 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
               <Option value="B">Grade B</Option>
               <Option value="C">Grade C</Option>
             </Select>
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item
+            label={<span style={labelStyle}>Notice Period</span>}
+            name="noticePeriod"
+            rules={[{ required: true, message: "Required" }]}
+          >
+            <Input placeholder="Notice Period" style={inputStyle} />
           </Form.Item>
         </Col>
       </Row>
@@ -1736,15 +1719,20 @@ const PersonalDetailsView = ({ data }: any) => {
   );
 };
 
-const EmploymentView = ({ data }: any) => {
+const EmploymentView = ({ data, projects: allProjects }: any) => {
   if (!data) return <div>No data available</div>;
 
   const renderWorkShiftDetails = () => {
     if (!data.workShift) {
       return (
-        <Col span={12}>
-          <RowItem label="Work Shift" value={null} />
-        </Col>
+        <>
+          <Col span={12}>
+            <RowItem label="Work Shift" value={null} />
+          </Col>
+          <Col span={12}>
+            <RowItem label="Notice Period" value={data.noticePeriod} />
+          </Col>
+        </>
       );
     }
 
@@ -1769,6 +1757,10 @@ const EmploymentView = ({ data }: any) => {
             <Col span={12}>
               <RowItem label="Work Shift Type" value="Custom" />
             </Col>
+            <Col span={12}>
+              <RowItem label="Notice Period" value={data.noticePeriod} />
+            </Col>
+
             <Col span={24}>
               <RowItem label="Work Days" value={workDays} />
             </Col>
@@ -1784,6 +1776,9 @@ const EmploymentView = ({ data }: any) => {
               <RowItem label="Work Shift Type" value="All Days" />
             </Col>
             <Col span={12}>
+              <RowItem label="Notice Period" value={data.noticePeriod} />
+            </Col>
+            <Col span={12}>
               <RowItem label="Work Time" value={workTime} />
             </Col>
           </>
@@ -1793,11 +1788,28 @@ const EmploymentView = ({ data }: any) => {
 
     // Fallback for unknown format or parsing error
     return (
-      <Col span={12}>
-        <RowItem label="Work Shift" value={data.workShift} />
-      </Col>
+      <>
+        <Col span={12}>
+          <RowItem label="Work Shift" value={data.workShift} />
+        </Col>
+        <Col span={12}>
+          <RowItem label="Notice Period" value={data.noticePeriod} />
+        </Col>
+      </>
     );
   };
+
+  const projectNames =
+    data.projects && allProjects?.length > 0
+      ? data.projects
+          .map((projectId: string) => {
+            const project = allProjects.find((p: any) => p.id === projectId);
+            return project ? project.name : projectId; // Fallback to ID if not found
+          })
+          .join(", ")
+      : data.projects?.length > 0
+        ? data.projects.join(", ")
+        : null;
 
   return (
     <Card
@@ -1831,6 +1843,7 @@ const EmploymentView = ({ data }: any) => {
         </Col>
 
         {renderWorkShiftDetails()}
+
         <Col span={12}>
           <RowItem
             label="Work Joining Date"
@@ -1932,11 +1945,7 @@ const EmploymentView = ({ data }: any) => {
         <Col span={12}>
           <RowItem
             label="Projects"
-            value={
-              data.projects && data.projects.length > 0
-                ? data.projects.join(", ")
-                : null
-            }
+            value={projectNames}
             icon={<ProjectOutlined />}
           />
         </Col>
@@ -2092,14 +2101,14 @@ const Onboarded = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [error, setError] = useState("");
-
   // Separate forms for each section
   const [personalDetailsForm] = Form.useForm();
   const [employmentForm] = Form.useForm();
   const [bankPayrollForm] = Form.useForm();
   const [companyHistoryForm] = Form.useForm();
   const [assetsForm] = Form.useForm();
+
+  const [projects, setProjects] = useState<any[]>([]);
 
   // Map section to form
   const sectionFormMap: any = {
@@ -2172,6 +2181,20 @@ const Onboarded = () => {
 
   useEffect(() => {
     fetchEmployees();
+    const fetchProjects = async () => {
+      try {
+        const response = await ProjectService.getProjects({
+          page: 1,
+          limit: 1000,
+        });
+        if (response?.data) {
+          setProjects(response.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch projects:", err);
+      }
+    };
+    fetchProjects();
   }, []);
 
   // ✅ Fetch Full Details for View/Edit - FIXED
@@ -2238,6 +2261,8 @@ const Onboarded = () => {
           totalDays: employment.totalDays || null,
           totalHours: employment.totalHours || null,
           employeeJoiningDate: employment.employeeJoiningDate || null,
+          noticePeriod:
+            employment.noticePeriod || employment.notice_period || null,
         },
         bankAndPayroll: {
           bankName: bank.bankName || "",
@@ -2642,7 +2667,11 @@ const Onboarded = () => {
         );
       case "employment":
         return (
-          <EmploymentEditForm form={currentForm} initialData={sectionData} />
+          <EmploymentEditForm
+            form={currentForm}
+            initialData={sectionData}
+            projects={projects}
+          />
         );
       case "bankAndPayroll":
         return (
@@ -2670,7 +2699,7 @@ const Onboarded = () => {
       case "personalDetails":
         return <PersonalDetailsView data={sectionData} />;
       case "employment":
-        return <EmploymentView data={sectionData} />;
+        return <EmploymentView data={sectionData} projects={projects} />;
       case "bankAndPayroll":
         return <BankPayrollView data={sectionData} />;
       case "previousCompanyDetails":

@@ -323,7 +323,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: <WalletOutlined />,
-    pathPrefixes: ["/accounts", "/invoicepro", "/reimbursement", "/salary"],
+    pathPrefixes: ["/accounts", "/clients-v2", "/invoicepro", "/reimbursement", "/salary"],
     defaultPath: "/accounts",
     items: [
       {
@@ -331,6 +331,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Accounts",
         icon: <WalletOutlined />,
         path: "/accounts",
+      },
+      {
+        key: "/clients-v2",
+        label: "Client Management",
+        icon: <TeamOutlined />,
+        path: "/clients-v2",
       },
       {
         key: "invoicepro",
@@ -418,14 +424,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "ADMIN",
     label: "ADMIN",
     icon: <SettingOutlined />,
-    pathPrefixes: ["/clients", "/settings", "/admin"],
-    defaultPath: "/clients",
+    pathPrefixes: ["/clients", "/clients-v2", "/settings", "/admin"],
+    defaultPath: "/clients-v2",
     items: [
       {
         key: "/clients",
-        label: "Clients",
+        label: "Clients (Legacy)",
         icon: <UserAddOutlined />,
         path: "/clients",
+      },
+      {
+        key: "/clients-v2",
+        label: "Clients V2",
+        icon: <ApartmentOutlined />,
+        path: "/clients-v2",
       },
       {
         key: "/settings",

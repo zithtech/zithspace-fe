@@ -965,7 +965,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               </div>
 
               <Title level={3} style={{ margin: 0 }}>{projectName}</Title>
-              <Tag color="blue">{projectCode}</Tag>
+              <Tag color="blue">{projectCode || "—"}</Tag>
               <Input
                 placeholder="Search requests..."
                 prefix={<SearchOutlined />}

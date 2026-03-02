@@ -46,6 +46,7 @@ import {
   HomeOutlined,
   PlusOutlined,
   AppstoreOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 
 export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
@@ -91,6 +92,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <DashboardOutlined />,
         path: "/dashboard",
         // Dashboard accessible to all users - no permission required
+      },
+      {
+        key: "/agent-chat",
+        label: "AI Assistant",
+        icon: <RobotOutlined />,
+        path: "/agent-chat",
+        // AI Assistant accessible to users with project/ticket read permission
+        requiredAnyPermission: [Permissions.PROJECT_READ, Permissions.TICKET_READ],
       },
     ],
   },

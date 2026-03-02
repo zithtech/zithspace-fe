@@ -41,8 +41,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Connect to user stream for global notifications
   useEffect(() => {
     if (user?.id) {
-      // Using require to avoid SSR issues if streamClient is not SSR friendly,
-      // or just following existing pattern.
       const { streamClient } = require("@/services/streamClient");
 
       streamClient.connectUser(user.id);

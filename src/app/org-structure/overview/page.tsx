@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -29,8 +31,27 @@ const { Text, Title } = Typography;
 export default function OverviewPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOrg } = usePermission();
   const [api, contextHolder] = notification.useNotification();
   const [activeStep, setActiveStep] = useState<string | null>(null);
+
+  // Protect route - requires org.read permission
+  useEffect(() => {
+    if (!authLoading && !canReadOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOrg, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no read permission
+  if (!canReadOrg) {
+    return null;
+  }
 
   const { dataSource: grades, loading: gradesLoading } = useGrades();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
@@ -229,7 +250,7 @@ export default function OverviewPage() {
           }
         `}</style>
         {contextHolder}
-        <div style={{ padding: 24 }}>
+        <div style={{marginTop:20}}>
           <Tabs
             activeKey={pathname}
             onChange={handleTabChange}
@@ -339,17 +360,7 @@ export default function OverviewPage() {
 
               {/* RIGHT SIDE */}
               <Col span={16}>
-                <Card
-                  loading={gradesLoading || positionsLoading}
-                  style={{
-                    borderRadius: 18,
-                    height: "calc(100vh - 180px)",
-                    boxShadow: "0 12px 32px rgba(0,0,0,0.08)",
-                    background: "linear-gradient(180deg,#ffffff,#fafcff)",
-                    border: "1px solid #f0f0f0",
-                  }}
-                  bodyStyle={{ padding: 20, height: "100%", display: "flex", flexDirection: "column" }}
-                >
+                
                   {selectedGrade ? (
                     <>
                       {/* ✅ Header */}
@@ -431,7 +442,7 @@ export default function OverviewPage() {
                       </Text>
                     </div>
                   )}
-                </Card>
+              
               </Col>
             </Row>
         </div>

@@ -3,6 +3,7 @@ import { api } from "@/lib/axios";
 export interface GradePayload {
   name: string;
   code: string;
+  codes?: string;
   levelOrder: number;
   description?: string;
   isActive: boolean;
@@ -12,6 +13,7 @@ export interface GradeAPIResponse {
   id: string;
   tenantId: string;
   code: string;
+  codes: string | null;
   name: string;
   levelOrder: number;
   description: string | null;

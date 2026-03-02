@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useEffect } from 'react';
 import { Alert, Button, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import TicketList from '@/components/projects/TicketList';
 import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -17,6 +18,14 @@ export default function ProjectTicketsPage({ params }: PageProps) {
   const { projectId } = use(params);
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const { canReadTicket } = usePermission();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadTicket) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadTicket, router]);
 
   // Fetch project details
   const { data: project, isLoading: projectLoading, error } = useQuery({
@@ -56,6 +65,11 @@ export default function ProjectTicketsPage({ params }: PageProps) {
         </div>
       </MainLayout>
     );
+  }
+
+  // Permission check
+  if (!canReadTicket && !authLoading) {
+    return null;
   }
 
   if (!user) {

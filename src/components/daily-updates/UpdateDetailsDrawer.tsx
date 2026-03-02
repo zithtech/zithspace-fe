@@ -95,7 +95,7 @@ export default function UpdateDetailsDrawer({ update, open, onClose }: UpdateDet
                   {update.user?.name}
                 </Text>
                 <Text type="secondary" style={{ fontSize: 13 }}>
-                  {update.user?.position}
+                  {update.user?.position?.title || ""}
                 </Text>
               </div>
             </Space>

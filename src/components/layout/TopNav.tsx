@@ -8,11 +8,13 @@ import {
     SettingOutlined,
     LogoutOutlined,
     MenuUnfoldOutlined,
-    MenuFoldOutlined
+    MenuFoldOutlined,
+    CalendarOutlined
 } from '@ant-design/icons';
 import { Inbox } from '@novu/nextjs';
 import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -33,6 +35,25 @@ export default function TopNav({
     collapsed,
 }: TopNavProps) {
     const router = useRouter();
+    const { hasPermission, hasAnyPermission } = useAuth();
+
+    // Filter modules by permission
+    const visibleModules = NAVIGATION_CONFIG.filter(module => {
+        // No permission requirement = always visible
+        if (!module.requiredPermission && !module.requiredAnyPermission) return true;
+        
+        // Check single permission
+        if (module.requiredPermission) {
+            return hasPermission(module.requiredPermission);
+        }
+        
+        // Check any of multiple permissions
+        if (module.requiredAnyPermission) {
+            return hasAnyPermission(...module.requiredAnyPermission);
+        }
+        
+        return false;
+    });
 
     // User dropdown menu
     const userMenuItems = [
@@ -67,7 +88,7 @@ export default function TopNav({
         }
     };
 
-    const menuItems = NAVIGATION_CONFIG.map(module => ({
+    const menuItems = visibleModules.map(module => ({
         key: module.key,
         label: (
             <span style={{
@@ -179,6 +200,12 @@ export default function TopNav({
                     type="text"
                     icon={<MailOutlined />}
                     onClick={() => router.push('/mail')}
+                />
+
+                <Button
+                    type="text"
+                    icon={<CalendarOutlined />}
+                    onClick={() => router.push('/calendar')}
                 />
 
                 <Button

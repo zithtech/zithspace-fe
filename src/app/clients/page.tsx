@@ -1876,7 +1876,7 @@ import {
   Client,
 } from "@/services/clientService";
 import type { ColumnsType } from "antd/es/table";
-import { useRBAC } from "@/lib/rbac";
+import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -1911,15 +1911,14 @@ export default function ClientsPage() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
 
   // RBAC permissions
-  const rbac = useRBAC(user?.role as any);
-  const canManage = rbac?.canManageMembers;
+  const { canReadClient, canManageClients: canManage } = usePermission();
 
   // Check permissions
   useEffect(() => {
-    if (user && !["super_admin", "admin", "user"].includes(user.role)) {
+    if (user && !canReadClient) {
       router.push("/dashboard");
     }
-  }, [user, router]);
+  }, [user, canReadClient, router]);
 
   // Fetch clients
   const fetchClients = async () => {

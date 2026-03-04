@@ -323,7 +323,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: <WalletOutlined />,
-    pathPrefixes: ["/accounts", "/clients-v2", "/invoicepro", "/reimbursement", "/salary"],
+    pathPrefixes: ["/accounts", "/invoicepro", "/reimbursement", "/salary"],
     defaultPath: "/accounts",
     items: [
       {
@@ -332,12 +332,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <WalletOutlined />,
         path: "/accounts",
       },
-      {
-        key: "/clients-v2",
-        label: "Client Management",
-        icon: <TeamOutlined />,
-        path: "/clients-v2",
-      },
+      // {
+      //   key: "/clients-v2",
+      //   label: "Client Management",
+      //   icon: <TeamOutlined />,
+      //   path: "/clients-v2",
+      // },
       {
         key: "invoicepro",
         label: "InvoicePro",

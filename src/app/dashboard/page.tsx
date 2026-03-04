@@ -25,7 +25,6 @@ import {
   Skeleton,
   Badge,
   Tooltip,
-  Segmented,
 } from "antd";
 import {
   TeamOutlined,
@@ -448,20 +447,6 @@ function DashboardContent() {
           <Text type="secondary" style={{ fontSize: 14 }}>
             Here&apos;s what&apos;s happening with your projects today.
           </Text>
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <Segmented
-            options={["Me", "Organisation"]}
-            value="Me"
-            onChange={(value) => {
-              if (value === "Organisation") {
-                router.push("/dashboard/organization");
-              } else {
-                router.push("/dashboard");
-              }
-            }}
-          />
         </div>
 
         {/* Error Alert */}
@@ -1415,19 +1400,6 @@ function DashboardContent() {
     </MainLayout>
   );
 }
-
-// export default function DashboardPage() {
-//   return (
-//     <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
-//       <DashboardContent />
-//     </Suspense>
-//   );
-// }
-//         ) : null}
-//       </div>
-//     </MainLayout>
-//   );
-// }
 
 export default function DashboardPage() {
   return (

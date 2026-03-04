@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
@@ -26,6 +25,7 @@ import {
   Skeleton,
   Badge,
   Tooltip,
+  Segmented,
 } from "antd";
 import {
   TeamOutlined,
@@ -52,12 +52,12 @@ function DashboardContent() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null
+    null,
   );
 
   // Zoho Calendar Integration
@@ -75,38 +75,55 @@ function DashboardContent() {
   // Filter today's meetings with recurring support
   const todaysMeetings = calendarEvents.reduce((acc: any[], event: any) => {
     // Filter: User must be an attendee or the creator
-    const isUserAttendee = event.attendees?.includes(user?.email) || event.userId === user?.id;
+    const isUserAttendee =
+      event.attendees?.includes(user?.email) || event.userId === user?.id;
     if (!isUserAttendee) return acc;
 
-    const today = dayjs().startOf('day');
+    const today = dayjs().startOf("day");
     const start = dayjs(event.startTime);
     const end = dayjs(event.endTime);
-    const exdates = Array.isArray(event.exdate) ? event.exdate : (event.exdate ? [event.exdate] : []);
+    const exdates = Array.isArray(event.exdate)
+      ? event.exdate
+      : event.exdate
+        ? [event.exdate]
+        : [];
 
     // 1. Direct match
-    if (start.isSame(today, 'day')) {
-     const isExcluded = exdates.some((ex: string) =>
-  dayjs(ex).isSame(today, "day")
-);
+    if (start.isSame(today, "day")) {
+      const isExcluded = exdates.some((ex: string) =>
+        dayjs(ex).isSame(today, "day"),
+      );
       if (!isExcluded) acc.push(event);
       return acc;
     }
 
     // 2. Recurring match
-    if (event.isRecurring && event.rrule && start.isBefore(today.endOf('day'))) {
+    if (
+      event.isRecurring &&
+      event.rrule &&
+      start.isBefore(today.endOf("day"))
+    ) {
       const isExcluded = exdates.some((ex: string) =>
-  dayjs(ex).isSame(today, "day")
-);
+        dayjs(ex).isSame(today, "day"),
+      );
       if (isExcluded) return acc;
 
       let isMatch = false;
-      if (event.rrule.includes('FREQ=DAILY')) {
+      if (event.rrule.includes("FREQ=DAILY")) {
         isMatch = true;
-      } else if (event.rrule.includes('FREQ=WEEKLY')) {
-        const dayMap: Record<string, number> = { 'SU': 0, 'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6 };
+      } else if (event.rrule.includes("FREQ=WEEKLY")) {
+        const dayMap: Record<string, number> = {
+          SU: 0,
+          MO: 1,
+          TU: 2,
+          WE: 3,
+          TH: 4,
+          FR: 5,
+          SA: 6,
+        };
         const match = event.rrule.match(/BYDAY=([^;]+)/);
         if (match) {
-          const days = match[1].split(',');
+          const days = match[1].split(",");
           isMatch = days.some((d: string) => dayMap[d] === today.day());
         } else {
           isMatch = start.day() === today.day();
@@ -116,13 +133,16 @@ function DashboardContent() {
       if (isMatch) {
         // Clone event with today's date for display
         const duration = end.diff(start);
-        const occurrenceStart = today.hour(start.hour()).minute(start.minute()).second(start.second());
-        const occurrenceEnd = occurrenceStart.add(duration, 'ms');
+        const occurrenceStart = today
+          .hour(start.hour())
+          .minute(start.minute())
+          .second(start.second());
+        const occurrenceEnd = occurrenceStart.add(duration, "ms");
 
         acc.push({
           ...event,
           startTime: occurrenceStart.toISOString(),
-          endTime: occurrenceEnd.toISOString()
+          endTime: occurrenceEnd.toISOString(),
         });
       }
     }
@@ -130,16 +150,21 @@ function DashboardContent() {
   }, []);
 
   // Upcoming meetings (next 7 days)
-  const upcomingMeetings = calendarEvents.filter(event => {
-    // Filter: User must be an attendee or the creator
-    const isUserAttendee = event.attendees?.includes(user?.email) || event.userId === user?.id;
-    if (!isUserAttendee) return false;
+  const upcomingMeetings = calendarEvents
+    .filter((event) => {
+      // Filter: User must be an attendee or the creator
+      const isUserAttendee =
+        event.attendees?.includes(user?.email) || event.userId === user?.id;
+      if (!isUserAttendee) return false;
 
-    const eventDate = dayjs(event.startTime);
-    const today = dayjs().startOf('day');
-    const nextWeek = today.add(7, 'day');
-    return eventDate.isAfter(today) && eventDate.isBefore(nextWeek);
-  }).sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
+      const eventDate = dayjs(event.startTime);
+      const today = dayjs().startOf("day");
+      const nextWeek = today.add(7, "day");
+      return eventDate.isAfter(today) && eventDate.isBefore(nextWeek);
+    })
+    .sort(
+      (a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf(),
+    );
 
   useEffect(() => {
     if (
@@ -234,43 +259,43 @@ function DashboardContent() {
   };
 
   const selectedProject = dashboardData?.projectProgress.find(
-    (p) => p.id === selectedProjectId
+    (p) => p.id === selectedProjectId,
   );
 
   // Statistics cards configuration
   const stats = dashboardData
     ? [
-      {
-        title: "Total Members",
-        value: dashboardData.stats.totalMembers,
-        icon: <TeamOutlined style={{ color: "#1677ff" }} />,
-        color: "#1677ff",
-        change: dashboardData.trends.memberGrowth,
-      },
-      {
-        title: "Active Projects",
-        value: dashboardData.stats.activeProjects,
-        icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
-        color: "#52c41a",
-        change: dashboardData.trends.projectGrowth,
-      },
-      {
-        title: "Assigned Tickets / Closed Tickets",
-        value: dashboardData.stats.tickets.display,
-        icon: <UserOutlined style={{ color: "#faad14" }} />,
-        color: "#faad14",
-        change: dashboardData.trends.ticketCompletionRate,
-      },
-      {
-        title: "Today's Attendance",
-        value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-        icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
-        color: "#722ed1",
-        change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
-        isAttendance: true,
-        stats: dashboardData.stats.attendance,
-      },
-    ]
+        {
+          title: "Total Members",
+          value: dashboardData.stats.totalMembers,
+          icon: <TeamOutlined style={{ color: "#1677ff" }} />,
+          color: "#1677ff",
+          change: dashboardData.trends.memberGrowth,
+        },
+        {
+          title: "Active Projects",
+          value: dashboardData.stats.activeProjects,
+          icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
+          color: "#52c41a",
+          change: dashboardData.trends.projectGrowth,
+        },
+        {
+          title: "Assigned Tickets / Closed Tickets",
+          value: dashboardData.stats.tickets.display,
+          icon: <UserOutlined style={{ color: "#faad14" }} />,
+          color: "#faad14",
+          change: dashboardData.trends.ticketCompletionRate,
+        },
+        {
+          title: "Today's Attendance",
+          value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
+          icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
+          color: "#722ed1",
+          change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
+          isAttendance: true,
+          stats: dashboardData.stats.attendance,
+        },
+      ]
     : [];
 
   // Pie Chart Helper
@@ -287,7 +312,7 @@ function DashboardContent() {
       return (
         <div
           style={{
-            height: '100%',
+            height: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -315,8 +340,8 @@ function DashboardContent() {
           flexDirection: "column",
           alignItems: "center",
           //padding: 16,
-          justifyContent: 'center',
-        height: '100%',
+          justifyContent: "center",
+          height: "100%",
         }}
       >
         {/* Pie Chart */}
@@ -423,6 +448,20 @@ function DashboardContent() {
           <Text type="secondary" style={{ fontSize: 14 }}>
             Here&apos;s what&apos;s happening with your projects today.
           </Text>
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <Segmented
+            options={["Me", "Organisation"]}
+            value="Me"
+            onChange={(value) => {
+              if (value === "Organisation") {
+                router.push("/dashboard/organization");
+              } else {
+                router.push("/dashboard");
+              }
+            }}
+          />
         </div>
 
         {/* Error Alert */}
@@ -547,301 +586,352 @@ function DashboardContent() {
             </Row>
 
             <Row gutter={[16, 16]}>
-
-
               {/* Left Column - Main Content */}
-<Col xs={24} lg={16}>
-  <Space direction="vertical" size={16} style={{ width: "100%" }}>
-    
-    {/* Row for Card 1 and Card 2 - Side by Side with equal height */}
-    <Row gutter={[16, 16]}>
-      {/* CARD 1: Work & Attendance with Project Status - REDUCED HEIGHT */}
-      <Col xs={24} md={12}>
-        <Card
-          title={
-            <Space>
-              <TrophyOutlined style={{ color: "#1677ff" }} />
-              <span>Work & Attendance</span>
-            </Space>
-          }
-          size="small"
-          extra={
-            <Button
-              type="link"
-              size="small"
-              onClick={() => router.push("/projects")}
-            >
-              View Projects
-            </Button>
-          }
-          styles={{ body: { padding: 12 } }}
-          style={{ height: '280px' }}
-        >
-          {/* Project Status inside Work & Attendance card */}
-          <div style={{ height: '100%' }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 8,
-              }}
-            >
-              <Text strong style={{ fontSize: 12 }}>
-                Project Status
-              </Text>
-              <select
-                style={{
-                  padding: "2px 4px",
-                  borderRadius: 4,
-                  border: "1px solid #d9d9d9",
-                  outline: "none",
-                  fontSize: 10,
-                  maxWidth: 100,
-                  cursor: "pointer",
-                }}
-                value={selectedProjectId || ""}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-              >
-                {dashboardData.projectProgress.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {selectedProject ? (
-              renderPieChart(selectedProject)
-            ) : (
-              <div
-                style={{
-                  height: 180,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text type="secondary">No active projects</Text>
-              </div>
-            )}
-          </div>
-        </Card>
-      </Col>
-
-      {/* CARD 2: Today's Meetings - REDUCED HEIGHT */}
-      <Col xs={24} md={12}>
-        <Card
-          title={
-            <Space size={4}>
-              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
-              <span style={{ fontSize: 13 }}>Today's Meetings</span>
-              {!calendarStatus?.connected && (
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={connectCalendar}
-                  loading={calendarLoading}
-                  style={{ marginLeft: 4, fontSize: 11 }}
-                >
-                  Connect
-                </Button>
-              )}
-            </Space>
-          }
-          size="small"
-          extra={
-            calendarStatus?.connected && (
-              <Space size={2}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ClockCircleOutlined />}
-                  onClick={syncCalendar}
-                  loading={calendarLoading}
-                  style={{ fontSize: 11 }}
-                >
-                  Sync
-                </Button>
-                <Button
-                  type="text"
-                  size="small"
-                  onClick={() => router.push("/calendar")}
-                  style={{ fontSize: 11 }}
-                >
-                  View
-                </Button>
-              </Space>
-            )
-          }
-          styles={{ body: { padding: 0 } }}
-          style={{ height: '280px' }}
-        >
-          {calendarLoading ? (
-            <div style={{ padding: 16, textAlign: "center" }}>
-              <Skeleton active paragraph={{ rows: 2 }} />
-            </div>
-          ) : !calendarStatus?.connected ? (
-            <div style={{ padding: 20, textAlign: "center" }}>
-              <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
-              <div>
-                <Text type="secondary" style={{ fontSize: 11 }}>Connect calendar to see meetings</Text>
-              </div>
-              <Button
-                type="primary"
-                size="small"
-                onClick={connectCalendar}
-                style={{ marginTop: 8, fontSize: 11, height: 24 }}
-              >
-                Connect Zoho Calendar
-              </Button>
-            </div>
-          ) : todaysMeetings.length > 0 ? (
-            <div style={{ height: 220, overflowY: 'auto' }}>
-              <List
-                size="small"
-                dataSource={todaysMeetings}
-                renderItem={(meeting) => {
-                  const startTime = dayjs(meeting.startTime);
-                  const endTime = dayjs(meeting.endTime);
-                  const isOngoing = startTime.isBefore(dayjs()) && endTime.isAfter(dayjs());
-
-                  return (
-                    <List.Item
-                      style={{
-                        padding: "6px 10px",
-                        borderBottom: "1px solid #f0f0f0",
-                        background: isOngoing ? "#f6ffed" : "transparent"
-                      }}
-                      actions={[
-                        <Tooltip title="Join Meeting" key="join">
+              <Col xs={24} lg={16}>
+                <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                  {/* Row for Card 1 and Card 2 - Side by Side with equal height */}
+                  <Row gutter={[16, 16]}>
+                    {/* CARD 1: Work & Attendance with Project Status - REDUCED HEIGHT */}
+                    <Col xs={24} md={12}>
+                      <Card
+                        title={
+                          <Space>
+                            <TrophyOutlined style={{ color: "#1677ff" }} />
+                            <span>Work & Attendance</span>
+                          </Space>
+                        }
+                        size="small"
+                        extra={
                           <Button
-                            type="primary"
+                            type="link"
                             size="small"
-                            icon={<VideoCameraOutlined />}
-                            onClick={() => meeting.meetingLink && window.open(meeting.meetingLink, '_blank')}
-                            disabled={!meeting.meetingLink}
-                            style={{ 
-                              height: 24,
-                              width: 24,
-                              backgroundColor: meeting.meetingLink ? "#1677ff" : "#f5f5f5",
-                              borderColor: meeting.meetingLink ? "#1677ff" : "#d9d9d9"
-                            }}
-                          />
-                        </Tooltip>
-                      ]}
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <Avatar
-                            size={22}
+                            onClick={() => router.push("/projects")}
+                          >
+                            View Projects
+                          </Button>
+                        }
+                        styles={{ body: { padding: 12 } }}
+                        style={{ height: "280px" }}
+                      >
+                        {/* Project Status inside Work & Attendance card */}
+                        <div style={{ height: "100%" }}>
+                          <div
                             style={{
-                              backgroundColor: isOngoing ? "#52c41a" : "#1677ff",
-                              fontSize: 10
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: 8,
                             }}
                           >
-                            {meeting.title.charAt(0)}
-                          </Avatar>
-                        }
-                        title={
-                          <Space align="center" size={2}>
-                            <Text strong style={{ fontSize: 11 }}>
-                              {meeting.title.length > 18 ? meeting.title.substring(0, 18) + '...' : meeting.title}
+                            <Text strong style={{ fontSize: 12 }}>
+                              Project Status
                             </Text>
-                            {isOngoing && (
-                              <Badge status="processing" style={{ fontSize: 9 }} text="Live" />
+                            <select
+                              style={{
+                                padding: "2px 4px",
+                                borderRadius: 4,
+                                border: "1px solid #d9d9d9",
+                                outline: "none",
+                                fontSize: 10,
+                                maxWidth: 100,
+                                cursor: "pointer",
+                              }}
+                              value={selectedProjectId || ""}
+                              onChange={(e) =>
+                                setSelectedProjectId(e.target.value)
+                              }
+                            >
+                              {dashboardData.projectProgress.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {selectedProject ? (
+                            renderPieChart(selectedProject)
+                          ) : (
+                            <div
+                              style={{
+                                height: 180,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text type="secondary">No active projects</Text>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    </Col>
+
+                    {/* CARD 2: Today's Meetings - REDUCED HEIGHT */}
+                    <Col xs={24} md={12}>
+                      <Card
+                        title={
+                          <Space size={4}>
+                            <VideoCameraOutlined
+                              style={{ color: "#1677ff", fontSize: 14 }}
+                            />
+                            <span style={{ fontSize: 13 }}>
+                              Today's Meetings
+                            </span>
+                            {!calendarStatus?.connected && (
+                              <Button
+                                type="link"
+                                size="small"
+                                onClick={connectCalendar}
+                                loading={calendarLoading}
+                                style={{ marginLeft: 4, fontSize: 11 }}
+                              >
+                                Connect
+                              </Button>
                             )}
                           </Space>
                         }
-                        description={
-                          <Text type="secondary" style={{ fontSize: 9 }}>
-                            <ClockCircleOutlined style={{ marginRight: 2, fontSize: 8 }} />
-                            {startTime.format("hh:mm A")} - {endTime.format("hh:mm A")}
-                          </Text>
+                        size="small"
+                        extra={
+                          calendarStatus?.connected && (
+                            <Space size={2}>
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<ClockCircleOutlined />}
+                                onClick={syncCalendar}
+                                loading={calendarLoading}
+                                style={{ fontSize: 11 }}
+                              >
+                                Sync
+                              </Button>
+                              <Button
+                                type="text"
+                                size="small"
+                                onClick={() => router.push("/calendar")}
+                                style={{ fontSize: 11 }}
+                              >
+                                View
+                              </Button>
+                            </Space>
+                          )
                         }
-                      />
-                    </List.Item>
-                  );
-                }}
-              />
-            </div>
-          ) : (
-            <div style={{ padding: 20, textAlign: "center" }}>
-              <VideoCameraOutlined style={{ fontSize: 24, color: "#bfbfbf", marginBottom: 6 }} />
-              <div>
-                <Text type="secondary" style={{ fontSize: 11 }}>No meetings scheduled</Text>
-              </div>
-            </div>
-          )}
-        </Card>
-      </Col>
-    </Row>
+                        styles={{ body: { padding: 0 } }}
+                        style={{ height: "280px" }}
+                      >
+                        {calendarLoading ? (
+                          <div style={{ padding: 16, textAlign: "center" }}>
+                            <Skeleton active paragraph={{ rows: 2 }} />
+                          </div>
+                        ) : !calendarStatus?.connected ? (
+                          <div style={{ padding: 20, textAlign: "center" }}>
+                            <VideoCameraOutlined
+                              style={{
+                                fontSize: 28,
+                                color: "#bfbfbf",
+                                marginBottom: 6,
+                              }}
+                            />
+                            <div>
+                              <Text type="secondary" style={{ fontSize: 11 }}>
+                                Connect calendar to see meetings
+                              </Text>
+                            </div>
+                            <Button
+                              type="primary"
+                              size="small"
+                              onClick={connectCalendar}
+                              style={{ marginTop: 8, fontSize: 11, height: 24 }}
+                            >
+                              Connect Zoho Calendar
+                            </Button>
+                          </div>
+                        ) : todaysMeetings.length > 0 ? (
+                          <div style={{ height: 220, overflowY: "auto" }}>
+                            <List
+                              size="small"
+                              dataSource={todaysMeetings}
+                              renderItem={(meeting) => {
+                                const startTime = dayjs(meeting.startTime);
+                                const endTime = dayjs(meeting.endTime);
+                                const isOngoing =
+                                  startTime.isBefore(dayjs()) &&
+                                  endTime.isAfter(dayjs());
 
-    {/* CARD 3: Recent Activities - Full width below */}
-    <Card
-      title={
-        <Space>
-          <ClockCircleOutlined style={{ color: "#52c41a" }} />
-          <span>Recent Activities</span>
-        </Space>
-      }
-      size="small"
-      extra={
-        <Button type="link" size="small">
-          View All
-        </Button>
-      }
-      styles={{ body: { padding: 0 } }}
-    >
-      <div style={{ maxHeight: 400, overflowY: "auto" }}>
-        {dashboardData.recentActivities.length > 0 ? (
-          <List
-            size="small"
-            dataSource={dashboardData.recentActivities}
-            renderItem={(item) => (
-              <List.Item
-                style={{ padding: "12px 16px", border: "none" }}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <Avatar
-                      size={32}
-                      style={{
-                        backgroundColor: "#1677ff",
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {item.avatar}
-                    </Avatar>
-                  }
-                  title={
-                    <Text style={{ fontSize: 13 }}>
-                      <Text strong>{item.user}</Text>{" "}
-                      {item.action}{" "}
-                      <Text strong>{item.target}</Text>
-                    </Text>
-                  }
-                  description={
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: 11 }}
-                    >
-                      {formatTimeAgo(item.time)}
-                    </Text>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        ) : (
-          <div style={{ padding: 16 }}>
-            <Text type="secondary">No recent activities</Text>
-          </div>
-        )}
-      </div>
-    </Card>
-  </Space>
-</Col>
+                                return (
+                                  <List.Item
+                                    style={{
+                                      padding: "6px 10px",
+                                      borderBottom: "1px solid #f0f0f0",
+                                      background: isOngoing
+                                        ? "#f6ffed"
+                                        : "transparent",
+                                    }}
+                                    actions={[
+                                      <Tooltip title="Join Meeting" key="join">
+                                        <Button
+                                          type="primary"
+                                          size="small"
+                                          icon={<VideoCameraOutlined />}
+                                          onClick={() =>
+                                            meeting.meetingLink &&
+                                            window.open(
+                                              meeting.meetingLink,
+                                              "_blank",
+                                            )
+                                          }
+                                          disabled={!meeting.meetingLink}
+                                          style={{
+                                            height: 24,
+                                            width: 24,
+                                            backgroundColor: meeting.meetingLink
+                                              ? "#1677ff"
+                                              : "#f5f5f5",
+                                            borderColor: meeting.meetingLink
+                                              ? "#1677ff"
+                                              : "#d9d9d9",
+                                          }}
+                                        />
+                                      </Tooltip>,
+                                    ]}
+                                  >
+                                    <List.Item.Meta
+                                      avatar={
+                                        <Avatar
+                                          size={22}
+                                          style={{
+                                            backgroundColor: isOngoing
+                                              ? "#52c41a"
+                                              : "#1677ff",
+                                            fontSize: 10,
+                                          }}
+                                        >
+                                          {meeting.title.charAt(0)}
+                                        </Avatar>
+                                      }
+                                      title={
+                                        <Space align="center" size={2}>
+                                          <Text strong style={{ fontSize: 11 }}>
+                                            {meeting.title.length > 18
+                                              ? meeting.title.substring(0, 18) +
+                                                "..."
+                                              : meeting.title}
+                                          </Text>
+                                          {isOngoing && (
+                                            <Badge
+                                              status="processing"
+                                              style={{ fontSize: 9 }}
+                                              text="Live"
+                                            />
+                                          )}
+                                        </Space>
+                                      }
+                                      description={
+                                        <Text
+                                          type="secondary"
+                                          style={{ fontSize: 9 }}
+                                        >
+                                          <ClockCircleOutlined
+                                            style={{
+                                              marginRight: 2,
+                                              fontSize: 8,
+                                            }}
+                                          />
+                                          {startTime.format("hh:mm A")} -{" "}
+                                          {endTime.format("hh:mm A")}
+                                        </Text>
+                                      }
+                                    />
+                                  </List.Item>
+                                );
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ padding: 20, textAlign: "center" }}>
+                            <VideoCameraOutlined
+                              style={{
+                                fontSize: 24,
+                                color: "#bfbfbf",
+                                marginBottom: 6,
+                              }}
+                            />
+                            <div>
+                              <Text type="secondary" style={{ fontSize: 11 }}>
+                                No meetings scheduled
+                              </Text>
+                            </div>
+                          </div>
+                        )}
+                      </Card>
+                    </Col>
+                  </Row>
+
+                  {/* CARD 3: Recent Activities - Full width below */}
+                  <Card
+                    title={
+                      <Space>
+                        <ClockCircleOutlined style={{ color: "#52c41a" }} />
+                        <span>Recent Activities</span>
+                      </Space>
+                    }
+                    size="small"
+                    extra={
+                      <Button type="link" size="small">
+                        View All
+                      </Button>
+                    }
+                    styles={{ body: { padding: 0 } }}
+                  >
+                    <div style={{ maxHeight: 400, overflowY: "auto" }}>
+                      {dashboardData.recentActivities.length > 0 ? (
+                        <List
+                          size="small"
+                          dataSource={dashboardData.recentActivities}
+                          renderItem={(item) => (
+                            <List.Item
+                              style={{ padding: "12px 16px", border: "none" }}
+                            >
+                              <List.Item.Meta
+                                avatar={
+                                  <Avatar
+                                    size={32}
+                                    style={{
+                                      backgroundColor: "#1677ff",
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {item.avatar}
+                                  </Avatar>
+                                }
+                                title={
+                                  <Text style={{ fontSize: 13 }}>
+                                    <Text strong>{item.user}</Text>{" "}
+                                    {item.action}{" "}
+                                    <Text strong>{item.target}</Text>
+                                  </Text>
+                                }
+                                description={
+                                  <Text
+                                    type="secondary"
+                                    style={{ fontSize: 11 }}
+                                  >
+                                    {formatTimeAgo(item.time)}
+                                  </Text>
+                                }
+                              />
+                            </List.Item>
+                          )}
+                        />
+                      ) : (
+                        <div style={{ padding: 16 }}>
+                          <Text type="secondary">No recent activities</Text>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </Space>
+              </Col>
 
               {/* Right Column - Sidebar */}
               <Col xs={24} lg={8}>
@@ -867,42 +957,64 @@ function DashboardContent() {
                       }
                       styles={{ body: { padding: 16 } }}
                     >
-                      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                      <Space
+                        direction="vertical"
+                        size={12}
+                        style={{ width: "100%" }}
+                      >
                         {/* On Leave */}
                         {dashboardData.todayLeaves.onLeave.length > 0 && (
                           <>
                             <div>
-                              <Text strong style={{ fontSize: 12, color: "#1677ff" }}>
-                                🏖️ On Leave ({dashboardData.todayLeaves.onLeave.length})
+                              <Text
+                                strong
+                                style={{ fontSize: 12, color: "#1677ff" }}
+                              >
+                                🏖️ On Leave (
+                                {dashboardData.todayLeaves.onLeave.length})
                               </Text>
                             </div>
                             <div style={{ maxHeight: 150, overflowY: "auto" }}>
-                              {dashboardData.todayLeaves.onLeave.slice(0, 3).map((leave) => (
-                                <div
-                                  key={leave.id}
-                                  style={{
-                                    padding: "8px",
-                                    background: "#f0f5ff",
-                                    borderRadius: 6,
-                                    marginBottom: 8,
-                                  }}
-                                >
-                                  <Space>
-                                    <Avatar size="small" style={{ backgroundColor: "#1677ff" }}>
-                                      {leave.user.name[0]}
-                                    </Avatar>
-                                    <div>
-                                      <Text strong style={{ fontSize: 11 }}>
-                                        {leave.user.name}
-                                      </Text>
-                                      <br />
-                                      <Text style={{ fontSize: 10, color: "#666" }}>
-                                        {leave.type.replace(/_/g, " ")} • {leave.duration} {leave.durationType === "HOURS" ? "hrs" : "days"}
-                                      </Text>
-                                    </div>
-                                  </Space>
-                                </div>
-                              ))}
+                              {dashboardData.todayLeaves.onLeave
+                                .slice(0, 3)
+                                .map((leave) => (
+                                  <div
+                                    key={leave.id}
+                                    style={{
+                                      padding: "8px",
+                                      background: "#f0f5ff",
+                                      borderRadius: 6,
+                                      marginBottom: 8,
+                                    }}
+                                  >
+                                    <Space>
+                                      <Avatar
+                                        size="small"
+                                        style={{ backgroundColor: "#1677ff" }}
+                                      >
+                                        {leave.user.name[0]}
+                                      </Avatar>
+                                      <div>
+                                        <Text strong style={{ fontSize: 11 }}>
+                                          {leave.user.name}
+                                        </Text>
+                                        <br />
+                                        <Text
+                                          style={{
+                                            fontSize: 10,
+                                            color: "#666",
+                                          }}
+                                        >
+                                          {leave.type.replace(/_/g, " ")} •{" "}
+                                          {leave.duration}{" "}
+                                          {leave.durationType === "HOURS"
+                                            ? "hrs"
+                                            : "days"}
+                                        </Text>
+                                      </div>
+                                    </Space>
+                                  </div>
+                                ))}
                             </div>
                           </>
                         )}
@@ -912,77 +1024,110 @@ function DashboardContent() {
                           <>
                             <Divider style={{ margin: "8px 0" }} />
                             <div>
-                              <Text strong style={{ fontSize: 12, color: "#722ed1" }}>
-                                ⏰ On Permission ({dashboardData.todayLeaves.onPermission.length})
+                              <Text
+                                strong
+                                style={{ fontSize: 12, color: "#722ed1" }}
+                              >
+                                ⏰ On Permission (
+                                {dashboardData.todayLeaves.onPermission.length})
                               </Text>
                             </div>
                             <div style={{ maxHeight: 100, overflowY: "auto" }}>
-                              {dashboardData.todayLeaves.onPermission.slice(0, 3).map((leave) => (
-                                <div
-                                  key={leave.id}
-                                  style={{
-                                    padding: "8px",
-                                    background: "#f9f0ff",
-                                    borderRadius: 6,
-                                    marginBottom: 8,
-                                  }}
-                                >
-                                  <Space>
-                                    <Avatar size="small" style={{ backgroundColor: "#722ed1" }}>
-                                      {leave.user.name[0]}
-                                    </Avatar>
-                                    <div>
-                                      <Text strong style={{ fontSize: 11 }}>
-                                        {leave.user.name}
-                                      </Text>
-                                      <br />
-                                      <Text style={{ fontSize: 10, color: "#666" }}>
-                                        {leave.duration} hours
-                                      </Text>
-                                    </div>
-                                  </Space>
-                                </div>
-                              ))}
+                              {dashboardData.todayLeaves.onPermission
+                                .slice(0, 3)
+                                .map((leave) => (
+                                  <div
+                                    key={leave.id}
+                                    style={{
+                                      padding: "8px",
+                                      background: "#f9f0ff",
+                                      borderRadius: 6,
+                                      marginBottom: 8,
+                                    }}
+                                  >
+                                    <Space>
+                                      <Avatar
+                                        size="small"
+                                        style={{ backgroundColor: "#722ed1" }}
+                                      >
+                                        {leave.user.name[0]}
+                                      </Avatar>
+                                      <div>
+                                        <Text strong style={{ fontSize: 11 }}>
+                                          {leave.user.name}
+                                        </Text>
+                                        <br />
+                                        <Text
+                                          style={{
+                                            fontSize: 10,
+                                            color: "#666",
+                                          }}
+                                        >
+                                          {leave.duration} hours
+                                        </Text>
+                                      </div>
+                                    </Space>
+                                  </div>
+                                ))}
                             </div>
                           </>
                         )}
 
                         {/* Working From Home */}
-                        {dashboardData.todayLeaves.workingFromHome.length > 0 && (
+                        {dashboardData.todayLeaves.workingFromHome.length >
+                          0 && (
                           <>
                             <Divider style={{ margin: "8px 0" }} />
                             <div>
-                              <Text strong style={{ fontSize: 12, color: "#52c41a" }}>
-                                🏠 Working From Home ({dashboardData.todayLeaves.workingFromHome.length})
+                              <Text
+                                strong
+                                style={{ fontSize: 12, color: "#52c41a" }}
+                              >
+                                🏠 Working From Home (
+                                {
+                                  dashboardData.todayLeaves.workingFromHome
+                                    .length
+                                }
+                                )
                               </Text>
                             </div>
                             <div style={{ maxHeight: 100, overflowY: "auto" }}>
-                              {dashboardData.todayLeaves.workingFromHome.slice(0, 3).map((leave) => (
-                                <div
-                                  key={leave.id}
-                                  style={{
-                                    padding: "8px",
-                                    background: "#f6ffed",
-                                    borderRadius: 6,
-                                    marginBottom: 8,
-                                  }}
-                                >
-                                  <Space>
-                                    <Avatar size="small" style={{ backgroundColor: "#52c41a" }}>
-                                      {leave.user.name[0]}
-                                    </Avatar>
-                                    <div>
-                                      <Text strong style={{ fontSize: 11 }}>
-                                        {leave.user.name}
-                                      </Text>
-                                      <br />
-                                      <Text style={{ fontSize: 10, color: "#666" }}>
-                                        {leave.user.position}
-                                      </Text>
-                                    </div>
-                                  </Space>
-                                </div>
-                              ))}
+                              {dashboardData.todayLeaves.workingFromHome
+                                .slice(0, 3)
+                                .map((leave) => (
+                                  <div
+                                    key={leave.id}
+                                    style={{
+                                      padding: "8px",
+                                      background: "#f6ffed",
+                                      borderRadius: 6,
+                                      marginBottom: 8,
+                                    }}
+                                  >
+                                    <Space>
+                                      <Avatar
+                                        size="small"
+                                        style={{ backgroundColor: "#52c41a" }}
+                                      >
+                                        {leave.user.name[0]}
+                                      </Avatar>
+                                      <div>
+                                        <Text strong style={{ fontSize: 11 }}>
+                                          {leave.user.name}
+                                        </Text>
+                                        <br />
+                                        <Text
+                                          style={{
+                                            fontSize: 10,
+                                            color: "#666",
+                                          }}
+                                        >
+                                          {leave.user.position}
+                                        </Text>
+                                      </div>
+                                    </Space>
+                                  </div>
+                                ))}
                             </div>
                           </>
                         )}
@@ -990,8 +1135,11 @@ function DashboardContent() {
                         {/* Empty State */}
                         {dashboardData.todayLeaves.onLeave.length === 0 &&
                           dashboardData.todayLeaves.onPermission.length === 0 &&
-                          dashboardData.todayLeaves.workingFromHome.length === 0 && (
-                            <div style={{ textAlign: "center", padding: "20px 0" }}>
+                          dashboardData.todayLeaves.workingFromHome.length ===
+                            0 && (
+                            <div
+                              style={{ textAlign: "center", padding: "20px 0" }}
+                            >
                               <Text type="secondary" style={{ fontSize: 12 }}>
                                 No one on leave or permission today
                               </Text>
@@ -1192,8 +1340,6 @@ function DashboardContent() {
                     </Space>
                   </Card>
 
-
-
                   {/* Upcoming Tasks */}
                   <Card
                     title={
@@ -1269,6 +1415,19 @@ function DashboardContent() {
     </MainLayout>
   );
 }
+
+// export default function DashboardPage() {
+//   return (
+//     <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
+//       <DashboardContent />
+//     </Suspense>
+//   );
+// }
+//         ) : null}
+//       </div>
+//     </MainLayout>
+//   );
+// }
 
 export default function DashboardPage() {
   return (

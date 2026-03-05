@@ -60,50 +60,21 @@ export default function MonthView({ currentDate, events, onDayClick, onEventClic
     };
 
     const getEventsForDay = (date: Dayjs) => {
-        return events.filter(e => {
+        const dayEvents = events.filter(e => {
             const start = dayjs(e.startTime);
+            return start.isSame(date, 'day');
+        });
 
-            // 1. Exclusion check ALWAYS happens first (to handle deleting the first day of a series)
-            if (e.exdate) {
-                const excludedDates = Array.isArray(e.exdate) ? e.exdate : (typeof e.exdate === 'string' ? e.exdate.split(',') : []);
-                // Check if matches the day exactly using dayjs to handle timezones
-                if (excludedDates.some(ex => {
-                    const cleanEx = ex.replace(/[^0-9TZ]/g, '');
-                    let exDate;
-                    if (cleanEx.length === 8) {
-                        exDate = dayjs(cleanEx.replace(/^(\d{4})(\d{2})(\d{2})/, "$1-$2-$3"));
-                    } else {
-                        // Extract T-part to form ISO: yyyyMMddTHHmmssZ -> yyyy-MM-ddTHH:mm:ssZ
-                        const iso = cleanEx.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/, "$1-$2-$3T$4:$5:$6Z");
-                        exDate = dayjs(iso);
-                    }
-                    const isMatch = exDate.isValid() && exDate.isSame(date, 'day');
-                    if (isMatch) console.log(`[Calendar] Hiding excluded occurrence of "${e.title}" for ${date.format('YYYY-MM-DD')} (match: ${ex})`);
-                    return isMatch;
-                })) {
-                    return false;
-                }
+        // Deduplicate: If an occurrence for a series exists, hide the master record
+        return dayEvents.filter(e => {
+            const isMaster = e.isRecurring && e.rrule && !e.rrule.includes('seriesMasterId');
+            if (isMaster) {
+                const hasOccurrence = dayEvents.some(occ =>
+                    occ.rrule && occ.rrule.includes(e.externalId)
+                );
+                return !hasOccurrence;
             }
-
-            // 2. Direct match on start time
-            if (start.isSame(date, 'day')) return true;
-
-            // 3. Handle recurrence expansion for DAILY events
-            if (e.isRecurring || e.rrule?.includes('DAILY')) {
-                const isAfterStart = date.isAfter(start, 'day');
-                if (!isAfterStart) return false;
-
-                // If rrule contains UNTIL, check it
-                if (e.rrule?.includes('UNTIL=')) {
-                    const untilStr = e.rrule.split('UNTIL=')[1].split(';')[0];
-                    const untilDate = dayjs(untilStr);
-                    return date.isBefore(untilDate, 'day') || date.isSame(untilDate, 'day');
-                }
-
-                // If not excluded and after start, show it
-                return true;
-            }
-            return false;
+            return true;
         });
     };
 

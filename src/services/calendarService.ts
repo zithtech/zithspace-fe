@@ -26,6 +26,7 @@ export interface CalendarEvent {
     exdate: any;
     createdAt: string;
     updatedAt: string;
+    occurrenceDate?: string;
 }
 
 export interface CalendarStatus {
@@ -45,6 +46,7 @@ export interface CreateEventData {
     isAllDay?: boolean;
     attendees?: string[];
     generateMeeting?: boolean;
+    recurringDays?: string[];
 }
 
 export interface UpdateEventData {
@@ -57,11 +59,15 @@ export interface UpdateEventData {
     isAllDay?: boolean;
     attendees?: string[];
     generateMeeting?: boolean;
+    recurringDays?: string[];
+    action?: number;
+    occurrenceDate?: string;
 }
 
 export interface EventFilters {
     startDate?: string;
     endDate?: string;
+    cacheBuster?: number;
 }
 
 // ─── Service ─────────────────────────────────────────────────────────────────
@@ -76,6 +82,18 @@ export class CalendarService {
         } catch (error) {
             if (error instanceof ApiError) throw new Error(error.message);
             throw new Error(`Failed to get ${provider} status`);
+        }
+    }
+
+    /**
+     * Get all connected calendar providers.
+     */
+    static async getConnectedProviders(): Promise<CalendarProvider[]> {
+        try {
+            return await api.get<CalendarProvider[]>(`/api/calendar/providers`);
+        } catch (error) {
+            if (error instanceof ApiError) throw new Error(error.message);
+            throw new Error('Failed to get connected providers');
         }
     }
 
@@ -112,6 +130,7 @@ export class CalendarService {
             const params = new URLSearchParams();
             if (filters.startDate) params.set("startDate", filters.startDate);
             if (filters.endDate) params.set("endDate", filters.endDate);
+            if (filters.cacheBuster) params.set("cacheBuster", filters.cacheBuster.toString());
             const query = params.toString() ? `?${params.toString()}` : "";
             return await api.get<CalendarEvent[]>(`/api/calendar/events${query}`);
         } catch (error) {
@@ -161,15 +180,16 @@ export class CalendarService {
     }
 
     /**
-     * Sync all connected calendars.
+     * Sync connected calendars.
+     * If a provider is specified, only that provider will be synced.
      */
-    static async syncAll(): Promise<any[]> {
+    static async syncAll(provider?: CalendarProvider): Promise<any[]> {
         try {
-            const data = await api.post<any[]>("/api/calendar/sync", {});
+            const data = await api.post<any[]>("/api/calendar/sync", { provider });
             return data;
         } catch (error) {
             if (error instanceof ApiError) throw new Error(error.message);
-            throw new Error("Failed to sync calendars");
+            throw new Error(`Failed to sync ${provider || "all"} calendars`);
         }
     }
 }

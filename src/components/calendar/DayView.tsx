@@ -19,43 +19,21 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
     const hours = Array.from({ length: 24 }, (_, i) => i);
 
     const getDayEvents = () => {
-        return events.filter(e => {
+        const dayEvents = events.filter(e => {
             const start = dayjs(e.startTime);
+            return start.isSame(currentDate, 'day');
+        });
 
-            // 1. Exclusion check ALWAYS happens first
-            if (e.exdate) {
-                const excludedDates = Array.isArray(e.exdate) ? e.exdate : (typeof e.exdate === 'string' ? e.exdate.split(',') : []);
-                if (excludedDates.some(ex => {
-                    const cleanEx = ex.replace(/[^0-9TZ]/g, '');
-                    let exDate;
-                    if (cleanEx.length === 8) {
-                        exDate = dayjs(cleanEx.replace(/^(\d{4})(\d{2})(\d{2})/, "$1-$2-$3"));
-                    } else {
-                        const iso = cleanEx.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/, "$1-$2-$3T$4:$5:$6Z");
-                        exDate = dayjs(iso);
-                    }
-                    return exDate.isValid() && exDate.isSame(currentDate, 'day');
-                })) {
-                    return false;
-                }
+        // Deduplicate: If an occurrence for a series exists, hide the master record
+        return dayEvents.filter(e => {
+            const isMaster = e.isRecurring && e.rrule && !e.rrule.includes('seriesMasterId');
+            if (isMaster) {
+                const hasOccurrence = dayEvents.some(occ =>
+                    occ.rrule && occ.rrule.includes(e.externalId)
+                );
+                return !hasOccurrence;
             }
-
-            // 2. Direct match
-            if (start.isSame(currentDate, 'day')) return true;
-
-            // 3. Recurrence check
-            if (e.isRecurring || e.rrule?.includes('DAILY')) {
-                const isAfterStart = currentDate.isAfter(start, 'day');
-                if (!isAfterStart) return false;
-
-                if (e.rrule?.includes('UNTIL=')) {
-                    const untilStr = e.rrule.split('UNTIL=')[1].split(';')[0];
-                    const untilDate = dayjs(untilStr);
-                    return currentDate.isBefore(untilDate, 'day') || currentDate.isSame(untilDate, 'day');
-                }
-                return true;
-            }
-            return false;
+            return true;
         });
     };
 

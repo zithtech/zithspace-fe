@@ -15,7 +15,8 @@ interface CalendarSidebarProps {
     selectedDate: Dayjs;
     selectedCalendars: string[];
     onCalendarChange: (calendars: string[]) => void;
-    // Generic integration props
+    // Provider-specific props
+    provider?: string | null;
     onSync: () => Promise<void>;
     syncing: boolean;
 }
@@ -25,6 +26,7 @@ export default function CalendarSidebar({
     selectedDate,
     selectedCalendars,
     onCalendarChange,
+    provider,
     onSync,
     syncing
 }: CalendarSidebarProps) {
@@ -148,10 +150,10 @@ export default function CalendarSidebar({
                     <Button
                         block
                         icon={<SyncOutlined spin={syncing} />}
-                        onClick={onSync}
+                        onClick={() => onSync()}
                         loading={syncing}
                     >
-                        Sync All
+                        Sync {provider ? (provider === 'MICROSOFT' ? 'Outlook' : provider.charAt(0) + provider.slice(1).toLowerCase()) : 'All'}
                     </Button>
                     <Button
                         block

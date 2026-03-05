@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
     CalendarService,
@@ -25,7 +25,7 @@ interface UseCalendarReturn {
     createEvent: (data: CreateEventData) => Promise<CalendarEvent | null>;
     updateEvent: (id: string, data: UpdateEventData) => Promise<CalendarEvent | null>;
     deleteEvent: (id: string, action?: number, occurrenceDate?: string) => Promise<boolean>;
-    syncAll: () => Promise<void>;
+    syncAll: (provider?: CalendarProvider) => Promise<void>;
     clearMessages: () => void;
 }
 
@@ -35,6 +35,13 @@ export function useCalendar(): UseCalendarReturn {
     const [syncing, setSyncing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [lastFilters, setLastFilters] = useState<EventFilters>({});
+    const lastFiltersRef = useRef<EventFilters>(lastFilters);
+
+    // Keep ref in sync with state for use in callbacks/setTimeouts
+    useEffect(() => {
+        lastFiltersRef.current = lastFilters;
+    }, [lastFilters]);
 
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -87,6 +94,7 @@ export function useCalendar(): UseCalendarReturn {
         try {
             setLoading(true);
             setError(null);
+            setLastFilters(filters); // Remember the last used filter
             const data = await CalendarService.getEvents(filters);
             setEvents(data);
         } catch (err: any) {
@@ -100,52 +108,119 @@ export function useCalendar(): UseCalendarReturn {
         try {
             setLoading(true);
             setError(null);
-            const event = await CalendarService.createEvent(data);
-            setEvents((prev) => [...prev, event].sort(
-                (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-            ));
+            const result = await CalendarService.createEvent(data);
+
+            // Handle array (expanded series) or single object
+            const newEvents = Array.isArray(result) ? result : [result];
+
+            if (data.isRecurring && lastFiltersRef.current) {
+                // Only fetch for complex recurring patterns, use local state for simple ones
+                if (data.recurringDays && data.recurringDays.length > 2) {
+                    await fetchEvents(lastFiltersRef.current);
+                } else {
+                    setEvents((prev) => [...prev, ...newEvents].sort(
+                        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+                    ));
+                }
+            } else {
+                setEvents((prev) => [...prev, ...newEvents].sort(
+                    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+                ));
+            }
+
+
+            
+
             setSuccessMessage("Event created successfully!");
-            return event;
+            return Array.isArray(result) ? result[0] : result;
         } catch (err: any) {
             setError(err.message || "Failed to create event");
             return null;
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [fetchEvents]);
 
-    const updateEvent = useCallback(async (id: string, data: UpdateEventData): Promise<CalendarEvent | null> => {
-        try {
-            setLoading(true);
-            setError(null);
-            const updated = await CalendarService.updateEvent(id, data);
-            setEvents((prev) =>
-                prev.map((e) => (e.id === id ? updated : e)).sort(
-                    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-                )
-            );
-            setSuccessMessage("Event updated successfully!");
-            return updated;
-        } catch (err: any) {
-            setError(err.message || "Failed to update event");
-            return null;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+const updateEvent = useCallback(async (id: string, data: UpdateEventData): Promise<CalendarEvent | null> => {
+    try {
+        setLoading(true);
+        setError(null);
+        console.log(`[useCalendar] updateEvent called with id: ${id}, data:`, data);
+        const updated = await CalendarService.updateEvent(id, data);
+        console.log(`[useCalendar] updateEvent response:`, updated);
+        
+        setSuccessMessage("Event updated successfully!");
+        
+        // Force refresh events to get latest data from backend
+        // This ensures we have the latest event data after Zoho operations
+        console.log(`[useCalendar] Forcing refresh after successful update`);
+        
+        // Add a small delay to ensure database update is fully committed
+        setTimeout(async () => {
+            // Add cache-busting timestamp to ensure fresh data
+            const cacheBuster = Date.now();
+            await fetchEvents({ cacheBuster });
+        }, 500); // 500ms delay
+        
+        return updated;
+    } catch (err: any) {
+        setError(err.message || "Failed to update event");
+        return null;
+    } finally {
+        setLoading(false);
+    }
+}, [fetchEvents]); // Add fetchEvents to dependencies
 
     const deleteEvent = useCallback(async (id: string, action?: number, occurrenceDate?: string): Promise<boolean> => {
         try {
             setLoading(true);
             setError(null);
+
             await CalendarService.deleteEvent(id, action, occurrenceDate);
 
-            if (action === 0) {
-                // Partial delete: re-fetch to get updated events
-                await fetchEvents();
-            } else {
-                setEvents((prev) => prev.filter((e) => e.id !== id));
-            }
+            // Filter out events locally
+            setEvents((prev) => {
+                const eventToDelete = prev.find(e => e.id === id);
+                if (!eventToDelete) return prev.filter((e) => e.id !== id);
+
+                // action 1 = All days, action 2 = All days or This and Following
+                // UI passes 2 for "Delete for all days"
+                if (action === 1 || action === 2) {
+                    // Determine the Master ID to remove the whole series
+                    let masterId: string | null = null;
+                    if (eventToDelete.rrule) {
+                        try {
+                            const parsed = JSON.parse(eventToDelete.rrule);
+                            masterId = parsed.seriesMasterId || eventToDelete.externalId;
+                        } catch {
+                            masterId = eventToDelete.externalId;
+                        }
+                    } else {
+                        masterId = eventToDelete.externalId;
+                    }
+
+                    // For optimistic series deletion, the masterId might be an occurrence ID
+                    // if we clicked on an optimistic one. Backend strips _occ_, we should too.
+                    const cleanMasterId = masterId!.split('_occ_')[0];
+
+                    return prev.filter((e) => {
+                        // Direct ID match
+                        if (e.id === id) return false;
+
+                        // Check if this event belongs to the same series
+                        const currentMasterId = e.externalId?.split('_occ_')[0];
+                        if (currentMasterId === cleanMasterId) return false;
+
+                        // Check RRULE for series membership
+                        if (e.rrule && (e.rrule.includes(cleanMasterId) || e.rrule.includes(masterId!))) return false;
+
+                        return true;
+                    });
+                }
+
+                // Delete single occurrence or non-recurring event
+                return prev.filter((e) => e.id !== id);
+            });
 
             setSuccessMessage("Event deleted successfully!");
             return true;
@@ -155,28 +230,25 @@ export function useCalendar(): UseCalendarReturn {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, []); // Keep these, events handled by functional update
 
-    const syncAll = useCallback(async () => {
+    const syncAll = useCallback(async (provider?: CalendarProvider) => {
         try {
             setSyncing(true);
             setError(null);
-            await CalendarService.syncAll();
-            setSuccessMessage("All calendars synced successfully.");
-            // Re-fetch events after sync
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            await fetchEvents({
-                startDate: start.toISOString(),
-                endDate: end.toISOString(),
-            });
+
+            // If no provider passed, try to detect from current events
+            const targetProvider = (typeof provider === 'string' ? provider : undefined) || (events.length > 0 ? events[0].provider : undefined);
+
+            await CalendarService.syncAll(targetProvider);
+            setSuccessMessage(`${targetProvider || "All"} calendar synced successfully.`);
+            // Don't auto-fetch after sync - let user refresh manually if needed
         } catch (err: any) {
             setError(err.message || "Failed to sync events");
         } finally {
             setSyncing(false);
         }
-    }, [fetchEvents]);
+    }, [fetchEvents, events]);
 
     return {
         events,

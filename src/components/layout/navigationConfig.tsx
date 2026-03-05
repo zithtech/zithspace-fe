@@ -82,7 +82,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "HOME",
     label: "HOME",
     icon: <HomeOutlined />,
-    pathPrefixes: ["/dashboard"],
+    pathPrefixes: ["/dashboard","/integrations"],
     defaultPath: "/dashboard",
     // Dashboard should be accessible to all authenticated users - no permission required
     items: [
@@ -92,6 +92,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <DashboardOutlined />,
         path: "/dashboard",
         // Dashboard accessible to all users - no permission required
+      },
+      {
+        key: "/integrations",
+        label: "Integrations",
+        icon: <DashboardOutlined />,
+        path: "/integrations",
       },
     ],
   },

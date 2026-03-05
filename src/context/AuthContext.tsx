@@ -90,13 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       setUser(userData);
-
-      // Handle redirect after login (like traditional SPAs)
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectTo = urlParams.get('redirect');
-      const targetUrl = redirectTo || '/dashboard';
-
-      router.push(targetUrl);
+      // Navigation is handled by the login page component via useEffect watching `user`
       return true;
     } catch (error) {
       console.error("Login failed:", error);

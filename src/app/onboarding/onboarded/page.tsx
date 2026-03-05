@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
-import { useRouter } from "next/navigation";
+//import { useRouter } from "next/navigation";
 import {
   Table,
   Modal,
@@ -26,6 +26,7 @@ import {
   Typography,
   Upload,
   Switch,
+  TimePicker,
 } from "antd";
 import {
   SearchOutlined,
@@ -47,13 +48,20 @@ import {
   TrophyOutlined,
   IdcardOutlined,
   EyeOutlined,
+  CloseCircleTwoTone,
+  CheckCircleTwoTone,
+  FieldTimeOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
 import { MembersService } from "@/services/membersService";
 import { EmployeeOnboardingService } from "@/services/onboardingService";
+import { ProjectService } from "@/services/projectService";
 import EmployeeHistoryEditForm from "./Employeehistoryeditform";
 import EmployeeHistoryView from "./EmployeeHistoryViews";
+import router from "next/dist/shared/lib/router/router";
+import { useRouter } from "next/dist/client/components/navigation";
+import { PositionService } from "@/services/positionService";
 
 const { Option } = Select;
 
@@ -474,7 +482,7 @@ const PersonalDetailsEditForm = ({ form, initialData }: any) => {
 };
 
 // Employment Edit Form
-const EmploymentEditForm = ({ form, initialData }: any) => {
+const EmploymentEditForm = ({ form, initialData, projects }: any) => {
   const workType = Form.useWatch("workType", form);
   const hybridMode = Form.useWatch("hybridMode", form);
   const fixedDays = Form.useWatch("fixedDays", form) || [];
@@ -486,6 +494,27 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
   const [members, setMembers] = useState<any[]>([]);
   const [totalMembers, setTotalMembers] = useState(0);
   const { Title, Text } = Typography;
+
+  const [openWorkShiftModal, setOpenWorkShiftModal] = useState(false);
+  const [shiftData, setShiftData] = useState<any>({});
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [commonStart, setCommonStart] = useState<any>(null);
+  const [commonEnd, setCommonEnd] = useState<any>(null);
+  const [workShiftDisplay, setWorkShiftDisplay] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [positions, setPositions] = useState<any[]>([]);
+  const [selectedPosition, setSelectedPosition] = useState<any>([]);
+
+  const weekDays = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
 
   useEffect(() => {
     if (initialData) {
@@ -503,7 +532,7 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
         team: initialData.team || "",
         employeeType: initialData.employeeType || "",
         workLocation: initialData.workLocation || "",
-        workShift: initialData.workShift || "",
+        workShift: initialData.workShift || "", // This holds the JSON string
         joiningDate: initialData.joiningDate
           ? dayjs(initialData.joiningDate)
           : null,
@@ -522,8 +551,44 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
         fixedDays: initialData.fixedDays || [],
         totalDays: initialData.totalDays || null,
         totalHours: initialData.totalHours || null,
+        noticePeriod: initialData.noticePeriod || "",
       });
       setTempSelectedDays(initialData.fixedDays || []);
+
+      // Parse workShift for display and modal state
+      if (initialData.workShift) {
+        try {
+          const parsed =
+            typeof initialData.workShift === "string"
+              ? JSON.parse(initialData.workShift)
+              : initialData.workShift;
+
+          if (parsed.type === "all") {
+            setWorkShiftDisplay("All Days");
+            setSelectAll(true);
+            setCommonStart(parsed.start ? dayjs(parsed.start, "HH:mm") : null);
+            setCommonEnd(parsed.end ? dayjs(parsed.end, "HH:mm") : null);
+            setSelectedDays(weekDays);
+            const newShiftData: any = {};
+            weekDays.forEach((day) => {
+              newShiftData[day] = { start: parsed.start, end: parsed.end };
+            });
+            setShiftData(newShiftData);
+          } else if (parsed.type === "custom") {
+            const days = Object.keys(parsed.data || {});
+            setWorkShiftDisplay(days.join(", "));
+            setSelectAll(false);
+            setCommonStart(null);
+            setCommonEnd(null);
+            setSelectedDays(days);
+            setShiftData(parsed.data || {});
+          } else {
+            setWorkShiftDisplay(initialData.workShift);
+          }
+        } catch (e) {
+          setWorkShiftDisplay(initialData.workShift);
+        }
+      }
     }
   }, [initialData, form]);
 
@@ -540,6 +605,188 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
 
     fetchMembersForSelect();
   }, []);
+
+  useEffect(() => {
+    const fetchPositions = async () => {
+      try {
+        setLoading(true);
+        const data = await PositionService.getAll();
+        const mapData = data.map((pos) => ({
+          id: pos.id,
+          name: pos.title,
+        }));
+        setPositions(mapData); // 🔥 store in state
+      } catch (error) {
+        console.error("Failed to fetch positions", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPositions();
+  }, []);
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    if (checked) {
+      setSelectedDays(weekDays);
+      if (commonStart && commonEnd) {
+        applyCommonTime(commonStart, commonEnd);
+      }
+    } else {
+      setSelectedDays([]);
+      setShiftData({});
+      setCommonStart(null);
+      setCommonEnd(null);
+    }
+  };
+
+  const applyCommonTime = (start: any, end: any) => {
+    if (!start || !end) return;
+    const newData: any = {};
+    weekDays.forEach((day) => {
+      newData[day] = {
+        start: start.format("HH:mm"),
+        end: end.format("HH:mm"),
+      };
+    });
+    setShiftData(newData);
+  };
+
+  const handleSaveWorkShift = () => {
+    let payload: any;
+
+    if (selectAll && commonStart && commonEnd) {
+      const allDaysData: any = {};
+      weekDays.forEach((day) => {
+        allDaysData[day] = {
+          start: commonStart.format("HH:mm"),
+          end: commonEnd.format("HH:mm"),
+        };
+      });
+
+      payload = {
+        type: "all",
+        start: commonStart.format("HH:mm"),
+        end: commonEnd.format("HH:mm"),
+        days: weekDays,
+        data: allDaysData,
+      };
+      setWorkShiftDisplay("All Days");
+    } else {
+      const perDayData: any = {};
+      if (selectedDays.length === 0) {
+        message.error("Please select at least one day.");
+        return;
+      }
+
+      for (const day of selectedDays) {
+        const dayShift = shiftData[day];
+        if (dayShift && dayShift.start && dayShift.end) {
+          perDayData[day] = {
+            start:
+              typeof dayShift.start === "string"
+                ? dayShift.start
+                : dayjs(dayShift.start).format("HH:mm"),
+            end:
+              typeof dayShift.end === "string"
+                ? dayShift.end
+                : dayjs(dayShift.end).format("HH:mm"),
+          };
+        } else {
+          message.error(`Please set start and end time for ${day}.`);
+          return;
+        }
+      }
+      payload = {
+        type: "custom",
+        data: perDayData,
+      };
+      setWorkShiftDisplay(Object.keys(perDayData).join(", "));
+    }
+
+    const jsonString = JSON.stringify(payload);
+    form.setFieldsValue({ workShift: jsonString });
+    setOpenWorkShiftModal(false);
+  };
+
+  const columns = [
+    {
+      title: "",
+      render: (_: any, record: any) => (
+        <Checkbox
+          checked={selectedDays.includes(record.day)}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            if (checked) {
+              setSelectedDays([...selectedDays, record.day]);
+              setShiftData((prev: any) => ({
+                ...prev,
+                [record.day]: prev[record.day] || { start: null, end: null },
+              }));
+            } else {
+              setSelectedDays(selectedDays.filter((d) => d !== record.day));
+              setShiftData((prev: any) => {
+                const copy = { ...prev };
+                delete copy[record.day];
+                return copy;
+              });
+            }
+          }}
+        />
+      ),
+    },
+    {
+      title: "Week Day",
+      dataIndex: "day",
+    },
+    {
+      title: "Start Time",
+      render: (_: any, record: any) => (
+        <TimePicker
+          format="HH:mm"
+          value={
+            shiftData[record.day]?.start
+              ? dayjs(shiftData[record.day].start, "HH:mm")
+              : null
+          }
+          disabled={!selectedDays.includes(record.day)}
+          onChange={(time) => {
+            setShiftData((prev: any) => ({
+              ...prev,
+              [record.day]: {
+                ...prev[record.day],
+                start: time ? time.format("HH:mm") : null,
+              },
+            }));
+          }}
+        />
+      ),
+    },
+    {
+      title: "End Time",
+      render: (_: any, record: any) => (
+        <TimePicker
+          format="HH:mm"
+          value={
+            shiftData[record.day]?.end
+              ? dayjs(shiftData[record.day].end, "HH:mm")
+              : null
+          }
+          disabled={!selectedDays.includes(record.day)}
+          onChange={(time) => {
+            setShiftData((prev: any) => ({
+              ...prev,
+              [record.day]: {
+                ...prev[record.day],
+                end: time ? time.format("HH:mm") : null,
+              },
+            }));
+          }}
+        />
+      ),
+    },
+  ];
 
   return (
     <div
@@ -563,13 +810,19 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
           <Form.Item
             label={<span style={labelStyle}>Department</span>}
             name="department"
-            rules={[{ required: true, message: "Required" }]}
+            rules={[{ message: "Required" }]}
           >
-            <Select placeholder="Select Department" style={inputStyle}>
-              <Option value="engineering">Engineering</Option>
-              <Option value="hr">HR</Option>
-              <Option value="finance">Finance</Option>
-            </Select>
+            <Select
+              placeholder="Select Position"
+              loading={loading}
+              style={{ width: "100%", height: 30 }}
+              value={selectedPosition}
+              onChange={(value) => setSelectedPosition(value)}
+              options={positions.map((pos) => ({
+                label: pos.name, // 🔥 this will show in dropdown
+                value: pos.id,
+              }))}
+            />
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -610,15 +863,27 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
         </Col>
         <Col span={8}>
           <Form.Item
-            label={<span style={labelStyle}>Work Shift</span>}
             name="workShift"
             rules={[{ required: true, message: "Required" }]}
+            hidden
           >
-            <Select placeholder="Select Shift" style={inputStyle}>
-              <Option value="day">Day Shift</Option>
-              <Option value="night">Night Shift</Option>
-              <Option value="rotational">Rotational</Option>
-            </Select>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label={<span style={labelStyle}>Work Shift</span>}
+            required
+            help={form.getFieldError("workShift")?.[0]}
+            validateStatus={
+              form.getFieldError("workShift")?.length ? "error" : ""
+            }
+          >
+            <Input
+              placeholder="Select Work Shift"
+              readOnly
+              value={workShiftDisplay}
+              onClick={() => setOpenWorkShiftModal(true)}
+              style={{ ...inputStyle, cursor: "pointer" }}
+            />
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -779,9 +1044,11 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
               style={inputStyle}
               maxTagCount="responsive"
             >
-              <Option value="hrms">HRMS</Option>
-              <Option value="crm">CRM</Option>
-              <Option value="mobile-app">Mobile App</Option>
+              {projects.map((project: any) => (
+                <option key={project.id} value={project.id}>
+                  {project.name} ({project.code})
+                </option>
+              ))}
             </Select>
           </Form.Item>
         </Col>
@@ -830,6 +1097,15 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
               <Option value="B">Grade B</Option>
               <Option value="C">Grade C</Option>
             </Select>
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item
+            label={<span style={labelStyle}>Notice Period</span>}
+            name="noticePeriod"
+            rules={[{ required: true, message: "Required" }]}
+          >
+            <Input placeholder="Notice Period" style={inputStyle} />
           </Form.Item>
         </Col>
       </Row>
@@ -897,6 +1173,74 @@ const EmploymentEditForm = ({ form, initialData }: any) => {
             <Text strong>Total Hours: {tempSelectedDays.length * 8} hrs</Text>
           </div>
         </Card>
+      </Modal>
+
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FieldTimeOutlined style={{ color: "black" }} />
+            <span>Set Work Shift</span>
+          </div>
+        }
+        open={openWorkShiftModal}
+        onCancel={() => setOpenWorkShiftModal(false)}
+        footer={[
+          <Button key="close" onClick={() => setOpenWorkShiftModal(false)}>
+            Close
+          </Button>,
+          <Button key="save" type="primary" onClick={handleSaveWorkShift}>
+            Save
+          </Button>,
+        ]}
+        width={800}
+      >
+        {/* ✅ Select All + Common Time */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col>
+            <Checkbox
+              checked={selectAll}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+            >
+              Select All
+            </Checkbox>
+          </Col>
+
+          {selectAll && (
+            <>
+              <Col>
+                <TimePicker
+                  format="HH:mm"
+                  placeholder="Common Start"
+                  value={commonStart}
+                  onChange={(time) => {
+                    setCommonStart(time);
+                    applyCommonTime(time, commonEnd);
+                  }}
+                />
+              </Col>
+              <Col>
+                <TimePicker
+                  format="HH:mm"
+                  placeholder="Common End"
+                  value={commonEnd}
+                  onChange={(time) => {
+                    setCommonEnd(time);
+                    applyCommonTime(commonStart, time);
+                  }}
+                />
+              </Col>
+            </>
+          )}
+        </Row>
+
+        <Table
+          columns={columns}
+          dataSource={weekDays.map((day) => ({
+            key: day,
+            day,
+          }))}
+          pagination={false}
+        />
       </Modal>
     </div>
   );
@@ -1378,8 +1722,97 @@ const PersonalDetailsView = ({ data }: any) => {
   );
 };
 
-const EmploymentView = ({ data }: any) => {
+const EmploymentView = ({ data, projects: allProjects }: any) => {
   if (!data) return <div>No data available</div>;
+
+  const renderWorkShiftDetails = () => {
+    if (!data.workShift) {
+      return (
+        <>
+          <Col span={12}>
+            <RowItem label="Work Shift" value={null} />
+          </Col>
+          <Col span={12}>
+            <RowItem label="Notice Period" value={data.noticePeriod} />
+          </Col>
+        </>
+      );
+    }
+
+    try {
+      const workShiftData =
+        typeof data.workShift === "string"
+          ? JSON.parse(data.workShift)
+          : data.workShift;
+
+      if (workShiftData.type === "custom") {
+        const workDays = Object.entries(workShiftData.data)
+          .map(
+            ([day, times]: [string, any]) =>
+              `${day.charAt(0).toUpperCase() + day.slice(1)}: ${times.start} - ${
+                times.end
+              }`,
+          )
+          .join(", ");
+
+        return (
+          <>
+            <Col span={12}>
+              <RowItem label="Work Shift Type" value="Custom" />
+            </Col>
+            <Col span={12}>
+              <RowItem label="Notice Period" value={data.noticePeriod} />
+            </Col>
+
+            <Col span={24}>
+              <RowItem label="Work Days" value={workDays} />
+            </Col>
+          </>
+        );
+      }
+
+      if (workShiftData.type === "all") {
+        const workTime = `${workShiftData.start} - ${workShiftData.end}`;
+        return (
+          <>
+            <Col span={12}>
+              <RowItem label="Work Shift Type" value="All Days" />
+            </Col>
+            <Col span={12}>
+              <RowItem label="Notice Period" value={data.noticePeriod} />
+            </Col>
+            <Col span={12}>
+              <RowItem label="Work Time" value={workTime} />
+            </Col>
+          </>
+        );
+      }
+    } catch (e) {}
+
+    // Fallback for unknown format or parsing error
+    return (
+      <>
+        <Col span={12}>
+          <RowItem label="Work Shift" value={data.workShift} />
+        </Col>
+        <Col span={12}>
+          <RowItem label="Notice Period" value={data.noticePeriod} />
+        </Col>
+      </>
+    );
+  };
+
+  const projectNames =
+    data.projects && allProjects?.length > 0
+      ? data.projects
+          .map((projectId: string) => {
+            const project = allProjects.find((p: any) => p.id === projectId);
+            return project ? project.name : projectId; // Fallback to ID if not found
+          })
+          .join(", ")
+      : data.projects?.length > 0
+        ? data.projects.join(", ")
+        : null;
 
   return (
     <Card
@@ -1395,7 +1828,7 @@ const EmploymentView = ({ data }: any) => {
         <Col span={12}>
           <RowItem
             label="Department"
-            value={data.department}
+            value={data.department.titleName}
             icon={<BankOutlined />}
           />
         </Col>
@@ -1412,9 +1845,7 @@ const EmploymentView = ({ data }: any) => {
           <RowItem label="Work Location" value={data.workLocation} />
         </Col>
 
-        <Col span={12}>
-          <RowItem label="Work Shift" value={data.workShift} />
-        </Col>
+        {renderWorkShiftDetails()}
 
         <Col span={12}>
           <RowItem
@@ -1517,11 +1948,7 @@ const EmploymentView = ({ data }: any) => {
         <Col span={12}>
           <RowItem
             label="Projects"
-            value={
-              data.projects && data.projects.length > 0
-                ? data.projects.join(", ")
-                : null
-            }
+            value={projectNames}
             icon={<ProjectOutlined />}
           />
         </Col>
@@ -1675,6 +2102,8 @@ const Onboarded = () => {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [totalMembers, setTotalMembers] = useState(0);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Separate forms for each section
   const [personalDetailsForm] = Form.useForm();
@@ -1682,6 +2111,8 @@ const Onboarded = () => {
   const [bankPayrollForm] = Form.useForm();
   const [companyHistoryForm] = Form.useForm();
   const [assetsForm] = Form.useForm();
+
+  const [projects, setProjects] = useState<any[]>([]);
 
   // Map section to form
   const sectionFormMap: any = {
@@ -1734,6 +2165,8 @@ const Onboarded = () => {
               employee.mobile ||
               "",
           },
+          status: employee.status,
+          loginAccess: employee.loginAccess,
           _rawData: employee,
         };
       });
@@ -1752,6 +2185,20 @@ const Onboarded = () => {
 
   useEffect(() => {
     fetchEmployees();
+    const fetchProjects = async () => {
+      try {
+        const response = await ProjectService.getProjects({
+          page: 1,
+          limit: 1000,
+        });
+        if (response?.data) {
+          setProjects(response.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch projects:", err);
+      }
+    };
+    fetchProjects();
   }, []);
 
   // ✅ Fetch Full Details for View/Edit - FIXED
@@ -1818,6 +2265,8 @@ const Onboarded = () => {
           totalDays: employment.totalDays || null,
           totalHours: employment.totalHours || null,
           employeeJoiningDate: employment.employeeJoiningDate || null,
+          noticePeriod:
+            employment.noticePeriod || employment.notice_period || null,
         },
         bankAndPayroll: {
           bankName: bank.bankName || "",
@@ -1850,6 +2299,9 @@ const Onboarded = () => {
     return fullName.includes(search.toLowerCase());
   });
 
+  const activeCount = data.filter((item: any) => item.status).length;
+  const inactiveCount = data.length - activeCount;
+
   const openView = async (emp: any, sec: string) => {
     setSection(sec);
     //setView({ id: emp.id });
@@ -1862,10 +2314,25 @@ const Onboarded = () => {
     setViewLoading(false);
   };
 
+  const handleStatusChange = (id: string, checked: boolean) => {
+    const updatedData: any = data.map((item: any) =>
+      item.id === id ? { ...item, status: checked } : item,
+    );
+
+    setData(updatedData);
+  };
+
+  const handleLoginAccess = (id: string) => {
+    const updated: any = data.map((item: any) =>
+      item.id === id ? { ...item, loginAccess: !item.loginAccess } : item,
+    );
+
+    setData(updated);
+  };
+
   const openEdit = async (emp: any, sec: string) => {
     setEdit(false); // Close any existing edit modal first
     setViewLoading(true);
-
     const fullDetails = await fetchFullDetails(emp.id);
     if (fullDetails) {
       setView(fullDetails);
@@ -1879,6 +2346,10 @@ const Onboarded = () => {
     } else {
       setViewLoading(false);
     }
+  };
+  const handleLoginClick = (record: any) => {
+    setSelectedUser(record);
+    setIsModalOpen(true);
   };
 
   const saveEdit = async () => {
@@ -2103,22 +2574,69 @@ const Onboarded = () => {
         </Space>
       ),
     })),
+
     {
-      title: "Actions",
-      render: (_: any, r: any) => (
-        <Popconfirm
-          title="Delete this employee?"
-          description="This action cannot be undone."
-          onConfirm={() => remove(r.id)}
-          okText="Yes, Delete"
-          cancelText="Cancel"
-          okButtonProps={{ danger: true }}
-        >
-          <DeleteOutlined
-            style={{ color: "red", cursor: "pointer", fontSize: 16 }}
+      title: "Login Access",
+      dataIndex: "loginAccess",
+      key: "loginAccess",
+      render: (_: any, record: any) =>
+        record.loginAccess ? (
+          <CheckCircleTwoTone
+            twoToneColor="#52c41a"
+            style={{ fontSize: 18, cursor: "pointer" }}
+            // onClick={() => handleLoginAccess(record.id)}
           />
-        </Popconfirm>
+        ) : (
+          <CloseCircleTwoTone
+            twoToneColor="#ff4d4f"
+            style={{ fontSize: 18, cursor: "pointer" }}
+            // onClick={() => handleLoginAccess(record.id)}
+          />
+        ),
+    },
+
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (_: any, record: any) => (
+        <Switch
+          size="small"
+          checked={record.status}
+          checkedChildren="Active"
+          unCheckedChildren="Inactive"
+          style={{
+            backgroundColor: record.status ? "#52c41a" : "#ff4d4f",
+            minWidth: 36,
+          }}
+          onChange={(checked) => handleStatusChange(record.id, checked)}
+        />
       ),
+    },
+
+    {
+      title: "Login Status",
+      key: "loginStatus",
+      render: (_: any, record: any) =>
+        record.loginAccess ? (
+          <Typography.Text
+            style={{ color: "#1677ff", cursor: "pointer" }}
+            onClick={() => handleLoginClick(record)}
+          >
+            Login
+          </Typography.Text>
+        ) : (
+          <span
+            style={{
+              color: "#1677ff",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            onClick={() => handleLoginClick(record)}
+          >
+            Connect
+          </span>
+        ),
     },
   ];
 
@@ -2153,7 +2671,11 @@ const Onboarded = () => {
         );
       case "employment":
         return (
-          <EmploymentEditForm form={currentForm} initialData={sectionData} />
+          <EmploymentEditForm
+            form={currentForm}
+            initialData={sectionData}
+            projects={projects}
+          />
         );
       case "bankAndPayroll":
         return (
@@ -2181,7 +2703,7 @@ const Onboarded = () => {
       case "personalDetails":
         return <PersonalDetailsView data={sectionData} />;
       case "employment":
-        return <EmploymentView data={sectionData} />;
+        return <EmploymentView data={sectionData} projects={projects} />;
       case "bankAndPayroll":
         return <BankPayrollView data={sectionData} />;
       case "previousCompanyDetails":
@@ -2206,159 +2728,160 @@ const Onboarded = () => {
           padding: "20px",
           display: "flex",
           flexDirection: "column",
+          background: "white",
           gap: "15px",
         }}
       >
-        <Card
+        {/* <Card
           bordered={false}
           style={{
             borderRadius: 12,
             boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
             padding: 24,
           }}
+        > */}
+        {/* 🔹 Header Section */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 20,
+            flexWrap: "wrap",
+            gap: 16,
+          }}
         >
-          {/* 🔹 Header Section */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              marginBottom: 20,
-              flexWrap: "wrap",
-              gap: 16,
-            }}
-          >
-            {/* Left Side - Title + Description */}
-            <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 22,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                <ApartmentOutlined style={{ color: "#1677ff" }} />
-                Employee Management
-              </h2>
-
-              <p
-                style={{
-                  margin: "6px 0 0",
-                  color: "#8c8c8c",
-                  fontSize: 13,
-                }}
-              >
-                Managing employee records and activities.
-              </p>
-              <div
-                style={{
-                  marginTop: 6,
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: 8,
-                  alignItems: "center",
-                }}
-              >
-                <Tag
-                  // size="small"
-                  //  icon={<UserOutlined style={{ fontSize: 12 }} />}
-                  style={{
-                    background: "#e6f4ff",
-                    color: "#1677ff",
-                    border: "1px solid #91caff",
-                    borderRadius: 16,
-                    fontSize: 12,
-                    padding: "0 8px",
-                    lineHeight: "20px",
-                  }}
-                >
-                  Total Members : {totalMembers}
-                </Tag>
-
-                <Tag
-                  //size="small"
-                  style={{
-                    background: "#f6ffed",
-                    color: "#52c41a",
-                    border: "1px solid #b7eb8f",
-                    borderRadius: 20,
-                    fontSize: 12,
-                    padding: "0 10px",
-                  }}
-                >
-                  Active : 0
-                </Tag>
-
-                {/* Inactive */}
-                <Tag
-                  // size="small"
-                  style={{
-                    background: "#fff1f0",
-                    color: "#ff4d4f",
-                    border: "1px solid #ffa39e",
-                    borderRadius: 20,
-                    fontSize: 12,
-                    padding: "0 10px",
-                  }}
-                >
-                  Inactive : 0
-                </Tag>
-              </div>
-            </div>
-
-            {/* Right Side - Search + Count + Button */}
-            <div
+          {/* Left Side - Title + Description */}
+          <div>
+            <h2
               style={{
+                margin: 0,
+                fontSize: 22,
+                fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
-                gap: 14,
-                flexWrap: "wrap",
+                gap: 10,
               }}
             >
-              {/* Search */}
-              <Input
-                prefix={<SearchOutlined />}
-                placeholder="Search employees..."
-                style={{
-                  borderRadius: 8,
-                  width: 240,
-                  height: 36,
-                }}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <ApartmentOutlined style={{ color: "#1677ff" }} />
+              Employee Management
+            </h2>
 
-              {/* Add Button */}
-              <Button
-                type="primary"
+            <p
+              style={{
+                margin: "6px 0 0",
+                color: "#8c8c8c",
+                fontSize: 13,
+              }}
+            >
+              Managing employee records and activities.
+            </p>
+            <div
+              style={{
+                marginTop: 6,
+                display: "flex",
+                flexDirection: "row",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <Tag
+                // size="small"
+                //  icon={<UserOutlined style={{ fontSize: 12 }} />}
                 style={{
-                  height: 36,
-                  borderRadius: 8,
-                  padding: "0 18px",
+                  background: "#e6f4ff",
+                  color: "#1677ff",
+                  border: "1px solid #91caff",
+                  borderRadius: 16,
+                  fontSize: 12,
+                  padding: "0 8px",
+                  lineHeight: "20px",
                 }}
-                onClick={() => router.push("/onboarding/create")}
               >
-                + Add Employee
-              </Button>
+                Total Members : {totalMembers}
+              </Tag>
+
+              <Tag
+                //size="small"
+                style={{
+                  background: "#f6ffed",
+                  color: "#52c41a",
+                  border: "1px solid #b7eb8f",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  padding: "0 10px",
+                }}
+              >
+                Active : {activeCount}
+              </Tag>
+
+              {/* Inactive */}
+              <Tag
+                // size="small"
+                style={{
+                  background: "#fff1f0",
+                  color: "#ff4d4f",
+                  border: "1px solid #ffa39e",
+                  borderRadius: 20,
+                  fontSize: 12,
+                  padding: "0 10px",
+                }}
+              >
+                Inactive : {inactiveCount}
+              </Tag>
             </div>
           </div>
 
-          {/* 🔹 Table Section */}
-          {loading ? (
-            <div style={{ textAlign: "center", padding: 40 }}>
-              <Spin size="large" />
-            </div>
-          ) : (
-            <Table
-              dataSource={filtered}
-              columns={columns}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
+          {/* Right Side - Search + Count + Button */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Search */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Search employees..."
+              style={{
+                borderRadius: 8,
+                width: 240,
+                height: 36,
+              }}
+              onChange={(e) => setSearch(e.target.value)}
             />
-          )}
-        </Card>
+
+            {/* Add Button */}
+            <Button
+              type="primary"
+              style={{
+                height: 36,
+                borderRadius: 8,
+                padding: "0 18px",
+              }}
+              onClick={() => router.push("/onboarding/create")}
+            >
+              + Add Employee
+            </Button>
+          </div>
+        </div>
+
+        {/* 🔹 Table Section */}
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <Spin size="large" />
+          </div>
+        ) : (
+          <Table
+            dataSource={filtered}
+            columns={columns}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+          />
+        )}
+        {/* </Card> */}
 
         {/* VIEW DRAWER */}
         <Drawer
@@ -2415,6 +2938,35 @@ const Onboarded = () => {
             {renderEditForm()}
           </Form>
         </Modal>
+
+        <Modal
+          title="Connect User"
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          footer={null}
+        >
+          <Form layout="vertical">
+            <Form.Item
+              label="Username"
+              name="username"
+              rules={[{ required: true, message: "Please enter username" }]}
+            >
+              <Input placeholder="Enter username" />
+            </Form.Item>
+
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[{ required: true, message: "Please enter password" }]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+
+            <Button type="primary" htmlType="submit" block>
+              Submit
+            </Button>
+          </Form>
+        </Modal>
       </div>
     </MainLayout>
   );
@@ -2429,7 +2981,7 @@ export default function OnboardedPage() {
   // Route guard
   useEffect(() => {
     if (!authLoading && !canReadOnboarding) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [authLoading, canReadOnboarding, router]);
 
@@ -2437,7 +2989,7 @@ export default function OnboardedPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
+        <div style={{ padding: 24, textAlign: "center" }}>
           <Spin size="large" tip="Loading..." />
         </div>
       </MainLayout>

@@ -41,168 +41,16 @@ import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
 import { MembersService } from "@/services/membersService";
+import { EmployeeOnboardingService } from "@/services/onboardingService";
 import dayjs from "dayjs";
-import { useLeaveAdjustments, LeaveAdjustmentViewData } from "@/hooks/useLeaveAdjustments";
+import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+import {
+  useLeaveAdjustments,
+  LeaveAdjustmentViewData,
+} from "@/hooks/useLeaveAdjustments";
 import { LeaveAdjustmentPayload } from "@/services/leaveAdjustmentService";
 const { Text } = Typography;
 const { Title } = Typography;
-const leaveTypesData = [
-  {
-    name: "Casual Leave",
-    description: "Leave taken for personal reasons or short-term needs.",
-  },
-  {
-    name: "Sick Leave",
-    description: "Leave taken when an employee is ill or unwell.",
-  },
-  {
-    name: "Earned Leave",
-    description: "Leave accumulated over time based on work tenure.",
-  },
-  {
-    name: "Paid Leave",
-    description: "Leave where salary is fully paid during absence.",
-  },
-  {
-    name: "Unpaid Leave",
-    description: "Leave taken without salary payment.",
-  },
-  {
-    name: "Loss of Pay",
-    description:
-      "Leave resulting in salary deduction due to insufficient balance.",
-  },
-  {
-    name: "Comp-Off",
-    description: "Leave granted for working on holidays or weekends.",
-  },
-  {
-    name: "Permission",
-    description: "Short-duration leave taken for a few hours.",
-  },
-  {
-    name: "On Duty",
-    description:
-      "Marked when employee is working outside office for official work.",
-  },
-  {
-    name: "Emergency Leave",
-    description: "Leave taken due to urgent or unexpected situations.",
-  },
-  {
-    name: "Medical Leave",
-    description: "Extended leave taken for medical treatment or recovery.",
-  },
-  {
-    name: "Festival Holiday",
-    description: "Holiday granted for religious or cultural festivals.",
-  },
-  {
-    name: "Weekly Off",
-    description: "Regular weekly holiday such as Sunday or scheduled off day.",
-  },
-  {
-    name: "Marriage Leave",
-    description: "Leave granted for employee’s marriage.",
-  },
-  {
-    name: "Bereavement Leave",
-    description: "Leave taken due to death of a close family member.",
-  },
-
-  // Office / Corporate (IT + Non-IT)
-  {
-    name: "Work From Home",
-    description: "Employee works remotely instead of office.",
-  },
-  {
-    name: "Optional Holiday",
-    description: "Employee can choose to take this holiday optionally.",
-  },
-  {
-    name: "Floating Holiday",
-    description: "Flexible holiday chosen by the employee.",
-  },
-  {
-    name: "Privilege Leave",
-    description: "Long-term leave granted as per company policy.",
-  },
-  {
-    name: "Annual Leave",
-    description: "Yearly leave entitlement for employees.",
-  },
-  {
-    id: 21,
-    name: "Training Leave",
-    description: "Leave taken to attend training or skill programs.",
-  },
-  {
-    name: "Sabbatical Leave",
-    description: "Extended leave for personal or professional development.",
-  },
-
-  // Hospital / Healthcare
-  {
-    name: "Night Shift Off",
-    description: "Off granted after night shift duty.",
-  },
-  {
-    name: "Quarantine Leave",
-    description: "Leave during isolation due to contagious illness.",
-  },
-  {
-    name: "Accident Leave",
-    description: "Leave taken due to injury or accident.",
-  },
-  {
-    name: "Duty Roster Leave",
-    description: "Leave based on duty roster schedule.",
-  },
-  {
-    name: "Emergency Duty Off",
-    description: "Off given after emergency duty hours.",
-  },
-  {
-    name: "Maternity Leave",
-    description: "Leave granted to female employees during childbirth.",
-  },
-  {
-    name: "Paternity Leave",
-    description: "Leave granted to male employees after childbirth.",
-  },
-
-  // Factory / Manufacturing
-  {
-    name: "Shift Leave",
-    description: "Leave taken due to shift schedule changes.",
-  },
-  {
-    name: "Production Shutdown Leave",
-    description: "Leave during factory or production shutdown.",
-  },
-  {
-    name: "Compensatory Leave",
-    description: "Leave given in return for extra working hours.",
-  },
-  {
-    name: "Special Leave",
-    description: "Leave granted for special circumstances.",
-  },
-  {
-    name: "Layoff Leave",
-    description: "Leave during temporary workforce layoff.",
-  },
-  {
-    name: "Menstrual Leave",
-    description:
-      "Menstrual Leave is a paid leave granted to eligible female employees to address health and wellness needs during their menstrual cycle. This leave is provided in accordance with company policy and may require prior approval.",
-  },
-  {
-    name: "Sandwich Leave",
-    description:
-      "Sandwich Leave is applied when an employee takes leave before and after a holiday or weekend, causing the intervening non-working days to be counted as leave, as per company policy.",
-  },
-];
 
 export default function LeaveAdjustmentPage() {
   const router = useRouter();
@@ -216,7 +64,12 @@ export default function LeaveAdjustmentPage() {
   );
   const [searchText, setSearchText] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [employees, setEmployees] = useState<{ label: string; value: string }[]>([]);
+  const [approvers, setApprovers] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [employeeList, setEmployeeList] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   const {
@@ -226,25 +79,43 @@ export default function LeaveAdjustmentPage() {
     updateAdjustment,
     deleteAdjustment,
   } = useLeaveAdjustments();
+  const {
+    leaveTypes: apiLeaveTypes,
+    loading: leaveTypesLoading,
+    fetchLeaveTypes,
+  } = useLeaveTypes();
 
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchData = async () => {
       try {
-        const data = await MembersService.getMembersForSelect();
-        setEmployees(data);
+        const [membersData, employeesData] = await Promise.all([
+          MembersService.getMembersForSelect(),
+          EmployeeOnboardingService.getAllEmployees(),
+        ]);
+        setApprovers(membersData);
+
+        if (Array.isArray(employeesData)) {
+          const formattedEmployees = employeesData.map((emp: any) => ({
+            label: `${emp.firstName}---(${emp.employee_code})`,
+            value: emp.id,
+          }));
+
+          setEmployeeList(formattedEmployees);
+        }
       } catch (error) {
-        console.error("Failed to fetch employees:", error);
+        console.error("Failed to fetch data:", error);
       }
     };
-    fetchEmployees();
-  }, []);
+    fetchData();
+    fetchLeaveTypes();
+  }, [fetchLeaveTypes]);
 
   const handleSaveAdjustment = async (values: any) => {
     setConfirmLoading(true);
     try {
       const payload: LeaveAdjustmentPayload = {
-        userId: values.employee,
-        leaveType: values.leaveType,
+        employeeId: values.employee,
+        leaveTypeId: values.leaveTypeId,
         adjustmentType: values.type,
         amount: values.amount,
         unit: values.unit,
@@ -280,6 +151,7 @@ export default function LeaveAdjustmentPage() {
     form.setFieldsValue({
       ...record,
       employee: record.employeeId,
+      leaveTypeId: record.leaveTypeId,
       approvedBy: record.approvedById,
       unit: record.unit || "Days",
       compOffWorkDate: record.compOffWorkDate
@@ -355,8 +227,8 @@ export default function LeaveAdjustmentPage() {
     {
       title: "Reason",
       dataIndex: "reason",
-      width: 320,  
-        
+      width: 320,
+
       key: "reason",
       ellipsis: {
         showTitle: false,
@@ -413,7 +285,7 @@ export default function LeaveAdjustmentPage() {
         <div style={{ padding: 24 }}>
           {contextHolder}
           {modalContextHolder}
-          <div >
+          <div>
             <Tabs
               activeKey={
                 pathname.includes("leave-adjustments")
@@ -424,19 +296,20 @@ export default function LeaveAdjustmentPage() {
                       ? "holidays"
                       : pathname.includes("leave-configuration")
                         ? "configuration"
-                        : pathname.includes("position-configuration")
+                        : pathname.includes("leave-policy")
                           ? "positions"
                           : "leaves"
               }
               onChange={(key) => {
                 if (key === "dashboard") router.push("/leaves-dashboard");
-                if (key === "leaves") router.push("/leaves");
+                // if (key === "leaves") router.push("/leaves");
                 if (key === "holidays") router.push("/government-holidays");
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration")
-                  router.push("/leave-configuration");
+                  router.push("/leave-type");
                 if (key === "positions") router.push("/position-configuration");
                 if (key === "addLeaves") router.push("/add-goverment-leaves");
+                if (key === "apply-leave") router.push("/apply-leave");
               }}
               items={[
                 {
@@ -447,11 +320,19 @@ export default function LeaveAdjustmentPage() {
                     </span>
                   ),
                 },
+                // {
+                //   key: "leaves",
+                //   label: (
+                //     <span>
+                //       <ClockCircleOutlined /> Apply Leave
+                //     </span>
+                //   ),
+                // },
                 {
-                  key: "leaves",
+                  key: "apply-leave",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> Apply Leave
+                      <PlusOutlined /> Apply leave
                     </span>
                   ),
                 },
@@ -475,7 +356,7 @@ export default function LeaveAdjustmentPage() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Type
                     </span>
                   ),
                 },
@@ -483,7 +364,7 @@ export default function LeaveAdjustmentPage() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -524,35 +405,33 @@ export default function LeaveAdjustmentPage() {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 12 }}>
+                <Input.Search
+                  placeholder="Search adjustments...."
+                  allowClear
+                  style={{ width: 390 }}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
 
-  <Input.Search
-    placeholder="Search adjustments...."
-    allowClear
-    style={{ width: 390 }}
-    onChange={(e) => setSearchText(e.target.value)}
-  />
-
-  <Button
-    type="primary"
-    style={{ width: 180,height: 30}}
-    onClick={() => setIsModalVisible(true)}
-  >
-    + Add New Adjustment
-  </Button>
-
-</div>
-
-
+                <Button
+                  type="primary"
+                  style={{ width: 180, height: 30 }}
+                  onClick={() => setIsModalVisible(true)}
+                >
+                  + Add New Adjustment
+                </Button>
+              </div>
             </div>
             <Space wrap style={{ marginBottom: 16 }}>
               <Tag style={{ borderRadius: 12 }}>
                 Total Adjustments: {dataSource.length}
               </Tag>
               <Tag color="success" style={{ borderRadius: 12 }}>
-                Credits: {dataSource.filter((item) => item.type === "Credit").length}
+                Credits:{" "}
+                {dataSource.filter((item) => item.type === "Credit").length}
               </Tag>
               <Tag color="error" style={{ borderRadius: 12 }}>
-                Debits: {dataSource.filter((item) => item.type === "Debit").length}
+                Debits:{" "}
+                {dataSource.filter((item) => item.type === "Debit").length}
               </Tag>
             </Space>
             <Table
@@ -605,9 +484,11 @@ export default function LeaveAdjustmentPage() {
                     <Select
                       placeholder="Select Employee"
                       showSearch
-                      options={employees}
+                      options={employeeList}
                       filterOption={(input, option) =>
-                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
                       }
                     />
                   </Form.Item>
@@ -616,27 +497,33 @@ export default function LeaveAdjustmentPage() {
                 {/* Leave Type & Adjustment Type */}
                 <Col span={12}>
                   <Form.Item
-                    name="leaveType"
+                    name="leaveTypeId"
                     label="Leave Type"
                     rules={[{ required: true }]}
                   >
                     <Select
                       placeholder="Select leave type"
+                      loading={leaveTypesLoading}
                       showSearch
                       filterOption={(input, option) =>
-                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
                       }
                       onChange={(value) => {
-                        setSelectedLeaveType(value);
-                        if (value === "Permission") {
+                        const selected = apiLeaveTypes?.find(
+                          (lt) => lt.id === value,
+                        );
+                        setSelectedLeaveType(selected?.name || null);
+                        if (selected?.name === "Permission") {
                           form.setFieldsValue({ unit: "Hours" });
                         } else {
                           form.setFieldsValue({ unit: "Days" });
                         }
                       }}
-                      options={leaveTypesData.map((l) => ({
+                      options={apiLeaveTypes?.map((l) => ({
                         label: l.name,
-                        value: l.name,
+                        value: l.id,
                       }))}
                     />
                   </Form.Item>
@@ -696,9 +583,11 @@ export default function LeaveAdjustmentPage() {
                     <Select
                       placeholder="Select Approver"
                       showSearch
-                      options={employees}
+                      options={approvers}
                       filterOption={(input, option) =>
-                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                        (option?.label ?? "")
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
                       }
                     />
                   </Form.Item>
@@ -769,21 +658,25 @@ export default function LeaveAdjustmentPage() {
                     Delete
                   </Button>
                 )}
-                <div style={{ display: "flex", gap: 12, marginLeft: 'auto' }}>
-                <Button
-                  onClick={() => {
-                    setIsModalVisible(false);
-                    setSelectedLeaveType(null);
-                    setEditingKey(null);
-                    form.resetFields();
-                  }}
-                  disabled={confirmLoading}
-                >
-                  Cancel
-                </Button>
-                <Button type="primary" htmlType="submit" loading={confirmLoading}>
-                  {editingKey ? "Update Adjustment" : "Save Adjustment"}
-                </Button>
+                <div style={{ display: "flex", gap: 12, marginLeft: "auto" }}>
+                  <Button
+                    onClick={() => {
+                      setIsModalVisible(false);
+                      setSelectedLeaveType(null);
+                      setEditingKey(null);
+                      form.resetFields();
+                    }}
+                    disabled={confirmLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={confirmLoading}
+                  >
+                    {editingKey ? "Update Adjustment" : "Save Adjustment"}
+                  </Button>
                 </div>
               </div>
             </Form>

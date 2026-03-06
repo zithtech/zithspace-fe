@@ -59,12 +59,12 @@ const { Paragraph, Text } = Typography;
 
 interface OriginLeaveType {
   id: string;
-  leaveType: string;
+  leaveTypeId: string;
   unit: number;
   period: string;
   carryForward: boolean;
   status: string;
-} 
+}
 
 export default function LeavesPage() {
   const { user } = useAuth();
@@ -107,7 +107,9 @@ export default function LeavesPage() {
   // Merge types from balances into available options if they are missing from apiLeaveTypes
   const availableLeaveTypes = useMemo(() => {
     const baseTypes = apiLeaveTypes || [];
-    const baseTypeNames = new Set(baseTypes.map((lt: any) => lt.name?.toLowerCase()));
+    const baseTypeNames = new Set(
+      baseTypes.map((lt: any) => lt.name?.toLowerCase()),
+    );
 
     const extraTypes = leaveBalances
       .filter((b) => !baseTypeNames.has(b.type?.toLowerCase()))
@@ -127,12 +129,16 @@ export default function LeavesPage() {
         .filter((lt: any) => {
           if (lt.name === "Loss of Pay") return true;
           if (hasLeaveConfig) {
-            return leaveBalances.some((b) => b.type?.toLowerCase() === lt.name?.toLowerCase());
+            return leaveBalances.some(
+              (b) => b.type?.toLowerCase() === lt.name?.toLowerCase(),
+            );
           }
           return false;
         })
         .map((lt: any) => {
-          const balance = leaveBalances.find((b) => b.type?.toLowerCase() === lt.name?.toLowerCase());
+          const balance = leaveBalances.find(
+            (b) => b.type?.toLowerCase() === lt.name?.toLowerCase(),
+          );
           const isLossOfPay = lt.name === "Loss of Pay";
           const disabled = !isLossOfPay && balance && balance.remaining <= 0;
           let label = lt.name;
@@ -147,11 +153,17 @@ export default function LeavesPage() {
         })
     : [];
 
-  const isSelectedLeaveHourly = availableLeaveTypes?.find((lt: any) => lt.name?.toLowerCase() === selectedLeaveType?.toLowerCase())?.type === "Hours";
+  const isSelectedLeaveHourly =
+    availableLeaveTypes?.find(
+      (lt: any) => lt.name?.toLowerCase() === selectedLeaveType?.toLowerCase(),
+    )?.type === "Hours";
 
   // Dynamic duration types based on leave type
   const getDurationTypes = (leaveType: string) => {
-    const isHourly = availableLeaveTypes?.find((lt: any) => lt.name?.toLowerCase() === leaveType?.toLowerCase())?.type === "Hours";
+    const isHourly =
+      availableLeaveTypes?.find(
+        (lt: any) => lt.name?.toLowerCase() === leaveType?.toLowerCase(),
+      )?.type === "Hours";
     if (isHourly) {
       return [{ label: "Hours", value: "HOURS" }];
     }
@@ -197,17 +209,22 @@ export default function LeavesPage() {
     } else {
       setCalculatedDuration(0);
     }
-  }, [dateRange, selectedDurationType, selectedLeaveType, form, isSelectedLeaveHourly]);
+  }, [
+    dateRange,
+    selectedDurationType,
+    selectedLeaveType,
+    form,
+    isSelectedLeaveHourly,
+  ]);
   // Add this useEffect after approval actions
-useEffect(() => {
-  const timer = setTimeout(() => {
-    fetchMyLeaves();
-    fetchPendingApprovals();
-  }, 1000); // Refresh 1s after state changes
-  
-  return () => clearTimeout(timer);
-}, [approvingLeaveId, rejectingLeaveId, cancellingLeaveId]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMyLeaves();
+      fetchPendingApprovals();
+    }, 1000); // Refresh 1s after state changes
 
+    return () => clearTimeout(timer);
+  }, [approvingLeaveId, rejectingLeaveId, cancellingLeaveId]);
 
   useEffect(() => {
     fetchLeaveTypes();
@@ -227,13 +244,17 @@ useEffect(() => {
         // Try to find member by email first to avoid 404 errors from missing ID endpoint
         if (user.email) {
           try {
-            const response = await MembersService.getMembers({ search: user.email });
+            const response = await MembersService.getMembers({
+              search: user.email,
+            });
             member = response.data.find(
               (m: any) =>
                 m.workEmail?.toLowerCase() === user.email.toLowerCase() ||
                 m.personalEmail?.toLowerCase() === user.email.toLowerCase(),
             );
-          } catch (e) { /* ignore */ }
+          } catch (e) {
+            /* ignore */
+          }
         }
 
         // Fallback to ID lookup if email search didn't find the member
@@ -255,39 +276,46 @@ useEffect(() => {
 
         // 2. Get Position Configuration from leaveOrigins
         const positionConfig = leaveOrigins.find(
-          (config) => config.origin === "Position" && config.subOriginId === member.position?.id
+          (config) =>
+            config.origin === "Position" &&
+            config.subOriginId === member.position?.id,
         );
 
         setHasLeaveConfig(!!positionConfig);
-        
+
         // 3. Calculate balances based on configuration and history
         if (positionConfig?.leaveTypes) {
           const balances = positionConfig.leaveTypes
             .filter((config: OriginLeaveType) => config.status === "Active")
             .map((config: OriginLeaveType) => {
-            const now = dayjs();
-            const used = myLeaves
-              .filter((l) => {
-                // Normalize types to handle "casual_leave" vs "Casual Leave" mismatch
-                const normalize = (s: string) => (s || "").toLowerCase().replace(/_/g, " ").trim();
-                if (normalize(l.type) !== normalize(config.leaveType)) return false;
-                
-                const status = l.status?.toLowerCase();
-                if (status !== "approved" && status !== "pending") return false;
+              const now = dayjs();
+              const used = myLeaves
+                .filter((l) => {
+                  // Normalize types to handle "casual_leave" vs "Casual Leave" mismatch
+                  const normalize = (s: string) =>
+                    (s || "").toLowerCase().replace(/_/g, " ").trim();
+                  if (normalize(l.type) !== normalize(config.leaveTypeId))
+                    return false;
 
-                const leaveDate = dayjs(l.startDate);
-                return config.period === "MONTH" ? leaveDate.isSame(now, "month") : leaveDate.isSame(now, "year");
-              })
-              .reduce((sum, l) => sum + (l.duration || 0), 0);
-            
-            return {
-              type: config.leaveType,
-              allowed: Number(config.unit),
-              used,
-              remaining: Number(config.unit) - used,
-              period: config.period,
-            };
-          });
+                  const status = l.status?.toLowerCase();
+                  if (status !== "approved" && status !== "pending")
+                    return false;
+
+                  const leaveDate = dayjs(l.startDate);
+                  return config.period === "MONTH"
+                    ? leaveDate.isSame(now, "month")
+                    : leaveDate.isSame(now, "year");
+                })
+                .reduce((sum, l) => sum + (l.duration || 0), 0);
+
+              return {
+                type: config.leaveTypeId,
+                allowed: Number(config.unit),
+                used,
+                remaining: Number(config.unit) - used,
+                period: config.period,
+              };
+            });
           if (isMounted) {
             setLeaveBalances(balances);
           }
@@ -331,7 +359,9 @@ useEffect(() => {
   const handleApplyLeave = async (values: any) => {
     try {
       // Check leave balance before submitting
-      const balance = leaveBalances.find((b) => b.type?.toLowerCase() === values.type?.toLowerCase());
+      const balance = leaveBalances.find(
+        (b) => b.type?.toLowerCase() === values.type?.toLowerCase(),
+      );
       if (balance && balance.remaining <= 0 && values.type !== "Loss of Pay") {
         message.error(`Cannot apply for ${values.type}. Leave limit reached.`);
         return;
@@ -615,8 +645,8 @@ useEffect(() => {
         <div style={{ padding: 24 }}>
           <div>
             {/* {user && (
-              <Tag 
-                color={hasApprovalRights ? "orange" : "blue"} 
+              <Tag
+                color={hasApprovalRights ? "orange" : "blue"}
                 style={{ marginLeft: 16, fontSize: 14 }}
               >
                 {hasApprovalRights ? "Manager/Admin" : "Employee"}
@@ -634,6 +664,7 @@ useEffect(() => {
               if (key === "configuration") router.push("/leave-configuration");
               if (key === "positions") router.push("/position-configuration");
               if (key === "addLeaves") router.push("/add-goverment-leaves");
+              if (key === "apply-leave") router.push("/apply-leave");
             }}
             items={[
               {
@@ -689,6 +720,14 @@ useEffect(() => {
                 label: (
                   <span>
                     <PlusOutlined /> Add Government Leaves
+                  </span>
+                ),
+              },
+              {
+                key: "apply-leave",
+                label: (
+                  <span>
+                    <PlusOutlined /> apply leave
                   </span>
                 ),
               },
@@ -1050,7 +1089,7 @@ useEffect(() => {
 
           <Row gutter={24}>
             <Col xs={24} lg={10}>
-              <Card title="Apply Leave" style={{ marginTop: 10, height: 410}}>
+              <Card title="Apply Leave" style={{ marginTop: 10, height: 410 }}>
                 <Form form={form} layout="vertical" onFinish={handleApplyLeave}>
                   <Row gutter={16}>
                     <Col span={12}>
@@ -1080,7 +1119,10 @@ useEffect(() => {
                             setSelectedDurationType("");
                             setCalculatedDuration(0);
 
-                            const isHourly = availableLeaveTypes?.find((lt: any) => lt.name === value)?.type === "Hours";
+                            const isHourly =
+                              availableLeaveTypes?.find(
+                                (lt: any) => lt.name === value,
+                              )?.type === "Hours";
                             // Auto-select HOURS for permission
                             if (isHourly) {
                               form.setFieldsValue({ durationType: "HOURS" });
@@ -1090,16 +1132,46 @@ useEffect(() => {
                         />
                       </Form.Item>
                       {selectedLeaveType && (
-                        <div style={{ marginTop: -20, marginBottom: 20, paddingLeft: 4 }}>
+                        <div
+                          style={{
+                            marginTop: -20,
+                            marginBottom: 20,
+                            paddingLeft: 4,
+                          }}
+                        >
                           {(() => {
-                            const balance = leaveBalances.find(b => b.type?.toLowerCase() === selectedLeaveType?.toLowerCase());
+                            const balance = leaveBalances.find(
+                              (b) =>
+                                b.type?.toLowerCase() ===
+                                selectedLeaveType?.toLowerCase(),
+                            );
                             if (!balance) return null;
                             return (
                               <Text type="secondary" style={{ fontSize: 12 }}>
-                                Balance: <Text strong>{balance.remaining}</Text> / {balance.allowed} 
-                                {balance.period && <span style={{ marginLeft: 4 }}>({balance.period === "MONTH" ? "Monthly" : "Yearly"})</span>}
-                                {balance.remaining === 0 && <Text type="warning" style={{ marginLeft: 8 }}>(Limit Reached)</Text>}
-                                {balance.remaining < 0 && <Text type="danger" style={{ marginLeft: 8 }}>(Limit Exceeded)</Text>}
+                                Balance: <Text strong>{balance.remaining}</Text>{" "}
+                                / {balance.allowed}
+                                {balance.period && (
+                                  <span style={{ marginLeft: 4 }}>
+                                    (
+                                    {balance.period === "MONTH"
+                                      ? "Monthly"
+                                      : "Yearly"}
+                                    )
+                                  </span>
+                                )}
+                                {balance.remaining === 0 && (
+                                  <Text
+                                    type="warning"
+                                    style={{ marginLeft: 8 }}
+                                  >
+                                    (Limit Reached)
+                                  </Text>
+                                )}
+                                {balance.remaining < 0 && (
+                                  <Text type="danger" style={{ marginLeft: 8 }}>
+                                    (Limit Exceeded)
+                                  </Text>
+                                )}
                               </Text>
                             );
                           })()}
@@ -1133,18 +1205,13 @@ useEffect(() => {
                     <Col span={isSelectedLeaveHourly ? 12 : 16}>
                       <Form.Item
                         name="dateRange"
-                        label={
-                          isSelectedLeaveHourly
-                            ? "Date"
-                            : "Date Range"
-                        }
+                        label={isSelectedLeaveHourly ? "Date" : "Date Range"}
                         rules={[
                           {
                             required: true,
-                            message:
-                              isSelectedLeaveHourly
-                                ? "Please select date"
-                                : "Please select date range",
+                            message: isSelectedLeaveHourly
+                              ? "Please select date"
+                              : "Please select date range",
                           },
                         ]}
                       >
@@ -1290,7 +1357,7 @@ useEffect(() => {
                       htmlType="submit"
                       loading={loading}
                       icon={<PlusOutlined />}
-                      style={{top:10}}
+                      style={{ top: 10 }}
                     >
                       Submit Application
                     </Button>
@@ -1299,7 +1366,10 @@ useEffect(() => {
               </Card>
             </Col>
             <Col xs={24} lg={14}>
-              <Card bodyStyle={{ paddingTop: 8 }} style={{ marginTop: 10, height: 410 }}>
+              <Card
+                bodyStyle={{ paddingTop: 8 }}
+                style={{ marginTop: 10, height: 410 }}
+              >
                 <Tabs
                   defaultActiveKey="history"
                   items={[
@@ -1318,8 +1388,8 @@ useEffect(() => {
                         <Table
                           columns={myLeavesColumns}
                           dataSource={myLeaves}
-                          rowKey="id"        
-                          pagination={{ pageSize: 4}}
+                          rowKey="id"
+                          pagination={{ pageSize: 4 }}
                         />
                       ),
                     },

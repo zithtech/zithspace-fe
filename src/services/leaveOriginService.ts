@@ -5,7 +5,8 @@ const API_URL = "/api/leave-origins";
 
 export interface OriginLeaveType {
   id: string;
-  leaveType: string;
+  leaveTypeId: string;
+  leaveType?: { id: string; name: string }; // Populated relation
   unit: number;
   period: string;
   carryForward: boolean;
@@ -27,7 +28,7 @@ export interface CreateLeaveOriginStructureData {
 
 export interface CreateOriginLeaveTypeData {
   leaveOriginId: string;
-  leaveType: string;
+  leaveTypeId: string;
   unit: number;
   period: string;
   carryForward: boolean;
@@ -40,22 +41,32 @@ export const leaveOriginService = {
     return response.data.data;
   },
 
-  createStructure: async (data: CreateLeaveOriginStructureData): Promise<LeaveOriginStructure> => {
+  createStructure: async (
+    data: CreateLeaveOriginStructureData,
+  ): Promise<LeaveOriginStructure> => {
     const response = await apiClient.post(`${API_URL}/structure`, data);
     return response.data.data;
   },
 
-  updateStructure: async (id: string, data: { leaveTypes: any[] }): Promise<LeaveOriginStructure> => {
+  updateStructure: async (
+    id: string,
+    data: { leaveTypes: any[] },
+  ): Promise<LeaveOriginStructure> => {
     const response = await apiClient.put(`${API_URL}/structure/${id}`, data);
     return response.data.data;
   },
 
-  createLeaveType: async (data: CreateOriginLeaveTypeData): Promise<OriginLeaveType> => {
+  createLeaveType: async (
+    data: CreateOriginLeaveTypeData,
+  ): Promise<OriginLeaveType> => {
     const response = await apiClient.post(`${API_URL}/type`, data);
     return response.data.data;
   },
 
-  updateLeaveType: async (id: string, data: Partial<CreateOriginLeaveTypeData>): Promise<OriginLeaveType> => {
+  updateLeaveType: async (
+    id: string,
+    data: Partial<CreateOriginLeaveTypeData>,
+  ): Promise<OriginLeaveType> => {
     const response = await apiClient.put(`${API_URL}/type/${id}`, data);
     return response.data.data;
   },

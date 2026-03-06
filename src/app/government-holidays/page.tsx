@@ -45,10 +45,12 @@ import dayjs from "dayjs";
 import { useRouter, usePathname } from "next/navigation";
 import { Country, ICountry } from "country-state-city";
 import { FixedHolidayService, FixedHoliday } from "@/services/addHolidays";
+import { useCompanyGovernmentHolidays } from "@/hooks/useCompanyGovernmentHolidays";
 import {
-  useCompanyGovernmentHolidays,
-} from "@/hooks/useCompanyGovernmentHolidays";
-import { CompanyGovernmentHoliday, CreateHolidayPayload, UpdateHolidayPayload } from "@/services/companyGovernmentHolidayService";
+  CompanyGovernmentHoliday,
+  CreateHolidayPayload,
+  UpdateHolidayPayload,
+} from "@/services/companyGovernmentHolidayService";
 
 const { Text } = Typography;
 
@@ -68,19 +70,24 @@ export default function GovernmentHolidaysPage() {
   } = useCompanyGovernmentHolidays();
   const [dataSource, setDataSource] = useState<CompanyGovernmentHoliday[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
-  const [apiHolidaysSource, setApiHolidaysSource] =useState<FixedHoliday[]>([]);
+  const [apiHolidaysSource, setApiHolidaysSource] = useState<FixedHoliday[]>(
+    [],
+  );
   // Holidays State
   const [holidayModalVisible, setHolidayModalVisible] = useState(false);
   const [modalCountry, setModalCountry] = useState("IN");
-  const [selectedHolidayIds, setSelectedHolidayIds] = useState<(number | string)[]>([]);
+  const [selectedHolidayIds, setSelectedHolidayIds] = useState<
+    (number | string)[]
+  >([]);
 
   const [isAdding, setIsAdding] = useState(false);
   // Edit Holiday State
   const [editHolidayModalVisible, setEditHolidayModalVisible] = useState(false);
-  const [editingHoliday, setEditingHoliday] = useState<CompanyGovernmentHoliday | null>(null);
+  const [editingHoliday, setEditingHoliday] =
+    useState<CompanyGovernmentHoliday | null>(null);
   const [editBaseDays, setEditBaseDays] = useState(1);
   const [editExtraDays, setEditExtraDays] = useState(0);
-  const [editExtraPosition, setEditExtraPosition] = useState< 
+  const [editExtraPosition, setEditExtraPosition] = useState<
     "before" | "after"
   >("after");
 
@@ -112,24 +119,22 @@ export default function GovernmentHolidaysPage() {
   }, [holidays]);
 
   // Filter holidays for modal based on country
-  const filteredModalHolidays = apiHolidaysSource.filter(
-    (h) => {
-      const isCountryMatch = h.country === modalCountry;
-      const isAlreadyAdded = holidays.some(
-        (added) =>
-          added.holidayName === h.holidayName &&
-          added.country === h.country &&
-          dayjs(added.fromDate).isSame(dayjs(h.fromDate), "day")
-      );
-      return isCountryMatch && !isAlreadyAdded;
-    }
-  );
+  const filteredModalHolidays = apiHolidaysSource.filter((h) => {
+    const isCountryMatch = h.country === modalCountry;
+    const isAlreadyAdded = holidays.some(
+      (added) =>
+        added.holidayName === h.holidayName &&
+        added.country === h.country &&
+        dayjs(added.fromDate).isSame(dayjs(h.fromDate), "day"),
+    );
+    return isCountryMatch && !isAlreadyAdded;
+  });
 
   const handleEditHoliday = (record: CompanyGovernmentHoliday) => {
     setEditingHoliday(record);
     setEditBaseDays(record.baseLeave);
     setEditExtraDays(record.extraLeave);
-    setEditExtraPosition(record.rule === 'before' ? 'before' : 'after');
+    setEditExtraPosition(record.rule === "before" ? "before" : "after");
     setEditHolidayModalVisible(true);
   };
 
@@ -144,13 +149,14 @@ export default function GovernmentHolidaysPage() {
     const originalHoliday = apiHolidaysSource.find(
       (h) =>
         h.holidayName === editingHoliday.holidayName &&
-        h.country === editingHoliday.country
+        h.country === editingHoliday.country,
     );
 
     if (!originalHoliday) {
       api.error({
         message: "Cannot Adjust Holiday",
-        description: "Could not find the original holiday definition to calculate date adjustments. The holiday might have been removed from the source list.",
+        description:
+          "Could not find the original holiday definition to calculate date adjustments. The holiday might have been removed from the source list.",
         placement: "topRight",
       });
       return;
@@ -218,14 +224,15 @@ export default function GovernmentHolidaysPage() {
 
   const handleStatusChange = (checked: boolean, recordKey: number | string) => {
     const holiday = holidays.find((h) => h.id === recordKey);
-    const name = holiday ? holiday.holidayName : "Holiday"; 
+    const name = holiday ? holiday.holidayName : "Holiday";
 
-    updateHoliday(recordKey as string, { status: checked ? 'ACTIVE' : 'INACTIVE' }).catch((err) => {
+    updateHoliday(recordKey as string, {
+      status: checked ? "ACTIVE" : "INACTIVE",
+    }).catch((err) => {
       message.error(err.message || "Failed to update status.");
       // Re-fetch to revert UI state on error
       fetchHolidays();
     });
-
 
     if (checked) {
       api.success({
@@ -242,7 +249,10 @@ export default function GovernmentHolidaysPage() {
     }
   };
 
-  const handleFloaterChange = (checked: boolean, record: CompanyGovernmentHoliday) => {
+  const handleFloaterChange = (
+    checked: boolean,
+    record: CompanyGovernmentHoliday,
+  ) => {
     updateHoliday(record.id, { isFloater: checked }).catch((err) => {
       message.error(err.message || "Failed to update floater status.");
       fetchHolidays();
@@ -282,14 +292,16 @@ export default function GovernmentHolidaysPage() {
       // After successful creation, refetch the list of holidays to update the table.
       await fetchHolidays();
     } catch (error: any) {
-      api.error({ message: "Failed to add holidays", description: error.message });
+      api.error({
+        message: "Failed to add holidays",
+        description: error.message,
+      });
     } finally {
       setIsAdding(false);
       setHolidayModalVisible(false);
       setSelectedHolidayIds([]);
     }
   };
-
 
   const holidayColumns = [
     {
@@ -309,7 +321,9 @@ export default function GovernmentHolidaysPage() {
       title: "Country",
       dataIndex: "country",
       key: "country",
-      render: (isoCode: string) => <Text>{Country.getCountryByCode(isoCode)?.name || isoCode}</Text>,
+      render: (isoCode: string) => (
+        <Text>{Country.getCountryByCode(isoCode)?.name || isoCode}</Text>
+      ),
     },
     {
       title: "From Date",
@@ -382,7 +396,7 @@ export default function GovernmentHolidaysPage() {
           checked={isFloater}
           checkedChildren={<CheckOutlined />}
           unCheckedChildren={<CloseOutlined />}
-          style={{ backgroundColor: isFloater ? '#52c41a' : '#f5222d' }}
+          style={{ backgroundColor: isFloater ? "#52c41a" : "#f5222d" }}
           onChange={(checked) => handleFloaterChange(checked, record)}
         />
       ),
@@ -396,10 +410,13 @@ export default function GovernmentHolidaysPage() {
     {
       title: "Status",
       dataIndex: "status",
-      key: "status", 
-      render: (status: 'ACTIVE' | 'INACTIVE', record: CompanyGovernmentHoliday) => (
+      key: "status",
+      render: (
+        status: "ACTIVE" | "INACTIVE",
+        record: CompanyGovernmentHoliday,
+      ) => (
         <Switch
-          checked={status === 'ACTIVE'}
+          checked={status === "ACTIVE"}
           //  disabled={!isAdmin}
           onChange={(checked) => handleStatusChange(checked, record.id)}
         />
@@ -411,12 +428,12 @@ export default function GovernmentHolidaysPage() {
       width: 180,
       render: (_: any, record: CompanyGovernmentHoliday) => (
         <Space style={{ gap: 20 }}>
-           <Tooltip title="Edit Leave Type">
-          <Button
-            size="small"
-            icon={<Settings2 size={16} />}
-            onClick={() => handleEditHoliday(record)}
-          ></Button>
+          <Tooltip title="Edit Leave Type">
+            <Button
+              size="small"
+              icon={<Settings2 size={16} />}
+              onClick={() => handleEditHoliday(record)}
+            ></Button>
           </Tooltip>
           <Popconfirm
             title="Delete this holiday?"
@@ -443,7 +460,7 @@ export default function GovernmentHolidaysPage() {
             setSelectedHolidayIds((prev) =>
               checked
                 ? [...prev, record.id]
-                : prev.filter((id) => id !== record.id)
+                : prev.filter((id) => id !== record.id),
             );
           }}
         />
@@ -459,23 +476,29 @@ export default function GovernmentHolidaysPage() {
       title: "From Date",
       dataIndex: "fromDate",
       key: "fromDate",
-    render: (date: string | Date) => (
-  <Text>
-    {date ? dayjs(typeof date === 'string' ? date : date.toISOString()).format("MMM DD, YYYY") : "-"}
-  </Text>
-),
-
+      render: (date: string | Date) => (
+        <Text>
+          {date
+            ? dayjs(
+                typeof date === "string" ? date : date.toISOString(),
+              ).format("MMM DD, YYYY")
+            : "-"}
+        </Text>
+      ),
     },
     {
       title: "To Date",
       dataIndex: "toDate",
       key: "toDate",
-render: (date: string | Date) => (
-  <Text>
-    {date ? dayjs(typeof date === 'string' ? date : date.toISOString()).format("MMM DD, YYYY") : "-"}
-  </Text>
-),
-
+      render: (date: string | Date) => (
+        <Text>
+          {date
+            ? dayjs(
+                typeof date === "string" ? date : date.toISOString(),
+              ).format("MMM DD, YYYY")
+            : "-"}
+        </Text>
+      ),
     },
     {
       title: "Type",
@@ -503,23 +526,25 @@ render: (date: string | Date) => (
                 pathname.includes("leave-adjustments")
                   ? "adjustments"
                   : pathname.includes("leaves-dashboard")
-                  ? "dashboard"
-                  : pathname.includes("leaves")
-                  ? "leaves"
-                  : pathname.includes("leave-configuration")
-                  ? "configuration"
-                  : pathname.includes("position-configuration")
-                  ? "positions"
-                  : "holidays"
+                    ? "dashboard"
+                    : pathname.includes("leaves")
+                      ? "leaves"
+                      : pathname.includes("leave-configuration")
+                        ? "configuration"
+                        : pathname.includes("position-configuration")
+                          ? "positions"
+                          : "holidays"
               }
               onChange={(key) => {
                 if (key === "dashboard") router.push("/leaves-dashboard");
-                if (key === "leaves") router.push("/leaves");
+                // if (key === "leaves") router.push("/leaves");
                 if (key === "holidays") router.push("/government-holidays");
                 if (key === "adjustments") router.push("/leave-adjustments");
-                if (key === "configuration") router.push("/leave-configuration");
-                if (key === "positions") router.push("/position-configuration");
+                if (key === "configuration")
+                  router.push("/leave-type");
+                if (key === "positions") router.push("/leave-policy");
                 if (key === "addLeaves") router.push("/add-goverment-leaves");
+                if (key === "apply-leave") router.push("/apply-leave");
               }}
               items={[
                 {
@@ -530,11 +555,19 @@ render: (date: string | Date) => (
                     </span>
                   ),
                 },
+                // {
+                //   key: "leaves",
+                //   label: (
+                //     <span>
+                //       <ClockCircleOutlined /> Apply Leave
+                //     </span>
+                //   ),
+                // },
                 {
-                  key: "leaves",
+                  key: "apply-leave",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> Apply Leave
+                      <PlusOutlined /> Apply leave
                     </span>
                   ),
                 },
@@ -558,7 +591,7 @@ render: (date: string | Date) => (
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Type
                     </span>
                   ),
                 },
@@ -566,7 +599,8 @@ render: (date: string | Date) => (
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined />
+                      Leave Policy
                     </span>
                   ),
                 },
@@ -607,15 +641,14 @@ render: (date: string | Date) => (
                 </div>
                 <div style={{ marginTop: 8, marginLeft: 28 }}>
                   <Space>
-                    <Tag color="processing">
-                      Total: {holidays.length}
-                    </Tag>
+                    <Tag color="processing">Total: {holidays.length}</Tag>
                     <Tag color="success">
-                      Active: {holidays.filter((h) => h.status === 'ACTIVE').length}
+                      Active:{" "}
+                      {holidays.filter((h) => h.status === "ACTIVE").length}
                     </Tag>
                     <Tag color="default">
                       Inactive:{" "}
-                      {holidays.filter((h) => h.status === 'INACTIVE').length}
+                      {holidays.filter((h) => h.status === "INACTIVE").length}
                     </Tag>
                   </Space>
                 </div>
@@ -631,14 +664,13 @@ render: (date: string | Date) => (
             </div>
             <Divider />
             <Table
-  loading={holidaysLoading}
-  columns={holidayColumns as any}
-  dataSource={dataSource}
-  rowKey="id"
-  pagination={{ pageSize: 10 }}
-  key={dataSource.length}  // Keep the re-render strategy, but based on the new dataSource
-/>
-
+              loading={holidaysLoading}
+              columns={holidayColumns as any}
+              dataSource={dataSource}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+              key={dataSource.length} // Keep the re-render strategy, but based on the new dataSource
+            />
           </Card>
 
           {/* Modals */}
@@ -712,7 +744,7 @@ render: (date: string | Date) => (
                       size="small"
                       onClick={() =>
                         setSelectedHolidayIds(
-                          filteredModalHolidays.map((h) => h.id)
+                          filteredModalHolidays.map((h) => h.id),
                         )
                       }
                     >
@@ -875,7 +907,7 @@ render: (date: string | Date) => (
                         const originalHoliday = apiHolidaysSource.find(
                           (h) =>
                             h.holidayName === editingHoliday.holidayName &&
-                            h.country === editingHoliday.country
+                            h.country === editingHoliday.country,
                         );
 
                         const start = originalHoliday
@@ -889,11 +921,11 @@ render: (date: string | Date) => (
                           from = dayjs(start);
                           to = dayjs(start).add(
                             Math.max(0, base + extra - 1),
-                            "day"
+                            "day",
                           );
                         }
                         return `${from.format("MMM DD")} - ${to.format(
-                          "MMM DD, YYYY"
+                          "MMM DD, YYYY",
                         )}`;
                       })()}
                     </div>

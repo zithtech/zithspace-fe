@@ -381,7 +381,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: <WalletOutlined />,
-    pathPrefixes: ["/accounts", "/invoicepro", "/reimbursement", "/salary"],
+    pathPrefixes: ["/accounts", "/clients-v2", "/invoicepro", "/reimbursement", "/salary"],
     defaultPath: "/accounts",
     requiredAnyPermission: [Permissions.TRANSACTION_READ, Permissions.INVOICE_READ, Permissions.SALARY_READ],
     items: [
@@ -390,7 +390,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Accounts",
         icon: <WalletOutlined />,
         path: "/accounts",
-        requiredPermission: Permissions.TRANSACTION_READ,
+      },
+      {
+        key: "/clients-v2",
+        label: "Client Management",
+        icon: <TeamOutlined />,
+        path: "/clients-v2",
       },
       {
         key: "invoicepro",
@@ -491,16 +496,21 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "ADMIN",
     label: "ADMIN",
     icon: <SettingOutlined />,
-    pathPrefixes: ["/clients", "/settings", "/admin", "/roles"],
-    defaultPath: "/clients",
+    pathPrefixes: ["/clients", "/clients-v2", "/settings", "/admin", "/roles"],
+    defaultPath: "/clients-v2",
     requiredAnyPermission: [Permissions.CLIENT_READ, Permissions.SETTINGS_READ, Permissions.ROLE_READ],
     items: [
       {
         key: "/clients",
-        label: "Clients",
+        label: "Clients (Legacy)",
         icon: <UserAddOutlined />,
         path: "/clients",
-        requiredPermission: Permissions.CLIENT_READ,
+      },
+      {
+        key: "/clients-v2",
+        label: "Clients V2",
+        icon: <ApartmentOutlined />,
+        path: "/clients-v2",
       },
       {
         key: "/settings",

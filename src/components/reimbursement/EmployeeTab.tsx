@@ -3440,26 +3440,26 @@ export default function EmployeeTab() {
       //     return count > 0 ? <Tag color="green">{count} file(s)</Tag> : <Tag color="default">0</Tag>;
       //   },
       // },
-//       {
-//   title: "Attachments",
-//   key: "attachments",
-//   width: 100,
-//   render: (_: any, item: any) => {
-//     // Make sure we're counting correctly
-//     const attachments = item.attachments || [];
-//     const count = attachments.length;
+      {
+  title: "Attachments",
+  key: "attachments",
+  width: 100,
+  render: (_: any, item: any) => {
+    // Make sure we're counting correctly
+    const attachments = item.attachments || [];
+    const count = attachments.length;
     
-//     console.log(`Item ${item.id} attachments:`, attachments); // Debug log
+    console.log(`Item ${item.id} attachments:`, attachments); // Debug log
     
-//     if (count === 0) {
-//       return <Tag color="default">0</Tag>;
-//     } else if (count === 1) {
-//       return <Tag color="green">1 file</Tag>;
-//     } else {
-//       return <Tag color="green">{count} files</Tag>;
-//     }
-//   },
-// },
+    if (count === 0) {
+      return <Tag color="default">0</Tag>;
+    } else if (count === 1) {
+      return <Tag color="green">1 file</Tag>;
+    } else {
+      return <Tag color="green">{count} files</Tag>;
+    }
+  },
+},
     ];
     
     return (
@@ -3650,6 +3650,19 @@ export default function EmployeeTab() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

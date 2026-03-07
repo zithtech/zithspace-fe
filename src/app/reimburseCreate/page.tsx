@@ -7414,6 +7414,11 @@
 //   );
 // }
 
+
+
+
+
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -7546,6 +7551,8 @@ function CreateReimbursementContent({
   // ===== File preview modal state =====
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
+  // Add this state to track which categories require attachments
+const [categoryAttachmentRequired, setCategoryAttachmentRequired] = useState<Record<string, boolean>>({});
 
   // Use the create and update mutation hooks
   const createMutation = useCreateReimbursement();
@@ -7715,41 +7722,86 @@ function CreateReimbursementContent({
     }
   };
 
-  const loadCategoryNames = async (limits: CategoryLimit[]) => {
-    try {
-      const categoryIds = limits.map((limit) => limit.categoryId);
+  // const loadCategoryNames = async (limits: CategoryLimit[]) => {
+  //   try {
+  //     const categoryIds = limits.map((limit) => limit.categoryId);
 
-      const response = await fetch("/api/reimbursement-categories/by-ids", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: categoryIds }),
-      });
+  //     const response = await fetch("/api/reimbursement-categories/by-ids", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ ids: categoryIds }),
+  //     });
 
-      const result = await response.json();
+  //     const result = await response.json();
 
-      if (result.success) {
-        const categories = result.data;
+  //     if (result.success) {
+  //       const categories = result.data;
 
-        const options: CategoryOption[] = limits.map((limit) => {
-          const category = categories.find(
-            (c: any) => c.id === limit.categoryId,
-          );
-          return {
-            value: limit.categoryId,
-            label: category?.name || limit.categoryId,
-            maxAmount: limit.maxAmount,
-            periodType: limit.periodType,
-          };
-        });
+  //       const options: CategoryOption[] = limits.map((limit) => {
+  //         const category = categories.find(
+  //           (c: any) => c.id === limit.categoryId,
+  //         );
+  //         return {
+  //           value: limit.categoryId,
+  //           label: category?.name || limit.categoryId,
+  //           maxAmount: limit.maxAmount,
+  //           periodType: limit.periodType,
+  //         };
+  //       });
 
-        setCategoryOptions(options);
-      }
-    } catch (error) {
-      console.error("Failed to load category names:", error);
-    }
-  };
+  //       setCategoryOptions(options);
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to load category names:", error);
+  //   }
+  // };
 
   // Get max amount for a category
+ const loadCategoryNames = async (limits: CategoryLimit[]) => {
+  try {
+    const categoryIds = limits.map((limit) => limit.categoryId);
+
+    const response = await fetch("/api/reimbursement-categories/by-ids", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: categoryIds }),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      const categories = result.data;
+      
+      // Store attachmentRequired for each category
+      const attachmentRequiredMap: Record<string, boolean> = {};
+      categories.forEach((category: any) => {
+        attachmentRequiredMap[category.id] = category.attachmentRequired || false;
+      });
+      setCategoryAttachmentRequired(attachmentRequiredMap);
+
+      const options: CategoryOption[] = limits.map((limit) => {
+        const category = categories.find(
+          (c: any) => c.id === limit.categoryId,
+        );
+        return {
+          value: limit.categoryId,
+          label: category?.name || limit.categoryId,
+          maxAmount: limit.maxAmount,
+          periodType: limit.periodType,
+        };
+      });
+
+      setCategoryOptions(options);
+      
+      console.log("📋 Category attachment requirements:", attachmentRequiredMap);
+    }
+  } catch (error) {
+    console.error("Failed to load category names:", error);
+  }
+};
+ 
+ 
+ 
   const getMaxAmountForCategory = (categoryId: string): number => {
     const option = categoryOptions.find((opt) => opt.value === categoryId);
     return option?.maxAmount || 0;
@@ -7972,90 +8024,186 @@ function CreateReimbursementContent({
   };
 
   // Validate Form
-  const validateForm = () => {
-    const totalAttachments = reimbursementItems.reduce(
-      (sum, item) => sum + item.attachments.length,
-      0,
-    );
+  // const validateForm = () => {
+  //   const totalAttachments = reimbursementItems.reduce(
+  //     (sum, item) => sum + item.attachments.length,
+  //     0,
+  //   );
 
-    // For new submissions, require at least one attachment
-    if (!reimbursementId && totalAttachments === 0) {
+  //   // For new submissions, require at least one attachment
+  //   if (!reimbursementId && totalAttachments === 0) {
+  //     api.error({
+  //       message: "Validation Error",
+  //       description: "Please upload at least one attachment",
+  //       placement: "bottomRight",
+  //       duration: 3,
+  //     });
+  //     return false;
+  //   }
+
+  //   for (let i = 0; i < reimbursementItems.length; i++) {
+  //     const item = reimbursementItems[i];
+
+  //     if (!item.category) {
+  //       api.error({
+  //         message: "Validation Error",
+  //         description: `Item #${i + 1}: Please select a category`,
+  //         placement: "bottomRight",
+  //         duration: 3,
+  //       });
+  //       return false;
+  //     }
+
+  //     if (!item.date) {
+  //       api.error({
+  //         message: "Validation Error",
+  //         description: `Item #${i + 1}: Please select a date`,
+  //         placement: "bottomRight",
+  //         duration: 3,
+  //       });
+  //       return false;
+  //     }
+
+  //     if (!item.billNo?.trim()) {
+  //       api.error({
+  //         message: "Validation Error",
+  //         description: `Item #${i + 1}: Please enter bill number`,
+  //         placement: "bottomRight",
+  //         duration: 3,
+  //       });
+  //       return false;
+  //     }
+
+  //     if (!item.amount || item.amount <= 0) {
+  //       api.error({
+  //         message: "Validation Error",
+  //         description: `Item #${i + 1}: Please enter a valid amount`,
+  //         placement: "bottomRight",
+  //         duration: 3,
+  //       });
+  //       return false;
+  //     }
+
+  //     const amountError = validateAmount(item.category, item.amount);
+  //     if (amountError) {
+  //       api.error({
+  //         message: "Validation Error",
+  //         description: `Item #${i + 1}: ${amountError}`,
+  //         placement: "bottomRight",
+  //         duration: 4,
+  //       });
+  //       return false;
+  //     }
+
+  //     if (!item.description?.trim()) {
+  //       api.error({
+  //         message: "Validation Error",
+  //         description: `Item #${i + 1}: Please enter a description`,
+  //         placement: "bottomRight",
+  //         duration: 3,
+  //       });
+  //       return false;
+  //     }
+  //   }
+
+  //   return true;
+  // };
+
+
+
+
+
+
+
+
+  // Validate Form
+const validateForm = () => {
+  // First check if any attachments are required
+  let hasRequiredAttachments = true;
+  
+  for (let i = 0; i < reimbursementItems.length; i++) {
+    const item = reimbursementItems[i];
+
+    if (!item.category) {
       api.error({
         message: "Validation Error",
-        description: "Please upload at least one attachment",
+        description: `Item #${i + 1}: Please select a category`,
         placement: "bottomRight",
         duration: 3,
       });
       return false;
     }
 
-    for (let i = 0; i < reimbursementItems.length; i++) {
-      const item = reimbursementItems[i];
-
-      if (!item.category) {
-        api.error({
-          message: "Validation Error",
-          description: `Item #${i + 1}: Please select a category`,
-          placement: "bottomRight",
-          duration: 3,
-        });
-        return false;
-      }
-
-      if (!item.date) {
-        api.error({
-          message: "Validation Error",
-          description: `Item #${i + 1}: Please select a date`,
-          placement: "bottomRight",
-          duration: 3,
-        });
-        return false;
-      }
-
-      if (!item.billNo?.trim()) {
-        api.error({
-          message: "Validation Error",
-          description: `Item #${i + 1}: Please enter bill number`,
-          placement: "bottomRight",
-          duration: 3,
-        });
-        return false;
-      }
-
-      if (!item.amount || item.amount <= 0) {
-        api.error({
-          message: "Validation Error",
-          description: `Item #${i + 1}: Please enter a valid amount`,
-          placement: "bottomRight",
-          duration: 3,
-        });
-        return false;
-      }
-
-      const amountError = validateAmount(item.category, item.amount);
-      if (amountError) {
-        api.error({
-          message: "Validation Error",
-          description: `Item #${i + 1}: ${amountError}`,
-          placement: "bottomRight",
-          duration: 4,
-        });
-        return false;
-      }
-
-      if (!item.description?.trim()) {
-        api.error({
-          message: "Validation Error",
-          description: `Item #${i + 1}: Please enter a description`,
-          placement: "bottomRight",
-          duration: 3,
-        });
-        return false;
-      }
+    // Check if attachment is required for this category
+    const isAttachmentRequired = categoryAttachmentRequired[item.category];
+    
+    // If attachment is required and this item has no attachments, show error
+    if (isAttachmentRequired && item.attachments.length === 0) {
+      const categoryName = categoryOptions.find(opt => opt.value === item.category)?.label || item.category;
+      api.error({
+        message: "Validation Error",
+        description: `Item #${i + 1}: Attachments are required for ${categoryName} category`,
+        placement: "bottomRight",
+        duration: 4,
+      });
+      hasRequiredAttachments = false;
+      return false;
     }
 
-    return true;
-  };
+    if (!item.date) {
+      api.error({
+        message: "Validation Error",
+        description: `Item #${i + 1}: Please select a date`,
+        placement: "bottomRight",
+        duration: 3,
+      });
+      return false;
+    }
+
+    if (!item.billNo?.trim()) {
+      api.error({
+        message: "Validation Error",
+        description: `Item #${i + 1}: Please enter bill number`,
+        placement: "bottomRight",
+        duration: 3,
+      });
+      return false;
+    }
+
+    if (!item.amount || item.amount <= 0) {
+      api.error({
+        message: "Validation Error",
+        description: `Item #${i + 1}: Please enter a valid amount`,
+        placement: "bottomRight",
+        duration: 3,
+      });
+      return false;
+    }
+
+    const amountError = validateAmount(item.category, item.amount);
+    if (amountError) {
+      api.error({
+        message: "Validation Error",
+        description: `Item #${i + 1}: ${amountError}`,
+        placement: "bottomRight",
+        duration: 4,
+      });
+      return false;
+    }
+
+    if (!item.description?.trim()) {
+      api.error({
+        message: "Validation Error",
+        description: `Item #${i + 1}: Please enter a description`,
+        placement: "bottomRight",
+        duration: 3,
+      });
+      return false;
+    }
+  }
+
+  return hasRequiredAttachments;
+};
 
   // Transform items to match backend format
   // const transformItemsForBackend = () => {
@@ -8068,14 +8216,44 @@ function CreateReimbursementContent({
   //     description: item.description,
   //   }));
   // };
-  const transformItemsForBackend = () => {
-  return reimbursementItems.map((item) => {
+//   const transformItemsForBackend = () => {
+//   return reimbursementItems.map((item) => {
 
+//     const attachmentIndexes = item.attachments
+//       .map((att) =>
+//         allFiles.findIndex((file) => file.name === att.fileName)
+//       )
+//       .filter((index) => index !== -1);
+
+//     return {
+//       category: item.category,
+//       date: item.date || new Date().toISOString().split("T")[0],
+//       billNo: item.billNo,
+//       amount: item.amount ? Number(item.amount) : 0,
+//       description: item.description,
+//       attachments: attachmentIndexes // ⭐ important
+//     };
+//   });
+// };
+const transformItemsForBackend = () => {
+  return reimbursementItems.map((item) => {
+    // Get indexes of new files
     const attachmentIndexes = item.attachments
-      .map((att) =>
-        allFiles.findIndex((file) => file.name === att.fileName)
+      .map((att) => 
+        att.file ? allFiles.findIndex((file) => file.name === att.fileName) : -1
       )
       .filter((index) => index !== -1);
+
+    // Get existing attachments (from server, no file object)
+    const existingAttachments = item.attachments
+      .filter((att) => !att.file)
+      .map((att) => ({
+        fileName: att.fileName,
+        fileUrl: att.base64, // or att.fileUrl from server
+        fileSize: 0, // You might need to store this
+        fileType: att.fileType,
+        uploadedBy: undefined // You might need to store this
+      }));
 
     return {
       category: item.category,
@@ -8083,7 +8261,8 @@ function CreateReimbursementContent({
       billNo: item.billNo,
       amount: item.amount ? Number(item.amount) : 0,
       description: item.description,
-      attachments: attachmentIndexes // ⭐ important
+      attachments: attachmentIndexes, // New file indexes
+      existingAttachments: existingAttachments, // ⭐ Send existing attachments too
     };
   });
 };
@@ -8451,7 +8630,7 @@ function CreateReimbursementContent({
                           required={false}
                           style={{ marginBottom: 0 }}
                         >
-                          <Select
+                          {/* <Select
                             placeholder={
                               loadingLimits ? "Loading categories..." : "Select"
                             }
@@ -8488,7 +8667,48 @@ function CreateReimbursementContent({
                                 .includes(input.toLowerCase())
                             }
                             loading={loadingLimits}
-                          />
+                          /> */}
+                          <Select
+  placeholder={loadingLimits ? "Loading categories..." : "Select"}
+  value={item.category || undefined}
+  onChange={(value) => {
+    handleItemChange(index, "category", value);
+    if (item.amount) {
+      const error = validateAmount(value, item.amount);
+      if (error) {
+        api.warning({
+          message: "Limit Warning",
+          description: error,
+          placement: "bottomRight",
+          duration: 3,
+        });
+      }
+    }
+  }}
+  style={{ width: "100%" }}
+  size="small"
+  disabled={actionLoading.saveDraft || actionLoading.submit || loadingLimits}
+  showSearch
+  filterOption={(input, option) =>
+    (option?.label?.toString() ?? "")
+      .toLowerCase()
+      .includes(input.toLowerCase())
+  }
+  loading={loadingLimits}
+>
+  {categoryOptions.map(opt => (
+    <Select.Option key={opt.value} value={opt.value}>
+      <Space>
+        {opt.label}
+        {categoryAttachmentRequired[opt.value] && (
+          <Tag color="blue" style={{ marginLeft: 4, fontSize: 10 }}>
+            Attachment Required
+          </Tag>
+        )}
+      </Space>
+    </Select.Option>
+  ))}
+</Select>
                         </Form.Item>
                       </Col>
                       <Col span={12}>
@@ -8625,7 +8845,7 @@ function CreateReimbursementContent({
                     </Form.Item>
 
                     {/* Row 4: Attachments */}
-                    <Form.Item
+                    {/* <Form.Item
                       label={
                         <span style={{ fontSize: 12 }}>
                           Attachments
@@ -8640,7 +8860,24 @@ function CreateReimbursementContent({
                         </span>
                       }
                       style={{ marginBottom: 0 }}
-                    >
+                    > */}
+                    <Form.Item
+  label={
+    <span style={{ fontSize: 12 }}>
+      Attachments
+      {item.category && categoryAttachmentRequired[item.category] ? (
+        <Tag color="red" style={{ marginLeft: 8, fontSize: 10 }}>
+          Required
+        </Tag>
+      ) : (
+        <Text type="secondary" style={{ fontSize: 11, marginLeft: 4 }}>
+          {item.category ? "(Optional)" : "(Select category first)"}
+        </Text>
+      )}
+    </span>
+  }
+  style={{ marginBottom: 0 }}
+>
                       <Space
                         direction="vertical"
                         size={8}

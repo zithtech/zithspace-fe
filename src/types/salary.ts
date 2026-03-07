@@ -39,7 +39,7 @@ export interface SalaryStructure {
   grossSalary: number;
   earnings: Earning[];
   deductions: Deduction[];
-  deductionsEnabled: boolean; 
+  deductionsEnabled: boolean;
   createdAt: string;
   isActive: boolean;
 }
@@ -267,10 +267,43 @@ export const mockEmployees: Employee[] = [
 
 
 
- export interface EmployeeSalary {
+export interface EmployeeSalary {
   employeeId: string;
   grossSalary: number;
   deductionsEnabled: boolean;
   earnings: Earning[];
   deductions: Deduction[];
+}
+
+export interface EmployeeSalaryRecord {
+  id: string; // UUID
+  tenant_id?: string; // UUID
+  salary_structure_id?: number | string;
+  employee_id?: string; // UUID
+  employee_name?: string; // Deprecated but kept for fallback
+  employee_code?: string; // Deprecated but kept for fallback
+  department?: string;
+  designation?: string;
+  current_annual_ctc?: number | string; // DECIMAL(15,2)
+  current_monthly_ctc?: number | string; // DECIMAL(15,2)
+  additional_pf_pct?: number | string; // DECIMAL(5,2)
+  is_additional_pf_active?: boolean; // BOOLEAN
+  nps_contribution_pct?: number | string; // DECIMAL(5,2)
+  is_nps_active?: boolean; // BOOLEAN
+  insurance_topup?: number | string; // DECIMAL(12,2)
+  fbp_choices?: Record<string, number>; // JSONB
+  salary_timeline?: any[]; // JSONB
+  is_active?: boolean; // BOOLEAN
+  note?: string; // Additional field for timeline notes
+  updated_at?: string; // TIMESTAMP
+  employee?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    employee_code: string;
+  };
+  salary_structure?: {
+    id: number | string;
+    name: string;
+  };
 }

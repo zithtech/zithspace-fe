@@ -73,11 +73,11 @@ export default function AccountsPage() {
   const [form] = Form.useForm();
 
   // Protect route - only super_admin can access
-  useEffect(() => {
-    if (!isLoading && user && user.role !== 'super_admin') {
-      router.push('/dashboard');
-    }
-  }, [user, isLoading, router]);
+  // useEffect(() => {
+  //   if (!isLoading && user && user.role !== 'super_admin') {
+  //     router.push('/dashboard');
+  //   }
+  // }, [user, isLoading, router]);
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);

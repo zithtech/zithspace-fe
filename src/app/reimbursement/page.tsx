@@ -46,20 +46,20 @@ export default function ReimbursementPage() {
               ),
               children: <EmployeeTab />,
             },
-            {
-              key: "manager",
-              label: (
-                <Space>
-                  <TeamOutlined /> Manager
-                </Space>
-              ),
-              children: <ManagerTab />,
-            },
+            // {
+            //   key: "manager",
+            //   label: (
+            //     <Space>
+            //       <TeamOutlined /> Manager
+            //     </Space>
+            //   ),
+            //   children: <ManagerTab />,
+            // },
             {
               key: "finance",
               label: (
                 <Space>
-                  <DollarOutlined /> Finance
+                  <DollarOutlined /> Approvals
                 </Space>
               ),
               children: <FinanceTab />,

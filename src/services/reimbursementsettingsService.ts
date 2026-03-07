@@ -9,6 +9,7 @@ export interface ReimbursementSetting {
   name: string;
   code: string;
   maxRequestsPerMonth?: number;
+   description?: string;
   attachmentRequired: boolean;
   isActive: boolean;
   createdAt: string;

@@ -7,7 +7,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { dashboardService, DashboardData } from "@/services/dashboardService";
-import { useZohoCalendar } from "@/hooks/useZohoCalendar";
+import { useDynamicCalendar } from "@/hooks/useDynamicCalendar";
 import {
   Card,
   Row,
@@ -60,7 +60,7 @@ function DashboardContent() {
     null
   );
 
-  // Zoho Calendar Integration
+  // Dynamic Calendar Integration - works with any connected provider
   const {
     status: calendarStatus,
     events: calendarEvents,
@@ -70,12 +70,24 @@ function DashboardContent() {
     syncEvents: syncCalendar,
     error: calendarError,
     successMessage: calendarSuccess,
-  } = useZohoCalendar();
+  } = useDynamicCalendar();
 
   // Filter today's meetings with recurring support
   const todaysMeetings = calendarEvents.reduce((acc: any[], event: any) => {
+    console.log(`[Dashboard] Processing event:`, {
+      title: event.title,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      isRecurring: event.isRecurring,
+      rrule: event.rrule,
+      attendees: event.attendees,
+      userId: event.userId,
+      userEmail: user?.email
+    });
+
     // Filter: User must be an attendee or the creator
     const isUserAttendee = event.attendees?.includes(user?.email) || event.userId === user?.id;
+    console.log(`[Dashboard] User attendee check:`, { isUserAttendee, userEmail: user?.email, eventAttendees: event.attendees });
     if (!isUserAttendee) return acc;
 
     const today = dayjs().startOf('day');
@@ -635,7 +647,7 @@ function DashboardContent() {
             <Space size={4}>
               <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
               <span style={{ fontSize: 13 }}>Today's Meetings</span>
-              {!calendarStatus?.connected && (
+              {!calendarStatus?.includes('connected') && (
                 <Button
                   type="link"
                   size="small"
@@ -650,7 +662,7 @@ function DashboardContent() {
           }
           size="small"
           extra={
-            calendarStatus?.connected && (
+            calendarStatus?.includes('connected') && (
               <Space size={2}>
                 <Button
                   type="text"
@@ -680,7 +692,7 @@ function DashboardContent() {
             <div style={{ padding: 16, textAlign: "center" }}>
               <Skeleton active paragraph={{ rows: 2 }} />
             </div>
-          ) : !calendarStatus?.connected ? (
+          ) : !calendarStatus?.includes('connected') ? (
             <div style={{ padding: 20, textAlign: "center" }}>
               <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
               <div>

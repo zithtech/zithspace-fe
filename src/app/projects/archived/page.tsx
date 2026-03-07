@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import {
   Card,
@@ -15,6 +18,7 @@ import {
   Empty,
   Badge,
   Popconfirm,
+  Spin,
 } from 'antd';
 import {
   FolderOpenOutlined,
@@ -35,6 +39,16 @@ const { Option } = Select;
 export default function ArchivedTicketsPage() {
   const { message, modal } = App.useApp();
   const { data: projects } = useUserProjects();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadProject } = usePermission();
+  const router = useRouter();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadProject) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadProject, router]);
 
   const [searchText, setSearchText] = useState('');
   const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
@@ -150,6 +164,21 @@ export default function ArchivedTicketsPage() {
       render: (name) => name || <Text type="secondary">Unassigned</Text>,
     },
   ];
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading archived tickets..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadProject) {
+    return null;
+  }
 
   return (
     <MainLayout>

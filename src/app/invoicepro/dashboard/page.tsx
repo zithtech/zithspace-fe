@@ -14,6 +14,8 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 
 import { Line } from "@ant-design/plots";
 import { Tooltip } from "antd";
@@ -34,8 +36,15 @@ const { Title, Text } = Typography;
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { canReadInvoice, canCreateInvoice } = usePermission();
+  const { isLoading: authLoading } = useAuth();
 
-
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadInvoice) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadInvoice, router]);
 
   const [currentMonth, setCurrentMonth] = useState(dayjs());
 
@@ -545,6 +554,9 @@ const fullCellRender = (value: Dayjs) => {
     }
   });
 
+  if (authLoading) return <MainLayout><Spin tip="Loading..." /></MainLayout>;
+  if (!canReadInvoice) return null;
+
   return (
     <MainLayout>
       <Spin spinning={isLoading} tip="Loading dashboard...">
@@ -749,16 +761,18 @@ const fullCellRender = (value: Dayjs) => {
 
               {/* Right: Actions */}
               <div style={{ display: "flex", gap: "10px" }}>
-                <Button
-                  type="primary"
-                  style={{
-                    fontWeight: 500,
-                    borderRadius: 8,
-                  }}
-                  onClick={() => router.push("/invoicepro/newinvoice")}
-                >
-                  New Invoice
-                </Button>
+                {canCreateInvoice && (
+                  <Button
+                    type="primary"
+                    style={{
+                      fontWeight: 500,
+                      borderRadius: 8,
+                    }}
+                    onClick={() => router.push("/invoicepro/newinvoice")}
+                  >
+                    New Invoice
+                  </Button>
+                )}
 
                 <Button
                   style={{

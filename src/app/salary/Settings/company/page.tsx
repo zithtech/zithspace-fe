@@ -25,6 +25,7 @@ import {
 } from "@ant-design/icons";
 import NewCompanyDetails from "./newCompanyDetials";
 import { useCompanies, useSetActiveCompany,useDeleteCompany } from "@/hooks/useCompanies";
+import { usePermission } from "@/hooks/usePermission";
 import { Company } from "@/types/company";
 import {
   PhoneOutlined,
@@ -38,6 +39,8 @@ import { Toaster } from "react-hot-toast";
 const { Title, Text } = Typography;
 
 export default function CompanyPage() {
+  const { canManageSalary } = usePermission();
+  
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
@@ -171,17 +174,21 @@ export default function CompanyPage() {
       key: "actions",
       render: (_: any, record: Company) => (
         <Space>
-          <Button size="small" onClick={() => handleEdit(record.id)}>
-            Edit
-          </Button>
-          {!record.isActive && (
-            <Button
-              size="small"
-              onClick={() => handleSetActive(record.id)}
-              loading={setActiveMutation.isPending}
-            >
-              Set Active
-            </Button>
+          {canManageSalary && (
+            <>
+              <Button size="small" onClick={() => handleEdit(record.id)}>
+                Edit
+              </Button>
+              {!record.isActive && (
+                <Button
+                  size="small"
+                  onClick={() => handleSetActive(record.id)}
+                  loading={setActiveMutation.isPending}
+                >
+                  Set Active
+                </Button>
+              )}
+            </>
           )}
         </Space>
       ),
@@ -237,14 +244,16 @@ export default function CompanyPage() {
               onChange={(val) => setViewMode(val as "card" | "table")}
             />
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-              loading={isLoading}
-            >
-              Create Company
-            </Button>
+            {canManageSalary && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+                loading={isLoading}
+              >
+                Create Company
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -321,95 +330,92 @@ export default function CompanyPage() {
                         )}
 
                         {/* Action Buttons on right side */}
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 8,
-                            alignItems: "flex-end",
-                          }}
-                        >
-                          {/* Dropdown Menu */}
-                          <Dropdown
-                            menu={{
-                              items: [
-                                {
-                                  key: "edit",
-                                  label: "Edit",
-                                  icon: <EditOutlined />,
-                                  onClick: () => handleEdit(c.id),
-                                },
-                                // {
-                                //   key: "preview",
-                                //   label: "Preview",
-                                //   onClick: () => handlePreview(c),
-                                // },
-                                {
-                                  key: "delete",
-                                  label: (
-                                    <Popconfirm
-                                      title="Delete company?"
-  description="This action cannot be undone"
-  okText="Yes"
-  cancelText="No"
-  onConfirm={() => deleteMutation.mutate(c.id)}
-                                    >
-                                      <div>
-                                        <DeleteOutlined
-                                          style={{ marginRight: 8 }}
-                                        />
-                                        Delete
-                                      </div>
-                                    </Popconfirm>
-                                  ),
-                                  danger: true,
-                                },
-                              ],
+                        {canManageSalary && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 8,
+                              alignItems: "flex-end",
                             }}
-                            trigger={["click"]}
-                            placement="bottomRight"
                           >
-                            <MoreOutlined
-                              style={{
-                                fontSize: 20,
-                                cursor: "pointer",
-                                color: "#8c8c8c",
-                                marginTop: 18, // 👈 ithu add pannunga (try 6–10)
-                                borderRadius: 4,
-                                transition: "all 0.2s",
+                            {/* Dropdown Menu */}
+                            <Dropdown
+                              menu={{
+                                items: [
+                                  {
+                                    key: "edit",
+                                    label: "Edit",
+                                    icon: <EditOutlined />,
+                                    onClick: () => handleEdit(c.id),
+                                  },
+                                  {
+                                    key: "delete",
+                                    label: (
+                                      <Popconfirm
+                                        title="Delete company?"
+                                        description="This action cannot be undone"
+                                        okText="Yes"
+                                        cancelText="No"
+                                        onConfirm={() => deleteMutation.mutate(c.id)}
+                                      >
+                                        <div>
+                                          <DeleteOutlined
+                                            style={{ marginRight: 8 }}
+                                          />
+                                          Delete
+                                        </div>
+                                      </Popconfirm>
+                                    ),
+                                    danger: true,
+                                  },
+                                ],
                               }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  "#f5f5f5")
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  "transparent")
-                              }
-                            />
-                          </Dropdown>
-
-                          {/* Set Active Button - ONLY when inactive */}
-                          {!c.isActive && (
-                            <Button
-                              type="primary"
-                              onClick={() => handleSetActive(c.id)}
-                              loading={setActiveMutation.isPending}
-                              style={{
-                                borderRadius: 6,
-                                fontWeight: 600,
-                                fontSize: 12,
-                                height: 28,
-                                padding: "0 12px",
-                                backgroundColor: "#1890ff",
-                                borderColor: "#1890ff",
-                                boxShadow: "0 2px 0 rgba(5, 145, 255, 0.1)",
-                              }}
+                              trigger={["click"]}
+                              placement="bottomRight"
                             >
-                              Set Active
-                            </Button>
-                          )}
-                        </div>
+                              <MoreOutlined
+                                style={{
+                                  fontSize: 20,
+                                  cursor: "pointer",
+                                  color: "#8c8c8c",
+                                  marginTop: 18,
+                                  borderRadius: 4,
+                                  transition: "all 0.2s",
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.backgroundColor =
+                                    "#f5f5f5")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.backgroundColor =
+                                    "transparent")
+                                }
+                              />
+                            </Dropdown>
+
+                            {/* Set Active Button - ONLY when inactive */}
+                            {!c.isActive && (
+                              <Button
+                                type="primary"
+                                onClick={() => handleSetActive(c.id)}
+                                loading={setActiveMutation.isPending}
+                                style={{
+                                  borderRadius: 6,
+                                  fontWeight: 600,
+                                  fontSize: 12,
+                                  height: 28,
+                                  padding: "0 12px",
+                                  backgroundColor: "#1890ff",
+                                  borderColor: "#1890ff",
+                                  boxShadow: "0 2px 0 rgba(5, 145, 255, 0.1)",
+                                }}
+                              >
+                                Set Active
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Header with Name and Email */}
@@ -681,22 +687,24 @@ export default function CompanyPage() {
                   );
                 })}
 
-                <Card
-                  hoverable
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 200,
-                    cursor: "pointer",
-                  }}
-                  onClick={handleCreate}
-                >
-                  <Space direction="vertical" align="center">
-                    <PlusOutlined style={{ fontSize: 24 }} />
-                    <Text>Add New Company</Text>
-                  </Space>
-                </Card>
+                {canManageSalary && (
+                  <Card
+                    hoverable
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 200,
+                      cursor: "pointer",
+                    }}
+                    onClick={handleCreate}
+                  >
+                    <Space direction="vertical" align="center">
+                      <PlusOutlined style={{ fontSize: 24 }} />
+                      <Text>Add New Company</Text>
+                    </Space>
+                  </Card>
+                )}
               </div>
             )}
           </>

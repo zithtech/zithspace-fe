@@ -1,106 +1,4 @@
-// // hooks/useReimbursement.ts
-// import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// import {
-//   ReimbursementService,
-//   ReimbursementResponse,
-//   CreateReimbursementData,
-//   UpdateReimbursementData,
-// } from "@/services/reimbursementcreateService";
 
-// /* ==================== QUERIES ==================== */
-
-// /** Get all reimbursements */
-// export const useAllReimbursements = () => {
-//   return useQuery<ReimbursementResponse[], Error>({
-//     queryKey: ["reimbursements"],
-//     queryFn: () => ReimbursementService.getAllReimbursements(),
-//     staleTime: 2 * 60 * 1000, // 2 min
-//      gcTime: 5 * 60 * 1000,
-//   });
-// };
-
-// /** Get reimbursement by ID */
-// export const useReimbursementById = (id?: string) => {
-//   return useQuery<ReimbursementResponse, Error>({
-//     queryKey: ["reimbursement", id],
-//     queryFn: () => ReimbursementService.getReimbursementById(id!),
-//     enabled: !!id, // only fetch if ID exists
-//     staleTime: 2 * 60 * 1000,
-//      gcTime: 5 * 60 * 1000,
-//   });
-// };
-
-// /* ==================== MUTATIONS ==================== */
-
-// /** Create reimbursement */
-// export const useCreateReimbursement = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: (data: CreateReimbursementData) =>
-//       ReimbursementService.createReimbursement(data),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ["reimbursements"] });
-//     },
-//   });
-// };
-
-// /** Update reimbursement (status, items, files) */
-// // export const useUpdateReimbursement = () => {
-// //   const queryClient = useQueryClient();
-
-// //   return useMutation({
-// //     mutationFn: ({ id, data }: { id: string; data: UpdateReimbursementData }) =>
-// //       ReimbursementService.updateReimbursement(id, data),
-// //     onSuccess: (_, { id }) => {
-// //       queryClient.invalidateQueries({ queryKey: ["reimbursements"] });
-// //       queryClient.invalidateQueries({ queryKey: ["reimbursement", id] });
-// //     },
-// //   });
-// // };
-// export const useUpdateReimbursement = () => {
-//   const queryClient = useQueryClient();
-  
-//   return useMutation({
-//     mutationFn: ({ id, data, files }: { id: string; data: any; files?: File[] }) => 
-//       ReimbursementService.updateReimbursement(id, { ...data, files }),
-//     onSuccess: (data, variables) => {
-//       // Invalidate the specific reimbursement query
-//       queryClient.invalidateQueries({ 
-//         queryKey: ['reimbursement', variables.id] 
-//       });
-//       // Also invalidate the list if you have one
-//       queryClient.invalidateQueries({ 
-//         queryKey: ['reimbursements'] 
-//       });
-//     },
-//   });
-// };
-
-// /** Delete reimbursement */
-// export const useDeleteReimbursement = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: (id: string) => ReimbursementService.deleteReimbursement(id),
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ["reimbursements"] });
-//     },
-//   });
-// };
-
-// /* ==================== COMBINED HOOK ==================== */
-
-// /** Fetch single reimbursement and track loading/error */
-// export const useReimbursementData = (id?: string) => {
-//   const reimbursement = useReimbursementById(id);
-
-//   return {
-//     reimbursement,
-//     isLoading: reimbursement.isLoading,
-//     isError: reimbursement.isError,
-//   };
-// };
 
 
 // hooks/useReimbursement.ts
@@ -199,14 +97,6 @@ export const useReimbursementData = (id?: string) => {
   };
 };
 
-// export const useManagerApprovals = () => {
-//   return useQuery<ReimbursementResponse[], Error>({
-//     queryKey: ["manager-approvals"], // Different query key
-//     queryFn: () =>ReimbursementService.getApprovalList(),
-//     staleTime: 2 * 60 * 1000,
-//     gcTime: 5 * 60 * 1000,
-//   });
-// };
 
 export const useManagerApprovals = () => {
   return useQuery<ReimbursementResponse[], Error>({
@@ -219,38 +109,6 @@ export const useManagerApprovals = () => {
     refetchOnReconnect: true,
   });
 };
-// Add to your hooks file
-// export const useApproveItem = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: (reimbursementItemId: string) =>
-//       ReimbursementService.approveItem(reimbursementItemId),
-//     onSuccess: () => {
-//       // Invalidate both lists to refresh data
-//       queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
-//       queryClient.invalidateQueries({ queryKey: ["reimbursements"] });
-     
-//     },
-//   });
-// };
-
-// export const useRejectItem = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
-//       ReimbursementService.rejectItem(id, remarks),
-//     onSuccess: () => {
-//       // Invalidate both lists to refresh data
-//       queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
-//       queryClient.invalidateQueries({ queryKey: ["reimbursements"] });
-     
-//     },
-  
-//   });
-// };
-
 
 
 
@@ -312,56 +170,6 @@ export const useRejectItem = () => {
 };
 
 
-// export const useMarkAsPaid = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: (reimbursementItemId: string) =>
-//       ReimbursementService.markAsPaid(reimbursementItemId),
-
-//     onSuccess: () => {
-//       console.log("✅ Paid mutation succeeded, invalidating queries...");
-
-//       // Refresh finance list
-//       queryClient.invalidateQueries({
-//         queryKey: ["finance-reimbursements"],
-//         refetchType: "active",
-//       });
-
-//       // Refresh manager list
-//       queryClient.invalidateQueries({
-//         queryKey: ["manager-approvals"],
-//         refetchType: "active",
-//       });
-
-//       // Refresh employee reimbursement list
-//       queryClient.invalidateQueries({
-//         queryKey: ["reimbursements"],
-//         refetchType: "active",
-//       });
-//     },
-
-//     onError: (error) => {
-//       console.error("❌ Paid mutation error:", error);
-//     },
-//   });
-// };
-
-
-
-// export const useFinanceItems = () => {
-//   return useQuery({
-//     queryKey: ["finance-items"],
-//     queryFn: async () => {
-//       const data = await ReimbursementService.getFinanceItems();
-//       console.log('📦 Hook received data:', data); // Debug log
-//       return data; // This is already the array
-//     },
-//     staleTime: 0,
-//     refetchOnMount: true,
-//     refetchOnWindowFocus: true,
-//   });
-// };
 
 export const useFinanceItems = () => {
   return useQuery({

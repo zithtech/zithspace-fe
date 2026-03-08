@@ -77,7 +77,7 @@ export default function ReimbursementPage() {
               key: "reimbursement configuration",
               label: (
                 <Space>
-                  <ApartmentOutlined /> Reimbursement Configuration
+                  <ApartmentOutlined /> Reimbursement Policy
                 </Space>
               ),
               children: <ReimbursementTab />,

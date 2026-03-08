@@ -358,7 +358,12 @@ export default function CreateTicket() {
                   placeholder="Provide a detailed explanation of the task..."
                   minHeight={200}
                   maxHeight={400}
-                  onChange={(html) => form.setFieldValue("description", html)}
+                 onChange={(html) => {
+  const currentValue = form.getFieldValue("description");
+  if (currentValue !== html) {
+    form.setFieldValue("description", html);
+  }
+}}
                 />
               </Form.Item>
             </Card>

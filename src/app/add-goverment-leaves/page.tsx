@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -322,8 +323,26 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
 };
 
 export default function governmentLeaves() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const router = useRouter();
+
+  // Protect route - requires leave.manage permission
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dataSource, setDataSource] = useState<FixedHoliday[]>([]);
@@ -577,9 +596,9 @@ export default function governmentLeaves() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div>
           {/* Tabs Navigation */}
-          <div >
+          <div style={{marginTop:20}} >
             <Tabs
               activeKey="addLeaves"
               onChange={(key) => {
@@ -631,7 +650,7 @@ export default function governmentLeaves() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -639,7 +658,7 @@ export default function governmentLeaves() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -654,7 +673,7 @@ export default function governmentLeaves() {
               ]}
             />
           </div>
-          <Card>
+       
             <div
               style={{
                 display: "flex",
@@ -672,14 +691,14 @@ export default function governmentLeaves() {
                     Added the Goverment Holidays
                   </Typography.Title>
                 </Space>
-                <div style={{ marginLeft: 28, marginTop: 4 }}>
+                <div style={{ marginTop: 4 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Handle special employee-specific leave cases, comp-offs, and
                     manual corrections.
                   </Text>
                 </div>
-                <div style={{ marginTop: 8, marginLeft: 28 }}>
-                                <Space>
+                
+                                <Space style={{ marginTop:12 }}>
                                   <Tag color="processing" style={{borderRadius:10}}>
                                     Total leave: {allHolidays.length}
                                   </Tag>
@@ -689,7 +708,7 @@ export default function governmentLeaves() {
                                   </Tag>
                                  
                                 </Space>
-                              </div>
+                             
               </div>
                 
 
@@ -748,7 +767,7 @@ export default function governmentLeaves() {
                 />
                 <Button
                   icon={<PlusOutlined />}
-                  style={{ height: 40 }}
+                  style={{ height: 35 }}
                   type="primary"
                   onClick={showModal}
                 >
@@ -756,13 +775,13 @@ export default function governmentLeaves() {
                 </Button>
               </Space>
             </div>
-            <Divider />
+            <Divider style={{marginTop:5}}/>
             <Table columns={columns} 
              dataSource={dataSource} 
              rowKey="id" loading={loading}  
              size="small"
              pagination={{ pageSize: 10 }}/>
-          </Card>
+          
         </div>
         <Modal
           title={

@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
-import MainLayout from "@/components/layout/MainLayout";
-import { Space, Typography, Tabs, Button, Row, Col } from "antd";
+import React, { useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
+import MainLayout from "@/components/layout/MainLayout";
+import { Space, Typography, Tabs, Spin } from "antd";
 import Link from "next/link";
 import {
-  TransactionOutlined,
   UserOutlined,
   TeamOutlined,
   DollarOutlined,
@@ -26,6 +27,31 @@ const { Title } = Typography;
 
 export default function ReimbursementPage() {
   const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadReimbursement, canCreateReimbursement, canApproveReimbursement } = usePermission();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadReimbursement) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadReimbursement, router]);
+
+  // Loading state
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Permission check
+  if (!canReadReimbursement) {
+    return null;
+  }
 
   return (
     <MainLayout>

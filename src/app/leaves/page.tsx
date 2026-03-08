@@ -46,6 +46,7 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
+import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -67,7 +68,7 @@ interface OriginLeaveType {
 } 
 
 export default function LeavesPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
@@ -92,11 +93,34 @@ export default function LeavesPage() {
   const [leaveBalances, setLeaveBalances] = useState<any[]>([]);
   const [hasLeaveConfig, setHasLeaveConfig] = useState(false);
 
+  // RBAC permissions
+  const {
+    canReadLeave,
+    canCreateLeave,
+    canUpdateLeave,
+    canApproveLeave,
+    canManageLeaves
+  } = usePermission();
+  
   // Determine if user has approval rights
-  const hasApprovalRights =
-    user?.role === "super_admin" ||
-    user?.role === "admin" ||
-    pendingApprovals.length > 0;
+  const hasApprovalRights = canApproveLeave || pendingApprovals.length > 0;
+
+  // Protect route - requires leave.read permission
+  useEffect(() => {
+    if (!authLoading && !canReadLeave) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadLeave, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no read permission
+  if (!canReadLeave) {
+    return null;
+  }
 
   // Calculate personal leave stats
   const myPendingLeaves = myLeaves.filter((l) => l.status === "pending").length;
@@ -530,18 +554,22 @@ useEffect(() => {
     {
       title: "Action",
       key: "action",
-      render: (_: any, record: Leave) =>
-        record.status === "pending" && (
-          <Button
-            size="small"
-            danger
-            loading={cancellingLeaveId === record.id}
-            disabled={!!cancellingLeaveId}
-            onClick={() => handleCancel(record.id)}
-          >
-            Cancel
-          </Button>
-        ),
+      render: (_: any, record: Leave) => {
+        if (record.status === "pending" && (canUpdateLeave || canManageLeaves)) {
+          return (
+            <Button
+              size="small"
+              danger
+              loading={cancellingLeaveId === record.id}
+              disabled={!!cancellingLeaveId}
+              onClick={() => handleCancel(record.id)}
+            >
+              Cancel
+            </Button>
+          );
+        }
+        return null;
+      },
     },
   ];
 
@@ -585,26 +613,30 @@ useEffect(() => {
     {
       title: "Action",
       key: "action",
-      render: (_: any, record: Leave) => (
-        <Space>
-          <Button
-            type="primary"
-            size="small"
-            icon={<CheckCircleOutlined />}
-            onClick={() => {
-              setSelectedLeave(record);
-              setApprovalModalVisible(true);
-            }}
-          >
-            Review
-          </Button>
-        </Space>
-      ),
+      render: (_: any, record: Leave) => {
+        if (!canApproveLeave) return null;
+        
+        return (
+          <Space>
+            <Button
+              type="primary"
+              size="small"
+              icon={<CheckCircleOutlined />}
+              onClick={() => {
+                setSelectedLeave(record);
+                setApprovalModalVisible(true);
+              }}
+            >
+              Review
+            </Button>
+          </Space>
+        );
+      },
     },
   ];
   const cardStyle = {
     borderRadius: 16,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+    //boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
     transition: "all 0.3s ease",
     cursor: "pointer",
   };
@@ -612,7 +644,7 @@ useEffect(() => {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div>
           <div>
             {/* {user && (
               <Tag 
@@ -623,7 +655,7 @@ useEffect(() => {
               </Tag>
             )} */}
           </div>
-
+          <div style={{marginTop:20}}>
           <Tabs
             activeKey="leaves"
             onChange={(key) => {
@@ -672,7 +704,7 @@ useEffect(() => {
                 key: "configuration",
                 label: (
                   <span>
-                    <SettingOutlined /> Leave Configuration
+                    <SettingOutlined /> Leave Types
                   </span>
                 ),
               },
@@ -680,7 +712,7 @@ useEffect(() => {
                 key: "positions",
                 label: (
                   <span>
-                    <ApartmentOutlined /> Position Configuration
+                    <ApartmentOutlined /> Leave Policy
                   </span>
                 ),
               },
@@ -694,7 +726,7 @@ useEffect(() => {
               },
             ]}
           />
-
+          </div>
           {/* My Leave Status Section */}
           <div style={{ marginBottom: 8 }}>
             {/* <Typography.Title
@@ -1284,17 +1316,19 @@ useEffect(() => {
                     <TextArea rows={3} placeholder="Enter reason for leave" />
                   </Form.Item>
 
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      icon={<PlusOutlined />}
-                      style={{top:10}}
-                    >
-                      Submit Application
-                    </Button>
-                  </Form.Item>
+                  {canCreateLeave && (
+                    <Form.Item>
+                      <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={loading}
+                        icon={<PlusOutlined />}
+                        style={{top:10}}
+                      >
+                        Submit Application
+                      </Button>
+                    </Form.Item>
+                  )}
                 </Form>
               </Card>
             </Col>
@@ -1395,26 +1429,28 @@ useEffect(() => {
                     onChange={(e) => setRejectionReason(e.target.value)}
                     style={{ marginBottom: 16 }}
                   />
-                  <Space>
-                    <Button
-                      type="primary"
-                      icon={<CheckCircleOutlined />}
-                      loading={approvingLeaveId === selectedLeave.id}
-                      disabled={!!approvingLeaveId || !!rejectingLeaveId}
-                      onClick={() => handleApprove(selectedLeave.id)}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      danger
-                      icon={<CloseCircleOutlined />}
-                      loading={rejectingLeaveId === selectedLeave.id}
-                      disabled={!!approvingLeaveId || !!rejectingLeaveId}
-                      onClick={() => handleReject(selectedLeave.id)}
-                    >
-                      Reject
-                    </Button>
-                  </Space>
+                  {canApproveLeave && (
+                    <Space>
+                      <Button
+                        type="primary"
+                        icon={<CheckCircleOutlined />}
+                        loading={approvingLeaveId === selectedLeave.id}
+                        disabled={!!approvingLeaveId || !!rejectingLeaveId}
+                        onClick={() => handleApprove(selectedLeave.id)}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        danger
+                        icon={<CloseCircleOutlined />}
+                        loading={rejectingLeaveId === selectedLeave.id}
+                        disabled={!!approvingLeaveId || !!rejectingLeaveId}
+                        onClick={() => handleReject(selectedLeave.id)}
+                      >
+                        Reject
+                      </Button>
+                    </Space>
+                  )}
                 </div>
               </div>
             )}

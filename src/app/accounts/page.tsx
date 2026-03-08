@@ -50,7 +50,7 @@ import { MembersService, Member } from '@/services/membersService';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { useRBAC } from '@/lib/rbac';
+import { usePermission } from '@/hooks/usePermission';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -71,13 +71,14 @@ export default function AccountsPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [form] = Form.useForm();
+  const { canReadTransaction, canManageTransactions: canManage, canDeleteTransaction } = usePermission();
 
-  // Protect route - only super_admin can access
-  // useEffect(() => {
-  //   if (!isLoading && user && user.role !== 'super_admin') {
-  //     router.push('/dashboard');
-  //   }
-  // }, [user, isLoading, router]);
+  // Protect route - requires transaction.read permission
+  useEffect(() => {
+    if (!isLoading && user && !canReadTransaction) {
+      router.push('/dashboard');
+    }
+  }, [user, isLoading, canReadTransaction, router]);
 
   // State management
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -107,10 +108,6 @@ export default function AccountsPage() {
   const [modalType, setModalType] = useState<'add' | 'edit' | 'delete'>('add');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [formLoading, setFormLoading] = useState(false);
-
-  // RBAC permissions
-  const rbac = useRBAC(user?.role as any);
-  const canManage = rbac?.canManageTransactions;
 
   // Fetch transactions
   const fetchTransactions = async () => {
@@ -459,7 +456,7 @@ export default function AccountsPage() {
           },
         ];
 
-        if (rbac?.canDeleteTransactions) {
+        if (canDeleteTransaction) {
           menuItems.push({
             key: 'delete',
             icon: <DeleteOutlined />,

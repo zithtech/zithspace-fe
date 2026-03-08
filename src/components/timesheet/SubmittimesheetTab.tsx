@@ -1,7 +1,8 @@
+
+
 "use client";
 
 import MainLayout from "@/components/layout/MainLayout";
-
 import {
   TimesheetsService,
   TimesheetUser,
@@ -11,7 +12,6 @@ import {
   reviewTimesheet,
 } from "@/services/timesheetService";
 import { useQueryClient } from "@tanstack/react-query";
-
 import {
   Typography,
   Button,
@@ -30,8 +30,9 @@ import {
   Checkbox,
   Tooltip,
   App,
+  Card,
+  Collapse,
 } from "antd";
-
 import {
   LeftOutlined,
   RightOutlined,
@@ -52,12 +53,11 @@ import {
   ExportOutlined,
   CheckOutlined,
   EyeOutlined,
+  DownOutlined,
+  UpOutlined,
 } from "@ant-design/icons";
 import { useMemo, useState, useEffect, useRef } from "react";
 import type { ColumnsType } from "antd/es/table";
-//import { useQueryClient } from '@tanstack/react-query';
-
-//import { TimesheetService } from "@/services/timesheetService";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   useTimesheets,
@@ -70,36 +70,46 @@ import type {
   TimesheetRow,
   TimesheetRow as TimesheetRowAPI,
 } from "@/services/timesheetService";
+// Import leave service
+import leaveService from "@/services/leaveService";
+// Import holiday service
+import { companyGovernmentHolidayService } from "@/services/companyGovernmentHolidayService";
+import { useAuth } from "@/context/AuthContext";
 
 const { Title, Text } = Typography;
-//const queryClient = useQueryClient();
-
+const { Panel } = Collapse;
 import dayjs, { Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import isBetween from "dayjs/plugin/isBetween";
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(isBetween);
 
 interface TimesheetRowUI {
   id?: string;
   key: string;
   day: string;
   date: string;
-  // date: Dayjs;
   projectId?: string;
-  taskId?: string;
+  taskIds?: string[];
   description?: string;
   hours?: number;
   billable?: boolean;
-  // status?: "Draft" | "Submitted";
   status?: "Draft" | "Submitted" | "Approved" | "Rejected";
   isSummary?: boolean;
-  employeeName: string; // ✅ Add this
+  employeeName: string;
   projectName?: string;
-  taskName?: string;
+  taskNames?: string[];
+  isLeave?: boolean;
+  leaveType?: string;
+  // Add holiday properties
+  isHoliday?: boolean;
+  holidayName?: string;
 }
+
 type SubmitTimesheetTabProps = {
   onSubmitted: () => void;
 };
@@ -107,40 +117,350 @@ type SubmitTimesheetTabProps = {
 export default function SubmittimesheetTab({
   onSubmitted,
 }: SubmitTimesheetTabProps) {
+  // Get current user from auth context
+  const { user } = useAuth();
 
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
-  console.log("submitopen", isSubmitOpen);
-  const [isSaving, setIsSaving] = useState(false);
+
+  // Separate loading states for different actions
+  const [saveDraftLoading, setSaveDraftLoading] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [saveChangesLoading, setSaveChangesLoading] = useState(false);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
-
   const [isSubmittedModalOpen, setIsSubmittedModalOpen] = useState(false);
- 
   const [status, setStatus] = useState<TimesheetStatus>("Draft");
   const [rows, setRows] = useState<TimesheetRowUI[]>([]);
-
   const [weekendEditable, setWeekendEditable] = useState<{
     [key: string]: boolean;
   }>({});
+
   type TimesheetStatus = "Draft" | "Submitted" | "Approved" | "Rejected";
   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-
   const [tasks, setTasks] = useState<
     { id: string; name: string; projectId: string }[]
   >([]);
   const [entryCount, setEntryCount] = useState(0);
+
+  // State for leaves - use a Set for O(1) lookup
+  const [leaveDates, setLeaveDates] = useState<Set<string>>(new Set());
+  const [leaveDetails, setLeaveDetails] = useState<
+    Map<string, { type: string; status: string }>
+  >(new Map());
+  const [loadingLeaves, setLoadingLeaves] = useState(false);
+
+  // State for holidays
+  const [holidayDates, setHolidayDates] = useState<Set<string>>(new Set());
+  const [holidayDetails, setHolidayDetails] = useState<
+    Map<string, { name: string; type: string }>
+  >(new Map());
+  const [loadingHolidays, setLoadingHolidays] = useState(false);
+
   const { data: allTimesheets } = useTimesheets();
-  const [allTimesheetsState, setAllTimesheetsState] = useState(allTimesheets);
   const isSubmittingRef = useRef(false);
-  const { message, notification } = App.useApp();
-  const [loading, setLoading] = useState(false);
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
 
-  // 🔹 FETCH single timesheet
+  // 🔹 FETCH leaves for the logged-in user - ONLY Casual Leave and Sick Leave
+  const fetchMyLeaves = async () => {
+    try {
+      setLoadingLeaves(true);
+      console.log("🔍 Fetching leaves for user:", user?.id, user?.name);
 
-  // 🔹 MUTATIONS
+      const response = await leaveService.getMyLeaves();
+
+      console.log("✅ Leaves fetched successfully:", response);
+
+      // Create a Set for dates and a Map for details
+      const leaveDateSet = new Set<string>();
+      const leaveDetailsMap = new Map<
+        string,
+        { type: string; status: string }
+      >();
+
+      // Check response structure
+      if (response) {
+        let leavesArray: any[] = [];
+
+        // Handle different response structures
+        if (response.data && Array.isArray(response.data)) {
+          leavesArray = response.data;
+        } else if (Array.isArray(response)) {
+          leavesArray = response;
+        }
+
+        // Filter for ONLY Casual Leave and Sick Leave
+        const allowedLeaveTypes = ["casual_leave", "sick_leave"];
+
+        // Loop through each leave
+        leavesArray.forEach((leave: any) => {
+          const leaveType = leave.type?.toLowerCase();
+          const leaveStatus = leave.status?.toLowerCase();
+
+          // Only include if:
+          // 1. Leave type is Casual Leave or Sick Leave
+          if (allowedLeaveTypes.includes(leaveType)) {
+            const startDate = dayjs(leave.startDate);
+            const endDate = dayjs(leave.endDate);
+
+            console.log(
+              `📅 Including ${leaveType} (${leaveStatus}) from ${leave.startDate} to ${leave.endDate}`,
+            );
+
+            // Add each day in the leave range
+            let currentDate = startDate;
+            while (
+              currentDate.isBefore(endDate) ||
+              currentDate.isSame(endDate, "day")
+            ) {
+              const dateStr = currentDate.format("YYYY-MM-DD");
+              leaveDateSet.add(dateStr);
+              leaveDetailsMap.set(dateStr, {
+                type: leave.type,
+                status: leave.status,
+              });
+              console.log(`  ✅ Added leave date: ${dateStr}`);
+              currentDate = currentDate.add(1, "day");
+            }
+          } else {
+            console.log(
+              `❌ Excluding ${leave.type} (${leave.status}) - Not Casual/Sick Leave`,
+            );
+          }
+        });
+      }
+
+      console.log("📋 Final Leave Dates Set:", Array.from(leaveDateSet));
+      console.log("📋 Leave Details:", Object.fromEntries(leaveDetailsMap));
+
+      setLeaveDates(leaveDateSet);
+      setLeaveDetails(leaveDetailsMap);
+
+      // After fetching leaves, refresh the rows for the current week
+      refreshRowsForCurrentWeek();
+    } catch (error: any) {
+      console.error("❌ Failed to fetch leaves:", error);
+    } finally {
+      setLoadingLeaves(false);
+    }
+  };
+
+  // 🔹 FETCH company/government holidays
+  const fetchHolidays = async () => {
+    try {
+      setLoadingHolidays(true);
+      console.log("📅 Fetching company/government holidays");
+
+      const response = await companyGovernmentHolidayService.getAll();
+
+      console.log("✅ Holidays fetched successfully:", response);
+
+      // Create a Set for dates and a Map for details
+      const holidayDateSet = new Set<string>();
+      const holidayDetailsMap = new Map<
+        string,
+        { name: string; type: string }
+      >();
+
+      if (response && Array.isArray(response)) {
+        // Filter only ACTIVE holidays
+        const activeHolidays = response.filter((h) => h.status === "ACTIVE");
+
+        activeHolidays.forEach((holiday: any) => {
+          const fromDate = dayjs(holiday.fromDate);
+          const toDate = dayjs(holiday.toDate);
+
+          console.log(
+            `📅 Processing holiday: ${holiday.holidayName} from ${holiday.fromDate} to ${holiday.toDate}`,
+          );
+
+          // Add each day in the holiday range
+          let currentDate = fromDate;
+          while (
+            currentDate.isBefore(toDate) ||
+            currentDate.isSame(toDate, "day")
+          ) {
+            const dateStr = currentDate.format("YYYY-MM-DD");
+            holidayDateSet.add(dateStr);
+            holidayDetailsMap.set(dateStr, {
+              name: holiday.holidayName,
+              type: holiday.type,
+            });
+            console.log(
+              `  ✅ Added holiday date: ${dateStr} - ${holiday.holidayName}`,
+            );
+            currentDate = currentDate.add(1, "day");
+          }
+        });
+      }
+
+      console.log("📋 Final Holiday Dates Set:", Array.from(holidayDateSet));
+      console.log("📋 Holiday Details:", Object.fromEntries(holidayDetailsMap));
+
+      setHolidayDates(holidayDateSet);
+      setHolidayDetails(holidayDetailsMap);
+    } catch (error: any) {
+      console.error("❌ Failed to fetch holidays:", error);
+    } finally {
+      setLoadingHolidays(false);
+    }
+  };
+
+  // Function to refresh rows for the current week based on leave dates
+  const refreshRowsForCurrentWeek = () => {
+    if (!id && !sheet) {
+      // We're in create mode, just create empty rows with leave info
+      setRows(createEmptyRows());
+    } else if (id && sheet) {
+      // We're in edit mode, we need to preserve existing entries but update leave status
+      setRows((prevRows) =>
+        prevRows.map((row) => {
+          const isLeave = isDateLeave(row.date);
+          const leaveInfo = getLeaveInfo(row.date);
+          const isHoliday = isDateHoliday(row.date);
+          const holidayInfo = getHolidayInfo(row.date);
+
+          if (isLeave && !row.isLeave) {
+            // This row should be marked as leave
+            return {
+              ...row,
+              isLeave: true,
+              leaveType: leaveInfo?.type,
+              description: `On leave (${leaveInfo?.type || "Leave"})`,
+              hours: 0,
+              projectId: undefined,
+              taskIds: [],
+              taskNames: [],
+              billable: false,
+              isHoliday: false,
+              holidayName: undefined,
+            };
+          } else if (!isLeave && row.isLeave) {
+            // This row should no longer be leave
+            return {
+              ...row,
+              isLeave: false,
+              leaveType: undefined,
+              description: "",
+              isHoliday: isHoliday,
+              holidayName: holidayInfo?.name,
+              hours: isHoliday ? 8 : 0,
+              billable: !isHoliday,
+            };
+          } else if (isHoliday && !row.isHoliday) {
+            // This row should be marked as holiday
+            return {
+              ...row,
+              isHoliday: true,
+              holidayName: holidayInfo?.name,
+              description: `Holiday: ${holidayInfo?.name || "Holiday"}`,
+              hours: 8,
+              projectId: undefined,
+              taskIds: [],
+              taskNames: [],
+              billable: false,
+              isLeave: false,
+              leaveType: undefined,
+            };
+          } else if (!isHoliday && row.isHoliday) {
+            // This row should no longer be holiday
+            return {
+              ...row,
+              isHoliday: false,
+              holidayName: undefined,
+              description: "",
+              hours: 0,
+              billable: true,
+            };
+          }
+          return row;
+        }),
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      console.log("🔄 Component mounted, user detected:", user.id);
+      fetchMyLeaves();
+      fetchHolidays();
+
+      // ✅ Find which day in THIS week is actually today
+      const todayInThisWeek = DAYS.find((day) => day.isToday)?.label;
+      if (todayInThisWeek) {
+        console.log("📅 Today in this week:", todayInThisWeek);
+        setExpandedDays(new Set([todayInThisWeek]));
+      } else {
+        // Today's date is not in this week (e.g., looking at future/past week)
+        setExpandedDays(new Set([]));
+      }
+    } else {
+      console.log("⏳ Waiting for user to load...");
+    }
+  }, [user?.id]);
+
+  // When date changes, refresh the rows to show leaves for the new week
+  useEffect(() => {
+    if (user?.id) {
+      console.log(
+        "📅 Date changed to:",
+        currentDate.format("MMMM YYYY"),
+        "Week:",
+        currentDate.startOf("week").format("YYYY-MM-DD"),
+        "to",
+        currentDate.endOf("week").format("YYYY-MM-DD"),
+      );
+
+      // Refresh rows for the new week
+      if (!id && !sheet) {
+        // Create mode - create new empty rows
+        setRows(createEmptyRows());
+
+        // ✅ Find which day in THIS week is actually today
+        const todayInThisWeek = DAYS.find((day) => day.isToday)?.label;
+        if (todayInThisWeek) {
+          setExpandedDays(new Set([todayInThisWeek]));
+        } else {
+          // Today's date is not in this week
+          setExpandedDays(new Set([]));
+        }
+      } else {
+        // Edit mode - update existing rows with leave status
+        refreshRowsForCurrentWeek();
+
+        // In edit mode, we still want today's card expanded along with any data cards
+        // This will be handled in the sheet useEffect
+      }
+    }
+  }, [currentDate, user?.id, leaveDates, holidayDates]);
+
+  // Helper function to check if a date is a leave
+  const isDateLeave = (date: string): boolean => {
+    return leaveDates.has(date);
+  };
+
+  // Helper function to get leave info
+  const getLeaveInfo = (
+    date: string,
+  ): { type: string; status: string } | undefined => {
+    return leaveDetails.get(date);
+  };
+
+  // Helper function to check if a date is a holiday
+  const isDateHoliday = (date: string): boolean => {
+    return holidayDates.has(date);
+  };
+
+  // Helper function to get holiday info
+  const getHolidayInfo = (
+    date: string,
+  ): { name: string; type: string } | undefined => {
+    return holidayDetails.get(date);
+  };
+
+  // 🔹 FETCH single timesheet
   const createMutation = useCreateTimesheet();
   const updateMutation = useUpdateTimesheet();
 
@@ -156,42 +476,64 @@ export default function SubmittimesheetTab({
   const timesheetId = searchParams.get("id");
 
   const isWeekend = (day: string) => day === "Sat" || day === "Sun";
+
+  // Updated isFieldEditable to also check for leave and weekend toggle
   const isFieldEditable = (row: TimesheetRowUI) => {
+    if (row.isLeave) return false;
+    if (row.isHoliday) return false;
     if (!isWeekend(row.day)) return true;
     return weekendEditable[row.key] ?? false;
   };
 
-
   const DAYS = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => {
       const d = currentDate.startOf("week").add(i, "day");
+      const dateStr = d.format("YYYY-MM-DD");
+      const isToday = dateStr === dayjs().format("YYYY-MM-DD");
+      const isHoliday = isDateHoliday(dateStr);
+      const holidayInfo = getHolidayInfo(dateStr);
+
       return {
         label: d.format("ddd"),
         date: d.format("MMM DD"),
+        fullDate: dateStr,
+        dayNumber: d.format("D"),
+        year: d.format("YYYY"),
+        fullDateObj: d,
+        isToday: isToday,
+        isHoliday: isHoliday,
+        holidayName: holidayInfo?.name,
       };
     });
-  }, [currentDate]);
+  }, [currentDate, holidayDates]);
 
   const createEmptyRows = () =>
-    DAYS.map((d, i) => {
-      //const fullDate = dayjs(sheet?.weekStart).add(i,"day");
-      const fullDate = currentDate.startOf("week").add(i, "day");
+    DAYS.map((d) => {
+      const isLeave = isDateLeave(d.fullDate);
+      const leaveInfo = getLeaveInfo(d.fullDate);
+      const isHoliday = d.isHoliday;
+      const holidayName = d.holidayName;
 
       return {
         key: `${d.label}-${Date.now()}-${Math.random()}`,
         day: d.label,
-        //date: fullDate.toISOString(),
-        date: fullDate.format("YYYY-MM-DD"),
-        //date: d.date,
+        date: d.fullDate,
         projectId: undefined,
-        taskId: undefined,
-        taskName: "",
-        projectName: "",
-        description: "",
-        hours: 0,
-        billable: true,
+        taskIds: [],
+        taskNames: [],
+        description: isLeave
+          ? `On leave (${leaveInfo?.type || "Leave"})`
+          : isHoliday
+            ? `Holiday: ${holidayName}`
+            : "",
+        hours: isHoliday ? 8 : 0,
+        billable: !isLeave && !isHoliday,
         status: "Draft" as const,
-        employeeName: sheet?.user?.name || "Unknown Employee",
+        employeeName: sheet?.user?.name || user?.name || "Unknown Employee",
+        isLeave: isLeave,
+        leaveType: leaveInfo?.type,
+        isHoliday: isHoliday,
+        holidayName: holidayName,
       };
     });
 
@@ -199,23 +541,25 @@ export default function SubmittimesheetTab({
     const loadMeta = async () => {
       try {
         const meta = await TimesheetsService.getMeta();
-
         setProjects(meta?.projects || []);
         setTasks(meta?.tasks || []);
       } catch (error) {
         console.error("Error loading meta:", error);
       }
     };
-
     loadMeta();
   }, []);
 
   useEffect(() => {
     const count = rows.filter(
       (row: TimesheetRowUI) =>
-        !!row.projectId && !!row.taskId && Number(row.hours) > 0,
+        !row.isLeave &&
+        !row.isHoliday &&
+        !!row.projectId &&
+        row.taskIds &&
+        row.taskIds.length > 0 &&
+        Number(row.hours) > 0,
     ).length;
-
     setEntryCount(count);
   }, [rows]);
 
@@ -243,11 +587,16 @@ export default function SubmittimesheetTab({
         weekStart: sheet.weekStart,
         status: sheet.status,
         rowsCount: sheet.rows?.length,
-        rows: sheet.rows,
         user: sheet.user,
       });
     }
   }, [sheet]);
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      console.log("📋 Available tasks:", tasks);
+    }
+  }, [tasks]);
 
   useEffect(() => {
     if (mode === "resubmit") {
@@ -257,6 +606,7 @@ export default function SubmittimesheetTab({
       setIsSubmitted(false);
       return;
     }
+
     if (id && sheet) {
       if (!sheet || !projects.length || !tasks.length) return;
 
@@ -267,44 +617,103 @@ export default function SubmittimesheetTab({
             (p) => p.name === r.projectName,
           );
 
-          const taskFromName = tasks.find(
-            (t) =>
-              t.name === r.taskName &&
-              t.projectId === (r.projectId || projectFromName?.id),
-          );
+          let taskIds: string[] = [];
+          let taskNames: string[] = [];
+
+          const projectId = r.projectId || projectFromName?.id;
+
+          if (r.taskId) {
+            taskIds = [r.taskId];
+            const task = tasks.find((t) => t.id === r.taskId);
+            if (task) {
+              taskNames = [task.name];
+            } else if (r.taskName) {
+              taskNames = [r.taskName];
+            }
+          } else if (r.taskName) {
+            if (projectId) {
+              const taskNameList = r.taskName
+                .split(",")
+                .map((name) => name.trim());
+
+              taskNameList.forEach((name) => {
+                const matchedTasks = tasks.filter(
+                  (t) => t.projectId === projectId && t.name === name,
+                );
+                if (matchedTasks.length > 0) {
+                  taskIds.push(...matchedTasks.map((t) => t.id));
+                  taskNames.push(...matchedTasks.map((t) => t.name));
+                } else {
+                  taskNames.push(name);
+                }
+              });
+            } else {
+              taskNames = r.taskName.split(",").map((name) => name.trim());
+            }
+          }
+
           const rowDate = dayjs(r.day);
+          const dateStr = rowDate.format("YYYY-MM-DD");
+
+          const isLeave = isDateLeave(dateStr);
+          const leaveInfo = getLeaveInfo(dateStr);
+
+          const isHoliday = isDateHoliday(dateStr);
+          const holidayInfo = getHolidayInfo(dateStr);
 
           return {
-            key: r.id,
+            key: r.id || `${dayAbbr}-${index}-${Date.now()}`,
             id: r.id,
-
-            day: rowDate.format("ddd"), // Sun / Mon / Tue
-            date: rowDate.format("YYYY-MM-DD"),
-            projectId: r.projectId || projectFromName?.id || undefined,
-            taskId: r.taskId || taskFromName?.id || undefined,
-            description: r.description,
-            hours: r.hours,
-            billable: r.billable,
-
+            day: rowDate.format("ddd"),
+            date: dateStr,
+            projectId: projectId,
+            taskIds: taskIds,
+            description: isLeave
+              ? `On leave (${leaveInfo?.type || "Leave"})`
+              : isHoliday
+                ? `Holiday: ${holidayInfo?.name || "Holiday"}`
+                : r.description,
+            hours: isLeave ? 0 : isHoliday ? 8 : r.hours,
+            billable: isLeave ? false : isHoliday ? false : r.billable,
             status: mapBackendStatusToUI(sheet.status),
             projectName:
-              projects.find((p) => p.id === r.projectId)?.name ||
+              projects.find((p) => p.id === projectId)?.name ||
               r.projectName ||
               "",
-
-            taskName:
-              tasks.find((t) => t.id === r.taskId)?.name || r.taskName || "",
-
-            employeeName: sheet.user?.name ?? "Unknown Employee",
+            taskNames: taskNames,
+            employeeName: sheet.user?.name ?? user?.name ?? "Unknown Employee",
+            isLeave: isLeave,
+            leaveType: leaveInfo?.type,
+            isHoliday: isHoliday,
+            holidayName: holidayInfo?.name,
           };
         },
       );
+
       setRows(mappedRows);
       setStatus(mapBackendStatusToUI(sheet.status));
       setIsSubmitted(sheet.status === "SUBMITTED");
       setCurrentDate(dayjs(sheet.weekStart));
 
-      setEntryCount(entryCount); // <-- use a state variable to store it
+      const daysToExpand = new Set<string>();
+
+      mappedRows.forEach((row) => {
+        const hasData =
+          row.projectId ||
+          (row.taskIds && row.taskIds.length > 0) ||
+          row.description ||
+          (row.hours && row.hours > 0) ||
+          row.isLeave ||
+          row.isHoliday;
+
+        if (hasData) {
+          daysToExpand.add(row.day);
+        }
+      });
+
+      console.log("📅 Days to expand:", Array.from(daysToExpand));
+
+      setExpandedDays(daysToExpand);
 
       return;
     }
@@ -313,31 +722,72 @@ export default function SubmittimesheetTab({
       setRows(createEmptyRows());
       setStatus("Draft");
     }
-  }, [id, mode, sheet, projects, tasks]);
+  }, [id, mode, sheet, projects, tasks, user]);
+
+  useEffect(() => {
+    console.log("📊 Data loading status:", {
+      id,
+      hasSheet: !!sheet,
+      leaveDatesSize: leaveDates.size,
+      rowsLength: rows.length,
+      mode,
+    });
+  }, [id, sheet, leaveDates, rows.length, mode]);
+
+  useEffect(() => {
+    if (id && sheet && (leaveDates.size > 0 || holidayDates.size > 0)) {
+      refreshRowsForCurrentWeek();
+    }
+  }, [leaveDates, holidayDates, id, sheet]);
 
   useEffect(() => {
     if (!projects.length || !tasks.length) return;
 
     setRows((prev) =>
-      prev.map((r) => ({
-        ...r,
-        projectName: r.projectId
+      prev.map((r) => {
+        if (r.isLeave || r.isHoliday) return r;
+
+        const updatedProjectName = r.projectId
           ? projects.find((p) => p.id === r.projectId)?.name || r.projectName
-          : r.projectName,
-        taskName: r.taskId
-          ? tasks.find((t) => t.id === r.taskId)?.name || r.taskName
-          : r.taskName,
-      })),
+          : r.projectName;
+
+        let updatedTaskNames = r.taskNames;
+        if (r.taskIds && r.taskIds.length > 0) {
+          const foundTasks = r.taskIds
+            .map((id) => tasks.find((t) => t.id === id))
+            .filter(Boolean) as {
+            id: string;
+            name: string;
+            projectId: string;
+          }[];
+
+          if (foundTasks.length > 0) {
+            updatedTaskNames = foundTasks.map((t) => t.name);
+          }
+        }
+
+        return {
+          ...r,
+          projectName: updatedProjectName,
+          taskNames: updatedTaskNames,
+        };
+      }),
     );
   }, [projects, tasks]);
 
   const updateRow = (key: string, patch: Partial<TimesheetRowUI>) => {
     setRows((prev) =>
       prev.map((r) => {
+        if (r.isLeave || r.isHoliday) return r;
+
         if (r.key === key) {
           const updated = { ...r, ...patch };
 
-          // ✅ If the date changes, update currentDate to that week
+          if (patch.projectId && patch.projectId !== r.projectId) {
+            updated.taskIds = [];
+            updated.taskNames = [];
+          }
+
           if (patch.date) {
             setCurrentDate(dayjs(patch.date).startOf("week"));
           }
@@ -347,316 +797,185 @@ export default function SubmittimesheetTab({
         return r;
       }),
     );
-
-    setIsSaving(true);
-    if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => setIsSaving(false), 1000);
   };
 
+  const isAddingEntry = useRef(false);
   const addEntry = (day: string, date: string) => {
+    if (isDateLeave(date)) {
+      message.warning("Cannot add entry on a leave day");
+      return;
+    }
+
+    if (isDateHoliday(date)) {
+      message.warning("Cannot add entry on a holiday");
+      return;
+    }
+
+    if (isAddingEntry.current) {
+      console.log("Preventing double add");
+      return;
+    }
+
+    isAddingEntry.current = true;
+
+    const newKey = `${day}-${Date.now()}-${Math.random()}`;
+
     setRows((prev) => [
       ...prev,
       {
-        key: `${day}-${Date.now()}`,
+        key: newKey,
         day,
         date,
         hours: 0,
         billable: true,
         status: "Draft",
-        // employeeName: loggedInEmployee.employeeName,
-        employeeName: sheet?.user?.name ?? "Unknown Employee",
+        taskIds: [],
+        taskNames: [],
+        employeeName: sheet?.user?.name ?? user?.name ?? "Unknown Employee",
+        isLeave: false,
+        isHoliday: false,
+      },
+    ]);
+
+    setExpandedDays((prev) => new Set([...prev, day]));
+
+    setTimeout(() => {
+      isAddingEntry.current = false;
+    }, 500);
+  };
+
+  const handleCopyRow = (row: TimesheetRowUI) => {
+    if (row.isLeave) {
+      message.warning("Cannot copy leave entry");
+      return;
+    }
+
+    if (row.isHoliday) {
+      message.warning("Cannot copy holiday entry");
+      return;
+    }
+
+    setRows((prev) => [
+      ...prev,
+      {
+        ...row,
+        key: `${row.day}-${Date.now()}-${Math.random()}`,
+        id: undefined,
+        taskIds: [...(row.taskIds || [])],
+        taskNames: [...(row.taskNames || [])],
       },
     ]);
   };
 
-  const handleCopyRow = (row: TimesheetRowUI) => {
-    setRows((prev) => [...prev, { ...row, key: `${row.day}-${Date.now()}` }]);
-  };
   const handleDeleteRow = (key: string) => {
-    setRows((prev) =>
-      prev.map((row) =>
-        row.key === key
-          ? {
-              ...row,
-              projectId: undefined,
-              taskId: undefined,
-              description: "",
-              hours: 0,
-              billable: false,
-            }
-          : row,
-      ),
-    );
+    setRows((prev) => prev.filter((row) => row.key !== key));
   };
 
-  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const getDayRows = (dayLabel: string) => {
+    return rows.filter((r) => r.day === dayLabel && !r.isSummary);
+  };
 
-  const displayRows = useMemo(() => {
-    const result: TimesheetRowUI[] = [];
-    DAYS.forEach((d) => {
-      const dayRows = rows.filter((r) => r.day === d.label);
-      const total = dayRows.reduce((s, r) => s + (r.hours || 0), 0);
-      dayRows.forEach((r) => result.push(r));
-      result.push({
-        key: `${d.label}-summary`,
-        day: d.label,
-        date: d.date,
-        hours: total,
-        isSummary: true,
+  const getDayTotal = (dayLabel: string) => {
+    const dayRows = rows.filter((r) => r.day === dayLabel && !r.isSummary);
+    return dayRows.reduce((sum, r) => sum + (r.hours || 0), 0);
+  };
 
-        employeeName: sheet?.user?.name ?? "Unknown Employee",
-      });
+  const getAvailableTasks = (projectId?: string) => {
+    if (!projectId) return [];
+    return tasks.filter((t) => t.projectId === projectId);
+  };
+
+  const toggleDayExpand = (day: string) => {
+    setExpandedDays((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(day)) {
+        newSet.delete(day);
+      } else {
+        newSet.add(day);
+      }
+      return newSet;
     });
-    return result;
-  }, [rows, DAYS]);
+  };
 
-  const totalHours = rows.reduce((sum, r) => sum + (r.hours || 0), 0);
-  const totalBillable = rows.reduce(
-    (sum, r) => sum + (r.billable ? r.hours || 0 : 0),
-    0,
-  );
+  const totalHours = rows
+    .filter((r) => !r.isLeave)
+    .reduce((sum, r) => sum + (r.hours || 0), 0);
+
+  const totalBillable = rows
+    .filter((r) => !r.isLeave && !r.isHoliday)
+    .reduce((sum, r) => sum + (r.billable ? r.hours || 0 : 0), 0);
+
   const expectedHours = 40;
-
-
-  const columns: ColumnsType<TimesheetRowUI> = [
-    {
-      title: "DAY",
-      width: 120,
-      render: (_: any, r: TimesheetRowUI) => (
-        <Space>
-          {r.isSummary ? (
-            <Text type="secondary">{r.date}</Text>
-          ) : (
-            <Text strong>{r.day}</Text>
-          )}
-          {isWeekend(r.day) && !r.isSummary && (
-            <Checkbox
-              checked={isFieldEditable(r)}
-              onChange={(e) =>
-                setWeekendEditable((prev) => ({
-                  ...prev,
-                  [r.key]: e.target.checked,
-                }))
-              }
-            />
-          )}
-        </Space>
-      ),
-    },
-
-    {
-      title: "PROJECT",
-      render: (_: any, r: TimesheetRowUI) =>
-        r.isSummary ? (
-          <Button
-            type="link"
-            icon={<PlusOutlined />}
-            onClick={() => addEntry(r.day, r.date)}
-          >
-            Add entry
-          </Button>
-        ) : (
-          <Tooltip
-            title={
-              isWeekend(r.day) && !isFieldEditable(r)
-                ? "Weekend editing is disabled. Click checkbox to enable."
-                : ""
-            }
-          >
-            <Select
-              disabled={isViewMode || !isFieldEditable(r)}
-              bordered={false}
-              value={r.projectId}
-              placeholder="Project"
-              style={{ width: 200 }}
-              options={projects.map((p) => ({
-                value: p.id,
-                label: p.name,
-              }))}
-              onChange={(projectId) => {
-                const selected = projects.find((p) => p.id === projectId);
-
-                updateRow(r.key, {
-                  projectId,
-                  projectName: selected?.name,
-                  taskId: undefined,
-                  taskName: undefined,
-                });
-              }}
-            />
-          </Tooltip>
-        ),
-    },
-    {
-      title: "TASK",
-      render: (_: any, r: TimesheetRowUI) =>
-        r.isSummary ? null : (
-          <Tooltip
-            title={
-              isWeekend(r.day) && !isFieldEditable(r)
-                ? "Weekend editing is disabled. Click checkbox to enable."
-                : ""
-            }
-          >
-            <Select
-              bordered={false}
-              value={r.taskId}
-              placeholder="Task"
-              style={{ width: 200 }}
-              options={tasks
-                .filter((t) => t.projectId === r.projectId) // ✅ correct
-                .map((t) => ({
-                  value: t.id,
-                  label: t.name,
-                }))}
-              onChange={(taskId) => {
-                const selected = tasks.find((t) => t.id === taskId);
-
-                updateRow(r.key, {
-                  taskId,
-                  taskName: selected?.name ?? "",
-                });
-              }}
-            />
-          </Tooltip>
-        ),
-    },
-    {
-      title: "DESCRIPTION",
-      render: (_: any, r: TimesheetRowUI) =>
-        r.isSummary ? (
-          <Text strong>Total</Text>
-        ) : (
-          <div
-            onClick={() => setExpandedRow(expandedRow === r.key ? null : r.key)}
-            style={{ cursor: "pointer" }}
-          >
-            {r.description || "Description"}{" "}
-            <span>{expandedRow === r.key ? "▲" : "▼"}</span>
-          </div>
-        ),
-    },
-    {
-      title: "HOURS",
-      width: 120,
-      render: (_: any, r: TimesheetRowUI) =>
-        r.isSummary ? (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              width: "100%",
-            }}
-          >
-            <Text strong style={{ whiteSpace: "nowrap" }}>
-              {r.hours ?? 0}h / 8h
-            </Text>
-
-            <Progress
-              percent={Math.min(100, ((r.hours ?? 0) / 8) * 100)}
-              showInfo={false}
-              size="small"
-              style={{ flex: 1, minWidth: 80 }}
-            />
-          </div>
-        ) : (
-          <InputNumber<number>
-            min={0}
-            max={24}
-            step={0.5}
-            value={r.hours}
-            controls
-            onKeyDown={(e) => {
-              const allowedKeys = [
-                "Backspace",
-                "Delete",
-                "ArrowLeft",
-                "ArrowRight",
-                "Tab",
-              ];
-              if (allowedKeys.includes(e.key)) return;
-              if (!/[\d.]/.test(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            onChange={(value) => {
-              updateRow(r.key, {
-                hours: value ?? 0,
-              });
-            }}
-          />
-        ),
-    },
-    {
-      title: "BILLABLE",
-      width: 90,
-      render: (_: any, r: TimesheetRowUI) =>
-        r.isSummary ? null : (
-          <Switch
-            disabled={isViewMode || !isFieldEditable(r)}
-            checked={r.billable}
-            onChange={(v) => updateRow(r.key, { billable: v })}
-          />
-        ),
-    },
-    !isViewMode && {
-      title: "ACTIONS",
-      width: 150,
-      render: (_: any, r: TimesheetRowUI) =>
-        r.isSummary ? null : (
-          <Space style={{ display: "flex", gap: "10px" }}>
-            <SnippetsOutlined
-              style={{
-                color: "green",
-                cursor: isFieldEditable(r) ? "pointer" : "not-allowed",
-                opacity: isFieldEditable(r) ? 1 : 0.5,
-              }}
-              onClick={() => isFieldEditable(r) && handleCopyRow(r)}
-            />
-            <UndoOutlined
-              style={{
-                color: "blue",
-                cursor: isFieldEditable(r) ? "pointer" : "not-allowed",
-                opacity: isFieldEditable(r) ? 1 : 0.5,
-              }}
-              onClick={() => isFieldEditable(r) && handleDeleteRow(r.key)}
-            />
-          </Space>
-        ),
-    },
-  ].filter(Boolean) as ColumnsType<TimesheetRowUI>;
 
   const handleSaveDraft = async () => {
     try {
-      setLoading(true);
+      setSaveDraftLoading(true);
       const existing = allTimesheets?.data?.find(
         (t: Timesheet) =>
-          t.user?.id === sheet?.user?.id && // ✅ use the employee from timesheet
+          t.user?.id === sheet?.user?.id &&
           dayjs(t.weekStart).format("YYYY-MM-DD") ===
             currentDate.startOf("week").format("YYYY-MM-DD"),
       );
-      const rowsForPayload = rows.map((r) => ({
-        day: new Date(`${r.date}T00:00:00Z`),
 
-        projectId: r.projectId,
-        taskId: r.taskId,
+      const leaveRows = rows.filter((r) => r.isLeave && !r.isSummary);
+      const leaveCount = leaveRows.length;
 
-        projectName: r.projectName || "",
-        taskName: r.taskName || "",
-        description: r.description || "",
-        hours: r.hours || 0,
-        billable: r.billable ?? true,
-      }));
+      const rowsForPayload = rows
+        .filter((r) => !r.isSummary)
+        .map((r) => {
+          if (r.isLeave) {
+            return {
+              day: new Date(`${r.date}T00:00:00Z`),
+              projectId: undefined,
+              taskId: undefined,
+              projectName: "",
+              taskName: "",
+              description:
+                r.description || `On leave (${r.leaveType || "Leave"})`,
+              hours: 0,
+              billable: false,
+            };
+          } else if (r.isHoliday) {
+            return {
+              day: new Date(`${r.date}T00:00:00Z`),
+              projectId: undefined,
+              taskId: undefined,
+              projectName: "",
+              taskName: "",
+              description:
+                r.description || `Holiday: ${r.holidayName || "Holiday"}`,
+              hours: 8,
+              billable: false,
+            };
+          } else {
+            return {
+              day: new Date(`${r.date}T00:00:00Z`),
+              projectId: r.projectId,
+              taskId:
+                r.taskIds && r.taskIds.length > 0 ? r.taskIds[0] : undefined,
+              projectName: r.projectName || "",
+              taskName:
+                r.taskNames && r.taskNames.length > 0
+                  ? r.taskNames.join(", ")
+                  : "",
+              description: r.description || "",
+              hours: r.hours || 0,
+              billable: r.billable ?? true,
+            };
+          }
+        });
 
       const payload = {
         weekStart: currentDate.startOf("week").toISOString(),
         weekEnd: currentDate.endOf("week").toISOString(),
-        rows: rowsForPayload, // ✅ use mapped rows
+        rows: rowsForPayload,
         totalHours,
         totalBillable,
         status: "DRAFT",
+        leaveCount,
       };
+
+      console.log("📦 DRAFT PAYLOAD with leaveCount:", payload);
 
       if (existing) {
         await updateMutation.mutateAsync({ id: existing.id, data: payload });
@@ -667,78 +986,130 @@ export default function SubmittimesheetTab({
       setStatus("Draft");
       onSubmitted();
     } catch (err) {
-      message.error("Failed to save draft");
+      message.error("This timesheet already submitted ");
     } finally {
-      setLoading(false); // 🔥 stop spinner
+      setSaveDraftLoading(false);
     }
   };
 
   const handleSubmitTimesheet = async () => {
-    console.log("SUBMIT BUTTON CLICKED");
-
+    console.log("🚀 ===== SUBMIT TIMESHEET STARTED =====");
     isSubmittingRef.current = true;
 
     try {
-      setLoading(true);
+      setSubmitLoading(true);
 
       const weekStartStr = currentDate.startOf("week").format("YYYY-MM-DD");
-
       const existing = allTimesheets?.data?.find(
         (t: Timesheet) =>
           t.user?.id === sheet?.user?.id &&
           dayjs(t.weekStart).format("YYYY-MM-DD") === weekStartStr,
       );
+
       if (existing && existing.status === "SUBMITTED") {
         message.warning("This timesheet is already submitted");
-        return; // ❗ STOP further execution
+        return;
       }
 
-      const rowsForPayload: CreateTimesheetData["rows"] = rows.map((r) => ({
-        id: r.id,
-        day: new Date(`${r.date}T00:00:00Z`),
+      const leaveRows = rows.filter((r) => r.isLeave && !r.isSummary);
+      const leaveCount = leaveRows.length;
 
-        projectId: r.projectId,
-        taskId: r.taskId,
-        projectName: r.projectName || "",
-        taskName: r.taskName || "",
-        description: r.description || "",
-        hours: r.hours || 0,
-        billable: r.billable ?? true,
-      }));
-      console.log("rowpayload", rowsForPayload);
+      console.log("📊 LEAVE COUNT CALCULATED:", leaveCount);
+
+      const rowsForPayload = rows
+        .filter((r) => !r.isSummary)
+        .map((r) => {
+          if (r.isLeave) {
+            return {
+              id: r.id,
+              day: new Date(`${r.date}T00:00:00Z`),
+              projectId: undefined,
+              taskId: undefined,
+              projectName: "",
+              taskName: "",
+              description:
+                r.description || `On leave (${r.leaveType || "Leave"})`,
+              hours: 0,
+              billable: false,
+              isLeave: true,
+            };
+          } else if (r.isHoliday) {
+            return {
+              id: r.id,
+              day: new Date(`${r.date}T00:00:00Z`),
+              projectId: undefined,
+              taskId: undefined,
+              projectName: "",
+              taskName: "",
+              description:
+                r.description || `Holiday: ${r.holidayName || "Holiday"}`,
+              hours: 8,
+              billable: false,
+              isHoliday: true,
+            };
+          } else {
+            return {
+              id: r.id,
+              day: new Date(`${r.date}T00:00:00Z`),
+              projectId: r.projectId,
+              taskId:
+                r.taskIds && r.taskIds.length > 0 ? r.taskIds[0] : undefined,
+              projectName: r.projectName || "",
+              taskName:
+                r.taskNames && r.taskNames.length > 0
+                  ? r.taskNames.join(", ")
+                  : "",
+              description: r.description || "",
+              hours: r.hours || 0,
+              billable: r.billable ?? true,
+              isLeave: false,
+            };
+          }
+        });
 
       let timesheetId: string;
+      let savedTimesheet;
+
       if (existing) {
-        await updateMutation.mutateAsync({
-          id: existing.id,
-          data: {
-            weekStart: currentDate.startOf("week").toDate(),
-            weekEnd: currentDate.endOf("week").toDate(),
-            rows: rowsForPayload,
-          },
-        });
-        timesheetId = existing.id;
-      } else {
-        const newTimesheet = await createMutation.mutateAsync({
+        console.log("🔄 UPDATING EXISTING TIMESHEET - ID:", existing.id);
+        const updateData = {
           weekStart: currentDate.startOf("week").toDate(),
           weekEnd: currentDate.endOf("week").toDate(),
           rows: rowsForPayload,
+          totalHours,
+          totalBillable,
+          leaveCount,
+        };
+
+        savedTimesheet = await updateMutation.mutateAsync({
+          id: existing.id,
+          data: updateData,
         });
-        timesheetId = newTimesheet.id;
+        timesheetId = existing.id;
+      } else {
+        console.log("🔄 CREATING NEW TIMESHEET");
+        const createData = {
+          weekStart: currentDate.startOf("week").toDate(),
+          weekEnd: currentDate.endOf("week").toDate(),
+          rows: rowsForPayload,
+          totalHours,
+          totalBillable,
+          leaveCount,
+        };
+
+        savedTimesheet = await createMutation.mutateAsync(createData);
+        timesheetId = savedTimesheet.id;
       }
 
       if (!timesheetId) throw new Error("Timesheet ID missing");
+
       try {
         await TimesheetsService.submitTimesheet(timesheetId);
+        console.log("✅ TIMESHEET SUBMITTED SUCCESSFULLY");
       } catch (submitError) {
-        console.warn(
-          "Submit API threw error, but backend already submitted",
-          submitError,
-        );
-        // ❗ DO NOTHING – backend already updated
+        console.warn("⚠️ SUBMIT API ERROR:", submitError);
       }
 
-      // 🔥 3. FORCE UI → SUBMITTED (THIS IS THE FIX)
       setIsSubmittedModalOpen(true);
       setIsSubmitted(true);
       setStatus("Submitted");
@@ -752,16 +1123,16 @@ export default function SubmittimesheetTab({
       );
 
       message.success("Timesheet submitted successfully!");
+
       await queryClient.invalidateQueries({
         queryKey: ["timesheets"],
       });
-
-      //onSubmitted();
+      onSubmitted();
     } catch (err) {
-      console.error("Unexpected submit failure:", err);
+      console.error("❌ SUBMIT FAILURE:", err);
       message.error("This timesheet is already submitted");
     } finally {
-      setLoading(false);
+      setSubmitLoading(false);
       isSubmittingRef.current = false;
     }
   };
@@ -769,66 +1140,377 @@ export default function SubmittimesheetTab({
   const handleSaveChanges = async () => {
     if (!timesheetId) return;
     console.log("ROWS STATE BEFORE SAVE", rows);
+
     try {
-      setLoading(true);
+      setSaveChangesLoading(true);
 
-      // Convert rows to correct type for backend
-      const rowsForPayload = rows.map((r) => ({
-        id: r.id, // ✅ MUST
-        day: new Date(`${r.date}T00:00:00Z`),
+      const leaveRows = rows.filter((r) => r.isLeave && !r.isSummary);
+      const leaveCount = leaveRows.length;
 
-        taskId: r.taskId,
-        projectId: r.projectId,
-        description: r.description || "",
-        hours: r.hours || 0,
-        billable: r.billable || false,
-        ...(r.projectName && { projectName: r.projectName }),
-        ...(r.taskName && { taskName: r.taskName }),
-      }));
+      const rowsForPayload = rows
+        .filter((r) => !r.isSummary)
+        .map((r) => {
+          if (r.isLeave) {
+            return {
+              id: r.id,
+              day: new Date(`${r.date}T00:00:00Z`),
+              taskId: undefined,
+              projectId: undefined,
+              description:
+                r.description || `On leave (${r.leaveType || "Leave"})`,
+              hours: 0,
+              billable: false,
+              projectName: "",
+              taskName: "",
+            };
+          } else if (r.isHoliday) {
+            return {
+              id: r.id,
+              day: new Date(`${r.date}T00:00:00Z`),
+              taskId: undefined,
+              projectId: undefined,
+              description:
+                r.description || `Holiday: ${r.holidayName || "Holiday"}`,
+              hours: 8,
+              billable: false,
+              projectName: "",
+              taskName: "",
+            };
+          } else {
+            return {
+              id: r.id,
+              day: new Date(`${r.date}T00:00:00Z`),
+              taskId:
+                r.taskIds && r.taskIds.length > 0 ? r.taskIds[0] : undefined,
+              projectId: r.projectId,
+              description: r.description || "",
+              hours: r.hours || 0,
+              billable: r.billable || false,
+              projectName: r.projectName || "",
+              taskName:
+                r.taskNames && r.taskNames.length > 0
+                  ? r.taskNames.join(", ")
+                  : "",
+            };
+          }
+        });
+
       const updatePayload = {
         weekStart: dayjs(currentDate).startOf("week").toDate(),
         weekEnd: dayjs(currentDate).endOf("week").toDate(),
         rows: rowsForPayload,
         totalHours,
         totalBillable,
-        status: "SUBMITTED", // backend enum
+        status: "SUBMITTED",
+        leaveCount,
       };
 
       await updateMutation.mutateAsync({
         id: timesheetId,
         data: updatePayload,
       });
-      message.success("Timesheet edited successfully");
 
+      message.success("Timesheet edited successfully");
       setIsSubmitOpen(false);
       onSubmitted();
     } catch (err: any) {
       console.error("Save changes failed:", err);
     } finally {
-      setLoading(false);
+      setSaveChangesLoading(false);
     }
   };
 
+  const weekLeaveCount = useMemo(() => {
+    return rows.filter((r) => r.isLeave && !r.isSummary).length;
+  }, [rows]);
 
-  return (
-    <div style={{ padding: 22 }}>
-      {/* Header */}
+  const weekHolidayCount = useMemo(() => {
+    return rows.filter((r) => r.isHoliday && !r.isSummary).length;
+  }, [rows]);
+
+  const handleWeekendToggle = (
+    day: string,
+    checked: boolean,
+    dayRows: TimesheetRowUI[],
+  ) => {
+    // Get all rows for this day
+    const dayRowKeys = dayRows.map((row) => row.key);
+    // Toggle all rows for this day
+    dayRowKeys.forEach((key) => {
+      setWeekendEditable((prev) => ({
+        ...prev,
+        [key]: checked,
+      }));
+    });
+  };
+
+  const renderEntryRow = (row: TimesheetRowUI) => {
+    const isLeave = row.isLeave;
+    const isHoliday = row.isHoliday;
+    const isWeekendDay = row.day === "Sat" || row.day === "Sun";
+
+    return (
       <div
-        className="timesheet-header"
+        key={row.key}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 24,
-          flexWrap: "wrap",
+          gap: "12px",
+          padding: "12px",
+          backgroundColor: isLeave
+            ? "#fff2f0"
+            : isHoliday
+              ? "#f6ffed"
+              : "#ffffff",
+          borderRadius: "8px",
+          marginBottom: "8px",
+          border: isLeave
+            ? "1px solid #ffccc7"
+            : isHoliday
+              ? "1px solid #b7eb8f"
+              : "1px solid #f0f0f0",
+          opacity: isWeekendDay && !isFieldEditable(row) ? 0.7 : 1,
         }}
       >
+        {isLeave && (
+          <Tag color="red" style={{ marginRight: 4, fontWeight: "bold" }}>
+            LEAVE
+          </Tag>
+        )}
+        {isHoliday && !isLeave && (
+          <Tag
+            color="green"
+            icon={<CalendarOutlined />}
+            style={{ marginRight: 4, fontWeight: "bold" }}
+          >
+            {row.holidayName || "HOLIDAY"}
+          </Tag>
+        )}
+
+        {/* Checkbox removed from here - now in header */}
+
+        <Tooltip
+          title={
+            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
+              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
+              : ""
+          }
+        >
+          <Select
+            disabled={
+              isViewMode || !isFieldEditable(row) || isLeave || isHoliday
+            }
+            bordered={false}
+            value={row.projectId}
+            placeholder={
+              isLeave ? "Leave day" : isHoliday ? "Holiday" : "Project"
+            }
+            style={{ width: 180 }}
+            options={projects.map((p) => ({
+              value: p.id,
+              label: p.name,
+            }))}
+            onChange={(projectId) => {
+              const selected = projects.find((p) => p.id === projectId);
+              updateRow(row.key, {
+                projectId,
+                projectName: selected?.name,
+                taskIds: [],
+                taskNames: [],
+              });
+            }}
+          />
+        </Tooltip>
+
+        <Tooltip
+          title={
+            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
+              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
+              : ""
+          }
+        >
+          <Select
+            mode="multiple"
+            allowClear
+            bordered={false}
+            value={row.taskIds}
+            placeholder={
+              isLeave ? "Leave day" : isHoliday ? "Holiday" : "Select tasks"
+            }
+            style={{ width: 220 }}
+            disabled={
+              isViewMode ||
+              !isFieldEditable(row) ||
+              isLeave ||
+              isHoliday ||
+              !row.projectId
+            }
+            options={getAvailableTasks(row.projectId).map((t) => ({
+              value: t.id,
+              label: t.name,
+            }))}
+            onChange={(taskIds: string[]) => {
+              const selectedTasks = tasks.filter((t) => taskIds.includes(t.id));
+              updateRow(row.key, {
+                taskIds,
+                taskNames: selectedTasks.map((t) => t.name),
+              });
+            }}
+          />
+        </Tooltip>
+
+        <Tooltip
+          title={
+            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
+              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
+              : ""
+          }
+        >
+          <Input
+            placeholder="Description"
+            value={row.description}
+            onChange={(e) =>
+              updateRow(row.key, { description: e.target.value })
+            }
+            disabled={
+              isViewMode || !isFieldEditable(row) || isLeave || isHoliday
+            }
+            style={{ flex: 1 }}
+            bordered={false}
+          />
+        </Tooltip>
+
+        <Tooltip
+          title={
+            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
+              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
+              : ""
+          }
+        >
+          <InputNumber<number>
+            min={0}
+            max={24}
+            step={0.5}
+            value={row.hours}
+            disabled={
+              isViewMode || !isFieldEditable(row) || isLeave || isHoliday
+            }
+            controls
+            onChange={(value) => {
+              if (!isLeave && !isHoliday) {
+                updateRow(row.key, {
+                  hours: value ?? 0,
+                });
+              }
+            }}
+            style={{ width: 100 }}
+          />
+        </Tooltip>
+
+        <Tooltip
+          title={
+            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
+              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
+              : ""
+          }
+        >
+          <Switch
+            disabled={
+              isViewMode || !isFieldEditable(row) || isLeave || isHoliday
+            }
+            checked={row.billable}
+            onChange={(v) =>
+              !isLeave && !isHoliday && updateRow(row.key, { billable: v })
+            }
+          />
+        </Tooltip>
+
+        {!isViewMode && !isLeave && !isHoliday && (
+          <Space>
+            <Tooltip
+              title={
+                isWeekendDay && !isFieldEditable(row)
+                  ? "Enable the day first to copy"
+                  : "Copy entry"
+              }
+            >
+              <SnippetsOutlined
+                style={{
+                  color: isFieldEditable(row) ? "green" : "#ccc",
+                  cursor: isFieldEditable(row) ? "pointer" : "not-allowed",
+                }}
+                onClick={() => isFieldEditable(row) && handleCopyRow(row)}
+              />
+            </Tooltip>
+            <Tooltip
+              title={
+                isWeekendDay && !isFieldEditable(row)
+                  ? "Enable the day first to delete"
+                  : "Delete entry"
+              }
+            >
+              <DeleteOutlined
+                style={{
+                  color: isFieldEditable(row) ? "red" : "#ccc",
+                  cursor: isFieldEditable(row) ? "pointer" : "not-allowed",
+                }}
+                onClick={() => isFieldEditable(row) && handleDeleteRow(row.key)}
+              />
+            </Tooltip>
+          </Space>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <div
+        style={{
+          padding: 30,
+          marginTop: 0,
+          height: "calc(100vh - 120px)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Card
+          style={{
+            borderRadius: "16px",
+            backgroundColor: "#ffffff",
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+          }}
+          bodyStyle={{
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+          }}
+        >
+          {/* Sticky Header */}
+          <div
+            className="timesheet-header"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 24,
+              flexWrap: "wrap",
+              position: "sticky",
+              top: 0,
+              backgroundColor: "#ffffff",
+              zIndex: 10,
+              paddingBottom: "16px",
+              borderBottom: "1px solid #f0f0f0",
+              marginBottom: "24px",
+              flexShrink: 0,
+            }}
+          >
             <div>
               <Title level={3} style={{ margin: 0, color: "#262626" }}>
-                {isEditMode
-                  ? `Edit Timesheet` // when editing an existing timesheet
-                  : `My Timesheet`}{" "}
+                {isEditMode ? `Edit Timesheet` : `My Timesheet`}
               </Title>
-
               <Text style={{ fontSize: 13, color: "#8c8c8c" }}>
                 {currentDate.format("MMMM YYYY")}
               </Text>
@@ -837,7 +1519,9 @@ export default function SubmittimesheetTab({
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <Button
                 icon={<LeftOutlined />}
-                onClick={() => setCurrentDate(currentDate.subtract(1, "week"))}
+                onClick={() => {
+                  setCurrentDate(currentDate.subtract(1, "week"));
+                }}
                 type="text"
                 style={{ color: "#595959" }}
               />
@@ -858,7 +1542,9 @@ export default function SubmittimesheetTab({
               </div>
               <Button
                 icon={<RightOutlined />}
-                onClick={() => setCurrentDate(currentDate.add(1, "week"))}
+                onClick={() => {
+                  setCurrentDate(currentDate.add(1, "week"));
+                }}
                 type="text"
                 style={{ color: "#595959" }}
               />
@@ -888,24 +1574,16 @@ export default function SubmittimesheetTab({
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {/* <Button type="default" style={{ minWidth: 80 }}>
-                  {status}
-                </Button> */}
-
               <Button
                 icon={<SaveOutlined />}
                 htmlType="submit"
-                loading={loading}
+                loading={saveDraftLoading}
                 onClick={handleSaveDraft}
                 disabled={isViewMode || status === "Submitted"}
                 style={{
-                  fontWeight: 600, // bold text
-                  // backgroundColor: "#bae7ff",
-                  // backgroundColor:"#f0f0f0",
+                  fontWeight: 600,
                   border: "1px solid grey",
                   color: "#595959",
-
-                  // color: "#ffffff", // white text
                 }}
               >
                 Save Draft
@@ -920,188 +1598,580 @@ export default function SubmittimesheetTab({
                 Submit
               </Button>
             </div>
-          {/* </>
-        )} */}
-      </div>
-      <Divider />
-      {/* Table */}
-      <Table
+          </div>
 
-        style={{ marginTop: "10px" }}
-       
-        columns={columns}
-        dataSource={displayRows}
-        pagination={false}
-        bordered
-        rowKey="key"
-        expandable={{
-          expandedRowKeys: expandedRow ? [expandedRow] : [],
-          expandIcon: () => null,
-          expandedRowRender: (r) =>
-            !r.isSummary && (
-              <Input.TextArea
-                rows={3}
-                value={r.description}
-                onChange={(e) =>
-                  updateRow(r.key, { description: e.target.value })
-                }
-              />
-            ),
-        }}
-        rowClassName={(r) => (r.isSummary ? "no-column-border" : "")}
-        summary={() => (
-          <Table.Summary fixed>
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={columns.length}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "12px 24px",
-                    borderRadius: 6,
-                    fontWeight: 600, // slightly less than 1000 for readability
-                    fontSize: 14,
-                    color: "#1f1f1f", // dark gray for main text
-                  }}
-                >
-                  <span style={{ color: "#595959" }}>Week Total</span>{" "}
-                  {/* slightly lighter gray for label */}
-                  <span
+          {/* Scrollable Content Area */}
+          {/* <div style={{ 
+            overflowY: 'auto',
+            flex: 1,
+            paddingRight: '8px'
+          }}> */}
+          <style>
+            {`div[data-scrollable]::-webkit-scrollbar { display: none; }`}
+          </style>
+
+          {/* Scrollable Content Area */}
+          <div
+            data-scrollable
+            style={{
+              overflowY: "auto",
+              flex: 1,
+              paddingRight: "8px",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {weekLeaveCount > 0 && (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: "#fff1f0",
+                  border: "1px solid #ffccc7",
+                  borderRadius: 8,
+                }}
+              >
+                <Space>
+                  <ClockCircleOutlined style={{ color: "#ff4d4f" }} />
+                  <Text strong style={{ color: "#ff4d4f" }}>
+                    Leave Alert:
+                  </Text>
+                  <Text>
+                    You have {weekLeaveCount} leave day(s) this week. Those days
+                    are disabled for timesheet entry.
+                  </Text>
+                </Space>
+              </div>
+            )}
+
+            {weekHolidayCount > 0 && (
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: "#f6ffed",
+                  border: "1px solid #b7eb8f",
+                  borderRadius: 8,
+                }}
+              >
+                <Space>
+                  <CalendarOutlined style={{ color: "#52c41a" }} />
+                  <Text strong style={{ color: "#52c41a" }}>
+                    Holiday Alert:
+                  </Text>
+                  <Text>
+                    You have {weekHolidayCount} holiday(s) this week. These days
+                    are pre-filled with 8 hours and are not billable.
+                  </Text>
+                </Space>
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "20px",
+                alignItems: "center",
+              }}
+            >
+              {DAYS.map((day) => {
+                const dayRows = getDayRows(day.label);
+                const dayTotal = getDayTotal(day.label);
+                const isLeaveDay = dayRows.some((r) => r.isLeave);
+                const isHoliday = day.isHoliday;
+                const holidayName = day.holidayName;
+                const isExpanded = expandedDays.has(day.label);
+                const isToday = day.isToday;
+                const isWeekendDay = day.label === "Sat" || day.label === "Sun";
+
+                // Check if any row for this day is editable (for weekend toggle)
+                const anyRowEditable = dayRows.some(
+                  (row) => !row.isLeave && !row.isHoliday,
+                );
+
+                // Check if all weekend rows are enabled
+                const allWeekendEnabled =
+                  isWeekendDay &&
+                  anyRowEditable &&
+                  dayRows.every(
+                    (row) =>
+                      row.isLeave || row.isHoliday || weekendEditable[row.key],
+                  );
+
+                return (
+                  <Card
+                    key={day.label}
+                    className="hover-card"
                     style={{
-                      display: "flex",
-                      gap: "30px",
-                      alignItems: "center",
-                      color: "#262626", // dark gray for values
+                      borderRadius: "12px",
+                      border: isToday
+                        ? "2px solid #1890ff"
+                        : "1px solid #e8e8e8",
+                      backgroundColor: isLeaveDay
+                        ? "#fff2f0"
+                        : isHoliday
+                          ? "#f6ffed"
+                          : "#ffffff",
+                      width: "900px",
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                      cursor: "pointer",
+                      flexShrink: 0,
                     }}
+                    bodyStyle={{ padding: "20px" }}
                   >
-                    <span>{totalHours}h / 40h</span>
-                    <span style={{ color: "#1890ff" }}>
-                      {totalBillable} h billable
-                    </span>{" "}
-                    {/* subtle blue for billable */}
-                  </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                      onClick={() => toggleDayExpand(day.label)}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "16px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "38px",
+                            height: "38px",
+                            backgroundColor: isToday
+                              ? "#1890ff"
+                              : isLeaveDay
+                                ? "#ff4d4f"
+                                : isHoliday
+                                  ? "#52c41a"
+                                  : "#f0f0f0",
+                            borderRadius: "8px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color:
+                              isToday || isLeaveDay || isHoliday
+                                ? "white"
+                                : "#595959",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                            gap: "2px",
+                          }}
+                        >
+                          <CalendarOutlined style={{ fontSize: "12px" }} />
+                          <span>{day.dayNumber}</span>
+                        </div>
+
+                        <div>
+                          <div
+                            style={{
+                              fontSize: "18px",
+                              fontWeight: "600",
+                              color: "#262626",
+                              display: "flex",
+                              gap: "5px",
+                              alignItems: "center",
+                            }}
+                          >
+                            {day.label}
+
+                            {isHoliday && !isLeaveDay && (
+                              <Tag
+                                color="green"
+                                icon={<CalendarOutlined />}
+                                style={{
+                                  fontSize: "10px",
+                                  fontWeight: "bold",
+                                  padding: "2px 8px",
+                                  borderRadius: "12px",
+                                  marginLeft: "8px",
+                                }}
+                              >
+                                {holidayName || "Holiday"}
+                              </Tag>
+                            )}
+
+                            {isLeaveDay && (
+                              <>
+                                {dayRows
+                                  .filter((r) => r.isLeave)
+                                  .map((leaveRow, index) => (
+                                    <Tag
+                                      key={index}
+                                      color={
+                                        leaveRow.leaveType === "sick_leave"
+                                          ? "orange"
+                                          : "red"
+                                      }
+                                      icon={<ClockCircleOutlined />}
+                                      style={{
+                                        fontSize: "10px",
+                                        fontWeight: "bold",
+                                        padding: "2px 8px",
+                                        borderRadius: "12px",
+                                      }}
+                                    >
+                                      {leaveRow.leaveType === "sick_leave"
+                                        ? "Sick Leave"
+                                        : leaveRow.leaveType === "casual_leave"
+                                          ? "Casual Leave"
+                                          : "Leave"}
+                                    </Tag>
+                                  ))}
+                              </>
+                            )}
+                          </div>
+                          <div style={{ fontSize: "14px", color: "#8c8c8c" }}>
+                            {day.date}, {day.year}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "16px",
+                        }}
+                      >
+                        {/* Add Item button - only visible when expanded */}
+                        {isExpanded && !isLeaveDay && !isHoliday && (
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addEntry(day.label, day.fullDate);
+                            }}
+                            disabled={isViewMode}
+                            style={{
+                              boxShadow: "0 2px 4px rgba(24, 144, 255, 0.2)",
+                            }}
+                          >
+                            Add Item
+                          </Button>
+                        )}
+
+                        {/* Weekend Enable Checkbox - Now next to total hours */}
+                        {isWeekendDay &&
+                          anyRowEditable &&
+                          !isLeaveDay &&
+                          !isHoliday && (
+                            <Checkbox
+                              checked={allWeekendEnabled}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleWeekendToggle(
+                                  day.label,
+                                  e.target.checked,
+                                  dayRows,
+                                );
+                              }}
+                              style={{ marginRight: 4 }}
+                            >
+                              Enable
+                            </Checkbox>
+                          )}
+
+                        <div
+                          style={{
+                            fontSize: "16px",
+                            fontWeight: "600",
+                            color: isToday ? "#1890ff" : "#595959",
+                            backgroundColor: "#f5f5f5",
+                            padding: "4px 12px",
+                            borderRadius: "20px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          {dayTotal}h
+                        </div>
+                        <div style={{ color: "#8c8c8c" }}>
+                          {isExpanded ? <UpOutlined /> : <DownOutlined />}
+                        </div>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div style={{ marginTop: "20px" }}>
+                        {dayRows.length > 0 && (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                              padding: "12px 16px",
+                              backgroundColor: "#fafafa",
+                              borderRadius: "8px 8px 0 0",
+                              borderBottom: "2px solid #e8e8e8",
+                              fontWeight: 600,
+                              fontSize: "12px",
+                              color: "#8c8c8c",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            {!isLeaveDay &&
+                              !isHoliday &&
+                              (day.label === "Sat" || day.label === "Sun") && (
+                                <div style={{ width: 30 }}></div>
+                              )}
+                            <div style={{ width: 180 }}>PROJECT</div>
+                            <div style={{ width: 220 }}>TASKS</div>
+                            <div style={{ flex: 1 }}>DESCRIPTION</div>
+                            <div style={{ width: 100 }}>HOURS</div>
+                            <div style={{ width: 90 }}>BILLABLE</div>
+                            {!isViewMode && (
+                              <div style={{ width: 70 }}>ACTIONS</div>
+                            )}
+                          </div>
+                        )}
+
+                        {dayRows.length > 0 ? (
+                          dayRows.map((row) => renderEntryRow(row))
+                        ) : (
+                          <div
+                            style={{
+                              padding: "32px",
+                              textAlign: "center",
+                              color: "#8c8c8c",
+                              backgroundColor: "#fafafa",
+                              borderRadius: "8px",
+                              border: "1px dashed #d9d9d9",
+                            }}
+                          >
+                            {isLeaveDay ? (
+                              <div>
+                                <Tag color="red" style={{ marginBottom: 8 }}>
+                                  Leave Day
+                                </Tag>
+                                <div>No entries can be added on leave days</div>
+                              </div>
+                            ) : isHoliday ? (
+                              <div>
+                                <Tag
+                                  color="green"
+                                  icon={<CalendarOutlined />}
+                                  style={{ marginBottom: 8 }}
+                                >
+                                  {holidayName || "Holiday"} (8 hours)
+                                </Tag>
+                                <div>
+                                  Holiday automatically logged with 8 hours
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <ClockCircleOutlined
+                                  style={{
+                                    fontSize: 24,
+                                    marginBottom: 8,
+                                    color: "#bfbfbf",
+                                  }}
+                                />
+                                <div>
+                                  No time entries. Click 'Add Item' to log your
+                                  time.
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div
+              style={{
+                marginTop: 32,
+                padding: "20px 32px",
+                backgroundColor: "#fafafa",
+                borderRadius: "12px",
+                border: "1px solid #e8e8e8",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                width: "900px",
+                marginLeft: "auto",
+                marginRight: "auto",
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
+                flexShrink: 0,
+              }}
+            >
+              <Text strong style={{ fontSize: "18px", color: "#262626" }}>
+                Week Total
+              </Text>
+              <div
+                style={{ display: "flex", gap: "40px", alignItems: "center" }}
+              >
+                <div>
+                  <Text
+                    type="secondary"
+                    style={{ marginRight: 8, fontSize: "14px" }}
+                  >
+                    Billable:
+                  </Text>
+                  <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
+                    {totalBillable}h
+                  </Text>
                 </div>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
-          </Table.Summary>
-        )}
-      />
-      {/* Submit Modal */}
-      <Modal
-        open={isSubmitOpen}
-        onCancel={() => setIsSubmitOpen(false)}
-        footer={null}
-        width={520}
-        centered
-        bodyStyle={{
-          paddingLeft: 16, // 👈 reduce horizontal padding
-          paddingRight: 16,
-          paddingTop: 24,
-          paddingBottom: 24,
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-            margin: 0,
+                <div>
+                  <Text
+                    type="secondary"
+                    style={{ marginRight: 8, fontSize: "14px" }}
+                  >
+                    Total:
+                  </Text>
+                  <Text strong style={{ color: "#1890ff", fontSize: "16px" }}>
+                    {totalHours}h
+                  </Text>
+                </div>
+                {weekLeaveCount > 0 && (
+                  <Tag color="red" icon={<ClockCircleOutlined />}>
+                    {weekLeaveCount} Leave Day(s)
+                  </Tag>
+                )}
+                {weekHolidayCount > 0 && (
+                  <Tag color="green" icon={<CalendarOutlined />}>
+                    {weekHolidayCount} Holiday(s) ({weekHolidayCount * 8}h)
+                  </Tag>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Modal
+          open={isSubmitOpen}
+          onCancel={() => setIsSubmitOpen(false)}
+          footer={null}
+          width={520}
+          centered
+          styles={{
+            body: {
+              paddingLeft: 16,
+              paddingRight: 16,
+              paddingTop: 24,
+              paddingBottom: 24,
+            },
           }}
         >
-          <SendOutlined style={{ color: "#1677ff", fontSize: 20 }} />
-          <div>
-            <Text strong style={{ fontSize: 16 }}>
-              {isEditMode ? "Save Changes" : "Submit Timesheet"}
-            </Text>
-            <br />
-
-            <Text type="secondary">
-              {isEditMode
-                ? "Review and save your updated timesheet."
-                : "Review your timesheet summary before submission."}
-            </Text>
-          </div>
-        </div>
-
-        <Divider />
-        {/* Summary cards */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 16,
-            marginBottom: 20,
-          }}
-        >
-          {/* Total Hours */}
           <div
             style={{
-              background: "#f2f5f8",
-              borderRadius: 12,
-              padding: 16,
-              textAlign: "center",
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              margin: 0,
             }}
           >
-            <ClockCircleOutlined style={{ fontSize: 22, color: "#1677ff" }} />
-            <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
-              {totalHours}h
+            <SendOutlined style={{ color: "#1677ff", fontSize: 20 }} />
+            <div>
+              <Text strong style={{ fontSize: 16 }}>
+                {isEditMode ? "Save Changes" : "Submit Timesheet"}
+              </Text>
+              <br />
+              <Text type="secondary">
+                {isEditMode
+                  ? "Review and save your updated timesheet."
+                  : "Review your timesheet summary before submission."}
+              </Text>
             </div>
-            <div style={{ color: "#6b7a99", fontSize: 13 }}>Total Hours</div>
           </div>
 
-          {/* Billable */}
+          <Divider />
+
           <div
             style={{
-              background: "#f2f5f8",
-              borderRadius: 12,
-              padding: 16,
-              textAlign: "center",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 16,
+              marginBottom: 20,
             }}
           >
-            <DollarOutlined style={{ fontSize: 22, color: "#2fb344" }} />
-            <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
-              {totalBillable}h
+            <div
+              style={{
+                background: "#f2f5f8",
+                borderRadius: 12,
+                padding: 16,
+                textAlign: "center",
+              }}
+            >
+              <ClockCircleOutlined style={{ fontSize: 22, color: "#1677ff" }} />
+              <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
+                {totalHours}h
+              </div>
+              <div style={{ color: "#6b7a99", fontSize: 13 }}>Total Hours</div>
             </div>
-            <div style={{ color: "#6b7a99", fontSize: 13 }}>Billable</div>
+
+            <div
+              style={{
+                background: "#f2f5f8",
+                borderRadius: 12,
+                padding: 16,
+                textAlign: "center",
+              }}
+            >
+              <DollarOutlined style={{ fontSize: 22, color: "#2fb344" }} />
+              <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
+                {totalBillable}h
+              </div>
+              <div style={{ color: "#6b7a99", fontSize: 13 }}>Billable</div>
+            </div>
+
+            <div
+              style={{
+                background: "#f2f5f8",
+                borderRadius: 12,
+                padding: 16,
+                textAlign: "center",
+              }}
+            >
+              <FileTextOutlined style={{ fontSize: 22, color: "#6b7a99" }} />
+              <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
+                {entryCount}
+              </div>
+              <div style={{ color: "#6b7a99", fontSize: 13 }}>Entries</div>
+            </div>
           </div>
 
-          {/* Entries */}
           <div
             style={{
-              background: "#f2f5f8",
+              background: "#f7f9fb",
               borderRadius: 12,
               padding: 16,
-              textAlign: "center",
             }}
           >
-            <FileTextOutlined style={{ fontSize: 22, color: "#6b7a99" }} />
-            <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
-              {/* {rows.length} */}
-              {entryCount}
-              {/* {rowsForModal.length}   */}
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>
+              Projects (
+              {
+                new Set(
+                  rows
+                    .filter((r) => !r.isLeave && !r.isHoliday)
+                    .map((r) => r.projectName)
+                    .filter(Boolean),
+                ).size
+              }
+              )
             </div>
-            <div style={{ color: "#6b7a99", fontSize: 13 }}>Entries</div>
-          </div>
-        </div>
 
-        {/* Projects */}
-        <div
-          style={{
-            background: "#f7f9fb",
-            borderRadius: 12,
-            padding: 16,
-          }}
-        >
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>
-            Projects (
-            {new Set(rows.map((r) => r.projectName).filter(Boolean)).size})
-          </div>
-
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {[...new Set(rows.map((r) => r.projectName).filter(Boolean))].map(
-              (projectName) => (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                ...new Set(
+                  rows
+                    .filter((r) => !r.isLeave && !r.isHoliday)
+                    .map((r) => r.projectName)
+                    .filter(Boolean),
+                ),
+              ].map((projectName) => (
                 <Tag
                   key={projectName}
                   style={{
@@ -1112,86 +2182,96 @@ export default function SubmittimesheetTab({
                 >
                   {projectName}
                 </Tag>
-              ),
-            )}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Warning */}
-        {totalHours < expectedHours && (
+          {weekLeaveCount > 0 && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: 12,
+                borderRadius: 8,
+                background: "#fff1f0",
+                color: "#ff4d4f",
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <ClockCircleOutlined />
+              <span>
+                You have {weekLeaveCount} leave day(s) this week. Leave days are
+                automatically excluded.
+              </span>
+            </div>
+          )}
+
+          {weekHolidayCount > 0 && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: 12,
+                borderRadius: 8,
+                background: "#f6ffed",
+                color: "#52c41a",
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <CalendarOutlined />
+              <span>
+                You have {weekHolidayCount} holiday(s) this week. Holiday days
+                are automatically logged with 8 hours and are not billable.
+              </span>
+            </div>
+          )}
+
+          {totalHours < expectedHours && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: 12,
+                borderRadius: 8,
+                background: "#fff7e6",
+                color: "#fa8c16",
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <WarningOutlined />
+              <span>
+                Warning: You've logged {expectedHours - totalHours}h less than
+                expected.
+              </span>
+            </div>
+          )}
+
           <div
             style={{
-              marginTop: 16,
-              padding: 12,
-              borderRadius: 8,
-              background: "#fff7e6",
-              color: "#fa8c16",
               display: "flex",
-              gap: 8,
-              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 12,
+              marginTop: 24,
             }}
           >
-            <WarningOutlined />
-            <span>
-              Warning: You've logged {expectedHours - totalHours}h less than
-              expected.
-            </span>
+            <Button onClick={() => setIsSubmitOpen(false)}>Cancel</Button>
+            {!isPreviewMode && (
+              <Button
+                type="primary"
+                loading={isEditMode ? saveChangesLoading : submitLoading}
+                icon={isEditMode ? <SaveOutlined /> : <SendOutlined />}
+                onClick={isEditMode ? handleSaveChanges : handleSubmitTimesheet}
+              >
+                {isEditMode ? "Save Changes" : "Submit Timesheet"}
+              </Button>
+            )}
           </div>
-        )}
-
-        {/* Footer Buttons */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 12,
-            marginTop: 24,
-          }}
-        >
-          <Button onClick={() => setIsSubmitOpen(false)}>Cancel</Button>
-          {!isPreviewMode && (
-            <Button
-              type="primary"
-              loading={loading}
-              icon={isEditMode ? <SaveOutlined /> : <SendOutlined />}
-              onClick={isEditMode ? handleSaveChanges : handleSubmitTimesheet}
-            >
-              {isEditMode ? "Save Changes" : "Submit Timesheet"}
-            </Button>
-          )}
-        </div>
-      </Modal>
-      <Modal
-        open={isSubmittedModalOpen}
-        onCancel={() => setIsSubmittedModalOpen(false)}
-        footer={[
-          <Button
-            key="ok"
-            type="primary"
-            onClick={() => {
-              setIsSubmittedModalOpen(false);
-              //router.push("/timesheets/timesheet"); // redirect to timesheet page
-              onSubmitted();
-            }}
-          >
-            OK
-          </Button>,
-        ]}
-        centered
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <CheckCircleOutlined style={{ fontSize: 24, color: "#52c41a" }} />
-          <div>
-            <Text strong style={{ fontSize: 16 }}>
-              Time Entry Submitted
-            </Text>
-            <br />
-            <Text type="secondary">
-              Your timesheet has been successfully submitted.
-            </Text>
-          </div>
-        </div>
-      </Modal>
-    </div>
+        </Modal>
+      </div>
+    </>
   );
 }
+

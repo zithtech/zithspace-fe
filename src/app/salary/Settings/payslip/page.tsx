@@ -24,6 +24,7 @@ import {
   EyeOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
+import { usePermission } from "@/hooks/usePermission";
 import dayjs from "dayjs";
 
 interface PayslipField {
@@ -38,6 +39,8 @@ interface PayslipField {
 const { Title, Text } = Typography;
 
 export default function PayslipSettings() {
+  const { canManageSalary } = usePermission();
+  
   const [fields, setFields] = useState<PayslipField[]>([
     {
       id: 1,
@@ -129,20 +132,24 @@ export default function PayslipSettings() {
     </div>
 
     <Space>
-      <Button
-        icon={<CheckOutlined />}
-        onClick={() => console.log("Save payslip settings")}
-      >
-        Save Payslip Details
-      </Button>
+      {canManageSalary && (
+        <>
+          <Button
+            icon={<CheckOutlined />}
+            onClick={() => console.log("Save payslip settings")}
+          >
+            Save Payslip Details
+          </Button>
 
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={() => setIsModalOpen(true)}
-      >
-        Add Field
-      </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setIsModalOpen(true)}
+          >
+            Add Field
+          </Button>
+        </>
+      )}
     </Space>
   </Space>
 
@@ -178,25 +185,27 @@ export default function PayslipSettings() {
               </div>
             </div>
 
-            <Space>
-              <Button
-                type="text"
-                icon={<EditOutlined />}
-                onClick={() => {
-                  setEditField(field);
-                  editForm.setFieldsValue({
-                    label: field.label,
-                    value: field.value,
-                  });
-                }}
-              />
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => handleDeleteField(field.id)}
-              />
-            </Space>
+            {canManageSalary && (
+              <Space>
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setEditField(field);
+                    editForm.setFieldsValue({
+                      label: field.label,
+                      value: field.value,
+                    });
+                  }}
+                />
+                <Button
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDeleteField(field.id)}
+                />
+              </Space>
+            )}
           </div>
         </Card>
       </Col>

@@ -1,21 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
+import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import TicketSettings from '@/components/projects/TicketSettings';
 
 export default function ProjectsSettingsPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageProjects } = usePermission();
+  const router = useRouter();
+
+  // Route guard - requires project.manage permission
+  useEffect(() => {
+    if (!authLoading && !canManageProjects) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageProjects, router]);
 
   // Show loading spinner while authentication is being checked
-  if (isLoading) {
+  if (authLoading) {
     return <LoadingSpinner message="Loading settings..." />;
   }
 
-  // Don't render if no user
-  if (!user) {
+  // Don't render if no permission
+  if (!canManageProjects) {
     return null;
   }
 

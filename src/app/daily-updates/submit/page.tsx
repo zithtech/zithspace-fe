@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
   Form,
@@ -16,6 +19,7 @@ import {
   Row,
   Col,
   Switch,
+  Spin,
 } from "antd";
 import type { NotificationArgsProps } from "antd";
 import {
@@ -25,10 +29,7 @@ import {
   CloseCircleOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { ProjectService } from "@/services/projectService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
@@ -40,7 +41,6 @@ import {
   formatHours,
 } from "@/types/dailyUpdate";
 import dayjs, { Dayjs } from "dayjs";
-import { useSearchParams } from "next/navigation";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -69,14 +69,31 @@ const STATUS_OPTIONS = [
 ];
 
 export default function SubmitDailyUpdatePage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canCreateDailyUpdate } = usePermission();
+  const router = useRouter();
 
-  if (isLoading) {
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canCreateDailyUpdate) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canCreateDailyUpdate, router]);
+
+  // Loading state
+  if (authLoading) {
     return (
       <MainLayout>
-        <LoadingSpinner message="Loading..." />
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
       </MainLayout>
     );
+  }
+
+  // Permission check
+  if (!canCreateDailyUpdate) {
+    return null;
   }
 
   if (!user) {
@@ -182,28 +199,27 @@ function SubmitDailyUpdateContent() {
     }
   }, [editId]);
   useEffect(() => {
-  const now = new Date();
-  const hour = now.getHours();
+    const now = new Date();
+    const hour = now.getHours();
 
-  // Default when page opens
-  if (hour < 14) {
-    form.setFieldsValue({ updateType: "BOD" });
+    // Default when page opens
+    if (hour < 14) {
+      form.setFieldsValue({ updateType: "BOD" });
 
-    const twoPM = new Date();
-    twoPM.setHours(14, 0, 0, 0);
+      const twoPM = new Date();
+      twoPM.setHours(14, 0, 0, 0);
 
-    const delay = twoPM.getTime() - now.getTime();
+      const delay = twoPM.getTime() - now.getTime();
 
-    const timer = setTimeout(() => {
+      const timer = setTimeout(() => {
+        form.setFieldsValue({ updateType: "EOD" });
+      }, delay);
+
+      return () => clearTimeout(timer);
+    } else {
       form.setFieldsValue({ updateType: "EOD" });
-    }, delay);
-
-    return () => clearTimeout(timer);
-  } else {
-    form.setFieldsValue({ updateType: "EOD" });
-  }
-}, [form]);
-
+    }
+  }, [form]);
 
   const fetchProjects = async () => {
     try {
@@ -317,29 +333,29 @@ function SubmitDailyUpdateContent() {
     setProjectUpdates(newUpdates);
   };
   useEffect(() => {
-  if (existingUpdate?.projectUpdates) {
-    // Load tickets for all projects in existing update
-    existingUpdate.projectUpdates.forEach((update: ProjectUpdate) => {
-      if (update.projectId && !projectTickets[update.projectId]) {
-        fetchProjectTickets(update.projectId);
-      }
-    });
-  }
-}, [existingUpdate]);
+    if (existingUpdate?.projectUpdates) {
+      // Load tickets for all projects in existing update
+      existingUpdate.projectUpdates.forEach((update: ProjectUpdate) => {
+        if (update.projectId && !projectTickets[update.projectId]) {
+          fetchProjectTickets(update.projectId);
+        }
+      });
+    }
+  }, [existingUpdate]);
 
-// Also update the handleProjectChange to ensure tickets are loaded
-const handleProjectChange = async (index: number, projectId: string) => {
-  const project = projects.find((p) => p.value === projectId);
-  const newUpdates = [...projectUpdates];
-  newUpdates[index].projectId = projectId;
-  newUpdates[index].projectName = project?.label || "";
-  setProjectUpdates(newUpdates);
+  // Also update the handleProjectChange to ensure tickets are loaded
+  const handleProjectChange = async (index: number, projectId: string) => {
+    const project = projects.find((p) => p.value === projectId);
+    const newUpdates = [...projectUpdates];
+    newUpdates[index].projectId = projectId;
+    newUpdates[index].projectName = project?.label || "";
+    setProjectUpdates(newUpdates);
 
-  // Fetch tickets for this project if not already fetched
-  if (!projectTickets[projectId]) {
-    await fetchProjectTickets(projectId);
-  }
-};
+    // Fetch tickets for this project if not already fetched
+    if (!projectTickets[projectId]) {
+      await fetchProjectTickets(projectId);
+    }
+  };
 
   const handleTimeChange = (
     index: number,
@@ -412,8 +428,6 @@ const handleProjectChange = async (index: number, projectId: string) => {
 
     setProjectUpdates(newUpdates);
   };
- 
-
 
   const handleTicketSelect = (
     projectIndex: number,
@@ -590,92 +604,92 @@ const handleProjectChange = async (index: number, projectId: string) => {
     return true;
   };
   const handleSubmit = async () => {
-  if (alreadySubmitted && !isEditAllowed) {
-    api.error({
-      message: "Edit Locked",
-      description: "You can only edit within 24 hours of submission",
-    });
-    return;
-  }
-
-  if (!validateForm()) return;
-
-  if (isMissedUpdate && !missedDate) {
-    api.error({
-      message: "Validation Error",
-      description: "Please select a missed update date",
-    });
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const values = form.getFieldsValue();
-
-    // 🔒 LOCK updateType based on time
-    const now = new Date();
-    const hour = now.getHours();
-    const finalUpdateType = hour < 14 ? "BOD" : "EOD";
-
-    const data = {
-      date:
-        alreadySubmitted && existingUpdate
-          ? existingUpdate.working_date
-          : isMissedUpdate
-          ? missedDate!.format("YYYY-MM-DD")
-          : dayjs().format("YYYY-MM-DD"),
-
-      mood: values.mood,
-      updateType: finalUpdateType, // ✅ IMPORTANT
-      projectUpdates,
-      generalNotes: values.generalNotes,
-      is_missed: isMissedUpdate,
-      missed_updateAt: isMissedUpdate
-        ? missedDate?.format("YYYY-MM-DD")
-        : null,
-    };
-
-    if (alreadySubmitted && existingUpdate) {
-      await DailyUpdateService.updateUpdate(existingUpdate.id, data);
-      api.success({
-        message: "Success",
-        description: "Daily update updated successfully!",
-        placement: "bottomRight",
-        duration: 3,
+    if (alreadySubmitted && !isEditAllowed) {
+      api.error({
+        message: "Edit Locked",
+        description: "You can only edit within 24 hours of submission",
       });
-    } else {
-      await DailyUpdateService.createUpdate(data);
-      api.success({
-        message: "Success",
-        description: "Daily update submitted successfully!",
-        placement: "bottomRight",
-        duration: 3,
-      });
+      return;
     }
 
-    setTimeout(() => {
-      router.push("/daily-updates/view");
-    }, 1200);
+    if (!validateForm()) return;
 
-  } catch (error: any) {
-    let errorMessage = "Failed to submit daily update";
+    if (isMissedUpdate && !missedDate) {
+      api.error({
+        message: "Validation Error",
+        description: "Please select a missed update date",
+      });
+      return;
+    }
 
-    if (error?.message) errorMessage = error.message;
-    else if (error?.response?.data?.error) errorMessage = error.response.data.error;
-    else if (error?.response?.data?.message) errorMessage = error.response.data.message;
+    try {
+      setLoading(true);
 
-    api.error({
-      message: "Error",
-      description: errorMessage,
-      placement: "bottomRight",
-      duration: 4,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      const values = form.getFieldsValue();
 
+      // 🔒 LOCK updateType based on time
+      const now = new Date();
+      const hour = now.getHours();
+      const finalUpdateType = hour < 14 ? "BOD" : "EOD";
+
+      const data = {
+        date:
+          alreadySubmitted && existingUpdate
+            ? existingUpdate.working_date
+            : isMissedUpdate
+              ? missedDate!.format("YYYY-MM-DD")
+              : dayjs().format("YYYY-MM-DD"),
+
+        mood: values.mood,
+        updateType: finalUpdateType, // ✅ IMPORTANT
+        projectUpdates,
+        generalNotes: values.generalNotes,
+        is_missed: isMissedUpdate,
+        missed_updateAt: isMissedUpdate
+          ? missedDate?.format("YYYY-MM-DD")
+          : null,
+      };
+
+      if (alreadySubmitted && existingUpdate) {
+        await DailyUpdateService.updateUpdate(existingUpdate.id, data);
+        api.success({
+          message: "Success",
+          description: "Daily update updated successfully!",
+          placement: "bottomRight",
+          duration: 3,
+        });
+      } else {
+        await DailyUpdateService.createUpdate(data);
+        api.success({
+          message: "Success",
+          description: "Daily update submitted successfully!",
+          placement: "bottomRight",
+          duration: 3,
+        });
+      }
+
+      setTimeout(() => {
+        router.push("/daily-updates/view");
+      }, 1200);
+    } catch (error: any) {
+      let errorMessage = "Failed to submit daily update";
+
+      if (error?.message) errorMessage = error.message;
+      else if (error?.response?.data?.error)
+        errorMessage = error.response.data.error;
+      else if (error?.response?.data?.message)
+        errorMessage = error.response.data.message;
+
+      api.error({
+        message: "Error",
+        description: errorMessage,
+        placement: "bottomRight",
+        duration: 4,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (checkingSubmission) {
     return (
@@ -949,7 +963,7 @@ const handleProjectChange = async (index: number, projectId: string) => {
                     }
                   />
                 </Form.Item>
-
+      
                 {/* Time Tracking */}
                 <div style={{ marginBottom: 16 }}>
                   <Text
@@ -987,8 +1001,13 @@ const handleProjectChange = async (index: number, projectId: string) => {
                                 current && current < dayjs().startOf("day")
                               );
                             }
-                            // Toggle ON → allow everything (past + future)
-                            return false;
+                            // Toggle ON → allow only last 3 days
+                            return (
+                              current &&
+                              (current <
+                                dayjs().subtract(3, "day").startOf("day") ||
+                                current > dayjs().endOf("day"))
+                            );
                           }}
                         />
                       </Form.Item>
@@ -1015,8 +1034,13 @@ const handleProjectChange = async (index: number, projectId: string) => {
                                 current && current < dayjs().startOf("day")
                               );
                             }
-                            // Toggle ON → allow everything (past + future)
-                            return false;
+                            // Toggle ON → allow only last 3 days
+                            return (
+                              current &&
+                              (current <
+                                dayjs().subtract(3, "day").startOf("day") ||
+                                current > dayjs().endOf("day"))
+                            );
                           }}
                         />
                       </Form.Item>

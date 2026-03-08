@@ -4,9 +4,11 @@
 
 "use client";
 
-
+import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, Button, Typography, Table, Divider, Space, Tag } from "antd";
+import { Card, Button, Typography, Table, Divider, Space, Tag, Spin } from "antd";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 
 import { currencyOptions } from "@/utils/currencyOptions";
 import { useInvoice, useDownloadInvoice, useInvoicePaymentHistory } from "@/hooks/useInvoices";
@@ -89,11 +91,20 @@ const formatCurrency = (value: any, symbol: string): string => {
 export default function ViewInvoicePage() {
   const router = useRouter();
   const params = useParams();
+  const { canReadInvoice } = usePermission();
+  const { isLoading: authLoading } = useAuth();
 
   const invoice_number =
     (params as any)?.invoice_number ||
     (params as any)?.id ||
     (params as any)?.invoiceNumber;
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadInvoice) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadInvoice, router]);
 
   // Fetch invoice data
   const {
@@ -126,9 +137,11 @@ export default function ViewInvoicePage() {
     currencyOptions.find((c) => c.value === currencyCode)?.symbol || "$";
 
   // Loading state
-  if (isLoading || settingsLoading) {
-    return <Card>Loading invoice...</Card>;
+  if (authLoading || isLoading || settingsLoading) {
+    return <Card><Spin tip="Loading invoice..." /></Card>;
   }
+
+  if (!canReadInvoice) return null;
 
   // Error or no invoice state
   if (!invoice) {

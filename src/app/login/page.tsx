@@ -53,18 +53,24 @@ function LoginFormWithParams() {
       setError('');
       
       await login(values.email, values.password);
-      
-      // Redirect to the intended page after successful login
-      router.push(redirectUrl);
+      // Navigation is handled by the useEffect below when `user` state is set
     } catch (error: any) {
       setError(error.message || 'Login failed');
-    } finally {
       setLoading(false);
     }
+    // Note: do NOT call setLoading(false) on success — keep spinner while navigating
   };
 
   if (user) {
-    return null;
+    // User is authenticated — show a spinner while the useEffect triggers navigation
+    return (
+      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text type="secondary">Redirecting...</Text>
+        </div>
+      </div>
+    );
   }
 
   return (

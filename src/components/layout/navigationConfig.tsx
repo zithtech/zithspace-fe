@@ -295,6 +295,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/leaves-dashboard",
         requiredPermission: Permissions.LEAVE_READ,
       },
+        {
+  key: "/performance-manage",
+  icon: <BarChartOutlined />,
+  label: "Performance View",
+  path:"/performance-manage"
+  
+},
 
       {
         key: "Onbording",

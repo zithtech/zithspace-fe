@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -38,6 +40,25 @@ const { Text } = Typography;
 export default function PositionsPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOrg, canManageOrg } = usePermission();
+
+  // Route guard - requires org.read permission
+  useEffect(() => {
+    if (!authLoading && !canReadOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOrg, router]);
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no read permission
+  if (!canReadOrg) {
+    return null;
+  }
+
   const [api, contextHolder] = notification.useNotification();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);

@@ -2,6 +2,7 @@ import { Form, Input, Select, DatePicker, Row, Col, Checkbox } from "antd";
 import { HomeOutlined } from "@ant-design/icons";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import dayjs from "dayjs";
+import bcrypt from "bcryptjs";
 
 const { Option } = Select;
 
@@ -200,6 +201,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             padding: "16px",
             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
             border: "1px solid rgba(0, 0, 0, 0.04)",
+            height: "450px",
           }}
         >
           <div
@@ -212,7 +214,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           </div>
 
           <Row gutter={[8, 4]}>
-            <Col span={12}>
+            {/* First Name - Full Width */}
+            <Col span={24}>
               <Form.Item
                 label={<span style={labelStyle}>First Name</span>}
                 name="firstName"
@@ -226,7 +229,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            {/* Last Name - Full Width */}
+            <Col span={24}>
               <Form.Item
                 label={<span style={labelStyle}>Last Name</span>}
                 name="lastName"
@@ -240,7 +244,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            {/* Gender - Full Width */}
+            <Col span={24}>
               <Form.Item
                 label={<span style={labelStyle}>Gender</span>}
                 name="gender"
@@ -257,7 +262,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            {/* Date of Birth - Full Width */}
+            <Col span={24}>
               <Form.Item
                 label={<span style={labelStyle}>Date of Birth</span>}
                 name="dob"
@@ -270,6 +276,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
+            {/* Blood Group | Mobile Number */}
             <Col span={12}>
               <Form.Item
                 label={<span style={labelStyle}>Blood Group</span>}
@@ -282,8 +289,13 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                   style={{ height: 25, fontSize: 12 }}
                 >
                   <Option value="A+">A+</Option>
+                  <Option value="A-">A-</Option>
                   <Option value="B+">B+</Option>
+                  <Option value="B-">B-</Option>
+                  <Option value="AB+">AB+</Option>
+                  <Option value="AB-">AB-</Option>
                   <Option value="O+">O+</Option>
+                  <Option value="O-">O-</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -306,6 +318,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
 
+            {/* Personal Email | Work Email */}
             <Col span={12}>
               <Form.Item
                 label={<span style={labelStyle}>Personal Email</span>}
@@ -373,6 +386,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             borderRadius: "12px",
             boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
             border: "1px solid rgba(0, 0, 0, 0.05)",
+            height: "450px",
           }}
         >
           <div
@@ -517,6 +531,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           display: "flex",
           flexDirection: "column",
           gap: "10px",
+          // height: "450px",
         }}
       >
         {/* Emergency Information */}
@@ -603,9 +618,10 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           style={{
             width: "90%",
             background: "#ffffff",
-            padding: "16px",
+            padding: "13px",
             borderRadius: "12px",
             boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+            height: "190px",
           }}
         >
           <div
@@ -636,43 +652,53 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             />
           </Form.Item>
 
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}>PAN Number</span>}
-            name="pan"
-            rules={[
-              { required: true, message: "PAN is required" },
-              {
-                pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
-                message: "Enter valid PAN (ABCDE1234F)",
-              },
-            ]}
-            style={{ marginBottom: 10 }}
+          <div
+            style={{
+              display: "flex",
+              // alignItems: "center",
+              justifyContent: "space-around",
+              flexDirection: "row",
+              gap: "10px",
+            }}
           >
-            <Input
-              placeholder="PAN Number"
-              style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
-            />
-          </Form.Item>
+            <Form.Item
+              label={<span style={{ fontSize: 11 }}>PAN Number</span>}
+              name="pan"
+              rules={[
+                { required: true, message: "PAN is required" },
+                {
+                  pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+                  message: "Enter valid PAN (ABCDE1234F)",
+                },
+              ]}
+              style={{ marginBottom: 10, width: "50%" }}
+            >
+              <Input
+                placeholder="PAN Number"
+                style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
+              />
+            </Form.Item>
 
-          <Form.Item
-            label={
-              <span style={{ fontSize: 11 }}>Passport Number (Optional)</span>
-            }
-            name="passport"
-            rules={[
-              {
-                required: true,
-                pattern: /^[A-Z]{1}[0-9]{7}$/,
-                message: "Enter valid Passport number",
-              },
-            ]}
-            style={{ marginBottom: 0 }}
-          >
-            <Input
-              placeholder="Passport Number"
-              style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
-            />
-          </Form.Item>
+            <Form.Item
+              label={
+                <span style={{ fontSize: 11 }}>Passport Number (Optional)</span>
+              }
+              name="passport"
+              rules={[
+                {
+                  required: true,
+                  pattern: /^[A-Z]{1}[0-9]{7}$/,
+                  message: "Enter valid Passport number",
+                },
+              ]}
+              style={{ marginBottom: 0, width: "50%" }}
+            >
+              <Input
+                placeholder="Passport Number"
+                style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
+              />
+            </Form.Item>
+          </div>
         </Form>
       </div>
     </div>

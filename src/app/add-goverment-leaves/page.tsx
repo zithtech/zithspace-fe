@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -322,8 +323,26 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
 };
 
 export default function governmentLeaves() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const router = useRouter();
+
+  // Protect route - requires leave.manage permission
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dataSource, setDataSource] = useState<FixedHoliday[]>([]);

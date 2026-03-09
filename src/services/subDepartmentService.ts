@@ -20,7 +20,7 @@ export interface CreateSubDepartmentData {
   code: string;
   name: string;
   parentDepartmentId: string;
-  description?: string;
+  description?: string | null;
   isActive: boolean;
 }
 

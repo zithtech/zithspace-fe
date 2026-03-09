@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
   Form,
@@ -16,6 +19,7 @@ import {
   Row,
   Col,
   Switch,
+  Spin,
 } from "antd";
 import type { NotificationArgsProps } from "antd";
 import {
@@ -25,10 +29,7 @@ import {
   CloseCircleOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { ProjectService } from "@/services/projectService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
@@ -40,7 +41,6 @@ import {
   formatHours,
 } from "@/types/dailyUpdate";
 import dayjs, { Dayjs } from "dayjs";
-import { useSearchParams } from "next/navigation";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -69,14 +69,31 @@ const STATUS_OPTIONS = [
 ];
 
 export default function SubmitDailyUpdatePage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canCreateDailyUpdate } = usePermission();
+  const router = useRouter();
 
-  if (isLoading) {
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canCreateDailyUpdate) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canCreateDailyUpdate, router]);
+
+  // Loading state
+  if (authLoading) {
     return (
       <MainLayout>
-        <LoadingSpinner message="Loading..." />
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
       </MainLayout>
     );
+  }
+
+  // Permission check
+  if (!canCreateDailyUpdate) {
+    return null;
   }
 
   if (!user) {

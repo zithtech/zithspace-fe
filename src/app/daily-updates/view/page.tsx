@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import {
   Card,
   Button,
@@ -22,39 +25,45 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
-import LoadingSpinner from "@/components/common/LoadingSpinner";
 import UpdateCard from "@/components/daily-updates/UpdateCard";
 import UpdateTable from "@/components/daily-updates/UpdateTable";
 import UpdateDetailsDrawer from "@/components/daily-updates/UpdateDetailsDrawer";
 import DailyUpdateService from "@/services/dailyUpdateService";
-//import { ProjectService} from "@/services/projectService";
-import {
-  ProjectService,
-  Project,
-  CreateProjectData,
-  UpdateProjectData,
-  ProjectsFilters,
-} from "@/services/projectService";
-import { MembersService } from "@/services/membersService";
+import { ProjectService } from "@/services/projectService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
-import { useAuth } from "@/context/AuthContext";
 
 const { Title, Text } = Typography;
 
 type ViewMode = "card" | "list";
 
 export default function ViewDailyUpdatesPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canReadDailyUpdate } = usePermission();
+  const router = useRouter();
 
-  if (isLoading) {
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadDailyUpdate) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadDailyUpdate, router]);
+
+  // Loading state
+  if (authLoading) {
     return (
       <MainLayout>
-        <LoadingSpinner message="Loading..." />
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
       </MainLayout>
     );
+  }
+
+  // Permission check
+  if (!canReadDailyUpdate) {
+    return null;
   }
 
   if (!user) {
@@ -63,14 +72,14 @@ export default function ViewDailyUpdatesPage() {
 
   return (
     <MainLayout>
-      <ViewDailyUpdatesContent />
+      <ViewDailyUpdatesContent user={user} />
     </MainLayout>
   );
 }
 
-function ViewDailyUpdatesContent() {
+function ViewDailyUpdatesContent({ user }: { user: any }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { canManageDailyUpdates } = usePermission();
 
   const [api, contextHolder] = notification.useNotification();
   const [loading, setLoading] = useState(true);
@@ -120,8 +129,7 @@ function ViewDailyUpdatesContent() {
     useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  const canViewTeam =
-    user?.role === "super_admin" || user?.position === "Project Manager";
+  const canViewTeam = canManageDailyUpdates || user?.position === "Project Manager";
 
   useEffect(() => {
     fetchProjects();

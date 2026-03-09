@@ -1,6 +1,10 @@
 "use client";
 //Bello
-import { Tabs } from "antd";
+import { Tabs, Spin } from "antd";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import DashboardTab from "@/components/timesheet/DashboardTab";
 import SubmittimesheetTab from "@/components/timesheet/SubmittimesheetTab";
 import TimesheetsTab from "@/components/timesheet/TimesheetsTab";
@@ -11,14 +15,20 @@ import {
   FileTextOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSearchParams, usePathname } from "next/navigation";
 
 export default function TimesheetContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadTimesheet, canCreateTimesheet, canUpdateTimesheet, canApproveTimesheet } = usePermission();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadTimesheet) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadTimesheet, router]);
 
   const [activeTab, setActiveTab] = useState("dashboard");
 
@@ -45,6 +55,19 @@ export default function TimesheetContent() {
       setActiveTab("submittimesheet");
     }
   }, [searchParams]);
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <div style={{ padding: 24, textAlign: 'center' }}>
+        <Spin size="large" tip="Loading..." />
+      </div>
+    );
+  }
+
+  if (!canReadTimesheet) {
+    return null;
+  }
 
   return (
     <div>
@@ -111,7 +134,7 @@ export default function TimesheetContent() {
                 <TimesheetsTab goToSubmitTimesheet={goToSubmitTimesheet} />
               ),
             },
-            {
+            ...(canCreateTimesheet ? [{
               key: "submittimesheet",
               label: (
                 <span
@@ -121,7 +144,6 @@ export default function TimesheetContent() {
                   Submit timesheet
                 </span>
               ),
-
               children: (
                 <div
                   style={{
@@ -140,9 +162,8 @@ export default function TimesheetContent() {
                   />
                 </div>
               ),
-            },
-
-            {
+            }] : []),
+            ...(canApproveTimesheet ? [{
               key: "teams",
               label: (
                 <span
@@ -158,7 +179,7 @@ export default function TimesheetContent() {
                   onActionCompleted={() => setActiveTab("timesheets")}
                 />
               ),
-            },
+            }] : []),
           ]}
         />
       </div>

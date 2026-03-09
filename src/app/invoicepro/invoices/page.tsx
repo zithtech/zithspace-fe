@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
 import {
   Space,
   Typography,
@@ -151,6 +153,15 @@ const getStatusIcon = (status: InvoiceStatus) => {
 export default function InvoiceproInvoicesPage() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
+  const { canReadInvoice, canCreateInvoice, canUpdateInvoice, canDeleteInvoice } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadInvoice) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadInvoice, router]);
 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
@@ -614,7 +625,7 @@ const startBulkDelete = async () => {
         router.push(`/invoicepro/invoices/view/${record.invoiceNumber}`);
       },
     },
-    {
+    canUpdateInvoice && {
       key: "edit",
       icon: <EditOutlined />,
       label: "Edit Invoice",
@@ -655,8 +666,8 @@ const startBulkDelete = async () => {
         setTransactionDrawerOpen(true);
       },
     },
-    { type: "divider" },
-    {
+    (canUpdateInvoice || canDeleteInvoice) && { type: "divider" },
+    canDeleteInvoice && {
       key: "delete",
       icon: <DeleteOutlined />,
       label: deletingId === record.id && deleteMutation.isPending ? "Deleting..." : "Delete",
@@ -667,7 +678,7 @@ const startBulkDelete = async () => {
         openDeleteModal(record);
       },
     },
-  ];
+  ].filter(Boolean) as MenuProps["items"];
 
   /* ================= HANDLE STATUS CHANGE ================= */
   const handleStatusChange = (record: any) => {
@@ -900,13 +911,16 @@ const startBulkDelete = async () => {
       align: "center",
       width: 80,
       render: (_, record) => {
+        const menuItems = getMenuItems(record);
+        if (!menuItems || menuItems.length === 0) return null;
+        
         const menu = (
-          <Menu items={getMenuItems(record)} />
+          <Menu items={menuItems} />
         );
         
         return (
-          <Dropdown 
-            overlay={menu} 
+          <Dropdown
+            overlay={menu}
             trigger={['click']}
             placement="bottomRight"
             onOpenChange={(open) => {
@@ -1066,6 +1080,9 @@ const startBulkDelete = async () => {
 
 
 
+  if (authLoading) return <MainLayout><Spin tip="Loading..." /></MainLayout>;
+  if (!canReadInvoice) return null;
+
   return (
     <MainLayout>
       {contextHolder}
@@ -1122,15 +1139,17 @@ const startBulkDelete = async () => {
                 </Button>
               </Popover>
 
-              <Button
-                type="primary"
-                size="middle"
-                icon={<PlusOutlined />}
-                onClick={() => router.push("/invoicepro/newinvoice")}
-                className="h-11 shrink-0"
-              >
-                New Invoice
-              </Button>
+              {canCreateInvoice && (
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<PlusOutlined />}
+                  onClick={() => router.push("/invoicepro/newinvoice")}
+                  className="h-11 shrink-0"
+                >
+                  New Invoice
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1159,14 +1178,16 @@ const startBulkDelete = async () => {
                       >
                         Download Selected
                       </Button>
-                      <Button
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={openBulkDeleteModal}
-                        loading={bulkDeleteProgress.isDeleting}
-                      >
-                        Delete Selected
-                      </Button>
+                      {canDeleteInvoice && (
+                        <Button
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={openBulkDeleteModal}
+                          loading={bulkDeleteProgress.isDeleting}
+                        >
+                          Delete Selected
+                        </Button>
+                      )}
                     </Space>
                   </div>
                 }
@@ -1198,7 +1219,7 @@ const startBulkDelete = async () => {
               <Text type="secondary" className="mb-6 block">
                 {searchText ? 'Try a different search term' : 'Create your first invoice to get started'}
               </Text>
-              {!searchText && (
+              {!searchText && canCreateInvoice && (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}

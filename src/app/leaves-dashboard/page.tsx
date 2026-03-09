@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import { TrendingUpDown, AudioLines } from "lucide-react";
 import {
   Card,
@@ -71,9 +72,26 @@ interface DashboardStats {
 
 export default function LeavesDashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const isAdmin = user?.role === "super_admin" || user?.role === "admin";
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  // Protect route - requires leave.manage permission (admin dashboard)
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
 
   const {
     leaveTypes,
@@ -521,7 +539,7 @@ export default function LeavesDashboardPage() {
               </Card>
             </Col>
          
-            {isAdmin && (
+            {canManageLeaves && (
               <>
             <Col xs={24} sm={12} md={6}>
               <Card

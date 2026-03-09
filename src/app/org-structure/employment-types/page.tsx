@@ -1,18 +1,21 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, Popconfirm, notification,Divider } from "antd";
+import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, Popconfirm, notification, Spin ,Divider} from "antd";
 import { ScheduleOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
 import { EmploymentType } from "@/services/employmentTypeService";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const { Text } = Typography;
 
 export default function EmploymentTypesPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOrg, canManageOrg } = usePermission();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -27,6 +30,13 @@ export default function EmploymentTypesPage() {
     updateEmploymentType,
     deleteEmploymentType
   } = useEmploymentTypes();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadOrg, router]);
 
   const totalTypes = employmentTypes.length;
   const activeTypes = employmentTypes.filter(type => type.isActive).length;
@@ -110,6 +120,21 @@ export default function EmploymentTypesPage() {
     );
   }, [employmentTypes, searchText]);
 
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadOrg) {
+    return null;
+  }
+
   const columns = [
     {
       title: "Code",
@@ -141,17 +166,19 @@ export default function EmploymentTypesPage() {
       title: "Actions",
       key: "actions",
       width: 120,
-      render: (_: any, record: EmploymentType) => (
-        <Space >
-          <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-        </Space>
-      ),
+      render: (_: any, record: EmploymentType) => {
+        if (!canManageOrg) return null;
+        return (
+          <Space >
+            <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          </Space>
+        );
+      },
     },
   ];
 
   return (
-    <ProtectedRoute>
-      <MainLayout>
+    <MainLayout>
         {contextHolder}
         <div style={{marginTop:20}} >
           <Tabs activeKey={pathname} onChange={handleTabChange} items={[
@@ -192,7 +219,9 @@ export default function EmploymentTypesPage() {
                   style={{ width: 320 }}
                   onChange={(e) => setSearchText(e.target.value)}
                 />
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Employment Types </Button>
+                {canManageOrg && (
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Employment Types </Button>
+                )}
               </div>
             </div>
 
@@ -272,6 +301,5 @@ export default function EmploymentTypesPage() {
   
         </div>
       </MainLayout>
-    </ProtectedRoute>
   );
 }

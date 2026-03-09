@@ -1,7 +1,10 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Steps, Button, Form } from "antd";
+import { Steps, Button, Form, Spin } from "antd";
 import PersonalDetails from "@/components/onboarding/PersonalDetails";
 import EmploymentDetails from "@/components/onboarding/EmploymentDetails";
 import BankPayroll from "@/components/onboarding/BankPayroll";
@@ -18,6 +21,17 @@ import { BsPersonHeart } from "react-icons/bs";
 const { Step } = Steps;
 
 const Onboarding = () => {
+  const { isLoading: authLoading } = useAuth();
+  const { canCreateOnboarding } = usePermission();
+  const router = useRouter();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canCreateOnboarding) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canCreateOnboarding, router]);
+
   const [current, setCurrent] = useState(0);
 
   const [allData, setAllData] = useState<any>({
@@ -39,7 +53,23 @@ const Onboarding = () => {
 
   const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
 
-  const { createOnboarding, loading: submitting } = useEmployeeOnboarding();
+  const { createOnboarding, loading: submitting }: any =
+    useEmployeeOnboarding();
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canCreateOnboarding) {
+    return null;
+  }
 
   /* =====================================================
       CONTINUE → Save current step data into allData, then go Next
@@ -130,9 +160,15 @@ const Onboarding = () => {
 
       await createOnboarding(partialPayload);
 
-      if (current < 4) {
-        setCurrent((prev) => prev + 1);
-      }
+      setAllData({
+        personal: {},
+        employment: {},
+        bank: {},
+        history: [],
+        assets: [],
+      });
+      setResetKey((prev) => prev + 1);
+      setCurrent(0);
     } catch (error) {
       console.log("❌ Save & Skip Failed:", error);
     }

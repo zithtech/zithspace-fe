@@ -1,21 +1,3 @@
-// import { api, ApiError } from "@/lib/axios";
-
-// export class EmployeeOnboardingService {
-//   /**
-//    * Create full employee onboarding
-//    */
-//   static async createEmployeeOnboarding(data: any): Promise<any> {
-//     try {
-//       return await api.post<any>("/api/onboarding", data);
-//     } catch (error) {
-//       if (error instanceof ApiError) {
-//         throw new Error(error.message);
-//       }
-//       throw new Error("Failed to complete employee onboarding");
-//     }
-//   }
-// }
-
 import { api, ApiError } from "@/lib/axios";
 
 export class EmployeeOnboardingService {

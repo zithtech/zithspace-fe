@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { Settings2, Columns3Cog } from "lucide-react";
 import {
   Card,
@@ -35,6 +35,7 @@ import {
   Avatar,
   Drawer,
   Collapse,
+  Spin,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -51,13 +52,14 @@ import {
   BarsOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
-import leaveService, { Leave, ApplyLeaveData } from "@/services/leaveService";
-import dayjs from "dayjs";
-import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useLeaveOrigins } from "@/hooks/useLeaveOrigins";
 import { leaveOriginService } from "@/services/leaveOriginService";
 import { MembersService } from "@/services/membersService";
+import { useGrades } from "@/hooks/useGrades";
+import { useDepartments } from "@/hooks/useDepartments";
+import { useSubDepartments } from "@/hooks/useSubDepartments";
+import { usePositions } from "@/hooks/usePositions";
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -65,48 +67,7 @@ const { Paragraph, Text } = Typography;
 
 const LEAVE_TYPES = ["Work From Home", "Casual Leave", "Sick Leave"];
 
-const subOriginData: Record<string, string[]> = {
-  Grade: [
-    "G1 - Entry Level",
-    " G2 - Junior",
-    "G3 - SeniorAssociate",
-    "G4 - Senior Associate",
-    "G5 - Senior Manager",
-    "G6 - DirectorSenior Manager",
-    "G7 - Director",
-  ],
-  Employee: ["IT", "Non-IT", "Contract"],
-  Department: [
-    "Engineering",
-    "Product",
-    "Human Resources",
-    "Finance",
-    "Operations",
-  ],
-  "Sub-department": [
-    "Frontend Development",
-    "Backend Development",
-    "DevOps",
-    "Product Design",
-    "Product Analytics",
-    "Talent Acquisition",
-    "Employee Relations",
-  ],
-  Position: [
-    "Software Engineer",
-    "Senior Software Engineer",
-    "Engineering Manager",
-    "Backend Developer",
-    "Engineering Director",
-    "Product Manager",
-    "Head of Product",
-    "HR Specialist",
-    "HR Manager",
-    "Intern",
-    "Full Time",
-    "Contract",
-  ],
-};
+const subOriginData: Record<string, string[]> = {};
 
 interface PositionRecord {
   key: string;
@@ -117,7 +78,7 @@ interface PositionRecord {
   period?: string;
   carryForward?: boolean;
   totalLeaves?: number;
-  subOrigin?: string;
+  subOriginId?: string;
 }
 
 const LeaveConfigListContent = ({
@@ -305,7 +266,8 @@ const switchDesc = {
 };
 
 export default function positionConfiguration() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageOrg } = usePermission();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
@@ -325,10 +287,22 @@ export default function positionConfiguration() {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canManageOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageOrg, router]);
+
   const [members, setMembers] = useState<{ value: string; label: string }[]>([]);
   const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
 
   const { leaveOrigins, loading, refetch } = useLeaveOrigins();
+  const { dataSource: grades, loading: gradesLoading } = useGrades();
+  const { departments, loading: departmentsLoading } = useDepartments();
+  const { subDepartments, loading: subDepartmentsLoading } =
+    useSubDepartments();
+  const { dataSource: positions, loading: positionsLoading } = usePositions();
 
   useEffect(() => {
     if (leaveOrigins) {
@@ -336,7 +310,7 @@ export default function positionConfiguration() {
         origin.leaveTypes.map((type) => ({
           key: type.id,
           position: origin.origin,
-          subOrigin: origin.subOrigin,
+          subOriginId: origin.subOriginId,
           status: type.status,
           leaveType: type.leaveType,
           unit: Number(type.unit),
@@ -368,7 +342,7 @@ export default function positionConfiguration() {
   const uniqueDataSource = Object.values(
     dataSource.reduce(
       (acc, item) => {
-        const key = `${item.position}-${item.subOrigin}`;
+        const key = `${item.position}-${item.subOriginId}`;
         if (!acc[key]) {
           acc[key] = {
             ...item,
@@ -404,10 +378,18 @@ export default function positionConfiguration() {
     },
     {
       title: "Sub-Orgin",
-      dataIndex: "subOrigin",
-      key: "subOrigin",
+      dataIndex: "subOriginId",
+      key: "subOriginId",
       align: "center",
-      render: (text: string) => <Text strong>{text || "-"}</Text>,
+      render: (text: string, record: PositionRecord) => {
+        let label = text;
+        if (record.position === "User") label = members.find(m => m.value === text)?.label || text;
+        else if (record.position === "Grade") label = grades.find(g => g.id === text)?.name || text;
+        else if (record.position === "Department") label = departments.find(d => d.id === text)?.name || text;
+        else if (record.position === "Sub-department") label = subDepartments.find(sd => sd.id === text)?.name || text;
+        else if (record.position === "Position") label = positions.find(p => p.id === text)?.title || text;
+        return <Text strong>{label || "-"}</Text>;
+      },
     },
         {
       title: "Active Leave",
@@ -415,7 +397,7 @@ export default function positionConfiguration() {
       align: "center",
       render: (_: any, record: PositionRecord) => {
         const group = dataSource.filter(
-          (i) => i.position === record.position && i.subOrigin === record.subOrigin,
+          (i) => i.position === record.position && i.subOriginId === record.subOriginId,
         );
         const count = group.filter((i) => i.status === "Active").length;
         return <Tag color="green">{count}</Tag>;
@@ -427,7 +409,7 @@ export default function positionConfiguration() {
       align: "center",
       render: (_: any, record: PositionRecord) => {
         const group = dataSource.filter(
-          (i) => i.position === record.position && i.subOrigin === record.subOrigin,
+          (i) => i.position === record.position && i.subOriginId === record.subOriginId,
         );
         const count = group.filter((i) => i.status !== "Active").length;
         return <Tag color="red">{count}</Tag>;
@@ -459,7 +441,7 @@ export default function positionConfiguration() {
               onConfirm={() => handleDeleteOrigin(record)}
               okButtonProps={{
                 loading:
-                  deletingKey === `${record.position}-${record.subOrigin}`,
+                  deletingKey === `${record.position}-${record.subOriginId}`,
               }}
               okText="Yes"
               cancelText="No"
@@ -487,7 +469,7 @@ export default function positionConfiguration() {
     const configsForPosition = dataSource.filter(
       (item) =>
         item.position === record.position &&
-        item.subOrigin === record.subOrigin,
+        item.subOriginId === record.subOriginId,
     );
 
     setEditingKey(record.key);
@@ -503,7 +485,7 @@ export default function positionConfiguration() {
 
     form.setFieldsValue({
       position: record.position,
-      subOrigin: record.subOrigin,
+      subOriginId: record.subOriginId,
       leaveConfigs: leaveConfigsForForm.length > 0 ? leaveConfigsForForm : [{}],
     });
     setIsModalVisible(true);
@@ -552,9 +534,9 @@ export default function positionConfiguration() {
   };
 
   const handleDeleteOrigin = async (record: PositionRecord) => {
-    const groupKey = `${record.position}-${record.subOrigin}`;
+    const groupKey = `${record.position}-${record.subOriginId}`;
     const originToDelete = leaveOrigins.find(
-      (o) => o.origin === record.position && o.subOrigin === record.subOrigin,
+      (o) => o.origin === record.position && o.subOriginId === record.subOriginId,
     );
 
     if (!originToDelete) {
@@ -584,11 +566,11 @@ export default function positionConfiguration() {
   };
 
   const handleSave = async (values: any) => {
-    const { position, subOrigin, leaveConfigs } = values;
+    const { position, subOriginId, leaveConfigs } = values;
 
     if (!editingKey && leaveOrigins) {
       const exists = leaveOrigins.some(
-        (item) => item.origin === position && item.subOrigin === subOrigin,
+        (item) => item.origin === position && item.subOriginId === subOriginId,
       );
 
       if (exists) {
@@ -607,14 +589,14 @@ export default function positionConfiguration() {
       // 1. Find or Create Structure
       // Check if this structure already exists in our fetched data
       let structure = leaveOrigins.find(
-        (item) => item.origin === position && item.subOrigin === subOrigin,
+        (item) => item.origin === position && item.subOriginId === subOriginId,
       );
 
       if (!structure) {
         // Create new structure if it doesn't exist
         await leaveOriginService.createStructure({
           origin: position,
-          subOrigin: subOrigin,
+          subOriginId: subOriginId,
           leaveTypes: leaveConfigs.map((config: any) => ({
             leaveType: config.leaveType,
             unit: config.unit,
@@ -659,12 +641,26 @@ export default function positionConfiguration() {
     }
   };
 
-  return (
-    <ProtectedRoute>
+  // Loading & permission check
+  if (authLoading) {
+    return (
       <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canManageOrg) {
+    return null;
+  }
+
+  return (
+    <MainLayout>
         {contextHolder}
-        <div style={{ padding: 24 }}>
-          <div >
+        <div >
+          <div style={{marginTop:20}} >
             <Tabs
               activeKey={
                 pathname.includes("government-holidays")
@@ -726,7 +722,7 @@ export default function positionConfiguration() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Configuration
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -734,7 +730,7 @@ export default function positionConfiguration() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined /> Position Configuration
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -749,7 +745,7 @@ export default function positionConfiguration() {
               ]}
             />
           </div>
-          <Card>
+          
             <div
               style={{
                 display: "flex",
@@ -764,7 +760,7 @@ export default function positionConfiguration() {
                     style={{ color: "#1a64c4ff", fontSize: 20 }}
                   />
                   <Typography.Title level={4} style={{ margin: 0 }}>
-                    Position Configuration
+                    Leave Policy
                   </Typography.Title>
                 </Space>
                 <div>
@@ -773,7 +769,7 @@ export default function positionConfiguration() {
                   </Text>
                 </div>
                 <div style={{ marginTop: 10 }}>
-                  <Space>
+                  <Space  style={{ marginTop: 8 }}>
                     <Tag color="processing" style={{ borderRadius: 12 }}>
                       Total Origin : {uniqueDataSource.length}
                     </Tag>
@@ -855,6 +851,7 @@ export default function positionConfiguration() {
                 </Button>
               </div>
             </div>
+                        <Divider style={{marginTop:5}} />
             {viewType === "table" ? (
               <Table
                 columns={columns}
@@ -910,7 +907,7 @@ export default function positionConfiguration() {
                             okButtonProps={{
                               loading:
                                 deletingKey ===
-                                `${item.position}-${item.subOrigin}`,
+                                `${item.position}-${item.subOriginId}`,
                             }}
                             okText="Yes"
                             cancelText="No"
@@ -950,7 +947,7 @@ export default function positionConfiguration() {
                               const group = dataSource.filter(
                                 (i) =>
                                   i.position === item.position &&
-                                  i.subOrigin === item.subOrigin,
+                                  i.subOriginId === item.subOriginId,
                               );
                               const activeCount = group.filter(
                                 (i) => i.status === "Active",
@@ -976,7 +973,7 @@ export default function positionConfiguration() {
                 pagination={{ pageSize: 9 }}
               />
             )}
-          </Card>
+        
 
           <Modal
             title={
@@ -1016,7 +1013,6 @@ export default function positionConfiguration() {
                       disabled={!!editingKey}
                       options={[
                         "Grade",
-                        "Employee",
                         "Department",
                         "Sub-department",
                         "Position",
@@ -1026,14 +1022,14 @@ export default function positionConfiguration() {
                         value: p,
                       }))}
                       onChange={() => {
-                        form.setFieldsValue({ subOrigin: undefined });
+                        form.setFieldsValue({ subOriginId: undefined });
                       }}
                     />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item
-                    name="subOrigin"
+                    name="subOriginId"
                     label="Sub-Orgin"
                     rules={[
                       {
@@ -1045,9 +1041,37 @@ export default function positionConfiguration() {
                     <Select
                       placeholder="Select Name"
                       disabled={!originType || !!editingKey}
+                      loading={
+                        originType === "Grade"
+                          ? gradesLoading
+                          : originType === "Department"
+                          ? departmentsLoading
+                          : originType === "Sub-department"
+                          ? subDepartmentsLoading
+                          : originType === "Position"
+                          ? positionsLoading
+                          : false
+                      }
                       options={
                         originType === "User"
-                          ? members.map((m) => ({ label: m.label, value: m.label }))
+                          ? members.map((m) => ({ label: m.label, value: m.value }))
+                          : originType === "Grade"
+                          ? grades.map((g) => ({ label: g.name, value: g.id }))
+                          : originType === "Department"
+                          ? departments.map((d) => ({
+                              label: d.name,
+                              value: d.id,
+                            }))
+                          : originType === "Sub-department"
+                          ? subDepartments.map((sd) => ({
+                              label: sd.name,
+                              value: sd.id,
+                            }))
+                          : originType === "Position"
+                          ? positions.map((p) => ({
+                              label: p.title,
+                              value: p.id,
+                            }))
                           : (subOriginData[originType] || []).map((opt) => ({
                               label: opt,
                               value: opt,
@@ -1076,7 +1100,15 @@ export default function positionConfiguration() {
           <Drawer
             title={
               currentRecord
-                ? `${currentRecord.position} - ${currentRecord.subOrigin}`
+                ? `${currentRecord.position} - ${(() => {
+                    const text = currentRecord.subOriginId;
+                    if (currentRecord.position === "User") return members.find(m => m.value === text)?.label || text;
+                    if (currentRecord.position === "Grade") return grades.find(g => g.id === text)?.name || text;
+                    if (currentRecord.position === "Department") return departments.find(d => d.id === text)?.name || text;
+                    if (currentRecord.position === "Sub-department") return subDepartments.find(sd => sd.id === text)?.name || text;
+                    if (currentRecord.position === "Position") return positions.find(p => p.id === text)?.title || text;
+                    return text;
+                  })()}`
                 : "Details"
             }
             placement="right"
@@ -1225,13 +1257,12 @@ export default function positionConfiguration() {
               dataSource={dataSource.filter(
                 (item) =>
                   item.position === currentRecord?.position &&
-                  item.subOrigin === currentRecord?.subOrigin,
+                  item.subOriginId === currentRecord?.subOriginId,
               )}
               pagination={false}
             />
           </Drawer>
         </div>
       </MainLayout>
-    </ProtectedRoute>
   );
 }

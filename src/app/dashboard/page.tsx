@@ -1,11 +1,13 @@
+
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { dashboardService, DashboardData } from "@/services/dashboardService";
+import { useDynamicCalendar } from "@/hooks/useDynamicCalendar";
 import {
   Card,
   Row,
@@ -23,6 +25,7 @@ import {
   Alert,
   Skeleton,
   Badge,
+  Tooltip,
 } from "antd";
 import {
   TeamOutlined,
@@ -36,12 +39,16 @@ import {
   BellOutlined,
   PlusOutlined,
   FileTextOutlined,
+  VideoCameraOutlined,
+  EnvironmentOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import { redirect, useRouter } from "next/navigation";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
@@ -52,6 +59,99 @@ export default function DashboardPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null
   );
+
+  // Dynamic Calendar Integration - works with any connected provider
+  const {
+    status: calendarStatus,
+    events: calendarEvents,
+    loading: calendarLoading,
+    connect: connectCalendar,
+    disconnect: disconnectCalendar,
+    syncEvents: syncCalendar,
+    error: calendarError,
+    successMessage: calendarSuccess,
+  } = useDynamicCalendar();
+
+  // Filter today's meetings with recurring support
+  const todaysMeetings = calendarEvents.reduce((acc: any[], event: any) => {
+    console.log(`[Dashboard] Processing event:`, {
+      title: event.title,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      isRecurring: event.isRecurring,
+      rrule: event.rrule,
+      attendees: event.attendees,
+      userId: event.userId,
+      userEmail: user?.email
+    });
+
+    // Filter: User must be an attendee or the creator
+    const isUserAttendee = event.attendees?.includes(user?.email) || event.userId === user?.id;
+    console.log(`[Dashboard] User attendee check:`, { isUserAttendee, userEmail: user?.email, eventAttendees: event.attendees });
+    if (!isUserAttendee) return acc;
+
+    const today = dayjs().startOf('day');
+    const start = dayjs(event.startTime);
+    const end = dayjs(event.endTime);
+    const exdates = Array.isArray(event.exdate) ? event.exdate : (event.exdate ? [event.exdate] : []);
+
+    // 1. Direct match
+    if (start.isSame(today, 'day')) {
+     const isExcluded = exdates.some((ex: string) =>
+  dayjs(ex).isSame(today, "day")
+);
+      if (!isExcluded) acc.push(event);
+      return acc;
+    }
+
+    // 2. Recurring match
+    if (event.isRecurring && event.rrule && start.isBefore(today.endOf('day'))) {
+      const isExcluded = exdates.some((ex: string) =>
+  dayjs(ex).isSame(today, "day")
+);
+      if (isExcluded) return acc;
+
+      let isMatch = false;
+      if (event.rrule.includes('FREQ=DAILY')) {
+        isMatch = true;
+      } else if (event.rrule.includes('FREQ=WEEKLY')) {
+        const dayMap: Record<string, number> = { 'SU': 0, 'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6 };
+        const match = event.rrule.match(/BYDAY=([^;]+)/);
+        if (match) {
+          const days = match[1].split(',');
+          isMatch = days.some((d: string) => dayMap[d] === today.day());
+        } else {
+          isMatch = start.day() === today.day();
+        }
+      }
+
+      if (isMatch) {
+        // Clone event with today's date for display
+        const duration = end.diff(start);
+        const occurrenceStart = today.hour(start.hour()).minute(start.minute()).second(start.second());
+        const occurrenceEnd = occurrenceStart.add(duration, 'ms');
+
+        acc.push({
+          ...event,
+          startTime: occurrenceStart.toISOString(),
+          endTime: occurrenceEnd.toISOString()
+        });
+      }
+    }
+    return acc;
+  }, []);
+
+  // Upcoming meetings (next 7 days)
+  const upcomingMeetings = calendarEvents.filter(event => {
+    // Filter: User must be an attendee or the creator
+    const isUserAttendee = event.attendees?.includes(user?.email) || event.userId === user?.id;
+    if (!isUserAttendee) return false;
+
+    const eventDate = dayjs(event.startTime);
+    const today = dayjs().startOf('day');
+    const nextWeek = today.add(7, 'day');
+    return eventDate.isAfter(today) && eventDate.isBefore(nextWeek);
+  }).sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
 
   useEffect(() => {
     if (
@@ -65,7 +165,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-
       if (user) {
         try {
           setLoading(true);
@@ -78,15 +177,12 @@ export default function DashboardPage() {
         } finally {
           setLoading(false);
         }
-
       }
-
-
-
     };
 
     fetchDashboardData();
   }, [user]);
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
@@ -141,7 +237,7 @@ export default function DashboardPage() {
       })}`;
     }
     return date.toLocaleDateString("en-US", {
-      weekday: "long",
+      weekday: "short",
       month: "short",
       day: "numeric",
       hour: "numeric",
@@ -203,7 +299,7 @@ export default function DashboardPage() {
       return (
         <div
           style={{
-            height: 200,
+            height: '100%',
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -218,8 +314,6 @@ export default function DashboardPage() {
     const inProgressDeg = (inProgressTickets / totalTickets) * 360;
     const completedDeg = (completedTickets / totalTickets) * 360;
 
-    // We can use a conic-gradient for a simple, lightweight pie chart
-    // Colors: Not Started (Gray #d9d9d9), In Progress (Blue #1677ff), Completed (Green #52c41a)
     const gradient = `conic-gradient(
       #d9d9d9 0deg ${notStartedDeg}deg,
       #1677ff ${notStartedDeg}deg ${notStartedDeg + inProgressDeg}deg,
@@ -232,28 +326,30 @@ export default function DashboardPage() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          padding: 16,
+          //padding: 16,
+          justifyContent: 'center',
+        height: '100%',
         }}
       >
         {/* Pie Chart */}
         <div
           style={{
-            width: 180,
-            height: 180,
+            width: 130,
+            height: 130,
             borderRadius: "50%",
             background: gradient,
             position: "relative",
-            marginBottom: 24,
+            marginBottom: 16,
           }}
         >
-          {/* Inner circle for Donut effect (optional, or just full pie) */}
+          {/* Inner circle for Donut effect */}
           <div
             style={{
               position: "absolute",
-              top: 35,
-              left: 35,
-              width: 110,
-              height: 110,
+              top: 22,
+              left: 22,
+              width: 86,
+              height: 86,
               borderRadius: "50%",
               background: "#fff",
               display: "flex",
@@ -275,52 +371,53 @@ export default function DashboardPage() {
             width: "100%",
             display: "flex",
             justifyContent: "space-around",
+            flexWrap: "nowrap",
           }}
         >
           <div style={{ textAlign: "center" }}>
             <div
               style={{
-                width: 12,
-                height: 12,
+                width: 8,
+                height: 8,
                 background: "#d9d9d9",
                 borderRadius: "50%",
-                margin: "0 auto 4px",
+                margin: "0 auto 2px",
               }}
             />
-            <div style={{ fontSize: 12, fontWeight: 600 }}>
+            <div style={{ fontSize: 10, fontWeight: 600 }}>
               {notStartedTickets}
             </div>
-            <div style={{ fontSize: 10, color: "#888" }}>Not Started</div>
+            <div style={{ fontSize: 8, color: "#888" }}>Not Started</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div
               style={{
-                width: 12,
-                height: 12,
+                width: 8,
+                height: 8,
                 background: "#1677ff",
                 borderRadius: "50%",
-                margin: "0 auto 4px",
+                margin: "0 auto 2px",
               }}
             />
-            <div style={{ fontSize: 12, fontWeight: 600 }}>
+            <div style={{ fontSize: 10, fontWeight: 600 }}>
               {inProgressTickets}
             </div>
-            <div style={{ fontSize: 10, color: "#888" }}>In Progress</div>
+            <div style={{ fontSize: 8, color: "#888" }}>In Progress</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div
               style={{
-                width: 12,
-                height: 12,
+                width: 8,
+                height: 8,
                 background: "#52c41a",
                 borderRadius: "50%",
                 margin: "0 auto 4px",
               }}
             />
-            <div style={{ fontSize: 12, fontWeight: 600 }}>
+            <div style={{ fontSize: 10, fontWeight: 600 }}>
               {completedTickets}
             </div>
-            <div style={{ fontSize: 10, color: "#888" }}>Completed</div>
+            <div style={{ fontSize: 8, color: "#888" }}>Completed</div>
           </div>
         </div>
       </div>
@@ -343,12 +440,34 @@ export default function DashboardPage() {
         {/* Error Alert */}
         {error && (
           <Alert
-            message="Error Loading Dashboard"
+            message="Error"
             description={error}
             type="error"
+            showIcon
             closable
-            onClose={() => setError(null)}
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {/* Calendar Error/Success Alerts */}
+        {calendarError && (
+          <Alert
+            message="Calendar Error"
+            description={calendarError}
+            type="error"
+            showIcon
+            closable
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {calendarSuccess && (
+          <Alert
+            message="Success"
+            description={calendarSuccess}
+            type="success"
+            showIcon
+            closable
+            style={{ marginBottom: 16 }}
           />
         )}
 
@@ -380,7 +499,7 @@ export default function DashboardPage() {
         ) : dashboardData ? (
           <>
             {/* Statistics Cards */}
-            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+            <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
               {stats.map((stat, index) => (
                 <Col xs={24} sm={12} lg={6} key={index}>
                   <Card
@@ -440,269 +559,303 @@ export default function DashboardPage() {
             </Row>
 
             <Row gutter={[16, 16]}>
-              {/* Left Column - Main Content (Projects & Activity) */}
-              <Col xs={24} lg={16}>
-                <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                  {/* SPLIT: Work Progress (Left) & Attendance Breakdown (Right) */}
-                  <Card
-                    title={
-                      <Space>
-                        <TrophyOutlined style={{ color: "#1677ff" }} />
-                        <span>Work & Attendance</span>
-                      </Space>
-                    }
-                    size="small"
-                    extra={
-                      <Button
-                        type="link"
-                        size="small"
-                        onClick={() => router.push("/projects")}
-                      >
-                        View Projects
-                      </Button>
-                    }
-                    styles={{ body: { padding: 16 } }}
-                  >
-                    <Row gutter={[24, 16]} key="work-progress-row">
-                      {/* Left: Project Pie Chart */}
-                      <Col
-                        xs={24}
-                        md={12}
-                        style={{ borderRight: "1px solid #f0f0f0" }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: 16,
-                          }}
-                        >
-                          <Text strong style={{ fontSize: 13 }}>
-                            Project Status
+
+
+              {/* Left Column - Main Content */}
+<Col xs={24} lg={16}>
+  <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    
+    {/* Row for Card 1 and Card 2 - Side by Side with equal height */}
+    <Row gutter={[16, 16]}>
+      {/* CARD 1: Work & Attendance with Project Status - REDUCED HEIGHT */}
+      <Col xs={24} md={12}>
+        <Card
+          title={
+            <Space>
+              <TrophyOutlined style={{ color: "#1677ff" }} />
+              <span>Work & Attendance</span>
+            </Space>
+          }
+          size="small"
+          extra={
+            <Button
+              type="link"
+              size="small"
+              onClick={() => router.push("/projects")}
+            >
+              View Projects
+            </Button>
+          }
+          styles={{ body: { padding: 12 } }}
+          style={{ height: '280px' }}
+        >
+          {/* Project Status inside Work & Attendance card */}
+          <div style={{ height: '100%' }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              <Text strong style={{ fontSize: 12 }}>
+                Project Status
+              </Text>
+              <select
+                style={{
+                  padding: "2px 4px",
+                  borderRadius: 4,
+                  border: "1px solid #d9d9d9",
+                  outline: "none",
+                  fontSize: 10,
+                  maxWidth: 100,
+                  cursor: "pointer",
+                }}
+                value={selectedProjectId || ""}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+              >
+                {dashboardData.projectProgress.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedProject ? (
+              renderPieChart(selectedProject)
+            ) : (
+              <div
+                style={{
+                  height: 180,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text type="secondary">No active projects</Text>
+              </div>
+            )}
+          </div>
+        </Card>
+      </Col>
+
+      {/* CARD 2: Today's Meetings - REDUCED HEIGHT */}
+      <Col xs={24} md={12}>
+        <Card
+          title={
+            <Space size={4}>
+              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
+              <span style={{ fontSize: 13 }}>Today's Meetings</span>
+              {!calendarStatus?.includes('connected') && (
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={connectCalendar}
+                  loading={calendarLoading}
+                  style={{ marginLeft: 4, fontSize: 11 }}
+                >
+                  Connect
+                </Button>
+              )}
+            </Space>
+          }
+          size="small"
+          extra={
+            calendarStatus?.includes('connected') && (
+              <Space size={2}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ClockCircleOutlined />}
+                  onClick={syncCalendar}
+                  loading={calendarLoading}
+                  style={{ fontSize: 11 }}
+                >
+                  Sync
+                </Button>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={() => router.push("/calendar")}
+                  style={{ fontSize: 11 }}
+                >
+                  View
+                </Button>
+              </Space>
+            )
+          }
+          styles={{ body: { padding: 0 } }}
+          style={{ height: '280px' }}
+        >
+          {calendarLoading ? (
+            <div style={{ padding: 16, textAlign: "center" }}>
+              <Skeleton active paragraph={{ rows: 2 }} />
+            </div>
+          ) : !calendarStatus?.includes('connected') ? (
+            <div style={{ padding: 20, textAlign: "center" }}>
+              <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
+              <div>
+                <Text type="secondary" style={{ fontSize: 11 }}>Connect calendar to see meetings</Text>
+              </div>
+              <Button
+                type="primary"
+                size="small"
+                onClick={connectCalendar}
+                style={{ marginTop: 8, fontSize: 11, height: 24 }}
+              >
+                Connect Zoho Calendar
+              </Button>
+            </div>
+          ) : todaysMeetings.length > 0 ? (
+            <div style={{ height: 220, overflowY: 'auto' }}>
+              <List
+                size="small"
+                dataSource={todaysMeetings}
+                renderItem={(meeting) => {
+                  const startTime = dayjs(meeting.startTime);
+                  const endTime = dayjs(meeting.endTime);
+                  const isOngoing = startTime.isBefore(dayjs()) && endTime.isAfter(dayjs());
+
+                  return (
+                    <List.Item
+                      style={{
+                        padding: "6px 10px",
+                        borderBottom: "1px solid #f0f0f0",
+                        background: isOngoing ? "#f6ffed" : "transparent"
+                      }}
+                      actions={[
+                        <Tooltip title="Join Meeting" key="join">
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<VideoCameraOutlined />}
+                            onClick={() => meeting.meetingLink && window.open(meeting.meetingLink, '_blank')}
+                            disabled={!meeting.meetingLink}
+                            style={{ 
+                              height: 24,
+                              width: 24,
+                              backgroundColor: meeting.meetingLink ? "#1677ff" : "#f5f5f5",
+                              borderColor: meeting.meetingLink ? "#1677ff" : "#d9d9d9"
+                            }}
+                          />
+                        </Tooltip>
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <Avatar
+                            size={22}
+                            style={{
+                              backgroundColor: isOngoing ? "#52c41a" : "#1677ff",
+                              fontSize: 10
+                            }}
+                          >
+                            {meeting.title.charAt(0)}
+                          </Avatar>
+                        }
+                        title={
+                          <Space align="center" size={2}>
+                            <Text strong style={{ fontSize: 11 }}>
+                              {meeting.title.length > 18 ? meeting.title.substring(0, 18) + '...' : meeting.title}
+                            </Text>
+                            {isOngoing && (
+                              <Badge status="processing" style={{ fontSize: 9 }} text="Live" />
+                            )}
+                          </Space>
+                        }
+                        description={
+                          <Text type="secondary" style={{ fontSize: 9 }}>
+                            <ClockCircleOutlined style={{ marginRight: 2, fontSize: 8 }} />
+                            {startTime.format("hh:mm A")} - {endTime.format("hh:mm A")}
                           </Text>
-                          <select
-                            style={{
-                              padding: "2px 6px",
-                              borderRadius: 4,
-                              border: "1px solid #d9d9d9",
-                              outline: "none",
-                              fontSize: 11,
-                              maxWidth: 120,
-                              cursor: "pointer",
-                            }}
-                            value={selectedProjectId || ""}
-                            onChange={(e) =>
-                              setSelectedProjectId(e.target.value)
-                            }
-                          >
-                            {dashboardData.projectProgress.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        {selectedProject ? (
-                          renderPieChart(selectedProject)
-                        ) : (
-                          <div
-                            style={{
-                              height: 180,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Text type="secondary">No active projects</Text>
-                          </div>
-                        )}
-                      </Col>
+                        }
+                      />
+                    </List.Item>
+                  );
+                }}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: 20, textAlign: "center" }}>
+              <VideoCameraOutlined style={{ fontSize: 24, color: "#bfbfbf", marginBottom: 6 }} />
+              <div>
+                <Text type="secondary" style={{ fontSize: 11 }}>No meetings scheduled</Text>
+              </div>
+            </div>
+          )}
+        </Card>
+      </Col>
+    </Row>
 
-                      {/* Right: Team Performance Stats */}
-                      <Col xs={24} md={12}>
-                        <div style={{ textAlign: "center", marginBottom: 16 }}>
-                          <Text strong style={{ fontSize: 13 }}>
-                            Team Performance
-                          </Text>
-                        </div>
+    {/* CARD 3: Recent Activities - Full width below */}
+    <Card
+      title={
+        <Space>
+          <ClockCircleOutlined style={{ color: "#52c41a" }} />
+          <span>Recent Activities</span>
+        </Space>
+      }
+      size="small"
+      extra={
+        <Button type="link" size="small">
+          View All
+        </Button>
+      }
+      styles={{ body: { padding: 0 } }}
+    >
+      <div style={{ maxHeight: 400, overflowY: "auto" }}>
+        {dashboardData.recentActivities.length > 0 ? (
+          <List
+            size="small"
+            dataSource={dashboardData.recentActivities}
+            renderItem={(item) => (
+              <List.Item
+                style={{ padding: "12px 16px", border: "none" }}
+              >
+                <List.Item.Meta
+                  avatar={
+                    <Avatar
+                      size={32}
+                      style={{
+                        backgroundColor: "#1677ff",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {item.avatar}
+                    </Avatar>
+                  }
+                  title={
+                    <Text style={{ fontSize: 13 }}>
+                      <Text strong>{item.user}</Text>{" "}
+                      {item.action}{" "}
+                      <Text strong>{item.target}</Text>
+                    </Text>
+                  }
+                  description={
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 11 }}
+                    >
+                      {formatTimeAgo(item.time)}
+                    </Text>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <div style={{ padding: 16 }}>
+            <Text type="secondary">No recent activities</Text>
+          </div>
+        )}
+      </div>
+    </Card>
+  </Space>
+</Col>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 12,
-                            height: "100%",
-                            justifyContent: "center",
-                          }}
-                        >
-                          {/* Daily Updates */}
-                          <div
-                            style={{
-                              background: "#f0f5ff",
-                              border: "1px solid #adc6ff",
-                              borderRadius: 8,
-                              padding: 12,
-                            }}
-                          >
-                            <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                              <Text style={{ fontSize: 12 }}>📝 Daily Updates</Text>
-                              <Text strong style={{ color: "#1677ff" }}>
-                                {dashboardData.teamPerformance.dailyUpdates.submitted} / {dashboardData.teamPerformance.dailyUpdates.total}
-                              </Text>
-                            </Space>
-                          </div>
-
-                          {/* Average Hours Worked */}
-                          <div
-                            style={{
-                              background: "#f6ffed",
-                              border: "1px solid #b7eb8f",
-                              borderRadius: 8,
-                              padding: 12,
-                            }}
-                          >
-                            <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                              <Text style={{ fontSize: 12 }}>⏰ Avg Hours Worked</Text>
-                              <Text strong style={{ color: "#52c41a" }}>
-                                {dashboardData.teamPerformance.avgHoursWorked.toFixed(1)} hrs
-                              </Text>
-                            </Space>
-                          </div>
-
-                          {/* Top Performer */}
-                          {dashboardData.teamPerformance.topPerformer && dashboardData.teamPerformance.topPerformer.user && (
-                            <div
-                              style={{
-                                background: "#fff7e6",
-                                border: "1px solid #ffd591",
-                                borderRadius: 8,
-                                padding: 12,
-                              }}
-                            >
-                              <Text style={{ fontSize: 11, color: "#888" }}>🏆 Top Performer</Text>
-                              <div style={{ marginTop: 4 }}>
-                                <Text strong style={{ fontSize: 12 }}>
-                                  {dashboardData.teamPerformance.topPerformer.user.name}
-                                </Text>
-                                <br />
-                                <Text style={{ fontSize: 11, color: "#666" }}>
-                                  {dashboardData.teamPerformance.topPerformer.completedTickets} tickets completed
-                                </Text>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Late & Overtime */}
-                          <Row gutter={8}>
-                            <Col span={12}>
-                              <div
-                                style={{
-                                  background: "#fff1f0",
-                                  border: "1px solid #ffa39e",
-                                  borderRadius: 8,
-                                  padding: 8,
-                                  textAlign: "center",
-                                }}
-                              >
-                                <Text style={{ fontSize: 11 }}>⚠️ Late</Text>
-                                <br />
-                                <Text strong style={{ fontSize: 16, color: "#ff4d4f" }}>
-                                  {dashboardData.teamPerformance.lateArrivals}
-                                </Text>
-                              </div>
-                            </Col>
-                            <Col span={12}>
-                              <div
-                                style={{
-                                  background: "#f9f0ff",
-                                  border: "1px solid #d3adf7",
-                                  borderRadius: 8,
-                                  padding: 8,
-                                  textAlign: "center",
-                                }}
-                              >
-                                <Text style={{ fontSize: 11 }}>💪 Overtime</Text>
-                                <br />
-                                <Text strong style={{ fontSize: 16, color: "#722ed1" }}>
-                                  {dashboardData.teamPerformance.overtimeWorkers}
-                                </Text>
-                              </div>
-                            </Col>
-                          </Row>
-                        </div>
-                      </Col>
-                    </Row>
-                  </Card>
-
-                  {/* Recent Activities */}
-                  <Card
-                    title={
-                      <Space>
-                        <ClockCircleOutlined style={{ color: "#52c41a" }} />
-                        <span>Recent Activities</span>
-                      </Space>
-                    }
-                    size="small"
-                    extra={
-                      <Button type="link" size="small">
-                        View All
-                      </Button>
-                    }
-                    styles={{ body: { padding: 0 } }}
-                  >
-                    <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                      {dashboardData.recentActivities.length > 0 ? (
-                        <List
-                          size="small"
-                          dataSource={dashboardData.recentActivities}
-                          renderItem={(item) => (
-                            <List.Item
-                              style={{ padding: "12px 16px", border: "none" }}
-                            >
-                              <List.Item.Meta
-                                avatar={
-                                  <Avatar
-                                    size={32}
-                                    style={{
-                                      backgroundColor: "#1677ff",
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    {item.avatar}
-                                  </Avatar>
-                                }
-                                title={
-                                  <Text style={{ fontSize: 13 }}>
-                                    <Text strong>{item.user}</Text>{" "}
-                                    {item.action}{" "}
-                                    <Text strong>{item.target}</Text>
-                                  </Text>
-                                }
-                                description={
-                                  <Text
-                                    type="secondary"
-                                    style={{ fontSize: 11 }}
-                                  >
-                                    {formatTimeAgo(item.time)}
-                                  </Text>
-                                }
-                              />
-                            </List.Item>
-                          )}
-                        />
-                      ) : (
-                        <div style={{ padding: 16 }}>
-                          <Text type="secondary">No recent activities</Text>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </Space>
-              </Col>
-
-              {/* Right Column - Sidebar (Quick Actions & Tasks) */}
+              {/* Right Column - Sidebar */}
               <Col xs={24} lg={8}>
                 <Space direction="vertical" size={16} style={{ width: "100%" }}>
                   {/* People on Leave & Permission Today */}
@@ -910,8 +1063,9 @@ export default function DashboardPage() {
                             icon={<CalendarOutlined />}
                             size="small"
                             style={{ height: "auto", padding: "8px 4px" }}
+                            onClick={() => router.push("/calendar")}
                           >
-                            Meeting
+                            Schedule Meeting
                           </Button>
                         </Col>
                         <Col span={12}>
@@ -1050,6 +1204,8 @@ export default function DashboardPage() {
                     </Space>
                   </Card>
 
+
+
                   {/* Upcoming Tasks */}
                   <Card
                     title={
@@ -1123,5 +1279,13 @@ export default function DashboardPage() {
         ) : null}
       </div>
     </MainLayout>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
+      <DashboardContent />
+    </Suspense>
   );
 }

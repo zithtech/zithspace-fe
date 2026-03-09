@@ -17,6 +17,9 @@ import {
   LockOutlined,
   LoginOutlined,
 } from '@ant-design/icons';
+import Image from 'next/image';
+import Logo from '@/assets/logo/CMPLOGO.jpeg';
+
 
 const { Title, Text } = Typography;
 
@@ -50,18 +53,24 @@ function LoginFormWithParams() {
       setError('');
       
       await login(values.email, values.password);
-      
-      // Redirect to the intended page after successful login
-      router.push(redirectUrl);
+      // Navigation is handled by the useEffect below when `user` state is set
     } catch (error: any) {
       setError(error.message || 'Login failed');
-    } finally {
       setLoading(false);
     }
+    // Note: do NOT call setLoading(false) on success — keep spinner while navigating
   };
 
   if (user) {
-    return null;
+    // User is authenticated — show a spinner while the useEffect triggers navigation
+    return (
+      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text type="secondary">Redirecting...</Text>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -177,28 +186,29 @@ export default function LoginPage() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
+
           <div
-            style={{
-              width: 64,
-              height: 64,
-              background: 'linear-gradient(135deg, #1677ff, #69c0ff)',
-              borderRadius: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-            }}
-          >
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 24,
-                fontWeight: 700,
-              }}
-            >
-              Z
-            </Text>
-          </div>
+  style={{
+    width: 100,
+    height: 100,
+    // background: '#ffffff',
+    // borderRadius: 16,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 20px',
+    // boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+  }}
+>
+  <Image
+    src={Logo}
+    alt="Logo"
+    width={70}
+    height={70}
+    style={{ objectFit: 'contain' }}
+  />
+</div>
+
           
           <Title level={2} style={{ margin: 0, color: '#262626' }}>
             Welcome Back !!!
@@ -215,8 +225,9 @@ export default function LoginPage() {
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            © 2025 Z. All rights reserved.
-          </Text>
+  © {new Date().getFullYear()} Zithtech. All rights reserved.
+</Text>
+
         </div>
       </Card>
     </div>

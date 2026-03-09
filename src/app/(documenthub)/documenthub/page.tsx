@@ -1,4 +1,8 @@
 "use client";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import { useRouter } from "next/navigation";
 import Header from "@/components/common/Header";
 import MainLayout from "@/components/layout/MainLayout";
 import {
@@ -8,38 +12,85 @@ import {
 } from "@/hooks/useGlobalData";
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
 import { TicketDetails } from "@/types/ticket";
-import { FileZipOutlined, PlusOutlined, SearchOutlined, FilterOutlined } from "@ant-design/icons";
-import { Button, Col, Form, Input, Modal, Row, Select, Table, Tag, Tooltip, DatePicker, Space } from "antd";
-import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import {
+  FileZipOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  FilterOutlined,
+  DeleteOutlined,
+  RestOutlined,
+} from "@ant-design/icons";
+import {
+  Button,
+  Col,
+  Form,
+  Input,
+  Modal,
+  Row,
+  Select,
+  Table,
+  Tag,
+  Tooltip,
+  DatePicker,
+  Space,
+  message,
+  Spin,
+} from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnsType } from "antd/es/table";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import dayjs from "dayjs";
+import TrashDrawer from "@/components/documenthub/TrashDrawer";
+import DocumentHubDashboard from "@/components/documenthub/DocumentHubDashboard";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 type Props = {};
-
 const DocumentHubPage = (props: Props) => {
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadDocument, canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadDocument) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadDocument, router]);
+
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [form] = Form.useForm();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>("");
-  const [filterProjectId, setFilterProjectId] = useState<string | undefined>(undefined);
+  const [selectedProjectId, setSelectedProjectId] = useState<
+    string | undefined
+  >("");
+  const [filterProjectId, setFilterProjectId] = useState<string | undefined>(
+    undefined,
+  );
   const [searchText, setSearchText] = useState("");
-  const [selectedUser, setSelectedUser] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string | undefined>(
+    undefined,
+  );
+  const [dateRange, setDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
+  >(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [trashVisible, setTrashVisible] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [modal, modalContextHolder] = Modal.useModal();
 
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
-  const { data: tickets = [], isLoading: ticketsLoading } = useUserTicketsByProjects(selectedProjectId);
+  const { data: tickets = [], isLoading: ticketsLoading } =
+    useUserTicketsByProjects(selectedProjectId);
   const { data: members = [], isLoading: membersLoading } = useMembers();
 
   const queryClient = useQueryClient();
 
-  const { data: documentHubs = [], isLoading: hubsLoading, refetch } = useQuery({
+  const {
+    data: documentHubs = [],
+    isLoading: hubsLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["documentHubs"],
     queryFn: DocumentHubService.getAllDocumentHubs,
   });
@@ -63,53 +114,101 @@ const DocumentHubPage = (props: Props) => {
     }
   };
 
+  const handleDeleteHub = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    modal.confirm({
+      title: "Delete Document Hub",
+      content: `Are you sure you want to delete "${name}"? This will move it to trash.`,
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          await DocumentHubService.deleteDocumentHub(id);
+          messageApi.success("Document Hub moved to trash");
+          queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
+        } catch (error) {
+          console.error(error);
+          messageApi.error("Failed to delete Document Hub");
+        }
+      },
+    });
+  };
+
   const filteredHubs = documentHubs.filter((hub) => {
-    const matchesSearch = hub.name.toLowerCase().includes(searchText.toLowerCase());
+    const matchesSearch = hub.name
+      .toLowerCase()
+      .includes(searchText.toLowerCase());
     const matchesUser = selectedUser ? hub.createdById === selectedUser : true;
-    const matchesProject = filterProjectId ? hub.projectId === filterProjectId : true;
+    const matchesProject = filterProjectId
+      ? hub.projectId === filterProjectId
+      : true;
 
     let matchesDate = true;
     if (dateRange && dateRange[0] && dateRange[1]) {
       const startDate = startOfDay(dateRange[0].toDate());
       const endDate = endOfDay(dateRange[1].toDate());
       const hubDate = new Date(hub.createdAt);
-      matchesDate = isWithinInterval(hubDate, { start: startDate, end: endDate });
+      matchesDate = isWithinInterval(hubDate, {
+        start: startDate,
+        end: endDate,
+      });
     }
 
     return matchesSearch && matchesUser && matchesProject && matchesDate;
   });
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadDocument) {
+    return null;
+  }
 
   const columns: ColumnsType<DocumentHub> = [
     {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (text) => <span className="font-medium text-blue-600">{text}</span>,
+      render: (text) => (
+        <span className="font-medium text-blue-600">{text}</span>
+      ),
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
       title: "Project",
       dataIndex: ["project", "name"],
       key: "project",
-      render: (text, record) => (
+      render: (text, record) =>
         record.project ? (
           <Tooltip title={record.project.code}>
             <Tag color="blue">{text}</Tag>
           </Tooltip>
-        ) : <span className="text-gray-400">-</span>
-      ),
+        ) : (
+          <span className="text-gray-400">-</span>
+        ),
     },
     {
       title: "Ticket",
       dataIndex: ["ticket", "title"],
       key: "ticket",
-      render: (text, record) => (
+      render: (text, record) =>
         record.ticket ? (
           <Tooltip title={record.ticket.status}>
-            <Tag color="orange">{record.ticket.ticketNumber || record.ticket.id}</Tag>
+            <Tag color="orange">
+              {record.ticket.ticketNumber || record.ticket.id}
+            </Tag>
           </Tooltip>
-        ) : <span className="text-gray-400">-</span>
-      ),
+        ) : (
+          <span className="text-gray-400">-</span>
+        ),
     },
     {
       title: "Created By",
@@ -120,87 +219,133 @@ const DocumentHubPage = (props: Props) => {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date) => <span className="text-gray-500">{format(new Date(date), "MMM d, yyyy")}</span>,
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      render: (date) => (
+        <span className="text-gray-500">
+          {format(new Date(date), "MMM d, yyyy")}
+        </span>
+      ),
+      sorter: (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: "Updated At",
       dataIndex: "updatedAt",
       key: "updatedAt",
-      render: (date) => <span className="text-gray-500">{format(new Date(date), "MMM d, yyyy")}</span>,
-      sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      render: (date) => (
+        <span className="text-gray-500">
+          {format(new Date(date), "MMM d, yyyy")}
+        </span>
+      ),
+      sorter: (a, b) =>
+        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (text, record) => (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={(e) => handleDeleteHub(e, record.id, record.name)}
+        />
+      ),
     },
   ];
 
   return (
     <MainLayout>
+      {contextHolder}
+      {modalContextHolder}
       <div className="h-[calc(100vh-64px)] flex flex-col p-6">
-        <div className="flex justify-between items-center mb-6 flex-shrink-0">
+        <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
               <FileZipOutlined className="text-blue-500" />
               Document Hub
             </h1>
-            <p className="text-gray-500 mt-1">Manage all your documentation in one place</p>
+            <p className="text-gray-500 mt-1">
+              Manage all your documentation in one place
+            </p>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setModalVisible(true)}
-          >
-            Create Document
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              icon={<RestOutlined />}
+              onClick={() => setTrashVisible(true)}
+            >
+              Trash
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setModalVisible(true)}
+            >
+              Create Document
+            </Button>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex-shrink-0 flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2 w-full">
-              <Input
-                placeholder="Search..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                style={{ width: "40%" }}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                allowClear
-              />
+        {/* Main Card - This will scroll as a whole */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-y-auto" style={{marginBottom:20}}>
+          {/* Dashboard Cards */}
+          <div className="p-4">
+            <DocumentHubDashboard
+              documentHubs={documentHubs}
+              isLoading={hubsLoading}
+              onHubClick={(id) => router.push(`/documenthub/${id}`)}
+            />
+          </div>
 
-            </div>
-            <div className="flex items-center gap-2">
-              <Select
-                placeholder="Project"
-                style={{ width: 150 }}
-                allowClear
-                showSearch
-                optionFilterProp="label"
-                value={filterProjectId}
-                onChange={setFilterProjectId}
-                loading={projectsLoading}
-                options={projects}
-              />
-              <Select
-                placeholder="Created By"
-                showSearch
-                style={{ width: 150 }}
-                allowClear
-                optionFilterProp="label"
-                value={selectedUser}
-                onChange={setSelectedUser}
-                loading={membersLoading}
-                options={members.map((m: any) => ({
-                  label: m.label,
-                  value: m.value,
-                }))}
-              />
-
-              <RangePicker
-                style={{ width: 240 }}
-                value={dateRange}
-                onChange={(dates) => setDateRange(dates as any)}
-              />
-
+          {/* Filters Section - Sticky inside the card */}
+          <div className="sticky top-0  bg-white z-20">
+            <div className="p-4 flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2 w-full">
+                <Input
+                  placeholder="Search..."
+                  prefix={<SearchOutlined className="text-gray-400" />}
+                  style={{ width: "40%" }}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  placeholder="Project"
+                  style={{ width: 150 }}
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  value={filterProjectId}
+                  onChange={setFilterProjectId}
+                  loading={projectsLoading}
+                  options={projects}
+                />
+                <Select
+                  placeholder="Created By"
+                  showSearch
+                  style={{ width: 150 }}
+                  allowClear
+                  optionFilterProp="label"
+                  value={selectedUser}
+                  onChange={setSelectedUser}
+                  loading={membersLoading}
+                  options={members.map((m: any) => ({
+                    label: m.label,
+                    value: m.value,
+                  }))}
+                />
+                <RangePicker
+                  style={{ width: 240 }}
+                  value={dateRange}
+                  onChange={(dates) => setDateRange(dates as any)}
+                />
+              </div>
             </div>
           </div>
-          <div className="flex-1 overflow-hidden p-2">
+
+         
+          <div className="p-2">
             <Table
               columns={columns}
               dataSource={filteredHubs}
@@ -208,10 +353,17 @@ const DocumentHubPage = (props: Props) => {
               loading={hubsLoading}
               pagination={{ pageSize: 20, showSizeChanger: true }}
               size="small"
+              sticky={{
+                offsetHeader: 80,
+              }}
+              scroll={{
+                y: "calc(100vh - 380px)",
+              }}
               onRow={(record) => ({
                 onClick: () => router.push(`/documenthub/${record.id}`),
                 className: "cursor-pointer hover:bg-gray-50",
               })}
+              className="[&_.ant-table-body]:!scrollbar-hide [&_.ant-table-body]:![-ms-overflow-style:none] [&_.ant-table-body]:![scrollbar-width:none] [&_.ant-table-body::-webkit-scrollbar]:!hidden"
             />
           </div>
         </div>
@@ -227,11 +379,7 @@ const DocumentHubPage = (props: Props) => {
         footer={null}
         width={500}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleAddDocument}
-        >
+        <Form form={form} layout="vertical" onFinish={handleAddDocument}>
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item
@@ -298,6 +446,8 @@ const DocumentHubPage = (props: Props) => {
           </div>
         </Form>
       </Modal>
+
+      <TrashDrawer open={trashVisible} onClose={() => setTrashVisible(false)} />
     </MainLayout>
   );
 };

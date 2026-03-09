@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { api, apiClient } from "@/lib/axios";
 import {
   DailyStatusUpdate,
   CreateDailyUpdateRequest,
@@ -7,7 +7,7 @@ import {
   SubmissionStats,
   CheckTodayResponse,
   WorkEntry,
-} from "@/types/dailyUpdate";
+} from "@/types/dailyUpdate"
 
 export class DailyUpdateService {
   /**
@@ -17,7 +17,9 @@ export class DailyUpdateService {
     data: CreateDailyUpdateRequest,
   ): Promise<DailyStatusUpdate> {
     try {
-      console.log(data, "is_missed");
+      // console.log(data,"is_missed")
+      // return await api.post('/541', data);
+      // console.log(data, "is_missed");
       return await api.post("/api/daily-updates", data);
     } catch (error: any) {
       // Extract error message from different error types
@@ -77,7 +79,7 @@ export class DailyUpdateService {
       params.append("updateType", filters.updateType);
     }
     // 🔥 ADD THIS LINE (IMPORTANT)
-// params.append("_t", Date.now().toString());
+    // params.append("_t", Date.now().toString());
 
     return await api.get(`/api/daily-updates/team?${params.toString()}`);
   }
@@ -93,7 +95,17 @@ export class DailyUpdateService {
    * Check if user has submitted update today
    */
   static async checkTodaySubmission(): Promise<CheckTodayResponse> {
-    return await api.get("/api/daily-updates/check-today");
+    // Backend returns { success: true, submitted: false, data: null }
+    // But api.get() extracts response.data.data which is null
+    // We need to use apiClient directly to get the full response
+    const response = await apiClient.get("/api/daily-updates/check-today");
+    if (response.data.success) {
+      return {
+        submitted: response.data.submitted || false,
+        data: response.data.data || null,
+      };
+    }
+    throw new Error("Failed to check submission status");
   }
 
   /**

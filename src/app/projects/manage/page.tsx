@@ -20,14 +20,12 @@ import {
   Avatar,
   Typography,
   message,
-  Segmented,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  ReloadOutlined,
   EyeOutlined,
   TeamOutlined,
   CalendarOutlined,
@@ -35,9 +33,11 @@ import {
   AppstoreOutlined,
   BarsOutlined,
   UserOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import {
   ProjectService,
   Project,
@@ -50,8 +50,10 @@ import { useAuth } from "@/context/AuthContext";
 import { RBAC } from "@/lib/rbac";
 import MainLayout from "@/components/layout/MainLayout";
 
+// Extend dayjs with relativeTime plugin
+dayjs.extend(relativeTime);
+
 const { Title, Text } = Typography;
-const { Search } = Input;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
@@ -221,7 +223,7 @@ const ProjectsManagePage: React.FC = () => {
       if (editingProject) {
         await ProjectService.updateProject(
           editingProject.id,
-          projectData as UpdateProjectData,
+          projectData as UpdateProjectData
         );
         setSuccess("Project updated successfully");
       } else {
@@ -374,16 +376,6 @@ const ProjectsManagePage: React.FC = () => {
         </div>
       ),
     },
-    // {
-    //   title: 'Statistics',
-    //   key: 'statistics',
-    //   render: (_, record) => (
-    //     <div className="text-sm">
-    //       <div>Total: {record.statistics.totalTickets}</div>
-    //       <div>Completed: {record.statistics.completedTickets}</div>
-    //     </div>
-    //   ),
-    // },
     {
       title: "Actions",
       key: "actions",
@@ -463,6 +455,7 @@ const ProjectsManagePage: React.FC = () => {
       </MainLayout>
     );
   }
+
   const openViewModal = (project: Project) => {
     setViewProject(project);
     setViewModalOpen(true);
@@ -534,16 +527,6 @@ const ProjectsManagePage: React.FC = () => {
               </div>
 
               {/* Add Project */}
-              {user?.role &&
-                RBAC.hasPermission(user.role as any, "projects", "create") && (
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleAdd}
-                  >
-                    Add Project
-                  </Button>
-                )}
             </Space>
           </Space>
         </div>
@@ -629,205 +612,235 @@ const ProjectsManagePage: React.FC = () => {
               onChange={handleDateRangeFilter}
               style={{ width: 250 }}
             />
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Project
+            </Button>
           </div>
         </Card>
 
-        {/* Projects Table */}
+        {/* All Projects Section - DASHBOARD STYLE CARDS */}
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ fontSize: 15 }}>
+            <ProjectOutlined style={{ marginRight: 6 }} />
+            All Projects
+          </Text>
+        </div>
 
+        {/* Projects Card View - DASHBOARD STYLE */}
+        {/* Projects Card View - DASHBOARD STYLE */}
         {viewMode === "card" ? (
           <Row gutter={[24, 24]}>
             {loading
-              ? [1, 2, 3, 4].map((i) => (
-                  <Col xs={24} sm={12} lg={8} xl={6} key={i}>
+              ? [1, 2, 3, 4, 5].map((i) => (
+                  <Col xs={24} sm={12} lg={8} xl={8} key={i}>
                     <Card
                       loading
                       style={{
-                        height: 320,
-                        borderRadius: 18,
+                        height: 180,
+                        borderRadius: 12,
                       }}
                     />
                   </Col>
                 ))
-              : projects.map((project) => (
-                  <Col xs={24} sm={12} lg={8} xl={6} key={project.id}>
-                    <Card
-                      hoverable
-                      className="project-card"
-                      onClick={() => openViewModal(project)}
-                      style={{
-                        height: "100%",
-                        borderRadius: 18,
-                        display: "flex",
-                        flexDirection: "column",
-                        overflow: "hidden",
-                        border: "1px solid rgba(22,119,255,0.15)",
-                        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-                        transition: "all 0.35s cubic-bezier(.4,0,.2,1)",
-                        background:
-                          "linear-gradient(180deg, #ffffff 0%, #fafcff 100%)",
-                      }}
-                      bodyStyle={{
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
-                        padding: 18,
-                      }}
-                    >
-                      {/* ===== HEADER ===== */}
-                      <div
+              : projects.map((project) => {
+                  const memberCount = project.members?.length || 0;
+
+                  return (
+                    <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
+                      <Card
+                        hoverable
+                        onClick={() => openViewModal(project)}
                         style={{
-                          display: "flex",
-                          marginBottom: 18,
-                          alignItems: "center",
+                          borderRadius: 12,
+                          border: "1px solid #f0f0f0",
+                          transition: "all 0.2s",
+                          height: "100%",
                         }}
+                        styles={{ body: { padding: "16px 18px" } }}
                       >
-                        <Avatar
-                          size={52}
+                        {/* ===== LINE 1: Project Icon + Name + Status Tag on Left, Arrow on Right ===== */}
+                        <div
                           style={{
-                            background:
-                              "linear-gradient(135deg, #1677ff, #69b1ff)",
-                            //boxShadow: "0 8px 20px rgba(22,119,255,0.4)",
-                            fontWeight: "bold",
-                            fontSize: 18,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginBottom: 12,
                           }}
                         >
-                          {project.name?.[0]?.toUpperCase()}
-                        </Avatar>
-
-                        <div style={{ marginLeft: 14, flex: 1 }}>
-                          <Title
-                            level={5}
+                          {/* Left side: Project Icon + Name + Status Tag */}
+                          <div
                             style={{
-                              margin: 0,
-                              lineHeight: 1.3,
-                              fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              flex: 1,
+                              minWidth: 0,
                             }}
-                            ellipsis={{ tooltip: project.name }}
                           >
-                            {project.name}
-                          </Title>
-
-                          {project.code && (
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              {project.code}
+                            <ProjectOutlined
+                              style={{
+                                color: "#1677ff",
+                                fontSize: 18,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <Text strong ellipsis style={{ fontSize: 15 }}>
+                              {project.name}
                             </Text>
-                          )}
 
-                          <div style={{ marginTop: 6 }}>
                             <Tag
                               color={getStatusColor(project.status)}
                               style={{
-                                fontWeight: 600,
-                                borderRadius: 6,
+                                margin: 0,
+                                fontSize: 10, // Reduced from 11 to 10
+                                borderRadius: 3, // Reduced from 4 to 3
+                                padding: "1px 5px", // Reduced padding
+                                flexShrink: 0,
+                                lineHeight: 1.2, // Added for smaller height
+                                height: "auto", // Auto height
                               }}
                             >
                               {project.status.toUpperCase().replace("-", " ")}
                             </Tag>
                           </div>
+
+                          {/* Right side: Arrow only */}
                         </div>
-                      </div>
 
-                      {/* ===== PROJECT INFO ===== */}
-                      <div
-                        style={{
-                          background: "rgba(245,248,250,0.9)",
-                          backdropFilter: "blur(6px)",
-                          padding: 14,
-                          borderRadius: 12,
-                          marginBottom: 18,
-                          flex: 1,
-                          border: "1px solid #e6f4ff",
-                        }}
-                      >
-                        <Space direction="vertical" size={8}>
-                          <Space>
-                            <UserOutlined style={{ color: "#1677ff" }} />
+                        {/* ===== LINE 2: Project Manager Name ===== */}
+                        {project.projectManager && (
+                          <div
+                            style={{
+                              marginBottom: 12,
+                              fontSize: 13,
+                              color: "#595959",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            <UserOutlined
+                              style={{ color: "#8c8c8c", fontSize: 12 }}
+                            />
                             <Text style={{ fontSize: 13 }}>
-                              {project.projectManager?.name || "—"}
+                              {project.projectManager.name}
                             </Text>
-                          </Space>
+                          </div>
+                        )}
 
-                          <Space>
-                            <TeamOutlined style={{ color: "#1677ff" }} />
-                            <Text style={{ fontSize: 13 }}>
-                              {project.members?.length || 0} members
-                            </Text>
-                          </Space>
-
-                          <Space>
-                            <CalendarOutlined style={{ color: "#1677ff" }} />
-                            <Text style={{ fontSize: 13 }}>
-                              {dayjs(project.startDate).format("MMM DD, YYYY")}
-                            </Text>
-                          </Space>
-
-                          {project.endDate && (
-                            <Space>
-                              <CalendarOutlined style={{ color: "#1677ff" }} />
-                              <Text style={{ fontSize: 13 }}>
-                                {dayjs(project.endDate).format("MMM DD, YYYY")}
-                              </Text>
-                            </Space>
-                          )}
-                        </Space>
-                      </div>
-
-                      {/* ===== FOOTER ===== */}
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Tag
-                          color={getPriorityColor(project.defaultPriority)}
+                        {/* ===== LINE 3: Members + Start/End Date with Priority Tag on Right ===== */}
+                        <div
                           style={{
-                            fontWeight: 600,
-                            borderRadius: 6,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginTop: 8,
+                            paddingTop: 8,
                           }}
                         >
-                          {project.defaultPriority.toUpperCase()}
-                        </Tag>
+                          {/* Left side: Members + Dates */}
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 16,
+                              fontSize: 12,
+                              color: "#8c8c8c",
+                            }}
+                          >
+                            <span>
+                              <TeamOutlined style={{ marginRight: 4 }} />
+                              {memberCount}{" "}
+                              {memberCount === 1 ? "member" : "members"}
+                            </span>
+                            <span>
+                              <CalendarOutlined style={{ marginRight: 4 }} />
+                              {dayjs(project.startDate).format("MMM DD")}
+                              {project.endDate &&
+                                ` - ${dayjs(project.endDate).format("MMM DD")}`}
+                            </span>
+                          </div>
 
-                        <Space>
-                          {user?.role &&
+                          {/* Right side: Priority Tag */}
+
+                          <Tag
+                            color={getPriorityColor(project.defaultPriority)}
+                            style={{
+                              margin: 0,
+                              fontSize: 10, // Same as status tag
+                              borderRadius: 3, // Same as status tag
+                              padding: "1px 5px", // Same as status tag
+                              fontWeight: 500,
+                              flexShrink: 0,
+                              lineHeight: 1.2, // Same as status tag
+                              height: "auto", // Same as status tag
+                            }}
+                          >
+                            {project.defaultPriority.toUpperCase()}
+                          </Tag>
+                        </div>
+
+                        {/* ===== OPTIONAL: Action Buttons (if needed) ===== */}
+                        {user?.role &&
+                          (RBAC.hasPermission(
+                            user.role as any,
+                            "projects",
+                            "update"
+                          ) ||
                             RBAC.hasPermission(
                               user.role as any,
                               "projects",
-                              "update",
-                            ) && (
-                              <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEdit(project);
-                                }}
-                              />
-                            )}
+                              "delete"
+                            )) && (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 4,
+                                marginTop: 12,
+                                paddingTop: 8,
+                                borderTop: "1px dashed #f0f0f0",
+                              }}
+                            >
+                              {user?.role &&
+                                RBAC.hasPermission(
+                                  user.role as any,
+                                  "projects",
+                                  "update"
+                                ) && (
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<EditOutlined />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(project);
+                                    }}
+                                  />
+                                )}
 
-                          {user?.role &&
-                            RBAC.hasPermission(
-                              user.role as any,
-                              "projects",
-                              "delete",
-                            ) && (
-                              <Button
-                                type="text"
-                                danger
-                                icon={<DeleteOutlined />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(project.id);
-                                }}
-                              />
-                            )}
-                        </Space>
-                      </div>
-                    </Card>
-                  </Col>
-                ))}
+                              {user?.role &&
+                                RBAC.hasPermission(
+                                  user.role as any,
+                                  "projects",
+                                  "delete"
+                                ) && (
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(project.id);
+                                    }}
+                                  />
+                                )}
+                            </div>
+                          )}
+                      </Card>
+                    </Col>
+                  );
+                })}
           </Row>
         ) : (
           /* ===== TABLE VIEW ===== */
@@ -847,9 +860,10 @@ const ProjectsManagePage: React.FC = () => {
                   `${range[0]}-${range[1]} of ${total} projects`,
               }}
               scroll={{ x: 1200 }}
+              onChange={handleTableChange}
               onRow={(record) => ({
                 onClick: () => {
-                  openViewModal(record); // 👈 modal open
+                  openViewModal(record);
                 },
               })}
             />
@@ -936,7 +950,7 @@ const ProjectsManagePage: React.FC = () => {
                     showSearch
                     filterOption={(input, option) => {
                       const member = members.find(
-                        (m) => m.value === option?.value,
+                        (m) => m.value === option?.value
                       );
                       return member
                         ? member.label
@@ -1042,7 +1056,7 @@ const ProjectsManagePage: React.FC = () => {
           </Form>
         </Modal>
 
-        {/*Modal*/}
+        {/* View Modal */}
         <Modal
           open={viewModalOpen}
           onCancel={() => {
@@ -1064,66 +1078,6 @@ const ProjectsManagePage: React.FC = () => {
           {viewProject && (
             <>
               {/* ===== HEADER ===== */}
-              {/* <div
-              className="view-modal-header"
-                style={{
-                  padding: "22px 24px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  //background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
-                  color: "#fff",
-                }}
-              >
-                <Avatar
-                  size={52}
-                  style={{
-                    //backgroundColor: "rgba(255,255,255,0.25)",
-                    background:"linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
-                    fontWeight: 700,
-                    fontSize: 20,
-                  }}
-                >
-                  {viewProject.name?.[0]?.toUpperCase()}
-                </Avatar>
-
-                <div style={{ flex: 1 }}>
-                  <Title level={4} style={{ margin: 0, color: "black" }}>
-                    {viewProject.name}
-                  </Title>
-                  {/* <Text style={{ color: "rgba(255,255,255,0.85)" }}> 
-                  <Text style={{ color: "black"}}>
-                    
-                    {viewProject.code || "—"}
-                  </Text>
-
-                  <Tag
-                  color={getStatusColor(viewProject.status)}
-                  style={{
-                    fontWeight: 600,
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    // marginLeft: 20,
-                    transform: "translateX(-10px)",
-                  }}
-                >
-                  {viewProject.status.toUpperCase()}
-                </Tag>
-                </div>
-
-                <Tag
-                  color={getStatusColor(viewProject.status)}
-                  style={{
-                    fontWeight: 600,
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    // marginLeft: 20,
-                    transform: "translateX(-10px)",
-                  }}
-                >
-                  {viewProject.status.toUpperCase()}
-                </Tag>
-              </div> */}
               <div
                 className="view-modal-header"
                 style={{
@@ -1151,8 +1105,7 @@ const ProjectsManagePage: React.FC = () => {
                   <div
                     style={{
                       display: "flex",
-                      //alignItems: "center",
-                      alignItems: "baseline", 
+                      alignItems: "baseline",
                       gap: 8,
                     }}
                   >
@@ -1169,7 +1122,6 @@ const ProjectsManagePage: React.FC = () => {
                         borderRadius: 4,
                         width: "fit-content",
                         display: "inline-block",
-                        
                       }}
                     >
                       {viewProject.status.toUpperCase()}

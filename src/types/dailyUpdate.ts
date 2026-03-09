@@ -107,6 +107,7 @@ export interface DailyStatusUpdate {
 
   /** Submission time */
   submittedAt: Date | string;
+  dueDate?: string; //
 
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -121,7 +122,11 @@ export interface DailyStatusUpdate {
   user?: {
     id: string;
     name: string;
-    position: string;
+    position: {
+      id: string;
+      title: string;
+      code: string;
+    };
     workEmail: string;
   };
 }

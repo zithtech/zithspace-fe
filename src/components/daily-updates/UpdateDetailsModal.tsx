@@ -94,7 +94,7 @@ export default function UpdateDetailsModal({ update, open, onClose }: UpdateDeta
                   {update.user?.name}
                 </Text>
                 <Text type="secondary" style={{ fontSize: 13 }}>
-                  {update.user?.position}
+                  {update.user?.position?.title || ""}
                 </Text>
               </div>
             </Space>

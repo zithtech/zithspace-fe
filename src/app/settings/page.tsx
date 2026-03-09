@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import ComingSoon from '@/components/common/ComingSoon';
@@ -20,6 +21,7 @@ import {
   InputNumber,
   Switch,
   Popconfirm,
+  Spin,
 } from 'antd';
 import {
   SettingOutlined,
@@ -49,9 +51,17 @@ interface ShiftFormData {
 }
 
 export default function SettingsPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canReadSettings, canUpdateSettings } = usePermission();
   const router = useRouter();
   const [form] = Form.useForm();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadSettings) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadSettings, router]);
 
   // State management
   const [activeTab, setActiveTab] = useState('attendance');
@@ -65,13 +75,6 @@ export default function SettingsPage() {
   const [modalType, setModalType] = useState<'add' | 'edit'>('add');
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [formLoading, setFormLoading] = useState(false);
-
-  // Check permissions - Only admins and super_admins can access settings
-  useEffect(() => {
-    if (user && !['super_admin', 'admin'].includes(user.role)) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
 
   // Fetch shifts
   const fetchShifts = async () => {
@@ -97,6 +100,21 @@ export default function SettingsPage() {
       fetchShifts();
     }
   }, [user, activeTab]);
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadSettings) {
+    return null;
+  }
 
   // Handle shift form submission
   const handleShiftSubmit = async (values: ShiftFormData) => {

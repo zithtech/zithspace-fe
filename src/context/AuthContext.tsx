@@ -9,15 +9,18 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: string; // Flexible string instead of enum
-  position: string; // Flexible string instead of enum
+  role: string;
+  position: string;
   personalEmail: string;
   workEmail: string;
   phone: string;
   reportsTo?: string | null;
   isActive: boolean;
-  tenantId: string; // Add tenant context
-  tenantName?: string; // Optional tenant name
+  tenantId: string;
+  tenantName?: string;
+  department?: string;
+  /** Effective permissions returned by /api/auth/me — source of truth for UI */
+  permissions: string[];
 }
 
 interface AuthContextType {
@@ -29,6 +32,12 @@ interface AuthContextType {
   updateUser: (userData: Partial<User>) => void;
   checkAuth: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
+  /** Returns true if the user has the given permission string */
+  hasPermission: (permission: string) => boolean;
+  /** Returns true if the user has ALL of the given permissions */
+  hasAllPermissions: (...permissions: string[]) => boolean;
+  /** Returns true if the user has ANY of the given permissions */
+  hasAnyPermission: (...permissions: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,9 +67,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       const response = await AuthService.login({ email, password });
-      
+
+      // Set the auth marker cookie so Next.js middleware can detect the session.
+      // The backend's refreshToken is httpOnly and set on the API origin, so it is
+      // not visible to Next.js middleware running on the frontend origin.
+      // This lightweight cookie acts as the middleware auth signal.
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+      }
+
       // Transform the response to match our User interface
       const userData: User = {
         id: response.user.id,
@@ -75,16 +92,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isActive: response.user.isActive,
         tenantId: response.user.tenantId,
         tenantName: response.user.tenantName,
+        department: (response.user as any).department,
+        // Login response doesn't include permissions yet — will be loaded by checkAuth
+        permissions: (response.user as any).permissions ?? [],
       };
 
       setUser(userData);
-      
-      // Handle redirect after login (like traditional SPAs)
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectTo = urlParams.get('redirect');
-      const targetUrl = redirectTo || '/dashboard';
-      
-      router.push(targetUrl);
+      // Navigation is handled by the login page component via useEffect watching `user`
       return true;
     } catch (error) {
       console.error("Login failed:", error);
@@ -100,6 +114,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
+      // Clear the auth marker cookie so middleware stops treating user as authenticated
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      }
       // Clear local state regardless of API call success
       setUser(null);
       router.push("/login");
@@ -110,15 +128,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const success = await AuthService.refreshToken();
       if (!success) {
-        // Refresh failed, clear auth and set loading to false
+        // Refresh failed, clear auth marker cookie and state
+        if (typeof document !== 'undefined') {
+          document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        }
         setUser(null);
         AuthService.clearAuth();
         setIsLoading(false);
         return false;
       }
+      // Refresh succeeded — ensure auth marker cookie is present
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+      }
       return true;
     } catch (error) {
       console.error('Token refresh failed:', error);
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      }
       setUser(null);
       AuthService.clearAuth();
       setIsLoading(false);
@@ -132,13 +160,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Check if we have a stored token
       const hasToken = AuthService.isAuthenticated();
-      
+
       if (!hasToken) {
         // No access token found - try to refresh from cookie before giving up
         console.log('🔄 No access token found, attempting to refresh from cookie...');
         const refreshed = await refreshToken();
         if (!refreshed) {
-          console.log('❌ Token refresh failed, user not authenticated');
+          console.log(' Token refresh failed, user not authenticated');
           setUser(null);
           return;
         }
@@ -147,10 +175,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Try to get user profile - axios interceptor will handle token refresh automatically
       const userProfile = await AuthService.getProfile();
-      
+
       // Transform the profile to match our User interface
       const userData: User = {
-        id: userProfile.id, // Backend returns "id"
+        id: userProfile.id,
         name: userProfile.name,
         email: userProfile.workEmail || userProfile.personalEmail,
         role: userProfile.role,
@@ -158,24 +186,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         personalEmail: userProfile.personalEmail,
         workEmail: userProfile.workEmail,
         phone: userProfile.phone,
-        reportsTo: userProfile.reportsTo?.id || null, // Updated to use 'id' instead of 'id'
+        reportsTo: userProfile.reportsTo?.id || null,
         isActive: userProfile.isActive,
         tenantId: userProfile.tenantId,
         tenantName: userProfile.tenant?.name,
+        department: userProfile.department,
+        permissions: (userProfile as any).permissions ?? [],
       };
 
       setUser(userData);
     } catch (error) {
-      console.error('❌ Auth check failed:', error);
-      
+      console.error('Auth check failed:', error);
+
       // Only clear tokens on actual authentication errors (401), not parsing errors
       if (error instanceof ApiError && error.status === 401) {
         console.log('🔒 Authentication error (401), clearing tokens and redirecting to login');
+        // Clear the auth marker cookie so middleware stops treating user as authenticated
+        if (typeof document !== 'undefined') {
+          document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        }
         setUser(null);
         AuthService.clearAuth();
-        
+
         // Redirect to login if not already there
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.startsWith('/public')) {
           router.push('/login?error=session_expired');
         }
       } else {
@@ -194,6 +228,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    return user.permissions.includes(permission);
+  };
+
+  const hasAllPermissions = (...permissions: string[]): boolean => {
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    return permissions.every((p) => user.permissions.includes(p));
+  };
+
+  const hasAnyPermission = (...permissions: string[]): boolean => {
+    if (!user) return false;
+    if (user.role === 'super_admin') return true;
+    return permissions.some((p) => user.permissions.includes(p));
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -203,6 +255,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateUser,
     checkAuth,
     refreshToken,
+    hasPermission,
+    hasAllPermissions,
+    hasAnyPermission,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

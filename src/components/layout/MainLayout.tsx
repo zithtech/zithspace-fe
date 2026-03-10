@@ -111,7 +111,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             margin: 0,
             padding: 0,
             background: "#f5f5f5",
-            marginLeft: collapsed ? 80 : 240,
+            marginLeft: collapsed ? 65 : 240,
             transition: "all 0.2s",
             height: "calc(100vh - 64px)",
             overflow: "auto",

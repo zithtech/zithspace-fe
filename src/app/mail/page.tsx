@@ -1,1227 +1,743 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-
-import {
-  Space,
-  Typography,
-  Card,
-  Table,
-  Input,
-  Select,
-  DatePicker,
-  Tag,
-  Tooltip,
-  Button,
-  Avatar,
-  Drawer,
-  Spin,
-  message,
-  Row,
-  Col,
-  Empty,
-  Tabs,
-  Badge,
-  Checkbox,
-  Dropdown,
-  Menu,
-  Form,
-  Divider
-} from "antd";
+import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox } from "antd";
 import {
   MailOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  FilePdfOutlined,
-  EyeOutlined,
-  DownloadOutlined,
+  SyncOutlined,
+  ArrowLeftOutlined,
   UserOutlined,
-  ClockCircleOutlined,
+  PaperClipOutlined,
+  SearchOutlined,
+  EditOutlined,
   InboxOutlined,
   SendOutlined,
-  CalendarOutlined,
-  FilterOutlined,
-  ClearOutlined,
-  StarOutlined,
-  StarFilled,
-  PaperClipOutlined,
+  FileTextOutlined,
   DeleteOutlined,
-  FolderOutlined,
   ExclamationCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  WarningOutlined,
-  ArrowLeftOutlined,
-  ArrowRightOutlined,
-  MenuOutlined,
-  SettingOutlined,
-  InfoCircleOutlined,
-  SyncOutlined,
-  ExportOutlined,
-  PlusOutlined,
-  CloseOutlined
+  FolderOutlined,
+  CloseOutlined,
+  RollbackOutlined
 } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { useMail } from "@/hooks/useMail";
+import { MailService, MailMessage } from "@/services/mailService";
+import { userService, User } from "@/services/userService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import calendar from "dayjs/plugin/calendar";
-import { useRouter } from "next/navigation";
-import {
-  useEmailLogs,
-  useEmailModules,
-  useEmailStats,
-  useAllModuleConfigs,
-  useRefreshEmailHistory,
-  useEmailLog,
-  useDownloadAttachment,
-  useModuleCounts
-} from "@/hooks/useEmailHistory";
-import { useSendInvoiceEmail } from "@/hooks/useInvoices";
-import EmailHistoryService from "@/services/emailHistoryService";
 
-// Initialize dayjs plugins
 dayjs.extend(relativeTime);
-dayjs.extend(calendar);
 
-const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
-const { Option } = Select;
-const { TabPane } = Tabs;
+const { Sider, Content, Header } = Layout;
+const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-export default function EmailHistoryPage() {
-  const router = useRouter();
-  const [messageApi, contextHolder] = message.useMessage();
-  const refreshEmailHistory = useRefreshEmailHistory();
-  const getModuleCount = useModuleCounts();
-  const { mutate: downloadAttachment } = useDownloadAttachment();
-  const { mutate: sendEmail, isPending: isSending } = useSendInvoiceEmail();
+export default function MailPage() {
+  const { threads, loading, syncing, isSending, isSavingDraft, error, connectedEmail, isFetchingStatus, fetchThreads, syncMail, sendMessage, saveDraft, sendDraft, deleteThread, deleteThreads, restoreThread, emptyTrash } = useMail();
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
+  const [messages, setMessages] = useState<MailMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [composeVisible, setComposeVisible] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState("INBOX");
+  const [users, setUsers] = useState<{ name: string; email: string }[]>([]);
+  const [fetchingUsers, setFetchingUsers] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [form] = Form.useForm();
 
-  // Compose Drawer State
-  const [composeDrawerOpen, setComposeDrawerOpen] = useState(false);
-  const [composeForm] = Form.useForm();
+  const [quickReply, setQuickReply] = useState("");
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
-  // State
-  const [filters, setFilters] = useState({
-    page: 1,
-    limit: 50,
-    module: "INVOICE",
-    status: "",
-    search: "",
-    startDate: "",
-    endDate: ""
-  });
+  useEffect(() => {
+    setSelectedThreadIds([]);
+    fetchThreads(selectedFolder);
+    fetchUsers();
+  }, [fetchThreads, selectedFolder]);
 
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
-  const [activeTab, setActiveTab] = useState("INVOICE");
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [starred, setStarred] = useState<string[]>([]);
-  const [showSearchOptions, setShowSearchOptions] = useState(false);
-
-  // Fetch data
-  const { 
-    data: emailLogsData, 
-    isLoading: logsLoading, 
-    refetch: refetchLogs 
-  } = useEmailLogs(filters);
-  
-  const { 
-    data: modules = [] 
-  } = useEmailModules();
-  
-  const { 
-    data: stats 
-  } = useEmailStats();
-
-  // Email preview
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
-  
-  const { 
-    data: selectedEmail 
-  } = useEmailLog(selectedEmailId || "");
-
-  const moduleConfigs = useAllModuleConfigs();
-
-  // Handle filters
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
-  };
-
-  const handleDateRangeChange = (dates: any) => {
-    setDateRange(dates);
-    if (dates && dates[0] && dates[1]) {
-      setFilters(prev => ({
-        ...prev,
-        startDate: dates[0].toISOString(),
-        endDate: dates[1].toISOString(),
-        page: 1
-      }));
-    } else {
-      setFilters(prev => ({
-        ...prev,
-        startDate: "",
-        endDate: "",
-        page: 1
-      }));
+  const fetchUsers = async () => {
+    setFetchingUsers(true);
+    try {
+      const data = await MailService.getContacts();
+      setUsers(data || []);
+    } catch (err) {
+      console.error("Failed to fetch contacts for compose drawer:", err);
+    } finally {
+      setFetchingUsers(false);
     }
   };
 
-  const clearFilters = () => {
-    setFilters({
-      page: 1,
-      limit: 50,
-      module: "INVOICE",
-      status: "",
-      search: "",
-      startDate: "",
-      endDate: ""
-    });
-    setDateRange(null);
-    setActiveTab("INVOICE");
-    setSelectedRowKeys([]);
-  };
+  useEffect(() => {
+    if (selectedThreadId) {
+      if (selectedFolder === "DRAFTS") {
+        openDraft(selectedThreadId);
+      } else {
+        loadMessages(selectedThreadId);
+        setDrawerVisible(true);
+      }
+    }
+  }, [selectedThreadId]);
 
-  const handleTabChange = (key: string) => {
-    setActiveTab(key);
-    handleFilterChange("module", key === "all" ? "" : key);
-  };
-
-  const handleViewEmail = (id: string) => {
-    setSelectedEmailId(id);
-    setPreviewOpen(true);
-  };
-
-  const toggleStar = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setStarred(prev => 
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedRowKeys.length === emailLogsData?.data?.length) {
-      setSelectedRowKeys([]);
-    } else {
-      setSelectedRowKeys(emailLogsData?.data?.map(item => item.id) || []);
+  const openDraft = async (threadId: string) => {
+    setMessagesLoading(true);
+    try {
+      const data = await MailService.getThreadMessages(threadId);
+      const msgs = data?.data || data || [];
+      const lastMsg = msgs[msgs.length - 1];
+      if (lastMsg) {
+        form.setFieldsValue({
+          to: lastMsg.toEmails || [],
+          cc: lastMsg.ccEmails || [],
+          bcc: lastMsg.bccEmails || [],
+          subject: lastMsg.subject || "",
+          body: lastMsg.bodyText || lastMsg.bodyHtml || ""
+        });
+        setCurrentDraftId(lastMsg.id);
+        setComposeVisible(true);
+      }
+    } catch (err) {
+      console.error("Failed to load draft:", err);
+      message.error("Failed to load draft");
+    } finally {
+      setMessagesLoading(false);
     }
   };
 
-  // Handle table pagination
-  const handlePaginationChange = (pagination: any) => {
-    setFilters(prev => ({
-      ...prev,
-      page: pagination.current,
-      limit: pagination.pageSize
-    }));
-  };
-
-  // Handle Compose
-  const handleOpenCompose = () => {
-    composeForm.resetFields();
-    composeForm.setFieldsValue({
-      subject: "Invoice from Zithtech",
-      message: "Dear Customer,\n\nPlease find your invoice attached.\n\nKind regards,\nAccounts Team"
-    });
-    setComposeDrawerOpen(true);
-  };
-
-  const handleSendEmail = (values: any) => {
-    // This would need an invoice ID - for now just show success
-    messageApi.success("Email sent successfully");
-    setComposeDrawerOpen(false);
-    composeForm.resetFields();
-  };
-
-  // Get status icon
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'SENT': return <SendOutlined style={{ color: '#1a73e8' }} />;
-      case 'OPENED': return <EyeOutlined style={{ color: '#1a73e8' }} />;
-      case 'CLICKED': return <MailOutlined style={{ color: '#1a73e8' }} />;
-      case 'FAILED': return <CloseCircleOutlined style={{ color: '#d93025' }} />;
-      case 'BOUNCED': return <WarningOutlined style={{ color: '#f9ab00' }} />;
-      default: return <CheckCircleOutlined style={{ color: '#1a73e8' }} />;
+  const loadMessages = async (threadId: string) => {
+    setMessagesLoading(true);
+    try {
+      const data = await MailService.getThreadMessages(threadId);
+      setMessages(data || []);
+    } catch (err) {
+      console.error("Failed to load messages:", err);
+    } finally {
+      setMessagesLoading(false);
     }
   };
 
-  // Format date for list
-  const formatListDate = (date: string) => {
-    const d = dayjs(date);
-    const now = dayjs();
-    
-    if (d.isSame(now, 'day')) {
-      return d.format('h:mm A');
-    } else if (d.isSame(now.subtract(1, 'day'), 'day')) {
-      return 'Yesterday';
-    } else if (d.isSame(now, 'week')) {
-      return d.format('ddd');
-    } else {
-      return d.format('MMM D');
-    }
-  };
+  const selectedThread = threads.find(t => t.id === selectedThreadId);
 
-  // Gmail-style columns for SENT folder
-  const columns: ColumnsType<any> = [
-    {
-      title: "",
-      key: "select",
-      width: 36,
-      render: (_, record) => (
-        <Checkbox 
-          checked={selectedRowKeys.includes(record.id)}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => {
-            e.stopPropagation();
-            if (selectedRowKeys.includes(record.id)) {
-              setSelectedRowKeys(selectedRowKeys.filter(id => id !== record.id));
-            } else {
-              setSelectedRowKeys([...selectedRowKeys, record.id]);
-            }
-          }}
-        />
-      )
-    },
-    {
-      title: "",
-      key: "star",
-      width: 36,
-      render: (_, record) => (
-        <span 
-          onClick={(e) => toggleStar(record.id, e)} 
-          style={{ cursor: 'pointer', display: 'inline-block' }}
-        >
-          {starred.includes(record.id) ? (
-            <StarFilled style={{ color: '#f9ab00', fontSize: 16 }} />
-          ) : (
-            <StarOutlined style={{ color: '#9aa0a6', fontSize: 16 }} />
-          )}
-        </span>
-      )
-    },
-    {
-      title: "",
-      key: "status",
-      width: 36,
-      render: (_, record) => (
-        <Tooltip title={record.status}>
-          {getStatusIcon(record.status)}
-        </Tooltip>
-      )
-    },
-    {
-      title: "To",
-      key: "to",
-      width: 200,
-      render: (_, record) => (
-        <div style={{ 
-          fontWeight: record.status === 'OPENED' ? 400 : 500,
-          color: '#202124'
-        }}>
-          {record.customerName || record.to?.split('@')[0] || 'Unknown'}
-          <div style={{ fontSize: 12, color: '#5f6368', fontWeight: 'normal' }}>
-            {record.to}
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Subject",
-      key: "subject",
-      render: (_, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-            <span style={{ 
-              fontWeight: record.status === 'OPENED' ? 400 : 500,
-              color: '#202124'
-            }}>
-              {record.subject}
-            </span>
-            {record.hasAttachment && (
-              <PaperClipOutlined style={{ color: '#5f6368', fontSize: 14 }} />
-            )}
-            {record.amount && (
-              <Tag style={{ 
-                marginLeft: 8, 
-                backgroundColor: '#e8f0fe', 
-                color: '#1a73e8',
-                border: 'none',
-                borderRadius: 12,
-                padding: '0 8px',
-                fontSize: 11,
-                fontWeight: 500
-              }}>
-                {record.amount}
-              </Tag>
-            )}
-            <span style={{ 
-              fontSize: 11, 
-              color: '#5f6368',
-              backgroundColor: '#f1f3f4',
-              padding: '2px 8px',
-              borderRadius: 12,
-              marginLeft: 8
-            }}>
-              #{record.moduleNumber}
-            </span>
-          </div>
-          <span style={{ color: '#5f6368', fontSize: 12, marginLeft: 16, whiteSpace: 'nowrap' }}>
-            {formatListDate(record.sentAt)}
-          </span>
-        </div>
-      )
-    }
+  const folderItems = [
+    { key: "INBOX", icon: <InboxOutlined />, label: "Inbox", count: selectedFolder === "INBOX" ? threads.length : 0 },
+    { key: "SENT", icon: <SendOutlined />, label: "Sent", count: selectedFolder === "SENT" ? threads.length : 0 },
+    { key: "DRAFTS", icon: <FileTextOutlined />, label: "Drafts", count: selectedFolder === "DRAFTS" ? threads.length : 0 },
+    { key: "SPAM", icon: <ExclamationCircleOutlined />, label: "Spam", count: selectedFolder === "SPAM" ? threads.length : 0 },
+    { key: "TRASH", icon: <DeleteOutlined />, label: "Trash", count: selectedFolder === "TRASH" ? threads.length : 0 },
+    { key: "ARCHIVE", icon: <FolderOutlined />, label: "Archive", count: selectedFolder === "ARCHIVE" ? threads.length : 0 },
   ];
-
-  // Loading state
-  if (logsLoading && !emailLogsData) {
-    return (
-      <MainLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-          <Spin size="large" />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  // Bulk actions menu
-  const bulkActionsMenu = (
-    <Menu
-      items={[
-        { key: 'star', icon: <StarOutlined />, label: 'Star' },
-        { key: 'unstar', icon: <StarFilled />, label: 'Unstar' },
-        { key: 'delete', icon: <DeleteOutlined />, label: 'Delete', danger: true },
-        { key: 'resend', icon: <SendOutlined />, label: 'Resend' },
-        { key: 'mark-read', icon: <EyeOutlined />, label: 'Mark as read' }
-      ]}
-    />
-  );
 
   return (
     <MainLayout>
-      {contextHolder}
-      <div style={{ 
-        display: 'flex',
-        flexDirection: 'column',
-        height: 'calc(100vh - 64px)',
-        backgroundColor: '#f6f8fc',
-        overflow: 'hidden'
-      }}>
-        {/* Gmail Header - Sent Mail Style */}
-        <div style={{ 
-          padding: '12px 24px',
-          backgroundColor: '#fff',
-          borderBottom: '1px solid #e0e0e0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
+      <Layout style={{ height: "calc(100vh - 64px)", background: "#fff" }}>
+        {/* Header Section */}
+        <Header style={{
+          background: "#fff",
+          padding: "0 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #f0f0f0",
+          height: "64px"
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Button 
-              icon={<MenuOutlined />} 
-              type="text"
-              style={{ color: '#5f6368' }}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* <SendOutlined style={{ color: '#1a73e8', fontSize: 24 }} /> */}
-              <Title level={4} style={{ margin: 0, color: '#202124', fontWeight: 500 }}>
-                 Mail
-              </Title>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <MailOutlined style={{ fontSize: "24px", color: "#1890ff" }} />
+            <Title level={4} style={{ margin: 0 }}>Mail</Title>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Badge count={stats?.sentToday || 0} style={{ backgroundColor: '#1a73e8' }}>
-              <Button 
-                icon={<SendOutlined />} 
-                onClick={() => handleFilterChange('status', 'SENT')}
-                style={{ borderColor: '#e0e0e0' }}
-              >
-                Sent Today
-              </Button>
-            </Badge>
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={refreshEmailHistory}
-              style={{ borderColor: '#e0e0e0' }}
-            />
-            <Button 
-              icon={<SettingOutlined />} 
-              style={{ borderColor: '#e0e0e0' }}
-            />
-          </div>
-        </div>
 
-        {/* Main Content - Gmail 3 Column Layout */}
-        <div style={{ 
-          display: 'flex', 
-          flex: 1,
-          overflow: 'hidden',
-          backgroundColor: '#f6f8fc'
-        }}>
-          {/* Left Sidebar - Folders */}
-          <div style={{ 
-            width: 200, 
-            backgroundColor: '#fff',
-            borderRight: '1px solid #e0e0e0',
-            padding: '16px 0',
-            overflowY: 'auto'
-          }}>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />}
-              style={{ 
-                margin: '0 16px 16px',
-                backgroundColor: '#c2e7ff',
-                borderColor: '#c2e7ff',
-                color: '#001d35',
-                width: 'calc(100% - 32px)',
-                borderRadius: 24,
-                fontWeight: 500
-              }}
-              onClick={handleOpenCompose}
-            >
-              Compose
-            </Button>
-            
-            <div style={{ padding: '0 12px' }}>
-              {/* Sent Folder - Active */}
-              <div 
-                style={{ 
-                  padding: '8px 12px',
-                  borderRadius: 16,
-                  cursor: 'pointer',
-                  backgroundColor: '#e8f0fe',
-                  color: '#1a73e8',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 4
+          <Input
+            placeholder="Search mail..."
+            prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+            style={{ width: "40%", borderRadius: "8px" }}
+          />
+
+          <Space size="middle">
+            {selectedFolder === "TRASH" && threads.length > 0 && (
+              <Popconfirm
+                title="Empty Trash?"
+                description="All conversations in Trash will be permanently deleted. This action cannot be undone."
+                onConfirm={async () => {
+                  const res = await emptyTrash();
+                  if (res.success) {
+                    message.success("Trash emptied");
+                    syncMail(selectedFolder);
+                  }
+                }}
+                okText="Empty Trash"
+                cancelText="Cancel"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger icon={<DeleteOutlined />}>Empty Trash</Button>
+              </Popconfirm>
+            )}
+            <Button
+              type="text"
+              icon={<SyncOutlined spin={syncing} />}
+              onClick={() => syncMail(selectedFolder)}
+              disabled={syncing}
+            />
+            <Avatar icon={<UserOutlined />} style={{ cursor: "pointer" }} />
+          </Space>
+        </Header>
+
+        <Layout>
+          {/* Left Sider - Folders and Compose */}
+          <Sider width={250} theme="light" style={{ borderRight: "1px solid #f0f0f0" }}>
+            <div style={{ padding: "16px" }}>
+              <Button
+                type="primary"
+                icon={<EditOutlined rotate={270} />}
+                block
+                size="large"
+                style={{ borderRadius: "8px", fontWeight: "bold", height: "48px" }}
+                onClick={() => {
+                  form.resetFields();
+                  setCurrentDraftId(null);
+                  setComposeVisible(true);
                 }}
               >
-                <span>
-                  <SendOutlined style={{ marginRight: 12, color: '#1a73e8' }} />
-                  Sent
-                </span>
-                <span style={{ color: '#5f6368', fontSize: 13 }}>{stats?.total || 0}</span>
-              </div>
-              
-              <div style={{ padding: '8px 12px', color: '#5f6368', display: 'flex', alignItems: 'center' }}>
-                <InboxOutlined style={{ marginRight: 12 }} />
-                Inbox
-              </div>
-              
-              <div style={{ padding: '8px 12px', color: '#5f6368', display: 'flex', alignItems: 'center' }}>
-                <DeleteOutlined style={{ marginRight: 12 }} />
-                Trash
-              </div>
+                Compose
+              </Button>
+            </div>
+            <Menu
+              mode="inline"
+              selectedKeys={[selectedFolder]}
+              onClick={({ key }) => setSelectedFolder(key)}
+              style={{ borderRight: 0 }}
+              items={folderItems.map(item => ({
+                key: item.key,
+                icon: item.icon,
+                label: (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>{item.label}</span>
+                    {item.count > 0 && <Badge count={item.count} overflowCount={999} style={{ backgroundColor: "#f5f5f5", color: "#8c8c8c", boxShadow: "none" }} />}
+                  </div>
+                )
+              }))}
+            />
+          </Sider>
 
-              <div style={{ marginTop: 24, marginBottom: 8, paddingLeft: 12, color: '#5f6368', fontSize: 12 }}>
-                MODULES
+          {/* Center Content - Thread List */}
+          <Content style={{ overflow: "auto", background: "#f9f9f9" }}>
+            {threads.length > 0 && (
+              <div style={{ padding: "8px 24px", background: "#fff", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Space>
+                  <Checkbox
+                    checked={threads.length > 0 && selectedThreadIds.length === threads.length}
+                    indeterminate={selectedThreadIds.length > 0 && selectedThreadIds.length < threads.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedThreadIds(threads.map(t => t.id));
+                      } else {
+                        setSelectedThreadIds([]);
+                      }
+                    }}
+                  />
+                  {selectedThreadIds.length > 0 && (
+                    <>
+                      <Divider type="vertical" />
+                      <Text type="secondary">{selectedThreadIds.length} selected</Text>
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={<DeleteOutlined />}
+                        danger
+                        onClick={async () => {
+                          const res = await deleteThreads(selectedThreadIds);
+                          if (res.success) {
+                            message.success("Selected items deleted");
+                            setSelectedThreadIds([]);
+                            syncMail(selectedFolder);
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                      {selectedFolder === "TRASH" && (
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<RollbackOutlined />}
+                          onClick={async () => {
+                            // We need to implement bulk restore or just loop
+                            let allSuccess = true;
+                            for (const id of selectedThreadIds) {
+                              const res = await restoreThread(id);
+                              if (!res.success) allSuccess = false;
+                            }
+                            if (allSuccess) message.success("Selected items restored");
+                            else message.warning("Some items failed to restore");
+                            setSelectedThreadIds([]);
+                            syncMail(selectedFolder);
+                          }}
+                        >
+                          Restore
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </Space>
               </div>
-              
-              {modules.map(module => (
-                <div
-                  key={module}
-                  onClick={() => handleTabChange(module)}
-                  style={{ 
-                    padding: '6px 12px',
-                    paddingLeft: 36,
-                    borderRadius: 16,
-                    cursor: 'pointer',
-                    backgroundColor: activeTab === module ? '#e8f0fe' : 'transparent',
-                    color: activeTab === module ? '#1a73e8' : '#202124',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: 2,
-                    fontSize: 13
+            )}
+            {loading && !syncing ? (
+              <div style={{ padding: 40, textAlign: "center" }}><Spin size="large" /></div>
+            ) : (
+              <List
+                className="mail-thread-list"
+                style={{ padding: "8px" }}
+                dataSource={threads}
+                renderItem={(item) => (
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ paddingLeft: "16px" }}>
+                      <Checkbox
+                        checked={selectedThreadIds.includes(item.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedThreadIds(prev => [...prev, item.id]);
+                          } else {
+                            setSelectedThreadIds(prev => prev.filter(id => id !== item.id));
+                          }
+                        }}
+                      />
+                    </div>
+                    <List.Item
+                      onClick={() => setSelectedThreadId(item.id)}
+                      style={{
+                        flex: 1,
+                        cursor: "pointer",
+                        padding: "16px 20px",
+                        margin: "4px 8px",
+                        borderRadius: "8px",
+                        background: selectedThreadId === item.id ? "#e6f7ff" : "#fff",
+                        border: "1px solid #f0f0f0",
+                        transition: "all 0.3s",
+                        boxShadow: selectedThreadId === item.id ? "0 2px 8px rgba(0,0,0,0.06)" : "none"
+                      }}
+                    >
+                      <List.Item.Meta
+                        avatar={<Avatar size="large" icon={<UserOutlined />} />}
+                        title={
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <Text strong ellipsis style={{ fontSize: "15px" }}>
+                              {selectedFolder === 'SENT' ? (item.toEmails?.[0] || 'Unknown Recipient') : (item.fromAddress || 'Unknown Sender')}
+                            </Text>
+                            <Text type="secondary" style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+                              {dayjs(item.lastMessageAt).format("MMM D")}
+                            </Text>
+                          </div>
+                        }
+                        description={
+                          <div style={{ marginTop: "2px" }}>
+                            <Text strong={!item.isRead} style={{ display: "block", color: "var(--ant-text-color)", fontSize: "14px", marginBottom: "2px" }}>
+                              {item.subject || "(No Subject)"}
+                            </Text>
+                            <Paragraph ellipsis={{ rows: 1 }} type="secondary" style={{ marginBottom: 0, fontSize: "13px" }}>
+                              {item.snippet || "No preview available"}
+                            </Paragraph>
+                            {selectedFolder === 'SENT' && item.toEmails && item.toEmails.length > 1 && (
+                              <Text type="secondary" style={{ fontSize: "11px" }}>
+                                + {item.toEmails.length - 1} more
+                              </Text>
+                            )}
+                          </div>
+                        }
+                      />
+                    </List.Item>
+                  </div>
+                )}
+                locale={{
+                  emptyText: (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={
+                        <span style={{ color: "#8c8c8c" }}>
+                          No conversations found in {folderItems.find((f) => f.key === selectedFolder)?.label}
+                        </span>
+                      }
+                    />
+                  )
+                }}
+              />
+            )}
+          </Content>
+        </Layout>
+
+        {/* Right Drawer - Message Details */}
+        <Drawer
+          title={selectedThread?.subject || "No Subject"}
+          placement="right"
+          width={650}
+          onClose={() => {
+            setDrawerVisible(false);
+            setSelectedThreadId(null);
+          }}
+          open={drawerVisible}
+          extra={
+            <Space>
+              {selectedFolder === "TRASH" && (
+                <Button
+                  icon={<RollbackOutlined />}
+                  onClick={async () => {
+                    if (selectedThreadId) {
+                      const res = await restoreThread(selectedThreadId);
+                      if (res.success) {
+                        message.success("Thread restored to Inbox");
+                        setDrawerVisible(false);
+                        setSelectedThreadId(null);
+                        syncMail(selectedFolder);
+                      }
+                    }
                   }}
                 >
-                  <span>
-                    {moduleConfigs[module]?.label || module}
-                  </span>
-                  <span style={{ color: '#5f6368', fontSize: 12 }}>{getModuleCount(module)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Middle - Sent Email List */}
-          <div style={{ 
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: '#fff',
-            margin: '0 1px',
-            overflow: 'hidden',
-            maxWidth: previewOpen ? '40%' : '100%'
-          }}>
-            {/* Search Bar */}
-            <div style={{ 
-              padding: '16px 24px',
-              borderBottom: '1px solid #e0e0e0'
-            }}>
-              <Input
-                placeholder="Search sent emails"
-                prefix={<SearchOutlined style={{ color: '#5f6368' }} />}
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                allowClear
-                style={{ 
-                  borderRadius: 24,
-                  borderColor: '#e0e0e0',
-                  backgroundColor: '#f1f3f4',
-                  border: 'none'
-                }}
-              />
-              
-              {/* Filter Row */}
-              <div style={{ 
-                display: 'flex', 
-                gap: 8, 
-                marginTop: 12,
-                alignItems: 'center'
-              }}>
-                <Select
-                  placeholder="Module"
-                  style={{ width: 120 }}
-                  value={filters.module || undefined}
-                  onChange={(value) => handleFilterChange('module', value)}
-                  allowClear
-                  size="small"
-                  dropdownMatchSelectWidth={false}
-                >
-                  {modules.map(module => (
-                    <Option key={module} value={module}>
-                      {moduleConfigs[module]?.label || module}
-                    </Option>
-                  ))}
-                </Select>
-
-                <Select
-                  placeholder="Status"
-                  style={{ width: 100 }}
-                  value={filters.status || undefined}
-                  onChange={(value) => handleFilterChange('status', value)}
-                  allowClear
-                  size="small"
-                >
-                  <Option value="SENT">Sent</Option>
-                  <Option value="OPENED">Opened</Option>
-                  <Option value="CLICKED">Clicked</Option>
-                  <Option value="FAILED">Failed</Option>
-                  <Option value="BOUNCED">Bounced</Option>
-                </Select>
-
-                <RangePicker 
-                  value={dateRange}
-                  onChange={handleDateRangeChange}
-                  style={{ width: 220 }}
-                  size="small"
-                  placeholder={['Sent start', 'Sent end']}
-                />
-
-                <Button 
-                  icon={<ClearOutlined />} 
-                  onClick={clearFilters}
-                  size="small"
-                >
-                  Clear
+                  Restore
                 </Button>
-
-                <Button 
-                  icon={<SyncOutlined />} 
-                  onClick={refreshEmailHistory}
-                  size="small"
-                />
-              </div>
-            </div>
-
-            {/* Bulk Actions */}
-            {selectedRowKeys.length > 0 && (
-              <div style={{ 
-                padding: '8px 24px',
-                backgroundColor: '#e8f0fe',
-                borderBottom: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                <Space>
-                  <Checkbox 
-                    checked={selectedRowKeys.length === emailLogsData?.data?.length}
-                    indeterminate={selectedRowKeys.length > 0 && selectedRowKeys.length < (emailLogsData?.data?.length || 0)}
-                    onChange={handleSelectAll}
-                  >
-                    <Text strong style={{ color: '#202124' }}>
-                      {selectedRowKeys.length} selected
-                    </Text>
-                  </Checkbox>
-                  <Dropdown overlay={bulkActionsMenu} trigger={['click']}>
-                    <Button size="small">Actions</Button>
-                  </Dropdown>
-                </Space>
-                <Button 
-                  size="small" 
-                  icon={<CloseCircleOutlined />}
-                  onClick={() => setSelectedRowKeys([])}
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-
-            {/* Sent Email List */}
-            <div style={{ 
-              flex: 1,
-              overflow: 'auto'
-            }}>
-              <Table
-                columns={columns}
-                dataSource={emailLogsData?.data}
-                rowKey="id"
-                loading={logsLoading}
-                pagination={false}
-                onChange={handlePaginationChange}
-                scroll={{ y: 'calc(100vh - 280px)' }}
-                size="middle"
-                showHeader={false}
-                onRow={(record) => ({
-                  onClick: () => handleViewEmail(record.id),
-                  style: { 
-                    cursor: 'pointer',
-                    backgroundColor: record.status === 'OPENED' ? '#fafafa' : '#fff',
-                  }
-                })}
-              />
-
-              {/* Empty State */}
-              {(!emailLogsData?.data || emailLogsData.data.length === 0) && !logsLoading && (
-                <div style={{ textAlign: 'center', padding: '64px 24px' }}>
-                  <SendOutlined style={{ fontSize: 64, color: '#dadce0' }} />
-                  <Title level={4} style={{ color: '#202124', fontWeight: 400, marginTop: 16 }}>
-                    No sent emails found
-                  </Title>
-                  <Text style={{ color: '#5f6368' }}>
-                    {filters.search || filters.module || filters.status || dateRange 
-                      ? "Try adjusting your filters"
-                      : "You haven't sent any emails yet"}
-                  </Text>
-                  <div style={{ marginTop: 24 }}>
-                    <Button 
-                      type="primary" 
-                      icon={<PlusOutlined />}
-                      onClick={handleOpenCompose}
-                      style={{ backgroundColor: '#1a73e8' }}
-                    >
-                      Compose Email
-                    </Button>
-                  </div>
-                </div>
               )}
-            </div>
-
-            {/* Pagination */}
-            {emailLogsData?.data && emailLogsData.data.length > 0 && (
-              <div style={{ 
-                padding: '12px 24px',
-                borderTop: '1px solid #e0e0e0',
-                display: 'flex',
-                justifyContent: 'flex-end',
-                backgroundColor: '#fff'
-              }}>
-                <Space>
-                  <Button 
-                    size="small"
-                    icon={<ArrowLeftOutlined />}
-                    disabled={filters.page === 1}
-                    onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
-                  />
-                  <Text style={{ color: '#5f6368' }}>
-                    {filters.page} of {Math.ceil((emailLogsData?.pagination?.total || 0) / filters.limit)}
-                  </Text>
-                  <Button 
-                    size="small"
-                    icon={<ArrowRightOutlined />}
-                    disabled={filters.page >= Math.ceil((emailLogsData?.pagination?.total || 0) / filters.limit)}
-                    onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
-                  />
-                </Space>
-              </div>
-            )}
-          </div>
-
-          {/* Right - Email Preview (Sent Mail View) */}
-          {previewOpen && selectedEmail && (
-            <div style={{ 
-              width: '60%',
-              backgroundColor: '#fff',
-              borderLeft: '1px solid #e0e0e0',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
-            }}>
-              {/* Preview Header */}
-              <div style={{ 
-                padding: '16px 24px',
-                borderBottom: '1px solid #e0e0e0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: '#fff'
-              }}>
-                <Space>
-                  <Button 
-                    icon={<ArrowLeftOutlined />} 
-                    size="small"
-                    onClick={() => setPreviewOpen(false)}
-                    style={{ borderColor: '#e0e0e0' }}
-                  />
-                  <Button 
-                    icon={<ArrowRightOutlined />} 
-                    size="small"
-                    disabled
-                    style={{ borderColor: '#e0e0e0' }}
-                  />
-                  <Button 
-                    icon={<ReloadOutlined />} 
-                    size="small"
-                    onClick={() => handleViewEmail(selectedEmail.id)}
-                    style={{ borderColor: '#e0e0e0' }}
-                  />
-                </Space>
-                <Space>
-                  <Button 
-                    icon={<SendOutlined />}
-                    onClick={handleOpenCompose}
-                    style={{ borderColor: '#e0e0e0' }}
-                  >
-                    Compose
-                  </Button>
-                  {selectedEmail.hasAttachment && (
-                    <Button 
-                      icon={<DownloadOutlined />}
-                      onClick={() => downloadAttachment({ 
-                        url: selectedEmail.attachmentUrl!,
-                        filename: selectedEmail.attachmentName || `Invoice_${selectedEmail.moduleNumber}.pdf`
-                      })}
-                      style={{ borderColor: '#e0e0e0' }}
-                    >
-                      Download
-                    </Button>
-                  )}
-                  <Button 
-                    icon={<DeleteOutlined />} 
-                    style={{ borderColor: '#e0e0e0' }}
-                  />
-                  <Button 
-                    icon={<CloseCircleOutlined />} 
-                    onClick={() => setPreviewOpen(false)}
-                    style={{ borderColor: '#e0e0e0' }}
-                  />
-                </Space>
-              </div>
-
-              {/* Email Thread - Sent Mail View */}
-              <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-                {/* Sender Info - Show who sent it */}
-                <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-                  <Avatar 
-                    size={56}
-                    style={{ 
-                      backgroundColor: '#f1f3f4',
-                      color: '#5f6368'
-                    }}
-                    icon={<UserOutlined />}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <Title level={5} style={{ margin: 0, marginBottom: 4, color: '#202124' }}>
-                            {selectedEmail.fromName || 'Zithtech'}
-                          </Title>
-                          <Tag style={{ 
-                            backgroundColor: '#e8f0fe', 
-                            color: '#1a73e8',
-                            border: 'none',
-                            borderRadius: 12
-                          }}>
-                            Sent by {selectedEmail.sentByUser?.split('@')[0] || 'System'}
-                          </Tag>
-                        </div>
-                        <div style={{ color: '#5f6368', fontSize: 13, marginBottom: 4 }}>
-                          to {selectedEmail.customerName || selectedEmail.to?.split('@')[0] || 'Customer'}
-                        </div>
-                        <div style={{ color: '#5f6368', fontSize: 12 }}>
-                          {selectedEmail.to}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ color: '#5f6368', fontSize: 12 }}>
-                          {dayjs(selectedEmail.sentAt).format('MMMM D, YYYY')}
-                        </div>
-                        <div style={{ color: '#5f6368', fontSize: 12 }}>
-                          {dayjs(selectedEmail.sentAt).format('h:mm:ss A')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subject */}
-                <div style={{ marginBottom: 24 }}>
-                  <Title level={4} style={{ margin: 0, color: '#202124', fontWeight: 500 }}>
-                    {selectedEmail.subject}
-                  </Title>
-                </div>
-
-                {/* Email Body */}
-                <div style={{ 
-                  marginBottom: 24,
-                  color: '#202124',
-                  lineHeight: 1.6,
-                  fontSize: 14
-                }}>
-                  {selectedEmail.html ? (
-                    <iframe
-                      srcDoc={selectedEmail.html}
-                      style={{ 
-                        width: '100%', 
-                        border: 'none',
-                        backgroundColor: '#fff'
-                      }}
-                      title="Email Preview"
-                      sandbox="allow-same-origin"
-                    />
-                  ) : (
-                    <div>{selectedEmail.plainText}</div>
-                  )}
-                </div>
-
-                {/* Attachments */}
-                {selectedEmail.hasAttachment && (
-                  <div style={{ 
-                    marginTop: 24,
-                    padding: '16px',
-                    backgroundColor: '#fafafa',
-                    borderRadius: 8,
-                    border: '1px solid #e0e0e0'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <FilePdfOutlined style={{ color: '#d93025', fontSize: 24 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, color: '#202124' }}>
-                          {selectedEmail.attachmentName || 'Invoice.pdf'}
-                        </div>
-                        <div style={{ color: '#5f6368', fontSize: 12 }}>
-                          PDF Document • {selectedEmail.moduleNumber}
-                        </div>
-                      </div>
-                      <Button 
-                        icon={<DownloadOutlined />}
-                        onClick={() => downloadAttachment({ 
-                          url: selectedEmail.attachmentUrl!,
-                          filename: selectedEmail.attachmentName || `Invoice_${selectedEmail.moduleNumber}.pdf`
-                        })}
-                      >
-                        Download
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tracking Info - Sent Mail */}
-                {(selectedEmail.openedAt || selectedEmail.clickedAt) && (
-                  <div style={{ 
-                    marginTop: 24,
-                    padding: '16px',
-                    backgroundColor: '#e8f0fe',
-                    borderRadius: 8,
-                    display: 'flex',
-                    gap: 24
-                  }}>
-                    {selectedEmail.openedAt && (
-                      <div>
-                        <EyeOutlined style={{ color: '#1a73e8', marginRight: 8 }} />
-                        <span style={{ color: '#202124', fontSize: 13 }}>
-                          Opened {dayjs(selectedEmail.openedAt).fromNow()}
-                        </span>
-                      </div>
-                    )}
-                    {selectedEmail.clickedAt && (
-                      <div>
-                        <MailOutlined style={{ color: '#1a73e8', marginRight: 8 }} />
-                        <span style={{ color: '#202124', fontSize: 13 }}>
-                          Link clicked {dayjs(selectedEmail.clickedAt).fromNow()}
-                        </span>
-                      </div>
-                    )}
-                    {!selectedEmail.openedAt && !selectedEmail.clickedAt && (
-                      <div>
-                        <ClockCircleOutlined style={{ color: '#5f6368', marginRight: 8 }} />
-                        <span style={{ color: '#5f6368', fontSize: 13 }}>
-                          Delivered - Awaiting open
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Invoice Info */}
-                {selectedEmail.module === 'INVOICE' && (
-                  <div style={{ 
-                    marginTop: 24,
-                    padding: '16px',
-                    backgroundColor: '#fff',
-                    borderRadius: 8,
-                    border: '1px solid #e0e0e0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 500, color: '#202124', marginBottom: 4 }}>
-                        Invoice #{selectedEmail.moduleNumber}
-                      </div>
-                      <div style={{ color: '#5f6368', fontSize: 13 }}>
-                        {selectedEmail.amount} • Due {selectedEmail.dueDate}
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={() => router.push(`/invoicepro/invoices/view/${selectedEmail.moduleNumber}`)}
-                    >
-                      View Invoice
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Compose Drawer - Right End Corner */}
-      <Drawer
-        title={
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            padding: '0 4px'
-          }}>
-            <Space size="middle">
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                backgroundColor: '#c2e7ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <PlusOutlined style={{ color: '#001d35', fontSize: 16 }} />
-              </div>
-              <Title level={5} style={{ margin: 0, color: '#202124', fontWeight: 500 }}>
-                Compose Email
-              </Title>
-            </Space>
-            <Button 
-              type="text" 
-              icon={<CloseOutlined />} 
-              onClick={() => setComposeDrawerOpen(false)}
-              style={{ color: '#5f6368' }}
-            />
-          </div>
-        }
-        placement="right"
-        width={600}
-        onClose={() => setComposeDrawerOpen(false)}
-        open={composeDrawerOpen}
-        destroyOnClose
-        styles={{
-          header: {
-            padding: '16px 24px',
-            borderBottom: '1px solid #e0e0e0',
-            backgroundColor: '#fff'
-          },
-          body: {
-            padding: '24px',
-            backgroundColor: '#fff'
-          },
-          footer: {
-            padding: '16px 24px',
-            borderTop: '1px solid #e0e0e0',
-            backgroundColor: '#fff'
-          }
-        }}
-        footer={
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center'
-          }}>
-            <Space>
-              <Button 
-                type="primary" 
-                icon={<SendOutlined />} 
-                onClick={() => composeForm.submit()}
-                loading={isSending}
-                style={{ 
-                  backgroundColor: '#1a73e8',
-                  borderRadius: 24,
-                  padding: '8px 24px'
+              <Popconfirm
+                title={selectedFolder === "TRASH" ? "Permanently delete?" : "Move to trash?"}
+                description={selectedFolder === "TRASH" ? "This action cannot be undone." : "You can restore it later from the Trash folder."}
+                onConfirm={async () => {
+                  if (selectedThreadId) {
+                    const res = await deleteThread(selectedThreadId);
+                    if (res.success) {
+                      message.success(selectedFolder === "TRASH" ? "Thread permanently deleted" : "Thread moved to trash");
+                      setDrawerVisible(false);
+                      setSelectedThreadId(null);
+                      syncMail(selectedFolder);
+                    }
+                  }
                 }}
+                okText="Delete"
+                cancelText="Cancel"
+              >
+                <Button icon={<DeleteOutlined />} type="text" danger />
+              </Popconfirm>
+              <Button icon={<ExclamationCircleOutlined />} type="text" />
+            </Space>
+          }
+        >
+          <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+            <div style={{ flex: 1, overflow: "auto", paddingBottom: "20px" }}>
+              <List
+                dataSource={messages}
+                renderItem={(msg) => (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 16 }}>
+                      <Avatar size="large" icon={<UserOutlined />} style={{ marginRight: 12, marginTop: 4 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <Space direction="vertical" size={0}>
+                            <Text strong style={{ fontSize: "15px" }}>{msg.fromEmail}</Text>
+                            <Text type="secondary" style={{ fontSize: "12px" }}>
+                              to {Array.isArray(msg.toEmails) ? msg.toEmails.join(", ") : msg.toEmails}
+                            </Text>
+                          </Space>
+                          <Space>
+                            <Text type="secondary" style={{ fontSize: "12px" }}>
+                              {dayjs(msg.receivedAt).format("MMM D, YYYY [at] h:mm A")}
+                            </Text>
+                            <Button
+                              type="text"
+                              icon={<RollbackOutlined />}
+                              size="small"
+                              onClick={() => {
+                                // Scroll to quick reply and focus
+                                const textArea = document.getElementById('quick-reply-textarea');
+                                if (textArea) textArea.focus();
+                              }}
+                            >
+                              Reply
+                            </Button>
+                          </Space>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mail-body" style={{
+                      background: "#fff",
+                      padding: "0 8px",
+                      lineHeight: "1.6"
+                    }}>
+                      {msg.bodyHtml ? (
+                        <div dangerouslySetInnerHTML={{ __html: msg.bodyHtml }} />
+                      ) : (
+                        <Paragraph style={{ whiteSpace: "pre-wrap" }}>{msg.bodyText}</Paragraph>
+                      )}
+                    </div>
+
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div style={{ marginTop: 20, padding: "12px", background: "#f5f5f5", borderRadius: "8px" }}>
+                        <Text strong style={{ fontSize: "13px", display: "block", marginBottom: 8 }}>
+                          Attachments ({msg.attachments.length})
+                        </Text>
+                        <Space wrap>
+                          {msg.attachments.map(att => (
+                            <Button
+                              key={att.id}
+                              size="small"
+                              icon={<PaperClipOutlined />}
+                              href={att.downloadUrl}
+                              target="_blank"
+                              style={{ borderRadius: "4px" }}
+                            >
+                              {att.fileName}
+                            </Button>
+                          ))}
+                        </Space>
+                      </div>
+                    )}
+                    <Divider />
+                  </div>
+                )}
+              />
+            </div>
+
+            {/* Quick Reply Area */}
+            <div style={{
+              padding: "20px 0 0 0",
+              borderTop: "1px solid #f0f0f0",
+              background: "#fff"
+            }}>
+              <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                <Avatar icon={<UserOutlined />} />
+                <div style={{ flex: 1 }}>
+                  <TextArea
+                    id="quick-reply-textarea"
+                    placeholder="Write a reply..."
+                    autoSize={{ minRows: 2, maxRows: 10 }}
+                    value={quickReply}
+                    onChange={(e) => setQuickReply(e.target.value)}
+                    style={{
+                      borderRadius: "8px",
+                      border: "1px solid #d9d9d9",
+                      padding: "8px 12px"
+                    }}
+                  />
+                  <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end" }}>
+                    <Button
+                      type="primary"
+                      icon={<SendOutlined />}
+                      loading={isSendingReply}
+                      disabled={!quickReply.trim()}
+                      onClick={async () => {
+                        const lastMsg = messages[messages.length - 1];
+                        if (!lastMsg) return;
+
+                        setIsSendingReply(true);
+                        const result = await sendMessage({
+                          to: [lastMsg.fromEmail],
+                          subject: lastMsg.subject.startsWith("Re:") ? lastMsg.subject : `Re: ${lastMsg.subject}`,
+                          body: quickReply
+                        });
+
+                        if (result.success) {
+                          message.success("Reply sent");
+                          setQuickReply("");
+                          // Refresh messages to show the new one
+                          if (selectedThreadId) {
+                            const data = await MailService.getThreadMessages(selectedThreadId);
+                            setMessages(data?.data || data || []);
+                          }
+                        } else {
+                          message.error("Failed to send reply");
+                        }
+                        setIsSendingReply(false);
+                      }}
+                    >
+                      Send Reply
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Drawer>
+
+        {/* Compose Drawer */}
+        <Drawer
+          title={<div style={{ padding: "4px 0" }}><Title level={4} style={{ margin: 0 }}>New Message</Title></div>}
+          placement="right"
+          width={650}
+          onClose={() => {
+            setComposeVisible(false);
+            setCurrentDraftId(null);
+            setSelectedThreadId(null);
+          }}
+          open={composeVisible}
+          extra={
+            <Space>
+              <Button
+                onClick={async () => {
+                  const values = form.getFieldsValue();
+                  const draftData = {
+                    ...values,
+                    to: values.to || [],
+                    id: currentDraftId || undefined
+                  };
+                  const result = await saveDraft(draftData);
+                  if (result.success) {
+                    message.success("Draft saved");
+                    setComposeVisible(false);
+                    setCurrentDraftId(null);
+                    setSelectedThreadId(null);
+                    syncMail(selectedFolder);
+                  }
+                }}
+                loading={isSavingDraft}
+              >
+                Save as Draft
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
+                loading={isSending}
+                icon={<SendOutlined />}
+                style={{ borderRadius: "8px", padding: "0 24px" }}
               >
                 Send
               </Button>
-              <Button 
-                icon={<PaperClipOutlined />}
-                style={{ borderColor: '#e0e0e0' }}
-              >
-                Attach
-              </Button>
             </Space>
-            <Button 
-              onClick={() => setComposeDrawerOpen(false)}
-              style={{ borderColor: '#e0e0e0' }}
-            >
-              Discard
-            </Button>
-          </div>
-        }
-      >
-        <Form
-          form={composeForm}
-          layout="vertical"
-          onFinish={handleSendEmail}
-          requiredMark={false}
+          }
         >
-          <Form.Item
-            name="to"
-            label={<span style={{ color: '#5f6368', fontSize: 13 }}>To</span>}
-            rules={[{ required: true, message: 'Please enter recipient email' }]}
-          >
-            <Input 
-              placeholder="recipient@example.com" 
-              style={{ 
-                borderColor: '#e0e0e0',
-                borderRadius: 8,
-                padding: '8px 12px'
-              }}
-            />
-          </Form.Item>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={async (values) => {
+              const mailData = {
+                ...values,
+                to: values.to || [],
+                cc: values.cc || undefined,
+                bcc: values.bcc || undefined,
+              };
 
-          <Form.Item
-            name="cc"
-            label={<span style={{ color: '#5f6368', fontSize: 13 }}>Cc</span>}
-          >
-            <Input 
-              placeholder="cc@example.com" 
-              style={{ 
-                borderColor: '#e0e0e0',
-                borderRadius: 8,
-                padding: '8px 12px'
-              }}
-            />
-          </Form.Item>
+              // If we are editing a draft, we should update it first then send it
+              // Or just send it if the provider supports sending a draft by ID
+              let result;
+              if (currentDraftId) {
+                // Update draft first to ensure latest content is sent
+                await saveDraft({ ...mailData, id: currentDraftId });
+                result = await sendDraft(currentDraftId);
+              } else {
+                result = await sendMessage(mailData);
+              }
 
-          <Form.Item
-            name="bcc"
-            label={<span style={{ color: '#5f6368', fontSize: 13 }}>Bcc</span>}
+              if (result.success) {
+                message.success("Email sent successfully");
+                setComposeVisible(false);
+                setCurrentDraftId(null);
+                setSelectedThreadId(null);
+                form.resetFields();
+                syncMail(selectedFolder);
+              } else {
+                message.error("Failed to send email");
+              }
+            }}
+            initialValues={{ to: [], cc: [], bcc: [], subject: "", body: "" }}
           >
-            <Input 
-              placeholder="bcc@example.com" 
-              style={{ 
-                borderColor: '#e0e0e0',
-                borderRadius: 8,
-                padding: '8px 12px'
-              }}
-            />
-          </Form.Item>
+            <Form.Item
+              label={<Text type="secondary">From</Text>}
+              style={{ marginBottom: "12px" }}
+            >
+              {isFetchingStatus ? (
+                <div style={{ padding: "4px 11px", borderBottom: "1px solid #f0f0f0" }}>
+                  <Spin size="small" /> <Text type="secondary" style={{ marginLeft: 8 }}>Loading...</Text>
+                </div>
+              ) : (
+                <Input
+                  value={connectedEmail || "No connected email found"}
+                  disabled
+                  variant="borderless"
+                  style={{ borderBottom: "1px solid #f0f0f0", color: "#262626", fontWeight: 500 }}
+                />
+              )}
+            </Form.Item>
 
-          <Form.Item
-            name="subject"
-            label={<span style={{ color: '#5f6368', fontSize: 13 }}>Subject</span>}
-            rules={[{ required: true, message: 'Please enter subject' }]}
-          >
-            <Input 
-              placeholder="Invoice from Zithtech" 
-              style={{ 
-                borderColor: '#e0e0e0',
-                borderRadius: 8,
-                padding: '8px 12px'
-              }}
-            />
-          </Form.Item>
+            <Form.Item
+              name="to"
+              label={<Text type="secondary">To</Text>}
+              rules={[{ required: true, message: "Recipient is required" }]}
+              style={{ marginBottom: "12px" }}
+            >
+              <Select
+                mode="tags"
+                placeholder="Select or type recipient emails"
+                tokenSeparators={[',', ' ']}
+                loading={fetchingUsers}
+                options={users.map(u => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter(u => u.value)}
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase()) ||
+                  (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                }
+                variant="borderless"
+                style={{ width: '100%', borderBottom: '1px solid #d9d9d9', borderRadius: 0, padding: 0 }}
+                popupMatchSelectWidth={false}
+              />
+            </Form.Item>
 
-          <Form.Item
-            name="message"
-            label={<span style={{ color: '#5f6368', fontSize: 13 }}>Message</span>}
-            rules={[{ required: true, message: 'Please enter message' }]}
-          >
-            <TextArea 
-              rows={12} 
-              placeholder="Dear Customer,&#10;&#10;Please find your invoice attached.&#10;&#10;Kind regards,&#10;Accounts Team"
-              style={{ 
-                borderColor: '#e0e0e0',
-                borderRadius: 8,
-                padding: '12px',
-                resize: 'none'
-              }}
-            />
-          </Form.Item>
-        </Form>
-      </Drawer>
+            <Form.Item
+              name="cc"
+              label={<Text type="secondary">Cc</Text>}
+              style={{ marginBottom: "12px" }}
+            >
+              <Select
+                mode="tags"
+                placeholder="Select or type secondary recipient emails"
+                tokenSeparators={[',', ' ']}
+                loading={fetchingUsers}
+                options={users.map(u => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter(u => u.value)}
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase()) ||
+                  (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                }
+                variant="borderless"
+                style={{ width: '100%', borderBottom: '1px solid #d9d9d9', borderRadius: 0, padding: 0 }}
+                popupMatchSelectWidth={false}
+              />
+            </Form.Item>
 
-      <style jsx global>{`
-        .ant-table {
-          background: transparent;
-        }
-        .ant-table-tbody > tr > td {
-          padding: 12px 16px !important;
-          border-bottom: 1px solid #e0e0e0;
-        }
-        .ant-table-tbody > tr:hover td {
-          background-color: #f1f3f4 !important;
-        }
-        .ant-checkbox-wrapper:hover .ant-checkbox-inner {
-          border-color: #1a73e8 !important;
-        }
-        .ant-btn {
-          border-radius: 4px;
-        }
-        .ant-btn-sm {
-          border-radius: 16px;
-        }
-        .ant-select-selector,
-        .ant-picker {
-          border-radius: 16px !important;
-          border-color: #e0e0e0 !important;
-        }
-        .ant-tag {
-          border-radius: 12px !important;
-        }
-        .ant-badge-count {
-          box-shadow: none !important;
-          border-radius: 12px !important;
-        }
-        .ant-drawer-content-wrapper {
-          box-shadow: -4px 0 16px rgba(0,0,0,0.08) !important;
-        }
-        .ant-menu-vertical {
-          border: none;
-        }
-        .ant-form-item-label {
-          padding-bottom: 4px !important;
-        }
-        .ant-form-item-label label {
-          color: #5f6368 !important;
-          font-size: 13px !important;
-        }
-      `}</style>
-    </MainLayout>
+            <Form.Item
+              name="bcc"
+              label={<Text type="secondary">Bcc</Text>}
+              style={{ marginBottom: "12px" }}
+            >
+              <Select
+                mode="tags"
+                placeholder="Select or type blind tertiary recipient emails"
+                tokenSeparators={[',', ' ']}
+                loading={fetchingUsers}
+                options={users.map(u => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter(u => u.value)}
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase()) ||
+                  (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                }
+                variant="borderless"
+                style={{ width: '100%', borderBottom: '1px solid #d9d9d9', borderRadius: 0, padding: 0 }}
+                popupMatchSelectWidth={false}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="subject"
+              label={<Text type="secondary">Subject</Text>}
+              rules={[{ required: true, message: "Subject is required" }]}
+              style={{ marginBottom: "16px" }}
+            >
+              <Input placeholder="Enter subject" variant="borderless" style={{ borderBottom: "1px solid #f0f0f0", fontWeight: 500 }} />
+            </Form.Item>
+
+            <Form.Item
+              name="body"
+              rules={[{ required: true, message: "Message body is required" }]}
+              style={{ marginTop: "24px" }}
+            >
+              <TextArea
+                placeholder="Write your message here..."
+                autoSize={{ minRows: 15, maxRows: 25 }}
+                variant="borderless"
+                style={{ padding: "0 11px" }}
+              />
+            </Form.Item>
+          </Form>
+        </Drawer>
+      </Layout>
+    </MainLayout >
   );
 }

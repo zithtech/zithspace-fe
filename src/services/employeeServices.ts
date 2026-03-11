@@ -145,4 +145,25 @@ export class EmployeeService {
       throw new Error("Failed to fetch employees for select");
     }
   }
+
+  /**
+   * Get upcoming birthdays for the current month
+   */
+  static async getUpcomingBirthdays(): Promise<
+    Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      dateOfBirth: string;
+    }>
+  > {
+    try {
+      return await api.get("/api/onboarding/birthdays");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch upcoming birthdays");
+    }
+  }
 }

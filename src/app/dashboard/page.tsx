@@ -14,7 +14,8 @@ import { useZohoCalendar } from "@/hooks/useZohoCalendar";
 import { DailyUpdateService } from "@/services/dailyUpdateService";
 import TicketService from "@/services/ticketService";
 import { AttendanceService } from "@/services/attendanceService";
-import { ShortcutService } from "@/services/ShortcutService";
+import Organization from "@/components/organaization/Organization";
+
 import {
   Card,
   Row,
@@ -55,10 +56,10 @@ import {
   LinkOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import { redirect, useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { get } from "http";
 
 const { Title, Text } = Typography;
 
@@ -86,6 +87,7 @@ function DashboardContent() {
     closed: 0,
     total: 0,
   });
+  const [averageWorkHours, setAverageWorkHours] = useState("00:00:00");
 
   // ✅ SEGMENT STATE
   const [activeSegment, setActiveSegment] = useState<"me" | "organization">(
@@ -144,24 +146,6 @@ function DashboardContent() {
       }
     };
   }, [todayAttendance]);
-  // ShortCuts
-
-  interface ShortcutItem {
-    id: number;
-    name: string;
-    path: string;
-    icon?: string;
-  }
-  const defaultShortcuts: ShortcutItem[] = [
-    { id: 1, name: "Tickets", path: "/tickets" },
-    { id: 2, name: "Attendance", path: "/attendance" },
-    { id: 3, name: "Leaves", path: "/leaves" },
-  ];
-
-  const [shortcuts, setShortcuts] = useState(defaultShortcuts);
-
-  const [name, setName] = useState("");
-  const [path, setPath] = useState("");
 
   // Zoho Calendar Integration
   const {
@@ -251,11 +235,6 @@ function DashboardContent() {
     }
     return acc;
   }, []);
-
-  // shortCuts
-  const [search, setSearch] = useState("");
-
-  const [open, setOpen] = useState(false);
 
   // Upcoming meetings (next 7 days)
   const upcomingMeetings = calendarEvents
@@ -384,9 +363,15 @@ function DashboardContent() {
   useEffect(() => {
     const get5DaysAverage = async () => {
       if (user) {
-        const getAverageWorkingHours =
-          await AttendanceService.getLast5DaysAverage();
-        console.log("getAverageWorkingHours", getAverageWorkingHours);
+        try {
+          const getAverageWorkingHours =
+            await AttendanceService.getLast5DaysAverage();
+          if (getAverageWorkingHours && getAverageWorkingHours.averageHours) {
+            setAverageWorkHours(getAverageWorkingHours.averageHours);
+          }
+        } catch (error) {
+          console.error("Failed to fetch last 5 days average", error);
+        }
       }
     };
     get5DaysAverage();
@@ -478,227 +463,42 @@ function DashboardContent() {
     (p) => p.id === selectedProjectId,
   );
 
-  let todayStatus: {
-    value: React.ReactNode;
-    change: string;
-    color: string;
-    icon: React.ReactNode;
-  };
-
-  if (todayUpdates.bod && todayUpdates.eod) {
-    todayStatus = {
-      value: "Completed",
-      change: "BOD & EOD Submitted",
-      color: "#52c41a",
-      icon: <FileTextOutlined style={{ color: "#52c41a" }} />,
-    };
-  } else if (todayUpdates.bod) {
-    todayStatus = {
-      value: "In Progress",
-      change: "BOD Submitted",
-      color: "#1677ff",
-      icon: <FileTextOutlined style={{ color: "#1677ff" }} />,
-    };
-  } else {
-    todayStatus = {
-      value: "Pending",
-      change: "Submission Pending",
-      color: "#faad14",
-      icon: <FileTextOutlined style={{ color: "#faad14" }} />,
-    };
-  }
-
   // Statistics cards configuration
   const stats = dashboardData
     ? [
-        {
-          title: "Today Status",
-          value: todayStatus.value,
-          icon: todayStatus.icon,
-          color: todayStatus.color,
-          change: todayStatus.change,
-        },
-        {
-          title: "Assigned Tickets / Closed Tickets",
-          value: `${myTicketsStats.total} / ${myTicketsStats.closed}`,
-          icon: <UserOutlined style={{ color: "#faad14" }} />,
-          color: "#faad14",
-          change: dashboardData.trends.ticketCompletionRate,
-        },
-        {
-          title: "Average Working Hours ",
-          value: dashboardData.stats.activeProjects,
-          icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
-          color: "#52c41a",
-          change: dashboardData.trends.projectGrowth,
-        },
-        // {
-        //   title: "Assigned Tickets / Closed Tickets",
-        //   value: dashboardData.stats.tickets.display,
-        //   icon: <UserOutlined style={{ color: "#faad14" }} />,
-        //   color: "#faad14",
-        //   change: dashboardData.trends.ticketCompletionRate,
-        // },
+      {
+        title: "Assigned Tickets / Closed Tickets",
+        value: `${myTicketsStats.total} / ${myTicketsStats.closed}`,
+        icon: <UserOutlined style={{ color: "#faad14" }} />,
+        color: "#faad14",
+        change: dashboardData.trends.ticketCompletionRate,
+      },
+      {
+        title: "Average Working Hours ",
+        value: averageWorkHours,
+        icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
+        color: "#52c41a",
+        change: "Last 5 days avg",
+      },
+      // {
+      //   title: "Assigned Tickets / Closed Tickets",
+      //   value: dashboardData.stats.tickets.display,
+      //   icon: <UserOutlined style={{ color: "#faad14" }} />,
+      //   color: "#faad14",
+      //   change: dashboardData.trends.ticketCompletionRate,
+      // },
 
-        {
-          title: "Today's Attendance",
-          value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-          icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
-          color: "#722ed1",
-          change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
-          isAttendance: true,
-          stats: dashboardData.stats.attendance,
-        },
-      ]
+      {
+        title: "Today's Attendance",
+        value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
+        icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
+        color: "#722ed1",
+        change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
+        isAttendance: true,
+        stats: dashboardData.stats.attendance,
+      },
+    ]
     : [];
-
-  // Pie Chart Helper
-  // const renderPieChart = (project: typeof selectedProject) => {
-  //   if (!project) return null;
-  //   const {
-  //     notStartedTickets,
-  //     inProgressTickets,
-  //     completedTickets,
-  //     totalTickets,
-  //   } = project;
-
-  //   if (totalTickets === 0)
-  //     return (
-  //       <div
-  //         style={{
-  //           height: "100%",
-  //           display: "flex",
-  //           alignItems: "center",
-  //           justifyContent: "center",
-  //         }}
-  //       >
-  //         <Text type="secondary">No tickets in this project</Text>
-  //       </div>
-  //     );
-
-  //   // Calculate angles
-  //   const notStartedDeg = (notStartedTickets / totalTickets) * 360;
-  //   const inProgressDeg = (inProgressTickets / totalTickets) * 360;
-  //   const completedDeg = (completedTickets / totalTickets) * 360;
-
-  //   const gradient = `conic-gradient(
-  //     #d9d9d9 0deg ${notStartedDeg}deg,
-  //     #1677ff ${notStartedDeg}deg ${notStartedDeg + inProgressDeg}deg,
-  //     #52c41a ${notStartedDeg + inProgressDeg}deg 360deg
-  //   )`;
-
-  //   return (
-  //     <div
-  //       style={{
-  //         display: "flex",
-  //         flexDirection: "row",
-  //         alignItems: "center",
-  //         justifyContent: "space-between",
-  //         height: "100%",
-  //         padding: "0 8px",
-  //       }}
-  //     >
-  //       {/* Legend - Left Side Vertical */}
-  //       <div
-  //         style={{
-  //           display: "flex",
-  //           flexDirection: "column",
-  //           justifyContent: "center",
-  //           gap: "8px",
-  //           flex: 1,
-  //         }}
-  //       >
-  //         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-  //           <div
-  //             style={{
-  //               width: 8,
-  //               height: 8,
-  //               background: "#d9d9d9",
-  //               borderRadius: "50%",
-  //             }}
-  //           />
-  //           <div style={{ display: "flex", flexDirection: "column" }}>
-  //             <Text style={{ fontSize: 10, color: "#888", lineHeight: 1 }}>
-  //               Not Started
-  //             </Text>
-  //             <Text strong style={{ fontSize: 12, lineHeight: 1.2 }}>
-  //               {notStartedTickets}
-  //             </Text>
-  //           </div>
-  //         </div>
-  //         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-  //           <div
-  //             style={{
-  //               width: 8,
-  //               height: 8,
-  //               background: "#1677ff",
-  //               borderRadius: "50%",
-  //             }}
-  //           />
-  //           <div style={{ display: "flex", flexDirection: "column" }}>
-  //             <Text style={{ fontSize: 10, color: "#888", lineHeight: 1 }}>
-  //               In Progress
-  //             </Text>
-  //             <Text strong style={{ fontSize: 12, lineHeight: 1.2 }}>
-  //               {inProgressTickets}
-  //             </Text>
-  //           </div>
-  //         </div>
-  //         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-  //           <div
-  //             style={{
-  //               width: 8,
-  //               height: 8,
-  //               background: "#52c41a",
-  //               borderRadius: "50%",
-  //             }}
-  //           />
-  //           <div style={{ display: "flex", flexDirection: "column" }}>
-  //             <Text style={{ fontSize: 10, color: "#888", lineHeight: 1 }}>
-  //               Completed
-  //             </Text>
-  //             <Text strong style={{ fontSize: 12, lineHeight: 1.2 }}>
-  //               {completedTickets}
-  //             </Text>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       {/* Pie Chart - Right Side */}
-  //       <div
-  //         style={{
-  //           width: 90,
-  //           height: 90,
-  //           borderRadius: "50%",
-  //           background: gradient,
-  //           position: "relative",
-  //           flexShrink: 0,
-  //         }}
-  //       >
-  //         {/* Inner circle for Donut effect */}
-  //         <div
-  //           style={{
-  //             position: "absolute",
-  //             top: 15,
-  //             left: 15,
-  //             width: 60,
-  //             height: 60,
-  //             borderRadius: "50%",
-  //             background: "#fff",
-  //             display: "flex",
-  //             alignItems: "center",
-  //             justifyContent: "center",
-  //             flexDirection: "column",
-  //           }}
-  //         >
-  //           <div style={{ fontSize: 16, fontWeight: "bold" }}>
-  //             {project.progress}%
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // };
 
   const LegendItem = ({
     color,
@@ -709,23 +509,22 @@ function DashboardContent() {
     label: string;
     value: string | number;
   }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
       <div
         style={{
           width: 8,
           height: 8,
           background: color,
           borderRadius: "50%",
+          marginBottom: "2px",
         }}
       />
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <Text style={{ fontSize: 10, color: "#888", lineHeight: 1 }}>
-          {label}
-        </Text>
-        <Text strong style={{ fontSize: 12, lineHeight: 1.2 }}>
-          {value}
-        </Text>
-      </div>
+      <Text style={{ fontSize: 10, color: "#888", lineHeight: 1, textAlign: "center" }}>
+        {label}
+      </Text>
+      <Text strong style={{ fontSize: 13, lineHeight: 1.2, textAlign: "center" }}>
+        {value}
+      </Text>
     </div>
   );
 
@@ -773,21 +572,52 @@ function DashboardContent() {
       <div
         style={{
           display: "flex",
-          flexDirection: "row",
+          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "center",
           height: "100%",
-          padding: "0 8px",
+          padding: "4px 4px",
+          gap: "12px",
         }}
       >
+        {/* Pie Chart */}
+        <div
+          style={{
+            width: 140,
+            height: 140,
+            borderRadius: "50%",
+            background: gradient,
+            position: "relative",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 20,
+              left: 20,
+              width: 100,
+              height: 100,
+              borderRadius: "50%",
+              background: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{ fontSize: 20, fontWeight: "bold" }}>{progress}%</div>
+          </div>
+        </div>
+
         {/* Legend */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
+            flexDirection: "row",
+            justifyContent: "space-around",
+            width: "100%",
             gap: "8px",
-            flex: 1,
           }}
         >
           <LegendItem
@@ -806,58 +636,8 @@ function DashboardContent() {
             value={completedTickets}
           />
         </div>
-
-        {/* Pie Chart */}
-        <div
-          style={{
-            width: 90,
-            height: 90,
-            borderRadius: "50%",
-            background: gradient,
-            position: "relative",
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: 15,
-              left: 15,
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              background: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-            }}
-          >
-            <div style={{ fontSize: 16, fontWeight: "bold" }}>{progress}%</div>
-          </div>
-        </div>
       </div>
     );
-  };
-
-  const addShortcut = async () => {
-    const newShortcut = {
-      id: Date.now(),
-      name,
-      path,
-    };
-
-    try {
-      await ShortcutService.createShortcut(newShortcut);
-
-      setShortcuts([...shortcuts, newShortcut]);
-
-      setName("");
-      setPath("");
-      setOpen(false);
-    } catch (error) {
-      console.error("Shortcut create failed");
-    }
   };
 
   const handleClockIn = async () => {
@@ -885,9 +665,6 @@ function DashboardContent() {
       setIsClocking(false);
     }
   };
-  const filteredShortcuts = shortcuts.filter((item) =>
-    item.name.toLowerCase().includes(search.toLowerCase()),
-  );
 
   return (
     <MainLayout>
@@ -989,6 +766,107 @@ function DashboardContent() {
                 <>
                   {/* Statistics Cards */}
                   <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
+                    <Col xs={24} sm={12} lg={6}>
+                      <Card
+                        size="small"
+                        style={{ height: "100%", borderLeft: "4px solid #52c41a" }}
+                        styles={{
+                          body: { padding: "8px 16px", height: "100%" },
+                        }}
+                      >
+                        <Row
+                          align="middle"
+                          justify="space-around"
+                          style={{ height: "100%" }}
+                        >
+                          <Col xs={24} sm={11}>
+                            <Space
+                              align="center"
+                              style={{
+                                justifyContent: "space-between",
+                                width: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title="Beginning of Day"
+                                value={
+                                  todayUpdates.bod
+                                    ? "BOD – Updated"
+                                    : "Not Submitted"
+                                }
+                                valueStyle={{
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  color: todayUpdates.bod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                              <RiseOutlined
+                                style={{
+                                  fontSize: 16,
+                                  color: todayUpdates.bod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                            </Space>
+                          </Col>
+
+                          <Col xs={24} sm={0}>
+                            <Divider style={{ margin: "8px 0" }} />
+                          </Col>
+                          <Col
+                            xs={0}
+                            sm={1}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Divider
+                              type="vertical"
+                              style={{ height: "40px" }}
+                            />
+                          </Col>
+
+                          <Col xs={24} sm={11}>
+                            <Space
+                              align="center"
+                              style={{
+                                justifyContent: "space-between",
+                                width: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title="End of Day"
+                                value={
+                                  todayUpdates.eod
+                                    ? "EOD – Updated"
+                                    : "Not Submitted"
+                                }
+                                valueStyle={{
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  color: todayUpdates.eod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                              <StarOutlined
+                                style={{
+                                  fontSize: 16,
+                                  color: todayUpdates.eod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                            </Space>
+                          </Col>
+                        </Row>
+                      </Card>
+                    </Col>
                     {stats.map((stat, index) => (
                       <Col xs={24} sm={12} lg={6} key={index}>
                         <Card
@@ -1047,10 +925,10 @@ function DashboardContent() {
                     ))}
                   </Row>
 
-                  <Row gutter={[16, 16]}>
-                    {/* Row 1 */}
-                    <Col xs={24} lg={6}>
-                      {/* Work & Attendance */}
+                  {/* Row 1: My Info */}
+                  <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                    <Col xs={24} lg={8}>
+                      {/* My Tickets */}
                       <Card
                         title={
                           <Space>
@@ -1068,8 +946,8 @@ function DashboardContent() {
                             View Tickets
                           </Button>
                         }
-                        styles={{ body: { padding: 12 } }}
-                        style={{ height: "200px" }}
+                        styles={{ body: { padding: 8 } }}
+                        style={{ height: "260px" }}
                       >
                         <div style={{ height: "100%" }}>
                           <div
@@ -1077,182 +955,229 @@ function DashboardContent() {
                               display: "flex",
                               justifyContent: "space-between",
                               alignItems: "center",
-                              marginBottom: 8,
+                              marginBottom: 4,
                             }}
                           >
-                            <Text strong style={{ fontSize: 12 }}>
-                              My Tickets Status
-                            </Text>
+
                           </div>
                           {renderPieChart()}
                         </div>
                       </Card>
                     </Col>
-                    <Col xs={24} lg={12}>
-                      {/* Shortcuts */}
-                      <div
-                        style={{
-                          padding: "44px",
-                          backgroundColor: "#fff",
-                          borderRadius: 12,
-                          border: "1px solid #f0f0f0",
-                          height: 200,
-                          overflowY: "hidden",
-                        }}
-                      >
-                        <Input.Search
-                          placeholder="Search features..."
-                          size="middle"
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          style={{
-                            maxWidth: 560,
-                            margin: "0 auto 16px",
-                            display: "block",
-                          }}
-                          enterButton
-                        />
-
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "nowrap",
-                            gap: "4px",
-                            overflowX: "auto",
-                            paddingBottom: "4px",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
+                    <Col xs={24} lg={8}>
+                      {/* Today's Meetings */}
+                      <div style={{ height: "100%" }}>
+                        <Card
+                          title={
+                            <Space size={4}>
+                              <VideoCameraOutlined
+                                style={{ color: "#1677ff", fontSize: 14 }}
+                              />
+                              <span style={{ fontSize: 13 }}>
+                                Today's Meetings
+                              </span>
+                              {!calendarStatus?.connected && (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={connectCalendar}
+                                  loading={calendarLoading}
+                                  style={{ marginLeft: 4, fontSize: 11 }}
+                                >
+                                  Connect
+                                </Button>
+                              )}
+                            </Space>
+                          }
+                          size="small"
+                          extra={
+                            calendarStatus?.connected && (
+                              <Space size={2}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<ClockCircleOutlined />}
+                                  onClick={syncCalendar}
+                                  loading={calendarLoading}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  Sync
+                                </Button>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  onClick={() => router.push("/calendar")}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  View
+                                </Button>
+                              </Space>
+                            )
+                          }
+                          styles={{ body: { padding: 0 } }}
+                          style={{ height: "260px" }}
                         >
-                          {filteredShortcuts.map((item) => (
-                            <div
-                              key={item.id}
-                              onClick={() => router.push(item.path)}
-                              style={{
-                                textAlign: "center",
-                                cursor: "pointer",
-                                padding: "8px 4px",
-                                borderRadius: 8,
-                                transition: "background-color 0.2s",
-                                minWidth: 60,
-                                flexShrink: 0,
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#f0f2f5";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "transparent";
-                              }}
-                            >
-                              <div
-                                style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: "50%",
-                                  backgroundColor: "#e8f0fe",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  margin: "0 auto 4px",
-                                  fontSize: 14,
-                                  fontWeight: "bold",
-                                  color: "#1967d2",
-                                }}
-                              >
-                                {item.name.charAt(0).toUpperCase()}
-                              </div>
-                              <Text
-                                style={{
-                                  fontSize: 10,
-                                  color: "#3c4043",
-                                  fontWeight: 500,
-                                }}
-                                ellipsis
-                              >
-                                {item.name}
-                              </Text>
+                          {calendarLoading ? (
+                            <div style={{ padding: 16, textAlign: "center" }}>
+                              <Skeleton active paragraph={{ rows: 2 }} />
                             </div>
-                          ))}
-
-                          {/* Add Shortcut button */}
-                          <div
-                            onClick={() => setOpen(true)}
-                            style={{
-                              textAlign: "center",
-                              cursor: "pointer",
-                              padding: "8px 4px",
-                              borderRadius: 8,
-                              transition: "background-color 0.2s",
-                              minWidth: 60,
-                              flexShrink: 0,
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#f0f2f5";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                "transparent";
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: "50%",
-                                backgroundColor: "#f1f3f4",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                margin: "0 auto 4px",
-                              }}
-                            >
-                              <PlusOutlined
+                          ) : !calendarStatus?.connected ? (
+                            <div style={{ padding: 12, textAlign: "center" }}>
+                              <VideoCameraOutlined
                                 style={{
-                                  fontSize: 14,
-                                  color: "#3c4043",
+                                  fontSize: 28,
+                                  color: "#bfbfbf",
+                                  marginBottom: 6,
+                                }}
+                              />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                  Connect calendar to see meetings
+                                </Text>
+                              </div>
+                              <Button
+                                type="primary"
+                                size="small"
+                                onClick={connectCalendar}
+                                style={{
+                                  marginTop: 8,
+                                  fontSize: 11,
+                                  height: 24,
+                                }}
+                              >
+                                Connect Zoho Calendar
+                              </Button>
+                            </div>
+                          ) : todaysMeetings.length > 0 ? (
+                            <div style={{ height: 220, overflowY: "auto" }}>
+                              <List
+                                size="small"
+                                dataSource={todaysMeetings}
+                                renderItem={(meeting) => {
+                                  const startTime = dayjs(meeting.startTime);
+                                  const endTime = dayjs(meeting.endTime);
+                                  const isOngoing =
+                                    startTime.isBefore(dayjs()) &&
+                                    endTime.isAfter(dayjs());
+
+                                  return (
+                                    <List.Item
+                                      style={{
+                                        padding: "6px 10px",
+                                        borderBottom: "1px solid #f0f0f0",
+                                        background: isOngoing
+                                          ? "#f6ffed"
+                                          : "transparent",
+                                      }}
+                                      actions={[
+                                        <Tooltip
+                                          title="Join Meeting"
+                                          key="join"
+                                        >
+                                          <Button
+                                            type="primary"
+                                            size="small"
+                                            icon={<VideoCameraOutlined />}
+                                            onClick={() =>
+                                              meeting.meetingLink &&
+                                              window.open(
+                                                meeting.meetingLink,
+                                                "_blank",
+                                              )
+                                            }
+                                            disabled={!meeting.meetingLink}
+                                            style={{
+                                              height: 24,
+                                              width: 24,
+                                              backgroundColor:
+                                                meeting.meetingLink
+                                                  ? "#1677ff"
+                                                  : "#f5f5f5",
+                                              borderColor: meeting.meetingLink
+                                                ? "#1677ff"
+                                                : "#d9d9d9",
+                                            }}
+                                          />
+                                        </Tooltip>,
+                                      ]}
+                                    >
+                                      <List.Item.Meta
+                                        avatar={
+                                          <Avatar
+                                            size={22}
+                                            style={{
+                                              backgroundColor: isOngoing
+                                                ? "#52c41a"
+                                                : "#1677ff",
+                                              fontSize: 10,
+                                            }}
+                                          >
+                                            {meeting.title.charAt(0)}
+                                          </Avatar>
+                                        }
+                                        title={
+                                          <Space align="center" size={2}>
+                                            <Text
+                                              strong
+                                              style={{ fontSize: 11 }}
+                                            >
+                                              {meeting.title.length > 18
+                                                ? meeting.title.substring(
+                                                  0,
+                                                  18,
+                                                ) + "..."
+                                                : meeting.title}
+                                            </Text>
+                                            {isOngoing && (
+                                              <Badge
+                                                status="processing"
+                                                style={{ fontSize: 9 }}
+                                                text="Live"
+                                              />
+                                            )}
+                                          </Space>
+                                        }
+                                        description={
+                                          <Text
+                                            type="secondary"
+                                            style={{ fontSize: 9 }}
+                                          >
+                                            <ClockCircleOutlined
+                                              style={{
+                                                marginRight: 2,
+                                                fontSize: 8,
+                                              }}
+                                            />
+                                            {startTime.format("hh:mm A")} -{" "}
+                                            {endTime.format("hh:mm A")}
+                                          </Text>
+                                        }
+                                      />
+                                    </List.Item>
+                                  );
                                 }}
                               />
                             </div>
-                            <Text
-                              style={{
-                                fontSize: 10,
-                                color: "#3c4043",
-                                fontWeight: 500,
-                              }}
-                              ellipsis
-                            >
-                              Add
-                            </Text>
-                          </div>
-                        </div>
+                          ) : (
+                            <div style={{ padding: 20, textAlign: "center" }}>
+                              <VideoCameraOutlined
+                                style={{
+                                  fontSize: 24,
+                                  color: "#bfbfbf",
+                                  marginBottom: 6,
+                                }}
+                              />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                  No meetings scheduled
+                                </Text>
+                              </div>
+                            </div>
+                          )}
+                        </Card>
                       </div>
-                      <Modal
-                        title="Create Shortcut"
-                        open={open}
-                        onCancel={() => {
-                          setOpen(false);
-                          setName("");
-                          setPath("");
-                        }}
-                        onOk={addShortcut}
-                      >
-                        <Input
-                          placeholder="Module Name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          style={{ marginBottom: 10 }}
-                        />
-
-                        <Input
-                          placeholder="Route Path"
-                          value={path}
-                          onChange={(e) => setPath(e.target.value)}
-                        />
-                      </Modal>
                     </Col>
-                    <Col xs={24} lg={6}>
+                    <Col xs={24} lg={8}>
                       {/* My Attendance */}
                       <Card
                         title={
@@ -1262,106 +1187,114 @@ function DashboardContent() {
                           </Space>
                         }
                         size="small"
-                        styles={{ body: { padding: 16 } }}
-                        style={{ height: 200 }}
+                        styles={{ body: { padding: 24 } }}
+                        style={{ height: "260px", justifyContent: "center", alignItems: "center" }}
                       >
                         {todayAttendance ? (
-                          <Row gutter={[16, 24]} align="middle">
-                            {/* Top Left: Clock In/Out Button */}
-                            <Col span={12} style={{ textAlign: "center" }}>
-                              {todayAttendance.canClockIn ? (
-                                <Button
-                                  type="primary"
-                                  shape="round"
-                                  icon={<PlayCircleOutlined />}
-                                  onClick={handleClockIn}
-                                  loading={isClocking}
-                                  size="middle"
-                                  style={{ padding: "0 16px" }}
-                                >
-                                  Clock In
-                                </Button>
-                              ) : todayAttendance.canClockOut ? (
-                                <Button
-                                  danger
-                                  shape="round"
-                                  icon={<PauseCircleOutlined />}
-                                  onClick={handleClockOut}
-                                  loading={isClocking}
-                                  size="middle"
-                                  style={{ padding: "0 16px" }}
-                                >
-                                  Clock Out
-                                </Button>
-                              ) : (
-                                <Tag
-                                  icon={<TrophyOutlined />}
-                                  color="success"
-                                  style={{ fontSize: 14, padding: "6px 12px" }}
-                                >
-                                  Day Complete
-                                </Tag>
-                              )}
-                            </Col>
+                          <div style={{ width: "100%" }}>
+                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
+                              {/* Top Left: Clock In/Out Button */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center" }}>
+                                {todayAttendance.canClockIn ? (
+                                  <Button
+                                    type="primary"
+                                    shape="round"
+                                    icon={<PlayCircleOutlined />}
+                                    onClick={handleClockIn}
+                                    loading={isClocking}
+                                    size="middle"
+                                  //style={{ padding: "0 16px" }}
+                                  >
+                                    Clock In
+                                  </Button>
+                                ) : todayAttendance.canClockOut ? (
+                                  <Button
+                                    danger
+                                    shape="round"
+                                    icon={<PauseCircleOutlined />}
+                                    onClick={handleClockOut}
+                                    loading={isClocking}
+                                    size="middle"
+                                    style={{ padding: "0 16px" }}
+                                  >
+                                    Clock Out
+                                  </Button>
+                                ) : (
+                                  <Tag
+                                    icon={<TrophyOutlined />}
+                                    color="success"
+                                    style={{ fontSize: 14, padding: "6px 12px" }}
+                                  >
+                                    Day Complete
+                                  </Tag>
+                                )}
+                              </Col>
 
-                            {/* Top Right: Work Duration */}
-                            <Col span={12}>
-                              <Statistic
-                                title="Work Duration"
-                                value={workDuration}
-                                valueStyle={{
-                                  fontSize: 20,
-                                  color: "#262626",
-                                  fontWeight: 500,
-                                }}
-                              />
-                            </Col>
+                              {/* Top Right: Work Duration */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
+                                <Statistic
+                                  title="Work Duration"
+                                  value={workDuration}
+                                  valueStyle={{
+                                    fontSize: 20,
+                                    color: "#262626",
+                                    fontWeight: 500,
+                                  }}
+                                />
+                              </Col>
+                            </Row>
 
-                            {/* Bottom Left: Clock In Time */}
-                            <Col span={12}>
-                              <Statistic
-                                title="Clock In"
-                                value={
-                                  todayAttendance.clockInTime
-                                    ? dayjs(todayAttendance.clockInTime).format(
+                            <Divider style={{ margin: "20px 0" }} />
+
+                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
+                              {/* Bottom Left: Clock In Time */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
+                                <Statistic
+                                  title="Clock In"
+                                  value={
+                                    todayAttendance.clockInTime
+                                      ? dayjs(todayAttendance.clockInTime).format(
                                         "hh:mm A",
                                       )
-                                    : "--:--"
-                                }
-                                valueStyle={{
-                                  fontSize: 16,
-                                  color: "#52c41a",
-                                  fontWeight: 500,
-                                }}
-                              />
-                            </Col>
+                                      : "--:--"
+                                  }
+                                  valueStyle={{
+                                    fontSize: 16,
+                                    color: "#52c41a",
+                                    fontWeight: 500,
+                                  }}
+                                />
+                              </Col>
 
-                            {/* Bottom Right: Clock Out Time */}
-                            <Col span={12}>
-                              <Statistic
-                                title="Clock Out"
-                                value={
-                                  todayAttendance.clockOutTime
-                                    ? dayjs(
+                              {/* Bottom Right: Clock Out Time */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
+                                <Statistic
+                                  title="Clock Out"
+                                  value={
+                                    todayAttendance.clockOutTime
+                                      ? dayjs(
                                         todayAttendance.clockOutTime,
                                       ).format("hh:mm A")
-                                    : "--:--"
-                                }
-                                valueStyle={{
-                                  fontSize: 16,
-                                  color: "#eb2f96",
-                                  fontWeight: 500,
-                                }}
-                              />
-                            </Col>
-                          </Row>
+                                      : "--:--"
+                                  }
+                                  valueStyle={{
+                                    fontSize: 16,
+                                    color: "#eb2f96",
+                                    fontWeight: 500,
+                                  }}
+                                />
+                              </Col>
+                            </Row>
+                          </div>
                         ) : (
                           <Skeleton active paragraph={{ rows: 4 }} />
                         )}
                       </Card>
                     </Col>
+                  </Row>
 
-                    {/* Row 2 */}
+                  {/* Row 2: Leave & Recent Tickets */}
+                  <Row gutter={[16, 16]}>
                     <Col xs={24} lg={8}>
                       {/* Leave Management */}
                       {dashboardData.leaves && (
@@ -1524,220 +1457,7 @@ function DashboardContent() {
                         </div>
                       )}
                     </Col>
-                    <Col xs={24} lg={8}>
-                      {/* Today's Meetings */}
-                      <div style={{ height: "100%" }}>
-                        <Card
-                          title={
-                            <Space size={4}>
-                              <VideoCameraOutlined
-                                style={{ color: "#1677ff", fontSize: 14 }}
-                              />
-                              <span style={{ fontSize: 13 }}>
-                                Today's Meetings
-                              </span>
-                              {!calendarStatus?.connected && (
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  onClick={connectCalendar}
-                                  loading={calendarLoading}
-                                  style={{ marginLeft: 4, fontSize: 11 }}
-                                >
-                                  Connect
-                                </Button>
-                              )}
-                            </Space>
-                          }
-                          size="small"
-                          extra={
-                            calendarStatus?.connected && (
-                              <Space size={2}>
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  icon={<ClockCircleOutlined />}
-                                  onClick={syncCalendar}
-                                  loading={calendarLoading}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  Sync
-                                </Button>
-                                <Button
-                                  type="text"
-                                  size="small"
-                                  onClick={() => router.push("/calendar")}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  View
-                                </Button>
-                              </Space>
-                            )
-                          }
-                          styles={{ body: { padding: 0 } }}
-                          style={{ height: "250px" }}
-                        >
-                          {calendarLoading ? (
-                            <div style={{ padding: 16, textAlign: "center" }}>
-                              <Skeleton active paragraph={{ rows: 2 }} />
-                            </div>
-                          ) : !calendarStatus?.connected ? (
-                            <div style={{ padding: 20, textAlign: "center" }}>
-                              <VideoCameraOutlined
-                                style={{
-                                  fontSize: 28,
-                                  color: "#bfbfbf",
-                                  marginBottom: 6,
-                                }}
-                              />
-                              <div>
-                                <Text type="secondary" style={{ fontSize: 11 }}>
-                                  Connect calendar to see meetings
-                                </Text>
-                              </div>
-                              <Button
-                                type="primary"
-                                size="small"
-                                onClick={connectCalendar}
-                                style={{
-                                  marginTop: 8,
-                                  fontSize: 11,
-                                  height: 24,
-                                }}
-                              >
-                                Connect Zoho Calendar
-                              </Button>
-                            </div>
-                          ) : todaysMeetings.length > 0 ? (
-                            <div style={{ height: 220, overflowY: "auto" }}>
-                              <List
-                                size="small"
-                                dataSource={todaysMeetings}
-                                renderItem={(meeting) => {
-                                  const startTime = dayjs(meeting.startTime);
-                                  const endTime = dayjs(meeting.endTime);
-                                  const isOngoing =
-                                    startTime.isBefore(dayjs()) &&
-                                    endTime.isAfter(dayjs());
-
-                                  return (
-                                    <List.Item
-                                      style={{
-                                        padding: "6px 10px",
-                                        borderBottom: "1px solid #f0f0f0",
-                                        background: isOngoing
-                                          ? "#f6ffed"
-                                          : "transparent",
-                                      }}
-                                      actions={[
-                                        <Tooltip
-                                          title="Join Meeting"
-                                          key="join"
-                                        >
-                                          <Button
-                                            type="primary"
-                                            size="small"
-                                            icon={<VideoCameraOutlined />}
-                                            onClick={() =>
-                                              meeting.meetingLink &&
-                                              window.open(
-                                                meeting.meetingLink,
-                                                "_blank",
-                                              )
-                                            }
-                                            disabled={!meeting.meetingLink}
-                                            style={{
-                                              height: 24,
-                                              width: 24,
-                                              backgroundColor:
-                                                meeting.meetingLink
-                                                  ? "#1677ff"
-                                                  : "#f5f5f5",
-                                              borderColor: meeting.meetingLink
-                                                ? "#1677ff"
-                                                : "#d9d9d9",
-                                            }}
-                                          />
-                                        </Tooltip>,
-                                      ]}
-                                    >
-                                      <List.Item.Meta
-                                        avatar={
-                                          <Avatar
-                                            size={22}
-                                            style={{
-                                              backgroundColor: isOngoing
-                                                ? "#52c41a"
-                                                : "#1677ff",
-                                              fontSize: 10,
-                                            }}
-                                          >
-                                            {meeting.title.charAt(0)}
-                                          </Avatar>
-                                        }
-                                        title={
-                                          <Space align="center" size={2}>
-                                            <Text
-                                              strong
-                                              style={{ fontSize: 11 }}
-                                            >
-                                              {meeting.title.length > 18
-                                                ? meeting.title.substring(
-                                                    0,
-                                                    18,
-                                                  ) + "..."
-                                                : meeting.title}
-                                            </Text>
-                                            {isOngoing && (
-                                              <Badge
-                                                status="processing"
-                                                style={{ fontSize: 9 }}
-                                                text="Live"
-                                              />
-                                            )}
-                                          </Space>
-                                        }
-                                        description={
-                                          <Text
-                                            type="secondary"
-                                            style={{ fontSize: 9 }}
-                                          >
-                                            <ClockCircleOutlined
-                                              style={{
-                                                marginRight: 2,
-                                                fontSize: 8,
-                                              }}
-                                            />
-                                            {startTime.format("hh:mm A")} -{" "}
-                                            {endTime.format("hh:mm A")}
-                                          </Text>
-                                        }
-                                      />
-                                    </List.Item>
-                                  );
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div style={{ padding: 20, textAlign: "center" }}>
-                              <VideoCameraOutlined
-                                style={{
-                                  fontSize: 24,
-                                  color: "#bfbfbf",
-                                  marginBottom: 6,
-                                }}
-                              />
-                              <div>
-                                <Text type="secondary" style={{ fontSize: 11 }}>
-                                  No meetings scheduled
-                                </Text>
-                              </div>
-                            </div>
-                          )}
-                        </Card>
-                      </div>
-                    </Col>
-                    <Col xs={24} lg={8}>
+                    <Col xs={24} lg={16}>
                       {/* Recent Tickets */}
                       <Card
                         title={
@@ -1757,7 +1477,7 @@ function DashboardContent() {
                           </Button>
                         }
                         style={{
-                          height: 250,
+                          height: "230px",
                           display: "flex",
                           flexDirection: "column",
                         }}
@@ -1774,6 +1494,7 @@ function DashboardContent() {
                               title: "Ticket",
                               dataIndex: "ticketNumber",
                               key: "ticketNumber",
+                              width: 120,
                               render: (text: string) => (
                                 <Text style={{ fontSize: 12 }}>{text}</Text>
                               ),
@@ -1783,7 +1504,7 @@ function DashboardContent() {
                               title: "Create Time",
                               dataIndex: "createdAt",
                               key: "startTime",
-                              width: 110,
+                              width: 100,
                               render: (text: string) => (
                                 <Text style={{ fontSize: 12 }}>
                                   {dayjs(text).format("DD/MM/YY")}
@@ -1795,7 +1516,7 @@ function DashboardContent() {
                               title: "Status",
                               dataIndex: "status",
                               key: "status",
-                              width: 90,
+                              width: 120,
                               render: (status: string) => {
                                 let color = "default";
                                 if (status === "completed") color = "success";
@@ -1825,6 +1546,7 @@ function DashboardContent() {
                             },
                           ]}
                           pagination={false}
+                          tableLayout="fixed"
                           size="small"
                           rowKey="id"
                           onRow={(record) => ({
@@ -1842,13 +1564,7 @@ function DashboardContent() {
           )}
 
           {/* ✅ ORGANIZATION SEGMENT */}
-          {activeSegment === "organization" && (
-            <div style={{ padding: "40px 0", textAlign: "center" }}>
-              <h1 style={{ color: "#262626", fontSize: 28, fontWeight: 600 }}>
-                Organization
-              </h1>
-            </div>
-          )}
+          {activeSegment === "organization" && <Organization />}
         </div>
       </div>
     </MainLayout>

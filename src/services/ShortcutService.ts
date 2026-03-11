@@ -20,8 +20,13 @@ export class ShortcutService {
    */
   static async getShortcuts(): Promise<any> {
     try {
-      return await api.get<any>("/api/shortcuts");
+      const result = await api.get<any>("/api/shortcuts");
+
+      console.log(result, "getShortcuts() result");
+
+      return result;
     } catch (error) {
+      console.log(error, "getShortcuts() error");
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }

@@ -1,29 +1,29 @@
-[
+export const searchablePages = [
   {
     pageName: "Dashboard",
-    url: "https://zithmi.zithspace.com/dashboard",
+    url: "/dashboard",
     tags: ["Home ", "home"],
   },
   {
     pageName: "Tickets",
-    url: "https://zithmi.zithspace.com/projects/8107f5d4-0700-43ae-90c5-21f58a31a028/tickets",
+    url: "/projects/8107f5d4-0700-43ae-90c5-21f58a31a028/tickets",
     tags: [
       " Overview",
       "Plans",
       "Create Ticket",
-      "Tickets",
+      "tickets",
       "Buckets",
       "Archive",
     ],
   },
   {
     pageName: "Projects",
-    url: "https://zithmi.zithspace.com/projects/manage",
+    url: "/projects/manage",
     tags: ["All project , Projets, "],
   },
   {
     pageName: "Timesheet",
-    url: "https://zithmi.zithspace.com/timesheet",
+    url: "/timesheet",
     tags: [
       "Timesheet Dashboard",
       "Submit timesheet",
@@ -34,46 +34,46 @@
   },
   {
     pageName: " Daily Updates",
-    url: "https://zithmi.zithspace.com/daily-updates/submit",
+    url: "/daily-updates/submit",
     tags: ["Daily Updates", " Submite Update", "submit dailyupdaates"],
   },
   {
     pageName: "View Update",
-    url: "https://zithmi.zithspace.com/daily-updates/view",
+    url: "/daily-updates/view",
   },
   {
     pageName: "Document Hub",
-    url: "https://zithmi.zithspace.com/documenthub",
+    url: "/documenthub",
     tags: ["Create Document", "document"],
   },
   {
     pageName: "Release Notes",
-    url: "https://zithmi.zithspace.com/releasenotes/dashboard",
+    url: "/releasenotes/dashboard",
     tags: ["Notebook", "Notes"],
   },
   {
     pageName: "Release",
-    url: "https://zithmi.zithspace.com/releasenotes",
+    url: "/releasenotes",
     tags: ["realease,RealeseNotes,Notes"],
   },
   {
     pageName: "Release Settings",
-    url: "https://zithmi.zithspace.com/releasenotes/settings",
+    url: "/releasenotes/settings",
     tags: ["Settings", "relese settings"],
   },
   {
     pageName: "Members",
-    url: " https://zithmi.zithspace.com/members",
+    url: "/members",
     tags: ["Members", "member", "All members", "management"],
   },
   {
     pageName: "My profile",
-    url: "https://zithmi.zithspace.com/profile",
+    url: "/profile",
     tags: ["Profile", "my profile", "pro"],
   },
   {
     pageName: " Attendence",
-    url: "https://zithmi.zithspace.com/attendance",
+    url: "/attendance",
     tags: [
       "attendence",
       "attendence Dashboard",
@@ -91,7 +91,7 @@
   },
   {
     pageName: "Leave management",
-    url: "https://zithmi.zithspace.com/leaves-dashboard",
+    url: "/leaves-dashboard",
     tags: [
       "leave management",
       "leave",
@@ -102,7 +102,7 @@
   },
   {
     pageName: "Apply leave",
-    url: "https://zithmi.zithspace.com/leaves",
+    url: "/leaves",
     tags: [
       "apply leaves",
       "leave",
@@ -113,22 +113,22 @@
   },
   {
     pageName: "Government Holidays",
-    url: "https://zithmi.zithspace.com/government-holidays",
+    url: "/government-holidays",
     tags: ["governmentholidays", "apply government holidays"],
   },
   {
     pageName: "Leave Adjustments",
-    url: "https://zithmi.zithspace.com/leave-adjustments",
+    url: "/leave-adjustments",
     tags: ["leave adjectment", "add new adjustment"],
   },
   {
     pageName: "Leave Types",
-    url: "https://zithmi.zithspace.com/leave-configuration",
+    url: "/leave-configuration",
     tags: ["leave type", "add leave type", "leavetypes"],
   },
   {
     pageName: " Leave Policy",
-    url: "https://zithmi.zithspace.com/leave-configuration",
+    url: "/leave-configuration",
     tags: [
       "leave policy",
       "policy",
@@ -138,12 +138,12 @@
   },
   {
     pageName: "Added the Goverment Holidays",
-    url: "https://zithmi.zithspace.com/add-goverment-leaves",
+    url: "/add-goverment-leaves",
     tags: ["add goverment holidays", "add govt holidays"],
   },
   {
     pageName: "Employee management",
-    url: "https://zithmi.zithspace.com/onboarding/onboarded",
+    url: "/onboarding/onboarded",
     tags: [
       "employee onborded",
       "onborded",
@@ -153,12 +153,12 @@
   },
   {
     pageName: "Onborded settings",
-    url: "https://zithmi.zithspace.com/onboarding/settings",
+    url: "/onboarding/settings",
     tags: ["onborded settings", "settings onborded"],
   },
   {
     pageName: "Org-structure",
-    url: "https://zithmi.zithspace.com/org-structure/overview",
+    url: "/org-structure/overview",
     tags: ["orgstructure", "onginstructure", "overview", "orgstructuremodel"],
   },
   {
@@ -168,7 +168,7 @@
   },
   {
     pageName: "Employment Types Management",
-    url: "https://zithmi.zithspace.com/org-structure/employment-types",
+    url: "/org-structure/employment-types",
     tags: ["employee type management", "employee type"],
   },
   {

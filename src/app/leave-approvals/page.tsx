@@ -1,6 +1,6 @@
 "use client";
 
-import { Table, Card, Button, Space, message, Tabs } from "antd";
+import { Table, Card, Button, Space, message, Tabs, Tag } from "antd";
 import { useEffect, useState } from "react";
 import { LeaveRequestService } from "@/services/leaveRequestService";
 import MainLayout from "@/components/layout/MainLayout";
@@ -28,7 +28,15 @@ export default function LeaveApprovalsPage() {
 
   const fetchApprovals = async () => {
     const data = await LeaveRequestService.getPendingApprovals();
-    setApprovals(data);
+    
+    // Show all requests but sort to display newest first
+    const sortedData = data.sort((a: any, b: any) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.fromDate).getTime();
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.fromDate).getTime();
+      return dateB - dateA;
+    });
+      
+    setApprovals(sortedData);
   };
 
   useEffect(() => {
@@ -61,7 +69,7 @@ export default function LeaveApprovalsPage() {
         let start = dayjs(record.fromDate);
         const end = dayjs(record.toDate);
         let duration = 0;
-        
+
         if (start.isValid() && end.isValid()) {
           while (start.isBefore(end, "day") || start.isSame(end, "day")) {
             if (start.day() !== 0 && start.day() !== 6) {
@@ -74,26 +82,41 @@ export default function LeaveApprovalsPage() {
       },
     },
     {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        let color = "default";
+        if (status === "APPROVED") color = "green";
+        if (status === "REJECTED") color = "red";
+        if (status === "PENDING") color = "orange";
+        if (status === "CANCELLED") color = "gray";
+
+        return <Tag color={color}>{status}</Tag>;
+      },
+    },
+    {
       title: "Action",
-      render: (_: any, record: any) => (
-        <Space>
+      render: (_: any, record: any) => {
+        if (record.status !== "PENDING") return null;
 
-          <Button
-            type="primary"
-            onClick={() => updateLeaveStatus(record.id, "APPROVED")}
-          >
-            Approve
-          </Button>
-
-          <Button
-            danger
-            onClick={() => updateLeaveStatus(record.id, "REJECTED")}
-          >
-            Reject
-          </Button>
-
-        </Space>
-      ),
+        return (
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => updateLeaveStatus(record.id, "APPROVED")}
+            >
+              Approve
+            </Button>
+            <Button
+              danger
+              onClick={() => updateLeaveStatus(record.id, "REJECTED")}
+            >
+              Reject
+            </Button>
+          </Space>
+        );
+      },
     },
   ];
   const updateLeaveStatus = async (

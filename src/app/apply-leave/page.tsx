@@ -143,7 +143,14 @@ export default function LeavePage() {
   const pendingRequests = currentLeaveHistory.filter(
     (req) => req.status === "PENDING",
   );
-  const processedHistory = currentLeaveHistory;
+  
+  const currentEmployeeId = 
+    currentLeaveBalances?.[0]?.employeeId || (user as any)?.employeeId || user?.id;
+
+  const processedHistory = currentLeaveHistory.filter((req) => {
+    if (!currentEmployeeId) return true;
+    return req.employee?.id === currentEmployeeId;
+  });
 
   const employeeColumn = {
     title: "Employee Name",

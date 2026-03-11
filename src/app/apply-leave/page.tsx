@@ -149,8 +149,7 @@ export default function LeavePage() {
     title: "Employee Name",
     key: "employeeName",
     render: (_: any, record: any) =>
-      `${record.employee?.first_name || ""} ${
-        record.employee?.last_name || ""
+      `${record.employee?.first_name || ""} ${record.employee?.last_name || ""
       }`,
   };
 
@@ -176,6 +175,25 @@ export default function LeavePage() {
       title: "Reason",
       dataIndex: "reason",
       key: "reason",
+    },
+    {
+      title: "Duration",
+      key: "duration",
+      render: (_: any, record: any) => {
+        let start = dayjs(record.fromDate);
+        const end = dayjs(record.toDate);
+        let duration = 0;
+
+        if (start.isValid() && end.isValid()) {
+          while (start.isBefore(end, "day") || start.isSame(end, "day")) {
+            if (start.day() !== 0 && start.day() !== 6) {
+              duration++;
+            }
+            start = start.add(1, "day");
+          }
+        }
+        return `${duration} Day${duration !== 1 ? 's' : ''}`;
+      },
     },
   ];
 
@@ -337,91 +355,91 @@ export default function LeavePage() {
           </div>
 
           <Row gutter={24} >
-  
-  {/* Apply Leave Card - Left Side */}
-  <Col xs={24} lg={10}>
-    <Card title="Apply Leave"  style={{ marginTop: 10, height: 410 }}>
-      <Row gutter={[16, 16]}>
-        <Col span={24}>
-          <Text strong>Leave Type</Text>
-          <Select
-            style={{ width: "100%", marginTop: 8 }}
-            placeholder="Select Leave Type"
-            loading={loading}
-            value={leaveTypeId || undefined}
-            onChange={(value) => setLeaveTypeId(value)}
-            options={[
-              ...currentLeaveBalances.map((lb: LeaveBalance) => ({
-                label: `${lb.leaveTypeName} (${lb.balance || 0}/${lb.total || 0})`,
-                value: lb.leaveTypeId,
-                disabled: !lb.balance || lb.balance <= 0,
-              })),
-              {
-                label: "Loss Of Pay (LOP)",
-                value: LOP_LEAVE_TYPE_ID,
-              },
-            ]}
-          />
-        </Col>
 
-        <Col span={24}>
-          <Text strong>Select Dates</Text>
-          <RangePicker
-            style={{ width: "100%", marginTop: 8 }}
-            value={dates}
-            onChange={(values) => setDates(values)}
-            disabledDate={(current) => {
-              if (!current) return false;
-              const isPast = current < dayjs().startOf("day");
-              const isBooked = isDateBooked(current);
-              return isPast || isBooked;
-            }}
-          />
-        </Col>
+            {/* Apply Leave Card - Left Side */}
+            <Col xs={24} lg={10}>
+              <Card title="Apply Leave" style={{ marginTop: 10, height: 410 }}>
+                <Row gutter={[16, 16]}>
+                  <Col span={24}>
+                    <Text strong>Leave Type</Text>
+                    <Select
+                      style={{ width: "100%", marginTop: 8 }}
+                      placeholder="Select Leave Type"
+                      loading={loading}
+                      value={leaveTypeId || undefined}
+                      onChange={(value) => setLeaveTypeId(value)}
+                      options={[
+                        ...currentLeaveBalances.map((lb: LeaveBalance) => ({
+                          label: `${lb.leaveTypeName} (${lb.balance || 0}/${lb.total || 0})`,
+                          value: lb.leaveTypeId,
+                          disabled: !lb.balance || lb.balance <= 0,
+                        })),
+                        {
+                          label: "Loss Of Pay (LOP)",
+                          value: LOP_LEAVE_TYPE_ID,
+                        },
+                      ]}
+                    />
+                  </Col>
 
-        <Col span={24}>
-          <Text strong>Reason</Text>
-          <TextArea
-            rows={4}
-            placeholder="Enter reason for leave..."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            style={{ marginTop: 8 }}
-          />
-        </Col>
+                  <Col span={24}>
+                    <Text strong>Select Dates</Text>
+                    <RangePicker
+                      style={{ width: "100%", marginTop: 8 }}
+                      value={dates}
+                      onChange={(values) => setDates(values)}
+                      disabledDate={(current) => {
+                        if (!current) return false;
+                        const isPast = current < dayjs().startOf("day");
+                        const isBooked = isDateBooked(current);
+                        return isPast || isBooked;
+                      }}
+                    />
+                  </Col>
 
-        <Col span={24}>
-          <Button
-            type="primary"
-            onClick={handleApply}
-            loading={submitting}
-            disabled={!leaveTypeId || !dates}
-          >
-            Apply Leave
-          </Button>
-        </Col>
-      </Row>
-    </Card>
-  </Col>
+                  <Col span={24}>
+                    <Text strong>Reason</Text>
+                    <TextArea
+                      rows={4}
+                      placeholder="Enter reason for leave..."
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      style={{ marginTop: 8 }}
+                    />
+                  </Col>
 
-  {/* Leave Requests Card - Right Side */}
-  <Col xs={24} lg={14}>
-    <Card title="Leave History"
-     styles={{ body: { paddingTop: 8 } }}
-     style={{ marginTop: 10, height: 410 }}
-    >
+                  <Col span={24}>
+                    <Button
+                      type="primary"
+                      onClick={handleApply}
+                      loading={submitting}
+                      disabled={!leaveTypeId || !dates}
+                    >
+                      Apply Leave
+                    </Button>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
 
-      <Table
-        dataSource={processedHistory}
-columns={historyColumns}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 6}}
-      />
-    </Card>
-  </Col>
+            {/* Leave Requests Card - Right Side */}
+            <Col xs={24} lg={14}>
+              <Card title="Leave History"
+                styles={{ body: { paddingTop: 8 } }}
+                style={{ marginTop: 10, height: 410 }}
+              >
 
-</Row>
+                <Table
+                  dataSource={processedHistory}
+                  columns={historyColumns}
+                  rowKey="id"
+                  loading={loading}
+                  pagination={{ pageSize: 6 }}
+                />
+              </Card>
+            </Col>
+
+          </Row>
         </div>
       </MainLayout>
     </ProtectedRoute>

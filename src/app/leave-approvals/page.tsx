@@ -35,62 +35,81 @@ export default function LeaveApprovalsPage() {
     fetchApprovals();
   }, []);
   const columns = [
-  {
-    title: "Employee",
-    render: (_: any, record: any) =>
-      `${record.employee.first_name} ${record.employee.last_name}`,
-  },
-  {
-    title: "Leave Type",
-    dataIndex: ["leaveType", "name"],
-  },
-  {
-    title: "From",
-    dataIndex: "fromDate",
-    render: (date: string) => dayjs(date).format("YYYY-MM-DD"),
-  },
-  {
-    title: "To",
-    dataIndex: "toDate",
-    render: (date: string) => dayjs(date).format("YYYY-MM-DD"),
-  },
- {
-    title: "Action",
-    render: (_: any, record: any) => (
-      <Space>
+    {
+      title: "Employee",
+      render: (_: any, record: any) =>
+        `${record.employee.first_name} ${record.employee.last_name}`,
+    },
+    {
+      title: "Leave Type",
+      dataIndex: ["leaveType", "name"],
+    },
+    {
+      title: "From",
+      dataIndex: "fromDate",
+      render: (date: string) => dayjs(date).format("YYYY-MM-DD"),
+    },
+    {
+      title: "To",
+      dataIndex: "toDate",
+      render: (date: string) => dayjs(date).format("YYYY-MM-DD"),
+    },
+    {
+      title: "Duration",
+      key: "duration",
+      render: (_: any, record: any) => {
+        let start = dayjs(record.fromDate);
+        const end = dayjs(record.toDate);
+        let duration = 0;
+        
+        if (start.isValid() && end.isValid()) {
+          while (start.isBefore(end, "day") || start.isSame(end, "day")) {
+            if (start.day() !== 0 && start.day() !== 6) {
+              duration++;
+            }
+            start = start.add(1, "day");
+          }
+        }
+        return `${duration} Day${duration !== 1 ? 's' : ''}`;
+      },
+    },
+    {
+      title: "Action",
+      render: (_: any, record: any) => (
+        <Space>
 
-        <Button
-          type="primary"
-          onClick={() => updateLeaveStatus(record.id, "APPROVED")}
-        >
-          Approve
-        </Button>
+          <Button
+            type="primary"
+            onClick={() => updateLeaveStatus(record.id, "APPROVED")}
+          >
+            Approve
+          </Button>
 
-        <Button
-          danger
-          onClick={() => updateLeaveStatus(record.id, "REJECTED")}
-        >
-          Reject
-        </Button>
+          <Button
+            danger
+            onClick={() => updateLeaveStatus(record.id, "REJECTED")}
+          >
+            Reject
+          </Button>
 
-      </Space>
-    ),    
-  },
-];
-const updateLeaveStatus = async (
-  id: string,
-  status: "APPROVED" | "REJECTED"
-) => {
-  try {
-    await LeaveRequestService.updateLeaveStatus(id, status);
-    message.success(`Leave ${status.toLowerCase()} successfully`);
-    fetchApprovals();
-  } catch (err: any) {
-    message.error(err.message);
-  }
-};
+        </Space>
+      ),
+    },
+  ];
+  const updateLeaveStatus = async (
+    id: string,
+    status: "APPROVED" | "REJECTED"
+  ) => {
+    try {
+      await LeaveRequestService.updateLeaveStatus(id, status);
+      message.success(`Leave ${status.toLowerCase()} successfully`);
+      fetchApprovals();
+    } catch (err: any) {
+      message.error(err.message);
+    }
+  };
 
- return (
+  return (
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: 24 }}>
@@ -99,7 +118,7 @@ const updateLeaveStatus = async (
               activeKey="approvals"
               onChange={(key) => {
                 const routes: any = {
-                  dashboard: "/leaves-dashboard", 
+                  dashboard: "/leaves-dashboard",
                   // leaves: "/leaves",
                   holidays: "/government-holidays",
                   adjustments: "/leave-adjustments",
@@ -183,7 +202,7 @@ const updateLeaveStatus = async (
             <Table rowKey="id" dataSource={approvals} columns={columns} />
           </Card>
         </div>
-     </MainLayout>
-  </ProtectedRoute>
-);
+      </MainLayout>
+    </ProtectedRoute>
+  );
 }

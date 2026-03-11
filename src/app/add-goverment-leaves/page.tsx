@@ -35,6 +35,7 @@ import {
   PlusOutlined,
   DownloadOutlined,
   DeleteOutlined,
+  CheckCircleOutlined
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -323,6 +324,9 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
 export default function governmentLeaves() {
   const { user } = useAuth();
   const router = useRouter();
+  const hasApprovalRights =
+    (user as any)?.role === "super_admin" || (user as any)?.role === "admin";
+
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dataSource, setDataSource] = useState<FixedHoliday[]>([]);
@@ -604,7 +608,8 @@ export default function governmentLeaves() {
                   configuration: "/leave-type",
                   positions: "/leave-policy",
                   addLeaves: "/add-goverment-leaves",
-                  applyleave: "/apply-leave",
+                  "apply-leave": "/apply-leave",
+                  approvals: "/leave-approvals",
                 };
                 if (routes[key]) router.push(routes[key]);
               }}
@@ -630,6 +635,14 @@ export default function governmentLeaves() {
                   label: (
                     <span>
                       <PlusOutlined /> Apply leave
+                    </span>
+                  ),
+                },
+                hasApprovalRights && {
+                  key: "approvals",
+                  label: (
+                    <span>
+                      <CheckCircleOutlined /> Approvals
                     </span>
                   ),
                 },
@@ -673,7 +686,7 @@ export default function governmentLeaves() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean)}
             />
           </div>
           <Card>

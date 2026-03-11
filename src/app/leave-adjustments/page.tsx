@@ -36,6 +36,7 @@ import {
   ApartmentOutlined,
   AppstoreOutlined,
   PlusOutlined,
+  CheckCircleOutlined
 } from "@ant-design/icons";
 import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
@@ -49,6 +50,11 @@ import {
   LeaveAdjustmentViewData,
 } from "@/hooks/useLeaveAdjustments";
 import { LeaveAdjustmentPayload } from "@/services/leaveAdjustmentService";
+import { useAuth } from "@/context/AuthContext";
+import {
+  LeaveBalanceService,
+  LeaveBalance,
+} from "@/services/leaveBalanceService";
 const { Text } = Typography;
 const { Title } = Typography;
 
@@ -71,6 +77,12 @@ export default function LeaveAdjustmentPage() {
     { label: string; value: string }[]
   >([]);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
+    const { user } = useAuth();
+   const hasApprovalRights =
+    (user as any)?.role === "super_admin" ||
+    (user as any)?.role === "admin";
 
   const {
     dataSource,
@@ -84,6 +96,10 @@ export default function LeaveAdjustmentPage() {
     loading: leaveTypesLoading,
     fetchLeaveTypes,
   } = useLeaveTypes();
+
+  // Watch for form value changes in the modal to fetch balances reactively
+  const employeeId = Form.useWatch("employee", form);
+  const leaveTypeId = Form.useWatch("leaveTypeId", form);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -110,40 +126,84 @@ export default function LeaveAdjustmentPage() {
     fetchLeaveTypes();
   }, [fetchLeaveTypes]);
 
-  const handleSaveAdjustment = async (values: any) => {
-    setConfirmLoading(true);
-    try {
-      const payload: LeaveAdjustmentPayload = {
-        employeeId: values.employee,
-        leaveTypeId: values.leaveTypeId,
-        adjustmentType: values.type,
-        amount: values.amount,
-        unit: values.unit,
-        reason: values.reason,
-        approvedById: values.approvedBy,
-        compOffWorkDate: values.compOffWorkDate
-          ? values.compOffWorkDate.toISOString()
-          : null,
-        expiryDate: values.expiryDate ? values.expiryDate.toISOString() : null,
+  useEffect(() => {
+    if (employeeId) {
+      const fetchEmployeeBalances = async () => {
+        try {
+          const balances = await LeaveBalanceService.getLeaveBalances(employeeId);
+          setLeaveBalances(balances);
+        } catch (error) {
+          console.error("Failed to fetch employee balances:", error);
+          setLeaveBalances([]);
+        }
       };
-
-      let success = false;
-      if (editingKey) {
-        success = await updateAdjustment(editingKey, payload);
-      } else {
-        success = await addAdjustment(payload);
-      }
-
-      if (success) {
-        setIsModalVisible(false);
-        form.resetFields();
-        setSelectedLeaveType(null);
-        setEditingKey(null);
-      }
-    } finally {
-      setConfirmLoading(false);
+      fetchEmployeeBalances();
+    } else {
+      setLeaveBalances([]);
     }
-  };
+  }, [employeeId]);
+
+  useEffect(() => {
+    if (leaveTypeId && leaveBalances.length > 0) {
+      const relevantBalance = leaveBalances.find(
+        (b) => b.leaveTypeId === leaveTypeId,
+      );
+      setBalance(relevantBalance?.balance ?? 0);
+    } else {
+      // Reset balance if no leave type is selected or no balances are loaded
+      setBalance(null);
+    }
+  }, [leaveTypeId, leaveBalances]);
+
+ const handleSaveAdjustment = async (values: any) => {
+  setConfirmLoading(true);
+
+  try {
+    const payload: LeaveAdjustmentPayload = {
+      employeeId: values.employee,
+      leaveTypeId: values.leaveTypeId,
+      adjustmentType: values.type,
+      amount: values.amount,
+      unit: values.unit,
+      reason: values.reason,
+      approvedById: values.approvedBy,
+      compOffWorkDate: values.compOffWorkDate
+        ? values.compOffWorkDate.toISOString()
+        : null,
+      expiryDate: values.expiryDate
+        ? values.expiryDate.toISOString()
+        : null,
+    };
+
+    let success = false;
+
+    if (editingKey) {
+      success = await updateAdjustment(editingKey, payload);
+    } else {
+      success = await addAdjustment(payload);
+    }
+
+    if (success) {
+      api.success({
+        message: "Leave adjustment saved successfully",
+      });
+
+      setIsModalVisible(false);
+      form.resetFields();
+      setSelectedLeaveType(null);
+      setEditingKey(null);
+    }
+  } catch (error: any) {
+    api.error({
+      message: "Adjustment Failed",
+      description:
+        error?.response?.data?.error ||
+        "This leave is already debited.",
+    });
+  } finally {
+    setConfirmLoading(false);
+  }
+};
 
   const handleEdit = (record: LeaveAdjustmentViewData) => {
     setEditingKey(record.id);
@@ -179,10 +239,11 @@ export default function LeaveAdjustmentPage() {
       title: "Employee",
       dataIndex: "employee",
       key: "employee",
+      width:300,
       sorter: (a: LeaveAdjustmentViewData, b: LeaveAdjustmentViewData) =>
         a.employee.localeCompare(b.employee),
       render: (text: string) => (
-        <Space>
+        <Space style={{gap:15}}>
           <Avatar
             icon={<UserOutlined />}
             style={{ backgroundColor: "#e6f0f7ff", color: "#0769b5ff" }}
@@ -195,6 +256,7 @@ export default function LeaveAdjustmentPage() {
       title: "Leave Type",
       dataIndex: "leaveType",
       key: "leaveType",
+       width:150,
     },
     {
       title: " Type",
@@ -252,31 +314,31 @@ export default function LeaveAdjustmentPage() {
         </Space>
       ),
     },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_: any, record: LeaveAdjustmentViewData) => (
-        <Space>
-          <Tooltip title="Edit Leave Adjustment">
-            <Button
-              type="text"
-              icon={<Settings2 size={16} />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Delete Leave Adjustment">
-            <Popconfirm
-              title="Are you sure you want to delete?"
-              onConfirm={() => deleteAdjustment(record.id)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button danger type="text" icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
-    },
+    // {
+    //   title: "Actions",
+    //   key: "actions",
+    //   render: (_: any, record: LeaveAdjustmentViewData) => (
+    //     <Space>
+    //       <Tooltip title="Edit Leave Adjustment">
+    //         <Button
+    //           type="text"
+    //           icon={<Settings2 size={16} />}
+    //           onClick={() => handleEdit(record)}
+    //         />
+    //       </Tooltip>
+    //       <Tooltip title="Delete Leave Adjustment">
+    //         <Popconfirm
+    //           title="Are you sure you want to delete this leave  Adjustments ?"
+    //           onConfirm={() => deleteAdjustment(record.id)}
+    //           okText="Yes"
+    //           cancelText="No"
+    //         >
+    //           <Button danger> Cancel</Button>
+    //         </Popconfirm>
+    //       </Tooltip>
+    //     </Space>
+    //   ),
+    // },
   ];
 
   return (
@@ -307,9 +369,10 @@ export default function LeaveAdjustmentPage() {
                 if (key === "adjustments") router.push("/leave-adjustments");
                 if (key === "configuration")
                   router.push("/leave-type");
-                if (key === "positions") router.push("/position-configuration");
+                if (key === "positions") router.push("/leave-policy");
                 if (key === "addLeaves") router.push("/add-goverment-leaves");
                 if (key === "apply-leave") router.push("/apply-leave");
+                if (key === "approvals") router.push("/leave-approvals")
               }}
               items={[
                 {
@@ -336,6 +399,14 @@ export default function LeaveAdjustmentPage() {
                     </span>
                   ),
                 },
+                 hasApprovalRights && {
+                                  key: "approvals",
+                                  label: (
+                                    <span>
+                                      <CheckCircleOutlined /> Approvals
+                                    </span>
+                                  ),
+                                },
                 {
                   key: "holidays",
                   label: (
@@ -376,7 +447,7 @@ export default function LeaveAdjustmentPage() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean) as any}
             />
           </div>
           <Card>
@@ -535,13 +606,15 @@ export default function LeaveAdjustmentPage() {
                     label="Adjustment Type"
                     rules={[{ required: true }]}
                   >
-                    <Select
-                      placeholder="Credit / Debit"
-                      options={[
-                        { label: "Credit (Add)", value: "Credit" },
-                        { label: "Debit (Deduct)", value: "Debit" },
-                      ]}
-                    />
+                    <Select placeholder="Select Type">
+                      <Select.Option value="Credit">Credit</Select.Option>
+                      <Select.Option
+                        value="Debit"
+                        disabled={balance === null || balance <= 0}
+                      >
+                        Debit
+                      </Select.Option>
+                    </Select>
                   </Form.Item>
                 </Col>
 

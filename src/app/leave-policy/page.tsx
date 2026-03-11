@@ -77,20 +77,21 @@ interface PositionRecord {
   carryForward?: boolean;
   totalLeaves?: number;
   subOriginId?: string;
+  accrualInterval?: number;
 }
 
 const LeaveConfigListContent = ({
   fields,
   add,
   remove,
-  leaveConfigs,
+  form,
   editingKey,
   leaveTypes,
 }: {
   fields: any[];
   add: () => void;
   remove: (index: number | number[]) => void;
-  leaveConfigs: any[];
+  form: any;
   editingKey: string | null;
   leaveTypes: { label: string; value: string }[];
 }) => {
@@ -135,14 +136,16 @@ const LeaveConfigListContent = ({
         activeKey={activeKey}
         onChange={setActiveKey}
         items={fields.map(({ key, name, ...restField }) => {
-          const selectedInOtherRows = (leaveConfigs || [])
-            .filter((_: any, index: number) => index !== name)
-            .flatMap((item: any) => {
-              const types = item?.leaveType;
-              if (Array.isArray(types)) return types;
-              if (typeof types === "string") return [types];
-              return [];
-            });
+         const leaveConfigs = form.getFieldValue("leaveConfigs") || [];
+
+const selectedInOtherRows = leaveConfigs
+  .filter((_: any, index: number) => index !== name)
+  .flatMap((item: any) => {
+    const types = item?.leaveType;
+    if (Array.isArray(types)) return types;
+    if (typeof types === "string") return [types];
+    return [];
+  });
 
           const currentLeaveType = leaveConfigs?.[name]?.leaveType;
 
@@ -169,48 +172,75 @@ const LeaveConfigListContent = ({
                 <Form.Item name={[name, "id"]} hidden>
                   <Input />
                 </Form.Item>
+               <Row gutter={12}>
+  <Col span={12}>
+    <Form.Item
+      {...restField}
+      name={[name, "leaveType"]}
+      label="Leave Type"
+      rules={[{ required: true }]}
+    >
+      <Select
+        size="small"
+        style={{ width: "100%",height:30 }}
+        placeholder="Leave Type"
+        options={leaveTypes.filter(
+          (type) => !selectedInOtherRows.includes(type.value)
+        )}
+      />
+    </Form.Item>
+  </Col>
+
+  <Col span={12}>
+    <Form.Item
+      {...restField}
+      name={[name, "unit"]}
+      label="Unit"
+      rules={[
+        { required: true, message: "Please enter a unit." },
+        { type: "number", message: "Unit must be a number." },
+      ]}
+    >
+      <InputNumber min={0} style={{ width: "100%" }} />
+    </Form.Item>
+  </Col>
+</Row>
+
                 <Row gutter={12}>
-                  <Col span={8}>
-                    <Form.Item
-                      {...restField}
-                      name={[name, "leaveType"]}
-                      label="Leave Type"
-                      rules={[{ required: true }]}
-                    >
-                      <Select
-                        size="small"
-                        style={{ width: "100%" }}
-                        placeholder="Leave Type"
-                        options={leaveTypes.filter(
-                          (type) => !selectedInOtherRows.includes(type.value),
-                        )}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={4}>
-                    <Form.Item
-                      {...restField}
-                      name={[name, "unit"]}
-                      label="Unit"
-                      rules={[{ required: true }]}
-                    >
-                      <InputNumber min={0} style={{ width: "100%" }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={4}>
+                  <Col span={12}>
                     <Form.Item
                       {...restField}
                       name={[name, "period"]}
                       label="Period"
                       rules={[{ required: true }]}
-                      style={{ width: 100 }}
                     >
                       <Select
                         options={[
-                          { label: "Per Month", value: "MONTH" },
-                          { label: "Per Year", value: "YEAR" },
+                          { label: "Month", value: "MONTH" },
+                          { label: "Year", value: "YEAR" },
                         ]}
+                        onChange={() => {
+                          form.setFieldValue(["leaveConfigs", name, "months"], undefined);
+                        }}
                       />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.leaveConfigs?.[name]?.period !== curr.leaveConfigs?.[name]?.period}>
+                      {() => {
+                        const period = form.getFieldValue(["leaveConfigs", name, "period"]);
+                        const isYear = period === "YEAR";
+                        return (
+                          <Form.Item
+                            {...restField}
+                            name={[name, "months"]}
+                            label={isYear ? "Years" : "Months"}
+                            rules={[{ required: true, message: `Enter ${isYear ? "years" : "months"}` }]}
+                          >
+                            <InputNumber min={1} style={{ width: "100%" }} />
+                          </Form.Item>
+                        );
+                      }}
                     </Form.Item>
                   </Col>
                 </Row>
@@ -271,10 +301,13 @@ export default function positionConfiguration() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const hasApprovalRights =
+    (user as any)?.role === "super_admin" || (user as any)?.role === "admin";
+
   const [api, contextHolder] = notification.useNotification();
   const [form] = Form.useForm();
   const originType = Form.useWatch("position", form);
-  const leaveConfigs = Form.useWatch("leaveConfigs", form);
+  // const leaveConfigs = Form.useWatch("leaveConfigs", form);
   // const [loading, setLoading] = useState(false); // Replaced by hook's loading
   const [viewType, setViewType] = useState("table");
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -333,6 +366,7 @@ export default function positionConfiguration() {
           period: type.period,
           carryForward: type.carryForward,
           totalLeaves: Number(type.unit), // Assuming total is unit for now, adjust logic if needed
+          accrualInterval: type.accrualInterval,
         })),
       );
       setDataSource(formattedData);
@@ -507,6 +541,7 @@ export default function positionConfiguration() {
       id: config.key, // Pass the ID so we know to update instead of create
       leaveType: config.leaveTypeId, // Use ID for the form Select
       unit: config.unit,
+      months: config.accrualInterval,
       period: config.period,
       carryForward: config.carryForward,
       status: config.status === "Active",
@@ -530,6 +565,7 @@ export default function positionConfiguration() {
           id: record.key, // Pass the ID here as well
           leaveType: record.leaveTypeId, // Use ID for the form Select
           unit: record.unit,
+          months: record.accrualInterval,
           period: record.period,
           carryForward: record.carryForward,
           status: record.status === "Active",
@@ -631,20 +667,22 @@ export default function positionConfiguration() {
             leaveTypeId: config.leaveType, // Form value is ID
             unit: config.unit,
             period: config.period,
+           accrualInterval: Number(config.months),
             carryForward: config.carryForward ?? false,
             status: config.status ? "Active" : "Inactive",
           })),
         });
       } else {
         // 2. Update/Add Leave Types for existing structure
-        const leaveTypesPayload = leaveConfigs.map((config: any) => ({
-          id: config.id, // Will be undefined for new items, present for existing
-          leaveTypeId: config.leaveType, // Form value is ID
-          unit: config.unit,
-          period: config.period,
-          carryForward: config.carryForward ?? false,
-          status: config.status ? "Active" : "Inactive",
-        }));
+      const leaveTypesPayload = leaveConfigs.map((config: any) => ({
+  id: config.id,
+  leaveTypeId: config.leaveType,
+  unit: config.unit,
+  period: config.period,
+  accrualInterval: Number(config.months), // ⭐ important
+  carryForward: config.carryForward ?? false,
+  status: config.status ? "Active" : "Inactive",
+}));
 
         await leaveOriginService.updateStructure(structure.id, {
           leaveTypes: leaveTypesPayload,
@@ -678,29 +716,20 @@ export default function positionConfiguration() {
         <div style={{ padding: 24 }}>
           <div>
             <Tabs
-              activeKey={
-                pathname.includes("government-holidays")
-                  ? "holidays"
-                  : pathname.includes("leaves-dashboard")
-                    ? "dashboard"
-                    : pathname.includes("leave-adjustments")
-                      ? "adjustments"
-                      : pathname.includes("leave-configuration")
-                        ? "configuration"
-                        : pathname.includes("position-configuration")
-                          ? "positions"
-                          : "leaves"
-              }
+              activeKey="positions"
               onChange={(key) => {
-                if (key === "dashboard") router.push("/leaves-dashboard");
-                // if (key === "leaves") router.push("/leaves");
-                if (key === "holidays") router.push("/government-holidays");
-                if (key === "adjustments") router.push("/leave-adjustments");
-                if (key === "configuration")
-                  router.push("/leave-type");
-                if (key === "positions") router.push("/leave-policy");
-                if (key === "addLeaves") router.push("/add-goverment-leaves");
-                if (key === "apply-leave") router.push("/apply-leave");
+                const routes: any = {
+                  dashboard: "/leaves-dashboard",
+                  // leaves: "/leaves",
+                  holidays: "/government-holidays",
+                  adjustments: "/leave-adjustments",
+                  configuration: "/leave-type",
+                  positions: "/leave-policy",
+                  addLeaves: "/add-goverment-leaves",
+                  "apply-leave": "/apply-leave",
+                  approvals: "/leave-approvals",
+                };
+                if (routes[key]) router.push(routes[key]);
               }}
               items={[
                 {
@@ -724,6 +753,14 @@ export default function positionConfiguration() {
                   label: (
                     <span>
                       <PlusOutlined /> Apply leave
+                    </span>
+                  ),
+                },
+                hasApprovalRights && {
+                  key: "approvals",
+                  label: (
+                    <span>
+                      <CheckCircleOutlined /> Approvals
                     </span>
                   ),
                 },
@@ -767,7 +804,7 @@ export default function positionConfiguration() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean) as any}
             />
           </div>
           <Card>
@@ -1147,17 +1184,17 @@ export default function positionConfiguration() {
 
               {/* Dynamic Leave Config */}
               <Form.List name="leaveConfigs" initialValue={[{}]}>
-                {(fields, { add, remove }) => (
-                  <LeaveConfigListContent
-                    fields={fields}
-                    add={add}
-                    remove={remove}
-                    leaveConfigs={leaveConfigs}
-                    editingKey={editingKey}
-                    leaveTypes={leaveTypeOptions}
-                  />
-                )}
-              </Form.List>
+  {(fields, { add, remove }) => (
+    <LeaveConfigListContent
+      fields={fields}
+      add={add}
+      remove={remove}
+      form={form}
+      editingKey={editingKey}
+      leaveTypes={leaveTypeOptions}
+    />
+  )}
+</Form.List>
             </Form>
           </Modal>
 
@@ -1222,60 +1259,69 @@ export default function positionConfiguration() {
                   key: "unit",
                   align: "center",
                 },
+                // {
+                //   title: "Per Month",
+                //   key: "perMonth",
+                //   align: "center",
+                //   render: (_: any, record: PositionRecord) => {
+                //     const effectiveUnit = record.unit || 0;
+                //     if (record.period === "MONTH")
+                //       return (
+                //         <Text>
+                //           {effectiveUnit}{" "}
+                //           <Tag style={{ borderRadius: 10 }} color="blue">
+                //             day
+                //           </Tag>
+                //         </Text>
+                //       );
+                //     if (record.period === "YEAR")
+                //       return (
+                //         <Text>
+                //           {(effectiveUnit / 12).toFixed(1)}{" "}
+                //           <Tag style={{ borderRadius: 10 }} color="blue">
+                //             day
+                //           </Tag>
+                //         </Text>
+                //       );
+                //     return <Text>-</Text>;
+                //   },
+                // },
+                // {
+                //   title: "Per Year",
+                //   key: "perYear",
+                //   align: "center",
+                //   render: (_: any, record: PositionRecord) => {
+                //     const effectiveUnit = record.unit || 0;
+                //     if (record.period === "MONTH")
+                //       return (
+                //         <Text>
+                //           {effectiveUnit * 12}{" "}
+                //           <Tag style={{ borderRadius: 10 }} color="blue">
+                //             days
+                //           </Tag>
+                //         </Text>
+                //       );
+                //     if (record.period === "YEAR")
+                //       return (
+                //         <Text>
+                //           {effectiveUnit}{" "}
+                //           <Tag style={{ borderRadius: 10 }} color="blue">
+                //             days
+                //           </Tag>
+                //         </Text>
+                //       );
+                //     return <Text>-</Text>;
+                //   },
+                // },
                 {
-                  title: "Per Month",
-                  key: "perMonth",
-                  align: "center",
-                  render: (_: any, record: PositionRecord) => {
-                    const effectiveUnit = record.unit || 0;
-                    if (record.period === "MONTH")
-                      return (
-                        <Text>
-                          {effectiveUnit}{" "}
-                          <Tag style={{ borderRadius: 10 }} color="blue">
-                            day
-                          </Tag>
-                        </Text>
-                      );
-                    if (record.period === "YEAR")
-                      return (
-                        <Text>
-                          {(effectiveUnit / 12).toFixed(1)}{" "}
-                          <Tag style={{ borderRadius: 10 }} color="blue">
-                            day
-                          </Tag>
-                        </Text>
-                      );
-                    return <Text>-</Text>;
-                  },
-                },
-                {
-                  title: "Per Year",
-                  key: "perYear",
-                  align: "center",
-                  render: (_: any, record: PositionRecord) => {
-                    const effectiveUnit = record.unit || 0;
-                    if (record.period === "MONTH")
-                      return (
-                        <Text>
-                          {effectiveUnit * 12}{" "}
-                          <Tag style={{ borderRadius: 10 }} color="blue">
-                            days
-                          </Tag>
-                        </Text>
-                      );
-                    if (record.period === "YEAR")
-                      return (
-                        <Text>
-                          {effectiveUnit}{" "}
-                          <Tag style={{ borderRadius: 10 }} color="blue">
-                            days
-                          </Tag>
-                        </Text>
-                      );
-                    return <Text>-</Text>;
-                  },
-                },
+  title: "Every",
+  dataIndex: "accrualInterval",
+  render: (value:number) => (
+    <Tag color="purple">
+      Every {value} months
+    </Tag>
+  )
+},
                 {
                   title: "Carry Forward",
                   dataIndex: "carryForward",
@@ -1287,18 +1333,18 @@ export default function positionConfiguration() {
                     </Tag>
                   ),
                 },
-                {
-                  title: "Total",
-                  key: "total",
-                  align: "center",
-                  render: (_: any, record: PositionRecord) => {
-                    const effectiveUnit = record.unit || 0;
-                    let total = 0;
-                    if (record.period === "MONTH") total = effectiveUnit * 12;
-                    else if (record.period === "YEAR") total = effectiveUnit;
-                    return <Text strong>{total}</Text>;
-                  },
-                },
+                // {
+                //   title: "Total",
+                //   key: "total",
+                //   align: "center",
+                //   render: (_: any, record: PositionRecord) => {
+                //     const effectiveUnit = record.unit || 0;
+                //     let total = 0;
+                //     if (record.period === "MONTH") total = effectiveUnit * 12;
+                //     else if (record.period === "YEAR") total = effectiveUnit;
+                //     return <Text strong>{total}</Text>;
+                //   },
+                // },
                 {
                   title: "Action",
                   key: "action",

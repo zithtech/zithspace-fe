@@ -40,6 +40,9 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
+
 import { useLeave } from "@/hooks/useLeave";
 import {
   LeaveBalance,
@@ -57,6 +60,10 @@ const LOP_LEAVE_TYPE_ID = "lop";
 export default function LeavePage() {
   const { user } = useAuth();
   const router = useRouter();
+  const hasApprovalRights =
+    (user as any)?.role === "super_admin" ||
+    (user as any)?.role === "admin";
+
   const {
     leaveBalances,
     leaveHistory,
@@ -77,10 +84,6 @@ export default function LeavePage() {
   const [leaveTypeId, setLeaveTypeId] = useState("");
   const [dates, setDates] = useState<any>(null);
   const [reason, setReason] = useState("");
-  const [activeView, setActiveView] = useState("pending");
-
-  const hasApprovalRights =
-    (user as any)?.role === "super_admin" || (user as any)?.role === "admin";
 
   useEffect(() => {
     setCurrentLeaveBalances(leaveBalances);
@@ -90,7 +93,17 @@ export default function LeavePage() {
     setCurrentLeaveHistory(leaveHistory);
   }, [leaveHistory]);
 
-  const effectiveActiveView = hasApprovalRights ? activeView : "history";
+  const isDateBooked = (date: dayjs.Dayjs) => {
+    return currentLeaveHistory.some((leave) => {
+      if (leave.status === "REJECTED" || leave.status === "CANCELLED") {
+        return false;
+      }
+      const from = dayjs(leave.fromDate);
+      const to = dayjs(leave.toDate);
+      // "[]" includes the start and end dates in the check
+      return date.isBetween(from, to, "day", "[]");
+    });
+  };
 
   const handleApply = async () => {
     if (!leaveTypeId || !dates || dates.length !== 2) {
@@ -201,35 +214,6 @@ export default function LeavePage() {
     },
   };
 
-  const actionColumn = {
-    title: "Action",
-    key: "action",
-    render: (_: any, record: any) => (
-      <Space size="middle">
-        <Button
-          type="primary"
-          size="small"
-          style={{ backgroundColor: "green", borderColor: "green" }}
-          onClick={() => updateLeaveStatus(record.id, "APPROVED")}
-        >
-          Approve
-        </Button>
-        <Button
-          type="primary"
-          danger
-          size="small"
-          onClick={() => updateLeaveStatus(record.id, "REJECTED")}
-        >
-          Reject
-        </Button>
-      </Space>
-    ),
-  };
-
-  const pendingColumns = hasApprovalRights
-    ? [employeeColumn, ...baseColumns, actionColumn]
-    : [...baseColumns, cancelColumn];
-
   const historyColumns = [
     ...baseColumns,
     statusColumn,
@@ -271,6 +255,7 @@ export default function LeavePage() {
                   positions: "/leave-policy",
                   addLeaves: "/add-goverment-leaves",
                   "apply-leave": "/apply-leave",
+                  approvals: "/leave-approvals"
                 };
                 if (routes[key]) router.push(routes[key]);
               }}
@@ -296,6 +281,14 @@ export default function LeavePage() {
                   label: (
                     <span>
                       <PlusOutlined /> Apply leave
+                    </span>
+                  ),
+                },
+                hasApprovalRights && {
+                  key: "approvals",
+                  label: (
+                    <span>
+                      <CheckCircleOutlined /> Approvals
                     </span>
                   ),
                 },
@@ -339,7 +332,7 @@ export default function LeavePage() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean) as any}
             />
           </div>
 
@@ -377,9 +370,12 @@ export default function LeavePage() {
             style={{ width: "100%", marginTop: 8 }}
             value={dates}
             onChange={(values) => setDates(values)}
-            disabledDate={(current) =>
-              current && current < dayjs().startOf("day")
-            }
+            disabledDate={(current) => {
+              if (!current) return false;
+              const isPast = current < dayjs().startOf("day");
+              const isBooked = isDateBooked(current);
+              return isPast || isBooked;
+            }}
           />
         </Col>
 
@@ -410,32 +406,17 @@ export default function LeavePage() {
 
   {/* Leave Requests Card - Right Side */}
   <Col xs={24} lg={14}>
-    <Card title="Leave Requests"
-     bodyStyle={{ paddingTop: 8 }}
-                style={{ marginTop: 10, height: 410 }}
+    <Card title="Leave History"
+     styles={{ body: { paddingTop: 8 } }}
+     style={{ marginTop: 10, height: 410 }}
     >
-      <Segmented
-        options={
-          hasApprovalRights
-            ? [
-                { label: `Pending (${pendingRequests.length})`, value: "pending" },
-                { label: "History", value: "history" },
-              ]
-            : [{ label: "History", value: "history" }]
-        }
-        value={effectiveActiveView}
-        onChange={(value) => setActiveView(value as string)}
-        style={{ marginBottom: 16 }}
-      />
 
       <Table
-        dataSource={
-          effectiveActiveView === "pending" ? pendingRequests : processedHistory
-        }
-        columns={effectiveActiveView === "pending" ? pendingColumns : historyColumns}
+        dataSource={processedHistory}
+columns={historyColumns}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 5 }}
+        pagination={{ pageSize: 6}}
       />
     </Card>
   </Col>

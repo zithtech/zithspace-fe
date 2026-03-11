@@ -9,9 +9,12 @@ export interface LeaveBalance {
 }
 
 export class LeaveBalanceService {
-  static async getLeaveBalances(): Promise<LeaveBalance[]> {
+  static async getLeaveBalances(employeeId?: string): Promise<LeaveBalance[]> {
     try {
-      const response = await apiClient.get("/api/leave-balances");
+      const url = employeeId
+        ? `/api/leave-balances?employeeId=${employeeId}`
+        : "/api/leave-balances";
+      const response = await apiClient.get(url);
       return response.data.data || response.data;
     } catch (error: any) {
       throw new Error(

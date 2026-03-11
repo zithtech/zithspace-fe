@@ -40,6 +40,7 @@ import {
   CheckOutlined,
   CloseOutlined,
   PlusOutlined,
+  CheckCircleOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useRouter, usePathname } from "next/navigation";
@@ -89,8 +90,11 @@ export default function GovernmentHolidaysPage() {
   const [editExtraDays, setEditExtraDays] = useState(0);
   const [editExtraPosition, setEditExtraPosition] = useState<
     "before" | "after"
-  >("after");
+  >("after"); 
 
+   const hasApprovalRights =
+    (user as any)?.role === "super_admin" ||
+    (user as any)?.role === "admin";
   //   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
 
   useEffect(() => {
@@ -545,6 +549,7 @@ export default function GovernmentHolidaysPage() {
                 if (key === "positions") router.push("/leave-policy");
                 if (key === "addLeaves") router.push("/add-goverment-leaves");
                 if (key === "apply-leave") router.push("/apply-leave");
+                if (key === "approvals") router.push("/leave-approvals")
               }}
               items={[
                 {
@@ -563,11 +568,20 @@ export default function GovernmentHolidaysPage() {
                 //     </span>
                 //   ),
                 // },
+                
                 {
                   key: "apply-leave",
                   label: (
                     <span>
                       <PlusOutlined /> Apply leave
+                    </span>
+                  ),
+                },
+                 hasApprovalRights && {
+                  key: "approvals",
+                  label: (
+                    <span>
+                      <CheckCircleOutlined /> Approvals
                     </span>
                   ),
                 },
@@ -612,7 +626,7 @@ export default function GovernmentHolidaysPage() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean) as any}
             />
           </div>
 

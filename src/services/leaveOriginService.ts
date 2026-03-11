@@ -9,6 +9,7 @@ export interface OriginLeaveType {
   leaveType?: { id: string; name: string }; // Populated relation
   unit: number;
   period: string;
+  accrualInterval: number; // ⭐ add
   carryForward: boolean;
   status: string;
 }

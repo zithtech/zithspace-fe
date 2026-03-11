@@ -222,8 +222,12 @@ interface LeaveType {
 }
 
 export default function leaveConfiguration() {
+  const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const hasApprovalRights =
+    (user as any)?.role === "super_admin" || (user as any)?.role === "admin";
+
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -516,15 +520,18 @@ export default function leaveConfiguration() {
             <Tabs
               activeKey="configuration"
               onChange={(key) => {
-                if (key === "dashboard") router.push("/leaves-dashboard");
-                // if (key === "leaves") router.push("/leaves");
-                if (key === "holidays") router.push("/government-holidays");
-                if (key === "adjustments") router.push("/leave-adjustments");
-                if (key === "configuration")
-                  router.push("/leave-type");
-                if (key === "positions") router.push("/leave-policy");
-                if (key === "addLeaves") router.push("/add-goverment-leaves");
-                if (key === "apply-leave") router.push("/apply-leave");
+                const routes: any = {
+                  dashboard: "/leaves-dashboard",
+                  // leaves: "/leaves",
+                  holidays: "/government-holidays",
+                  adjustments: "/leave-adjustments",
+                  configuration: "/leave-type",
+                  positions: "/leave-policy",
+                  addLeaves: "/add-goverment-leaves",
+                  "apply-leave": "/apply-leave",
+                  approvals: "/leave-approvals",
+                };
+                if (routes[key]) router.push(routes[key]);
               }}
               items={[
                 {
@@ -548,6 +555,14 @@ export default function leaveConfiguration() {
                   label: (
                     <span>
                       <PlusOutlined /> Apply leave
+                    </span>
+                  ),
+                },
+                hasApprovalRights && {
+                  key: "approvals",
+                  label: (
+                    <span>
+                      <CheckCircleOutlined /> Approvals
                     </span>
                   ),
                 },
@@ -591,7 +606,7 @@ export default function leaveConfiguration() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean) as any}
             />
           </div>
           <Card>

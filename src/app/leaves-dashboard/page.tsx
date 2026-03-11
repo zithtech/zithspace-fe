@@ -31,6 +31,7 @@ import {
   CalendarOutlined,
   UserOutlined,
   PlusOutlined,
+  CheckCircleOutlined
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
@@ -73,6 +74,10 @@ export default function LeavesDashboardPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  
+  const hasApprovalRights =
+    (user as any)?.role === "super_admin" ||
+    (user as any)?.role === "admin";
 
   const {
     leaveTypes,
@@ -211,6 +216,7 @@ export default function LeavesDashboardPage() {
                 if (key === "positions") router.push("/leave-policy");
                 if (key === "addLeaves") router.push("/add-goverment-leaves");
                 if (key === "apply-leave") router.push("/apply-leave");
+                if(key === "approvals") router.push("/leave-approvals")
               }}
               items={[
                 {
@@ -234,6 +240,14 @@ export default function LeavesDashboardPage() {
                   label: (
                     <span>
                       <PlusOutlined /> Apply leave
+                    </span>
+                  ),
+                },
+                hasApprovalRights && {
+                  key: "approvals",
+                  label: (
+                    <span>
+                      <CheckCircleOutlined /> Approvals
                     </span>
                   ),
                 },
@@ -277,7 +291,8 @@ export default function LeavesDashboardPage() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean) as any}
+              
             />
           </div>
           <Row gutter={[16, 16]}>

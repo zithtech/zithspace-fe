@@ -70,5 +70,11 @@ export class LeaveRequestService {
   static async cancelLeave(id: string) {
     const response = await apiClient.put(`/api/leave-request/${id}/cancel`);
     return response.data;
+
   }
+  static async getPendingApprovals() {
+  const response = await apiClient.get("/api/leave-request/approvals");
+  return response.data.data;
 }
+}
+

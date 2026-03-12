@@ -35,8 +35,8 @@ export interface MailAttachment {
 }
 
 export const MailService = {
-    async getThreads(label?: string) {
-        return await api.get("/api/mail/threads", { params: { label } });
+    async getThreads(label?: string, filter?: string, search?: string) {
+        return await api.get("/api/mail/threads", { params: { label, filter, search } });
     },
 
     async getThreadMessages(threadId: string) {
@@ -78,9 +78,27 @@ export const MailService = {
     async deleteThreads(ids: string[]) {
         return await api.post("/api/mail/threads/bulk-delete", { ids });
     },
-
+    async bulkRestoreThreads(ids: string[]) {
+        return await api.post("/api/mail/threads/bulk-restore", { ids });
+    },
+    async bulkDestroyThreads(ids: string[]) {
+        return await api.post("/api/mail/threads/bulk-destroy", { ids });
+    },
     async emptyTrash() {
         return await api.post("/api/mail/threads/empty-trash");
+    },
+    async archiveThread(threadId: string) {
+        return await api.post("/api/mail/threads/archive", { threadId });
+    },
+    async bulkArchiveThreads(ids: string[]) {
+        return await api.post("/api/mail/threads/bulk-archive", { ids });
+    },
+    async markAsRead(threadId: string) {
+        return await api.post("/api/mail/threads/mark-as-read", { threadId });
+    },
+
+    async uploadAttachment(file: string | ArrayBuffer | null, fileName: string) {
+        return await api.post("/api/mail/upload-attachment", { file, fileName });
     },
 
     async getStatus(provider: MailProvider) {

@@ -1,14 +1,16 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox } from "antd";
+import { Layout, Menu, Typography, Button, Space, Avatar, List, Divider, Empty, Spin, Input, Drawer, Badge, Modal, Form, message, Select, Popconfirm, Checkbox, Segmented, DatePicker, Upload } from "antd";
+import axios from "axios";
+import { apiClient } from "@/lib/axios";
 import {
   MailOutlined,
   SyncOutlined,
   ArrowLeftOutlined,
   UserOutlined,
-  PaperClipOutlined,
   SearchOutlined,
   EditOutlined,
   InboxOutlined,
@@ -18,13 +20,26 @@ import {
   ExclamationCircleOutlined,
   FolderOutlined,
   CloseOutlined,
-  RollbackOutlined
+  RollbackOutlined,
+  PaperClipOutlined,
+  DownloadOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  FileImageOutlined,
+  FileOutlined,
+  CaretDownOutlined,
+  EyeOutlined,
+  UndoOutlined
 } from "@ant-design/icons";
-import { useMail } from "@/hooks/useMail";
+import { useMail, useMailThreads, useThreadMessages, useMailStatus, useMailContacts } from "@/hooks/useMail";
 import { MailService, MailMessage } from "@/services/mailService";
 import { userService, User } from "@/services/userService";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import TiptapEditor from "@/components/common/TiptapEditor";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 dayjs.extend(relativeTime);
 
@@ -33,53 +48,138 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 export default function MailPage() {
-  const { threads, loading, syncing, isSending, isSavingDraft, error, connectedEmail, isFetchingStatus, fetchThreads, syncMail, sendMessage, saveDraft, sendDraft, deleteThread, deleteThreads, restoreThread, emptyTrash } = useMail();
+  const [selectedFolder, setSelectedFolder] = useState("INBOX");
+  const [filter, setFilter] = useState<'ALL' | 'READ' | 'UNREAD' | 'HAS_ATTACHMENTS' | 'NO_ATTACHMENTS'>('ALL');
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
-  const [messages, setMessages] = useState<MailMessage[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const { data: threads = [], isLoading: threadsLoading } = useMailThreads(selectedFolder, filter, debouncedSearch);
+  const { data: messages = [], isLoading: messagesLoading } = useThreadMessages(selectedThreadId);
+  const { data: mailStatus } = useMailStatus();
+  const { data: contacts = [] } = useMailContacts();
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const {
+    syncMail, isSyncing,
+    sendMessage, isSending,
+    saveDraft, isSavingDraft,
+    sendDraft,
+    uploadAttachment, isUploading,
+    deleteThread, deleteThreads, isDeletingThreads, restoreThread, bulkRestoreThreads, isRestoringThreads, archiveThread, bulkArchiveThreads, isArchivingThreads, bulkDestroyThreads, isDestroyingThreads, emptyTrash, isEmptyingTrash, markAsRead
+  } = useMail();
+
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [composeVisible, setComposeVisible] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState("INBOX");
-  const [users, setUsers] = useState<{ name: string; email: string }[]>([]);
-  const [fetchingUsers, setFetchingUsers] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [form] = Form.useForm();
 
   const [quickReply, setQuickReply] = useState("");
   const [isSendingReply, setIsSendingReply] = useState(false);
+  const [inlinePreview, setInlinePreview] = useState<{ url: string, name: string, type: string } | null>(null);
+
+  const downloadAsZip = async (attachments: any[]) => {
+    const zip = new JSZip();
+    let filesAdded = 0;
+
+    const promises = attachments.map(async (att) => {
+      try {
+        // Use backend proxy to bypass CORS
+        const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.fileName)}`;
+        const response = await apiClient.get(proxyUrl, { responseType: 'blob' });
+        zip.file(att.fileName, response.data);
+        filesAdded++;
+      } catch (error) {
+        console.error(`Failed to download ${att.fileName}:`, error);
+      }
+    });
+
+    await Promise.all(promises);
+
+    if (filesAdded === 0) {
+      message.error("Could not download any attachments for the ZIP");
+      return;
+    }
+
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, "attachments.zip");
+  };
+
+  const getFileIcon = (fileName?: string) => {
+    if (!fileName) return <FileOutlined />;
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'pdf': return <FilePdfOutlined />;
+      case 'doc':
+      case 'docx':
+      case 'rtf':
+      case 'odt': return <FileWordOutlined />;
+      case 'xls':
+      case 'xlsx':
+      case 'csv': return <FileExcelOutlined />;
+      case 'png':
+      case 'jpg':
+      case 'jpeg':
+      case 'gif':
+      case 'webp': return <FileImageOutlined />;
+      default: return <FileOutlined />;
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const previewAttachment = async (att: any) => {
+    const isPdf = (att.mimeType === 'application/pdf' || att.contentType === 'application/pdf' || att.fileName?.toLowerCase().endsWith('.pdf'));
+
+    try {
+      // Use backend proxy with authenticated apiClient to fetch blob
+      const proxyUrl = `/api/mail/attachments/download?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.fileName)}&mode=inline`;
+      const response = await apiClient.get(proxyUrl, { responseType: 'blob' });
+
+      // Create a local object URL for the blob
+      const blob = new Blob([response.data], { type: isPdf ? 'application/pdf' : (att.mimeType || att.contentType || 'application/octet-stream') });
+      const blobUrl = URL.createObjectURL(blob);
+
+      setInlinePreview({
+        url: blobUrl,
+        name: att.fileName,
+        type: isPdf ? 'application/pdf' : (att.mimeType || att.contentType || "")
+      });
+    } catch (error) {
+      console.error("Failed to preview attachment:", error);
+      message.error("Could not load preview");
+    }
+  };
 
   useEffect(() => {
     setSelectedThreadIds([]);
-    fetchThreads(selectedFolder);
-    fetchUsers();
-  }, [fetchThreads, selectedFolder]);
-
-  const fetchUsers = async () => {
-    setFetchingUsers(true);
-    try {
-      const data = await MailService.getContacts();
-      setUsers(data || []);
-    } catch (err) {
-      console.error("Failed to fetch contacts for compose drawer:", err);
-    } finally {
-      setFetchingUsers(false);
-    }
-  };
+  }, [selectedFolder]);
 
   useEffect(() => {
     if (selectedThreadId) {
       if (selectedFolder === "DRAFTS") {
         openDraft(selectedThreadId);
       } else {
-        loadMessages(selectedThreadId);
         setDrawerVisible(true);
       }
     }
   }, [selectedThreadId]);
 
   const openDraft = async (threadId: string) => {
-    setMessagesLoading(true);
     try {
       const data = await MailService.getThreadMessages(threadId);
       const msgs = data?.data || data || [];
@@ -98,24 +198,10 @@ export default function MailPage() {
     } catch (err) {
       console.error("Failed to load draft:", err);
       message.error("Failed to load draft");
-    } finally {
-      setMessagesLoading(false);
     }
   };
 
-  const loadMessages = async (threadId: string) => {
-    setMessagesLoading(true);
-    try {
-      const data = await MailService.getThreadMessages(threadId);
-      setMessages(data || []);
-    } catch (err) {
-      console.error("Failed to load messages:", err);
-    } finally {
-      setMessagesLoading(false);
-    }
-  };
-
-  const selectedThread = threads.find(t => t.id === selectedThreadId);
+  const selectedThread = threads.find((t: any) => t.id === selectedThreadId);
 
   const folderItems = [
     { key: "INBOX", icon: <InboxOutlined />, label: "Inbox", count: selectedFolder === "INBOX" ? threads.length : 0 },
@@ -148,6 +234,9 @@ export default function MailPage() {
             placeholder="Search mail..."
             prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
             style={{ width: "40%", borderRadius: "8px" }}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            allowClear
           />
 
           <Space size="middle">
@@ -159,7 +248,7 @@ export default function MailPage() {
                   const res = await emptyTrash();
                   if (res.success) {
                     message.success("Trash emptied");
-                    syncMail(selectedFolder);
+                    syncMail();
                   }
                 }}
                 okText="Empty Trash"
@@ -171,9 +260,9 @@ export default function MailPage() {
             )}
             <Button
               type="text"
-              icon={<SyncOutlined spin={syncing} />}
-              onClick={() => syncMail(selectedFolder)}
-              disabled={syncing}
+              icon={<SyncOutlined spin={isSyncing} />}
+              onClick={() => syncMail()}
+              disabled={isSyncing}
             />
             <Avatar icon={<UserOutlined />} style={{ cursor: "pointer" }} />
           </Space>
@@ -190,9 +279,9 @@ export default function MailPage() {
                 size="large"
                 style={{ borderRadius: "8px", fontWeight: "bold", height: "48px" }}
                 onClick={() => {
-                  form.resetFields();
-                  setCurrentDraftId(null);
                   setComposeVisible(true);
+                  setCurrentDraftId(null);
+                  setTimeout(() => form.resetFields(), 0);
                 }}
               >
                 Compose
@@ -217,75 +306,101 @@ export default function MailPage() {
           </Sider>
 
           {/* Center Content - Thread List */}
-          <Content style={{ overflow: "auto", background: "#f9f9f9" }}>
-            {threads.length > 0 && (
-              <div style={{ padding: "8px 24px", background: "#fff", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Space>
-                  <Checkbox
-                    checked={threads.length > 0 && selectedThreadIds.length === threads.length}
-                    indeterminate={selectedThreadIds.length > 0 && selectedThreadIds.length < threads.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedThreadIds(threads.map(t => t.id));
-                      } else {
+          <Content style={{ overflow: "auto", background: "#fff" }}>
+            <div style={{ padding: "8px 24px", background: "#fff", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Space>
+                <Checkbox
+                  disabled={threads.length === 0}
+                  checked={threads.length > 0 && selectedThreadIds.length === threads.length}
+                  indeterminate={selectedThreadIds.length > 0 && selectedThreadIds.length < threads.length}
+                  onChange={(e: any) => {
+                    if (e.target.checked) {
+                      setSelectedThreadIds(threads.map((t: any) => t.id));
+                    } else {
+                      setSelectedThreadIds([]);
+                    }
+                  }}
+                />
+                <Divider type="vertical" />
+                <Segmented
+                  value={filter}
+                  onChange={(val) => setFilter(val as any)}
+                  options={[
+                    { label: 'All', value: 'ALL' },
+                    { label: 'Unread', value: 'UNREAD' },
+                    { label: 'Read', value: 'READ' },
+                    { label: 'Has Attachment', value: 'HAS_ATTACHMENTS' },
+                    { label: 'No Attachment', value: 'NO_ATTACHMENTS' }
+                  ]}
+                  size="small"
+                />
+                {selectedThreadIds.length > 0 && (
+                  <>
+                    <Divider type="vertical" />
+                    <Text type="secondary">{selectedThreadIds.length} selected</Text>
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<DeleteOutlined />}
+                      danger
+                      loading={isDestroyingThreads || isDeletingThreads}
+                      onClick={async () => {
+                        if (selectedFolder === "TRASH") {
+                          await bulkDestroyThreads(selectedThreadIds);
+                          message.success("Selected items deleted permanently");
+                        } else {
+                          await deleteThreads(selectedThreadIds);
+                          message.success("Selected items moved to trash");
+                        }
                         setSelectedThreadIds([]);
-                      }
-                    }}
-                  />
-                  {selectedThreadIds.length > 0 && (
-                    <>
-                      <Divider type="vertical" />
-                      <Text type="secondary">{selectedThreadIds.length} selected</Text>
+                      }}
+                    >
+                      {selectedFolder === "TRASH" ? "Delete" : "Move to Trash"}
+                    </Button>
+
+                    {(selectedFolder === "TRASH" || selectedFolder === "ARCHIVE") && (
                       <Button
                         size="small"
                         type="text"
-                        icon={<DeleteOutlined />}
-                        danger
+                        icon={<UndoOutlined />}
+                        loading={isRestoringThreads}
                         onClick={async () => {
-                          const res = await deleteThreads(selectedThreadIds);
-                          if (res.success) {
-                            message.success("Selected items deleted");
-                            setSelectedThreadIds([]);
-                            syncMail(selectedFolder);
-                          }
+                          await bulkRestoreThreads(selectedThreadIds);
+                          message.success(selectedFolder === "TRASH" ? "Selected items restored to inbox" : "Selected items moved back to inbox");
+                          setSelectedThreadIds([]);
                         }}
                       >
-                        Delete
+                        {selectedFolder === "TRASH" ? "Restore" : "Move to Inbox"}
                       </Button>
-                      {selectedFolder === "TRASH" && (
-                        <Button
-                          size="small"
-                          type="text"
-                          icon={<RollbackOutlined />}
-                          onClick={async () => {
-                            // We need to implement bulk restore or just loop
-                            let allSuccess = true;
-                            for (const id of selectedThreadIds) {
-                              const res = await restoreThread(id);
-                              if (!res.success) allSuccess = false;
-                            }
-                            if (allSuccess) message.success("Selected items restored");
-                            else message.warning("Some items failed to restore");
-                            setSelectedThreadIds([]);
-                            syncMail(selectedFolder);
-                          }}
-                        >
-                          Restore
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </Space>
-              </div>
-            )}
-            {loading && !syncing ? (
+                    )}
+
+                    {selectedFolder !== "ARCHIVE" && (
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={<FolderOutlined />}
+                        loading={isArchivingThreads}
+                        onClick={async () => {
+                          await bulkArchiveThreads(selectedThreadIds);
+                          message.success("Selected items archived");
+                          setSelectedThreadIds([]);
+                        }}
+                      >
+                        Archive
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Space>
+            </div>
+            {threadsLoading && !isSyncing ? (
               <div style={{ padding: 40, textAlign: "center" }}><Spin size="large" /></div>
             ) : (
               <List
                 className="mail-thread-list"
                 style={{ padding: "8px" }}
                 dataSource={threads}
-                renderItem={(item) => (
+                renderItem={(item: any) => (
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <div style={{ paddingLeft: "16px" }}>
                       <Checkbox
@@ -300,14 +415,19 @@ export default function MailPage() {
                       />
                     </div>
                     <List.Item
-                      onClick={() => setSelectedThreadId(item.id)}
+                      onClick={() => {
+                        setSelectedThreadId(item.id);
+                        if (!item.isRead) {
+                          markAsRead(item.id);
+                        }
+                      }}
                       style={{
                         flex: 1,
                         cursor: "pointer",
                         padding: "16px 20px",
                         margin: "4px 8px",
                         borderRadius: "8px",
-                        background: selectedThreadId === item.id ? "#e6f7ff" : "#fff",
+                        background: selectedThreadId === item.id ? "#f0f7ff" : "#fff",
                         border: "1px solid #f0f0f0",
                         transition: "all 0.3s",
                         boxShadow: selectedThreadId === item.id ? "0 2px 8px rgba(0,0,0,0.06)" : "none"
@@ -320,9 +440,12 @@ export default function MailPage() {
                             <Text strong ellipsis style={{ fontSize: "15px" }}>
                               {selectedFolder === 'SENT' ? (item.toEmails?.[0] || 'Unknown Recipient') : (item.fromAddress || 'Unknown Sender')}
                             </Text>
-                            <Text type="secondary" style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
-                              {dayjs(item.lastMessageAt).format("MMM D")}
-                            </Text>
+                            <Space size={4}>
+                              {item.hasAttachments && <PaperClipOutlined style={{ fontSize: "14px", color: "rgba(0,0,0,0.45)" }} />}
+                              <Text type="secondary" style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+                                {dayjs(item.lastMessageAt).format("MMM D")}
+                              </Text>
+                            </Space>
                           </div>
                         }
                         description={
@@ -369,185 +492,311 @@ export default function MailPage() {
           onClose={() => {
             setDrawerVisible(false);
             setSelectedThreadId(null);
+            setInlinePreview(null);
           }}
           open={drawerVisible}
           extra={
             <Space>
-              {selectedFolder === "TRASH" && (
+              {inlinePreview ? (
                 <Button
-                  icon={<RollbackOutlined />}
-                  onClick={async () => {
-                    if (selectedThreadId) {
-                      const res = await restoreThread(selectedThreadId);
-                      if (res.success) {
-                        message.success("Thread restored to Inbox");
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => setInlinePreview(null)}
+                >
+                  Back to Messages
+                </Button>
+              ) : (
+                <>
+                  {selectedFolder === "TRASH" && (
+                    <Button
+                      icon={<RollbackOutlined />}
+                      onClick={async () => {
+                        if (selectedThreadId) {
+                          await restoreThread(selectedThreadId);
+                          message.success("Thread restored to Inbox");
+                          setDrawerVisible(false);
+                          setSelectedThreadId(null);
+                        }
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  )}
+                  {selectedFolder !== "ARCHIVE" && selectedFolder !== "TRASH" && (
+                    <Button
+                      icon={<FolderOutlined />}
+                      onClick={async () => {
+                        if (selectedThreadId) {
+                          await archiveThread(selectedThreadId);
+                          message.success("Thread archived");
+                          setDrawerVisible(false);
+                          setSelectedThreadId(null);
+                        }
+                      }}
+                    >
+                      Archive
+                    </Button>
+                  )}
+                  <Popconfirm
+                    title={selectedFolder === "TRASH" ? "Permanently delete?" : "Move to trash?"}
+                    description={selectedFolder === "TRASH" ? "This action cannot be undone." : "You can restore it later from the Trash folder."}
+                    onConfirm={async () => {
+                      if (selectedThreadId) {
+                        await deleteThread(selectedThreadId);
+                        message.success(selectedFolder === "TRASH" ? "Thread permanently deleted" : "Thread moved to trash");
                         setDrawerVisible(false);
                         setSelectedThreadId(null);
-                        syncMail(selectedFolder);
                       }
-                    }
-                  }}
-                >
-                  Restore
-                </Button>
+                    }}
+                    okText="Delete"
+                    cancelText="Cancel"
+                  >
+                    <Button icon={<DeleteOutlined />} type="text" danger />
+                  </Popconfirm>
+                  <Button icon={<ExclamationCircleOutlined />} type="text" />
+                </>
               )}
-              <Popconfirm
-                title={selectedFolder === "TRASH" ? "Permanently delete?" : "Move to trash?"}
-                description={selectedFolder === "TRASH" ? "This action cannot be undone." : "You can restore it later from the Trash folder."}
-                onConfirm={async () => {
-                  if (selectedThreadId) {
-                    const res = await deleteThread(selectedThreadId);
-                    if (res.success) {
-                      message.success(selectedFolder === "TRASH" ? "Thread permanently deleted" : "Thread moved to trash");
-                      setDrawerVisible(false);
-                      setSelectedThreadId(null);
-                      syncMail(selectedFolder);
-                    }
-                  }
-                }}
-                okText="Delete"
-                cancelText="Cancel"
-              >
-                <Button icon={<DeleteOutlined />} type="text" danger />
-              </Popconfirm>
-              <Button icon={<ExclamationCircleOutlined />} type="text" />
             </Space>
           }
         >
           <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-            <div style={{ flex: 1, overflow: "auto", paddingBottom: "20px" }}>
-              <List
-                dataSource={messages}
-                renderItem={(msg) => (
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 16 }}>
-                      <Avatar size="large" icon={<UserOutlined />} style={{ marginRight: 12, marginTop: 4 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <Space direction="vertical" size={0}>
-                            <Text strong style={{ fontSize: "15px" }}>{msg.fromEmail}</Text>
-                            <Text type="secondary" style={{ fontSize: "12px" }}>
-                              to {Array.isArray(msg.toEmails) ? msg.toEmails.join(", ") : msg.toEmails}
-                            </Text>
-                          </Space>
-                          <Space>
-                            <Text type="secondary" style={{ fontSize: "12px" }}>
-                              {dayjs(msg.receivedAt).format("MMM D, YYYY [at] h:mm A")}
-                            </Text>
-                            <Button
-                              type="text"
-                              icon={<RollbackOutlined />}
-                              size="small"
-                              onClick={() => {
-                                // Scroll to quick reply and focus
-                                const textArea = document.getElementById('quick-reply-textarea');
-                                if (textArea) textArea.focus();
-                              }}
-                            >
-                              Reply
-                            </Button>
-                          </Space>
-                        </div>
-                      </div>
+            {inlinePreview ? (
+              <div style={{ flex: 1, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0', marginBottom: '12px' }}>
+                  <Text strong>{inlinePreview.name}</Text>
+                </div>
+                <div style={{ flex: 1, width: '100%', background: '#f5f5f5', borderRadius: '8px', overflow: 'hidden' }}>
+                  {inlinePreview.type.startsWith('image/') ? (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                      <img src={inlinePreview.url} alt={inlinePreview.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     </div>
-
-                    <div className="mail-body" style={{
-                      background: "#fff",
-                      padding: "0 8px",
-                      lineHeight: "1.6"
-                    }}>
-                      {msg.bodyHtml ? (
-                        <div dangerouslySetInnerHTML={{ __html: msg.bodyHtml }} />
-                      ) : (
-                        <Paragraph style={{ whiteSpace: "pre-wrap" }}>{msg.bodyText}</Paragraph>
-                      )}
+                  ) : inlinePreview.type === 'application/pdf' ? (
+                    <iframe
+                      src={inlinePreview.type === 'application/pdf' ? `${inlinePreview.url}#toolbar=0&navpanes=0&scrollbar=1` : inlinePreview.url}
+                      title={inlinePreview.name}
+                      style={{ width: '100%', height: '100%', border: 'none', background: 'white' }}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: 40 }}>
+                      <p>Preview not available for this file type.</p>
+                      <Button type="primary" href={inlinePreview.url} download={inlinePreview.name}>
+                        Download to View
+                      </Button>
                     </div>
-
-                    {msg.attachments && msg.attachments.length > 0 && (
-                      <div style={{ marginTop: 20, padding: "12px", background: "#f5f5f5", borderRadius: "8px" }}>
-                        <Text strong style={{ fontSize: "13px", display: "block", marginBottom: 8 }}>
-                          Attachments ({msg.attachments.length})
-                        </Text>
-                        <Space wrap>
-                          {msg.attachments.map(att => (
-                            <Button
-                              key={att.id}
-                              size="small"
-                              icon={<PaperClipOutlined />}
-                              href={att.downloadUrl}
-                              target="_blank"
-                              style={{ borderRadius: "4px" }}
-                            >
-                              {att.fileName}
-                            </Button>
-                          ))}
-                        </Space>
-                      </div>
-                    )}
-                    <Divider />
-                  </div>
-                )}
-              />
-            </div>
-
-            {/* Quick Reply Area */}
-            <div style={{
-              padding: "20px 0 0 0",
-              borderTop: "1px solid #f0f0f0",
-              background: "#fff"
-            }}>
-              <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                <Avatar icon={<UserOutlined />} />
-                <div style={{ flex: 1 }}>
-                  <TextArea
-                    id="quick-reply-textarea"
-                    placeholder="Write a reply..."
-                    autoSize={{ minRows: 2, maxRows: 10 }}
-                    value={quickReply}
-                    onChange={(e) => setQuickReply(e.target.value)}
-                    style={{
-                      borderRadius: "8px",
-                      border: "1px solid #d9d9d9",
-                      padding: "8px 12px"
-                    }}
-                  />
-                  <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end" }}>
-                    <Button
-                      type="primary"
-                      icon={<SendOutlined />}
-                      loading={isSendingReply}
-                      disabled={!quickReply.trim()}
-                      onClick={async () => {
-                        const lastMsg = messages[messages.length - 1];
-                        if (!lastMsg) return;
-
-                        setIsSendingReply(true);
-                        const result = await sendMessage({
-                          to: [lastMsg.fromEmail],
-                          subject: lastMsg.subject.startsWith("Re:") ? lastMsg.subject : `Re: ${lastMsg.subject}`,
-                          body: quickReply
-                        });
-
-                        if (result.success) {
-                          message.success("Reply sent");
-                          setQuickReply("");
-                          // Refresh messages to show the new one
-                          if (selectedThreadId) {
-                            const data = await MailService.getThreadMessages(selectedThreadId);
-                            setMessages(data?.data || data || []);
-                          }
-                        } else {
-                          message.error("Failed to send reply");
-                        }
-                        setIsSendingReply(false);
-                      }}
-                    >
-                      Send Reply
-                    </Button>
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div style={{ flex: 1, overflow: "auto", paddingBottom: "20px" }}>
+                  <List
+                    dataSource={messages}
+                    renderItem={(msg: any) => (
+                      <div style={{
+                        marginBottom: "24px",
+                        padding: "20px",
+                        background: "#fff",
+                        borderRadius: "12px",
+                        border: "1px solid #f0f0f0"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 20 }}>
+                          <Avatar size="large" icon={<UserOutlined />} style={{ marginRight: 12, marginTop: 4, background: "#f0f0f0", color: "#8c8c8c" }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <Space direction="vertical" size={0}>
+                                <Text strong style={{ fontSize: "15px", color: "rgba(0, 0, 0, 0.85)" }}>{msg.fromEmail}</Text>
+                                <Text style={{ fontSize: "12px", color: "rgba(0, 0, 0, 0.45)" }}>
+                                  to {Array.isArray(msg.toEmails) ? msg.toEmails.join(", ") : msg.toEmails}
+                                </Text>
+                              </Space>
+                              <Space>
+                                <Text style={{ fontSize: "12px", color: "rgba(0, 0, 0, 0.45)" }}>
+                                  {dayjs(msg.receivedAt).format("MMM D, YYYY [at] h:mm A")}
+                                </Text>
+                                <Button
+                                  type="text"
+                                  icon={<RollbackOutlined />}
+                                  size="small"
+                                  style={{ color: "rgba(0, 0, 0, 0.45)" }}
+                                  onClick={() => {
+                                    // Scroll to quick reply and focus
+                                    const textArea = document.getElementById('quick-reply-textarea');
+                                    if (textArea) textArea.focus();
+                                  }}
+                                >
+                                  Reply
+                                </Button>
+                              </Space>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mail-body" style={{
+                          background: "transparent",
+                          padding: "0 8px",
+                          lineHeight: "1.6",
+                          color: "rgba(0, 0, 0, 0.85)"
+                        }}>
+                          {msg.bodyHtml ? (
+                            <div dangerouslySetInnerHTML={{ __html: msg.bodyHtml }} />
+                          ) : (
+                            <Paragraph style={{ whiteSpace: "pre-wrap", color: "inherit" }}>{msg.bodyText}</Paragraph>
+                          )}
+                        </div>
+
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div style={{ marginTop: 20, padding: "8px 0" }}>
+                            <div style={{ display: "flex", alignItems: "center", marginBottom: 12, gap: "8px" }}>
+                              <CaretDownOutlined style={{ fontSize: "10px", color: "rgba(0, 0, 0, 0.45)" }} />
+                              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(0, 0, 0, 0.85)", display: "flex", alignItems: "center" }}>
+                                {msg.attachments.length} Attachment(s)
+                              </span>
+                              <span style={{ color: "rgba(0, 0, 0, 0.45)", fontSize: "14px" }}>•</span>
+                              <Button
+                                type="link"
+                                size="small"
+                                onClick={() => downloadAsZip(msg.attachments)}
+                                style={{ padding: 0, color: "#fa541c", height: "auto", fontSize: "13px", fontWeight: 500, display: "flex", alignItems: "center" }}
+                              >
+                                Download as Zip
+                              </Button>
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+                              {msg.attachments.map((att: any) => (
+                                <div
+                                  key={att.id}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    width: "320px",
+                                    background: "#f9f9f9",
+                                    borderRadius: "8px",
+                                    padding: "12px",
+                                    color: "rgba(0, 0, 0, 0.85)",
+                                    border: "1px solid #f0f0f0"
+                                  }}
+                                >
+                                  <div style={{
+                                    width: "48px",
+                                    height: "48px",
+                                    background: "#fa541c",
+                                    borderRadius: "8px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    marginRight: "12px",
+                                    fontSize: "24px",
+                                    color: "#fff",
+                                    flexShrink: 0
+                                  }}>
+                                    {getFileIcon(att.fileName)}
+                                  </div>
+                                  <div style={{ flex: 1, overflow: "hidden" }}>
+                                    <div style={{
+                                      fontSize: "14px",
+                                      fontWeight: 500,
+                                      color: "rgba(0, 0, 0, 0.85)",
+                                      whiteSpace: "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      marginBottom: "4px"
+                                    }}>
+                                      {att.fileName}
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", color: "rgba(0, 0, 0, 0.45)", fontSize: "12px" }}>
+                                      <span>{formatFileSize(att.size)}</span>
+                                      <span style={{ margin: "0 6px" }}>•</span>
+                                      <Space size={12}>
+                                        <Button
+                                          type="text"
+                                          size="small"
+                                          onClick={() => previewAttachment(att)}
+                                          style={{ color: "rgba(0, 0, 0, 0.45)", display: "flex", alignItems: "center", padding: 0 }}
+                                        >
+                                          <EyeOutlined style={{ fontSize: "16px" }} />
+                                        </Button>
+                                        <a
+                                          href={`/api/mail/attachments/download?url=${encodeURIComponent(att.downloadUrl)}&filename=${encodeURIComponent(att.fileName)}`}
+                                          download={att.fileName}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          style={{ color: "rgba(0, 0, 0, 0.45)", display: "flex", alignItems: "center" }}
+                                        >
+                                          <DownloadOutlined style={{ fontSize: "16px" }} />
+                                        </a>
+                                      </Space>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <Divider />
+                      </div>
+                    )}
+                  />
+                </div>
+
+                {/* Quick Reply Area */}
+                <div style={{
+                  padding: "20px 0 0 0",
+                  borderTop: "1px solid #f0f0f0",
+                  background: "#fff"
+                }}>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                    <Avatar icon={<UserOutlined />} />
+                    <div style={{ flex: 1 }}>
+                      <TextArea
+                        id="quick-reply-textarea"
+                        placeholder="Write a reply..."
+                        autoSize={{ minRows: 2, maxRows: 10 }}
+                        value={quickReply}
+                        onChange={(e) => setQuickReply(e.target.value)}
+                        style={{
+                          borderRadius: "8px",
+                          border: "1px solid #d9d9d9",
+                          padding: "8px 12px"
+                        }}
+                      />
+                      <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end" }}>
+                        <Button
+                          type="primary"
+                          icon={<SendOutlined />}
+                          loading={isSendingReply}
+                          disabled={!quickReply.trim()}
+                          onClick={async () => {
+                            const lastMsg = messages[messages.length - 1];
+                            if (!lastMsg) return;
+
+                            setIsSendingReply(true);
+                            const result = await sendMessage({
+                              to: [lastMsg.fromEmail],
+                              subject: lastMsg.subject.startsWith("Re:") ? lastMsg.subject : `Re: ${lastMsg.subject}`,
+                              body: quickReply,
+                              threadId: selectedThreadId || undefined
+                            });
+
+                            if (result) {
+                              message.success("Reply sent");
+                              setQuickReply("");
+                              // Refresh messages to show the new one
+                              if (selectedThreadId) {
+                                await syncMail();
+                              }
+                            } else {
+                              message.error("Failed to send reply");
+                            }
+                            setIsSendingReply(false);
+                          }}
+                        >
+                          Send Reply
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </Drawer>
 
@@ -555,7 +804,7 @@ export default function MailPage() {
         <Drawer
           title={<div style={{ padding: "4px 0" }}><Title level={4} style={{ margin: 0 }}>New Message</Title></div>}
           placement="right"
-          width={650}
+          width={750}
           onClose={() => {
             setComposeVisible(false);
             setCurrentDraftId(null);
@@ -567,18 +816,26 @@ export default function MailPage() {
               <Button
                 onClick={async () => {
                   const values = form.getFieldsValue();
+                  // Clean up attachments: only send the metadata needed by the backend
+                  const cleanedAttachments = values.attachments?.map((file: any) => ({
+                    filename: file.name || file.fileName,
+                    url: file.url || file.response?.fileUrl || file.response?.url,
+                    size: file.size,
+                    contentType: file.type || file.contentType
+                  })).filter((a: any) => a.url);
+
                   const draftData = {
                     ...values,
                     to: values.to || [],
+                    attachments: cleanedAttachments,
                     id: currentDraftId || undefined
                   };
                   const result = await saveDraft(draftData);
-                  if (result.success) {
+                  if (result) {
                     message.success("Draft saved");
                     setComposeVisible(false);
                     setCurrentDraftId(null);
                     setSelectedThreadId(null);
-                    syncMail(selectedFolder);
                   }
                 }}
                 loading={isSavingDraft}
@@ -601,33 +858,39 @@ export default function MailPage() {
             form={form}
             layout="vertical"
             onFinish={async (values) => {
+              // Clean up attachments: only send the metadata needed by the backend
+              const cleanedAttachments = values.attachments?.map((file: any) => ({
+                filename: file.name || file.fileName,
+                url: file.url || file.response?.fileUrl || file.response?.url,
+                size: file.size,
+                contentType: file.type || file.contentType
+              })).filter((a: any) => a.url);
+
               const mailData = {
                 ...values,
                 to: values.to || [],
                 cc: values.cc || undefined,
                 bcc: values.bcc || undefined,
+                attachments: cleanedAttachments,
+                scheduledAt: values.scheduledAt?.toISOString() || null
               };
 
-              // If we are editing a draft, we should update it first then send it
-              // Or just send it if the provider supports sending a draft by ID
               let result;
               if (currentDraftId) {
-                // Update draft first to ensure latest content is sent
                 await saveDraft({ ...mailData, id: currentDraftId });
                 result = await sendDraft(currentDraftId);
               } else {
                 result = await sendMessage(mailData);
               }
 
-              if (result.success) {
-                message.success("Email sent successfully");
+              if (result) {
+                message.success(mailData.scheduledAt ? "Email scheduled successfully" : "Email sent successfully");
                 setComposeVisible(false);
                 setCurrentDraftId(null);
                 setSelectedThreadId(null);
                 form.resetFields();
-                syncMail(selectedFolder);
               } else {
-                message.error("Failed to send email");
+                message.error("Failed to process email");
               }
             }}
             initialValues={{ to: [], cc: [], bcc: [], subject: "", body: "" }}
@@ -636,13 +899,13 @@ export default function MailPage() {
               label={<Text type="secondary">From</Text>}
               style={{ marginBottom: "12px" }}
             >
-              {isFetchingStatus ? (
+              {!mailStatus ? (
                 <div style={{ padding: "4px 11px", borderBottom: "1px solid #f0f0f0" }}>
                   <Spin size="small" /> <Text type="secondary" style={{ marginLeft: 8 }}>Loading...</Text>
                 </div>
               ) : (
                 <Input
-                  value={connectedEmail || "No connected email found"}
+                  value={mailStatus.connectedEmail || "No connected email found"}
                   disabled
                   variant="borderless"
                   style={{ borderBottom: "1px solid #f0f0f0", color: "#262626", fontWeight: 500 }}
@@ -660,8 +923,7 @@ export default function MailPage() {
                 mode="tags"
                 placeholder="Select or type recipient emails"
                 tokenSeparators={[',', ' ']}
-                loading={fetchingUsers}
-                options={users.map(u => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter(u => u.value)}
+                options={contacts.map((u: any) => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter((u: any) => u.value)}
                 filterOption={(input, option) =>
                   (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase()) ||
                   (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
@@ -681,8 +943,7 @@ export default function MailPage() {
                 mode="tags"
                 placeholder="Select or type secondary recipient emails"
                 tokenSeparators={[',', ' ']}
-                loading={fetchingUsers}
-                options={users.map(u => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter(u => u.value)}
+                options={contacts.map((u: any) => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter((u: any) => u.value)}
                 filterOption={(input, option) =>
                   (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase()) ||
                   (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
@@ -702,8 +963,7 @@ export default function MailPage() {
                 mode="tags"
                 placeholder="Select or type blind tertiary recipient emails"
                 tokenSeparators={[',', ' ']}
-                loading={fetchingUsers}
-                options={users.map(u => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter(u => u.value)}
+                options={contacts.map((u: any) => ({ value: u.email || '', label: `${u.name} (${u.email || 'No Email'})` })).filter((u: any) => u.value)}
                 filterOption={(input, option) =>
                   (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase()) ||
                   (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
@@ -728,13 +988,63 @@ export default function MailPage() {
               rules={[{ required: true, message: "Message body is required" }]}
               style={{ marginTop: "24px" }}
             >
-              <TextArea
-                placeholder="Write your message here..."
-                autoSize={{ minRows: 15, maxRows: 25 }}
-                variant="borderless"
-                style={{ padding: "0 11px" }}
+              <TiptapEditor
+                content={form.getFieldValue('body')}
+                onChange={(html) => form.setFieldsValue({ body: html })}
+                minHeight={300}
               />
             </Form.Item>
+
+            <Divider />
+
+            <Space size="large" style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Form.Item
+                name="attachments"
+                valuePropName="fileList"
+                getValueFromEvent={(e: any) => {
+                  if (Array.isArray(e)) return e;
+                  return e?.fileList;
+                }}
+              >
+                <Upload
+                  customRequest={async ({ file, onSuccess, onError }: any) => {
+                    try {
+                      const reader = new FileReader();
+                      reader.onload = async () => {
+                        try {
+                          const response = await uploadAttachment({
+                            file: reader.result,
+                            fileName: file.name
+                          });
+                          onSuccess(response);
+                        } catch (err) {
+                          onError(err);
+                        }
+                      };
+                      reader.onerror = (err) => onError(err);
+                      reader.readAsDataURL(file);
+                    } catch (err) {
+                      onError(err);
+                    }
+                  }}
+                  multiple
+                  listType="text"
+                >
+                  <Button icon={<PaperClipOutlined />}>Attach Files</Button>
+                </Upload>
+              </Form.Item>
+
+              <Form.Item
+                name="scheduledAt"
+                label={<Text type="secondary">Send Later</Text>}
+              >
+                <DatePicker
+                  showTime
+                  placeholder="Schedule time"
+                  disabledDate={(current) => current && current < dayjs().startOf('day')}
+                />
+              </Form.Item>
+            </Space>
           </Form>
         </Drawer>
       </Layout>

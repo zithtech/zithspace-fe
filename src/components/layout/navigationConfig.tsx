@@ -82,7 +82,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "HOME",
     label: "HOME",
     icon: <HomeOutlined />,
-    pathPrefixes: ["/dashboard","/integrations"],
+    pathPrefixes: ["/dashboard", "/integrations"],
     defaultPath: "/dashboard",
     // Dashboard should be accessible to all authenticated users - no permission required
     items: [
@@ -264,6 +264,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/employee-exit",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -310,19 +311,38 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.ONBOARDING_CREATE,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/onboarded",
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
             requiredPermission: Permissions.ONBOARDING_READ,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/settings",
             icon: <IoSettingsOutline />,
             label: "Settings",
             path: "/onboarding/settings",
           },
         ],
+      },
+
+      {
+        key: "employee-exit",
+        icon: <UserOutlined />,
+        label: "Employee Exit",
+        // No specific permission required initially based on requirements
+        children: [
+          {
+            key: "/employee-exit/management",
+            label: "Employee Exit Management",
+            path: "/employee-exit/management",
+          },
+          {
+            key: "/employee-exit/configuration",
+            label: "Configuration",
+            path: "/employee-exit/configuration",
+          },
+        ]
       },
 
       {

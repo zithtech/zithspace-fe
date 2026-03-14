@@ -70,6 +70,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const response = await AuthService.login({ email, password });
 
+      // Set the auth marker cookie so Next.js middleware can detect the session.
+      // The backend's refreshToken is httpOnly and set on the API origin, so it is
+      // not visible to Next.js middleware running on the frontend origin.
+      // This lightweight cookie acts as the middleware auth signal.
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+      }
+
       // Transform the response to match our User interface
       const userData: User = {
         id: response.user.id,
@@ -90,13 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       setUser(userData);
-
-      // Handle redirect after login (like traditional SPAs)
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectTo = urlParams.get('redirect');
-      const targetUrl = redirectTo || '/dashboard';
-
-      router.push(targetUrl);
+      // Navigation is handled by the login page component via useEffect watching `user`
       return true;
     } catch (error) {
       console.error("Login failed:", error);
@@ -112,6 +114,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
+      // Clear the auth marker cookie so middleware stops treating user as authenticated
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      }
       // Clear local state regardless of API call success
       setUser(null);
       router.push("/login");
@@ -122,15 +128,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const success = await AuthService.refreshToken();
       if (!success) {
-        // Refresh failed, clear auth and set loading to false
+        // Refresh failed, clear auth marker cookie and state
+        if (typeof document !== 'undefined') {
+          document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        }
         setUser(null);
         AuthService.clearAuth();
         setIsLoading(false);
         return false;
       }
+      // Refresh succeeded — ensure auth marker cookie is present
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=1; path=/; SameSite=Lax';
+      }
       return true;
     } catch (error) {
       console.error('Token refresh failed:', error);
+      if (typeof document !== 'undefined') {
+        document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+      }
       setUser(null);
       AuthService.clearAuth();
       setIsLoading(false);
@@ -185,6 +201,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Only clear tokens on actual authentication errors (401), not parsing errors
       if (error instanceof ApiError && error.status === 401) {
         console.log('🔒 Authentication error (401), clearing tokens and redirecting to login');
+        // Clear the auth marker cookie so middleware stops treating user as authenticated
+        if (typeof document !== 'undefined') {
+          document.cookie = 'zithmi_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        }
         setUser(null);
         AuthService.clearAuth();
 

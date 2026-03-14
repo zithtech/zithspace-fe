@@ -16,6 +16,8 @@ import TicketService from "@/services/ticketService";
 import { AttendanceService } from "@/services/attendanceService";
 import Organization from "@/components/organaization/Organization";
 
+//import { dashboardService, DashboardData } from "@/services/dashboardService";
+import { useDynamicCalendar } from "@/hooks/useDynamicCalendar";
 import {
   Card,
   Row,
@@ -147,7 +149,7 @@ function DashboardContent() {
     };
   }, [todayAttendance]);
 
-  // Zoho Calendar Integration
+  // Dynamic Calendar Integration - works with any connected provider
   const {
     status: calendarStatus,
     events: calendarEvents,
@@ -157,13 +159,24 @@ function DashboardContent() {
     syncEvents: syncCalendar,
     error: calendarError,
     successMessage: calendarSuccess,
-  } = useZohoCalendar();
+  } = useDynamicCalendar();
 
   // Filter today's meetings with recurring support
   const todaysMeetings = calendarEvents.reduce((acc: any[], event: any) => {
+    console.log(`[Dashboard] Processing event:`, {
+      title: event.title,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      isRecurring: event.isRecurring,
+      rrule: event.rrule,
+      attendees: event.attendees,
+      userId: event.userId,
+      userEmail: user?.email
+    });
+
     // Filter: User must be an attendee or the creator
-    const isUserAttendee =
-      event.attendees?.includes(user?.email) || event.userId === user?.id;
+    const isUserAttendee = event.attendees?.includes(user?.email) || event.userId === user?.id;
+    console.log(`[Dashboard] User attendee check:`, { isUserAttendee, userEmail: user?.email, eventAttendees: event.attendees });
     if (!isUserAttendee) return acc;
 
     const today = dayjs().startOf("day");
@@ -967,7 +980,7 @@ function DashboardContent() {
                     <Col xs={24} lg={8}>
                       {/* Today's Meetings */}
                       <div style={{ height: "100%" }}>
-                        <Card
+                        {/* <Card
                           title={
                             <Space size={4}>
                               <VideoCameraOutlined
@@ -1171,6 +1184,149 @@ function DashboardContent() {
                                 <Text type="secondary" style={{ fontSize: 11 }}>
                                   No meetings scheduled
                                 </Text>
+                              </div>
+                            </div>
+                          )}
+                        </Card> */}
+                        <Card
+                          title={
+                            <Space size={4}>
+                              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
+                              <span style={{ fontSize: 13 }}>Today's Meetings</span>
+                              {!calendarStatus?.includes('connected') && (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={connectCalendar}
+                                  loading={calendarLoading}
+                                  style={{ marginLeft: 4, fontSize: 11 }}
+                                >
+                                  Connect
+                                </Button>
+                              )}
+                            </Space>
+                          }
+                          size="small"
+                          extra={
+                            calendarStatus?.includes('connected') && (
+                              <Space size={2}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<ClockCircleOutlined />}
+                                  onClick={syncCalendar}
+                                  loading={calendarLoading}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  Sync
+                                </Button>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  onClick={() => router.push("/calendar")}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  View
+                                </Button>
+                              </Space>
+                            )
+                          }
+                          styles={{ body: { padding: 0 } }}
+                          style={{ height: '280px' }}
+                        >
+                          {calendarLoading ? (
+                            <div style={{ padding: 16, textAlign: "center" }}>
+                              <Skeleton active paragraph={{ rows: 2 }} />
+                            </div>
+                          ) : !calendarStatus?.includes('connected') ? (
+                            <div style={{ padding: 20, textAlign: "center" }}>
+                              <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>Connect calendar to see meetings</Text>
+                              </div>
+                              <Button
+                                type="primary"
+                                size="small"
+                                onClick={connectCalendar}
+                                style={{ marginTop: 8, fontSize: 11, height: 24 }}
+                              >
+                                Connect Zoho Calendar
+                              </Button>
+                            </div>
+                          ) : todaysMeetings.length > 0 ? (
+                            <div style={{ height: 220, overflowY: 'auto' }}>
+                              <List
+                                size="small"
+                                dataSource={todaysMeetings}
+                                renderItem={(meeting) => {
+                                  const startTime = dayjs(meeting.startTime);
+                                  const endTime = dayjs(meeting.endTime);
+                                  const isOngoing = startTime.isBefore(dayjs()) && endTime.isAfter(dayjs());
+
+                                  return (
+                                    <List.Item
+                                      style={{
+                                        padding: "6px 10px",
+                                        borderBottom: "1px solid #f0f0f0",
+                                        background: isOngoing ? "#f6ffed" : "transparent"
+                                      }}
+                                      actions={[
+                                        <Tooltip title="Join Meeting" key="join">
+                                          <Button
+                                            type="primary"
+                                            size="small"
+                                            icon={<VideoCameraOutlined />}
+                                            onClick={() => meeting.meetingLink && window.open(meeting.meetingLink, '_blank')}
+                                            disabled={!meeting.meetingLink}
+                                            style={{
+                                              height: 24,
+                                              width: 24,
+                                              backgroundColor: meeting.meetingLink ? "#1677ff" : "#f5f5f5",
+                                              borderColor: meeting.meetingLink ? "#1677ff" : "#d9d9d9"
+                                            }}
+                                          />
+                                        </Tooltip>
+                                      ]}
+                                    >
+                                      <List.Item.Meta
+                                        avatar={
+                                          <Avatar
+                                            size={22}
+                                            style={{
+                                              backgroundColor: isOngoing ? "#52c41a" : "#1677ff",
+                                              fontSize: 10
+                                            }}
+                                          >
+                                            {meeting.title.charAt(0)}
+                                          </Avatar>
+                                        }
+                                        title={
+                                          <Space align="center" size={2}>
+                                            <Text strong style={{ fontSize: 11 }}>
+                                              {meeting.title.length > 18 ? meeting.title.substring(0, 18) + '...' : meeting.title}
+                                            </Text>
+                                            {isOngoing && (
+                                              <Badge status="processing" style={{ fontSize: 9 }} text="Live" />
+                                            )}
+                                          </Space>
+                                        }
+                                        description={
+                                          <Text type="secondary" style={{ fontSize: 9 }}>
+                                            <ClockCircleOutlined style={{ marginRight: 2, fontSize: 8 }} />
+                                            {startTime.format("hh:mm A")} - {endTime.format("hh:mm A")}
+                                          </Text>
+                                        }
+                                      />
+                                    </List.Item>
+                                  );
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ padding: 20, textAlign: "center" }}>
+                              <VideoCameraOutlined style={{ fontSize: 24, color: "#bfbfbf", marginBottom: 6 }} />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>No meetings scheduled</Text>
                               </div>
                             </div>
                           )}

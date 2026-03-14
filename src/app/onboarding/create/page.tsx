@@ -53,7 +53,8 @@ const Onboarding = () => {
 
   const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
 
-  const { createOnboarding, loading: submitting } = useEmployeeOnboarding();
+  const { createOnboarding, loading: submitting }: any =
+    useEmployeeOnboarding();
 
   // Loading & permission check
   if (authLoading) {
@@ -159,9 +160,15 @@ const Onboarding = () => {
 
       await createOnboarding(partialPayload);
 
-      if (current < 4) {
-        setCurrent((prev) => prev + 1);
-      }
+      setAllData({
+        personal: {},
+        employment: {},
+        bank: {},
+        history: [],
+        assets: [],
+      });
+      setResetKey((prev) => prev + 1);
+      setCurrent(0);
     } catch (error) {
       console.log("❌ Save & Skip Failed:", error);
     }

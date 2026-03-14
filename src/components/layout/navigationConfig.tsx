@@ -47,6 +47,7 @@ import {
   PlusOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
+import { IoSettingsOutline } from "react-icons/io5";
 
 export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
 
@@ -81,7 +82,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "HOME",
     label: "HOME",
     icon: <HomeOutlined />,
-    pathPrefixes: ["/dashboard"],
+    pathPrefixes: ["/dashboard","/integrations"],
     defaultPath: "/dashboard",
     // Dashboard should be accessible to all authenticated users - no permission required
     items: [
@@ -91,6 +92,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <DashboardOutlined />,
         path: "/dashboard",
         // Dashboard accessible to all users - no permission required
+      },
+      {
+        key: "/integrations",
+        label: "Integrations",
+        icon: <DashboardOutlined />,
+        path: "/integrations",
       },
     ],
   },
@@ -309,6 +316,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/onboarding/onboarded",
             requiredPermission: Permissions.ONBOARDING_READ,
           },
+          {
+            key: "/onbording/create",
+            icon: <IoSettingsOutline />,
+            label: "Settings",
+            path: "/onboarding/settings",
+          },
         ],
       },
 
@@ -368,7 +381,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: <WalletOutlined />,
-    pathPrefixes: ["/accounts", "/invoicepro", "/reimbursement", "/salary"],
+    pathPrefixes: ["/accounts", "/clients-v2", "/invoicepro", "/reimbursement", "/salary"],
     defaultPath: "/accounts",
     requiredAnyPermission: [Permissions.TRANSACTION_READ, Permissions.INVOICE_READ, Permissions.SALARY_READ],
     items: [
@@ -377,7 +390,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Accounts",
         icon: <WalletOutlined />,
         path: "/accounts",
-        requiredPermission: Permissions.TRANSACTION_READ,
+      },
+      {
+        key: "/clients-v2",
+        label: "Client Management",
+        icon: <TeamOutlined />,
+        path: "/clients-v2",
       },
       {
         key: "invoicepro",
@@ -478,16 +496,21 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "ADMIN",
     label: "ADMIN",
     icon: <SettingOutlined />,
-    pathPrefixes: ["/clients", "/settings", "/admin", "/roles"],
-    defaultPath: "/clients",
+    pathPrefixes: ["/clients", "/clients-v2", "/settings", "/admin", "/roles"],
+    defaultPath: "/clients-v2",
     requiredAnyPermission: [Permissions.CLIENT_READ, Permissions.SETTINGS_READ, Permissions.ROLE_READ],
     items: [
       {
         key: "/clients",
-        label: "Clients",
+        label: "Clients (Legacy)",
         icon: <UserAddOutlined />,
         path: "/clients",
-        requiredPermission: Permissions.CLIENT_READ,
+      },
+      {
+        key: "/clients-v2",
+        label: "Clients V2",
+        icon: <ApartmentOutlined />,
+        path: "/clients-v2",
       },
       {
         key: "/settings",

@@ -1,25 +1,35 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import { Spin } from 'antd';
 
 /**
  * Legacy Redirect Page
- * 
+ *
  * This page handles backward compatibility for the old /projects/tickets route.
  * It automatically redirects users to the new project selection page.
- * 
+ *
  * Old Flow: /projects/tickets (with optional project filter)
  * New Flow: /projects/select → /projects/:projectId/tickets
  */
 export default function LegacyTicketsRedirect() {
   const router = useRouter();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadTicket } = usePermission();
 
   useEffect(() => {
-    // Redirect to the new project selection page
-    router.replace('/projects/select');
-  }, [router]);
+    if (!authLoading) {
+      if (!canReadTicket) {
+        router.replace('/dashboard');
+      } else {
+        // Redirect to the new project selection page
+        router.replace('/projects/select');
+      }
+    }
+  }, [authLoading, canReadTicket, router]);
 
   return (
     <div style={{ 

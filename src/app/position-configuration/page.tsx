@@ -1,5 +1,6 @@
 // "use client";
 
+<<<<<<< HEAD
 // import React, { useState, useEffect, useRef } from "react";
 // import { useAuth } from "@/context/AuthContext";
 // import MainLayout from "@/components/layout/MainLayout";
@@ -59,6 +60,68 @@
 // import { useDepartments } from "@/hooks/useDepartments";
 // import { useSubDepartments } from "@/hooks/useSubDepartments";
 // import { usePositions } from "@/hooks/usePositions";
+=======
+import React, { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
+import MainLayout from "@/components/layout/MainLayout";
+import { Settings2, Columns3Cog } from "lucide-react";
+import {
+  Card,
+  Tabs,
+  Form,
+  Input,
+  DatePicker,
+  Select,
+  Button,
+  Table,
+  Tag,
+  Modal,
+  message,
+  notification,
+  Space,
+  Statistic,
+  Row,
+  Col,
+  Badge,
+  Typography,
+  Tooltip,
+  Popconfirm,
+  Switch,
+  Checkbox,
+  List,
+  InputNumber,
+  Divider,
+  Segmented,
+  Avatar,
+  Drawer,
+  Collapse,
+  Spin,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import {
+  PlusOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ClockCircleOutlined,
+  ScheduleOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ApartmentOutlined,
+  SettingOutlined,
+  AppstoreOutlined,
+  BarsOutlined,
+  EyeOutlined,
+} from "@ant-design/icons";
+import { useRouter, usePathname } from "next/navigation";
+import { useLeaveOrigins } from "@/hooks/useLeaveOrigins";
+import { leaveOriginService } from "@/services/leaveOriginService";
+import { MembersService } from "@/services/membersService";
+import { useGrades } from "@/hooks/useGrades";
+import { useDepartments } from "@/hooks/useDepartments";
+import { useSubDepartments } from "@/hooks/useSubDepartments";
+import { usePositions } from "@/hooks/usePositions";
+>>>>>>> production
 
 // const { TextArea } = Input;
 // const { RangePicker } = DatePicker;
@@ -264,6 +327,7 @@
 //   );
 // };
 
+<<<<<<< HEAD
 // export default function positionConfiguration() {
 //   const { user } = useAuth();
 //   const router = useRouter();
@@ -287,6 +351,39 @@
 
 //   const [members, setMembers] = useState<{ value: string; label: string }[]>([]);
 //   const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
+=======
+export default function positionConfiguration() {
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageOrg } = usePermission();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [api, contextHolder] = notification.useNotification();
+  const [form] = Form.useForm();
+  const originType = Form.useWatch("position", form);
+  const leaveConfigs = Form.useWatch("leaveConfigs", form);
+  // const [loading, setLoading] = useState(false); // Replaced by hook's loading
+  const [viewType, setViewType] = useState("table");
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [editMode, setEditMode] = useState<"group" | "single">("group");
+  const [currentRecord, setCurrentRecord] = useState<PositionRecord | null>(
+    null,
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canManageOrg) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageOrg, router]);
+
+  const [members, setMembers] = useState<{ value: string; label: string }[]>([]);
+  const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
+>>>>>>> production
 
 //   const { leaveOrigins, loading, refetch } = useLeaveOrigins();
 //   const { dataSource: grades, loading: gradesLoading } = useGrades();
@@ -632,6 +729,7 @@
 //     }
 //   };
 
+<<<<<<< HEAD
 //   return (
 //     <ProtectedRoute>
 //       <MainLayout>
@@ -787,6 +885,177 @@
 //                   style={{ width: 360 }}
 //                   onChange={(e) => setSearchText(e.target.value)}
 //                 />
+=======
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canManageOrg) {
+    return null;
+  }
+
+  return (
+    <MainLayout>
+        {contextHolder}
+        <div >
+          <div style={{marginTop:20}} >
+            <Tabs
+              activeKey={
+                pathname.includes("government-holidays")
+                  ? "holidays"
+                  : pathname.includes("leaves-dashboard")
+                    ? "dashboard"
+                    : pathname.includes("leave-adjustments")
+                      ? "adjustments"
+                      : pathname.includes("leave-configuration")
+                        ? "configuration"
+                        : pathname.includes("position-configuration")
+                          ? "positions"
+                          : "leaves"
+              }
+              onChange={(key) => {
+                if (key === "dashboard") router.push("/leaves-dashboard");
+                if (key === "leaves") router.push("/leaves");
+                if (key === "holidays") router.push("/government-holidays");
+                if (key === "adjustments") router.push("/leave-adjustments");
+                if (key === "configuration")
+                  router.push("/leave-configuration");
+                if (key === "positions") router.push("/position-configuration");
+                if (key === "addLeaves") router.push("/add-goverment-leaves");
+              }}
+              items={[
+                {
+                  key: "dashboard",
+                  label: (
+                    <span>
+                      <AppstoreOutlined /> Dashboard
+                    </span>
+                  ),
+                },
+                {
+                  key: "leaves",
+                  label: (
+                    <span>
+                      <ClockCircleOutlined /> My Leave Status
+                    </span>
+                  ),
+                },
+                {
+                  key: "holidays",
+                  label: (
+                    <span>
+                      <ScheduleOutlined /> Government Holidays
+                    </span>
+                  ),
+                },
+                {
+                  key: "adjustments",
+                  label: (
+                    <span>
+                      <EditOutlined /> Leave Adjustment
+                    </span>
+                  ),
+                },
+                {
+                  key: "configuration",
+                  label: (
+                    <span>
+                      <SettingOutlined /> Leave Types
+                    </span>
+                  ),
+                },
+                {
+                  key: "positions",
+                  label: (
+                    <span>
+                      <ApartmentOutlined /> Leave Policy
+                    </span>
+                  ),
+                },
+                {
+                  key: "addLeaves",
+                  label: (
+                    <span>
+                      <PlusOutlined /> Add Government Leaves
+                    </span>
+                  ),
+                },
+              ]}
+            />
+          </div>
+          
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <Space align="center" size={8}>
+                  <ApartmentOutlined
+                    style={{ color: "#1a64c4ff", fontSize: 20 }}
+                  />
+                  <Typography.Title level={4} style={{ margin: 0 }}>
+                    Leave Policy
+                  </Typography.Title>
+                </Space>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Configure leave types and assign limits per position.
+                  </Text>
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <Space  style={{ marginTop: 8 }}>
+                    <Tag color="processing" style={{ borderRadius: 12 }}>
+                      Total Origin : {uniqueDataSource.length}
+                    </Tag>
+                    <Tag
+                      style={{ borderRadius: 12 }}
+                      icon={<CheckCircleOutlined />}
+                      color="success"
+                    >
+                      Active :{" "}
+                      {
+                        uniqueDataSource.filter(
+                          (item) => item.status === "Active",
+                        ).length
+                      }
+                    </Tag>
+                    <Tag
+                      style={{ borderRadius: 12 }}
+                      icon={<CloseCircleOutlined />}
+                      color="error"
+                    >
+                      Inactive :{" "}
+                      {
+                        uniqueDataSource.filter(
+                          (item) => item.status !== "Active",
+                        ).length
+                      }
+                    </Tag>
+                  </Space>
+                </div>
+              </div>
+              <div
+              style={{ display: "flex", gap: 12, margin: "0 0 0 28px",marginBottom:20 }}
+              >
+                {/* Search */}
+                <Input.Search
+                  placeholder="Search Leave Types...."
+                  allowClear
+                  style={{ width: 360 }}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+>>>>>>> production
 
 //                 {/* View Switch */}
 //                 <Segmented
@@ -814,6 +1083,7 @@
 //                   onChange={(value) => setViewType(value as string)}
 //                 />
 
+<<<<<<< HEAD
 //                 {/* Button */}
 //                 <Button
 //                   type="primary"
@@ -950,6 +1220,145 @@
 //               />
 //             )}
 //           </Card>
+=======
+                {/* Button */}
+                <Button
+                  type="primary"
+                  style={{ width: 200 }}
+                  onClick={() => {
+                    setEditingKey(null);
+                    form.resetFields();
+                    setIsModalVisible(true);
+                  }}
+                >
+                  + Add Configuration
+                </Button>
+              </div>
+            </div>
+                        <Divider style={{marginTop:5}} />
+            {viewType === "table" ? (
+              <Table
+                columns={columns}
+                dataSource={uniqueDataSource.filter(
+                  (item) =>
+                    item.position
+                      ?.toLowerCase()
+                      .includes(searchText.toLowerCase()) ||
+                    (Array.isArray(item.leaveType)
+                      ? item.leaveType.some((t: string) =>
+                          t.toLowerCase().includes(searchText.toLowerCase()),
+                        )
+                      : item.leaveType
+                          ?.toLowerCase()
+                          .includes(searchText.toLowerCase())),
+                )}
+                size="small"
+                pagination={{ pageSize: 10 }}
+                loading={loading}
+              />
+            ) : (
+              <List
+                grid={{ gutter: 16, column: 3 }}
+                dataSource={uniqueDataSource.filter(
+                  (item) =>
+                    item.position
+                      ?.toLowerCase()
+                      .includes(searchText.toLowerCase()) ||
+                    (Array.isArray(item.leaveType)
+                      ? item.leaveType.some((t: string) =>
+                          t.toLowerCase().includes(searchText.toLowerCase()),
+                        )
+                      : item.leaveType
+                          ?.toLowerCase()
+                          .includes(searchText.toLowerCase())),
+                )}
+                loading={loading}
+                renderItem={(item) => (
+                  <List.Item>
+                    <Card
+                      hoverable
+                      actions={[
+                        <Tooltip title="View" key="view">
+                          <EyeOutlined onClick={() => handleView(item)} />
+                        </Tooltip>,
+                        <Tooltip title="Edit" key="edit">
+                          <EditOutlined onClick={() => handleEdit(item)} />
+                        </Tooltip>,
+                        <Tooltip title="Delete" key="delete">
+                          <Popconfirm
+                            title="Delete this entire position configuration?"
+                            onConfirm={() => handleDeleteOrigin(item)}
+                            okButtonProps={{
+                              loading:
+                                deletingKey ===
+                                `${item.position}-${item.subOriginId}`,
+                            }}
+                            okText="Yes"
+                            cancelText="No"
+                            key="delete"
+                            disabled={!!deletingKey}
+                          >
+                            <DeleteOutlined
+                              style={{ color: deletingKey ? "grey" : "red" }}
+                            />
+                          </Popconfirm>
+                        </Tooltip>,
+                      ]}
+                    >
+                      <Card.Meta
+                        avatar={
+                          <Avatar
+                            style={{
+                              backgroundColor: "#4ea6f8",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {item.position?.[0]?.toUpperCase()}
+                          </Avatar>
+                        }
+                        title={
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <span style={{ fontWeight: 600 }}>
+                              {item.position}
+                            </span>
+                            {(() => {
+                              const group = dataSource.filter(
+                                (i) =>
+                                  i.position === item.position &&
+                                  i.subOriginId === item.subOriginId,
+                              );
+                              const activeCount = group.filter(
+                                (i) => i.status === "Active",
+                              ).length;
+                              const inactiveCount = group.filter(
+                                (i) => i.status !== "Active",
+                              ).length;
+                              return (
+                                <Space size={6}>
+                                  <Tag color="green">Active: {activeCount}</Tag>
+                                  <Tag color="red">Inactive: {inactiveCount}</Tag>
+                                </Space>
+                              );
+                            })()}
+                          </div>
+                        }
+                        description={null}
+                      />
+                    </Card>
+                  </List.Item>
+                )}
+                style={{ marginTop: 24 }}
+                pagination={{ pageSize: 9 }}
+              />
+            )}
+        
+>>>>>>> production
 
 //           <Modal
 //             title={
@@ -1073,6 +1482,7 @@
 //             </Form>
 //           </Modal>
 
+<<<<<<< HEAD
 //           <Drawer
 //             title={
 //               currentRecord
@@ -1243,3 +1653,174 @@
 //     </ProtectedRoute>
 //   );
 // }
+=======
+          <Drawer
+            title={
+              currentRecord
+                ? `${currentRecord.position} - ${(() => {
+                    const text = currentRecord.subOriginId;
+                    if (currentRecord.position === "User") return members.find(m => m.value === text)?.label || text;
+                    if (currentRecord.position === "Grade") return grades.find(g => g.id === text)?.name || text;
+                    if (currentRecord.position === "Department") return departments.find(d => d.id === text)?.name || text;
+                    if (currentRecord.position === "Sub-department") return subDepartments.find(sd => sd.id === text)?.name || text;
+                    if (currentRecord.position === "Position") return positions.find(p => p.id === text)?.title || text;
+                    return text;
+                  })()}`
+                : "Details"
+            }
+            placement="right"
+            width={900}
+            open={isDrawerVisible}
+            onClose={() => {
+              setIsDrawerVisible(false);
+              setCurrentRecord(null);
+            }}
+          >
+            <Table
+              columns={[
+                {
+                  title: "Leave Type",
+                  dataIndex: "leaveType",
+                  key: "leaveType",
+                  align: "center",
+                },
+                {
+                  title: "Status",
+                  dataIndex: "status",
+                  key: "status",
+                  align: "center",
+                  render: (status: string) => (
+                    <Tag color={status === "Active" ? "green" : "red"}>
+                      {status}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: "Unit",
+                  dataIndex: "unit",
+                  key: "unit",
+                  align: "center",
+                },
+                {
+                  title: "Per Month",
+                  key: "perMonth",
+                  align: "center",
+                  render: (_: any, record: PositionRecord) => {
+                    const effectiveUnit = record.unit || 0;
+                    if (record.period === "MONTH")
+                      return (
+                        <Text>
+                          {effectiveUnit}{" "}
+                          <Tag style={{ borderRadius: 10 }} color="blue">
+                            day
+                          </Tag>
+                        </Text>
+                      );
+                    if (record.period === "YEAR")
+                      return (
+                        <Text>
+                          {(effectiveUnit / 12).toFixed(1)}{" "}
+                          <Tag style={{ borderRadius: 10 }} color="blue">
+                            day
+                          </Tag>
+                        </Text>
+                      );
+                    return <Text>-</Text>;
+                  },
+                },
+                {
+                  title: "Per Year",
+                  key: "perYear",
+                  align: "center",
+                  render: (_: any, record: PositionRecord) => {
+                    const effectiveUnit = record.unit || 0;
+                    if (record.period === "MONTH")
+                      return (
+                        <Text>
+                          {effectiveUnit * 12}{" "}
+                          <Tag style={{ borderRadius: 10 }} color="blue">
+                            days
+                          </Tag>
+                        </Text>
+                      );
+                    if (record.period === "YEAR")
+                      return (
+                        <Text>
+                          {effectiveUnit}{" "}
+                          <Tag style={{ borderRadius: 10 }} color="blue">
+                            days
+                          </Tag>
+                        </Text>
+                      );
+                    return <Text>-</Text>;
+                  },
+                },
+                {
+                  title: "Carry Forward",
+                  dataIndex: "carryForward",
+                  key: "carryForward",
+                  align: "center",
+                  render: (val: boolean) => (
+                    <Tag color={val ? "blue" : "default"}>{val ? "Yes" : "No"}</Tag>
+                  ),
+                },
+                {
+                  title: "Total",
+                  key: "total",
+                  align: "center",
+                  render: (_: any, record: PositionRecord) => {
+                    const effectiveUnit = record.unit || 0;
+                    let total = 0;
+                    if (record.period === "MONTH") total = effectiveUnit * 12;
+                    else if (record.period === "YEAR") total = effectiveUnit;
+                    return <Text strong>{total}</Text>;
+                  },
+                },
+                {
+                  title: "Action",
+                  key: "action",
+                  align: "center",
+                  render: (_: any, record: any) => (
+                    <Space>
+                      <Tooltip title="Edit">
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => handleDrawerEdit(record)}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <Popconfirm
+                          title="Are you sure to delete this leave type?"
+                          onConfirm={() => handleDeleteLeaveType(record.key)}
+                          okButtonProps={{
+                            loading: deletingKey === record.key,
+                          }}
+                          okText="Yes"
+                          cancelText="No"
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            disabled={!!deletingKey}
+                          />
+                        </Popconfirm>
+                      </Tooltip>
+                    </Space>
+                  ),
+                },
+              ]}
+              dataSource={dataSource.filter(
+                (item) =>
+                  item.position === currentRecord?.position &&
+                  item.subOriginId === currentRecord?.subOriginId,
+              )}
+              pagination={false}
+            />
+          </Drawer>
+        </div>
+      </MainLayout>
+  );
+}
+>>>>>>> production

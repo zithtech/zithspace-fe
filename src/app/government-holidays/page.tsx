@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { Settings2 } from "lucide-react";
@@ -56,10 +57,28 @@ import {
 const { Text } = Typography;
 
 export default function GovernmentHolidaysPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const router = useRouter();
   const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
+
+  // Protect route - requires leave.manage permission
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
   const {
     holidays,
     loading: holidaysLoading,
@@ -521,10 +540,10 @@ export default function GovernmentHolidaysPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div>
           {contextHolder}
 
-          <div style={{ marginBottom: 16 }}>
+          <div style={{marginTop:20}}>
             <Tabs
               activeKey={
                 pathname.includes("leave-adjustments")
@@ -605,7 +624,7 @@ export default function GovernmentHolidaysPage() {
                   key: "configuration",
                   label: (
                     <span>
-                      <SettingOutlined /> Leave Type
+                      <SettingOutlined /> Leave Types
                     </span>
                   ),
                 },
@@ -613,8 +632,7 @@ export default function GovernmentHolidaysPage() {
                   key: "positions",
                   label: (
                     <span>
-                      <ApartmentOutlined />
-                      Leave Policy
+                      <ApartmentOutlined /> Leave Policy
                     </span>
                   ),
                 },
@@ -630,12 +648,14 @@ export default function GovernmentHolidaysPage() {
             />
           </div>
 
-          <Card>
+         
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                //flexWrap: "wrap",
+                //gap: 16,
                 marginBottom: 16,
               }}
             >
@@ -648,19 +668,20 @@ export default function GovernmentHolidaysPage() {
                     Government Holidays
                   </Typography.Title>
                 </Space>
-                <div style={{ marginLeft: 28, marginTop: 4 }}>
+                <div style={{  marginTop: 4 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     Manage official government holidays for your organization
                   </Text>
                 </div>
-                <div style={{ marginTop: 8, marginLeft: 28 }}>
-                  <Space>
-                    <Tag color="processing">Total: {holidays.length}</Tag>
-                    <Tag color="success">
-                      Active:{" "}
-                      {holidays.filter((h) => h.status === "ACTIVE").length}
+                <div style={{ marginTop: 8}}>
+                  <Space style={{ marginTop: 8}}>
+                    <Tag style={{borderRadius:12}} color="processing">
+                      Total: {holidays.length}
                     </Tag>
-                    <Tag color="default">
+                    <Tag style={{borderRadius:12}} color="success">
+                      Active: {holidays.filter((h) => h.status === 'ACTIVE').length}
+                    </Tag>
+                    <Tag style={{borderRadius:12}} color="default">
                       Inactive:{" "}
                       {holidays.filter((h) => h.status === "INACTIVE").length}
                     </Tag>
@@ -676,16 +697,17 @@ export default function GovernmentHolidaysPage() {
                 + Apply Government Holidays
               </Button>
             </div>
-            <Divider />
+            <Divider style={{marginTop:5}} />
             <Table
-              loading={holidaysLoading}
-              columns={holidayColumns as any}
-              dataSource={dataSource}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-              key={dataSource.length} // Keep the re-render strategy, but based on the new dataSource
-            />
-          </Card>
+  loading={holidaysLoading}
+  columns={holidayColumns as any}
+  dataSource={dataSource}
+  rowKey="id"
+  pagination={{ pageSize: 10 }}
+  key={dataSource.length}  // Keep the re-render strategy, but based on the new dataSource
+/>
+
+x
 
           {/* Modals */}
           <Modal

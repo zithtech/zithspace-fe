@@ -1,9 +1,10 @@
 
 import { Layout, Menu, Button } from 'antd';
-import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
+import { NavItem, ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
 import { usePathname, useRouter } from 'next/navigation';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 const { Sider } = Layout;
 
@@ -17,9 +18,50 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
     const router = useRouter();
     const pathname = usePathname();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
+    const { hasPermission, hasAnyPermission } = useAuth();
 
     const currentModuleConfig = NAVIGATION_CONFIG.find(m => m.key === activeModule);
     const items = currentModuleConfig?.items || [];
+
+    // Filter nav items recursively based on requiredPermission / requiredAnyPermission
+    const filterItemsByPermission = (navItems: NavItem[]): NavItem[] => {
+        return navItems
+            .filter(item => {
+                // No permission requirement = always visible
+                if (!item.requiredPermission && !item.requiredAnyPermission) return true;
+                
+                // Check single permission
+                if (item.requiredPermission) {
+                    return hasPermission(item.requiredPermission);
+                }
+                
+                // Check any of multiple permissions
+                if (item.requiredAnyPermission) {
+                    return hasAnyPermission(...item.requiredAnyPermission);
+                }
+                
+                return false;
+            })
+            .map(item => {
+                // Recursively filter children
+                if (item.children) {
+                    return {
+                        ...item,
+                        children: filterItemsByPermission(item.children)
+                    };
+                }
+                return item;
+            })
+            .filter(item => {
+                // Remove parent items with no visible children
+                if (item.children) {
+                    return item.children.length > 0;
+                }
+                return true;
+            });
+    };
+
+    const filteredItems = filterItemsByPermission(items);
 
     // Helper to map Items to Antd Menu format
     const mapItemsToMenu = (navItems: any[]) => {
@@ -41,11 +83,11 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
         });
     };
 
-    const menuItems = mapItemsToMenu(items);
+    const menuItems = mapItemsToMenu(filteredItems);
 
     // Find the key of the parent that contains the current path
     const findParentKey = () => {
-        for (const item of items) {
+        for (const item of filteredItems) {
             if (item.children) {
                 const found = item.children.find((child: any) => child.path === pathname);
                 if (found) return item.key;
@@ -75,7 +117,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             return undefined;
         };
         
-        const selectedKey = findKey(items);
+        const selectedKey = findKey(filteredItems);
         return selectedKey ? [selectedKey] : [pathname];
     };
 
@@ -119,6 +161,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 borderBottom: '1px solid #f0f0f0',
                 display: 'flex',
                 justifyContent: collapsed ? 'center' : 'flex-end',
+                flexShrink: 0,
             }}>
                 <Button
                     type="text"

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import {
@@ -25,6 +27,7 @@ import {
   DatePicker,
   Tabs,
   Popconfirm,
+  Switch,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -61,7 +64,26 @@ const { Title } = Typography;
 export default function LeaveAdjustmentPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isLoading: authLoading } = useAuth();
+  const { canManageLeaves } = usePermission();
   const [form] = Form.useForm();
+
+  // Protect route - requires leave.manage permission
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [api, contextHolder] = notification.useNotification();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -305,6 +327,7 @@ export default function LeaveAdjustmentPage() {
       title: "Approved By",
       dataIndex: "approvedBy",
       key: "approvedBy",
+     width: 150,
       render: (text: string) => (
         <Space>
           <Avatar size="small" style={{ backgroundColor: "#1890ff" }}>
@@ -344,7 +367,7 @@ export default function LeaveAdjustmentPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div >
           {contextHolder}
           {modalContextHolder}
           <div>
@@ -450,7 +473,7 @@ export default function LeaveAdjustmentPage() {
               ].filter(Boolean) as any}
             />
           </div>
-          <Card>
+          
             <div
               style={{
                 display: "flex",
@@ -462,9 +485,9 @@ export default function LeaveAdjustmentPage() {
               <div>
                 <Space align="center" size={8}>
                   <ScheduleOutlined
-                    style={{ color: "#1a64c4ff", fontSize: 20 }}
+                     style={{ color: "#1a64c4ff", fontSize: 20 }}
                   />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
+                  <Typography.Title  level={4} >
                     Leave Adjustments
                   </Typography.Title>
                 </Space>
@@ -492,7 +515,7 @@ export default function LeaveAdjustmentPage() {
                 </Button>
               </div>
             </div>
-            <Space wrap style={{ marginBottom: 16 }}>
+            <Space wrap>
               <Tag style={{ borderRadius: 12 }}>
                 Total Adjustments: {dataSource.length}
               </Tag>
@@ -505,6 +528,7 @@ export default function LeaveAdjustmentPage() {
                 {dataSource.filter((item) => item.type === "Debit").length}
               </Tag>
             </Space>
+            <Divider style={{marginTop:20}} />
             <Table
               columns={columns}
               dataSource={dataSource.filter((item) =>
@@ -514,7 +538,7 @@ export default function LeaveAdjustmentPage() {
               size="small"
               pagination={{ pageSize: 10 }}
             />
-          </Card>
+        
 
           <Modal
             title={
@@ -699,6 +723,30 @@ export default function LeaveAdjustmentPage() {
                     />
                   </Form.Item>
                 </Col>
+
+               <Col span={12}>
+  <Form.Item
+    name="isTaken"
+    valuePropName="checked"
+    initialValue={false}
+    style={{ marginBottom: 0 }}
+  >
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",   // 👈 important
+      }}
+    >
+      <span style={{ fontWeight: 500 }}>
+        Is Leave Taken?
+      </span>
+
+      <Switch style={{left:200}}/>
+    </div>
+  </Form.Item>
+</Col>
 
                 {/* Expiry Date */}
                 {selectedLeaveType === "Comp-Off" && (

@@ -1,7 +1,10 @@
 
 "use client";
-import { useState ,useRef} from "react";
+import { useState, useRef, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import {
   Space,
   Typography,
@@ -15,8 +18,8 @@ import {
   Badge,
   Tag,
   message,
-  Divider
-
+  Divider,
+  Spin
 } from "antd";
 
 import {
@@ -46,7 +49,7 @@ import {  useSettingsProfiles ,useDeleteSettingsProfile,useCreateSettingsProfile
 import MiniCard from "@/components/customer/MiniCard";
 
 
-const { Title ,Paragraph} = Typography;
+const { Title, Paragraph} = Typography;
 
 const DEFAULT_DRAFT: Draft = {
   general: {
@@ -85,8 +88,21 @@ const DEFAULT_DRAFT: Draft = {
 
 
 export default function InvoiceproSettingPage() {
+  const router = useRouter();
+  const { canUpdateSettings } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !canUpdateSettings) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canUpdateSettings, router]);
+
   const [mode, setMode] = useState<"view" | "create">("view");
-   const { data: savedSettingsData, isLoading ,refetch} = useSettingsProfiles();
+  const { data: savedSettingsData, isLoading, refetch} = useSettingsProfiles();
+
+  if (authLoading) return <MainLayout><Spin tip="Loading..." /></MainLayout>;
+  if (!canUpdateSettings) return null;
 
 
   const [currentStep, setCurrentStep] = useState(0);

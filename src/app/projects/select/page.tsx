@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge } from 'antd';
 import { SearchOutlined, ProjectOutlined, UserOutlined, TeamOutlined, CheckCircleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,6 +10,7 @@ import { Suspense } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
+import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
@@ -39,8 +40,17 @@ function ProjectSelectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
+  const { canReadProject } = usePermission();
   const [search, setSearch] = useState('');
   const [isRedirecting, setIsRedirecting] = useState(true); // Start true to prevent flash
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadProject) {
+      router.replace('/dashboard');
+      return;
+    }
+  }, [authLoading, canReadProject, router]);
 
   // Auto-redirect logic
   React.useEffect(() => {
@@ -81,6 +91,11 @@ function ProjectSelectContent() {
 
   const projects = Array.isArray(response) ? response : (response?.data || []);
   const isLoading = authLoading || projectsLoading;
+
+  // Permission check
+  if (!canReadProject && !authLoading) {
+    return null;
+  }
 
   // Filter projects based on search
   const filteredProjects = projects.filter(p =>

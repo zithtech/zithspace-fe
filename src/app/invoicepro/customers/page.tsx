@@ -2,8 +2,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import {
   Space,
   Typography,
@@ -18,7 +21,8 @@ import {
   Modal,
   Tag,
   Segmented,
-  Table
+  Table,
+  Spin
 } from "antd";
 import {
   UserAddOutlined,
@@ -32,6 +36,7 @@ import {
   MenuFoldOutlined,
   AppstoreOutlined
 } from "@ant-design/icons";
+import type { MenuProps } from "antd";
 
 import CustomerModal from "@/components/customer/CustomerModal";
 import { Customer as ServiceCustomer } from "@/services/customersService";
@@ -46,6 +51,17 @@ import { Form } from "antd";
 const { Title } = Typography;
 
 export default function InvoiceproCustomerPage() {
+  const router = useRouter();
+  const { canReadInvoice, canCreateInvoice, canUpdateInvoice, canDeleteInvoice } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+
+  // Route guard
+  useEffect(() => {
+    if (!authLoading && !canReadInvoice) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadInvoice, router]);
+
   const { data: customersData, isLoading } = useCustomers();
   const customers = customersData?.data || [];
 
@@ -165,31 +181,36 @@ const columns = [
   {
     title: "Action",
     key: "action",
-    render: (_: any, record: ServiceCustomer) => (
-      <Dropdown
-        menu={{
-          items: [
-            {
-              key: "edit",
-              icon: <EditOutlined />,
-              label: "Edit",
-              onClick: () => handleEdit(record),
-            },
-            {
-              key: "delete",
-              danger: true,
-              label: "Delete",
-              onClick: () => {
-                setDeletingCustomerId(record.id);
-                setIsDeleteModalOpen(true);
-              },
-            },
-          ],
-        }}
-      >
-        <MoreOutlined className="cursor-pointer" />
-      </Dropdown>
-    ),
+    render: (_: any, record: ServiceCustomer) => {
+      if (!canUpdateInvoice && !canDeleteInvoice) return null;
+      
+      const menuItems: MenuProps['items'] = [];
+      if (canUpdateInvoice) {
+        menuItems.push({
+          key: "edit",
+          icon: <EditOutlined />,
+          label: "Edit",
+          onClick: () => handleEdit(record),
+        });
+      }
+      if (canDeleteInvoice) {
+        menuItems.push({
+          key: "delete",
+          danger: true,
+          label: "Delete",
+          onClick: () => {
+            setDeletingCustomerId(record.id);
+            setIsDeleteModalOpen(true);
+          },
+        });
+      }
+      
+      return (
+        <Dropdown menu={{ items: menuItems }}>
+          <MoreOutlined className="cursor-pointer" />
+        </Dropdown>
+      );
+    },
   },
 ];
 
@@ -215,6 +236,9 @@ const confirmDelete = async () => {
 
 
 
+
+  if (authLoading) return <MainLayout><Spin /></MainLayout>;
+  if (!canReadInvoice) return null;
 
   return (
     <MainLayout>
@@ -317,18 +341,20 @@ const confirmDelete = async () => {
       className="w-64"
     />
 
-    <Button
-      type="primary"
-      icon={<PlusOutlined />}
-      onClick={() => {
-        setEditingCustomer(null);
-        form.resetFields();
-        setIsModalOpen(true);
-      }}
-      className="h-11 shrink-0"
-    >
-      Add Customer
-    </Button>
+    {canCreateInvoice && (
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => {
+          setEditingCustomer(null);
+          form.resetFields();
+          setIsModalOpen(true);
+        }}
+        className="h-11 shrink-0"
+      >
+        Add Customer
+      </Button>
+    )}
   </div>
 </div>
 
@@ -369,36 +395,42 @@ const confirmDelete = async () => {
                           </div>
                         </div>
 
-                        <Dropdown
-                          menu={{
-                            items: [
-                              {
-                                key: "edit",
-                                icon: <EditOutlined />,
-                                label: "Edit",
-                                onClick: () => handleEdit(customer),
-                              },
-{
-  key: "delete",
-  danger: true,
-  label: (
-    <span
-      onClick={() => {
-        setDeletingCustomerId(customer.id);
-        setIsDeleteModalOpen(true);
-      }}
-    >
-      <DeleteOutlined /> Delete
-    </span>
-  ),
-}
-
-                            ],
-                          }}
-                          trigger={["click"]}
-                        >
-                          <MoreOutlined className="cursor-pointer text-gray-400" />
-                        </Dropdown>
+                        {(canUpdateInvoice || canDeleteInvoice) && (() => {
+                          const menuItems: MenuProps['items'] = [];
+                          if (canUpdateInvoice) {
+                            menuItems.push({
+                              key: "edit",
+                              icon: <EditOutlined />,
+                              label: "Edit",
+                              onClick: () => handleEdit(customer),
+                            });
+                          }
+                          if (canDeleteInvoice) {
+                            menuItems.push({
+                              key: "delete",
+                              danger: true,
+                              label: (
+                                <span
+                                  onClick={() => {
+                                    setDeletingCustomerId(customer.id);
+                                    setIsDeleteModalOpen(true);
+                                  }}
+                                >
+                                  <DeleteOutlined /> Delete
+                                </span>
+                              ),
+                            });
+                          }
+                          
+                          return (
+                            <Dropdown
+                              menu={{ items: menuItems }}
+                              trigger={["click"]}
+                            >
+                              <MoreOutlined className="cursor-pointer text-gray-400" />
+                            </Dropdown>
+                          );
+                        })()}
                       </div>
 
                       {/* Contact Info */}

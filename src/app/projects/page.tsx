@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   Card,
@@ -12,6 +13,7 @@ import {
   Button,
   Statistic,
   Skeleton,
+  Spin,
 } from "antd";
 import {
   ProjectOutlined,
@@ -27,11 +29,30 @@ import { useRouter } from "next/navigation";
 const { Title, Paragraph } = Typography;
 
 export default function ProjectsPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { canReadProject } = usePermission();
   const router = useRouter();
 
-  // Don't render if no user
-  if (!user && !isLoading) {
+  // Route guard - requires project.read permission
+  useEffect(() => {
+    if (!authLoading && !canReadProject) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canReadProject, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 20, textAlign: 'center' }}>
+          <Spin tip="Loading..." />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Don't render if no permission
+  if (!canReadProject) {
     return null;
   }
 
@@ -93,7 +114,7 @@ export default function ProjectsPage() {
         </div>
 
         {/* Loading State */}
-        {isLoading ? (
+        {authLoading ? (
           <>
             {/* Quick Stats Skeleton */}
             <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>

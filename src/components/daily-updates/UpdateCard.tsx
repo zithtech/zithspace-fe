@@ -287,7 +287,7 @@ const CardContent = (
                 marginLeft: 44,
               }}
             >
-              {update.user?.position}
+              {update.user?.position?.title || ""}
             </Text>
           </div>
 

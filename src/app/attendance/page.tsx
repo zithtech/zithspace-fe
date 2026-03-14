@@ -103,7 +103,7 @@ interface ExtendedAttendanceFilters extends AttendanceFilters {
   member?: string;
 }
 import type { ColumnsType } from 'antd/es/table';
-import { useRBAC } from '@/lib/rbac';
+import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -111,7 +111,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export default function AttendancePage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   // State management
@@ -157,15 +157,28 @@ export default function AttendancePage() {
   const [customDateRange, setCustomDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   // RBAC permissions
-  const rbac = useRBAC(user?.role as any);
-  const canManage = rbac?.canManageAttendance;
+  const {
+    canReadAttendance,
+    canCreateAttendance,
+    canManageAttendance
+  } = usePermission();
 
   // Check permissions
   useEffect(() => {
-    if (user && !rbac?.canViewAttendance) {
+    if (!authLoading && !canReadAttendance) {
       router.push('/dashboard');
     }
-  }, [user, rbac, router]);
+  }, [authLoading, canReadAttendance, router]);
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
+  }
+
+  // Don't render if no read permission
+  if (!canReadAttendance) {
+    return null;
+  }
 
   // Fetch dashboard summary
   const fetchDashboardSummary = async () => {
@@ -581,31 +594,35 @@ export default function AttendancePage() {
       title: 'Actions',
       key: 'actions',
       width: 120,
-      render: (_, record: Attendance) => (
-        <Space size="small">
-          <Button
-            type="text"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
-            style={{ color: '#1677ff' }}
-          />
-          <Popconfirm
-            title="Delete attendance record?"
-            description="Are you sure you want to delete this attendance record?"
-            onConfirm={() => handleDeleteAttendance(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
+      render: (_, record: Attendance) => {
+        if (!canManageAttendance) return null;
+        
+        return (
+          <Space size="small">
             <Button
               type="text"
               size="small"
-              icon={<DeleteOutlined />}
-              style={{ color: '#ff4d4f' }}
+              icon={<EditOutlined />}
+              onClick={() => openEditModal(record)}
+              style={{ color: '#1677ff' }}
             />
-          </Popconfirm>
-        </Space>
-      ),
+            <Popconfirm
+              title="Delete attendance record?"
+              description="Are you sure you want to delete this attendance record?"
+              onConfirm={() => handleDeleteAttendance(record.id)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<DeleteOutlined />}
+                style={{ color: '#ff4d4f' }}
+              />
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -731,17 +748,19 @@ export default function AttendancePage() {
   const ManageAttendanceTab = () => (
     <div>
       {/* Add Button */}
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Space>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsAddModalVisible(true)}
-          >
-            Add Attendance Record
-          </Button>
-        </Space>
-      </Card>
+      {canManageAttendance && (
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Space>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setIsAddModalVisible(true)}
+            >
+              Add Attendance Record
+            </Button>
+          </Space>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card size="small" style={{ marginBottom: 16 }}>
@@ -1361,7 +1380,7 @@ export default function AttendancePage() {
               ),
               children: <ClockInOutTab />
             },
-            ...(canManage ? [{
+            ...(canManageAttendance ? [{
               key: 'manage',
               label: (
                 <Space>

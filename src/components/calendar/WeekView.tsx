@@ -4,14 +4,14 @@ import React from 'react';
 import { Typography } from 'antd';
 import { VideoCameraOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
-import { ZohoEvent } from '@/services/zohoCalendarService';
+import { CalendarEvent } from '@/services/calendarService';
 
 const { Text } = Typography;
 
 interface WeekViewProps {
     currentDate: Dayjs;
-    events: ZohoEvent[];
-    onEventClick: (event: ZohoEvent, occurrenceDate?: Dayjs) => void;
+    events: CalendarEvent[];
+    onEventClick: (event: CalendarEvent, occurrenceDate?: Dayjs) => void;
     onTimeSlotClick: (date: Dayjs) => void;
 }
 
@@ -21,47 +21,25 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeSlot
     const hours = Array.from({ length: 24 }, (_, i) => i);
 
     const getEventsForDay = (date: Dayjs) => {
-        return events.filter(e => {
+        const dayEvents = events.filter(e => {
             const start = dayjs(e.startTime);
+            return start.isSame(date, 'day');
+        });
 
-            // 1. Exclusion check ALWAYS happens first
-            if (e.exdate) {
-                const excludedDates = Array.isArray(e.exdate) ? e.exdate : (typeof e.exdate === 'string' ? e.exdate.split(',') : []);
-                if (excludedDates.some(ex => {
-                    const cleanEx = ex.replace(/[^0-9TZ]/g, '');
-                    let exDate;
-                    if (cleanEx.length === 8) {
-                        exDate = dayjs(cleanEx.replace(/^(\d{4})(\d{2})(\d{2})/, "$1-$2-$3"));
-                    } else {
-                        const iso = cleanEx.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/, "$1-$2-$3T$4:$5:$6Z");
-                        exDate = dayjs(iso);
-                    }
-                    return exDate.isValid() && exDate.isSame(date, 'day');
-                })) {
-                    return false;
-                }
+        // Deduplicate: If an occurrence for a series exists, hide the master record
+        return dayEvents.filter(e => {
+            const isMaster = e.isRecurring && e.rrule && !e.rrule.includes('seriesMasterId');
+            if (isMaster) {
+                const hasOccurrence = dayEvents.some(occ =>
+                    occ.rrule && occ.rrule.includes(e.externalId)
+                );
+                return !hasOccurrence;
             }
-
-            // 2. Direct match
-            if (start.isSame(date, 'day')) return true;
-
-            // 3. Recurrence check
-            if (e.isRecurring || e.rrule?.includes('DAILY')) {
-                const isAfterStart = date.isAfter(start, 'day');
-                if (!isAfterStart) return false;
-
-                if (e.rrule?.includes('UNTIL=')) {
-                    const untilStr = e.rrule.split('UNTIL=')[1].split(';')[0];
-                    const untilDate = dayjs(untilStr);
-                    return date.isBefore(untilDate, 'day') || date.isSame(untilDate, 'day');
-                }
-                return true;
-            }
-            return false;
+            return true;
         });
     };
 
-    const getEventStyle = (event: ZohoEvent) => {
+    const getEventStyle = (event: CalendarEvent) => {
         const start = dayjs(event.startTime);
         const end = dayjs(event.endTime);
         const startHour = start.hour() + start.minute() / 60;

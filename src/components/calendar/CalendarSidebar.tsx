@@ -5,8 +5,8 @@ import { Calendar, Badge, Checkbox, Typography, Divider, Button, Spin, Tag } fro
 import type { CalendarMode } from 'antd/es/calendar/generateCalendar';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
-import { SyncOutlined, LinkOutlined, DisconnectOutlined } from '@ant-design/icons';
-import { ZohoStatus } from '@/services/zohoCalendarService';
+import { SyncOutlined, SettingOutlined } from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
 
 const { Title, Text } = Typography;
 
@@ -15,14 +15,10 @@ interface CalendarSidebarProps {
     selectedDate: Dayjs;
     selectedCalendars: string[];
     onCalendarChange: (calendars: string[]) => void;
-    // Zoho integration props
-    zohoStatus: ZohoStatus | null;
-    onConnect: () => Promise<void>;
-    onDisconnect: () => Promise<void>;
+    // Provider-specific props
+    provider?: string | null;
     onSync: () => Promise<void>;
-    isConnecting: boolean;
-    isDisconnecting: boolean;
-    syncingZoho: boolean;
+    syncing: boolean;
 }
 
 export default function CalendarSidebar({
@@ -30,14 +26,11 @@ export default function CalendarSidebar({
     selectedDate,
     selectedCalendars,
     onCalendarChange,
-    zohoStatus,
-    onConnect,
-    onDisconnect,
+    provider,
     onSync,
-    isConnecting,
-    isDisconnecting,
-    syncingZoho
+    syncing
 }: CalendarSidebarProps) {
+    const router = useRouter();
     const calendars = [
         { id: '1', name: 'Personal Calendar', color: '#1677ff' },
         { id: '2', name: 'Team Calendar', color: '#722ed1' },
@@ -148,56 +141,29 @@ export default function CalendarSidebar({
 
             <Divider />
 
-            <div className="zoho-integration" style={{ marginBottom: '24px' }}>
+            <div className="calendar-integrations" style={{ marginBottom: '24px' }}>
                 <Title level={5} style={{ fontSize: '12px', color: '#8c8c8c', textTransform: 'uppercase', marginBottom: '16px' }}>
-                    Zoho Integration
+                    Calendar Integrations
                 </Title>
 
-                {zohoStatus?.connected ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Tag color="success" icon={<LinkOutlined />}>Connected</Tag>
-                            <Button
-                                size="small"
-                                type="text"
-                                danger
-                                icon={<DisconnectOutlined />}
-                                onClick={onDisconnect}
-                                loading={isDisconnecting}
-                            >
-                                Disconnect
-                            </Button>
-                        </div>
-                        <Button
-                            block
-                            icon={<SyncOutlined spin={syncingZoho} />}
-                            onClick={onSync}
-                            loading={syncingZoho}
-                        >
-                            Sync Events
-                        </Button>
-                        {zohoStatus.lastSync && (
-                            <Text type="secondary" style={{ fontSize: '11px', textAlign: 'center', display: 'block' }}>
-                                Last Sync: {dayjs(zohoStatus.lastSync).format('MMM D, h:mm A')}
-                            </Text>
-                        )}
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: '4px' }}>
-                            Connect your Zoho Calendar to sync events and join meetings.
-                        </Text>
-                        <Button
-                            type="primary"
-                            block
-                            icon={<LinkOutlined />}
-                            onClick={onConnect}
-                            loading={isConnecting}
-                        >
-                            Connect Zoho
-                        </Button>
-                    </div>
-                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <Button
+                        block
+                        icon={<SyncOutlined spin={syncing} />}
+                        onClick={() => onSync()}
+                        loading={syncing}
+                    >
+                        Sync {provider ? (provider === 'MICROSOFT' ? 'Outlook' : provider.charAt(0) + provider.slice(1).toLowerCase()) : 'All'}
+                    </Button>
+                    <Button
+                        block
+                        type="dashed"
+                        icon={<SettingOutlined />}
+                        onClick={() => router.push('/integrations')}
+                    >
+                        Manage Integrations
+                    </Button>
+                </div>
             </div>
 
             <Divider />

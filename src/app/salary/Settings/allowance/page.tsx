@@ -29,6 +29,7 @@ import {
   useUpdateSalaryStatus,
   useDeleteSalaryComponent,
 } from "@/hooks/useSalaryComponents";
+import { usePermission } from "@/hooks/usePermission";
 import toast from "react-hot-toast";
 import { Toaster } from "react-hot-toast";
 
@@ -54,6 +55,8 @@ type SalaryComponent = {
 };
 
 const SalaryComponentManagement = () => {
+  const { canManageSalary } = usePermission();
+  
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
@@ -170,6 +173,7 @@ const SalaryComponentManagement = () => {
           checked={s}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
+          disabled={!canManageSalary}
           onChange={(checked) => toggleStatus(record.key, checked)} // ✅ use key
         />
       ),
@@ -180,20 +184,24 @@ const SalaryComponentManagement = () => {
       key: "actions",
       render: (_: any, record: SalaryComponent) => (
         <Space size={16}>
-          <EditOutlined
-            style={{ color: "#1677ff", cursor: "pointer" }}
-            onClick={() => handleEdit(record)}
-          />
+          {canManageSalary && (
+            <>
+              <EditOutlined
+                style={{ color: "#1677ff", cursor: "pointer" }}
+                onClick={() => handleEdit(record)}
+              />
 
-          <Popconfirm
-            title="Delete component?"
-            description="This action cannot be undone"
-            okText="Yes"
-            cancelText="No"
-            onConfirm={() => handleDelete(record.key)}
-          >
-            <DeleteOutlined style={{ color: "red", cursor: "pointer" }} />
-          </Popconfirm>
+              <Popconfirm
+                title="Delete component?"
+                description="This action cannot be undone"
+                okText="Yes"
+                cancelText="No"
+                onConfirm={() => handleDelete(record.key)}
+              >
+                <DeleteOutlined style={{ color: "red", cursor: "pointer" }} />
+              </Popconfirm>
+            </>
+          )}
         </Space>
       ),
     },
@@ -343,18 +351,20 @@ const SalaryComponentManagement = () => {
           </Text>
         </div>
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            form.resetFields();
-            setIsEditMode(false);
-            setEditingKey(null);
-            setOpen(true);
-          }}
-        >
-          Add Component
-        </Button>
+        {canManageSalary && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              form.resetFields();
+              setIsEditMode(false);
+              setEditingKey(null);
+              setOpen(true);
+            }}
+          >
+            Add Component
+          </Button>
+        )}
       </div>
 
       {/* Filters */}

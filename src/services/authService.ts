@@ -25,16 +25,18 @@ export interface LoginResponse {
 }
 
 export interface UserProfile {
-  id: string; // Backend returns "id", not "id"
+  id: string;
   name: string;
   phone: string;
   personalEmail: string;
   workEmail: string;
   role: string;
   position: string;
-  tenantId: string; // Add tenant context
+  tenantId: string;
+  /** Effective permissions from RBAC system */
+  permissions: string[];
   reportsTo?: {
-    id: string; // Updated to use "id" instead of "id"
+    id: string;
     name: string;
     position: string;
   };

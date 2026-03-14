@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -11,6 +10,7 @@ import {
   Modal,
   Form,
   Alert,
+  Popconfirm,
   Tag,
   DatePicker,
   Card,
@@ -22,6 +22,9 @@ import {
   message,
 } from "antd";
 import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   SearchOutlined,
   EyeOutlined,
   TeamOutlined,
@@ -30,6 +33,7 @@ import {
   AppstoreOutlined,
   BarsOutlined,
   UserOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -37,6 +41,8 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import {
   ProjectService,
   Project,
+  CreateProjectData,
+  UpdateProjectData,
   ProjectsFilters,
 } from "@/services/projectService";
 import { MembersService } from "@/services/membersService";
@@ -54,15 +60,18 @@ const { RangePicker } = DatePicker;
 interface Member {
   value: string;
   label: string;
-  position: string | { id: string; title: string; code: string; } | null;
+  position: string;
 }
 
 const ProjectsManagePage: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const [form] = Form.useForm();
 
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -90,6 +99,7 @@ const ProjectsManagePage: React.FC = () => {
       setLoading(true);
       const response = await ProjectService.getProjects(filters);
       setProjects(response.data);
+      console.log({ projects: response.data });
       setPagination({
         current: response.pagination.current,
         pageSize: response.pagination.pageSize,
@@ -117,6 +127,31 @@ const ProjectsManagePage: React.FC = () => {
     loadProjects();
     loadMembers();
   }, [filters]);
+
+  // Handle project manager change - automatically add to team members
+  const handleProjectManagerChange = (projectManagerId: string) => {
+    const teamMemberIds = form.getFieldValue("teamMemberIds") || [];
+
+    if (projectManagerId && !teamMemberIds.includes(projectManagerId)) {
+      // Add project manager to team members if not already included
+      form.setFieldsValue({
+        teamMemberIds: [...teamMemberIds, projectManagerId],
+      });
+    }
+  };
+
+  // Handle team members change - prevent removing project manager
+  const handleTeamMembersChange = (selectedIds: string[]) => {
+    const projectManagerId = form.getFieldValue("projectManagerId");
+
+    if (projectManagerId && !selectedIds.includes(projectManagerId)) {
+      // If project manager was removed, add them back
+      message.warning("Project Manager must be included in the team");
+      form.setFieldsValue({
+        teamMemberIds: [...selectedIds, projectManagerId],
+      });
+    }
+  };
 
   // Handle table pagination
   const handleTableChange = (pagination: any) => {
@@ -173,6 +208,74 @@ const ProjectsManagePage: React.FC = () => {
     }
   };
 
+  // Handle create/edit project
+  const handleSubmit = async (values: any) => {
+    try {
+      setError("");
+      const projectData = {
+        ...values,
+        startDate: values.startDate.format("YYYY-MM-DD"),
+        endDate: values.endDate ? values.endDate.format("YYYY-MM-DD") : null,
+        code: values.code || null,
+        repositories: values.repositories || null,
+      };
+
+      if (editingProject) {
+        await ProjectService.updateProject(
+          editingProject.id,
+          projectData as UpdateProjectData
+        );
+        setSuccess("Project updated successfully");
+      } else {
+        await ProjectService.createProject(projectData as CreateProjectData);
+        setSuccess("Project created successfully");
+      }
+
+      setModalVisible(false);
+      setEditingProject(null);
+      form.resetFields();
+      loadProjects();
+    } catch (error: any) {
+      setError(error.message || "Failed to save project");
+    }
+  };
+
+  // Handle delete project
+  const handleDelete = async (id: string) => {
+    try {
+      setError("");
+      await ProjectService.deleteProject(id);
+      setSuccess("Project deleted successfully");
+      loadProjects();
+    } catch (error: any) {
+      setError(error.message || "Failed to delete project");
+    }
+  };
+
+  // Handle edit
+  const handleEdit = (project: Project) => {
+    setEditingProject(project);
+    form.setFieldsValue({
+      ...project,
+      startDate: dayjs(project.startDate),
+      endDate: project.endDate ? dayjs(project.endDate) : null,
+      projectManagerId: project.projectManager.id,
+      teamMemberIds: project.members.map((member) => member.user.id),
+    });
+    setModalVisible(true);
+  };
+
+  // Handle add new
+  const handleAdd = () => {
+    setEditingProject(null);
+    form.resetFields();
+    form.setFieldsValue({
+      status: "planning",
+      defaultPriority: "medium",
+    });
+    setModalVisible(true);
+  };
+
   // Status color mapping
   const getStatusColor = (status: string) => {
     const colors = {
@@ -195,7 +298,7 @@ const ProjectsManagePage: React.FC = () => {
     return colors[priority as keyof typeof colors] || "default";
   };
 
-  // Table columns (read-only)
+  // Table columns
   const columns: ColumnsType<Project> = [
     {
       title: "Project",
@@ -231,13 +334,13 @@ const ProjectsManagePage: React.FC = () => {
     {
       title: "Project Manager",
       key: "projectManager",
-      render: (_, record:any) => (
+      render: (_, record) => (
         <div className="flex items-center space-x-2">
           <Avatar size="small">{record?.projectManager?.name.charAt(0)}</Avatar>
           <div>
             <div className="font-medium">{record?.projectManager?.name}</div>
             <div className="text-sm text-gray-500">
-              {record.projectManager?.position?.title || 'N/A'}
+              {record.projectManager?.position}
             </div>
           </div>
         </div>
@@ -285,6 +388,30 @@ const ProjectsManagePage: React.FC = () => {
               onClick={() => openViewModal(record)}
             />
           </Tooltip>
+          {user?.role &&
+            RBAC.hasPermission(user.role as any, "projects", "update") && (
+              <Tooltip title="Edit">
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record)}
+                />
+              </Tooltip>
+            )}
+          {user?.role &&
+            RBAC.hasPermission(user.role as any, "projects", "delete") && (
+              <Popconfirm
+                title="Are you sure you want to delete this project?"
+                description="This action cannot be undone and may affect related tickets."
+                onConfirm={() => handleDelete(record.id)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Tooltip title="Delete">
+                  <Button type="text" danger icon={<DeleteOutlined />} />
+                </Tooltip>
+              </Popconfirm>
+            )}
         </Space>
       ),
     },
@@ -347,7 +474,7 @@ const ProjectsManagePage: React.FC = () => {
             <Space align="center">
               <ProjectOutlined style={{ fontSize: 24, color: "#1677ff" }} />
               <Title level={3} style={{ margin: 0 }}>
-                Projects
+                Projects Management
               </Title>
             </Space>
 
@@ -398,6 +525,8 @@ const ProjectsManagePage: React.FC = () => {
                   List
                 </Button>
               </div>
+
+              {/* Add Project */}
             </Space>
           </Space>
         </div>
@@ -463,15 +592,17 @@ const ProjectsManagePage: React.FC = () => {
               showSearch
               filterOption={(input, option) => {
                 const member = members.find((m) => m.value === option?.value);
-                if (!member) return false;
-                const positionText = typeof member.position === 'object' ? member.position?.title || '' : member.position || '';
-                return member.label.toLowerCase().includes(input.toLowerCase()) ||
-                       positionText.toLowerCase().includes(input.toLowerCase());
+                return member
+                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                      member.position
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                  : false;
               }}
             >
               {members.map((member) => (
                 <Option key={member.value} value={member.value}>
-                  {member.label} - {typeof member.position === 'object' ? member.position?.title : member.position || 'N/A'}
+                  {member.label} - {member.position}
                 </Option>
               ))}
             </Select>
@@ -481,10 +612,22 @@ const ProjectsManagePage: React.FC = () => {
               onChange={handleDateRangeFilter}
               style={{ width: 250 }}
             />
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              Add Project
+            </Button>
           </div>
         </Card>
 
-        {/* Projects Card View */}
+        {/* All Projects Section - DASHBOARD STYLE CARDS */}
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ fontSize: 15 }}>
+            <ProjectOutlined style={{ marginRight: 6 }} />
+            All Projects
+          </Text>
+        </div>
+
+        {/* Projects Card View - DASHBOARD STYLE */}
+        {/* Projects Card View - DASHBOARD STYLE */}
         {viewMode === "card" ? (
           <Row gutter={[24, 24]}>
             {loading
@@ -515,7 +658,7 @@ const ProjectsManagePage: React.FC = () => {
                         }}
                         styles={{ body: { padding: "16px 18px" } }}
                       >
-                        {/* Line 1: Project Icon + Name + Status Tag */}
+                        {/* ===== LINE 1: Project Icon + Name + Status Tag on Left, Arrow on Right ===== */}
                         <div
                           style={{
                             display: "flex",
@@ -524,6 +667,7 @@ const ProjectsManagePage: React.FC = () => {
                             marginBottom: 12,
                           }}
                         >
+                          {/* Left side: Project Icon + Name + Status Tag */}
                           <div
                             style={{
                               display: "flex",
@@ -543,25 +687,27 @@ const ProjectsManagePage: React.FC = () => {
                             <Text strong ellipsis style={{ fontSize: 15 }}>
                               {project.name}
                             </Text>
-                           
+
                             <Tag
                               color={getStatusColor(project.status)}
                               style={{
                                 margin: 0,
-                                fontSize: 10,
-                                borderRadius: 3,
-                                padding: "1px 5px",
+                                fontSize: 10, // Reduced from 11 to 10
+                                borderRadius: 3, // Reduced from 4 to 3
+                                padding: "1px 5px", // Reduced padding
                                 flexShrink: 0,
-                                lineHeight: 1.2,
-                                height: "auto",
+                                lineHeight: 1.2, // Added for smaller height
+                                height: "auto", // Auto height
                               }}
                             >
                               {project.status.toUpperCase().replace("-", " ")}
                             </Tag>
                           </div>
+
+                          {/* Right side: Arrow only */}
                         </div>
 
-                        {/* Line 2: Project Manager Name */}
+                        {/* ===== LINE 2: Project Manager Name ===== */}
                         {project.projectManager && (
                           <div
                             style={{
@@ -582,7 +728,7 @@ const ProjectsManagePage: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Line 3: Members + Dates with Priority Tag */}
+                        {/* ===== LINE 3: Members + Start/End Date with Priority Tag on Right ===== */}
                         <div
                           style={{
                             display: "flex",
@@ -592,6 +738,7 @@ const ProjectsManagePage: React.FC = () => {
                             paddingTop: 8,
                           }}
                         >
+                          {/* Left side: Members + Dates */}
                           <div
                             style={{
                               display: "flex",
@@ -613,29 +760,90 @@ const ProjectsManagePage: React.FC = () => {
                             </span>
                           </div>
 
+                          {/* Right side: Priority Tag */}
+
                           <Tag
                             color={getPriorityColor(project.defaultPriority)}
                             style={{
                               margin: 0,
-                              fontSize: 10,
-                              borderRadius: 3,
-                              padding: "1px 5px",
+                              fontSize: 10, // Same as status tag
+                              borderRadius: 3, // Same as status tag
+                              padding: "1px 5px", // Same as status tag
                               fontWeight: 500,
                               flexShrink: 0,
-                              lineHeight: 1.2,
-                              height: "auto",
+                              lineHeight: 1.2, // Same as status tag
+                              height: "auto", // Same as status tag
                             }}
                           >
                             {project.defaultPriority.toUpperCase()}
                           </Tag>
                         </div>
+
+                        {/* ===== OPTIONAL: Action Buttons (if needed) ===== */}
+                        {user?.role &&
+                          (RBAC.hasPermission(
+                            user.role as any,
+                            "projects",
+                            "update"
+                          ) ||
+                            RBAC.hasPermission(
+                              user.role as any,
+                              "projects",
+                              "delete"
+                            )) && (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: 4,
+                                marginTop: 12,
+                                paddingTop: 8,
+                                borderTop: "1px dashed #f0f0f0",
+                              }}
+                            >
+                              {user?.role &&
+                                RBAC.hasPermission(
+                                  user.role as any,
+                                  "projects",
+                                  "update"
+                                ) && (
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<EditOutlined />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(project);
+                                    }}
+                                  />
+                                )}
+
+                              {user?.role &&
+                                RBAC.hasPermission(
+                                  user.role as any,
+                                  "projects",
+                                  "delete"
+                                ) && (
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(project.id);
+                                    }}
+                                  />
+                                )}
+                            </div>
+                          )}
                       </Card>
                     </Col>
                   );
                 })}
           </Row>
         ) : (
-          /* Table View */
+          /* ===== TABLE VIEW ===== */
           <Card size="small">
             <Table
               columns={columns}
@@ -662,7 +870,193 @@ const ProjectsManagePage: React.FC = () => {
           </Card>
         )}
 
-        {/* View Modal (Read-only) */}
+        {/* Create/Edit Modal */}
+        <Modal
+          title={editingProject ? "Edit Project" : "Create New Project"}
+          open={modalVisible}
+          onCancel={() => {
+            setModalVisible(false);
+            setEditingProject(null);
+            form.resetFields();
+          }}
+          footer={null}
+          width={800}
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            initialValues={{
+              status: "planning",
+              defaultPriority: "medium",
+            }}
+          >
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="name"
+                  label="Project Name"
+                  rules={[
+                    { required: true, message: "Please enter project name" },
+                    { min: 2, message: "Name must be at least 2 characters" },
+                  ]}
+                >
+                  <Input placeholder="Enter project name" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="status"
+                  label="Status"
+                  rules={[{ required: true, message: "Please select status" }]}
+                >
+                  <Select placeholder="Select status">
+                    <Option value="planning">Planning</Option>
+                    <Option value="active">Active</Option>
+                    <Option value="on-hold">On Hold</Option>
+                    <Option value="completed">Completed</Option>
+                    <Option value="cancelled">Cancelled</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item
+              name="description"
+              label="Description"
+              rules={[{ required: true, message: "Please enter description" }]}
+            >
+              <Input.TextArea
+                rows={3}
+                placeholder="Enter project description"
+              />
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="projectManagerId"
+                  label="Project Manager"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please select project manager",
+                    },
+                  ]}
+                >
+                  <Select
+                    placeholder="Select project manager"
+                    onChange={handleProjectManagerChange}
+                    showSearch
+                    filterOption={(input, option) => {
+                      const member = members.find(
+                        (m) => m.value === option?.value
+                      );
+                      return member
+                        ? member.label
+                            .toLowerCase()
+                            .includes(input.toLowerCase()) ||
+                            member.position
+                              .toLowerCase()
+                              .includes(input.toLowerCase())
+                        : false;
+                    }}
+                  >
+                    {members.map((member) => (
+                      <Option key={member.value} value={member.value}>
+                        {member.label} - {member.position}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="defaultPriority"
+                  label="Default Priority"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please select default priority",
+                    },
+                  ]}
+                >
+                  <Select placeholder="Select default priority">
+                    <Option value="high">High</Option>
+                    <Option value="medium">Medium</Option>
+                    <Option value="low">Low</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Form.Item
+              name="teamMemberIds"
+              label="Team Members"
+              help="Project Manager will be automatically included in the team"
+            >
+              <Select
+                mode="multiple"
+                placeholder="Select team members"
+                onChange={handleTeamMembersChange}
+                showSearch
+                filterOption={(input, option) => {
+                  const member = members.find((m) => m.value === option?.value);
+                  return member
+                    ? member.label
+                        .toLowerCase()
+                        .includes(input.toLowerCase()) ||
+                        member.position
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                    : false;
+                }}
+              >
+                {members.map((member) => (
+                  <Option key={member.value} value={member.value}>
+                    {member.label} - {member.position}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  name="startDate"
+                  label="Start Date"
+                  rules={[
+                    { required: true, message: "Please select start date" },
+                  ]}
+                >
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item name="endDate" label="End Date">
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                onClick={() => {
+                  setModalVisible(false);
+                  setEditingProject(null);
+                  form.resetFields();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="primary" htmlType="submit">
+                {editingProject ? "Update" : "Create"} Project
+              </Button>
+            </div>
+          </Form>
+        </Modal>
+
+        {/* View Modal */}
         <Modal
           open={viewModalOpen}
           onCancel={() => {
@@ -683,7 +1077,7 @@ const ProjectsManagePage: React.FC = () => {
         >
           {viewProject && (
             <>
-              {/* Header */}
+              {/* ===== HEADER ===== */}
               <div
                 className="view-modal-header"
                 style={{
@@ -705,7 +1099,9 @@ const ProjectsManagePage: React.FC = () => {
                   {viewProject.name?.[0]?.toUpperCase()}
                 </Avatar>
 
+                {/* Text block */}
                 <div style={{ flex: 1 }}>
+                  {/* Name + Tag in same row */}
                   <div
                     style={{
                       display: "flex",
@@ -732,13 +1128,14 @@ const ProjectsManagePage: React.FC = () => {
                     </Tag>
                   </div>
 
+                  {/* ID below */}
                   <Text style={{ color: "black", fontSize: 13 }}>
                     {viewProject.code || "—"}
                   </Text>
                 </div>
               </div>
 
-              {/* Body */}
+              {/* ===== BODY ===== */}
               <div style={{ padding: 24, background: "#fafcff" }}>
                 <Row gutter={[16, 16]}>
                   <Col span={12}>
@@ -802,7 +1199,7 @@ const ProjectsManagePage: React.FC = () => {
                 </Row>
               </div>
 
-              {/* Footer */}
+              {/* ===== FOOTER ===== */}
               <div
                 style={{
                   padding: "14px 20px",

@@ -412,7 +412,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Accounts",
         icon: <WalletOutlined />,
         path: "/accounts",
-        requiredPermission: Permissions.TRANSACTION_READ,
       },
       // {
       //   key: "/clients-v2",
@@ -519,20 +518,15 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "ADMIN",
     label: "ADMIN",
     icon: <SettingOutlined />,
-    pathPrefixes: ["/clients", "/settings", "/admin", "/roles"],
-    defaultPath: "/clients",
-    requiredAnyPermission: [
-      Permissions.CLIENT_READ,
-      Permissions.SETTINGS_READ,
-      Permissions.ROLE_READ,
-    ],
+    pathPrefixes: ["/clients", "/clients-v2", "/settings", "/admin", "/roles"],
+    defaultPath: "/clients-v2",
+    requiredAnyPermission: [Permissions.CLIENT_READ, Permissions.SETTINGS_READ, Permissions.ROLE_READ],
     items: [
       {
         key: "/clients",
         label: "Clients (Legacy)",
         icon: <UserAddOutlined />,
         path: "/clients",
-        requiredPermission: Permissions.CLIENT_READ,
       },
       {
         key: "/clients-v2",

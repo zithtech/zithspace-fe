@@ -15,12 +15,14 @@ import {
   Space,
   Result,
 } from "antd";
-import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, ExclamationCircleFilled } from "@ant-design/icons";
+import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, ExclamationCircleFilled, FileOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, FileExcelOutlined, FileImageOutlined, PaperClipOutlined } from "@ant-design/icons";
 import { useRouter, useParams } from "next/navigation";
 import {
   RecruitmentService,
   JobRequisitionData,
+  RequisitionAttachment,
 } from "@/services/recruitment.service";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 
@@ -33,6 +35,8 @@ export default function RequisitionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modal, contextHolder] = Modal.useModal();
+  const [attachments, setAttachments] = useState<RequisitionAttachment[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -46,6 +50,17 @@ export default function RequisitionDetailPage() {
       setError(null);
       const data = await RecruitmentService.getRequisitionById(id);
       setRequisition(data);
+      // Also fetch attachments
+      try {
+        setLoadingAttachments(true);
+        const attachData = await RecruitmentService.getAttachments(id);
+        setAttachments(attachData || []);
+      } catch (e) {
+        console.error("Failed to fetch attachments:", e);
+        setAttachments([]);
+      } finally {
+        setLoadingAttachments(false);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to load Job Requisition details.");
@@ -559,7 +574,106 @@ export default function RequisitionDetailPage() {
     {
       key: "7",
       label: "Attachments",
-      children: <div style={{ padding: 24, color: '#999' }}>Attachments — coming soon</div>,
+      children: (
+        <Spin spinning={loadingAttachments}>
+          {attachments.length === 0 ? (
+            <div style={{ padding: 48, textAlign: "center", color: "#999" }}>
+              <PaperClipOutlined style={{ fontSize: 48, marginBottom: 16, display: "block" }} />
+              No attachments uploaded for this requisition.
+            </div>
+          ) : (
+            <Row gutter={[16, 16]} style={{ padding: "16px 0" }}>
+              {attachments.map((att: any, idx: number) => {
+                const ext = (att.fileType || att.fileName?.split(".").pop() || "").toLowerCase();
+                const iconMap: Record<string, React.ReactNode> = {
+                  pdf: <FilePdfOutlined style={{ fontSize: 32, color: "#ff4d4f" }} />,
+                  doc: <FileWordOutlined style={{ fontSize: 32, color: "#1890ff" }} />,
+                  docx: <FileWordOutlined style={{ fontSize: 32, color: "#1890ff" }} />,
+                  xls: <FileExcelOutlined style={{ fontSize: 32, color: "#52c41a" }} />,
+                  xlsx: <FileExcelOutlined style={{ fontSize: 32, color: "#52c41a" }} />,
+                  png: <FileImageOutlined style={{ fontSize: 32, color: "#722ed1" }} />,
+                  jpg: <FileImageOutlined style={{ fontSize: 32, color: "#722ed1" }} />,
+                  jpeg: <FileImageOutlined style={{ fontSize: 32, color: "#722ed1" }} />,
+                };
+                const icon = iconMap[ext] || <FileOutlined style={{ fontSize: 32, color: "#8c8c8c" }} />;
+                const categoryLabels: Record<string, string> = {
+                  job_description: "Job Description",
+                  client_requirements: "Client Requirements",
+                  interview_guide: "Interview Guide",
+                };
+                const formatSize = (bytes?: number) => {
+                  if (!bytes) return "";
+                  const k = 1024;
+                  const sizes = ["B", "KB", "MB", "GB"];
+                  const i = Math.floor(Math.log(bytes) / Math.log(k));
+                  return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
+                };
+                return (
+                  <Col xs={24} sm={12} md={8} key={att.id || idx}>
+                    <Card
+                      size="small"
+                      hoverable
+                      style={{ borderRadius: 8 }}
+                      styles={{ body: { padding: "16px" } }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                        <div style={{ flexShrink: 0, paddingTop: 2 }}>{icon}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text
+                            strong
+                            ellipsis
+                            title={att.fileName}
+                            style={{ display: "block", fontSize: 13 }}
+                          >
+                            {att.fileName}
+                          </Text>
+                          <Tag color="blue" style={{ marginTop: 4, fontSize: 11 }}>
+                            {categoryLabels[att.category] || att.category}
+                          </Tag>
+                          <div style={{ marginTop: 6 }}>
+                            {att.fileSize && (
+                              <Text type="secondary" style={{ fontSize: 11, marginRight: 12 }}>
+                                {formatSize(att.fileSize)}
+                              </Text>
+                            )}
+                            {att.uploadedAt && (
+                              <Text type="secondary" style={{ fontSize: 11 }}>
+                                {dayjs(att.uploadedAt).format("MMM DD, YYYY")}
+                              </Text>
+                            )}
+                          </div>
+                          {att.uploadedBy?.name && (
+                            <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 2 }}>
+                              Uploaded by {att.uploadedBy.name}
+                            </Text>
+                          )}
+                          <Button
+                            type="link"
+                            size="small"
+                            icon={<DownloadOutlined />}
+                            style={{ padding: 0, marginTop: 8 }}
+                            onClick={() => {
+                              const link = document.createElement("a");
+                              link.href = att.fileUrl;
+                              link.target = "_blank";
+                              link.download = att.fileName;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                          >
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+          )}
+        </Spin>
+      ),
     },
     {
       key: "8",

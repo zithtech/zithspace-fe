@@ -28,6 +28,7 @@ import {
   JobRequisitionData,
   SelectOption,
 } from "@/services/recruitment.service";
+import AttachmentSection, { AttachmentItem } from "./AttachmentSection";
 import dayjs from "dayjs";
 
 const { Option } = Select;
@@ -50,6 +51,11 @@ export default function RequisitionForm({
   const [members, setMembers] = useState<SelectOption[]>([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
+  // Attachments — single source of truth for both new (staged) and existing (saved) attachments
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+
   // Load dropdown data on mount
   useEffect(() => {
     const loadDropdowns = async () => {
@@ -68,8 +74,6 @@ export default function RequisitionForm({
     };
     loadDropdowns();
   }, []);
-
-
 
   const fetchRequisition = useCallback(async (id: string) => {
     try {
@@ -99,6 +103,20 @@ export default function RequisitionForm({
       };
 
       form.setFieldsValue(formattedData);
+
+      // Load attachments
+      try {
+        const attachmentsData = await RecruitmentService.getAttachments(id);
+        // Mark all loaded attachments as NOT new (they're already on R2)
+        const mapped: AttachmentItem[] = (attachmentsData || []).map((a: any) => ({
+          ...a,
+          isNew: false,
+        }));
+        setAttachments(mapped);
+      } catch (error) {
+        console.error("Failed to load attachments:", error);
+        setAttachments([]);
+      }
     } catch (error) {
       console.error(error);
       message.error("Failed to load Job Requisition details.");
@@ -128,17 +146,47 @@ export default function RequisitionForm({
         screeningQuestions: values.screeningQuestions || [],
       };
 
+      let requisitionId = params.id as string;
+
       if (isEdit) {
         await RecruitmentService.updateRequisition(
-          params.id as string,
+          requisitionId,
           payload
         );
         message.success("Job Requisition updated successfully!");
       } else {
-        await RecruitmentService.createRequisition(
+        const createdReq = await RecruitmentService.createRequisition(
           payload as JobRequisitionData
         );
+        requisitionId = createdReq.id as string;
         message.success("Job Requisition created successfully!");
+      }
+
+      // Upload any new (staged) attachments to R2
+      const newAttachments = attachments.filter(a => a.isNew);
+      for (const attachment of newAttachments) {
+        try {
+          await RecruitmentService.uploadAttachment(
+            requisitionId,
+            attachment.fileUrl,
+            attachment.fileName,
+            attachment.category,
+          );
+        } catch (uploadError) {
+          console.error("Failed to upload attachment", attachment.fileName, uploadError);
+          message.error(`Failed to upload ${attachment.fileName}`);
+        }
+      }
+
+      // Delete any saved attachments that were removed during edit
+      if (isEdit && deletedAttachmentIds.length > 0) {
+        for (const attachmentId of deletedAttachmentIds) {
+          try {
+            await RecruitmentService.deleteAttachment(requisitionId, attachmentId);
+          } catch (deleteError) {
+            console.error("Failed to delete attachment", attachmentId, deleteError);
+          }
+        }
       }
 
       router.push("/recruitment/job-requisitions");
@@ -150,6 +198,11 @@ export default function RequisitionForm({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Queue a saved attachment for deletion (deferred until save)
+  const handleDeleteSavedAttachment = async (attachmentId: string) => {
+    setDeletedAttachmentIds(prev => [...prev, attachmentId]);
   };
 
   if (fetching)
@@ -659,6 +712,14 @@ export default function RequisitionForm({
             )}
           </Form.List>
         </Card>
+
+        {/* ─── Attachments ─── */}
+          <AttachmentSection
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+            onDeleteSaved={handleDeleteSavedAttachment}
+            loading={loadingAttachments}
+          />
 
         {/* ─── Internal Notes ─── */}
         <Card

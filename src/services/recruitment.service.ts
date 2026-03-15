@@ -107,6 +107,23 @@ export interface SelectOption {
   [key: string]: any;
 }
 
+export interface RequisitionAttachment {
+  id?: string;
+  requisitionId: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize?: number;
+  fileType: string;
+  category: string; // job_description, client_requirements, interview_guide
+  uploadedAt?: string;
+  uploadedBy?: {
+    id?: string;
+    name: string;
+    workEmail?: string;
+    position?: string;
+  };
+}
+
 export const RecruitmentService = {
   getAllRequisitions: async (
     filters: RequisitionFilters = {},
@@ -180,5 +197,33 @@ export const RecruitmentService = {
   getMembersForSelect: async (): Promise<SelectOption[]> => {
     const response = await api.get("/api/members/select");
     return response;
+  },
+
+  // ---- Attachment Management ----
+
+  uploadAttachment: async (
+    requisitionId: string,
+    file: string,
+    fileName: string,
+    category: string,
+  ): Promise<RequisitionAttachment> => {
+    const response = await api.post(`/api/recruitment/${requisitionId}/attachments`, {
+      file,
+      fileName,
+      category,
+    });
+    return response;
+  },
+
+  getAttachments: async (requisitionId: string): Promise<RequisitionAttachment[]> => {
+    const response = await api.get(`/api/recruitment/${requisitionId}/attachments`);
+    return Array.isArray(response) ? response : [];
+  },
+
+  deleteAttachment: async (
+    requisitionId: string,
+    attachmentId: string,
+  ): Promise<void> => {
+    await api.delete(`/api/recruitment/${requisitionId}/attachments/${attachmentId}`);
   },
 };

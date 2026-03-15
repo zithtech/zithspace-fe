@@ -264,6 +264,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/recruitment",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -372,6 +373,19 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Positions",
             path: "/org-structure/positions",
             requiredPermission: Permissions.ORG_MANAGE,
+          },
+        ],
+      },
+      {
+        key: "recruitment-group",
+        icon: <TeamOutlined />,
+        label: "Recruitment",
+        children: [
+          {
+            key: "/recruitment/job-requisitions",
+            label: "Job Requisitions",
+            icon: <ProjectOutlined />,
+            path: "/recruitment/job-requisitions",
           },
         ],
       },

@@ -24,6 +24,7 @@ import {
 import { SalaryStructure } from "@/types/salary";
 import { SalaryStructureService } from "@/services/salarySettings.service";
 import SalaryPreview from "@/app/salary/SalaryPreview";
+import NewSalaryStructure from "./NewSalaryStructure";
 
 const { Title, Text } = Typography;
 
@@ -35,15 +36,25 @@ export default function SalaryStructureSettings() {
   const [selectedStructure, setSelectedStructure] =
     useState<SalaryStructure | null>(null);
 
-  // Handle create and edit operations internally
+  // View state: "list" = structure list, "create" = new form, "edit" = edit form
+  const [view, setView] = useState<"list" | "create" | "edit">("list");
+  const [editingId, setEditingId] = useState<number | null>(null);
+
   const onCreate = () => {
-    console.log("Create new salary structure");
-    // TODO: Navigate to create page or open modal
+    setView("create");
+    setEditingId(null);
   };
 
   const onEdit = (id: number) => {
-    console.log("Edit salary structure:", id);
-    // TODO: Navigate to edit page or open modal
+    setView("edit");
+    setEditingId(id);
+  };
+
+  const handleBack = () => {
+    setView("list");
+    setEditingId(null);
+    // Reload structures after create/edit
+    setStructures([...SalaryStructureService.getAll()]);
   };
 
   /* =========================
@@ -65,39 +76,45 @@ export default function SalaryStructureSettings() {
    - Click inactive → becomes active
    - Other items remain unchanged
 ========================== */
-// const toggleActive = (id: number) => {
-//   setStructures((prev) =>
-//     prev.map((s) =>
-//       s.id === id ? { ...s, isActive: !s.isActive } : s
-//     )
-//   );
-// };
+  // const toggleActive = (id: number) => {
+  //   setStructures((prev) =>
+  //     prev.map((s) =>
+  //       s.id === id ? { ...s, isActive: !s.isActive } : s
+  //     )
+  //   );
+  // };
 
-// SalaryStructureSettings.tsx - toggleActive function
-const toggleActive = (id: number) => {
-  console.log("Before toggle:", structures.map(s => ({ id: s.id, isActive: s.isActive })));
-  
-  // Update local state
-  setStructures((prev) =>
-    prev.map((s) => {
-      if (s.id === id) {
-        return { ...s, isActive: !s.isActive }; // Just toggle the clicked one
-      }
-      return s;
-    })
-  );
-  
-  // Also update in service
-  SalaryStructureService.setActive(id);
-  
-  // Verify after toggle
-  setTimeout(() => {
-    console.log("After toggle:", SalaryStructureService.getAll().map(s => ({ 
-      id: s.id, 
-      isActive: s.isActive 
-    })));
-  }, 100);
-};
+  // SalaryStructureSettings.tsx - toggleActive function
+  const toggleActive = (id: number) => {
+    console.log(
+      "Before toggle:",
+      structures.map((s) => ({ id: s.id, isActive: s.isActive })),
+    );
+
+    // Update local state
+    setStructures((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
+          return { ...s, isActive: !s.isActive }; // Just toggle the clicked one
+        }
+        return s;
+      }),
+    );
+
+    // Also update in service
+    SalaryStructureService.setActive(id);
+
+    // Verify after toggle
+    setTimeout(() => {
+      console.log(
+        "After toggle:",
+        SalaryStructureService.getAll().map((s) => ({
+          id: s.id,
+          isActive: s.isActive,
+        })),
+      );
+    }, 100);
+  };
 
   /* =========================
      TABLE COLUMNS
@@ -147,11 +164,7 @@ const toggleActive = (id: number) => {
           </Button>
 
           {record.isActive ? (
-            <Button
-              danger
-              size="small"
-              onClick={() => toggleActive(record.id)}
-            >
+            <Button danger size="small" onClick={() => toggleActive(record.id)}>
               Inactive
             </Button>
           ) : (
@@ -167,6 +180,17 @@ const toggleActive = (id: number) => {
       ),
     },
   ];
+
+  // If in create/edit mode, render the NewSalaryStructure form
+  if (view === "create" || view === "edit") {
+    return (
+      <NewSalaryStructure
+        mode={view === "edit" ? "edit" : "create"}
+        editingId={editingId}
+        onBack={handleBack}
+      />
+    );
+  }
 
   return (
     <>
@@ -190,8 +214,8 @@ const toggleActive = (id: number) => {
             </Text> */}
 
             <Text type="secondary">
-  Active Structures: {structures.filter((s) => s.isActive).length}
-</Text>
+              Active Structures: {structures.filter((s) => s.isActive).length}
+            </Text>
           </div>
 
           <Space>
@@ -317,7 +341,7 @@ const toggleActive = (id: number) => {
               );
 
               return s.isActive ? (
-               <Badge.Ribbon key={s.id} text="Active" color="#1677ff">
+                <Badge.Ribbon key={s.id} text="Active" color="#1677ff">
                   {card}
                 </Badge.Ribbon>
               ) : (

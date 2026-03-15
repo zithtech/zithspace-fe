@@ -19,6 +19,7 @@ import {
   Modal,
   Divider,
   Radio,
+  Drawer,
 } from "antd";
 import {
   PlusOutlined,
@@ -47,10 +48,9 @@ interface Props {
   mode: "create" | "edit";
   editingId: number | null;
   onBack: () => void;
-  onPreview: (type: "salary", data: any) => void;
 }
 
-const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
+const NewSalaryStructure = ({ mode, editingId, onBack }: Props) => {
   const isEditMode = mode === "edit";
 
   const [form] = Form.useForm();
@@ -74,6 +74,7 @@ const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
   const [activeEarning, setActiveEarning] = useState<Earning | null>(null);
   const [tempDescription, setTempDescription] = useState("");
 
+  const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
   const [visibilityType, setVisibilityType] = useState<"PUBLIC" | "PRIVATE">(
     "PUBLIC",
@@ -242,69 +243,69 @@ const NewSalaryStructure = ({ mode, editingId, onBack, onPreview }: Props) => {
   // };
 
   const handleSaveClick = async () => {
-  try {
-    // 1. Form validation (structure name, description)
-    await form.validateFields();
-    
-    // 2. Earnings validation
-    if (!isEarningValid) {
-      message.error("Earnings total must be exactly 100% to save structure");
-      return;
-    }
-    
-    // 3. എല്ലാം ശരിയാണെങ്കിൽ visibility modal തുറക്കുക
-    setVisibilityModalOpen(true);
-  } catch (err) {
-    console.log("Validation Error:", err);
-    // Form validation failed - AntD automatically shows errors
-  }
-};
+    try {
+      // 1. Form validation (structure name, description)
+      await form.validateFields();
 
-const confirmSaveStructure = async () => {
-  try {
-    // Visibility specific validations
-    if (visibilityType === "PRIVATE") {
-      if (!selectedCompany || !selectedRole) {
-        message.error("Please select company and role");
+      // 2. Earnings validation
+      if (!isEarningValid) {
+        message.error("Earnings total must be exactly 100% to save structure");
         return;
       }
+
+      // 3. എല്ലാം ശരിയാണെങ്കിൽ visibility modal തുറക്കുക
+      setVisibilityModalOpen(true);
+    } catch (err) {
+      console.log("Validation Error:", err);
+      // Form validation failed - AntD automatically shows errors
     }
-    
-    const values = form.getFieldsValue(); // Already validated in handleSaveClick
-    
-    const payload = {
-      id: isEditMode && editingId ? editingId : Date.now(),
-      name: values.structureName,
-      description: values.structureDescription,
-      grossSalary,
-      earnings,
-      deductions,
-      deductionsEnabled,
-      visibility: visibilityType,
-      companyId: visibilityType === "PRIVATE" ? selectedCompany : null,
-      roleId: visibilityType === "PRIVATE" ? selectedRole : null,
-      createdAt: new Date().toLocaleDateString(),
-      isActive: false,
-    };
-    
-    if (isEditMode && editingId) {
-      SalaryStructureService.update(editingId, payload);
-    } else {
-      SalaryStructureService.create(payload);
+  };
+
+  const confirmSaveStructure = async () => {
+    try {
+      // Visibility specific validations
+      if (visibilityType === "PRIVATE") {
+        if (!selectedCompany || !selectedRole) {
+          message.error("Please select company and role");
+          return;
+        }
+      }
+
+      const values = form.getFieldsValue(); // Already validated in handleSaveClick
+
+      const payload = {
+        id: isEditMode && editingId ? editingId : Date.now(),
+        name: values.structureName,
+        description: values.structureDescription,
+        grossSalary,
+        earnings,
+        deductions,
+        deductionsEnabled,
+        visibility: visibilityType,
+        companyId: visibilityType === "PRIVATE" ? selectedCompany : null,
+        roleId: visibilityType === "PRIVATE" ? selectedRole : null,
+        createdAt: new Date().toLocaleDateString(),
+        isActive: false,
+      };
+
+      if (isEditMode && editingId) {
+        SalaryStructureService.update(editingId, payload);
+      } else {
+        SalaryStructureService.create(payload);
+      }
+
+      setVisibilityModalOpen(false);
+      onBack();
+      message.success(
+        isEditMode
+          ? "Salary structure updated successfully!"
+          : "Salary structure created successfully!",
+      );
+    } catch (err) {
+      console.log(err);
+      message.error("Failed to save structure");
     }
-    
-    setVisibilityModalOpen(false);
-    onBack();
-    message.success(
-      isEditMode 
-        ? "Salary structure updated successfully!" 
-        : "Salary structure created successfully!"
-    );
-  } catch (err) {
-    console.log(err);
-    message.error("Failed to save structure");
-  }
-};
+  };
   const MAX_INLINE_LENGTH = 40;
 
   const isLongText = (text?: string) =>
@@ -373,15 +374,7 @@ const confirmSaveStructure = async () => {
             <Space>
               <Button
                 icon={<EyeOutlined />}
-                onClick={() =>
-                  onPreview("salary", {
-                    name: form.getFieldValue("structureName") || "Untitled",
-                    grossSalary,
-                    earnings,
-                    deductions,
-                    deductionsEnabled,
-                  })
-                }
+                onClick={() => setPreviewDrawerOpen(true)}
               >
                 Preview
               </Button>
@@ -425,7 +418,10 @@ const confirmSaveStructure = async () => {
                   label="Description"
                   name="structureDescription"
                   rules={[
-                    { required: true, message: "Please enter structure Description" },
+                    {
+                      required: true,
+                      message: "Please enter structure Description",
+                    },
                   ]}
                 >
                   <Input.TextArea
@@ -898,6 +894,23 @@ const confirmSaveStructure = async () => {
         {/* </ConfigProvider> */}
         {/* </MainLayout> */}
       </Card>
+
+      {/* Preview Drawer */}
+      <Drawer
+        title={form.getFieldValue("structureName") || "Salary Preview"}
+        width={500}
+        open={previewDrawerOpen}
+        onClose={() => setPreviewDrawerOpen(false)}
+      >
+        <SalaryPreview
+          grossSalary={grossSalary}
+          setGrossSalary={() => {}}
+          earnings={earnings}
+          deductions={deductions}
+          deductionsEnabled={deductionsEnabled}
+          readOnly
+        />
+      </Drawer>
     </ConfigProvider>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   Form,
   Input,
@@ -28,7 +28,7 @@ import MainLayout from "@/components/layout/MainLayout";
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-export default function CreateClientV2Page() {
+function CreateClientV2Content() {
   const [form] = Form.useForm();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -475,5 +475,17 @@ export default function CreateClientV2Page() {
         </Form>
       </div>
     </MainLayout>
+  );
+}
+
+export default function CreateClientV2Page() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} tip="Loading..." />
+      </div>
+    }>
+      <CreateClientV2Content />
+    </Suspense>
   );
 }

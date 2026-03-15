@@ -300,6 +300,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/profile",
       },
       {
+        key: "/new-profile",
+        label: "Profile 2.0",
+        icon: <SolutionOutlined />,
+        path: "/new-profile",
+      },
+      {
         key: "/attendance",
         label: "Attendance",
         icon: <ClockCircleOutlined />,

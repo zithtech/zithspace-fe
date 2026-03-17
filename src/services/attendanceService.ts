@@ -1,3 +1,4 @@
+import { AttendanceSession } from '@/app/attendance/page';
 import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
 
 export interface Attendance {
@@ -24,6 +25,7 @@ export interface Attendance {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  sessions:AttendanceSession[]
 }
 
 export interface ClockInData {

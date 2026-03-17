@@ -49,6 +49,15 @@ import { MembersService, Member } from '@/services/membersService';
 import { ApiError } from '@/lib/axios';
 
 // Define missing types locally
+export interface AttendanceSession {
+  id: string;
+  attendanceId: string;
+  clockIn: string; // ISO string from API
+  clockOut?: string | null;
+  workMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+}
 interface TodayAttendanceStatus extends TodayAttendance {
   shift?: {
     id: string;
@@ -61,6 +70,7 @@ interface TodayAttendanceStatus extends TodayAttendance {
   clockInTime?: string;
   clockOutTime?: string;
   totalWorkMinutes: number;
+  sessions: AttendanceSession[];
 }
 
 interface DashboardSummary {
@@ -76,7 +86,7 @@ interface DashboardSummary {
 interface PresentEmployee {
   id: string;
   name: string;
-  position: string | { id: string; title: string; code: string; } | null;
+  position: string | { id: string; title: string; code: string } | null;
   status: string;
   clockInTime: string;
   shift: {
@@ -215,15 +225,23 @@ export default function AttendancePage() {
   const handleClockIn = async () => {
     try {
       setActionLoading(true);
-      setError('');
-
-      await AttendanceService.clockIn();
-      setSuccess('Clocked in successfully!');
-      fetchTodayStatus();
-      fetchDashboardSummary();
-      fetchPresentEmployees();
+      setError("");
+  
+      const response = await AttendanceService.clockIn();
+      const newSession = response?.sessions; 
+  
+      setTodayStatus((prev) => {
+        if (!prev) return prev;
+      
+        return {
+          ...prev,
+          isClockIn: false,
+          sessions:newSession ,
+        };
+      });
+  
+      setSuccess("Clocked in successfully!");
     } catch (error) {
-      console.error('Clock in error:', error);
       if (error instanceof ApiError) {
         setError(error.message);
       } else {
@@ -238,19 +256,35 @@ export default function AttendancePage() {
   const handleClockOut = async () => {
     try {
       setActionLoading(true);
-      setError('');
+      setError("");
+  
+      const response = await AttendanceService.clockOut();
+  
+      setTodayStatus((prev) => {
+        if (!prev) return prev;
+      
+        return {
+          ...prev,
+          isClockIn: true,
+          sessions: response?.sessions, 
+          clockOutTime: response.clockOut
+        };
+      });
 
-      await AttendanceService.clockOut();
-      setSuccess('Clocked out successfully!');
-      fetchTodayStatus();
-      fetchDashboardSummary();
-      fetchPresentEmployees();
+      setMyAttendanceRecords((previousRecords) =>
+        previousRecords.map((attendanceRecord) =>
+          attendanceRecord.id === response?.id
+            ? response
+            : attendanceRecord
+        )
+      );
+  
+      setSuccess("Clocked out successfully!");
     } catch (error) {
-      console.error('Clock out error:', error);
       if (error instanceof ApiError) {
         setError(error.message);
       } else {
-        setError('Failed to clock out');
+        setError("Failed to clock out");
       }
     } finally {
       setActionLoading(false);
@@ -996,8 +1030,9 @@ export default function AttendancePage() {
                       Clock In: {dayjs(employee?.clockInTime).format('HH:mm')}
                     </Text>
                     <Text type="secondary">
-                      Shift: {employee?.shift?.name}
+                      Clock In: {dayjs(employee?.clockInTime).format("HH:mm")}
                     </Text>
+                    <Text type="secondary">Shift: {employee?.shift?.name}</Text>
                     <Text type="secondary">
                       Work Hours: {formatDuration(employee?.workHours)}
                     </Text>
@@ -1094,67 +1129,65 @@ export default function AttendancePage() {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         {/* Today's Status Card */}
         <Col xs={24} lg={12}>
-        <Card
-          title={
-            <Space>
-              <ClockCircleOutlined style={{ color: '#1677ff' }} />
-              <span>Today's Status</span>
-            </Space>
-          }
-          size="small"
-        >
-          {todayStatus ? (
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
-              {/* Current Shift Info */}
-              {todayStatus.shift && (
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Current Shift</Text>
-                  <br />
-                  <Text strong style={{ fontSize: 16 }}>
-                    {todayStatus?.shift?.name} ({todayStatus?.shift?.startTime} - {todayStatus?.shift?.endTime})
-                  </Text>
-                  {todayStatus?.shift?.isFlexible && (
-                    <Tag color="blue" style={{ marginLeft: 8 }}>Flexible</Tag>
+          <Card
+            title={
+              <Space>
+                <ClockCircleOutlined style={{ color: "#1677ff" }} />
+                <span>Today's Status</span>
+              </Space>
+            }
+            size="small"
+          >
+            {todayStatus ? (
+              <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                {/* Current Shift Info */}
+                {todayStatus.shift && (
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Current Shift
+                    </Text>
+                    <br />
+                    <Text strong style={{ fontSize: 16 }}>
+                      {todayStatus?.shift?.name} (
+                      {todayStatus?.shift?.startTime} -{" "}
+                      {todayStatus?.shift?.endTime})
+                    </Text>
+                    {todayStatus?.shift?.isFlexible && (
+                      <Tag color="blue" style={{ marginLeft: 8 }}>
+                        Flexible
+                      </Tag>
+                    )}
+                  </div>
+                )}
+
+                <Divider style={{ margin: "12px 0" }} />
+
+                {/* Clock In/Out Buttons */}
+                <div style={{ textAlign: "center" }}>
+                  {todayStatus.isClockIn ? (
+                    <Button
+                      type="primary"
+                      size="large"
+                      icon={<PlayCircleOutlined />}
+                      onClick={handleClockIn}
+                      loading={actionLoading}
+                      style={{ width: "100%", height: 50 }}
+                    >
+                      Clock In
+                    </Button>
+                  ) : (
+                    <Button
+                      danger
+                      size="large"
+                      icon={<StopOutlined />}
+                      onClick={handleClockOut}
+                      loading={actionLoading}
+                      style={{ width: "100%", height: 50 }}
+                    >
+                      Clock Out
+                    </Button>
                   )}
                 </div>
-              )}
-
-              <Divider style={{ margin: '12px 0' }} />
-
-              {/* Clock In/Out Buttons */}
-              <div style={{ textAlign: 'center' }}>
-                {!todayStatus.isClockIn ? (
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<PlayCircleOutlined />}
-                    onClick={handleClockIn}
-                    loading={actionLoading}
-                    style={{ width: '100%', height: 50 }}
-                  >
-                    Clock In
-                  </Button>
-                ) : !todayStatus?.clockOutTime ? (
-                  <Button
-                    danger
-                    size="large"
-                    icon={<StopOutlined />}
-                    onClick={handleClockOut}
-                    loading={actionLoading}
-                    style={{ width: '100%', height: 50 }}
-                  >
-                    Clock Out
-                  </Button>
-                ) : (
-                  <Button
-                    size="large"
-                    disabled
-                    style={{ width: '100%', height: 50 }}
-                  >
-                    Day Complete
-                  </Button>
-                )}
-              </div>
 
               <Divider style={{ margin: '12px 0' }} />
 
@@ -1274,23 +1307,63 @@ export default function AttendancePage() {
             size="middle"
           />
         </Space>
+      <Table
+        columns={columns}
+        dataSource={myAttendanceRecords}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: false,
+          showQuickJumper: false,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} records`,
+          size: "small",
+        }}
+        size="small"
+        scroll={{ x: 800 }}
+        expandable={{
+          rowExpandable: (record) =>
+            record.sessions && record.sessions.length > 1,
 
-        <Table
-          columns={columns}
-          dataSource={myAttendanceRecords}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: false,
-            showQuickJumper: false,
-            showTotal: (total, range) => 
-              `${range[0]}-${range[1]} of ${total} records`,
-            size: 'small',
-          }}
-          size="small"
-          scroll={{ x: 800 }}
-        />
+          expandedRowRender: (record) => {
+            const sessionColumns = [
+              {
+                title: "Session",
+                render: (_: any, __: any, index: number) => index + 1,
+                width: 80,
+              },
+              {
+                title: "Clock In",
+                dataIndex: "clockIn",
+                render: (value: string) =>
+                  value ? dayjs(value).format("HH:mm") : "-",
+              },
+              {
+                title: "Clock Out",
+                dataIndex: "clockOut",
+                render: (value: string) =>
+                  value ? dayjs(value).format("HH:mm") : "Ongoing",
+              },
+              {
+                title: "Work Minutes",
+                dataIndex: "workMinutes",
+                render: (value: number) => `${value} mins`,
+              },
+            ];
+
+            return (
+              <Table
+                columns={sessionColumns}
+                dataSource={record.sessions}
+                rowKey="id"
+                pagination={false}
+                size="small"
+              />
+            );
+          },
+        }}
+      />
       </Card>
     </div>
   );

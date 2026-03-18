@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   Form,
   Input,
@@ -29,6 +29,14 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function CreateClientV2Page() {
+  return (
+    <Suspense fallback={<Spin />}>
+      <CreateClientV2PageInner />
+    </Suspense>
+  );
+}
+
+function CreateClientV2PageInner() {
   const [form] = Form.useForm();
   const router = useRouter();
   const searchParams = useSearchParams();

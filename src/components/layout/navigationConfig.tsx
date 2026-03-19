@@ -399,7 +399,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
       {
         key: "invoicepro",
-        label: "InvoicePro",
+        label: "Invoice",
         icon: <AccountBookOutlined />,
         requiredPermission: Permissions.INVOICE_READ,
         children: [
@@ -425,6 +425,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.INVOICE_CREATE,
           },
           {
+            key: "/invoicepro/templates",
+            label: "Template",
+            icon: <FileAddOutlined />,
+            path: "/invoicepro/templates",
+            requiredPermission: Permissions.INVOICE_CREATE,
+          },
+
+          {
             key: "/invoicepro/customers",
             label: "Customers",
             icon: <UserAddOutlined />,
@@ -437,6 +445,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <SettingOutlined />,
             path: "/invoicepro/settings",
             requiredPermission: Permissions.SETTINGS_UPDATE,
+          },
+          {
+            key: "/invoicepro/trash",
+            label: "Trash",
+            icon: <DeleteOutlined />,
+            path: "/invoicepro/trash",
+            requiredPermission: Permissions.INVOICE_READ,
           },
         ],
       },

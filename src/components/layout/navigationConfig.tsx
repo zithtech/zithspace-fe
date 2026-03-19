@@ -46,6 +46,7 @@ import {
   HomeOutlined,
   PlusOutlined,
   AppstoreOutlined,
+  MailOutlined
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
 
@@ -264,6 +265,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/email-templates"
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -295,6 +297,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/leaves-dashboard",
         requiredPermission: Permissions.LEAVE_READ,
       },
+             {
+  key: "/email-templates",
+  label: "Email Templates",
+  icon: <MailOutlined />, // You'll need to import MailOutlined from @ant-design/icons
+  path: "/email-templates",
+  requiredPermission: Permissions.USER_READ, // You may need to define this permission
+},
 
       {
         key: "Onbording",
@@ -322,6 +331,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             path: "/onboarding/settings",
           },
+   
         ],
       },
 

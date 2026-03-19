@@ -15,6 +15,7 @@ import { Inbox } from '@novu/nextjs';
 import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -196,6 +197,7 @@ export default function TopNav({
 
             {/* Right Side: User Actions */}
             <Space size={16} align="end">
+                <TimeTrackerPopover />
                 <Button
                     type="text"
                     icon={<MailOutlined />}

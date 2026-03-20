@@ -565,6 +565,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/salary/Create-payslip",
             requiredPermission: Permissions.SALARY_MANAGE,
           },
+            {
+            key: "/salary/salarypreview",
+            label: "Salary Preview",
+            icon: <SnippetsOutlined />,
+            path: "/salary/salarypreview",
+            requiredPermission: Permissions.SALARY_READ,
+          },
           {
             key: "/salary/My-Payslip",
             label: "My Payslip",

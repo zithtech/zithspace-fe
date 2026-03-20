@@ -82,7 +82,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "HOME",
     label: "HOME",
     icon: <HomeOutlined />,
-    pathPrefixes: ["/dashboard","/integrations"],
+    pathPrefixes: ["/dashboard", "/integrations"],
     defaultPath: "/dashboard",
     // Dashboard should be accessible to all authenticated users - no permission required
     items: [
@@ -107,20 +107,32 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: <ProjectOutlined />,
     pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates"],
     defaultPath: "/projects/select",
-    requiredAnyPermission: [Permissions.PROJECT_READ, Permissions.TICKET_READ, Permissions.TIMESHEET_READ, Permissions.DAILY_UPDATE_READ, Permissions.DOCUMENT_READ],
+    requiredAnyPermission: [
+      Permissions.PROJECT_READ,
+      Permissions.TICKET_READ,
+      Permissions.TIMESHEET_READ,
+      Permissions.DAILY_UPDATE_READ,
+      Permissions.DOCUMENT_READ,
+    ],
     items: [
       {
         key: "projects-group",
         label: "Tickets",
         icon: <ProjectOutlined />,
-        requiredAnyPermission: [Permissions.PROJECT_READ, Permissions.TICKET_READ],
+        requiredAnyPermission: [
+          Permissions.PROJECT_READ,
+          Permissions.TICKET_READ,
+        ],
         children: [
           {
             key: "/projects",
             label: "Overview",
             icon: <DashboardOutlined />,
             path: "/projects",
-            requiredAnyPermission: [Permissions.PROJECT_READ, Permissions.TICKET_READ],
+            requiredAnyPermission: [
+              Permissions.PROJECT_READ,
+              Permissions.TICKET_READ,
+            ],
           },
           //   {
           //     key: "/projects/manage",
@@ -168,14 +180,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Trash",
             icon: <DeleteOutlined />,
             path: "/projects/trash",
-            requiredAnyPermission: [Permissions.PROJECT_MANAGE, Permissions.TICKET_MANAGE],
+            requiredAnyPermission: [
+              Permissions.PROJECT_MANAGE,
+              Permissions.TICKET_MANAGE,
+            ],
           },
           {
             key: "/projects/archived",
             label: "Archived",
             icon: <InboxOutlined />,
             path: "/projects/archived",
-            requiredAnyPermission: [Permissions.PROJECT_READ, Permissions.TICKET_READ],
+            requiredAnyPermission: [
+              Permissions.PROJECT_READ,
+              Permissions.TICKET_READ,
+            ],
           },
         ],
       },
@@ -192,6 +210,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <ClockCircleOutlined />,
         path: "/timesheet",
         requiredPermission: Permissions.TIMESHEET_READ,
+      },
+      {
+        key: "time-tracking",
+        label: "Time Tracking",
+        icon: <ClockCircleOutlined />,
+        children: [
+          {
+            key: "/time-tracking/my",
+            label: "My Time Tracking",
+            icon: <UserOutlined />,
+            path: "/time-tracking/my",
+          },
+          {
+            key: "/time-tracking/team",
+            label: "Team View",
+            icon: <TeamOutlined />,
+            path: "/time-tracking/team",
+          },
+        ],
       },
       {
         key: "daily-updates-group",
@@ -264,6 +301,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/recruitment",
+      "/employee-exit",
+      "/performance",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -280,6 +320,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "My Profile",
         icon: <SolutionOutlined />,
         path: "/profile",
+      },
+      {
+        key: "/new-profile",
+        label: "Profile 2.0",
+        icon: <SolutionOutlined />,
+        path: "/new-profile",
       },
       {
         key: "/attendance",
@@ -310,19 +356,39 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.ONBOARDING_CREATE,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/onboarded",
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
             requiredPermission: Permissions.ONBOARDING_READ,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/settings",
             icon: <IoSettingsOutline />,
             label: "Settings",
             path: "/onboarding/settings",
           },
+       
         ],
+      },
+
+      {
+        key: "employee-exit",
+        icon: <UserOutlined />,
+        label: "Employee Exit",
+        // No specific permission required initially based on requirements
+        children: [
+          {
+            key: "/employee-exit/management",
+            label: "Employee Exit Management",
+            path: "/employee-exit/management",
+          },
+          {
+            key: "/employee-exit/configuration",
+            label: "Configuration",
+            path: "/employee-exit/configuration",
+          },
+        ]
       },
 
       {
@@ -375,15 +441,39 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+          {
+      key: "/performance",
+      label: "Performance View",
+      icon: <BarChartOutlined />,  
+      path: "/perfomance-management", 
+      requiredPermission: Permissions.USER_READ, 
+    },
+      {
+        key: "recruitment-group",
+        icon: <TeamOutlined />,
+        label: "Recruitment",
+        children: [
+          {
+            key: "/recruitment/job-requisitions",
+            label: "Job Requisitions",
+            icon: <ProjectOutlined />,
+            path: "/recruitment/job-requisitions",
+          },
+        ],
+      },
     ],
   },
   {
     key: "FINANCE",
     label: "FINANCE",
     icon: <WalletOutlined />,
-    pathPrefixes: ["/accounts", "/clients-v2", "/invoicepro", "/reimbursement", "/salary"],
+    pathPrefixes: ["/accounts", "/invoicepro", "/reimbursement", "/salary"],
     defaultPath: "/accounts",
-    requiredAnyPermission: [Permissions.TRANSACTION_READ, Permissions.INVOICE_READ, Permissions.SALARY_READ],
+    requiredAnyPermission: [
+      Permissions.TRANSACTION_READ,
+      Permissions.INVOICE_READ,
+      Permissions.SALARY_READ,
+    ],
     items: [
       {
         key: "/accounts",
@@ -391,12 +481,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <WalletOutlined />,
         path: "/accounts",
       },
-      {
-        key: "/clients-v2",
-        label: "Client Management",
-        icon: <TeamOutlined />,
-        path: "/clients-v2",
-      },
+      // {
+      //   key: "/clients-v2",
+      //   label: "Client Management",
+      //   icon: <TeamOutlined />,
+      //   path: "/clients-v2",
+      // },
       {
         key: "invoicepro",
         label: "InvoicePro",

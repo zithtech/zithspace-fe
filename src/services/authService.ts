@@ -50,6 +50,8 @@ export interface UserProfile {
   updatedAt: string;
   isActive: boolean;
   department?: string;
+  employeeId?: string | null;
+  employee?: any;
 }
 
 export interface UpdateProfileData {

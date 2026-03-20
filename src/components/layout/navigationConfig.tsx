@@ -301,6 +301,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/recruitment",
+      "/employee-exit",
+      "/performance",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -353,19 +356,39 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.ONBOARDING_CREATE,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/onboarded",
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
             requiredPermission: Permissions.ONBOARDING_READ,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/settings",
             icon: <IoSettingsOutline />,
             label: "Settings",
             path: "/onboarding/settings",
           },
+       
         ],
+      },
+
+      {
+        key: "employee-exit",
+        icon: <UserOutlined />,
+        label: "Employee Exit",
+        // No specific permission required initially based on requirements
+        children: [
+          {
+            key: "/employee-exit/management",
+            label: "Employee Exit Management",
+            path: "/employee-exit/management",
+          },
+          {
+            key: "/employee-exit/configuration",
+            label: "Configuration",
+            path: "/employee-exit/configuration",
+          },
+        ]
       },
 
       {
@@ -415,6 +438,26 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Positions",
             path: "/org-structure/positions",
             requiredPermission: Permissions.ORG_MANAGE,
+          },
+        ],
+      },
+          {
+      key: "/performance",
+      label: "Performance View",
+      icon: <BarChartOutlined />,  
+      path: "/perfomance-management", 
+      requiredPermission: Permissions.USER_READ, 
+    },
+      {
+        key: "recruitment-group",
+        icon: <TeamOutlined />,
+        label: "Recruitment",
+        children: [
+          {
+            key: "/recruitment/job-requisitions",
+            label: "Job Requisitions",
+            icon: <ProjectOutlined />,
+            path: "/recruitment/job-requisitions",
           },
         ],
       },

@@ -9,6 +9,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, Button, Typography, Table, Divider, Space, Tag, Spin } from "antd";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
+import dayjs from "dayjs";
 
 import { currencyOptions } from "@/utils/currencyOptions";
 import { useInvoice, useDownloadInvoice, useInvoicePaymentHistory } from "@/hooks/useInvoices";
@@ -19,11 +20,11 @@ import { DownloadOutlined } from "@ant-design/icons";
 const { Title, Text } = Typography;
 
 interface InvoiceItem {
-  item: string;
+  itemName: string;
   description?: string;
-  qty: number;
-  price: number;
-  tax?: string | number;
+  quantity: number;
+  rate: number;
+  taxRate?: string | number;
 }
 
 interface CustomerSnapshot {
@@ -35,6 +36,8 @@ interface CustomerSnapshot {
   city?: string | null;
   country?: string | null;
   taxId?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
 }
 
 function numberToWords(num: number): string {
@@ -152,13 +155,13 @@ export default function ViewInvoicePage() {
     return <Card>Settings profile not found</Card>;
   }
 
-  const hasTax = invoice.taxTotal > 0;
+  const tableItems = (invoice.lineItems || (invoice as any).items || []) as any[];
+  const hasTax = tableItems.some(item => Number(item.taxRate || item.tax || 0) > 0);
 
-  // Prepare table data
-  const tableData = (invoice.items as InvoiceItem[]).map((item, index: number) => {
-    const qty = Number(item.qty || 0);
-    const price = Number(item.price || 0);
-    const taxPercent = Number(item.tax || 0);
+  const tableData = tableItems.map((item, index: number) => {
+    const qty = Number(item.quantity || item.qty || 0);
+    const price = Number(item.rate || item.price || 0);
+    const taxPercent = Number(item.taxRate || item.tax || 0);
 
     const lineSubtotal = price * qty;
     const lineTaxAmount = lineSubtotal * (taxPercent / 100);
@@ -166,34 +169,41 @@ export default function ViewInvoicePage() {
 
     return {
       ...item,
+      quantity: qty,
+      rate: price,
+      taxRate: taxPercent,
       _key: index,
+      rowNumber: item.rowNumber || index + 1,
       lineTaxAmount,
       total,
     };
+  }).sort((a, b) => (a.rowNumber || 0) - (b.rowNumber || 0));
+
+  // Detect dynamic columns
+  const extraFieldKeys = new Set<string>();
+  const systemKeys = new Set(['quantity', 'qty', 'rate', 'price', 'taxRate', 'tax', 'itemName', 'description', 'projectId', 'projectName']);
+  let hasProject = false;
+  tableData.forEach(item => {
+    if (item.projectId) hasProject = true;
+    if (item.extraFields && typeof item.extraFields === 'object') {
+      Object.keys(item.extraFields).forEach(key => {
+        if (!systemKeys.has(key)) {
+          extraFieldKeys.add(key);
+        }
+      });
+    }
   });
 
-  const SNO_COL = 0;
-  const ITEM_COL = 1;
-  const QTY_COL = 2;
-  const PRICE_COL = 3;
-  const TAX_COL = hasTax ? 4 : null;
-  const TOTAL_COL = hasTax ? 5 : 4;
-
-  const columns = [
-    {
-      title: "S.NO",
-      key: "sno",
-      width: 60,
-      align: "center" as const,
-      render: (_: any, __: any, index: number) => index + 1,
-    },
-    {
-      title: "Item",
-      dataIndex: "item",
-      key: "item",
+  const columnLabels = (invoice.metadata as any)?.columnLabels || {};
+  
+  const columnDefinitions: Record<string, any> = {
+    itemName: {
+      title: columnLabels.itemName || "Item",
+      dataIndex: "itemName",
+      key: "itemName",
       render: (text: string, record: any) => (
         <div>
-          <Text strong>{text}</Text>
+          <Text strong>{text || record.item}</Text>
           {record.description && (
             <div>
               <Text type="secondary" style={{ fontSize: "12px" }}>
@@ -204,34 +214,108 @@ export default function ViewInvoicePage() {
         </div>
       ),
     },
-    {
-      title: "Qty",
-      dataIndex: "qty",
-      key: "qty",
+    projectId: {
+      title: columnLabels.projectId || "Project",
+      dataIndex: "projectId",
+      key: "projectId",
+      width: 120,
+      render: (val: any, record: any) => {
+          // Prioritize record.projectName, then extraFields.projectName, then val.label, then val itself
+          const projectName = record.projectName || record.extraFields?.projectName || val?.label || (typeof val === 'string' ? val : null);
+return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCase()}</Tag> : "-";
+      }
+    },
+    quantity: {
+      title: columnLabels.quantity || "Qty",
+      dataIndex: "quantity",
+      key: "quantity",
       align: "center" as const,
       width: 80,
+      render: (val: any, record: any) => val || record.qty
     },
-    {
-      title: "Price",
-      dataIndex: "price",
-      key: "price",
+    rate: {
+      title: columnLabels.rate || "Price",
+      dataIndex: "rate",
+      key: "rate",
       align: "right" as const,
       width: 120,
-      render: (value: number) => formatCurrency(value, currencySymbol),
+      render: (value: number, record: any) => formatCurrency(value || record.price, currencySymbol),
     },
-    ...(hasTax
-      ? [
-          {
-            title: "Tax",
-            dataIndex: "tax",
-            key: "tax",
-            align: "center" as const,
-            width: 80,
-            render: (_: any, record: InvoiceItem) =>
-              formatCurrency(record.tax, currencySymbol),
-          },
-        ]
-      : []),
+    taxRate: {
+      title: columnLabels.taxRate || "Tax %",
+      dataIndex: "taxRate",
+      key: "taxRate",
+      align: "center" as const,
+      width: 100,
+      render: (val: any, record: any) => {
+        const rate = Number(val || record.tax || 0);
+        return rate > 0 ? `${rate}%` : "-";
+      }
+    }
+  };
+
+  // Add extra fields to definitions
+  extraFieldKeys.forEach(key => {
+    columnDefinitions[key] = {
+      title: columnLabels[key] || key.replace(/_/g, ' '),
+      key: key,
+      dataIndex: ['extraFields', key],
+      width: 120,
+      render: (val: any) => val || "-"
+    };
+  });
+
+  const rawColumnOrder = (invoice.metadata as any)?.columnOrder as string[] || [
+    "itemName", "projectId", "quantity", "rate", "taxRate"
+  ];
+
+  // Robustly ensure all required columns are present if they have data
+  const finalColumnOrder = [...rawColumnOrder];
+  
+  // Note: We no longer forcibly re-add projectId or taxRate here.
+  // The rawColumnOrder already provides a standard default if metadata is missing.
+  // If metadata is present, we should respect the user's choice to hide these columns.
+
+  // Add all extra fields that aren't in the order
+  extraFieldKeys.forEach(key => {
+    if (!finalColumnOrder.includes(key)) {
+      finalColumnOrder.push(key);
+    }
+  });
+
+  const orderedColumns = finalColumnOrder
+    .flatMap(key => {
+      // Normalize keys for system fields (handle aliases from older templates/metadata)
+      let normalizedKey = key;
+      if (key === 'tax') normalizedKey = 'taxRate';
+      if (key === 'qty') normalizedKey = 'quantity';
+      if (key === 'price') normalizedKey = 'rate';
+
+      if (normalizedKey === 'taxRate') {
+        if (!hasTax) return [];
+        return [columnDefinitions.taxRate];
+      }
+      if (normalizedKey === 'projectId' && !hasProject) return [];
+      
+      const def = columnDefinitions[normalizedKey];
+      if (def) {
+        return [def];
+      }
+      if (extraFieldKeys.has(key)) {
+        return [columnDefinitions[key]];
+      }
+      return [];
+    });
+
+  const columns = [
+    {
+      title: "S.NO",
+      key: "sno",
+      width: 60,
+      align: "center" as const,
+      render: (_: any, __: any, index: number) => index + 1,
+    },
+    ...orderedColumns,
     {
       title: "Total",
       key: "total",
@@ -241,13 +325,25 @@ export default function ViewInvoicePage() {
     },
   ];
 
+  // Helper mapping for summary cells
+  const getColumnIndex = (targetKey: string) => {
+    return columns.findIndex(c => c.key === targetKey);
+  };
+
+  const SNO_COL = getColumnIndex("sno");
+  const ITEM_COL = getColumnIndex("itemName");
+  const QTY_COL = getColumnIndex("quantity");
+  const PRICE_COL = getColumnIndex("rate");
+  const TAX_COL = hasTax ? getColumnIndex("taxRate") : null;
+  const TOTAL_COL = getColumnIndex("total");
+
   const subtotal = Number(invoice?.subtotal || 0);
   const taxTotal = Number(invoice?.taxTotal || 0);
-  const discount = Number(invoice?.discount || 0);
-  const grandTotal = Number(invoice?.total || 0);
+  const discount = Number(invoice?.discountTotal || invoice?.discount || 0);
+  const grandTotal = Number(invoice?.grandTotal || (invoice as any)?.total || 0);
 
-  const totalQty = invoice.items.reduce(
-    (sum, item) => sum + Number(item.qty || 0),
+  const totalQty = tableItems.reduce(
+    (sum, item) => sum + Number(item.quantity || item.qty || 0),
     0,
   );
 
@@ -312,195 +408,159 @@ export default function ViewInvoicePage() {
             margin: "0 auto",
           }}
         >
-          {/* Company Header */}
-          <div style={{ marginBottom: 32 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
-              {/* Left: Logo + Company Info */}
-              <div style={{ display: "flex", gap: 16 }}>
-                {settings?.general?.companyLogo && (
-                  <img
-                    src={settings.general.companyLogo}
-                    alt="Logo"
-                    style={{
-                      height: 68,
-                      objectFit: "contain",
-                    }}
-                  />
-                )}
-
-                <div>
-                  <Title
-                    level={3}
-                    style={{
-                      margin: 0,
-                      color: settings?.general?.primaryColor || "#1890ff",
-                    }}
-                  >
-                    {settings?.general?.companyName || ""}
-                  </Title>
-
-                  <Text
-                    type="secondary"
-                    style={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      lineHeight: "1.4",
-                      maxWidth: 400,
-                    }}
-                  >
-                    {[
-                      settings?.general?.address?.plot_no,
-                      settings?.general?.address?.floor_no,
-                      settings?.general?.address?.building_name,
-                      settings?.general?.address?.street,
-                      settings?.general?.address?.area,
-                      settings?.general?.address?.city,
-                      settings?.general?.address?.pincode,
-                      settings?.general?.address?.country,
-                    ]
-                      .filter(Boolean)
-                      .join(" ") || ""}
-                  </Text>
-                </div>
-              </div>
-
-              {/* Right: Invoice Info */}
-              <div style={{ textAlign: "right" }}>
-                <Title level={2} style={{ margin: 0 }}>
+          {/* Header with Invoice Title and Logo */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            {/* Left side - Invoice Title and Details */}
+            <div>
+              <div style={{ marginBottom: 12 }}>
+                <Title level={1} style={{ margin: 0, color: settings?.general?.primaryColor || "#1890ff", lineHeight: 1.2, fontSize: "32px" }}>
                   INVOICE
                 </Title>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                  <Text type="secondary">Invoice #{invoice.invoiceNumber}</Text>
-                  {/* <Tag
-                    color={
-                      invoice?.status === 'PAID' ? 'success' :
-                      invoice?.status === 'PARTIALLY_PAID' ? 'warning' :
-                      invoice?.status === 'OVERDUE' ? 'error' : 'default'
-                    }
-                    style={{ margin: 0 }}
-                  >
-                    {invoice?.status?.replace('_', ' ')}
-                  </Tag> */}
+              </div>
+              
+              {/* Invoice Number and Dates - All together */}
+              <div>
+                <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
+                  <Text strong style={{ width: 90, fontSize: "13px" }}>Invoice No:</Text>
+                  <Text style={{ fontSize: "13px" }}>#{invoice.invoiceNumber || "---"}</Text>
                 </div>
-                {/* {(Number(invoice?.balanceDue) || 0) > 0 && (
-                  <Text type="danger" style={{ fontSize: 12, marginTop: 4 }}>
-                    Balance Due: {formatCurrency(invoice?.balanceDue, currencySymbol)}
+                <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
+                  <Text strong style={{ width: 90, fontSize: "13px" }}>Invoice Date:</Text>
+                  <Text style={{ fontSize: "13px" }}>
+                    {invoice.invoiceDate ? dayjs(invoice.invoiceDate).format(settings?.general?.dateFormat || 'MMM DD, YYYY') : "---"}
                   </Text>
-                )} */}
+                </div>
+                <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
+                  <Text strong style={{ width: 90, fontSize: "13px" }}>Due Date:</Text>
+                  <Text style={{ fontSize: "13px" }}>
+                    {invoice.dueDate ? dayjs(invoice.dueDate).format(settings?.general?.dateFormat || 'MMM DD, YYYY') : "---"}
+                  </Text>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Invoice Info Grid */}
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              marginBottom: 32,
-              alignItems: "flex-start",
-            }}
-          >
-            {/* Bill To Section */}
-            <div style={{ flex: 1 }}>
-              <Title level={5} style={{ marginBottom: 4, color: "#555" }}>
-                BILL TO
-              </Title>
-              <div
-                style={{
-                  backgroundColor: "#f9f9f9",
-                  padding: 12,
-                  borderRadius: 8,
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                  height: "100%",
-                }}
-              >
-                <Text strong style={{ fontSize: 16, display: "block", marginBottom: 6 }}>
-                  {customer?.companyName || ""}
-                </Text>
-                <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
-                  {customer?.address || ""}
-                </Text>
-                <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
-                  {customer?.city ? `${customer.city}, ` : ""}{customer?.country || ""}
-                </Text>
-                <Text style={{ display: "block", marginBottom: 2, color: "#555" }}>
-                  {customer?.email || ""}
-                </Text>
-                {customer?.taxId && (
-                  <Text style={{ display: "block", marginTop: 8, fontSize: 13, color: "#888" }}>
-                    <strong>Tax ID:</strong> {customer.taxId}
-                  </Text>
+            {/* Right side - Logo with company name underneath */}
+            {settings?.general?.companyLogo && (
+              <div style={{ textAlign: "right" }}>
+                <img 
+                  src={settings.general.companyLogo} 
+                  alt="Logo" 
+                  style={{ height: 80, width: "auto", objectFit: "contain", marginBottom: 4 }} 
+                />
+                {settings?.general?.companyName && (
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: settings?.general?.primaryColor || "#1890ff", textAlign: "center" }}>
+                    {settings.general.companyName}
+                  </div>
                 )}
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Invoice Details with Payment Info */}
-            <div style={{ flex: 1 }}>
-              <Title
-                level={5}
-                style={{ marginBottom: 8, color: "#555", textAlign: "right" }}
-              >
-                INVOICE INFO
-              </Title>
-              <div
-                style={{
+          {/* Billed By and Billed To - Equal Height Cards without internal labels */}
+          <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
+            {/* Billed By (Company Info) */}
+            <div style={{ flex: 1, display: "flex" }}>
+              <Card 
+                size="small" 
+                style={{ 
+                  width: "100%", 
                   backgroundColor: "#f9f9f9",
-                  padding: 20,
-                  borderRadius: 8,
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                  textAlign: "left",
-                  minWidth: 220,
+                  border: "1px solid #e8e8e8",
+                  borderRadius: 8
                 }}
+                bodyStyle={{ padding: "12px" }}
               >
-                <div style={{ marginBottom: 8 }}>
-                  <Text strong>Invoice Date:</Text>{" "}
-                  <Text>
-                    {new Date(invoice.invoiceDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      },
-                    )}
-                  </Text>
+                <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>BILLED BY</Title>
+                <div>
+                  <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
+                    {settings?.general?.companyName || "Your Company"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#555", marginBottom: 4, lineHeight: 1.5 }}>
+                    {settings?.general?.address ? [
+                      settings.general.address.plot_no,
+                      settings.general.address.floor_no,
+                      settings.general.address.building_name,
+                      settings.general.address.street,
+                      settings.general.address.area,
+                      settings.general.address.city,
+                      settings.general.address.pincode,
+                      settings.general.address.country,
+                    ].filter(Boolean).join(", ") : "---"}
+                  </div>
+                  
+                  {/* Tax related fields with labels */}
+                  {settings?.general?.taxId && (
+                    <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
+                      <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
+                      <Text style={{ fontSize: "11px" }}>{settings.general.taxId}</Text>
+                    </div>
+                  )}
+                  {settings?.general?.gstin && (
+                    <div style={{ fontSize: "11px", color: "#666" }}>
+                      <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
+                      <Text style={{ fontSize: "11px" }}>{settings.general.gstin}</Text>
+                    </div>
+                  )}
+                  {settings?.general?.pan && (
+                    <div style={{ fontSize: "11px", color: "#666" }}>
+                      <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
+                      <Text style={{ fontSize: "11px" }}>{settings.general.pan}</Text>
+                    </div>
+                  )}
                 </div>
-
-                <div style={{ marginBottom: 8 }}>
-                  <Text strong>Due Date:</Text>{" "}
-                  <Text>
-                    {new Date(invoice.dueDate).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </Text>
-                </div>
-
-                <div style={{ marginBottom: 8 }}>
-                  <Text strong>Type:</Text>{" "}
-                  <Text style={{ color: settings?.general?.primaryColor || "#1890ff" }}>
-                    {invoice.invoiceType || "Standard"}
-                  </Text>
-                </div>
-
-                
-                
-              </div>
+              </Card>
             </div>
 
-
-
-
+            {/* Billed To (Customer Info) */}
+            <div style={{ flex: 1, display: "flex" }}>
+              <Card 
+                size="small" 
+                style={{ 
+                  width: "100%", 
+                  backgroundColor: "#f9f9f9",
+                  border: "1px solid #e8e8e8",
+                  borderRadius: 8
+                }}
+                bodyStyle={{ padding: "12px" }}
+              >
+                <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>BILLED TO</Title>
+                <div>
+                  <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: 4 }}>
+                    {customer?.companyName || "Customer Name"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#555", marginBottom: 4, lineHeight: 1.5 }}>
+                    {[
+                      customer?.address,
+                      customer?.city,
+                      customer?.country
+                    ].filter(Boolean).join(", ") || "---"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#555", marginBottom: 4 }}>
+                    {customer?.email || ""}
+                  </div>
+                  
+                  {/* Tax related fields with labels */}
+                  {customer?.gstin && (
+                    <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
+                      <Text type="secondary" style={{ fontSize: "11px" }}>GSTIN: </Text>
+                      <Text style={{ fontSize: "11px" }}>{customer.gstin}</Text>
+                    </div>
+                  )}
+                  {customer?.pan && (
+                    <div style={{ fontSize: "11px", color: "#666" }}>
+                      <Text type="secondary" style={{ fontSize: "11px" }}>PAN: </Text>
+                      <Text style={{ fontSize: "11px" }}>{customer.pan}</Text>
+                    </div>
+                  )}
+                  {customer?.taxId && !customer?.gstin && (
+                    <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
+                      <Text type="secondary" style={{ fontSize: "11px" }}>Tax ID: </Text>
+                      <Text style={{ fontSize: "11px" }}>{customer.taxId}</Text>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
           </div>
 
           {/* Items Table */}
@@ -515,47 +575,95 @@ export default function ViewInvoicePage() {
               <>
                 {/* SUBTOTAL */}
                 <Table.Summary.Row>
-                  <Table.Summary.Cell index={SNO_COL} />
-                  <Table.Summary.Cell index={ITEM_COL} align="right">
-                    <Text>Subtotal</Text>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={QTY_COL} />
-                  <Table.Summary.Cell index={PRICE_COL} />
-                  {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
-                  <Table.Summary.Cell index={TOTAL_COL} align="right">
-                    <Text>{formatCurrency(subtotal, currencySymbol)}</Text>
-                  </Table.Summary.Cell>
+                  {columns.map((_, idx) => {
+                    if (idx === ITEM_COL) {
+                      return (
+                        <Table.Summary.Cell key={idx} index={idx} align="right">
+                          <Text>Subtotal</Text>
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    if (idx === TOTAL_COL) {
+                      return (
+                        <Table.Summary.Cell key={idx} index={idx} align="right">
+                          <Text>{formatCurrency(subtotal, currencySymbol)}</Text>
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    return <Table.Summary.Cell key={idx} index={idx} />;
+                  })}
                 </Table.Summary.Row>
 
-                {/* TAX */}
+                {/* CGST & SGST Split */}
                 {hasTax && taxTotal > 0 && (
-                  <Table.Summary.Row>
-                    <Table.Summary.Cell index={SNO_COL} />
-                    <Table.Summary.Cell index={ITEM_COL} align="right">
-                      <Text>Tax</Text>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={QTY_COL} />
-                    <Table.Summary.Cell index={PRICE_COL} />
-                    <Table.Summary.Cell index={TAX_COL!} />
-                    <Table.Summary.Cell index={TOTAL_COL} align="right">
-                      <Text>{formatCurrency(taxTotal, currencySymbol)}</Text>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
+                  <>
+                    <Table.Summary.Row>
+                      {columns.map((_, idx) => {
+                        const effectivePct = subtotal > 0 ? ((taxTotal / 2) / subtotal) * 100 : 0;
+                        const rateLabel = ` (${effectivePct.toFixed(2)}%)`;
+                        
+                        if (idx === ITEM_COL) {
+                          return (
+                            <Table.Summary.Cell key={idx} index={idx} align="right">
+                              <Text>CGST{rateLabel}</Text>
+                            </Table.Summary.Cell>
+                          );
+                        }
+                        if (idx === TOTAL_COL) {
+                          return (
+                            <Table.Summary.Cell key={idx} index={idx} align="right">
+                              <Text>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
+                            </Table.Summary.Cell>
+                          );
+                        }
+                        return <Table.Summary.Cell key={idx} index={idx} />;
+                      })}
+                    </Table.Summary.Row>
+                    <Table.Summary.Row>
+                      {columns.map((_, idx) => {
+                        const effectivePct = subtotal > 0 ? ((taxTotal / 2) / subtotal) * 100 : 0;
+                        const rateLabel = ` (${effectivePct.toFixed(2)}%)`;
+
+                        if (idx === ITEM_COL) {
+                          return (
+                            <Table.Summary.Cell key={idx} index={idx} align="right">
+                              <Text>SGST{rateLabel}</Text>
+                            </Table.Summary.Cell>
+                          );
+                        }
+                        if (idx === TOTAL_COL) {
+                          return (
+                            <Table.Summary.Cell key={idx} index={idx} align="right">
+                              <Text>{formatCurrency(taxTotal / 2, currencySymbol)}</Text>
+                            </Table.Summary.Cell>
+                          );
+                        }
+                        return <Table.Summary.Cell key={idx} index={idx} />;
+                      })}
+                    </Table.Summary.Row>
+                  </>
                 )}
 
                 {/* DISCOUNT */}
                 {discount > 0 && (
                   <Table.Summary.Row>
-                    <Table.Summary.Cell index={SNO_COL} />
-                    <Table.Summary.Cell index={ITEM_COL} align="right">
-                      <Text>Discount</Text>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={QTY_COL} />
-                    <Table.Summary.Cell index={PRICE_COL} />
-                    {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
-                    <Table.Summary.Cell index={TOTAL_COL} align="right">
-                      <Text>-{formatCurrency(discount, currencySymbol)}</Text>
-                    </Table.Summary.Cell>
+                    {columns.map((_, idx) => {
+                      if (idx === ITEM_COL) {
+                        return (
+                          <Table.Summary.Cell key={idx} index={idx} align="right">
+                            <Text>Discount</Text>
+                          </Table.Summary.Cell>
+                        );
+                      }
+                      if (idx === TOTAL_COL) {
+                        return (
+                          <Table.Summary.Cell key={idx} index={idx} align="right">
+                            <Text>-{formatCurrency(discount, currencySymbol)}</Text>
+                          </Table.Summary.Cell>
+                        );
+                      }
+                      return <Table.Summary.Cell key={idx} index={idx} />;
+                    })}
                   </Table.Summary.Row>
                 )}
 
@@ -566,23 +674,32 @@ export default function ViewInvoicePage() {
                     borderTop: "2px solid #000",
                   }}
                 >
-                  <Table.Summary.Cell index={SNO_COL} />
-                  <Table.Summary.Cell index={ITEM_COL} align="right">
-                    <Text strong>Total</Text>
-                  </Table.Summary.Cell>
-
-                  <Table.Summary.Cell index={QTY_COL} align="center">
-                    <Text strong>{totalQty}</Text>
-                  </Table.Summary.Cell>
-
-                  <Table.Summary.Cell index={PRICE_COL} />
-                  {hasTax && <Table.Summary.Cell index={TAX_COL!} />}
-
-                  <Table.Summary.Cell index={TOTAL_COL} align="right">
-                    <Text strong style={{ fontSize: 16, color: "#1890ff" }}>
-                      {formatCurrency(grandTotal, currencySymbol)}
-                    </Text>
-                  </Table.Summary.Cell>
+                  {columns.map((_, idx) => {
+                    if (idx === ITEM_COL) {
+                      return (
+                        <Table.Summary.Cell key={idx} index={idx} align="right">
+                          <Text strong>Total</Text>
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    if (idx === QTY_COL) {
+                      return (
+                        <Table.Summary.Cell key={idx} index={idx} align="center">
+                          <Text strong>{totalQty}</Text>
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    if (idx === TOTAL_COL) {
+                      return (
+                        <Table.Summary.Cell key={idx} index={idx} align="right">
+                          <Text strong style={{ fontSize: 16, color: settings?.general?.primaryColor || "#1890ff" }}>
+                            {formatCurrency(grandTotal, currencySymbol)}
+                          </Text>
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    return <Table.Summary.Cell key={idx} index={idx} />;
+                  })}
                 </Table.Summary.Row>
               </>
             )}
@@ -612,86 +729,87 @@ export default function ViewInvoicePage() {
                 paddingTop: 8,
                 borderTop: "1px solid #f0f0f0",
                 display: "grid",
-                gridTemplateColumns: "2fr 1fr",
+                gridTemplateColumns: settings.general?.signature ? "2fr 1fr" : "1fr",
                 gap: 24,
                 fontSize: 12,
                 alignItems: "flex-start",
               }}
             >
               {/* Bank Details */}
-              <div>
-                <Title level={4} style={{ marginBottom: 8, color: "#555" }}>
-                  Bank Details
-                </Title>
-
-                <div
+              <div style={{ flex: settings.general?.signature ? 2 : 1 }}>
+                <Card
+                  size="small"
                   style={{
                     backgroundColor: "#fafafa",
-                    padding: 12,
+                    border: "1px solid #e8e8e8",
                     borderRadius: 6,
-                    display: "flex",
-                    gap: 20,
-                    alignItems: "flex-start",
                   }}
+                  bodyStyle={{ padding: "12px" }}
                 >
-                  {/* Bank Info */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ marginBottom: 8 }}>
-                      <Text strong>Bank Name:</Text>{" "}
-                      <Text>{settings.payment.bankName}</Text>
+                  <Title level={5} style={{ marginBottom: 12, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
+                    Bank Details
+                  </Title>
+
+                  <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+                    {/* Bank Info - label and value on same line */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ marginBottom: 6, display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Bank Name:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.bankName}</Text>
+                      </div>
+
+                      <div style={{ marginBottom: 6, display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Account Number:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.accountNumber}</Text>
+                      </div>
+
+                      <div style={{ marginBottom: 6, display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>IFSC Code:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.ifscCode}</Text>
+                      </div>
+
+                      <div style={{ display: "flex" }}>
+                        <Text type="secondary" style={{ width: 120, fontSize: "12px" }}>Branch:</Text>
+                        <Text style={{ fontSize: "12px" }}>{settings.payment.branchName}</Text>
+                      </div>
                     </div>
 
-                    <div style={{ marginBottom: 8 }}>
-                      <Text strong>Account Number:</Text>{" "}
-                      <Text>{settings.payment.accountNumber}</Text>
-                    </div>
-
-                    <div style={{ marginBottom: 8 }}>
-                      <Text strong>IFSC Code:</Text>{" "}
-                      <Text>{settings.payment.ifscCode}</Text>
-                    </div>
-
-                    <div>
-                      <Text strong>Branch:</Text>{" "}
-                      <Text>{settings.payment.branchName}</Text>
-                    </div>
+                    {/* QR Code */}
+                    {settings.payment.qrCode && (
+                      <div style={{ textAlign: "center", minWidth: 120 }}>
+                        <img
+                          src={settings.payment.qrCode}
+                          alt="Payment QR Code"
+                          style={{
+                            width: 90,
+                            height: 90,
+                            objectFit: "contain",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 6,
+                            background: "#fff",
+                            padding: 6,
+                          }}
+                        />
+                        <Text
+                          type="secondary"
+                          style={{
+                            display: "block",
+                            fontSize: 10,
+                            marginTop: 4,
+                          }}
+                        >
+                          Scan to Pay
+                        </Text>
+                      </div>
+                    )}
                   </div>
-
-                  {/* QR Code */}
-                  {settings.payment.qrCode && (
-                    <div style={{ textAlign: "center", minWidth: 180 }}>
-                      <img
-                        src={settings.payment.qrCode}
-                        alt="Payment QR Code"
-                        style={{
-                          width: 130,
-                          height: 130,
-                          objectFit: "contain",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 6,
-                          background: "#fff",
-                          padding: 8,
-                        }}
-                      />
-                      <Text
-                        type="secondary"
-                        style={{
-                          display: "block",
-                          fontSize: 11,
-                          marginTop: 6,
-                        }}
-                      >
-                        Scan to Pay
-                      </Text>
-                    </div>
-                  )}
-                </div>
+                </Card>
               </div>
 
               {/* Signature */}
               {settings.general?.signature && (
-                <div style={{ textAlign: "center" }}>
-                  <Title level={4} style={{ marginBottom: 8, color: "#555" }}>
+                <div style={{ textAlign: "center", flex: 1 }}>
+                  <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
                     Authorized Signature
                   </Title>
 
@@ -701,14 +819,15 @@ export default function ViewInvoicePage() {
                       padding: 12,
                       borderRadius: 6,
                       display: "inline-block",
+                      border: "1px solid #e8e8e8",
                     }}
                   >
                     <img
                       src={settings.general.signature}
                       alt="Authorized Signature"
                       style={{
-                        width: 130,
-                        height: 130,
+                        width: 100,
+                        height: 80,
                         objectFit: "contain",
                         border: "1px solid #e5e7eb",
                         background: "#fff",
@@ -720,8 +839,8 @@ export default function ViewInvoicePage() {
                       type="secondary"
                       style={{
                         display: "block",
-                        fontSize: 11,
-                        marginTop: 6,
+                        fontSize: 10,
+                        marginTop: 4,
                       }}
                     >
                       Digitally signed
@@ -732,53 +851,49 @@ export default function ViewInvoicePage() {
             </div>
           )}
 
-          {/* Notes & Terms */}
+          {/* Notes & Terms - After Bank Details */}
           {(invoice.notes || invoice.terms) && (
-            <div
-              style={{
-                marginTop: 32,
-                paddingTop: 16,
-                borderTop: "1px solid #f0f0f0",
-                display: "flex",
-                gap: 16,
-                alignItems: "flex-start",
-              }}
-            >
-              {/* Notes */}
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #f0f0f0", display: "flex", gap: 16, alignItems: "flex-start" }}>
               {invoice.notes && (
                 <div style={{ flex: 1 }}>
-                  <Title level={5} style={{ marginBottom: 8 }}>
-                    Notes
-                  </Title>
-                  <div
+                  <Card
+                    size="small"
                     style={{
                       backgroundColor: "#fafafa",
-                      padding: 16,
-                      borderRadius: 4,
-                      minHeight: 80,
+                      border: "1px solid #e8e8e8",
+                      borderRadius: 6,
+                      minHeight: 120,
                     }}
+                    bodyStyle={{ padding: "12px" }}
                   >
-                    <Text>{invoice.notes}</Text>
-                  </div>
+                    <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
+                      Notes
+                    </Title>
+                    <div style={{ fontSize: "12px", color: "#555" }}>
+                      <Text>{invoice.notes}</Text>
+                    </div>
+                  </Card>
                 </div>
               )}
-
-              {/* Terms & Conditions */}
               {invoice.terms && (
                 <div style={{ flex: 1 }}>
-                  <Title level={5} style={{ marginBottom: 8 }}>
-                    Terms & Conditions
-                  </Title>
-                  <div
+                  <Card
+                    size="small"
                     style={{
                       backgroundColor: "#fafafa",
-                      padding: 16,
-                      borderRadius: 4,
-                      minHeight: 80,
+                      border: "1px solid #e8e8e8",
+                      borderRadius: 6,
+                      minHeight: 120,
                     }}
+                    bodyStyle={{ padding: "12px" }}
                   >
-                    <Text>{invoice.terms}</Text>
-                  </div>
+                    <Title level={5} style={{ marginBottom: 8, color: settings?.general?.primaryColor || "#1890ff", fontSize: "14px" }}>
+                      Terms & Conditions
+                    </Title>
+                    <div style={{ fontSize: "12px", color: "#555" }}>
+                      <Text>{invoice.terms}</Text>
+                    </div>
+                  </Card>
                 </div>
               )}
             </div>

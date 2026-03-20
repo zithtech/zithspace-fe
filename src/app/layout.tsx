@@ -86,6 +86,8 @@ const theme = {
   },
 };
 
+import { LayoutProvider } from "@/context/LayoutContext";
+
 export default function RootLayout({
   children,
 }: {
@@ -102,7 +104,9 @@ export default function RootLayout({
               <AuthProvider>
                 <QueryProvider>
                   <SocketProvider>
-                    {children}
+                    <LayoutProvider>
+                      {children}
+                    </LayoutProvider>
                   </SocketProvider>
                 </QueryProvider>
               </AuthProvider>

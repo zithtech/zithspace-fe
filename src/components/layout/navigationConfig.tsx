@@ -301,6 +301,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/employee-exit",
       "/performance",
     ],
     defaultPath: "/members",
@@ -354,14 +355,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.ONBOARDING_CREATE,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/onboarded",
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
             requiredPermission: Permissions.ONBOARDING_READ,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/settings",
             icon: <IoSettingsOutline />,
             label: "Settings",
             path: "/onboarding/settings",
@@ -370,6 +371,24 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
 
+      {
+        key: "employee-exit",
+        icon: <UserOutlined />,
+        label: "Employee Exit",
+        // No specific permission required initially based on requirements
+        children: [
+          {
+            key: "/employee-exit/management",
+            label: "Employee Exit Management",
+            path: "/employee-exit/management",
+          },
+          {
+            key: "/employee-exit/configuration",
+            label: "Configuration",
+            path: "/employee-exit/configuration",
+          },
+        ]
+      },
 
       {
         key: "orgstructure",

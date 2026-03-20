@@ -128,22 +128,29 @@ export class EmployeeService {
   /**
    * Employees for dropdown / select
    */
-  static async getEmployeesForSelect(): Promise<
-    Array<{ value: string; label: string; workEmail: string }>
-  > {
+  static async getEmployeesForSelect(): Promise<any[]> {
     try {
-      return await api.get<
-        Array<{
-          value: string;
-          label: string;
-          workEmail: string;
-        }>
-      >("/api/employees/select");
+      return await api.get<any[]>("/api/clients-v2/employees/select");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
       throw new Error("Failed to fetch employees for select");
+    }
+  }
+
+  /**
+   * Get employee work detail by employee ID
+   */
+  static async getWorkDetailByEmployee(employeeId: string): Promise<any> {
+    try {
+      const response = await api.get<any>(`/api/employee-work-details/employee/${employeeId}`);
+      return response;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch employee work details");
     }
   }
 }

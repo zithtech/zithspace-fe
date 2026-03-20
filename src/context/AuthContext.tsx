@@ -29,6 +29,7 @@ interface User {
   tenantId: string;
   tenantName?: string;
   department?: string;
+  employeeId?: string | null;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
 }
@@ -108,6 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         tenantId: response.user.tenantId,
         tenantName: response.user.tenantName,
         department: (response.user as any).department,
+        employeeId: (response.user as any).employeeId,
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
       };
@@ -210,6 +212,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         tenantId: userProfile.tenantId,
         tenantName: userProfile.tenant?.name,
         department: userProfile.department,
+        employeeId: (userProfile as any).employeeId || userProfile.employee?.id,
         permissions: (userProfile as any).permissions ?? [],
       };
 

@@ -367,7 +367,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
-
       {
         key: "orgstructure",
         icon: <ApartmentOutlined />,
@@ -417,6 +416,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.ORG_MANAGE,
           },
         ],
+      },
+      {
+        key: "/recruitment-settings",
+        label: "Status & Actions",
+        icon: <SolutionOutlined />,
+        path: "/recruitment-settings",
       },
     ],
   },

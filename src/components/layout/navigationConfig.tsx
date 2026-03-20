@@ -301,6 +301,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/performance",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -365,8 +366,10 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             path: "/onboarding/settings",
           },
+       
         ],
       },
+
 
       {
         key: "orgstructure",
@@ -418,6 +421,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+          {
+      key: "/performance",
+      label: "Performance View",
+      icon: <BarChartOutlined />,  
+      path: "/perfomance-management", 
+      requiredPermission: Permissions.USER_READ, 
+    },
     ],
   },
   {

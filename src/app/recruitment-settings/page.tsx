@@ -42,9 +42,12 @@ import {
   PhoneOutlined,
   MailOutlined,
   FileOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from "@ant-design/icons";
 import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { useRecruitmentSettings } from "@/hooks/useRecruitmentSettings";
 
 const { Text } = Typography;
 const { Title } = Typography;
@@ -54,18 +57,97 @@ export default function actionStatus(){
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState("1");
 
+    const { 
+        statuses, 
+        actions, 
+        fetchStatuses, 
+        fetchActions, 
+        createStatus, 
+        createAction, 
+        deleteStatus, 
+        deleteAction,
+        loading 
+    } = useRecruitmentSettings();
+
+    const [dataSource, setDataSource] = useState<any[]>([]);
+    const [actionDataSource, setActionDataSource] = useState<any[]>([]);
+
+    useEffect(() => {
+        fetchStatuses();
+        fetchActions();
+    }, [fetchStatuses, fetchActions]);
+
+    // Map backend statuses to Ant Design table format
+    useEffect(() => {
+        setDataSource(statuses.map((s, i) => ({
+            key: s.id, id: s.id, sno: i + 1, statusName: s.name, 
+            category: s.category, appliesTo: s.appliesTo?.join(', '), color: s.color, 
+            isDefault: s.isDefault, isFinal: s.isFinalStage, isActive: s.isActive,
+        })));
+    }, [statuses]);
+
+    // Map backend actions to Ant Design table format
+    useEffect(() => {
+        setActionDataSource(actions.map((a, i) => ({
+            key: a.id, id: a.id, sno: i + 1, actionName: a.name, type: a.type, 
+            icon: a.icon, color: a.color, isActive: a.isActive, 
+            created: new Date(a.createdAt).toLocaleDateString(),
+        })));
+    }, [actions]);
+
+    const moveRow = (data: any[], setData: React.Dispatch<React.SetStateAction<any[]>>, index: number, direction: 'up' | 'down') => {
+        const newData = [...data];
+        if (direction === 'up' && index > 0) {
+            const temp = newData[index];
+            newData[index] = newData[index - 1];
+            newData[index - 1] = temp;
+        } else if (direction === 'down' && index < newData.length - 1) {
+            const temp = newData[index];
+            newData[index] = newData[index + 1];
+            newData[index + 1] = temp;
+        }
+        
+        const updatedData = newData.map((item, i) => ({
+            ...item,
+            ...(item.sno !== undefined ? { sno: i + 1 } : {})
+        }));
+
+        setData(updatedData);
+    };
+
     const showModal = () => {
         setIsModalOpen(true);
     };
 
-    const handleOk = () => {
-        form.validateFields().then((values) => {
-            console.log('Form Values:', values);
+    const handleOk = async () => {
+        try {
+            const values = await form.validateFields();
+            if (activeTab === '1') {
+                await createStatus({
+                    name: values.statusName,
+                    category: values.category,
+                    color: values.color,
+                    appliesTo: values.appliesTo || [],
+                    isDefault: values.isDefault ?? false,
+                    isFinalStage: values.isFinalStage ?? false,
+                    isActive: values.isActive ?? true
+                });
+            } else {
+                await createAction({
+                    name: values.actionName,
+                    type: values.actionType,
+                    icon: values.icon,
+                    color: values.color,
+                    isActive: values.isActive ?? true
+                });
+            }
+            notification.success({ message: `${activeTab === '1' ? 'Status' : 'Action'} created successfully` });
             setIsModalOpen(false);
             form.resetFields();
-        }).catch((info) => {
-            console.log('Validate Failed:', info);
-        });
+        } catch (error: any) {
+            console.log('Validation or API Failed:', error);
+            if (error.response?.data?.error) notification.error({ message: error.response.data.error });
+        }
     };
 
     const handleCancel = () => {
@@ -85,27 +167,32 @@ export default function actionStatus(){
         {
             title: 'Actions',
             key: 'actions',
-            render: () => (
+            render: (_: any, record: any, index: number) => (
                 <Space size="middle">
+                    <Button 
+                        type="text" 
+                        icon={<ArrowUpOutlined />} 
+                        disabled={index === 0}
+                        onClick={() => moveRow(dataSource, setDataSource, index, 'up')}
+                    />
+                    <Button 
+                        type="text" 
+                        icon={<ArrowDownOutlined />} 
+                        disabled={index === dataSource.length - 1}
+                        onClick={() => moveRow(dataSource, setDataSource, index, 'down')}
+                    />
                     <Button type="text" icon={<EditOutlined />} />
-                    <Button type="text" danger icon={<DeleteOutlined />} />
+                    <Popconfirm 
+                        title="Are you sure you want to delete this?" 
+                        onConfirm={() => deleteStatus(record.id)} 
+                        okText="Yes" 
+                        cancelText="No"
+                    >
+                        <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
                 </Space>
             ),
         },
-    ];
-
-    const dataSource = [
-        {
-            key: '1',
-            sno: 1,
-            statusName: 'Applied',
-            category: 'Pipeline',
-            appliesTo: 'Candidate',
-            color: 'blue',
-            isDefault: true,
-            isFinal: false,
-            isActive: true,
-        }
     ];
 
     const actionColumns = [
@@ -118,30 +205,25 @@ export default function actionStatus(){
         {
             title: 'Actions',
             key: 'actions',
-            render: () => (
+            render: (_: any, record: any) => (
                 <Space size="middle">
                     <Button type="text" icon={<EditOutlined />} />
-                    <Button type="text" danger icon={<DeleteOutlined />} />
+                    <Popconfirm 
+                        title="Are you sure you want to delete this action?" 
+                        onConfirm={() => deleteAction(record.id)} 
+                        okText="Yes" 
+                        cancelText="No"
+                    >
+                        <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
                 </Space>
             ),
         },
     ];
 
-    const actionDataSource = [
-        {
-            key: '1',
-            actionName: 'Schedule Interview',
-            type: 'Event',
-            icon: 'Calendar',
-            color: 'purple',
-            isActive: true,
-            created: '2023-10-27',
-        }
-    ];
-
     const tabItems = [
-        { key: '1', label: 'Status Configuration', children: <Table columns={columns} dataSource={dataSource} pagination={false} /> },
-        { key: '2', label: 'Action Configurations', children: <Table columns={actionColumns} dataSource={actionDataSource} pagination={false} /> },
+        { key: '1', label: 'Status Configuration', children: <Table loading={loading} columns={columns} dataSource={dataSource} pagination={false} /> },
+        { key: '2', label: 'Action Configurations', children: <Table loading={loading} columns={actionColumns} dataSource={actionDataSource} pagination={false} /> },
     ];
 
     return(

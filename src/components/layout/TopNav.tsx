@@ -23,19 +23,19 @@ const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
 interface TopNavProps {
-    activeModule: ModuleType;
-    onModuleChange: (module: ModuleType) => void;
-    user: any;
-    handleLogout: () => void;
-    collapsed: boolean;
+  activeModule: ModuleType;
+  onModuleChange: (module: ModuleType) => void;
+  user: any;
+  handleLogout: () => void;
+  collapsed: boolean;
 }
 
 export default function TopNav({
-    activeModule,
-    onModuleChange,
-    user,
-    handleLogout,
-    collapsed,
+  activeModule,
+  onModuleChange,
+  user,
+  handleLogout,
+  collapsed,
 }: TopNavProps) {
     const router = useRouter();
     const { hasPermission, hasAnyPermission } = useAuth();
@@ -237,19 +237,203 @@ export default function TopNav({
                     </>
                 )}
 
-                <div>
-                    <Inbox
-                        applicationIdentifier="67g_5lVLFWvd"
-                        subscriberId={user?.id}
-                        socketUrl="wss://socket.novu.co"
-                        appearance={{
-                            variables: {
-                                colorPrimary: "#DD2450",
-                                colorForeground: "#0E121B"
-                            }
-                        }}
-                    />
+          <div>
+            <Inbox
+              applicationIdentifier="67g_5lVLFWvd"
+              subscriberId={user?.id}
+              socketUrl="wss://socket.novu.co"
+              appearance={{
+                variables: {
+                  colorPrimary: "#DD2450",
+                  colorForeground: "#0E121B",
+                },
+              }}
+            />
+          </div>
+
+          <Dropdown
+            open={shortcutPopoverVisible}
+            onOpenChange={(visible) => {
+              // ✅ FIX: Only allow closing via onOpenChange when the delete modal
+              // is NOT open. This prevents the modal's backdrop click from
+              // collapsing the dropdown and resetting add/hover state.
+              if (!visible && deleteModalOpen) return;
+              setShortcutPopoverVisible(visible);
+              if (!visible) {
+                setIsAddMode(false);
+                setNewShortcutName("");
+                setNewShortcutPath("");
+              }
+            }}
+            dropdownRender={() => (
+              <div
+                style={{
+                  width: 300,
+                  backgroundColor: "white",
+                  boxShadow:
+                    "0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03)",
+                  borderRadius: 8,
+                  border: "1px solid #f0f0f0",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid #f0f0f0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Space>
+                    <StarFilled style={{ color: "#1677ff" }} />
+                    <Text strong>Bookmarks</Text>
+                  </Space>
                 </div>
+
+                {/* Bookmark List */}
+                <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                  {shortcuts.length > 0 ? (
+                    shortcuts.map((item: ShortcutItem) => (
+                      <div
+                        key={item.id}
+                        className="shortcut-item"
+                        onMouseEnter={() => setHoveredShortcutId(item.id)}
+                        onMouseLeave={() => setHoveredShortcutId(null)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 16px",
+                          cursor: "pointer",
+                          transition: "background-color 0.2s",
+                        }}
+                      >
+                        <div
+                          onClick={() => {
+                            router.push(item.path);
+                            setShortcutPopoverVisible(false);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <FolderOutlined
+                            style={{ color: "#8c8c8c", fontSize: 16 }}
+                          />
+                          <Text
+                            style={{ fontSize: 13, color: "#262626" }}
+                            ellipsis
+                          >
+                            {item.name}
+                          </Text>
+                        </div>
+
+                        {hoveredShortcutId === item.id ? (
+                          <Tooltip title="Delete Bookmark">
+                            <Button
+                              type="text"
+                              shape="circle"
+                              icon={
+                                <DeleteOutlined
+                                  style={{ fontSize: 14, color: "#8c8c8c" }}
+                                />
+                              }
+                              size="small"
+                              onClick={(e) => handleDeleteBookmark(item.id, e)}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <RightOutlined
+                            style={{ fontSize: 10, color: "#bfbfbf" }}
+                          />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="No bookmarks"
+                      style={{ padding: "20px 0" }}
+                    />
+                  )}
+                </div>
+
+                {/* Add/Form Section */}
+                <div
+                  style={{
+                    padding: "8px 16px",
+                    borderTop: "1px solid #f0f0f0",
+                    background: "#fafafa",
+                  }}
+                >
+                  {isAddMode ? (
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      <Input
+                        placeholder="Name"
+                        value={newShortcutName}
+                        onChange={(e) => setNewShortcutName(e.target.value)}
+                        size="small"
+                      />
+                      <Input
+                        placeholder="URL"
+                        value={newShortcutPath}
+                        onChange={(e) => setNewShortcutPath(e.target.value)}
+                        size="small"
+                      />
+                      <Space
+                        style={{ justifyContent: "flex-end", width: "100%" }}
+                      >
+                        <Button
+                          size="small"
+                          onClick={() => setIsAddMode(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="primary"
+                          size="small"
+                          onClick={handleSaveBookmark}
+                        >
+                          Save
+                        </Button>
+                      </Space>
+                    </Space>
+                  ) : (
+                    <Button
+                      type="text"
+                      icon={<PlusOutlined />}
+                      onClick={() => setIsAddMode(true)}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "4px 0",
+                      }}
+                    >
+                      Add Bookmark
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            trigger={["click"]}
+          >
+            <Button
+              type="text"
+              icon={
+                shortcutPopoverVisible ? (
+                  <StarFilled style={{ color: "#1677ff" }} />
+                ) : (
+                  <StarOutlined />
+                )
+              }
+            />
+          </Dropdown>
 
                 <Divider type="vertical" style={{ margin: isSmallMobile ? "0 4px" : "0 8px" }} />
 

@@ -123,9 +123,15 @@ export const useCreateInvoice = () => {
         dueDate: newInvoice.dueDate,
         subtotal: 0,
         taxTotal: 0,
-        total: 0,
+        grandTotal: 0,
         balanceDue: 0,
-        items: newInvoice.items,
+        lineItems: (newInvoice.items || newInvoice.lineItems || []).map((item: any) => ({
+          itemName: item.itemName || item.item || "",
+          quantity: item.quantity || item.qty || 1,
+          rate: item.rate || item.price || 0,
+          taxRate: item.taxRate || item.tax || 0,
+          description: item.description || ""
+        })),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -391,6 +397,52 @@ export const useDeleteInvoice = () => {
 };
 
 /**
+ * Bulk Delete Invoices (Move to Trash)
+ */
+export const useBulkDeleteInvoice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => InvoiceService.bulkDeleteInvoices(ids),
+
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: invoiceKeys.lists() });
+
+      const previousLists = queryClient.getQueriesData({
+        queryKey: invoiceKeys.lists(),
+      });
+
+      queryClient.setQueriesData(
+        { queryKey: invoiceKeys.lists() },
+        (oldData: any) => {
+          if (!oldData?.data) return oldData;
+          return {
+            ...oldData,
+            data: oldData.data.filter((inv: Invoice) => !ids.includes(inv.id)),
+          };
+        }
+      );
+
+      return { previousLists };
+    },
+
+    onError: (_err, _ids, context) => {
+      if (context?.previousLists) {
+        context.previousLists.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      message.error("Failed to move invoices to trash");
+    },
+
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      message.success(`${data.deletedCount} invoice(s) moved to trash successfully`);
+    },
+  });
+};
+
+/**
  * Hook for Downloading/Generating Invoice PDF
  */
 
@@ -592,3 +644,86 @@ export const useInvoicePaymentHistory = (
 
 
 
+/**
+ * Fetch deleted invoices
+ */
+export const useDeletedInvoices = (params?: InvoiceListParams, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: [...invoiceKeys.lists(), "deleted", params ?? {}],
+    queryFn: () => InvoiceService.getDeletedInvoices(params),
+    staleTime: 1 * 60 * 1000,
+    enabled,
+  });
+};
+
+/**
+ * Restore Invoice
+ */
+export const useRestoreInvoice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => InvoiceService.restoreInvoice(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      message.success("Invoice restored successfully");
+    },
+    onError: (error: any) => {
+      message.error(error.message || "Failed to restore invoice");
+    },
+  });
+};
+
+/**
+ * Bulk Restore Invoices
+ */
+export const useBulkRestoreInvoices = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => InvoiceService.bulkRestoreInvoices(ids),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      message.success(`${data.restoredCount} invoice(s) restored successfully`);
+    },
+    onError: (error: any) => {
+      message.error(error.message || "Failed to bulk restore invoices");
+    },
+  });
+};
+
+/**
+ * Permanent Delete Invoice
+ */
+export const usePermanentDeleteInvoice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => InvoiceService.permanentDeleteInvoice(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      message.success("Invoice permanently deleted");
+    },
+    onError: (error: any) => {
+      message.error(error.message || "Failed to delete invoice");
+    },
+  });
+};
+
+/**
+ * Bulk Permanent Delete Invoices
+ */
+export const useBulkPermanentDeleteInvoices = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => InvoiceService.bulkPermanentDeleteInvoices(ids),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      message.success(`${data.deletedCount} invoice(s) permanently deleted`);
+    },
+    onError: (error: any) => {
+      message.error(error.message || "Failed to bulk delete invoices");
+    },
+  });
+};

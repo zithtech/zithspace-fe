@@ -22,7 +22,8 @@ import {
   Modal,
   App,
   Divider,
-  Spin
+  Spin,
+  Drawer
 } from "antd";
 import {
   SnippetsOutlined,
@@ -38,6 +39,7 @@ import {
   useNextInvoiceNumber,
   useInvoice,
 } from "@/hooks/useInvoices";
+import { useInvoiceTemplates } from "@/hooks/useInvoiceTemplates";
 import { useMemo } from "react";
 
 
@@ -47,12 +49,14 @@ import { useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
 
 import CustomerModal from "@/components/customer/CustomerModal";
-import { CustomersService, Customer ,UpdateCustomerData} from "@/services/customersService";
+import { CustomersService, Customer, UpdateCustomerData } from "@/services/customersService";
 import { useCustomers, useUpdateCustomer } from "@/hooks/use-customers";
 import { message as antdMessage } from "antd";
 import { InvoiceType } from "@/services/invoiceService";
 import { useActiveSettingsProfiles } from "@/hooks/useInvoiceSettings";
 import { SettingsProfile } from "@/services/invoiceSettingsService";
+import DynamicLineItems, { Column } from "./DynamicLineItems";
+import InvoicePreview from "./InvoicePreview";
 
 interface CustomerDraft {
   id: string;
@@ -63,6 +67,8 @@ interface CustomerDraft {
   city?: string | null;
   country?: string | null;
   taxId?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
 }
 
 interface Totals {
@@ -86,17 +92,22 @@ export default function InvoiceproNewinvoicePage() {
   const [pendingCustomer, setPendingCustomer] = useState<CustomerDraft | null>(null);
   const [submitStatus, setSubmitStatus] = useState<"DRAFT" | "PENDING">("PENDING");
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [isFormReady, setIsFormReady] = useState(!editInvoiceId);
 
   const [actionLoading, setActionLoading] = useState<
-  "DRAFT" | "PENDING" | null
->(null);
-  
-  const [isTaxInclusive, setIsTaxInclusive] = useState(false);
+    "DRAFT" | "PENDING" | null
+  >(null);
   const [discountValue, setDiscountValue] = useState<number>(0);
-  
+  const { data: templates = [], isLoading: loadingTemplates } = useInvoiceTemplates();
+  // We use explicit state for templateId to ensure reliable prop updates to children
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [isTaxInclusive, setIsTaxInclusive] = useState(false);
+  const [activeColumns, setActiveColumns] = useState<Column[]>([]);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+
   // State for left panel collapse
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
-  
+
   const updateCustomerMutation = useUpdateCustomer();
   const createInvoiceMutation = useCreateInvoice();
   const updateInvoiceMutation = useUpdateInvoice();
@@ -125,25 +136,39 @@ export default function InvoiceproNewinvoicePage() {
   // }, [activeProfiles, form]);
 
 
-  
+
 
   const selectedProfileId = Form.useWatch("settingsProfileId", form);
 
 
 
 
-  // Fetch next invoice number with profile ID
+  // Reset isFormReady when moving to a different invoice to prevent stale data hydration
+  useEffect(() => {
+    setIsFormReady(false);
+  }, [editInvoiceId]);
 
-  const { data: nextInvoice, refetch: refetchNextNumber } = useNextInvoiceNumber(
-  !editInvoiceId && !!selectedProfileId, 
-  selectedProfileId 
-);
+  // Handle templateId from query params (for direct selection from templates page)
+  useEffect(() => {
+    const tId = searchParams.get("templateId");
+    if (!editInvoiceId && tId) {
+      console.log('🎯 APPLYING TEMPLATE FROM URL:', tId);
+      form.setFieldValue("templateId", tId);
+      setTemplateId(tId);
+    }
+  }, [searchParams, editInvoiceId, form]);
 
-useEffect(() => {
-  if (!editInvoiceId && selectedProfileId) {
-    refetchNextNumber();
-  }
-}, [selectedProfileId, editInvoiceId, refetchNextNumber]);
+  const {
+    data: nextInvoice,
+    isLoading: loadingNext,
+    refetch: refetchNextNumber
+  } = useNextInvoiceNumber(!editInvoiceId, selectedProfileId);
+
+  useEffect(() => {
+    if (!editInvoiceId && selectedProfileId) {
+      refetchNextNumber();
+    }
+  }, [selectedProfileId, editInvoiceId, refetchNextNumber]);
 
 
 
@@ -161,83 +186,106 @@ useEffect(() => {
 
 
   useEffect(() => {
-  if (!editInvoiceId && nextInvoice?.invoiceNumber) {
-    form.setFieldsValue({
-      invoiceNumber: nextInvoice.invoiceNumber,
-    });
-  }
-}, [nextInvoice, editInvoiceId, form]);
+    if (!editInvoiceId && nextInvoice?.invoiceNumber) {
+      form.setFieldsValue({
+        invoiceNumber: nextInvoice.invoiceNumber,
+      });
+    }
+  }, [nextInvoice, editInvoiceId, form]);
 
 
-useEffect(() => {
-  if (!activeProfiles || activeProfiles.length === 0) return;
+  useEffect(() => {
+    if (!activeProfiles || activeProfiles.length === 0) return;
 
-  const activeProfile = activeProfiles.find(p => p.isActive);
-  const defaultProfile = activeProfile || activeProfiles[0];
+    const activeProfile = activeProfiles.find(p => p.isActive);
+    const defaultProfile = activeProfile || activeProfiles[0];
 
-  if (defaultProfile && !form.getFieldValue("settingsProfileId")) {
-    form.setFieldsValue({
-      settingsProfileId: defaultProfile.id,
-    });
-    
-    // ✅ ADD THIS LINE
-    setTimeout(() => refetchNextNumber(), 100);
-  }
-}, [activeProfiles, form, refetchNextNumber]); // ✅ Add refetchNextNumber to dependency array
+    if (defaultProfile && !form.getFieldValue("settingsProfileId")) {
+      form.setFieldsValue({
+        settingsProfileId: defaultProfile.id,
+      });
 
+      // ✅ ADD THIS LINE
+      setTimeout(() => refetchNextNumber(), 100);
+    }
+  }, [activeProfiles, form, refetchNextNumber]); // ✅ Add refetchNextNumber to dependency array
 
-  
+  // When invoice data is loaded, set local templateId state for the header selector
+  useEffect(() => {
+    if (invoiceDetail?.templateId) {
+      setTemplateId(invoiceDetail.templateId);
+    }
+  }, [invoiceDetail]);
+
   useEffect(() => {
     console.log('Invoice detail loaded:', invoiceDetail);
-    console.log('Items to set:', invoiceDetail?.items);
-    
+    console.log('Items to set:', invoiceDetail?.lineItems);
+
     if (editInvoiceId && invoiceDetail) {
-      // Reset form first
-      form.resetFields();
-      
       // Prepare mapped items with proper numeric values
-      const mappedItems = invoiceDetail.items?.length > 0
-        ? invoiceDetail.items.map((i) => ({
-            id: i.id,
-            item: i.item || "",
-            description: i.description || "",
-            qty: i.qty || 1,
-            price: i.price || 0,
-            tax: i.tax || 0,
-          }))
-        : [{ item: "", description: "", qty: 1, price: 0, tax: 0 }];
+      const mappedItems = invoiceDetail.lineItems?.length > 0
+        ? invoiceDetail.lineItems.map((i: any) => ({
+          id: i.id,
+          itemName: i.itemName || "",
+          description: i.description || "",
+          projectId: i.projectId || null,
+          quantity: Number(i.quantity) || 1,
+          rate: Number(i.rate) || 0,
+          taxRate: Number(i.taxRate) || 0,
+          extraFields: Object.fromEntries(
+            Object.entries(i.extraFields || {}).filter(([key]) => key !== 'projectName')
+          ),
+          projectName: i.projectName || i.extraFields?.projectName || null,
+        }))
+        : [{ itemName: "", description: "", quantity: 1, rate: 0, taxRate: 0 }];
 
       console.log('Mapped items:', mappedItems);
 
-      // Use setTimeout to ensure form is reset before setting values
-      setTimeout(() => {
-        form.setFieldsValue({
-          invoiceNumber: invoiceDetail.invoiceNumber || "",
-          customer_id: invoiceDetail.customerId || "",
-          customer_snapshot: invoiceDetail.customerSnapshot || null,
-          settingsProfileId: invoiceDetail.settingsProfileId || "",
-          tax_inclusive: invoiceDetail.taxInclusive || false,
-          discount: invoiceDetail.discount || 0,
-          invoice_date: invoiceDetail.invoiceDate ? dayjs(invoiceDetail.invoiceDate) : null,
-          due_date: invoiceDetail.dueDate ? dayjs(invoiceDetail.dueDate) : null,
-          invoice_type: invoiceDetail.invoiceType?.toLowerCase() || "standard",
-          currency: invoiceDetail.currency || "USD",
-          notes: invoiceDetail.notes || "",
-          terms: invoiceDetail.terms || "",
-          items: mappedItems,
-        });
-        
-        // Force update form values
+      const fv = {
+        invoiceNumber: invoiceDetail.invoiceNumber || "",
+        customer_id: invoiceDetail.customerId || "",
+        customer_snapshot: invoiceDetail.customerSnapshot || null,
+        settingsProfileId: invoiceDetail.settingsProfileId || "",
+        tax_inclusive: invoiceDetail.taxInclusive || false,
+        discount: invoiceDetail.discountTotal || invoiceDetail.discount || 0,
+        invoice_date: invoiceDetail.invoiceDate ? dayjs(invoiceDetail.invoiceDate) : null,
+        due_date: invoiceDetail.dueDate ? dayjs(invoiceDetail.dueDate) : null,
+        invoice_type: invoiceDetail.invoiceType?.toLowerCase() || "standard",
+        currency: invoiceDetail.currency || "USD",
+        templateId: invoiceDetail.templateId || "",
+        notes: invoiceDetail.notes || "",
+        terms: invoiceDetail.terms || "",
+        lineItems: mappedItems,
+        columnOrder: invoiceDetail.metadata?.columnOrder || null,
+        columnLabels: invoiceDetail.metadata?.columnLabels || null,
+      };
+
+      console.log('🚀 HYDRATING FORM WITH VALUES:', fv.invoiceNumber);
+
+      // Only set fields if the form isn't ready or if the underlying data changed significantly (like invoice number)
+      // This prevents overwriting the user's active typing during background refetches
+      if (!isFormReady || form.getFieldValue("invoiceNumber") === "") {
+        console.log('💧 First time hydration or empty form, setting values.');
+        form.setFieldsValue(fv);
+
+        if (invoiceDetail.templateId) {
+          setTemplateId(invoiceDetail.templateId);
+        }
+
         form.validateFields();
-      }, 0);
-      
+        setIsFormReady(true);
+      } else {
+        console.log('💧 Form already ready, skipping overwrite to prevent data loss.');
+      }
+
       setIsTaxInclusive(invoiceDetail.taxInclusive || false);
-      setDiscountValue(Number(invoiceDetail.discount) || 0);
-    } else {
-      const currentItems = form.getFieldValue("items");
+      setDiscountValue(Number(invoiceDetail.discountTotal || invoiceDetail.discount) || 0);
+    } else if (!editInvoiceId) {
+      // Logic for NEW invoices only
+      const currentItems = form.getFieldValue("lineItems");
       if (!currentItems || currentItems.length === 0) {
         form.setFieldsValue({
-          items: [{ item: "", description: "", qty: 1, price: 0, tax: 0 }],
+          lineItems: [{ itemName: "", description: "", quantity: 1, rate: 0, taxRate: 0 }],
           invoice_type: "standard",
           currency: "USD",
           tax_inclusive: false,
@@ -246,37 +294,38 @@ useEffect(() => {
         setIsTaxInclusive(false);
         setDiscountValue(0);
       }
+      setIsFormReady(true);
     }
   }, [editInvoiceId, invoiceDetail, form]);
 
   const formatAddress = (address?: {
-  building_name?: string;
-  floor_no?: string;
-  plot_no?: string;
-  street?: string;
-  area?: string;
-  city?: string;
-  pincode?: string;
-  country?: string;
-}) => {
-  if (!address) return "";
+    building_name?: string;
+    floor_no?: string;
+    plot_no?: string;
+    street?: string;
+    area?: string;
+    city?: string;
+    pincode?: string;
+    country?: string;
+  }) => {
+    if (!address) return "";
 
-  const line1 = [
-    address.building_name,
-    address.floor_no,
-    address.plot_no,
-    address.street,
-  ].filter(Boolean).join(", ");
+    const line1 = [
+      address.building_name,
+      address.floor_no,
+      address.plot_no,
+      address.street,
+    ].filter(Boolean).join(", ");
 
-  const line2 = [
-    address.area,
-    address.city,
-    address.pincode,
-    address.country,
-  ].filter(Boolean).join(", ");
+    const line2 = [
+      address.area,
+      address.city,
+      address.pincode,
+      address.country,
+    ].filter(Boolean).join(", ");
 
-  return [line1, line2].filter(Boolean).join(" • ");
-};
+    return [line1, line2].filter(Boolean).join(" • ");
+  };
 
   const formTaxInclusive = Form.useWatch("tax_inclusive", form);
   useEffect(() => {
@@ -303,34 +352,61 @@ useEffect(() => {
     city: values.city ?? undefined,
     country: values.country ?? undefined,
     taxId: values.taxId ?? undefined,
+    gstin: values.gstin ?? undefined,
+    pan: values.pan ?? undefined,
   });
 
   const currency = Form.useWatch("currency", form);
   const currencySymbol =
     currencyOptions.find((c) => c.value === currency)?.symbol || "$";
 
-  const items = Form.useWatch("items", form) || [];
+  const items = Form.useWatch("lineItems", form) || [];
+  const watchedNotes = Form.useWatch("notes", form);
+  const watchedTerms = Form.useWatch("terms", form);
+  const watchedInvoiceNumber = Form.useWatch("invoiceNumber", form);
+  const watchedInvoiceDate = Form.useWatch("invoice_date", form);
+  const watchedDueDate = Form.useWatch("due_date", form);
+  const watchedCustomerId = Form.useWatch("customer_id", form);
 
-  const { subtotal, totalTax, totalBeforeDiscount, finalTotal } = useMemo(() => {
+  const { subtotal, totalTax, totalBeforeDiscount, finalTotal, discountAmount } = useMemo(() => {
+    const getVal = (obj: any, keys: string[]) => {
+      if (!obj) return 0;
+      for (const k of keys) {
+        const val = obj[k] ?? obj[k.toLowerCase()] ?? obj[k.charAt(0).toUpperCase() + k.slice(1).toLowerCase()];
+        if (val !== undefined && val !== null && val !== '') return Number(val);
+      }
+      return 0;
+    };
+
     const result = items.reduce(
       (acc: Totals & { lineTotals: number[] }, i: any, index: number) => {
-        const q = Number(i?.qty || 0);
-        const p = Number(i?.price || 0);
-        const t = Number(i?.tax || 0);
-        const linePrice = q * p;
+        const q = Number(i?.quantity || 0);
+        const p = Number(i?.rate || 0);
+
+        // 💡 Check standard fields then extraFields for tax
+        const extraTax = getVal(i?.extraFields, ['taxRate', 'tax', 'tax_rate', 'VAT', 'GST']);
+        const t = Number(i?.taxRate || i?.tax || extraTax || 0);
+
+        // 💡 Check for line-item discount in extraFields
+        const extraDiscount = getVal(i?.extraFields, ['discount', 'dis', 'disc']);
+        const d = Number(extraDiscount || 0);
+
+        const linePrice = (q * p);
 
         let lineSubtotal = 0;
         let lineTax = 0;
         let lineTotal = 0;
 
+        const discountedBase = Math.max(0, linePrice - d);
+
         if (isTaxInclusive && t > 0) {
-          lineTotal = linePrice;
+          lineTotal = discountedBase;
           const taxRate = t / 100;
-          lineSubtotal = linePrice / (1 + taxRate);
+          lineSubtotal = discountedBase / (1 + taxRate);
           lineTax = lineTotal - lineSubtotal;
         } else {
-          lineSubtotal = linePrice;
-          lineTax = linePrice * (t / 100);
+          lineSubtotal = discountedBase;
+          lineTax = discountedBase * (t / 100);
           lineTotal = lineSubtotal + lineTax;
         }
 
@@ -346,15 +422,15 @@ useEffect(() => {
       { subtotal: 0, totalTax: 0, totalBeforeDiscount: 0, lineTotals: [] as number[] }
     );
 
-    const discountAmount = discountValue;
-    const finalTotal = Math.max(0, result.totalBeforeDiscount - discountAmount);
+    const discountValueNow = discountValue;
+    const finalTotalValue = Math.max(0, result.totalBeforeDiscount - discountValueNow);
 
     return {
       subtotal: result.subtotal,
       totalTax: result.totalTax,
       totalBeforeDiscount: result.totalBeforeDiscount,
-      finalTotal: finalTotal,
-      discountAmount: discountAmount
+      finalTotal: finalTotalValue,
+      discountAmount: discountValueNow
     };
   }, [items, isTaxInclusive, discountValue]);
 
@@ -369,6 +445,8 @@ useEffect(() => {
         city: updatedCustomer.city ?? undefined,
         country: updatedCustomer.country ?? undefined,
         taxId: updatedCustomer.taxId ?? undefined,
+        gstin: updatedCustomer.gstin ?? undefined,
+        pan: updatedCustomer.pan ?? undefined,
       },
     });
 
@@ -384,6 +462,8 @@ useEffect(() => {
       city: draft.city ?? undefined,
       country: draft.country ?? undefined,
       taxId: draft.taxId ?? undefined,
+      gstin: draft.gstin ?? undefined,
+      pan: draft.pan ?? undefined,
     };
 
     try {
@@ -402,6 +482,8 @@ useEffect(() => {
           city: savedCustomer.city,
           country: savedCustomer.country,
           taxId: savedCustomer.taxId,
+          gstin: savedCustomer.gstin,
+          pan: savedCustomer.pan,
         },
       });
 
@@ -427,13 +509,15 @@ useEffect(() => {
           city: c.city,
           country: c.country,
           taxId: c.taxId,
+          gstin: c.gstin,
+          pan: c.pan,
         };
       }
     }
 
-   const finalStatus = submitStatus;
-   const finalDiscount = discountValue;
-    
+    const finalStatus = submitStatus;
+    const finalDiscount = discountValue;
+
     const payload: any = {
       invoiceNumber: values.invoiceNumber,
       invoiceDate: values.invoice_date?.toISOString(),
@@ -447,41 +531,66 @@ useEffect(() => {
       status: finalStatus,
       customerId: values.customer_id,
       taxInclusive: Boolean(values.tax_inclusive),
-      customerSnapshot: finalSnapshot, 
-      items: (values.items || []).map((item: any) => ({
-        id: item.id,
-        item: item.item || "Untitled Item",
-        description: item.description || "",
-        qty: Number(item.qty || 1),
-        price: Number(item.price || 0),
-        tax: Number(item.tax || 0),
-      })),
+      templateId: values.templateId || form.getFieldValue('templateId'),
+      customerSnapshot: finalSnapshot,
+      metadata: {
+        ...(invoiceDetail?.metadata || {}),
+        columnOrder: values.columnOrder || [],
+        columnLabels: values.columnLabels || {},
+        columnTypes: values.columnTypes || {},
+        columnOptions: values.columnOptions || {}
+      },
+      items: (values.lineItems || []).map((item: any, index: number) => {
+        // Collect all extra fields properly
+        const stdKeys = ['id', 'itemName', 'description', 'quantity', 'qty', 'rate', 'price', 'taxRate', 'tax', 'projectId', 'projectName', 'extraFields'];
+        const additionalExtraFields: any = {};
+        Object.keys(item).forEach(key => {
+          if (!stdKeys.includes(key) && item[key] !== undefined) {
+            additionalExtraFields[key] = item[key];
+          }
+        });
+
+        return {
+          id: item.id,
+          item: item.itemName || "Untitled Item",
+          description: item.description || "",
+          quantity: Number(item.quantity || item.qty || 1),
+          rate: Number(item.rate || item.price || 0),
+          taxRate: Number(item.taxRate || item.tax || 0),
+          projectId: item.projectId?.value || (typeof item.projectId === 'string' ? item.projectId : null),
+          projectName: item.projectId?.label || item.projectName || null,
+          extraFields: { ...(item.extraFields || {}), ...additionalExtraFields },
+          rowNumber: index + 1
+        };
+      }),
     };
 
-    try {
-        if (isEdit) {
-    const idToUpdate = editInvoiceId || invoiceDetail?.id;
+    console.log('🚀 SUBMITTING INVOICE PAYLOAD:', JSON.stringify(payload, null, 2));
 
-    await updateInvoiceMutation.mutateAsync({
-      id: idToUpdate!,
-      data: payload,
-    });
-            antdMessage.success(
-      submitStatus === "DRAFT"
-        ? "Draft updated"
-        : "Invoice submitted successfully"
-    );
+    try {
+      if (isEdit) {
+        const idToUpdate = editInvoiceId || invoiceDetail?.id;
+
+        await updateInvoiceMutation.mutateAsync({
+          id: idToUpdate!,
+          data: payload,
+        });
+        antdMessage.success(
+          submitStatus === "DRAFT"
+            ? "Draft updated"
+            : "Invoice submitted successfully"
+        );
       } else {
-       const created = await createInvoiceMutation.mutateAsync(payload);
+        const created = await createInvoiceMutation.mutateAsync(payload);
         antdMessage.success(
           submitStatus === "DRAFT"
             ? "Invoice saved as draft"
             : "Invoice submitted for approval"
         );
-         router.push(`/invoicepro/invoices?edit=${created.id}`);
-         return;
+        router.push(`/invoicepro/invoices?edit=${created.id}`);
+        return;
       }
-      
+
       router.push("/invoicepro/invoices");
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || error.message || "Submission Failed";
@@ -496,15 +605,33 @@ useEffect(() => {
 
   const calculateLineTotal = (item: any) => {
     if (!item) return 0;
-    const q = Number(item.qty || 0);
-    const p = Number(item.price || 0);
-    const t = Number(item.tax || 0);
-    
+    const getVal = (obj: any, keys: string[]) => {
+      if (!obj) return 0;
+      for (const k of keys) {
+        const val = obj[k] ?? obj[k.toLowerCase()] ?? obj[k.charAt(0).toUpperCase() + k.slice(1).toLowerCase()];
+        if (val !== undefined && val !== null && val !== '') return Number(val);
+      }
+      return 0;
+    };
+
+    const q = Number(item.qty || item.quantity || 0);
+    const p = Number(item.price || item.rate || 0);
+
+    // 💡 Check extraFields for tax
+    const extraTax = getVal(item.extraFields, ['taxRate', 'tax', 'tax_rate', 'VAT', 'GST']);
+    const t = Number(item.tax || item.taxRate || extraTax || 0);
+
+    // 💡 Check extraFields for discount
+    const extraDiscount = getVal(item.extraFields, ['discount', 'dis', 'disc']);
+    const d = Number(extraDiscount || 0);
+
+    const discountedBase = Math.max(0, (q * p) - d);
+
     if (isTaxInclusive && t > 0) {
-      return q * p;
+      return discountedBase;
     } else {
-      const subtotal = q * p;
-      const tax = subtotal * (t / 100);
+      const subtotal = discountedBase;
+      const tax = discountedBase * (t / 100);
       return subtotal + tax;
     }
   };
@@ -528,46 +655,65 @@ useEffect(() => {
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <SnippetsOutlined style={{ fontSize: 32 ,color:"#1677ff"}} />
-                <Title level={3} style={{ margin: 0 ,}}>
+                <SnippetsOutlined style={{ fontSize: 32, color: "#1677ff" }} />
+                <Title level={3} style={{ margin: 0, }}>
                   {editInvoiceId ? "Edit Invoice" : "New Invoice"}
                 </Title>
-                
+
                 {/* VIEW ICON BESIDE NEW INVOICE - Blue icon with smaller circle blink */}
-{/* VIEW ICON BESIDE NEW INVOICE - Blue icon with smaller circle blink */}
-{isLeftPanelCollapsed && (
-  <div className="relative ml-2">
-    <Tooltip title="Show invoice details">
-      <Button
-        type="text"
-        icon={<EyeOutlined style={{ color: '#1677ff' }} />}
-        onClick={toggleLeftPanel}
-        size="large"
-        className="relative"
-      />
-    </Tooltip>
-    {/* Clickable blinking circle */}
-    <span 
-      className="absolute -inset-0 rounded-full border-2 border-blue-500 animate-ping opacity-75 cursor-pointer"
-      onClick={toggleLeftPanel}
-    ></span>
-    {/* Clickable static circle */}
-    <span 
-      className="absolute -inset-0 rounded-full border-2 border-blue-500 cursor-pointer"
-      onClick={toggleLeftPanel}
-    ></span>
-  </div>
-)}
+                {/* VIEW ICON BESIDE NEW INVOICE - Blue icon with smaller circle blink */}
+                {isLeftPanelCollapsed && (
+                  <div className="relative ml-2">
+                    <Tooltip title="Show invoice details">
+                      <Button
+                        type="text"
+                        icon={<EyeOutlined style={{ color: '#1677ff' }} />}
+                        onClick={toggleLeftPanel}
+                        size="large"
+                        className="relative"
+                      />
+                    </Tooltip>
+                    {/* Clickable blinking circle */}
+                    <span
+                      className="absolute -inset-0 rounded-full border-2 border-blue-500 animate-ping opacity-75 cursor-pointer"
+                      onClick={toggleLeftPanel}
+                    ></span>
+                    {/* Clickable static circle */}
+                    <span
+                      className="absolute -inset-0 rounded-full border-2 border-blue-500 cursor-pointer"
+                      onClick={toggleLeftPanel}
+                    ></span>
+                  </div>
+                )}
               </div>
-              
-              <div className="flex gap-3">
+
+              <div className="flex gap-2 items-center">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Apply Template:</span>
+                <Select
+                  placeholder="Select..."
+                  style={{ width: 180 }}
+                  loading={loadingTemplates}
+                  value={templateId || undefined}
+                  onChange={(val) => {
+                    console.log('🎯 Header selected template (STATE):', val);
+                    setTemplateId(val);
+                    form.setFieldValue('templateId', val);
+                  }}
+                  className="rounded-md h-8 text-xs"
+                  dropdownStyle={{ borderRadius: '8px' }}
+                >
+                  {templates.map(t => (
+                    <Select.Option key={t.id} value={t.id}>{t.name}</Select.Option>
+                  ))}
+                </Select>
+
                 <Button
                   type="primary"
                   loading={actionLoading === "PENDING"}
                   onClick={() => {
                     setSubmitStatus("PENDING");
                     setActionLoading("PENDING");
-                    form.setFieldValue("status", "PENDING"); 
+                    form.setFieldValue("status", "PENDING");
                     form.submit();
                   }}
                   size="large"
@@ -580,7 +726,7 @@ useEffect(() => {
                   onClick={() => {
                     setSubmitStatus("DRAFT");
                     setActionLoading("DRAFT");
-                    form.setFieldValue("status", "DRAFT"); 
+                    form.setFieldValue("status", "DRAFT");
                     form.submit();
                   }}
                   size="large"
@@ -589,10 +735,19 @@ useEffect(() => {
                 </Button>
 
                 <Button
+                  icon={<EyeOutlined />}
+                  onClick={() => setIsPreviewVisible(true)}
+                  className="hover:border-blue-400 hover:text-blue-500 rounded-md h-10 px-8"
+                  size="large"
+                >
+                  Preview
+                </Button>
+
+                <Button
                   danger
                   onClick={() => {
-                    form.resetFields();           
-                     router.push("/invoicepro/invoices");   
+                    form.resetFields();
+                    router.push("/invoicepro/invoices");
                   }}
                   size="large"
                 >
@@ -614,12 +769,12 @@ useEffect(() => {
               message.error("Please fill in all required fields");
             }}
             initialValues={{
-              items: [{
-                item: "",
+              lineItems: [{
+                itemName: "",
                 description: "",
-                qty: 1,
-                price: 0,
-                tax: 0,
+                quantity: 1,
+                rate: 0,
+                taxRate: 0,
               }],
               invoice_type: "standard",
               currency: "USD",
@@ -629,6 +784,8 @@ useEffect(() => {
           >
             <Form.Item name="customer_snapshot" hidden />
             <Form.Item name="status" hidden />
+            <Form.Item name="columnOrder" hidden />
+            <Form.Item name="columnLabels" hidden />
             <Form.Item name="tax_inclusive" hidden initialValue={false}>
               <Input type="hidden" />
             </Form.Item>
@@ -636,11 +793,11 @@ useEffect(() => {
             {/* MAIN CONTENT - SPLIT LAYOUT WITH ANIMATION */}
             <div className="flex h-[calc(100vh-80px)] overflow-hidden relative">
               {/* LEFT COLUMN - Collapsible with smooth animation */}
-              <div 
+              <div
                 className={`
                   transition-all duration-500 ease-in-out
-                  ${isLeftPanelCollapsed 
-                    ? 'w-0 opacity-0 overflow-hidden' 
+                  ${isLeftPanelCollapsed
+                    ? 'w-0 opacity-0 overflow-hidden'
                     : 'w-[27%] opacity-100 border-r border-gray-200'
                   }
                 `}
@@ -652,7 +809,7 @@ useEffect(() => {
                 `}>
                   <div className="flex-1 overflow-y-auto px-2 pt-2 pb-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
                     {/* SINGLE COMMON CARD - NO COLORS */}
-                    <Card 
+                    <Card
                       className="border border-gray-200 shadow-sm mb-4 transition-all duration-300 hover:shadow-md"
                       bodyStyle={{ padding: 0 }}
                     >
@@ -662,7 +819,7 @@ useEffect(() => {
                           <Title level={5} style={{ margin: 0 }}>
                             Invoice Information
                           </Title>
-                          
+
                           {/* TOGGLE BUTTON INSIDE INVOICE INFORMATION CARD - Eye icon to hide */}
                           {!isLeftPanelCollapsed && (
                             <Tooltip title="Hide invoice details">
@@ -672,7 +829,7 @@ useEffect(() => {
                                 onClick={toggleLeftPanel}
                                 size="middle"
                                 className="hover:bg-gray-200"
-                                style={{color:"#1677ff"}}
+                                style={{ color: "#1677ff" }}
                               />
                             </Tooltip>
                           )}
@@ -762,6 +919,8 @@ useEffect(() => {
                                       city: c.city,
                                       country: c.country,
                                       taxId: c.taxId,
+                                      gstin: c.gstin,
+                                      pan: c.pan,
                                     },
                                   });
                                 }
@@ -784,19 +943,19 @@ useEffect(() => {
                                 <div className="text-base font-semibold text-gray-900 mb-1">
                                   {selectedCustomer.companyName}
                                 </div>
-                                
+
                                 {selectedCustomer.taxId && (
                                   <div className="text-sm text-gray-600 mb-1">
                                     <span className="font-medium">Tax ID:</span> {selectedCustomer.taxId}
                                   </div>
                                 )}
-                                
+
                                 {selectedCustomer.address && (
                                   <div className="text-sm text-gray-600 mb-1">
                                     {selectedCustomer.address}
                                   </div>
                                 )}
-                                
+
                                 {selectedCustomer.city && (
                                   <div className="text-sm text-gray-600">
                                     {selectedCustomer.city}
@@ -815,16 +974,16 @@ useEffect(() => {
                           </div>
                           <Row gutter={[12, 12]}>
                             <Col span={12}>
-                              <Form.Item 
-                                label="Invoice No" 
-                                name="invoiceNumber" 
+                              <Form.Item
+                                label="Invoice No"
+                                name="invoiceNumber"
                                 rules={[{ required: true }]}
                                 style={{ marginBottom: 0 }}
                               >
-                                <Input 
-                                  readOnly 
-                                  size="middle" 
-                                  className="bg-gray-50 text-base" 
+                                <Input
+                                  readOnly
+                                  size="middle"
+                                  className="bg-gray-50 text-base"
                                 />
                               </Form.Item>
                             </Col>
@@ -901,235 +1060,26 @@ useEffect(() => {
                   <div className="flex-1 overflow-y-auto px-2 pt-2 pb-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
                     {/* LINE ITEMS CARD - NO COLORS */}
                     <Card
-                      title="Line Items"
                       className="border border-gray-200 shadow-sm mb-4 transition-all duration-300 hover:shadow-md"
-                      
+                      bodyStyle={{ padding: 16 }}
                     >
-                      <Divider style={{ margin: 0 }} />
-                      
-                      <Form.List name="items">
-                        {(fields, { add, remove }) => {
-                          // Get current form values for all items
-                          const formItems = form.getFieldValue('items') || [];
-                          
-                          return (
-                            <>
-                              <div className="overflow-x-auto">
-                                <table className="w-full border-collapse">
-                                  <thead>
-                                    <tr className="bg-gray-50 border-b border-gray-200">
-                                      <th className="p-3 text-left font-medium text-gray-700 text-sm">Item</th>
-                                      <th className="p-3 text-left font-medium text-gray-700 text-sm">Description</th>
-                                      <th className="p-3 text-center font-medium text-gray-700 text-sm">Qty</th>
-                                      <th className="p-3 text-center font-medium text-gray-700 text-sm">
-                                        Price ({currencySymbol})
-                                      </th>
-                                      <th className="p-3 text-center font-medium text-gray-700 text-sm">Tax %</th>
-                                      <th className="p-3 text-right font-medium text-gray-700 text-sm">
-                                        Total ({currencySymbol})
-                                      </th>
-                                      <th className="w-12 p-3"></th>
-                                    </tr>
-                                  </thead>
-
-                                  <tbody>
-                                    {fields.map(({ key, name }) => {
-                                      const currentItem = formItems[name] || {};
-                                      const lineTotal = calculateLineTotal(currentItem);
-                                      
-                                      return (
-                                        <tr
-                                          key={key}
-                                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150"
-                                        >
-                                          <td className="p-3 align-middle">
-                                            <Form.Item
-                                              name={[name, "item"]}
-                                              rules={[{ required: true, message: "" }]}
-                                              style={{ marginBottom: 0 }}
-                                            >
-                                              <Input 
-                                                placeholder="Item name" 
-                                                size="middle"
-                                                className="text-base w-full"
-                                              />
-                                            </Form.Item>
-                                          </td>
-
-                                          <td className="p-3 align-middle">
-                                            <Form.Item
-                                              name={[name, "description"]}
-                                              style={{ marginBottom: 0 }}
-                                            >
-                                              <Input 
-                                                placeholder="Description" 
-                                                size="middle"
-                                                className="text-base w-full"
-                                              />
-                                            </Form.Item>
-                                          </td>
-
-                                          <td className="p-3 align-middle">
-                                            <Form.Item
-                                              name={[name, "qty"]}
-                                              rules={[{ required: true, message: "" }]}
-                                              style={{ marginBottom: 0 }}
-                                            >
-                                              <Input 
-                                                type="number" 
-                                                min={1}
-                                                size="middle"
-                                                className="w-14 text-center text-base"
-                                                value={currentItem?.qty}
-                                                onChange={(e) => {
-                                                  const value = e.target.value;
-                                                  form.setFieldValue(['items', name, 'qty'], value === '' ? '' : Number(value));
-                                                }}
-                                              />
-                                            </Form.Item>
-                                          </td>
-
-                                          <td className="p-3 align-middle">
-                                            <Form.Item
-                                              name={[name, "price"]}
-                                              rules={[{ required: true, message: "" }]}
-                                              style={{ marginBottom: 0 }}
-                                            >
-                                              <div className="flex items-center">
-                                                <span className="text-gray-500 mr-1 text-sm">{currencySymbol}</span>
-                                                <Input
-                                                  type="number"
-                                                  step="0.01"
-                                                  size="middle"
-                                                  className="text-sm flex-1 min-w-0"
-                                                  value={currentItem?.price}
-                                                  onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    form.setFieldValue(['items', name, 'price'], value === '' ? '' : Number(value));
-                                                  }}
-                                                />
-                                              </div>
-                                            </Form.Item>
-                                          </td>
-
-                                          <td className="p-3 align-middle">
-                                            <Form.Item
-                                              name={[name, "tax"]}
-                                              style={{ marginBottom: 0 }}
-                                            >
-                                              <div className="flex items-center justify-center">
-                                                <Input 
-                                                  type="number" 
-                                                  size="middle"
-                                                  className="w-14 text-center text-base"
-                                                  value={currentItem?.tax}
-                                                  onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    form.setFieldValue(['items', name, 'tax'], value === '' ? '' : Number(value));
-                                                  }}
-                                                />
-                                                <span className="text-gray-500 ml-1 text-sm">%</span>
-                                              </div>
-                                            </Form.Item>
-                                          </td>
-
-                                          <td className="p-3 align-middle text-right">
-                                            <div className="font-medium text-gray-900 text-sm truncate max-w-[120px] ml-auto">
-                                              {currencySymbol} {lineTotal.toFixed(2)}
-                                            </div>
-                                          </td>
-
-                                          <td className="p-3 align-middle text-center">
-                                            <Button
-                                              type="text"
-                                              size="middle"
-                                              danger
-                                              icon={<DeleteOutlined />}
-                                              disabled={fields.length === 1}
-                                              onClick={() => remove(name)}
-                                              className="opacity-60 hover:opacity-100"
-                                            />
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-
-                              <div className="p-3 border-t border-gray-200">
-                                <Button
-                                  type="dashed"
-                                  onClick={() =>
-                                    add({ item: "", description: "", qty: 1, price: 0, tax: 0 })
-                                  }
-                                  className="w-full text-base"
-                                  size="middle"
-                                >
-                                  + Add Item
-                                </Button>
-                              </div>
-
-                              <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <span className="text-base font-medium text-gray-700 whitespace-nowrap">
-                                    Global Discount:
-                                  </span>
-                                  <Form.Item name="discount" initialValue={0} style={{ margin: 0 }}>
-                                    <div className="flex items-center">
-                                      <span className="text-gray-500 mr-1 text-base">{currencySymbol}</span>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        step="0.01"
-                                        size="middle"
-                                        style={{ width: 140 }}
-                                        className="text-base"
-                                        value={discountValue}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          if (value === '') {
-                                            form.setFieldValue('discount', '');
-                                            setDiscountValue(0);
-                                          } else {
-                                            const numValue = Number(value);
-                                            if (!isNaN(numValue)) {
-                                              form.setFieldValue('discount', numValue);
-                                              setDiscountValue(numValue);
-                                            }
-                                          }
-                                        }}
-                                      />
-                                    </div>
-                                  </Form.Item>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                  <span className="text-base font-medium text-gray-700 whitespace-nowrap">
-                                    Tax Inclusive:
-                                  </span>
-                                  <Switch 
-                                    checked={isTaxInclusive}
-                                    onChange={handleTaxInclusiveChange}
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                                <div className="flex justify-between items-center">
-                                  <span className="font-semibold text-gray-800 text-lg">Total Amount:</span>
-                                  <span className="text-xl font-bold text-gray-900 truncate max-w-[200px]">
-                                    {currencySymbol} {finalTotal.toLocaleString(undefined, {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2
-                                    })}
-                                  </span>
-                                </div>
-                              </div>
-                            </>
-                          );
-                        }}
-                      </Form.List>
+                      {isFormReady ? (
+                        <DynamicLineItems
+                          form={form}
+                          currencySymbol={currencySymbol}
+                          isTaxInclusive={isTaxInclusive}
+                          calculateLineTotal={calculateLineTotal}
+                          templateId={templateId}
+                          templates={templates}
+                          loadingTemplates={loadingTemplates}
+                          activeColumns={activeColumns}
+                          setActiveColumns={setActiveColumns}
+                        />
+                      ) : (
+                        <div className="flex justify-center p-8">
+                          <Spin size="large" />
+                        </div>
+                      )}
                     </Card>
 
                     {/* NOTES & TERMS CARD - SIDE BY SIDE LAYOUT */}
@@ -1143,23 +1093,23 @@ useEffect(() => {
                           <div>
                             <div className="mb-2 text-base font-medium text-gray-700">Notes</div>
                             <Form.Item name="notes" style={{ marginBottom: 0 }}>
-                              <Input.TextArea 
-                                rows={4} 
-                                placeholder="Add any notes for the customer..." 
+                              <Input.TextArea
+                                rows={4}
+                                placeholder="Add any notes for the customer..."
                                 className="text-base resize-none"
                                 size="middle"
                               />
                             </Form.Item>
                           </div>
                         </Col>
-                        
+
                         <Col span={12}>
                           <div>
                             <div className="mb-2 text-base font-medium text-gray-700">Terms & Conditions</div>
                             <Form.Item name="terms" style={{ marginBottom: 0 }}>
-                              <Input.TextArea 
-                                rows={4} 
-                                placeholder="Add terms and conditions..." 
+                              <Input.TextArea
+                                rows={4}
+                                placeholder="Add terms and conditions..."
                                 className="text-base resize-none"
                                 size="middle"
                               />
@@ -1239,20 +1189,43 @@ useEffect(() => {
         >
           <p>Apply these changes to customer record?</p>
         </Modal>
-      </div>
 
-      {/* Add custom CSS for animations */}
-      <style jsx>{`
-        @keyframes ping {
-          75%, 100% {
-            transform: scale(1.5);
-            opacity: 0;
+        {/* Add custom CSS for animations */}
+        <style jsx>{`
+          @keyframes ping {
+            75%, 100% {
+              transform: scale(1.5);
+              opacity: 0;
+            }
           }
-        }
-        .animate-ping {
-          animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-        }
-      `}</style>
+          .animate-ping {
+            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+          }
+        `}</style>
+
+        <Drawer
+          title={
+            <div className="flex justify-between items-center pr-8">
+              <Typography.Text strong className="text-lg">Live Invoice Preview</Typography.Text>
+              <Typography.Text type="secondary" className="text-xs font-normal italic">Real-time update as you type</Typography.Text>
+            </div>
+          }
+          placement="right"
+          width={850}
+          onClose={() => setIsPreviewVisible(false)}
+          open={isPreviewVisible}
+          className="invoice-preview-drawer"
+          styles={{ body: { padding: 0, backgroundColor: '#f9fafb' } }}
+        >
+          <InvoicePreview
+            data={form.getFieldsValue(true)}
+            settings={activeProfiles.find(p => p.id === form.getFieldValue('settingsProfileId')) || activeProfiles[0]}
+            totals={{ subtotal, totalTax, totalBeforeDiscount, finalTotal, discountAmount }}
+            currencySymbol={currencySymbol}
+            activeColumns={activeColumns}
+          />
+        </Drawer>
+      </div>
     </MainLayout>
   );
 }

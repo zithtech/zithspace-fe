@@ -511,7 +511,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
             <Col xs={24} sm={24} md={12} lg={12}>
               <Form.Item
                 label={<span style={{ fontSize: 11 }}> Position</span>}
-                name="department"
+                name="positionId"
                 rules={[{ required: true, message: "Required" }]}
                 style={{ marginBottom: 10 }}
               >
@@ -847,7 +847,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               optionFilterProp="children"
             >
               {members?.map((member) => (
-                <Select.Option key={member.id} value={member.label}>
+                <Select.Option key={member.id} value={member.id}>
                   {member.label}
                 </Select.Option>
               ))}

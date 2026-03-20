@@ -75,8 +75,7 @@ function CreateClientV2Content() {
     } catch (err) {
       console.error(err);
       message.error(
-        `An error occurred while ${
-          isEditMode ? "updating" : "creating"
+        `An error occurred while ${isEditMode ? "updating" : "creating"
         } the client`,
       );
     } finally {

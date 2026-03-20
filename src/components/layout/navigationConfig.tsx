@@ -215,6 +215,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.TIMESHEET_READ,
       },
       {
+        key: "time-tracking",
+        label: "Time Tracking",
+        icon: <ClockCircleOutlined />,
+        children: [
+          {
+            key: "/time-tracking/my",
+            label: "My Time Tracking",
+            icon: <UserOutlined />,
+            path: "/time-tracking/my",
+          },
+          {
+            key: "/time-tracking/team",
+            label: "Team View",
+            icon: <TeamOutlined />,
+            path: "/time-tracking/team",
+          },
+        ],
+      },
+      {
         key: "daily-updates-group",
         label: "Daily Updates",
         icon: <ReconciliationOutlined />,

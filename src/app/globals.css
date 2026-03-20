@@ -858,7 +858,7 @@ body {
 }
 
 /* Icons only mode - ensure icons are centered */
-.ant-layout-sider-collapsed .ant-menu-item {
+/* .ant-layout-sider-collapsed .ant-menu-item {
     padding: 0 calc(50% - 10px) !important;
     display: flex;
     justify-content: center;
@@ -868,7 +868,7 @@ body {
     padding: 0 calc(50% - 10px) !important;
     display: flex;
     justify-content: center;
-}
+} */
 
 /* Remove extra padding/margin when collapsed */
 .ant-layout-sider-collapsed .ant-menu-item .anticon,

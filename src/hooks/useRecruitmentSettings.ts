@@ -16,7 +16,7 @@ export const useRecruitmentSettings = () => {
     setLoading(true);
     try {
       const res = await RecruitmentStatusService.getAll();
-      setStatuses(res.data || []);
+      setStatuses(Array.isArray(res) ? res : (res?.data || []));
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch statuses');
     } finally {
@@ -28,7 +28,7 @@ export const useRecruitmentSettings = () => {
     setLoading(true);
     try {
       const res = await RecruitmentActionService.getAll();
-      setActions(res.data || []);
+      setActions(Array.isArray(res) ? res : (res?.data || []));
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to fetch actions');
     } finally {
@@ -46,11 +46,26 @@ export const useRecruitmentSettings = () => {
     }
   };
 
+  const updateStatus = async (id: string, data: Partial<RecruitmentStatusPayload>) => {
+    setLoading(true);
+    try {
+      const res = await RecruitmentStatusService.update(id, data);
+      if (res && res.success === false) throw new Error(res.error || "Failed to update status");
+      await fetchStatuses(); // Refresh list after update
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteStatus = async (id: string) => {
     setLoading(true);
     try {
-      await RecruitmentStatusService.delete(id);
-      await fetchStatuses(); // Refresh list after delete
+      const res = await RecruitmentStatusService.delete(id);
+      if (res && res.success === false) throw new Error(res.error || "Failed to delete status");
+      setStatuses(prev => (Array.isArray(prev) ? prev : []).filter(s => s?.id !== id));
+    } catch (err) {
+      console.error("Delete status error:", err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -66,17 +81,43 @@ export const useRecruitmentSettings = () => {
     }
   };
 
-  const deleteAction = async (id: string) => {
+  const updateAction = async (id: string, data: Partial<RecruitmentActionPayload>) => {
     setLoading(true);
     try {
-      await RecruitmentActionService.delete(id);
+      const res = await RecruitmentActionService.update(id, data);
+      if (res && res.success === false) throw new Error(res.error || "Failed to update action");
       await fetchActions();
     } finally {
       setLoading(false);
     }
   };
 
+  const deleteAction = async (id: string) => {
+    setLoading(true);
+    try {
+      const res = await RecruitmentActionService.delete(id);
+      if (res && res.success === false) throw new Error(res.error || "Failed to delete action");
+      setActions(prev => (Array.isArray(prev) ? prev : []).filter(a => a?.id !== id));
+    } catch (err) {
+      console.error("Delete action error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
-    statuses, actions, loading, error, fetchStatuses, fetchActions, createStatus, deleteStatus, createAction, deleteAction
+    statuses, 
+    actions, 
+    loading, 
+    error, 
+    fetchStatuses, 
+    fetchActions, 
+    createStatus, 
+    updateStatus, 
+    deleteStatus, 
+    createAction, 
+    updateAction, 
+    deleteAction
   };
 };

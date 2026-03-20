@@ -19,15 +19,15 @@ export interface RecruitmentActionPayload {
 }
 
 export const RecruitmentStatusService = {
-    getAll: () => api.get("/api/recruitment-statuses").then(res => res.data),
-    create: (data: RecruitmentStatusPayload) => api.post("/api/recruitment-statuses", data).then(res => res.data),
-    update: (id: string, data: Partial<RecruitmentStatusPayload>) => api.put(`/api/recruitment-statuses/${id}`, data).then(res => res.data),
-    delete: (id: string) => api.delete(`/api/recruitment-statuses/${id}`).then(res => res.data),
+    getAll: () => api.get("/api/recruitment-statuses").then(res => res?.data?.data || res?.data || res),
+    create: (data: RecruitmentStatusPayload) => api.post("/api/recruitment-statuses", data).then(res => res?.data?.data || res?.data || res),
+    update: (id: string, data: Partial<RecruitmentStatusPayload>) => api.put(`/api/recruitment-statuses/${id}`, data).then(res => res?.data?.data || res?.data || res),
+    delete: (id: string) => api.delete(`/api/recruitment-statuses/${id}`).then(res => res?.data?.data || res?.data || res),
 };
 
 export const RecruitmentActionService = {
-    getAll: () => api.get("/api/recruitment-actions").then(res => res.data),
-    create: (data: RecruitmentActionPayload) => api.post("/api/recruitment-actions", data).then(res => res.data),
-    update: (id: string, data: Partial<RecruitmentActionPayload>) => api.put(`/api/recruitment-actions/${id}`, data).then(res => res.data),
-    delete: (id: string) => api.delete(`/api/recruitment-actions/${id}`).then(res => res.data),
+    getAll: () => api.get("/api/recruitment-actions").then(res => res?.data?.data || res?.data || res),
+    create: (data: RecruitmentActionPayload) => api.post("/api/recruitment-actions", data).then(res => res?.data?.data || res?.data || res),
+    update: (id: string, data: Partial<RecruitmentActionPayload>) => api.put(`/api/recruitment-actions/${id}`, data).then(res => res?.data?.data || res?.data || res),
+    delete: (id: string) => api.delete(`/api/recruitment-actions/${id}`).then(res => res?.data?.data || res?.data || res),
 };

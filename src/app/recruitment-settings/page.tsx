@@ -56,6 +56,8 @@ export default function actionStatus(){
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState("1");
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [api, contextHolder] = notification.useNotification();
 
     const { 
         statuses, 
@@ -63,7 +65,9 @@ export default function actionStatus(){
         fetchStatuses, 
         fetchActions, 
         createStatus, 
+        updateStatus,
         createAction, 
+        updateAction,
         deleteStatus, 
         deleteAction,
         loading 
@@ -116,6 +120,34 @@ export default function actionStatus(){
     };
 
     const showModal = () => {
+        setEditingId(null);
+        form.resetFields();
+        setIsModalOpen(true);
+    };
+
+    const handleEditStatus = (record: any) => {
+        setEditingId(record.id);
+        form.setFieldsValue({
+            statusName: record.statusName,
+            category: record.category,
+            color: record.color,
+            appliesTo: record.appliesTo ? record.appliesTo.split(', ') : [],
+            isDefault: record.isDefault,
+            isFinalStage: record.isFinal,
+            isActive: record.isActive,
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleEditAction = (record: any) => {
+        setEditingId(record.id);
+        form.setFieldsValue({
+            actionName: record.actionName,
+            actionType: record.type,
+            icon: record.icon,
+            color: record.color,
+            isActive: record.isActive,
+        });
         setIsModalOpen(true);
     };
 
@@ -123,7 +155,7 @@ export default function actionStatus(){
         try {
             const values = await form.validateFields();
             if (activeTab === '1') {
-                await createStatus({
+                const payload = {
                     name: values.statusName,
                     category: values.category,
                     color: values.color,
@@ -131,33 +163,89 @@ export default function actionStatus(){
                     isDefault: values.isDefault ?? false,
                     isFinalStage: values.isFinalStage ?? false,
                     isActive: values.isActive ?? true
-                });
+                };
+                if (editingId) {
+                    await updateStatus(editingId, payload);
+                } else {
+                    await createStatus(payload);
+                }
             } else {
-                await createAction({
+                const payload = {
                     name: values.actionName,
                     type: values.actionType,
                     icon: values.icon,
                     color: values.color,
                     isActive: values.isActive ?? true
-                });
+                };
+                if (editingId) {
+                    await updateAction(editingId, payload);
+                } else {
+                    await createAction(payload);
+                }
             }
-            notification.success({ message: `${activeTab === '1' ? 'Status' : 'Action'} created successfully` });
+            api.success({ 
+                message: 'Success',
+                description: `${activeTab === '1' ? 'Status' : 'Action'} ${editingId ? 'updated' : 'created'} successfully`,
+                placement: 'topRight'
+            });
             setIsModalOpen(false);
+            setEditingId(null);
             form.resetFields();
         } catch (error: any) {
             console.log('Validation or API Failed:', error);
-            if (error.response?.data?.error) notification.error({ message: error.response.data.error });
+            if (error.response?.data?.error) {
+                api.error({ 
+                    message: 'Error',
+                    description: error.response.data.error,
+                    placement: 'topRight'
+                });
+            }
         }
     };
 
     const handleCancel = () => {
         setIsModalOpen(false);
+        setEditingId(null);
         form.resetFields();
+    };
+
+    const handleDeleteStatus = async (id: string) => {
+        try {
+            await deleteStatus(id);
+            api.success({ message: 'Success', description: 'Status deleted successfully', placement: 'topRight' });
+        } catch (error: any) {
+            api.error({ message: 'Error', description: error?.response?.data?.error || error?.message || 'Failed to delete status', placement: 'topRight' });
+        }
+    };
+
+    const handleDeleteAction = async (id: string) => {
+        try {
+            await deleteAction(id);
+            api.success({ message: 'Success', description: 'Action deleted successfully', placement: 'topRight' });
+        } catch (error: any) {
+            api.error({ message: 'Error', description: error?.response?.data?.error || error?.message || 'Failed to delete action', placement: 'topRight' });
+        }
+    };
+
+    const renderIcon = (iconName: string) => {
+        switch (iconName) {
+            case 'phone': return <PhoneOutlined />;
+            case 'mail': return <MailOutlined />;
+            case 'clock': return <ClockCircleOutlined />;
+            case 'user': return <UserOutlined />;
+            case 'file': return <FileOutlined />;
+            default: return null;
+        }
     };
 
     const columns = [
         { title: 'S.No', dataIndex: 'sno', key: 'sno' },
-        { title: 'Status Name', dataIndex: 'statusName', key: 'statusName' },
+        { 
+            title: 'Status Name', 
+            dataIndex: 'statusName', 
+            key: 'statusName',
+            render: (text: string, record: any) => <Tag color={record.color}>{text}</Tag>
+        },
         { title: 'Category', dataIndex: 'category', key: 'category' },
         { title: 'Applies To', dataIndex: 'appliesTo', key: 'appliesTo' },
         { title: 'Color', dataIndex: 'color', key: 'color', render: (color: string) => <Tag color={color}>{color}</Tag> },
@@ -181,10 +269,10 @@ export default function actionStatus(){
                         disabled={index === dataSource.length - 1}
                         onClick={() => moveRow(dataSource, setDataSource, index, 'down')}
                     />
-                    <Button type="text" icon={<EditOutlined />} />
+                    <Button type="text" icon={<EditOutlined />} onClick={() => handleEditStatus(record)} />
                     <Popconfirm 
                         title="Are you sure you want to delete this?" 
-                        onConfirm={() => deleteStatus(record.id)} 
+                        onConfirm={() => handleDeleteStatus(record.id)} 
                         okText="Yes" 
                         cancelText="No"
                     >
@@ -196,9 +284,24 @@ export default function actionStatus(){
     ];
 
     const actionColumns = [
-        { title: 'Action Name', dataIndex: 'actionName', key: 'actionName' },
+        { 
+            title: 'Action Name', 
+            dataIndex: 'actionName', 
+            key: 'actionName',
+            render: (text: string, record: any) => (
+                <Space>
+                    {renderIcon(record.icon)}
+                    <span>{text}</span>
+                </Space>
+            )
+        },
         { title: 'Type', dataIndex: 'type', key: 'type' },
-        { title: 'Icon', dataIndex: 'icon', key: 'icon' },
+        { 
+            title: 'Icon', 
+            dataIndex: 'icon', 
+            key: 'icon',
+            render: (icon: string) => renderIcon(icon)
+        },
         { title: 'Color', dataIndex: 'color', key: 'color', render: (color: string) => <Tag color={color}>{color}</Tag> },
         { title: 'Active', dataIndex: 'isActive', key: 'isActive', render: (isActive: boolean) => <Switch checked={isActive} size="small" /> },
         { title: 'Created', dataIndex: 'created', key: 'created' },
@@ -207,10 +310,10 @@ export default function actionStatus(){
             key: 'actions',
             render: (_: any, record: any) => (
                 <Space size="middle">
-                    <Button type="text" icon={<EditOutlined />} />
+                    <Button type="text" icon={<EditOutlined />} onClick={() => handleEditAction(record)} />
                     <Popconfirm 
                         title="Are you sure you want to delete this action?" 
-                        onConfirm={() => deleteAction(record.id)} 
+                        onConfirm={() => handleDeleteAction(record.id)} 
                         okText="Yes" 
                         cancelText="No"
                     >
@@ -228,7 +331,8 @@ export default function actionStatus(){
 
     return(
         <MainLayout>
-            <div style={{ padding: '24px' }}>
+            {contextHolder}
+            <div style={{ padding:24 }}>
                 <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
                     <Col>
                         <Title level={3} style={{ margin: 0 }}>
@@ -247,7 +351,19 @@ export default function actionStatus(){
 
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
 
-                <Modal width={400} title={activeTab === '1' ? "Add Status" : "Add Action"} open={isModalOpen} onOk={handleOk} onCancel={handleCancel} okText="Save" destroyOnClose>
+                <Modal 
+                    width={400} 
+                    title={
+                        editingId 
+                            ? (activeTab === '1' ? "Edit Status" : "Edit Action") 
+                            : (activeTab === '1' ? "Add Status" : "Add Action")
+                    } 
+                    open={isModalOpen} 
+                    onOk={handleOk} 
+                    onCancel={handleCancel} 
+                    okText={editingId ? "Update" : "Save"} 
+                    destroyOnClose
+                >
                     <Form form={form} layout="vertical" initialValues={{ isDefault: false, isFinalStage: false, isActive: true }}>
                         {activeTab === '1' ? (
                             <>

@@ -17,7 +17,7 @@ import { AttendanceService } from "@/services/attendanceService";
 import Organization from "@/components/organaization/Organization";
 
 //import { dashboardService, DashboardData } from "@/services/dashboardService";
-import { useDynamicCalendar } from "@/hooks/useDynamicCalendar";
+import { useZohoCalendar } from "@/hooks/useZohoCalendar";
 import {
   Card,
   Row,
@@ -82,7 +82,7 @@ function DashboardContent() {
     eod: null,
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
+    null
   );
   const [myTicketsStats, setMyTicketsStats] = useState({
     open: 0,
@@ -159,24 +159,13 @@ function DashboardContent() {
     syncEvents: syncCalendar,
     error: calendarError,
     successMessage: calendarSuccess,
-  } = useDynamicCalendar();
+  } = useZohoCalendar();
 
   // Filter today's meetings with recurring support
   const todaysMeetings = calendarEvents.reduce((acc: any[], event: any) => {
-    console.log(`[Dashboard] Processing event:`, {
-      title: event.title,
-      startTime: event.startTime,
-      endTime: event.endTime,
-      isRecurring: event.isRecurring,
-      rrule: event.rrule,
-      attendees: event.attendees,
-      userId: event.userId,
-      userEmail: user?.email
-    });
-
     // Filter: User must be an attendee or the creator
-    const isUserAttendee = event.attendees?.includes(user?.email) || event.userId === user?.id;
-    console.log(`[Dashboard] User attendee check:`, { isUserAttendee, userEmail: user?.email, eventAttendees: event.attendees });
+    const isUserAttendee =
+      event.attendees?.includes(user?.email) || event.userId === user?.id;
     if (!isUserAttendee) return acc;
 
     const today = dayjs().startOf("day");
@@ -473,7 +462,7 @@ function DashboardContent() {
   };
 
   const selectedProject = dashboardData?.projectProgress.find(
-    (p) => p.id === selectedProjectId,
+    (p) => p.id === selectedProjectId,,
   );
 
   // Statistics cards configuration

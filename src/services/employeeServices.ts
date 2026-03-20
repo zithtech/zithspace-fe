@@ -46,6 +46,7 @@ export interface UpdateEmployeeData {
   work_email?: string;
   personal_email?: string;
   status?: boolean;
+  personal?: any;
 }
 
 /* ================= EMPLOYEE SERVICE ================= */
@@ -97,7 +98,7 @@ export class EmployeeService {
    * Update employee
    */
   static async updateEmployee(
-    id: string,
+    id: any,
     data: UpdateEmployeeData,
   ): Promise<Employee> {
     try {

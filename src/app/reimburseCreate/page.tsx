@@ -6,7 +6,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   Card,
   Form,
@@ -83,7 +83,7 @@ interface CategoryOption {
   periodType: string;
 }
 
-export default function CreateReimbursementPage() {
+function CreateReimbursementPageInner() {
   const { user, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const reimbursementId = searchParams.get("id");
@@ -1666,5 +1666,13 @@ const transformItemsForBackend = () => {
         )}
       </Modal>
     </div>
+  );
+}
+
+export default function CreateReimbursementPage() {
+  return (
+    <Suspense>
+      <CreateReimbursementPageInner />
+    </Suspense>
   );
 }

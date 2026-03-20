@@ -53,7 +53,6 @@ import {
   LeaveAdjustmentViewData,
 } from "@/hooks/useLeaveAdjustments";
 import { LeaveAdjustmentPayload } from "@/services/leaveAdjustmentService";
-import { useAuth } from "@/context/AuthContext";
 import {
   LeaveBalanceService,
   LeaveBalance,

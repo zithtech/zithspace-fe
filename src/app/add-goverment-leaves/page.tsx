@@ -324,7 +324,8 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
 
 export default function governmentLeaves() {
   const { user, isLoading: authLoading } = useAuth();
-  const { canManageLeaves } = usePermission();
+  const { canManageLeaves, canApproveLeave } = usePermission();
+  const hasApprovalRights = canApproveLeave;
   const router = useRouter();
 
   // Protect route - requires leave.manage permission
@@ -654,14 +655,14 @@ export default function governmentLeaves() {
                     </span>
                   ),
                 },
-                hasApprovalRights && {
+                ...(hasApprovalRights ? [{
                   key: "approvals",
                   label: (
                     <span>
                       <CheckCircleOutlined /> Approvals
                     </span>
                   ),
-                },
+                }] : []),
                 {
                   key: "holidays",
                   label: (

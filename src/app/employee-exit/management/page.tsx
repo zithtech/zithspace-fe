@@ -287,7 +287,7 @@ export default function EmployeeExitManagementPage() {
       render: (_: any, record: EmployeeExitRequest) => (
         <Space direction="vertical" size={0}>
           <Text strong>{`${record.employee?.first_name} ${record.employee?.last_name}`}</Text>
-          <Text type="secondary" size="small">{record.employee?.employee_code}</Text>
+          <Text type="secondary" style={{ fontSize: "small" }}>{record.employee?.employee_code}</Text>
         </Space>
       ),
     },

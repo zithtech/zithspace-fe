@@ -17,7 +17,6 @@ import { AttendanceService } from "@/services/attendanceService";
 import Organization from "@/components/organaization/Organization";
 
 //import { dashboardService, DashboardData } from "@/services/dashboardService";
-import { useZohoCalendar } from "@/hooks/useZohoCalendar";
 import {
   Card,
   Row,
@@ -462,7 +461,7 @@ function DashboardContent() {
   };
 
   const selectedProject = dashboardData?.projectProgress.find(
-    (p) => p.id === selectedProjectId,,
+    (p) => p.id === selectedProjectId,
   );
 
   // Statistics cards configuration
@@ -1182,7 +1181,7 @@ function DashboardContent() {
                             <Space size={4}>
                               <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
                               <span style={{ fontSize: 13 }}>Today's Meetings</span>
-                              {!calendarStatus?.includes('connected') && (
+                              {!calendarStatus?.connected && (
                                 <Button
                                   type="link"
                                   size="small"
@@ -1197,7 +1196,7 @@ function DashboardContent() {
                           }
                           size="small"
                           extra={
-                            calendarStatus?.includes('connected') && (
+                            calendarStatus?.connected && (
                               <Space size={2}>
                                 <Button
                                   type="text"
@@ -1227,7 +1226,7 @@ function DashboardContent() {
                             <div style={{ padding: 16, textAlign: "center" }}>
                               <Skeleton active paragraph={{ rows: 2 }} />
                             </div>
-                          ) : !calendarStatus?.includes('connected') ? (
+                          ) : !calendarStatus?.connected ? (
                             <div style={{ padding: 20, textAlign: "center" }}>
                               <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
                               <div>

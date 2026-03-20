@@ -1,5 +1,5 @@
-import React from 'react';
-import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid } from 'antd';
+import React, { useState } from 'react';
+import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal } from 'antd';
 import {
     BellOutlined,
     MailOutlined,
@@ -10,8 +10,20 @@ import {
     MenuUnfoldOutlined,
     MenuFoldOutlined,
     CalendarOutlined,
-    AppstoreOutlined
+    AppstoreOutlined,
+    StarFilled,
+    StarOutlined,
+    FolderOutlined,
+    DeleteOutlined,
+    RightOutlined,
+    PlusOutlined,
 } from '@ant-design/icons';
+
+interface ShortcutItem {
+    id: string;
+    name: string;
+    path: string;
+}
 import { Inbox } from '@novu/nextjs';
 import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
 import { useRouter } from 'next/navigation';
@@ -40,6 +52,44 @@ export default function TopNav({
     const router = useRouter();
     const { hasPermission, hasAnyPermission } = useAuth();
     const screens = useBreakpoint();
+
+    // Bookmarks state
+    const [shortcutPopoverVisible, setShortcutPopoverVisible] = useState(false);
+    const [shortcuts, setShortcuts] = useState<ShortcutItem[]>(() => {
+        try { return JSON.parse(localStorage.getItem('nav_shortcuts') || '[]'); } catch { return []; }
+    });
+    const [hoveredShortcutId, setHoveredShortcutId] = useState<string | null>(null);
+    const [isAddMode, setIsAddMode] = useState(false);
+    const [newShortcutName, setNewShortcutName] = useState('');
+    const [newShortcutPath, setNewShortcutPath] = useState('');
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+    const handleSaveBookmark = () => {
+        if (!newShortcutName.trim() || !newShortcutPath.trim()) return;
+        const item: ShortcutItem = { id: Date.now().toString(), name: newShortcutName.trim(), path: newShortcutPath.trim() };
+        const updated = [...shortcuts, item];
+        setShortcuts(updated);
+        localStorage.setItem('nav_shortcuts', JSON.stringify(updated));
+        setNewShortcutName('');
+        setNewShortcutPath('');
+        setIsAddMode(false);
+    };
+
+    const handleDeleteBookmark = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeleteModalOpen(true);
+        Modal.confirm({
+            title: 'Delete Bookmark',
+            content: 'Are you sure you want to delete this bookmark?',
+            onOk: () => {
+                const updated = shortcuts.filter(s => s.id !== id);
+                setShortcuts(updated);
+                localStorage.setItem('nav_shortcuts', JSON.stringify(updated));
+                setDeleteModalOpen(false);
+            },
+            onCancel: () => setDeleteModalOpen(false),
+        });
+    };
 
     // Breakpoints logic
     const isMobile = !screens.md;

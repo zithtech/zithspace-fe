@@ -161,6 +161,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                 borderBottom: '1px solid #f0f0f0',
                 display: 'flex',
                 justifyContent: collapsed ? 'center' : 'flex-end',
+                flexShrink: 0,
             }}>
                 <Button
                     type="text"

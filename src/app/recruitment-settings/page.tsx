@@ -28,6 +28,7 @@ import {
   Tabs,
   Popconfirm,
   Switch,
+  ColorPicker,
 } from "antd";
 import {
   ClockCircleOutlined,
@@ -44,6 +45,14 @@ import {
   FileOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  CalendarOutlined,
+  MessageOutlined,
+  VideoCameraOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  TeamOutlined,
+  SendOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import { Settings2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
@@ -158,7 +167,7 @@ export default function actionStatus(){
                 const payload = {
                     name: values.statusName,
                     category: values.category,
-                    color: values.color,
+                    color: typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || values.color,
                     appliesTo: values.appliesTo || [],
                     isDefault: values.isDefault ?? false,
                     isFinalStage: values.isFinalStage ?? false,
@@ -174,7 +183,7 @@ export default function actionStatus(){
                     name: values.actionName,
                     type: values.actionType,
                     icon: values.icon,
-                    color: values.color,
+                    color: typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || values.color,
                     isActive: values.isActive ?? true
                 };
                 if (editingId) {
@@ -234,9 +243,33 @@ export default function actionStatus(){
             case 'clock': return <ClockCircleOutlined />;
             case 'user': return <UserOutlined />;
             case 'file': return <FileOutlined />;
+            case 'calendar': return <CalendarOutlined />;
+            case 'message': return <MessageOutlined />;
+            case 'video': return <VideoCameraOutlined />;
+            case 'check': return <CheckCircleOutlined />;
+            case 'close': return <CloseCircleOutlined />;
+            case 'team': return <TeamOutlined />;
+            case 'send': return <SendOutlined />;
+            case 'link': return <LinkOutlined />;
             default: return null;
         }
     };
+
+    const iconOptions = [
+        { value: 'phone', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><PhoneOutlined /> Phone</span> },
+        { value: 'mail', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MailOutlined /> Mail</span> },
+        { value: 'clock', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ClockCircleOutlined /> Clock</span> },
+        { value: 'user', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><UserOutlined /> User</span> },
+        { value: 'file', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FileOutlined /> File</span> },
+        { value: 'calendar', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CalendarOutlined /> Calendar</span> },
+        { value: 'message', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MessageOutlined /> Message</span> },
+        { value: 'video', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><VideoCameraOutlined /> Video</span> },
+        { value: 'check', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircleOutlined /> Check</span> },
+        { value: 'close', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CloseCircleOutlined /> Close</span> },
+        { value: 'team', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><TeamOutlined /> Team</span> },
+        { value: 'send', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><SendOutlined /> Send</span> },
+        { value: 'link', label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><LinkOutlined /> Link</span> },
+    ];
 
     const columns = [
         { title: 'S.No', dataIndex: 'sno', key: 'sno' },
@@ -248,7 +281,7 @@ export default function actionStatus(){
         },
         { title: 'Category', dataIndex: 'category', key: 'category' },
         { title: 'Applies To', dataIndex: 'appliesTo', key: 'appliesTo' },
-        { title: 'Color', dataIndex: 'color', key: 'color', render: (color: string) => <Tag color={color}>{color}</Tag> },
+        { title: 'Color', dataIndex: 'color', key: 'color', render: (color: string) => <div style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: color, border: '1px solid #d9d9d9' }} title={color} /> },
         { title: 'Default', dataIndex: 'isDefault', key: 'isDefault', render: (isDefault: boolean) => <Switch checked={isDefault} size="small" /> },
         { title: 'Final Stage', dataIndex: 'isFinal', key: 'isFinal', render: (isFinal: boolean) => <Switch checked={isFinal} size="small" /> },
         { title: 'Active', dataIndex: 'isActive', key: 'isActive', render: (isActive: boolean) => <Switch checked={isActive} size="small" /> },
@@ -302,7 +335,7 @@ export default function actionStatus(){
             key: 'icon',
             render: (icon: string) => renderIcon(icon)
         },
-        { title: 'Color', dataIndex: 'color', key: 'color', render: (color: string) => <Tag color={color}>{color}</Tag> },
+        { title: 'Color', dataIndex: 'color', key: 'color', render: (color: string) => <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: color, border: '1px solid #d9d9d9' }} title={color} /> },
         { title: 'Active', dataIndex: 'isActive', key: 'isActive', render: (isActive: boolean) => <Switch checked={isActive} size="small" /> },
         { title: 'Created', dataIndex: 'created', key: 'created' },
         {
@@ -370,29 +403,18 @@ export default function actionStatus(){
                                 <Form.Item name="statusName" label="Status Name" rules={[{ required: true, message: 'Please enter the status name' }]}>
                                     <Input placeholder="Enter status name" />
                                 </Form.Item>
-                                <Form.Item name="category" label="Category" rules={[{ required: true, message: 'Please select a category' }]}>
-                                    <Select placeholder="Select category">
-                                        <Select.Option value="candidate">Candidate</Select.Option>
-                                        <Select.Option value="submission">Submission</Select.Option>
-                                        <Select.Option value="interview">Interview</Select.Option>
-                                        <Select.Option value="offer">Offer</Select.Option>
-                                    </Select>
+                                <Form.Item name="category" label="Category" rules={[{ required: true, message: 'Please enter a category' }]}>
+                                    <Input placeholder="Enter category" />
                                 </Form.Item>
-                                <Form.Item name="color" label="Color" rules={[{ required: true, message: 'Please select a color' }]}>
-                                    <Select placeholder="Select color">
-                                        <Select.Option value="blue">Blue</Select.Option>
-                                        <Select.Option value="purple">Purple</Select.Option>
-                                        <Select.Option value="orange">Orange</Select.Option>
-                                        <Select.Option value="green">Green</Select.Option>
-                                        <Select.Option value="red">Red</Select.Option>
-                                    </Select>
+                                <Form.Item name="color" label="Color" rules={[{ required: true, message: 'Please select a color' }]} getValueFromEvent={(e) => typeof e === 'string' ? e : e?.toHexString?.() || e}>
+                                    <ColorPicker showText />
                                 </Form.Item>
-                                <Form.Item name="appliesTo" label="Applies To" rules={[{ required: true, message: 'Please select what this applies to' }]}>
+                                {/* <Form.Item name="appliesTo" label="Applies To" rules={[{ required: true, message: 'Please select what this applies to' }]}>
                                     <Select mode="multiple" placeholder="Select applies to">
                                         <Select.Option value="candidatelifecycle">Candidate Lifecycle</Select.Option>
                                         <Select.Option value="jobpipeline">Job Pipeline</Select.Option>
                                     </Select>
-                                </Form.Item>
+                                </Form.Item> */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                     <div>
                                         <div style={{ fontWeight: 500 }}>Default</div>
@@ -426,32 +448,21 @@ export default function actionStatus(){
                                 <Form.Item name="actionName" label="Action Name" rules={[{ required: true, message: 'Please enter the action name' }]}>
                                     <Input placeholder="Enter action name" />
                                 </Form.Item>
-                                <Form.Item name="actionType" label="Action Type" rules={[{ required: true, message: 'Please select an action type' }]}>
-                                    <Select placeholder="Select action type">
-                                        <Select.Option value="call">Call</Select.Option>
-                                        <Select.Option value="email">Email</Select.Option>
-                                        <Select.Option value="system">System</Select.Option>
-                                        <Select.Option value="submission">Submission</Select.Option>
-                                        <Select.Option value="interview">Interview</Select.Option>
-                                    </Select>
+                                <Form.Item name="actionType" label="Action Type" rules={[{ required: true, message: 'Please enter an action type' }]}>
+                                    <Input placeholder="Enter action type" />
                                 </Form.Item>
                                 <Form.Item name="icon" label="Icon" rules={[{ required: true, message: 'Please select an icon' }]}>
-                                    <Select placeholder="Select icon">
-                                        <Select.Option value="phone"><Space><PhoneOutlined /> Phone</Space></Select.Option>
-                                        <Select.Option value="mail"><Space><MailOutlined /> Mail</Space></Select.Option>
-                                        <Select.Option value="clock"><Space><ClockCircleOutlined /> Clock</Space></Select.Option>
-                                        <Select.Option value="user"><Space><UserOutlined /> User</Space></Select.Option>
-                                        <Select.Option value="file"><Space><FileOutlined /> File</Space></Select.Option>
-                                    </Select>
+                                    <Select
+                                        showSearch
+                                        placeholder="Search icon"
+                                        options={iconOptions}
+                                        filterOption={(input, option) =>
+                                            (option?.value as string).toLowerCase().includes(input.toLowerCase())
+                                        }
+                                    />
                                 </Form.Item>
-                                <Form.Item name="color" label="Color" rules={[{ required: true, message: 'Please select a color' }]}>
-                                    <Select placeholder="Select color">
-                                        <Select.Option value="green">Green</Select.Option>
-                                        <Select.Option value="red">Red</Select.Option>
-                                        <Select.Option value="blue">Blue</Select.Option>
-                                        <Select.Option value="orange">Orange</Select.Option>
-                                        <Select.Option value="purple">Purple</Select.Option>
-                                    </Select>
+                                <Form.Item name="color" label="Color" rules={[{ required: true, message: 'Please select a color' }]} getValueFromEvent={(e) => typeof e === 'string' ? e : e?.toHexString?.() || e}>
+                                    <ColorPicker showText />
                                 </Form.Item>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                     <div>

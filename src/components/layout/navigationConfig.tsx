@@ -51,7 +51,9 @@ import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
 
 import { TiGroup } from "react-icons/ti";
-
+import { BsGridFill } from "react-icons/bs";
+import { TiGroupOutline } from "react-icons/ti";
+import { BsPersonFillCheck } from "react-icons/bs";
 export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
 
 export interface NavItem {
@@ -307,6 +309,77 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
     ],
   },
+  {
+    key: "ADMIN",
+    label: "ADMIN",
+    icon: <SettingOutlined />,
+    pathPrefixes: [
+      "/clients",
+      "/clients-v2",
+      "/settings",
+      "/admin",
+      "/roles",
+      "/recruitment-client",
+      "/implementation-partner",
+      "/vendor",
+    ],
+    defaultPath: "/clients-v2",
+    requiredAnyPermission: [
+      Permissions.CLIENT_READ,
+      Permissions.SETTINGS_READ,
+      Permissions.ROLE_READ,
+    ],
+    items: [
+      {
+        key: "/clients",
+        label: "Clients (Legacy)",
+        icon: <UserAddOutlined />,
+        path: "/clients",
+      },
+      {
+        key: "/clients-v2",
+        label: "Clients V2",
+        icon: <ApartmentOutlined />,
+        path: "/clients-v2",
+      },
+      {
+        key: "/settings",
+        label: "General Settings",
+        icon: <ControlOutlined />,
+        path: "/settings",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/implementation-partner",
+        label: "Implementations",
+        icon: <BsGridFill />,
+        path: "/implementation-partner",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/recruitment-client",
+        label: "Recruitment Client",
+        icon: <TiGroupOutline />,
+        path: "/recruitment-client",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/vendor",
+        label: "Vendor",
+        icon: <BsPersonFillCheck />,
+        path: "/vendor",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/roles",
+        label: "Roles & Permissions",
+        icon: <SafetyOutlined />,
+        path: "/roles",
+        requiredPermission: Permissions.ROLE_READ,
+      },
+    ],
+  },
+
   {
     key: "HRMS",
     label: "HRMS",

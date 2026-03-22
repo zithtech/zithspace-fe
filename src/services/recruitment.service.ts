@@ -43,7 +43,11 @@ export interface JobRequisitionData {
   maxBillRate?: number;
   recruiterRate?: number;
   minPayRate?: number;
-  overtimeMultiplier?: number;
+  implementationId?: string;
+  recruitmentClientId?: string;
+  vendorIds?: string;
+  contactIds?: string[];
+  jobRequisitionContacts?: { id: string; contactId: string }[];
 
   // Hiring Timeline
   startDate?: string;
@@ -197,6 +201,60 @@ export const RecruitmentService = {
   getMembersForSelect: async (): Promise<SelectOption[]> => {
     const response = await api.get("/api/members/select");
     return response;
+  },
+
+  getImplementationPartnersForSelect: async (): Promise<SelectOption[]> => {
+    const response = await api.get("/api/implementation-partner/select");
+    return response;
+  },
+
+  getRecruitmentClientsForSelect: async (): Promise<SelectOption[]> => {
+    const response = await api.get("/api/recruitment-client/select");
+    return response;
+  },
+
+  getVendorsForSelect: async (): Promise<SelectOption[]> => {
+    const response = await api.get("/api/vendor/select");
+    return response;
+  },
+
+  getImplementationContacts: async (
+    implementationId: string,
+  ): Promise<SelectOption[]> => {
+    const response = await api.get(
+      `/api/implementation-partner/${implementationId}`,
+    );
+    if (response && response.contactPersons) {
+      return response.contactPersons.map((cp: any) => ({
+        value: cp.id,
+        label: cp.personName || cp.name || "Unnamed Contact",
+      }));
+    }
+    return [];
+  },
+
+  getRecruitmentClientContacts: async (
+    clientId: string,
+  ): Promise<SelectOption[]> => {
+    const response = await api.get(`/api/recruitment-client/${clientId}`);
+    if (response && response.contacts) {
+      return response.contacts.map((c: any) => ({
+        value: c.id,
+        label: c.personName || c.name || "Unnamed Contact",
+      }));
+    }
+    return [];
+  },
+
+  getVendorContacts: async (vendorId: string): Promise<SelectOption[]> => {
+    const response = await api.get(`/api/vendor/${vendorId}`);
+    if (response && response.contactPersons) {
+      return response.contactPersons.map((cp: any) => ({
+        value: cp.id,
+        label: cp.personName || cp.name || "Unnamed Contact",
+      }));
+    }
+    return [];
   },
 
   // ---- Attachment Management ----

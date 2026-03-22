@@ -273,7 +273,7 @@ const NewProfilePage = () => {
       setImage(base64);
 
       // 3️⃣ Direct backend call
-      await EmployeeOnboardingService.updateEmployee(user?.employeeId, {
+      await EmployeeOnboardingService.updateEmployee(currentUser?.employeeId, {
         personal: {
           profilePic: base64, // 👈 direct send
         },

@@ -36,6 +36,7 @@ import {
   PlusOutlined,
   DownloadOutlined,
   DeleteOutlined,
+  CheckCircleOutlined
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -44,7 +45,6 @@ import { Country, State } from "country-state-city";
 import { FixedHolidayService, FixedHoliday } from "@/services/addHolidays";
 
 const { Text } = Typography;
-
 
 const OPTIONS = [
   { label: "All", value: "ALL" },
@@ -324,7 +324,8 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
 
 export default function governmentLeaves() {
   const { user, isLoading: authLoading } = useAuth();
-  const { canManageLeaves } = usePermission();
+  const { canManageLeaves, canApproveLeave } = usePermission();
+  const hasApprovalRights = canApproveLeave;
   const router = useRouter();
 
   // Protect route - requires leave.manage permission
@@ -349,7 +350,7 @@ export default function governmentLeaves() {
   const [editingKey, setEditingKey] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(false);
   const [allHolidays, setAllHolidays] = useState<FixedHoliday[]>([]);
-  const [filterCountry, setFilterCountry] = useState<string | null>('IN'); // Default to India
+  const [filterCountry, setFilterCountry] = useState<string | null>("IN"); // Default to India
   const [filterState, setFilterState] = useState<string | null>(null);
   const [filterMonth, setFilterMonth] = useState<dayjs.Dayjs | null>(dayjs()); // Default to current month
   const [form] = Form.useForm();
@@ -444,31 +445,45 @@ export default function governmentLeaves() {
             const editedItem = holidays[0];
             const payload = {
               ...editedItem,
-              fromDate: editedItem.fromDate ? editedItem.fromDate.format("YYYY-MM-DD") : null,
-              toDate: editedItem.toDate ? editedItem.toDate.format("YYYY-MM-DD") : null,
+              fromDate: editedItem.fromDate
+                ? editedItem.fromDate.format("YYYY-MM-DD")
+                : null,
+              toDate: editedItem.toDate
+                ? editedItem.toDate.format("YYYY-MM-DD")
+                : null,
             };
-            const updatedHoliday = await FixedHolidayService.updateFixedHoliday(editingKey as string, payload);
-            setAllHolidays(prev => prev.map(h => h.id === editingKey ? updatedHoliday : h));
+            const updatedHoliday = await FixedHolidayService.updateFixedHoliday(
+              editingKey as string,
+              payload,
+            );
+            setAllHolidays((prev) =>
+              prev.map((h) => (h.id === editingKey ? updatedHoliday : h)),
+            );
             message.success("Government leave updated successfully");
           } else {
             const promises = holidays.map((holiday: any) => {
               const payload = {
                 ...holiday,
-                fromDate: holiday.fromDate ? holiday.fromDate.format("YYYY-MM-DD") : null,
-                toDate: holiday.toDate ? holiday.toDate.format("YYYY-MM-DD") : null,
+                fromDate: holiday.fromDate
+                  ? holiday.fromDate.format("YYYY-MM-DD")
+                  : null,
+                toDate: holiday.toDate
+                  ? holiday.toDate.format("YYYY-MM-DD")
+                  : null,
               };
               return FixedHolidayService.createFixedHoliday(payload);
             });
             const newHolidays = await Promise.all(promises);
-            setAllHolidays(prev => [...prev, ...newHolidays]);
+            setAllHolidays((prev) => [...prev, ...newHolidays]);
             message.success("Government leaves added successfully");
             // If new holidays were added, adjust filters to show them
             if (newHolidays.length > 0) {
               const firstNewHoliday = newHolidays[0];
               setFilterCountry(firstNewHoliday.country);
               // Clear state filter to ensure visibility, as it might not match the new country
-              setFilterState(null); 
-              if (firstNewHoliday.fromDate) setFilterMonth(dayjs(firstNewHoliday.fromDate));
+              setFilterState(null);
+              if (firstNewHoliday.fromDate)
+                setFilterMonth(dayjs(firstNewHoliday.fromDate));
             }
           }
           setIsModalOpen(false);
@@ -604,12 +619,14 @@ export default function governmentLeaves() {
               onChange={(key) => {
                 const routes: any = {
                   dashboard: "/leaves-dashboard",
-                  leaves: "/leaves",
+                  // leaves: "/leaves",
                   holidays: "/government-holidays",
                   adjustments: "/leave-adjustments",
-                  configuration: "/leave-configuration",
-                  positions: "/position-configuration",
+                  configuration: "/leave-type",
+                  positions: "/leave-policy",
                   addLeaves: "/add-goverment-leaves",
+                  "apply-leave": "/apply-leave",
+                  approvals: "/leave-approvals",
                 };
                 if (routes[key]) router.push(routes[key]);
               }}
@@ -622,14 +639,30 @@ export default function governmentLeaves() {
                     </span>
                   ),
                 },
+                // {
+                //   key: "leaves",
+                //   label: (
+                //     <span>
+                //       <ClockCircleOutlined /> Apply Leave
+                //     </span>
+                //   ),
+                // },
                 {
-                  key: "leaves",
+                  key: "apply-leave",
                   label: (
                     <span>
-                      <ClockCircleOutlined /> Apply Leave
+                      <PlusOutlined /> Apply leave
                     </span>
                   ),
                 },
+                ...(hasApprovalRights ? [{
+                  key: "approvals",
+                  label: (
+                    <span>
+                      <CheckCircleOutlined /> Approvals
+                    </span>
+                  ),
+                }] : []),
                 {
                   key: "holidays",
                   label: (
@@ -670,7 +703,7 @@ export default function governmentLeaves() {
                     </span>
                   ),
                 },
-              ]}
+              ].filter(Boolean)}
             />
           </div>
        
@@ -710,7 +743,6 @@ export default function governmentLeaves() {
                                 </Space>
                              
               </div>
-                
 
               <Space>
                 <Select

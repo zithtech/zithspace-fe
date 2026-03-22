@@ -1,5 +1,5 @@
-import React from 'react';
-import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge } from 'antd';
+import React, { useState } from 'react';
+import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal } from 'antd';
 import {
     BellOutlined,
     MailOutlined,
@@ -9,51 +9,117 @@ import {
     LogoutOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
-    CalendarOutlined
+    CalendarOutlined,
+    AppstoreOutlined,
+    StarFilled,
+    StarOutlined,
+    FolderOutlined,
+    DeleteOutlined,
+    RightOutlined,
+    PlusOutlined,
 } from '@ant-design/icons';
+
+interface ShortcutItem {
+    id: string;
+    name: string;
+    path: string;
+}
 import { Inbox } from '@novu/nextjs';
 import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
 
 const { Header } = Layout;
 const { Text } = Typography;
+const { useBreakpoint } = Grid;
 
 interface TopNavProps {
-    activeModule: ModuleType;
-    onModuleChange: (module: ModuleType) => void;
-    user: any;
-    handleLogout: () => void;
-    collapsed: boolean;
+  activeModule: ModuleType;
+  onModuleChange: (module: ModuleType) => void;
+  user: any;
+  handleLogout: () => void;
+  collapsed: boolean;
 }
 
 export default function TopNav({
-    activeModule,
-    onModuleChange,
-    user,
-    handleLogout,
-    collapsed,
+  activeModule,
+  onModuleChange,
+  user,
+  handleLogout,
+  collapsed,
 }: TopNavProps) {
     const router = useRouter();
     const { hasPermission, hasAnyPermission } = useAuth();
+    const screens = useBreakpoint();
+
+    // Bookmarks state
+    const [shortcutPopoverVisible, setShortcutPopoverVisible] = useState(false);
+    const [shortcuts, setShortcuts] = useState<ShortcutItem[]>(() => {
+        try { return JSON.parse(localStorage.getItem('nav_shortcuts') || '[]'); } catch { return []; }
+    });
+    const [hoveredShortcutId, setHoveredShortcutId] = useState<string | null>(null);
+    const [isAddMode, setIsAddMode] = useState(false);
+    const [newShortcutName, setNewShortcutName] = useState('');
+    const [newShortcutPath, setNewShortcutPath] = useState('');
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+    const handleSaveBookmark = () => {
+        if (!newShortcutName.trim() || !newShortcutPath.trim()) return;
+        const item: ShortcutItem = { id: Date.now().toString(), name: newShortcutName.trim(), path: newShortcutPath.trim() };
+        const updated = [...shortcuts, item];
+        setShortcuts(updated);
+        localStorage.setItem('nav_shortcuts', JSON.stringify(updated));
+        setNewShortcutName('');
+        setNewShortcutPath('');
+        setIsAddMode(false);
+    };
+
+    const handleDeleteBookmark = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDeleteModalOpen(true);
+        Modal.confirm({
+            title: 'Delete Bookmark',
+            content: 'Are you sure you want to delete this bookmark?',
+            onOk: () => {
+                const updated = shortcuts.filter(s => s.id !== id);
+                setShortcuts(updated);
+                localStorage.setItem('nav_shortcuts', JSON.stringify(updated));
+                setDeleteModalOpen(false);
+            },
+            onCancel: () => setDeleteModalOpen(false),
+        });
+    };
+
+    // Breakpoints logic
+    const isMobile = !screens.md;
+    const isSmallMobile = !screens.sm;
 
     // Filter modules by permission
     const visibleModules = NAVIGATION_CONFIG.filter(module => {
-        // No permission requirement = always visible
         if (!module.requiredPermission && !module.requiredAnyPermission) return true;
-        
-        // Check single permission
-        if (module.requiredPermission) {
-            return hasPermission(module.requiredPermission);
-        }
-        
-        // Check any of multiple permissions
-        if (module.requiredAnyPermission) {
-            return hasAnyPermission(...module.requiredAnyPermission);
-        }
-        
+        if (module.requiredPermission) return hasPermission(module.requiredPermission);
+        if (module.requiredAnyPermission) return hasAnyPermission(...module.requiredAnyPermission);
         return false;
     });
+
+    const handleModuleClick = (moduleKey: ModuleType) => {
+        onModuleChange(moduleKey);
+        const moduleConfig = NAVIGATION_CONFIG.find(m => m.key === moduleKey);
+        if (moduleConfig) {
+            if (moduleConfig.defaultPath) {
+                router.push(moduleConfig.defaultPath);
+            } else if (moduleConfig.items.length > 0) {
+                const firstItem = moduleConfig.items[0];
+                if (firstItem.path) {
+                    router.push(firstItem.path);
+                } else if (firstItem.children && firstItem.children.length > 0) {
+                    const firstChild = firstItem.children[0];
+                    if (firstChild.path) router.push(firstChild.path);
+                }
+            }
+        }
+    };
 
     // User dropdown menu
     const userMenuItems = [
@@ -69,9 +135,21 @@ export default function TopNav({
             label: "Settings",
             onClick: () => router.push("/settings"),
         },
-        {
-            type: "divider" as const,
-        },
+        // On mobile, show module selector in user dropdown
+        ...(isMobile ? [
+            { type: "divider" as const },
+            {
+                key: "modules",
+                label: "Switch Module",
+                children: visibleModules.map(module => ({
+                    key: module.key,
+                    icon: module.icon,
+                    label: module.label,
+                    onClick: () => handleModuleClick(module.key as ModuleType),
+                }))
+            }
+        ] : []),
+        { type: "divider" as const },
         {
             key: "logout",
             icon: <LogoutOutlined />,
@@ -104,12 +182,10 @@ export default function TopNav({
         ),
     }));
 
-    console.log(user?.id)
-
     return (
         <Header
             style={{
-                padding: "0 20px",
+                padding: isMobile ? "0 12px" : "0 20px",
                 background: "#fff",
                 borderBottom: "1px solid #f0f0f0",
                 display: "flex",
@@ -124,115 +200,292 @@ export default function TopNav({
                 boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
             }}
         >
-            {/* Left Side: Logo & Collapse & Modules */}
-            <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-                {/* Logo Area - Fixed 80px to match sidebar icon column */}
+            {/* Left Side: Logo & Module Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', height: '100%', flex: 1, minWidth: 0 }}>
+                {/* Logo Area */}
                 <div
                     style={{
-                        width: collapsed ? 80 : 240,
+                        width: isMobile ? 'auto' : (collapsed ? 80 : 240),
+                        marginRight: isMobile ? 12 : 0,
                         height: '100%',
                         transition: "all 0.2s",
                         flexShrink: 0,
-                    }}
-                >
-                    <div style={{
-                        width: collapsed ? 45 : '120px',
-                        height: '100%',
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                    }}>
-                        <Text
-                            strong
-                            style={{
-                                fontSize: 24,
-                                color: "#1677ff",
-                                fontWeight: 700,
-                                lineHeight: 1,
-                            }}
-                        >
-                            {collapsed ? 'Z' : 'Zithtech'}
-                        </Text>
-                    </div>
+                        justifyContent: isMobile ? "flex-start" : "center"
+                    }}
+                >
+                    <Text
+                        strong
+                        style={{
+                            fontSize: isMobile ? 20 : 24,
+                            color: "#1677ff",
+                            fontWeight: 700,
+                            lineHeight: 1,
+                        }}
+                    >
+                        {isMobile ? 'Z' : (collapsed ? 'Z' : 'Zithtech')}
+                    </Text>
                 </div>
 
-
-
-                {/* Module Selector */}
-                <Menu
-                    mode="horizontal"
-                    selectedKeys={[activeModule]}
-                    onClick={({ key }) => {
-                        const moduleKey = key as ModuleType;
-                        onModuleChange(moduleKey);
-
-                        // Find module config and navigate to default path
-                        const moduleConfig = NAVIGATION_CONFIG.find(m => m.key === moduleKey);
-                        if (moduleConfig) {
-                            if (moduleConfig.defaultPath) {
-                                router.push(moduleConfig.defaultPath);
-                            } else if (moduleConfig.items.length > 0) {
-                                // Fallback to first item's path if available
-                                const firstItem = moduleConfig.items[0];
-                                if (firstItem.path) {
-                                    router.push(firstItem.path);
-                                } else if (firstItem.children && firstItem.children.length > 0) {
-                                    // Check first child if group
-                                    const firstChild = firstItem.children[0];
-                                    if (firstChild.path) router.push(firstChild.path);
-                                }
-                            }
-                        }
-                    }}
-                    items={menuItems}
-                    style={{
-                        borderBottom: 'none',
-                        flex: 1,
-                        maxWidth: 600,
-                        background: 'transparent'
-                    }}
-                />
+                {/* Module Selector - Hidden on Mobile, moved to dropdown/hamburger if needed */}
+                {!isMobile && (
+                    <Menu
+                        mode="horizontal"
+                        selectedKeys={[activeModule]}
+                        onClick={({ key }) => handleModuleClick(key as ModuleType)}
+                        items={menuItems}
+                        style={{
+                            borderBottom: 'none',
+                            flex: 1,
+                            maxWidth: 600,
+                            background: 'transparent'
+                        }}
+                    />
+                )}
+                
+                {isMobile && (
+                    <Dropdown
+                        menu={{ 
+                            items: visibleModules.map(m => ({
+                                key: m.key,
+                                icon: m.icon,
+                                label: m.label,
+                                onClick: () => handleModuleClick(m.key as ModuleType)
+                            })),
+                            selectedKeys: [activeModule]
+                        }}
+                        trigger={["click"]}
+                    >
+                        <Button type="text" icon={<AppstoreOutlined />} style={{ fontWeight: 600 }}>
+                            {!isSmallMobile && activeModule}
+                        </Button>
+                    </Dropdown>
+                )}
             </div>
 
             {/* Right Side: User Actions */}
-            <Space size={16} align="end">
-                <Button
-                    type="text"
-                    icon={<MailOutlined />}
-                    onClick={() => router.push('/mail')}
-                />
+            <Space size={isSmallMobile ? 4 : 12} align="center" style={{ flexShrink: 0 }}>
+                {!isSmallMobile && (
+                    <>
+                        <TimeTrackerPopover />
+                        <Button
+                            type="text"
+                            icon={<MailOutlined />}
+                            onClick={() => router.push('/mail')}
+                        />
+                        <Button
+                            type="text"
+                            icon={<CalendarOutlined />}
+                            onClick={() => router.push('/calendar')}
+                        />
+                        <Button
+                            type="text"
+                            icon={<MessageOutlined />}
+                            onClick={() => router.push('/chat')}
+                        />
+                    </>
+                )}
 
-                <Button
-                    type="text"
-                    icon={<CalendarOutlined />}
-                    onClick={() => router.push('/calendar')}
-                />
+          <div>
+            <Inbox
+              applicationIdentifier="67g_5lVLFWvd"
+              subscriberId={user?.id}
+              socketUrl="wss://socket.novu.co"
+              appearance={{
+                variables: {
+                  colorPrimary: "#DD2450",
+                  colorForeground: "#0E121B",
+                },
+              }}
+            />
+          </div>
 
-                <Button
-                    type="text"
-                    icon={<MessageOutlined />}
-                    onClick={() => router.push('/chat')}
-                />
-                {/* <Button
-                    type="text"
-                    icon={<BellOutlined />}
-                /> */}
-
-                <div>
-                    <Inbox
-                        applicationIdentifier="67g_5lVLFWvd"
-                        subscriberId={user?.id}
-                        socketUrl="wss://socket.novu.co"
-                        appearance={{
-                            variables: {
-                                colorPrimary: "#DD2450",
-                                colorForeground: "#0E121B"
-                            }
-                        }}
-                    />
+          <Dropdown
+            open={shortcutPopoverVisible}
+            onOpenChange={(visible) => {
+              // ✅ FIX: Only allow closing via onOpenChange when the delete modal
+              // is NOT open. This prevents the modal's backdrop click from
+              // collapsing the dropdown and resetting add/hover state.
+              if (!visible && deleteModalOpen) return;
+              setShortcutPopoverVisible(visible);
+              if (!visible) {
+                setIsAddMode(false);
+                setNewShortcutName("");
+                setNewShortcutPath("");
+              }
+            }}
+            dropdownRender={() => (
+              <div
+                style={{
+                  width: 300,
+                  backgroundColor: "white",
+                  boxShadow:
+                    "0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03)",
+                  borderRadius: 8,
+                  border: "1px solid #f0f0f0",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: "1px solid #f0f0f0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Space>
+                    <StarFilled style={{ color: "#1677ff" }} />
+                    <Text strong>Bookmarks</Text>
+                  </Space>
                 </div>
 
-                <Divider type="vertical" />
+                {/* Bookmark List */}
+                <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                  {shortcuts.length > 0 ? (
+                    shortcuts.map((item: ShortcutItem) => (
+                      <div
+                        key={item.id}
+                        className="shortcut-item"
+                        onMouseEnter={() => setHoveredShortcutId(item.id)}
+                        onMouseLeave={() => setHoveredShortcutId(null)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 16px",
+                          cursor: "pointer",
+                          transition: "background-color 0.2s",
+                        }}
+                      >
+                        <div
+                          onClick={() => {
+                            router.push(item.path);
+                            setShortcutPopoverVisible(false);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <FolderOutlined
+                            style={{ color: "#8c8c8c", fontSize: 16 }}
+                          />
+                          <Text
+                            style={{ fontSize: 13, color: "#262626" }}
+                            ellipsis
+                          >
+                            {item.name}
+                          </Text>
+                        </div>
+
+                        {hoveredShortcutId === item.id ? (
+                          <Tooltip title="Delete Bookmark">
+                            <Button
+                              type="text"
+                              shape="circle"
+                              icon={
+                                <DeleteOutlined
+                                  style={{ fontSize: 14, color: "#8c8c8c" }}
+                                />
+                              }
+                              size="small"
+                              onClick={(e) => handleDeleteBookmark(item.id, e)}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <RightOutlined
+                            style={{ fontSize: 10, color: "#bfbfbf" }}
+                          />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="No bookmarks"
+                      style={{ padding: "20px 0" }}
+                    />
+                  )}
+                </div>
+
+                {/* Add/Form Section */}
+                <div
+                  style={{
+                    padding: "8px 16px",
+                    borderTop: "1px solid #f0f0f0",
+                    background: "#fafafa",
+                  }}
+                >
+                  {isAddMode ? (
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      <Input
+                        placeholder="Name"
+                        value={newShortcutName}
+                        onChange={(e) => setNewShortcutName(e.target.value)}
+                        size="small"
+                      />
+                      <Input
+                        placeholder="URL"
+                        value={newShortcutPath}
+                        onChange={(e) => setNewShortcutPath(e.target.value)}
+                        size="small"
+                      />
+                      <Space
+                        style={{ justifyContent: "flex-end", width: "100%" }}
+                      >
+                        <Button
+                          size="small"
+                          onClick={() => setIsAddMode(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="primary"
+                          size="small"
+                          onClick={handleSaveBookmark}
+                        >
+                          Save
+                        </Button>
+                      </Space>
+                    </Space>
+                  ) : (
+                    <Button
+                      type="text"
+                      icon={<PlusOutlined />}
+                      onClick={() => setIsAddMode(true)}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "4px 0",
+                      }}
+                    >
+                      Add Bookmark
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            trigger={["click"]}
+          >
+            <Button
+              type="text"
+              icon={
+                shortcutPopoverVisible ? (
+                  <StarFilled style={{ color: "#1677ff" }} />
+                ) : (
+                  <StarOutlined />
+                )
+              }
+            />
+          </Dropdown>
+
+                <Divider type="vertical" style={{ margin: isSmallMobile ? "0 4px" : "0 8px" }} />
 
                 {/* User dropdown */}
                 {user && (
@@ -241,27 +494,34 @@ export default function TopNav({
                         placement="bottomRight"
                         trigger={["click"]}
                     >
-                        <Space className="user-dropdown" style={{ cursor: "pointer", padding: "4px 8px", borderRadius: 6 }}>
-                            <Avatar style={{ backgroundColor: getRoleBadgeColor(user.role) }}>
+                        <Space className="user-dropdown" style={{ cursor: "pointer", padding: "4px 4px", borderRadius: 6 }}>
+                            <Avatar size={isSmallMobile ? "small" : "default"} style={{ backgroundColor: getRoleBadgeColor(user.role) }}>
                                 {user.name?.charAt(0).toUpperCase()}
                             </Avatar>
-                            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                                <Text strong style={{ fontSize: 13 }}>{user.name}</Text>
-                                <Text type="secondary" style={{ fontSize: 11 }}>{user.role}</Text>
-                            </div>
+                            {!isSmallMobile && (
+                                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                                    <Text strong style={{ fontSize: 13 }}>{user.name}</Text>
+                                    <Text type="secondary" style={{ fontSize: 11 }}>{user.role}</Text>
+                                </div>
+                            )}
                         </Space>
                     </Dropdown>
                 )}
             </Space>
 
             <style jsx global>{`
-        .ant-menu-horizontal {
-            line-height: 62px !important;
-        }
-        .user-dropdown:hover {
-          background-color: rgba(0,0,0,0.025);
-        }
-      `}</style>
+                .ant-menu-horizontal {
+                    line-height: 62px !important;
+                }
+                .user-dropdown:hover {
+                    background-color: rgba(0,0,0,0.025);
+                }
+                @media (max-width: 576px) {
+                    .ant-layout-header {
+                        padding: 0 8px !important;
+                    }
+                }
+            `}</style>
         </Header >
     );
 }

@@ -1,4 +1,4 @@
-import { api, ApiError, apiUtils, PaginatedResponse } from '@/lib/axios';
+import { api, ApiError, apiUtils, PaginatedResponse } from "@/lib/axios";
 
 export interface Attendance {
   id: string;
@@ -10,7 +10,7 @@ export interface Attendance {
   date: string;
   clockIn?: string;
   clockOut?: string;
-  status: 'present' | 'absent' | 'late' | 'half-day';
+  status: "present" | "absent" | "late" | "half-day";
   workingMinutes?: number;
   overtimeMinutes?: number;
   lateMinutes?: number;
@@ -38,12 +38,12 @@ export interface AttendanceFilters {
   page?: number;
   limit?: number;
   userId?: string;
-  member?: string;  // Alias for userId (used by frontend)
+  member?: string; // Alias for userId (used by frontend)
   date?: string;
   startDate?: string;
   endDate?: string;
   status?: string;
-  search?: string;  // Search by member name
+  search?: string; // Search by member name
 }
 
 export interface AttendanceSummary {
@@ -80,14 +80,19 @@ export class AttendanceService {
   /**
    * Get attendance records with pagination and filters
    */
-  static async getAttendance(filters: AttendanceFilters = {}): Promise<PaginatedResponse<Attendance>> {
+  static async getAttendance(
+    filters: AttendanceFilters = {},
+  ): Promise<PaginatedResponse<Attendance>> {
     try {
-      return await apiUtils.getPaginated<Attendance>('/api/attendance', filters);
+      return await apiUtils.getPaginated<Attendance>(
+        "/api/attendance",
+        filters,
+      );
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch attendance records');
+      throw new Error("Failed to fetch attendance records");
     }
   }
 
@@ -101,7 +106,7 @@ export class AttendanceService {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch attendance record');
+      throw new Error("Failed to fetch attendance record");
     }
   }
 
@@ -110,12 +115,12 @@ export class AttendanceService {
    */
   static async clockIn(data: ClockInData = {}): Promise<Attendance> {
     try {
-      return await api.post<Attendance>('/api/attendance/clock-in', data);
+      return await api.post<Attendance>("/api/attendance/clock-in", data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to clock in');
+      throw new Error("Failed to clock in");
     }
   }
 
@@ -124,12 +129,12 @@ export class AttendanceService {
    */
   static async clockOut(data: ClockOutData = {}): Promise<Attendance> {
     try {
-      return await api.post<Attendance>('/api/attendance/clock-out', data);
+      return await api.post<Attendance>("/api/attendance/clock-out", data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to clock out');
+      throw new Error("Failed to clock out");
     }
   }
 
@@ -138,33 +143,38 @@ export class AttendanceService {
    */
   static async getTodayAttendance(): Promise<TodayAttendance> {
     try {
-      return await api.get<TodayAttendance>('/api/attendance/today');
+      return await api.get<TodayAttendance>("/api/attendance/today");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch today\'s attendance');
+      throw new Error("Failed to fetch today's attendance");
     }
   }
 
   /**
    * Get attendance summary for current user
    */
-  static async getMySummary(startDate?: string, endDate?: string): Promise<AttendanceSummary> {
+  static async getMySummary(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<AttendanceSummary> {
     try {
       const params: Record<string, any> = {};
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
       const queryString = apiUtils.buildQueryString(params);
-      const url = queryString ? `/api/attendance/my-summary?${queryString}` : '/api/attendance/my-summary';
-      
+      const url = queryString
+        ? `/api/attendance/my-summary?${queryString}`
+        : "/api/attendance/my-summary";
+
       return await api.get<AttendanceSummary>(url);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch attendance summary');
+      throw new Error("Failed to fetch attendance summary");
     }
   }
 
@@ -173,52 +183,64 @@ export class AttendanceService {
    */
   static async getDashboardSummary(): Promise<DashboardSummary> {
     try {
-      return await api.get<DashboardSummary>('/api/attendance/dashboard/summary');
+      return await api.get<DashboardSummary>(
+        "/api/attendance/dashboard/summary",
+      );
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch dashboard summary');
+      throw new Error("Failed to fetch dashboard summary");
     }
   }
 
   /**
    * Get present members for today (admin only)
    */
-  static async getPresentMembers(): Promise<Array<{
-    id: string;
-    name: string;
-    position: string;
-    clockIn: string;
-    clockOut?: string;
-    status: string;
-  }>> {
+  static async getPresentMembers(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      position: string;
+      clockIn: string;
+      clockOut?: string;
+      status: string;
+    }>
+  > {
     try {
-      return await api.get('/api/attendance/dashboard/present');
+      return await api.get("/api/attendance/dashboard/present");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to fetch present members');
+      throw new Error("Failed to fetch present members");
     }
+  }
+  // last 5 days working hors
+
+  static async getLast5DaysAverage() {
+    return await api.get("/api/attendance/last-5-average");
   }
 
   /**
    * Update attendance record (admin only)
    */
-  static async updateAttendance(id: string, data: {
-    clockIn?: string;
-    clockOut?: string;
-    status?: string;
-    notes?: string;
-  }): Promise<Attendance> {
+  static async updateAttendance(
+    id: string,
+    data: {
+      clockIn?: string;
+      clockOut?: string;
+      status?: string;
+      notes?: string;
+    },
+  ): Promise<Attendance> {
     try {
       return await api.put<Attendance>(`/api/attendance/${id}`, data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to update attendance record');
+      throw new Error("Failed to update attendance record");
     }
   }
 
@@ -232,7 +254,7 @@ export class AttendanceService {
       if (error instanceof ApiError) {
         throw new Error(error.message);
       }
-      throw new Error('Failed to delete attendance record');
+      throw new Error("Failed to delete attendance record");
     }
   }
 }

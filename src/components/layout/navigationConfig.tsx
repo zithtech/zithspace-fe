@@ -48,6 +48,9 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
+import { BsPersonWorkspace } from "react-icons/bs";
+
+import { TiGroup } from "react-icons/ti";
 
 export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
 
@@ -257,6 +260,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Document Hub",
         icon: <FolderOpenOutlined />,
         path: "/documenthub",
+        requiredPermission: Permissions.DOCUMENT_READ,
+      },
+      {
+        key: "squadManagement",
+        label: "Squad Management",
+        icon: <TiGroup />,
+        path: "/squad",
+        requiredPermission: Permissions.DOCUMENT_READ,
+      },
+      {
+        key: "candidateForm",
+        label: "Candidate Form",
+        icon: <BsPersonWorkspace />,
+        path: "/candidateForm",
         requiredPermission: Permissions.DOCUMENT_READ,
       },
       {

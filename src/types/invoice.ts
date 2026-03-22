@@ -47,6 +47,8 @@ export interface GeneralDraft {
   currency: Currency; 
   dateFormat: DateFormat;
   signature?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
 }
 
 export interface BankPaymentDraft {

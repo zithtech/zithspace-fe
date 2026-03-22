@@ -259,32 +259,54 @@ const handleValuesChange = () => {
 
           {/* ================= REGIONAL + UPLOAD ================= */}
           <Col xs={24} md={12}>
-            <Card
-              title={
-                <span className="flex items-center gap-2">
-                  <FullscreenOutlined style={{color:"#1890ff"}} />
-                  Regional Settings
-                </span>
-              }
-            >
-              <Form.Item name="currency" label="Currency" rules={[{ required: true }]}>
-                <Select>
-                  {currencyOptions.map((c) => (
-                    <Option key={c.value} value={c.value}>
-                      {c.symbol} {c.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Card
+                  title={
+                    <span className="flex items-center gap-2">
+                      <FullscreenOutlined style={{color:"#1890ff"}} />
+                      Regional Settings
+                    </span>
+                  }
+                >
+                  <Form.Item name="currency" label="Currency" rules={[{ required: true }]}>
+                    <Select>
+                      {currencyOptions.map((c) => (
+                        <Option key={c.value} value={c.value}>
+                          {c.symbol} {c.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
 
-              <Form.Item name="dateFormat" label="Date Format" rules={[{ required: true }]}>
-                <Select>
-                  <Option value={DateFormat.MM_DD_YYYY}>MM/DD/YYYY</Option>
-                  <Option value={DateFormat.DD_MM_YYYY}>DD/MM/YYYY</Option>
-                  <Option value={DateFormat.YYYY_MM_DD}>YYYY-MM-DD</Option>
-                </Select>
-              </Form.Item>
-            </Card>
+                  <Form.Item name="dateFormat" label="Date Format" rules={[{ required: true }]}>
+                    <Select>
+                      <Option value={DateFormat.MM_DD_YYYY}>MM/DD/YYYY</Option>
+                      <Option value={DateFormat.DD_MM_YYYY}>DD/MM/YYYY</Option>
+                      <Option value={DateFormat.YYYY_MM_DD}>YYYY-MM-DD</Option>
+                    </Select>
+                  </Form.Item>
+                </Card>
+              </Col>
+
+              <Col span={12}>
+                <Card
+                  title={
+                    <span className="flex items-center gap-2">
+                      <ApartmentOutlined style={{color:"#1890ff"}} />
+                      Tax Information
+                    </span>
+                  }
+                >
+                  <Form.Item name="gstin" label="GSTIN">
+                    <Input />
+                  </Form.Item>
+                  <Form.Item name="pan" label="PAN">
+                    <Input />
+                  </Form.Item>
+                </Card>
+              </Col>
+            </Row>
 
             <Row gutter={16} className="mt-4">
               <Col span={12}>

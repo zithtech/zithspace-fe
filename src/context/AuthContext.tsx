@@ -1,8 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useEffect,
+} from "react";
 import { useRouter } from "next/navigation";
-import { AuthService, LoginCredentials, LoginResponse } from "@/services/authService";
+import {
+  AuthService,
+  LoginCredentials,
+  LoginResponse,
+} from "@/services/authService";
 import { ApiError } from "@/lib/axios";
 
 interface User {
@@ -19,6 +29,7 @@ interface User {
   tenantId: string;
   tenantName?: string;
   department?: string;
+  employeeId?: string | null;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
 }
@@ -42,7 +53,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -56,9 +69,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     if (user && AuthService.isAuthenticated()) {
       // Refresh token every 50 minutes (tokens expire in 1 hour)
-      const interval = setInterval(() => {
-        refreshToken();
-      }, 50 * 60 * 1000);
+      const interval = setInterval(
+        () => {
+          refreshToken();
+        },
+        50 * 60 * 1000,
+      );
 
       return () => clearInterval(interval);
     }
@@ -93,6 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         tenantId: response.user.tenantId,
         tenantName: response.user.tenantName,
         department: (response.user as any).department,
+        employeeId: (response.user as any).employeeId,
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
       };
@@ -112,7 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       await AuthService.logout();
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     } finally {
       // Clear the auth marker cookie so middleware stops treating user as authenticated
       if (typeof document !== 'undefined') {
@@ -163,18 +180,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (!hasToken) {
         // No access token found - try to refresh from cookie before giving up
-        console.log('🔄 No access token found, attempting to refresh from cookie...');
+        console.log(
+          "🔄 No access token found, attempting to refresh from cookie...",
+        );
         const refreshed = await refreshToken();
         if (!refreshed) {
-          console.log(' Token refresh failed, user not authenticated');
+          console.log(" Token refresh failed, user not authenticated");
           setUser(null);
           return;
         }
-        console.log('✅ Token refreshed successfully from cookie');
+        console.log("✅ Token refreshed successfully from cookie");
       }
 
       // Try to get user profile - axios interceptor will handle token refresh automatically
       const userProfile = await AuthService.getProfile();
+
+      console.log("Fetched user profile:", userProfile);
 
       // Transform the profile to match our User interface
       const userData: User = {
@@ -191,12 +212,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         tenantId: userProfile.tenantId,
         tenantName: userProfile.tenant?.name,
         department: userProfile.department,
+        employeeId: (userProfile as any).employeeId || userProfile.employee?.id,
         permissions: (userProfile as any).permissions ?? [],
       };
 
       setUser(userData);
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error("Auth check failed:", error);
 
       // Only clear tokens on actual authentication errors (401), not parsing errors
       if (error instanceof ApiError && error.status === 401) {
@@ -209,12 +231,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         AuthService.clearAuth();
 
         // Redirect to login if not already there
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.startsWith('/public')) {
-          router.push('/login?error=session_expired');
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("/login") &&
+          !window.location.pathname.startsWith("/public")
+        ) {
+          router.push("/login?error=session_expired");
         }
       } else {
         // Keep tokens but clear user for non-auth errors (like parsing errors)
-        console.log('⚠️ Non-auth error, clearing user but keeping tokens for retry');
+        console.log(
+          "⚠️ Non-auth error, clearing user but keeping tokens for retry",
+        );
         setUser(null);
       }
     } finally {

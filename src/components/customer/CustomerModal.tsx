@@ -30,6 +30,8 @@ useEffect(() => {
       city: customer.city,
       country: customer.country,
       taxId: customer.taxId,
+      gstin: customer.gstin,
+      pan: customer.pan,
     });
   } else {
     form.resetFields();
@@ -99,6 +101,19 @@ useEffect(() => {
         <Form.Item name="taxId" label="Tax ID">
           <Input />
         </Form.Item>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="gstin" label="GSTIN">
+              <Input />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="pan" label="PAN">
+              <Input />
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );

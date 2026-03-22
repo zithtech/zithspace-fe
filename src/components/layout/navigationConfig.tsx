@@ -214,6 +214,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.TIMESHEET_READ,
       },
       {
+        key: "time-tracking",
+        label: "Time Tracking",
+        icon: <ClockCircleOutlined />,
+        children: [
+          {
+            key: "/time-tracking/my",
+            label: "My Time Tracking",
+            icon: <UserOutlined />,
+            path: "/time-tracking/my",
+          },
+          {
+            key: "/time-tracking/team",
+            label: "Team View",
+            icon: <TeamOutlined />,
+            path: "/time-tracking/team",
+          },
+        ],
+      },
+      {
         key: "daily-updates-group",
         label: "Daily Updates",
         icon: <ReconciliationOutlined />,
@@ -344,6 +363,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/org-structure",
       "/onboarding",
       "/recruitment",
+      "/employee-exit",
+      "/performance",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -396,19 +417,39 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.ONBOARDING_CREATE,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/onboarded",
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
             requiredPermission: Permissions.ONBOARDING_READ,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/settings",
             icon: <IoSettingsOutline />,
             label: "Settings",
             path: "/onboarding/settings",
           },
+       
         ],
+      },
+
+      {
+        key: "employee-exit",
+        icon: <UserOutlined />,
+        label: "Employee Exit",
+        // No specific permission required initially based on requirements
+        children: [
+          {
+            key: "/employee-exit/management",
+            label: "Employee Exit Management",
+            path: "/employee-exit/management",
+          },
+          {
+            key: "/employee-exit/configuration",
+            label: "Configuration",
+            path: "/employee-exit/configuration",
+          },
+        ]
       },
 
       {
@@ -461,6 +502,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+          {
+      key: "/performance",
+      label: "Performance View",
+      icon: <BarChartOutlined />,  
+      path: "/perfomance-management", 
+      requiredPermission: Permissions.USER_READ, 
+    },
       {
         key: "recruitment-group",
         icon: <TeamOutlined />,
@@ -502,7 +550,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       // },
       {
         key: "invoicepro",
-        label: "InvoicePro",
+        label: "Invoice",
         icon: <AccountBookOutlined />,
         requiredPermission: Permissions.INVOICE_READ,
         children: [
@@ -528,6 +576,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.INVOICE_CREATE,
           },
           {
+            key: "/invoicepro/templates",
+            label: "Template",
+            icon: <FileAddOutlined />,
+            path: "/invoicepro/templates",
+            requiredPermission: Permissions.INVOICE_CREATE,
+          },
+
+          {
             key: "/invoicepro/customers",
             label: "Customers",
             icon: <UserAddOutlined />,
@@ -540,6 +596,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <SettingOutlined />,
             path: "/invoicepro/settings",
             requiredPermission: Permissions.SETTINGS_UPDATE,
+          },
+          {
+            key: "/invoicepro/trash",
+            label: "Trash",
+            icon: <DeleteOutlined />,
+            path: "/invoicepro/trash",
+            requiredPermission: Permissions.INVOICE_READ,
           },
         ],
       },
@@ -562,6 +625,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <FormOutlined />,
             path: "/salary/Create-payslip",
             requiredPermission: Permissions.SALARY_MANAGE,
+          },
+            {
+            key: "/salary/salarypreview",
+            label: "Salary Preview",
+            icon: <SnippetsOutlined />,
+            path: "/salary/salarypreview",
+            requiredPermission: Permissions.SALARY_READ,
           },
           {
             key: "/salary/My-Payslip",

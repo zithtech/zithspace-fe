@@ -35,6 +35,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink } from "@/hooks/useTicketDetails";
 import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
+import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS, STATUS_OPTIONS, getStatusColor, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor, getStackColor } from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
@@ -51,6 +52,7 @@ import {
 import SubtasksSection from "../ticket-details/SubtasksSection";
 import CodeIntegrationSection from "../ticket-details/code/CodeIntegrationSection";
 import TicketService from "@/services/ticketService";
+import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 
 // Add relativeTime plugin
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -76,8 +78,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const [navigationStack, setNavigationStack] = useState<string[]>([]);
   const [currentTicketId, setCurrentTicketId] = useState<string | null>(null);
 
+  const [timeEntries, setTimeEntries] = useState<TimeTrackingEntry[]>([]);
+  const [timeEntriesLoading, setTimeEntriesLoading] = useState(false);
+
   // Data Hooks - Use currentTicketId instead of ticketId prop
   const { data: ticket, isLoading: ticketLoading } = useTicket(currentTicketId || "");
+  const { activeEntry } = useTimeTrackerStore();
 
   // Fetch parent ticket if current is a subtask using useQuery directly
   const { data: parentTicket, isLoading: parentLoading } = useQuery({
@@ -113,8 +119,19 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
     } else if (!open) {
       setCurrentTicketId(null);
       setNavigationStack([]);
+      setTimeEntries([]);
     }
   }, [open, ticketId]);
+
+  // Load time tracking entries for this ticket
+  useEffect(() => {
+    if (!currentTicketId) return;
+    setTimeEntriesLoading(true);
+    TimeTrackingService.getEntries({ ticketId: currentTicketId })
+      .then(setTimeEntries)
+      .catch(() => setTimeEntries([]))
+      .finally(() => setTimeEntriesLoading(false));
+  }, [currentTicketId, activeEntry?.status]);
 
   // Navigation handlers
   const navigateToTicket = (ticketId: string) => {
@@ -766,6 +783,98 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                             </DrawerField>
                           </Col>
                         </Row>
+                      ),
+                    },
+                    {
+                      key: "time-tracking",
+                      label: (
+                        <Space>
+                          <FieldTimeOutlined />
+                          <Text strong style={{ fontSize: 13 }}>Time Tracked</Text>
+                          {timeEntries.length > 0 && (
+                            <Tag color="blue" style={{ marginLeft: 4 }}>
+                              {(() => {
+                                const total = timeEntries.reduce((sum, e) => {
+                                  let duration = e.duration || 0;
+                                  if (e.status === 'RUNNING') {
+                                    const lastLog = e.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
+                                    const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(e.startTime).getTime();
+                                    duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                                  }
+                                  return sum + duration;
+                                }, 0);
+                                const h = Math.floor(total / 3600);
+                                const m = Math.floor((total % 3600) / 60);
+                                return `${h}h ${m}m`;
+                              })()}
+                            </Tag>
+                          )}
+                        </Space>
+                      ),
+                      children: timeEntriesLoading ? (
+                        <Text type="secondary" style={{ fontSize: 12 }}>Loading...</Text>
+                      ) : timeEntries.length === 0 ? (
+                        <Text type="secondary" style={{ fontSize: 12 }}>No time tracked yet for this ticket.</Text>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {timeEntries.map(entry => {
+                            const h = Math.floor((entry.duration || 0) / 3600);
+                            const m = Math.floor(((entry.duration || 0) % 3600) / 60);
+                            const s = (entry.duration || 0) % 60;
+                            return (
+                              <div key={entry.id} style={{ padding: '8px 10px', background: '#f9fafb', borderRadius: 6, border: '1px solid #f0f0f0' }}>
+                                {/* User row */}
+                                {entry.user && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                    <div style={{
+                                      width: 22, height: 22, borderRadius: '50%',
+                                      background: '#6366f1', color: 'white',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      fontSize: 10, fontWeight: 700, flexShrink: 0
+                                    }}>
+                                      {entry.user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <Text style={{ fontSize: 11, fontWeight: 500, color: '#4b5563' }}>
+                                      {entry.user.name}
+                                    </Text>
+                                  </div>
+                                )}
+                                {/* Date / time / duration row */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <div style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>
+                                      {dayjs(entry.startTime).format('ddd, MMM D YYYY')}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                                      {dayjs(entry.startTime).format('h:mm A')}
+                                      {entry.endTime ? ` – ${dayjs(entry.endTime).format('h:mm A')}` : ''}
+                                    </div>
+                                  </div>
+                                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                      {entry.status === 'RUNNING' && <Tag color="processing" style={{ fontSize: 10, margin: 0 }}>Running</Tag>}
+                                      {entry.status === 'PAUSED' && <Tag color="warning" style={{ fontSize: 10, margin: 0 }}>Paused</Tag>}
+                                    </div>
+                                    <Text strong style={{ fontSize: 13, color: entry.status === 'RUNNING' ? '#1890ff' : entry.status === 'PAUSED' ? '#faad14' : '#10b981', fontFamily: 'monospace' }}>
+                                      {(() => {
+                                        let duration = entry.duration || 0;
+                                        if (entry.status === 'RUNNING') {
+                                          const lastLog = entry.logs?.find(l => l.action === 'STARTED' || l.action === 'RESUMED');
+                                          const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(entry.startTime).getTime();
+                                          duration += Math.floor((new Date().getTime() - startTime) / 1000);
+                                        }
+                                        const h = Math.floor(duration / 3600);
+                                        const m = Math.floor((duration % 3600) / 60);
+                                        const s = duration % 60;
+                                        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                                      })()}
+                                    </Text>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       ),
                     },
                   ]}

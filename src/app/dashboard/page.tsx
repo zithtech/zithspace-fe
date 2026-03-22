@@ -5,8 +5,18 @@ import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { dashboardService, DashboardData } from "@/services/dashboardService";
+import {
+  dashboardService,
+  DashboardData,
+  ProjectProgress,
+} from "@/services/dashboardService";
 import { useZohoCalendar } from "@/hooks/useZohoCalendar";
+import { DailyUpdateService } from "@/services/dailyUpdateService";
+import TicketService from "@/services/ticketService";
+import { AttendanceService } from "@/services/attendanceService";
+import Organization from "@/components/organaization/Organization";
+
+//import { dashboardService, DashboardData } from "@/services/dashboardService";
 import {
   Card,
   Row,
@@ -25,6 +35,10 @@ import {
   Skeleton,
   Badge,
   Tooltip,
+  Segmented,
+  Input,
+  Modal,
+  Table,
 } from "antd";
 import {
   TeamOutlined,
@@ -41,6 +55,9 @@ import {
   VideoCameraOutlined,
   EnvironmentOutlined,
   LinkOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import { redirect, useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -55,11 +72,83 @@ function DashboardContent() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [todayUpdates, setTodayUpdates] = useState<{
+    bod: any | null;
+    eod: any | null;
+  }>({
+    bod: null,
+    eod: null,
+  });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
+    null
   );
+  const [myTicketsStats, setMyTicketsStats] = useState({
+    open: 0,
+    closed: 0,
+    total: 0,
+  });
+  const [averageWorkHours, setAverageWorkHours] = useState("00:00:00");
 
-  // Zoho Calendar Integration
+  // ✅ SEGMENT STATE
+  const [activeSegment, setActiveSegment] = useState<"me" | "organization">(
+    "me",
+  );
+  const [isClocking, setIsClocking] = useState(false);
+  const [recentTickets, setRecentTickets] = useState<any[]>([]);
+
+  const [todayAttendance, setTodayAttendance] = useState<any>(null);
+
+  useEffect(() => {
+    console.log("recentTickets", recentTickets);
+  }, [recentTickets]);
+
+  const [workDuration, setWorkDuration] = useState("00:00:00");
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (todayAttendance?.clockInTime && !todayAttendance.clockOutTime) {
+      interval = setInterval(() => {
+        const now = dayjs();
+        const clockIn = dayjs(todayAttendance.clockInTime);
+        const duration = now.diff(clockIn);
+        const hours = Math.floor(duration / 3600000)
+          .toString()
+          .padStart(2, "0");
+        const minutes = Math.floor((duration % 3600000) / 60000)
+          .toString()
+          .padStart(2, "0");
+        const seconds = Math.floor((duration % 60000) / 1000)
+          .toString()
+          .padStart(2, "0");
+        setWorkDuration(`${hours}:${minutes}:${seconds}`);
+      }, 1000);
+    } else if (todayAttendance?.clockInTime && todayAttendance.clockOutTime) {
+      const clockIn = dayjs(todayAttendance.clockInTime);
+      const clockOut = dayjs(todayAttendance.clockOutTime);
+      const duration = clockOut.diff(clockIn);
+      const hours = Math.floor(duration / 3600000)
+        .toString()
+        .padStart(2, "0");
+      const minutes = Math.floor((duration % 3600000) / 60000)
+        .toString()
+        .padStart(2, "0");
+      const seconds = Math.floor((duration % 60000) / 1000)
+        .toString()
+        .padStart(2, "0");
+      setWorkDuration(`${hours}:${minutes}:${seconds}`);
+    } else {
+      setWorkDuration("00:00:00");
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [todayAttendance]);
+
+  // Dynamic Calendar Integration - works with any connected provider
   const {
     status: calendarStatus,
     events: calendarEvents,
@@ -176,6 +265,25 @@ function DashboardContent() {
   }, [dashboardData]);
 
   useEffect(() => {
+    const fetchTodayAttendance = async () => {
+      try {
+        const attendance = await AttendanceService.getTodayAttendance();
+        console.log("Today Attendance:", attendance);
+
+        // State la store pannuthu
+        setTodayAttendance(attendance);
+
+        // console.log("Clock In Time:", attendance.clockInTime);
+        // console.log("Clock Out Time:", attendance.clockOutTime);
+      } catch (error) {
+        console.error("Failed to fetch attendance", error);
+      }
+    };
+
+    fetchTodayAttendance(); // function call pannanu
+  }, [user]);
+
+  useEffect(() => {
     const fetchDashboardData = async () => {
       if (user) {
         try {
@@ -193,6 +301,101 @@ function DashboardContent() {
     };
 
     fetchDashboardData();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchTodayUpdate = async () => {
+      if (user) {
+        try {
+          const today = new Date().toISOString().split("T")[0];
+
+          const updates = await DailyUpdateService.getMyUpdates({
+            date: today,
+          });
+
+          // Separate BOD & EOD
+          const bodUpdate = updates.find(
+            (item: any) => item.updateType === "BOD",
+          );
+
+          const eodUpdate = updates.find(
+            (item: any) => item.updateType === "EOD",
+          );
+
+          setTodayUpdates({
+            bod: bodUpdate || null,
+            eod: eodUpdate || null,
+          });
+        } catch (e) {
+          console.log("Error", e);
+        }
+      }
+    };
+
+    fetchTodayUpdate();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchMyTicketsStats = async () => {
+      if (user) {
+        try {
+          const [all, completed, live] = await Promise.all([
+            TicketService.getMyTickets({ limit: 1 }),
+            TicketService.getMyTickets({ status: "completed", limit: 1 }),
+            TicketService.getMyTickets({ status: "live", limit: 1 }),
+          ]);
+
+          const total = all.pagination.total;
+          const closed = completed.pagination.total + live.pagination.total;
+          const open = total - closed;
+
+          setMyTicketsStats({ open, closed, total });
+        } catch (e) {
+          console.error("Failed to fetch my tickets stats", e);
+          // Set stats to 0 on error to avoid incorrect display
+          setMyTicketsStats({ open: 0, closed: 0, total: 0 });
+        }
+      }
+    };
+
+    fetchMyTicketsStats();
+  }, [user]);
+
+  useEffect(() => {
+    const get5DaysAverage = async () => {
+      if (user) {
+        try {
+          const getAverageWorkingHours =
+            await AttendanceService.getLast5DaysAverage();
+          if (getAverageWorkingHours && getAverageWorkingHours.averageHours) {
+            setAverageWorkHours(getAverageWorkingHours.averageHours);
+          }
+        } catch (error) {
+          console.error("Failed to fetch last 5 days average", error);
+        }
+      }
+    };
+    get5DaysAverage();
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      const fetchRecentTickets = async () => {
+        try {
+          const response = await TicketService.getMyTickets({
+            page: 1,
+            limit: 20,
+          });
+          setTickets(response.data);
+
+          setRecentTickets(response.data.slice(0, 5));
+        } catch (error) {
+          console.error("Failed to fetch recent tickets", error);
+        }
+      };
+
+      fetchRecentTickets();
+    }
   }, [user]);
 
   const getPriorityColor = (priority: string) => {
@@ -264,50 +467,70 @@ function DashboardContent() {
   // Statistics cards configuration
   const stats = dashboardData
     ? [
-        {
-          title: "Total Members",
-          value: dashboardData.stats.totalMembers,
-          icon: <TeamOutlined style={{ color: "#1677ff" }} />,
-          color: "#1677ff",
-          change: dashboardData.trends.memberGrowth,
-        },
-        {
-          title: "Active Projects",
-          value: dashboardData.stats.activeProjects,
-          icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
-          color: "#52c41a",
-          change: dashboardData.trends.projectGrowth,
-        },
-        {
-          title: "Assigned Tickets / Closed Tickets",
-          value: dashboardData.stats.tickets.display,
-          icon: <UserOutlined style={{ color: "#faad14" }} />,
-          color: "#faad14",
-          change: dashboardData.trends.ticketCompletionRate,
-        },
-        {
-          title: "Today's Attendance",
-          value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-          icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
-          color: "#722ed1",
-          change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
-          isAttendance: true,
-          stats: dashboardData.stats.attendance,
-        },
-      ]
+      {
+        title: "Assigned Tickets / Closed Tickets",
+        value: `${myTicketsStats.total} / ${myTicketsStats.closed}`,
+        icon: <UserOutlined style={{ color: "#faad14" }} />,
+        color: "#faad14",
+        change: dashboardData.trends.ticketCompletionRate,
+      },
+      {
+        title: "Average Working Hours ",
+        value: averageWorkHours,
+        icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
+        color: "#52c41a",
+        change: "Last 5 days avg",
+      },
+      // {
+      //   title: "Assigned Tickets / Closed Tickets",
+      //   value: dashboardData.stats.tickets.display,
+      //   icon: <UserOutlined style={{ color: "#faad14" }} />,
+      //   color: "#faad14",
+      //   change: dashboardData.trends.ticketCompletionRate,
+      // },
+
+      {
+        title: "Today's Attendance",
+        value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
+        icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
+        color: "#722ed1",
+        change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
+        isAttendance: true,
+        stats: dashboardData.stats.attendance,
+      },
+    ]
     : [];
 
-  // Pie Chart Helper
-  const renderPieChart = (project: typeof selectedProject) => {
-    if (!project) return null;
-    const {
-      notStartedTickets,
-      inProgressTickets,
-      completedTickets,
-      totalTickets,
-    } = project;
+  const LegendItem = ({
+    color,
+    label,
+    value,
+  }: {
+    color: string;
+    label: string;
+    value: string | number;
+  }) => (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+      <div
+        style={{
+          width: 8,
+          height: 8,
+          background: color,
+          borderRadius: "50%",
+          marginBottom: "2px",
+        }}
+      />
+      <Text style={{ fontSize: 10, color: "#888", lineHeight: 1, textAlign: "center" }}>
+        {label}
+      </Text>
+      <Text strong style={{ fontSize: 13, lineHeight: 1.2, textAlign: "center" }}>
+        {value}
+      </Text>
+    </div>
+  );
 
-    if (totalTickets === 0)
+  const renderPieChart = () => {
+    if (!tickets || tickets.length === 0) {
       return (
         <div
           style={{
@@ -317,20 +540,34 @@ function DashboardContent() {
             justifyContent: "center",
           }}
         >
-          <Text type="secondary">No tickets in this project</Text>
+          <Text type="secondary">No tickets found</Text>
         </div>
       );
+    }
 
-    // Calculate angles
+    const totalTickets = tickets.length;
+    const notStartedTickets = tickets.filter(
+      (t) => t.status === "not_started" || t.status === "NOT_STARTED",
+    ).length;
+    const completedTickets = tickets.filter((t) =>
+      ["completed", "COMPLETED", "live", "LIVE"].includes(t.status),
+    ).length;
+    const inProgressTickets =
+      totalTickets - notStartedTickets - completedTickets;
+
     const notStartedDeg = (notStartedTickets / totalTickets) * 360;
     const inProgressDeg = (inProgressTickets / totalTickets) * 360;
-    const completedDeg = (completedTickets / totalTickets) * 360;
 
     const gradient = `conic-gradient(
-      #d9d9d9 0deg ${notStartedDeg}deg,
-      #1677ff ${notStartedDeg}deg ${notStartedDeg + inProgressDeg}deg,
-      #52c41a ${notStartedDeg + inProgressDeg}deg 360deg
-    )`;
+    #d9d9d9 0deg ${notStartedDeg}deg,
+    #1677ff ${notStartedDeg}deg ${notStartedDeg + inProgressDeg}deg,
+    #52c41a ${notStartedDeg + inProgressDeg}deg 360deg
+  )`;
+
+    const progress =
+      totalTickets > 0
+        ? Math.round((completedTickets / totalTickets) * 100)
+        : 0;
 
     return (
       <div
@@ -338,30 +575,30 @@ function DashboardContent() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          //padding: 16,
           justifyContent: "center",
           height: "100%",
+          padding: "4px 4px",
+          gap: "12px",
         }}
       >
         {/* Pie Chart */}
         <div
           style={{
-            width: 130,
-            height: 130,
+            width: 140,
+            height: 140,
             borderRadius: "50%",
             background: gradient,
             position: "relative",
-            marginBottom: 16,
+            flexShrink: 0,
           }}
         >
-          {/* Inner circle for Donut effect */}
           <div
             style={{
               position: "absolute",
-              top: 22,
-              left: 22,
-              width: 86,
-              height: 86,
+              top: 20,
+              left: 20,
+              width: 100,
+              height: 100,
               borderRadius: "50%",
               background: "#fff",
               display: "flex",
@@ -370,219 +607,334 @@ function DashboardContent() {
               flexDirection: "column",
             }}
           >
-            <div style={{ fontSize: 24, fontWeight: "bold" }}>
-              {project.progress}%
-            </div>
-            <div style={{ fontSize: 12, color: "#888" }}>Complete</div>
+            <div style={{ fontSize: 20, fontWeight: "bold" }}>{progress}%</div>
           </div>
         </div>
 
         {/* Legend */}
         <div
           style={{
-            width: "100%",
             display: "flex",
+            flexDirection: "row",
             justifyContent: "space-around",
-            flexWrap: "nowrap",
+            width: "100%",
+            gap: "8px",
           }}
         >
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                background: "#d9d9d9",
-                borderRadius: "50%",
-                margin: "0 auto 2px",
-              }}
-            />
-            <div style={{ fontSize: 10, fontWeight: 600 }}>
-              {notStartedTickets}
-            </div>
-            <div style={{ fontSize: 8, color: "#888" }}>Not Started</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                background: "#1677ff",
-                borderRadius: "50%",
-                margin: "0 auto 2px",
-              }}
-            />
-            <div style={{ fontSize: 10, fontWeight: 600 }}>
-              {inProgressTickets}
-            </div>
-            <div style={{ fontSize: 8, color: "#888" }}>In Progress</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                background: "#52c41a",
-                borderRadius: "50%",
-                margin: "0 auto 4px",
-              }}
-            />
-            <div style={{ fontSize: 10, fontWeight: 600 }}>
-              {completedTickets}
-            </div>
-            <div style={{ fontSize: 8, color: "#888" }}>Completed</div>
-          </div>
+          <LegendItem
+            color="#d9d9d9"
+            label="Not Started"
+            value={notStartedTickets}
+          />
+          <LegendItem
+            color="#1677ff"
+            label="In Progress"
+            value={inProgressTickets}
+          />
+          <LegendItem
+            color="#52c41a"
+            label="Completed"
+            value={completedTickets}
+          />
         </div>
       </div>
     );
   };
 
+  const handleClockIn = async () => {
+    setIsClocking(true);
+    try {
+      const newAttendance = await AttendanceService.clockIn();
+      setTodayAttendance(newAttendance);
+    } catch (error) {
+      console.error("Failed to clock in", error);
+      setError("Failed to clock in. Please try again.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
+  const handleClockOut = async () => {
+    setIsClocking(true);
+    try {
+      const newAttendance = await AttendanceService.clockOut();
+      setTodayAttendance(newAttendance);
+    } catch (error) {
+      console.error("Failed to clock out", error);
+      setError("Failed to clock out. Please try again.");
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
-        {/* Welcome Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Title level={2} style={{ margin: 0, color: "#262626" }}>
-            Welcome back, {user?.name}!
-          </Title>
-          <Text type="secondary" style={{ fontSize: 14 }}>
-            Here&apos;s what&apos;s happening with your projects today.
-          </Text>
-        </div>
+      <div style={{ background: "white" }}>
+        <div style={{ padding: 20 }}>
+          {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
+          <div
+            style={{
+              marginBottom: 16,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <Title level={2} style={{ margin: 0, color: "#262626" }}>
+                Welcome back, {user?.name}!
+              </Title>
+              <Text type="secondary" style={{ fontSize: 14 }}>
+                Here&apos;s what&apos;s happening with your projects today.
+              </Text>
+            </div>
 
-        {/* Error Alert */}
-        {error && (
-          <Alert
-            message="Error"
-            description={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16 }}
-          />
-        )}
+            <Segmented
+              options={[
+                { label: "Me", value: "me" },
+                { label: "Organization", value: "organization" },
+              ]}
+              value={activeSegment}
+              onChange={(value) =>
+                setActiveSegment(value as "me" | "organization")
+              }
+            />
+          </div>
 
-        {/* Calendar Error/Success Alerts */}
-        {calendarError && (
-          <Alert
-            message="Calendar Error"
-            description={calendarError}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16 }}
-          />
-        )}
-        {calendarSuccess && (
-          <Alert
-            message="Success"
-            description={calendarSuccess}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16 }}
-          />
-        )}
+          {/* ✅ ME SEGMENT — your full original dashboard */}
+          {activeSegment === "me" && (
+            <>
+              {/* Error Alert */}
+              {error && (
+                <Alert
+                  message="Error"
+                  description={error}
+                  type="error"
+                  showIcon
+                  closable
+                  style={{ marginBottom: 16 }}
+                />
+              )}
 
-        {/* Loading State */}
-        {loading ? (
-          <>
-            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-              {[1, 2, 3, 4].map((i) => (
-                <Col xs={24} sm={12} lg={6} key={i}>
-                  <Card size="small">
-                    <Skeleton active paragraph={{ rows: 1 }} />
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} lg={16}>
-                <Card size="small">
-                  <Skeleton active />
-                </Card>
-              </Col>
-              <Col xs={24} lg={8}>
-                <Card size="small">
-                  <Skeleton active />
-                </Card>
-              </Col>
-            </Row>
-          </>
-        ) : dashboardData ? (
-          <>
-            {/* Statistics Cards */}
-            <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
-              {stats.map((stat, index) => (
-                <Col xs={24} sm={12} lg={6} key={index}>
-                  <Card
-                    size="small"
-                    style={{
-                      borderLeft: `4px solid ${stat.color}`,
-                      height: "100%",
-                    }}
-                    styles={{ body: { padding: 16 } }}
-                  >
-                    <Space
-                      direction="vertical"
-                      size={4}
-                      style={{ width: "100%" }}
-                    >
-                      <Space
-                        align="center"
-                        style={{
-                          width: "100%",
-                          justifyContent: "space-between",
+              {/* Calendar Error/Success Alerts */}
+              {calendarError && (
+                <Alert
+                  message="Calendar Error"
+                  description={calendarError}
+                  type="error"
+                  showIcon
+                  closable
+                  style={{ marginBottom: 16 }}
+                />
+              )}
+              {calendarSuccess && (
+                <Alert
+                  message="Success"
+                  description={calendarSuccess}
+                  type="success"
+                  showIcon
+                  closable
+                  style={{ marginBottom: 16 }}
+                />
+              )}
+
+              {/* Loading State */}
+              {loading ? (
+                <>
+                  <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                    {[1, 2, 3, 4].map((i) => (
+                      <Col xs={24} sm={12} lg={6} key={i}>
+                        <Card size="small">
+                          <Skeleton active paragraph={{ rows: 1 }} />
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24} lg={16}>
+                      <Card size="small">
+                        <Skeleton active />
+                      </Card>
+                    </Col>
+                    <Col xs={24} lg={8}>
+                      <Card size="small">
+                        <Skeleton active />
+                      </Card>
+                    </Col>
+                  </Row>
+                </>
+              ) : dashboardData ? (
+                <>
+                  {/* Statistics Cards */}
+                  <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
+                    <Col xs={24} sm={12} lg={6}>
+                      <Card
+                        size="small"
+                        style={{ height: "100%", borderLeft: "4px solid #52c41a" }}
+                        styles={{
+                          body: { padding: "8px 16px", height: "100%" },
                         }}
                       >
-                        <Text
-                          type="secondary"
-                          style={{ fontSize: 12, fontWeight: 500 }}
+                        <Row
+                          align="middle"
+                          justify="space-around"
+                          style={{ height: "100%" }}
                         >
-                          {stat.title}
-                        </Text>
-                        {stat.icon}
-                      </Space>
-                      <Space align="baseline">
-                        <Statistic
-                          value={stat.value}
-                          valueStyle={{
-                            fontSize: 24,
-                            fontWeight: 600,
-                            color: "#262626",
-                            lineHeight: 1,
-                          }}
-                        />
-                        <Tag
-                          color={stat.isAttendance ? "purple" : "green"}
-                          style={{
-                            fontSize: 10,
-                            padding: "0 4px",
-                            margin: 0,
-                            border: "none",
-                          }}
-                        >
-                          {stat.change}
-                        </Tag>
-                      </Space>
-                    </Space>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+                          <Col xs={24} sm={11}>
+                            <Space
+                              align="center"
+                              style={{
+                                justifyContent: "space-between",
+                                width: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title="Beginning of Day"
+                                value={
+                                  todayUpdates.bod
+                                    ? "BOD – Updated"
+                                    : "Not Submitted"
+                                }
+                                valueStyle={{
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  color: todayUpdates.bod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                              <RiseOutlined
+                                style={{
+                                  fontSize: 16,
+                                  color: todayUpdates.bod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                            </Space>
+                          </Col>
 
-            <Row gutter={[16, 16]}>
-              {/* Left Column - Main Content */}
-              <Col xs={24} lg={16}>
-                <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                  {/* Row for Card 1 and Card 2 - Side by Side with equal height */}
-                  <Row gutter={[16, 16]}>
-                    {/* CARD 1: Work & Attendance with Project Status - REDUCED HEIGHT */}
-                    <Col xs={24} md={12}>
+                          <Col xs={24} sm={0}>
+                            <Divider style={{ margin: "8px 0" }} />
+                          </Col>
+                          <Col
+                            xs={0}
+                            sm={1}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Divider
+                              type="vertical"
+                              style={{ height: "40px" }}
+                            />
+                          </Col>
+
+                          <Col xs={24} sm={11}>
+                            <Space
+                              align="center"
+                              style={{
+                                justifyContent: "space-between",
+                                width: "100%",
+                              }}
+                            >
+                              <Statistic
+                                title="End of Day"
+                                value={
+                                  todayUpdates.eod
+                                    ? "EOD – Updated"
+                                    : "Not Submitted"
+                                }
+                                valueStyle={{
+                                  fontSize: 12,
+                                  fontWeight: 500,
+                                  color: todayUpdates.eod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                              <StarOutlined
+                                style={{
+                                  fontSize: 16,
+                                  color: todayUpdates.eod
+                                    ? "#52c41a"
+                                    : "#faad14",
+                                }}
+                              />
+                            </Space>
+                          </Col>
+                        </Row>
+                      </Card>
+                    </Col>
+                    {stats.map((stat, index) => (
+                      <Col xs={24} sm={12} lg={6} key={index}>
+                        <Card
+                          size="small"
+                          style={{
+                            borderLeft: `4px solid ${stat.color}`,
+                            height: "100%",
+                          }}
+                          styles={{ body: { padding: 16 } }}
+                        >
+                          <Space
+                            direction="vertical"
+                            size={4}
+                            style={{ width: "100%" }}
+                          >
+                            <Space
+                              align="center"
+                              style={{
+                                width: "100%",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Text
+                                type="secondary"
+                                style={{ fontSize: 12, fontWeight: 500 }}
+                              >
+                                {stat.title}
+                              </Text>
+                              {stat.icon}
+                            </Space>
+                            <Space align="baseline">
+                              <Statistic
+                                value={stat.value as string | number}
+                                valueStyle={{
+                                  fontSize: 24,
+                                  fontWeight: 600,
+                                  color: "#262626",
+                                  lineHeight: 1,
+                                }}
+                              />
+                              <Tag
+                                color={stat.isAttendance ? "purple" : "green"}
+                                style={{
+                                  fontSize: 10,
+                                  padding: "0 4px",
+                                  margin: 0,
+                                  border: "none",
+                                }}
+                              >
+                                {stat.change}
+                              </Tag>
+                            </Space>
+                          </Space>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+
+                  {/* Row 1: My Info */}
+                  <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                    <Col xs={24} lg={8}>
+                      {/* My Tickets */}
                       <Card
                         title={
                           <Space>
                             <TrophyOutlined style={{ color: "#1677ff" }} />
-                            <span>Work & Attendance</span>
+                            <span>My Tickets</span>
                           </Space>
                         }
                         size="small"
@@ -590,678 +942,587 @@ function DashboardContent() {
                           <Button
                             type="link"
                             size="small"
-                            onClick={() => router.push("/projects")}
+                            onClick={() => router.push("/tickets")}
                           >
-                            View Projects
+                            View Tickets
                           </Button>
                         }
-                        styles={{ body: { padding: 12 } }}
-                        style={{ height: "280px" }}
+                        styles={{ body: { padding: 8 } }}
+                        style={{ height: "260px" }}
                       >
-                        {/* Project Status inside Work & Attendance card */}
                         <div style={{ height: "100%" }}>
                           <div
                             style={{
                               display: "flex",
                               justifyContent: "space-between",
                               alignItems: "center",
-                              marginBottom: 8,
+                              marginBottom: 4,
                             }}
                           >
-                            <Text strong style={{ fontSize: 12 }}>
-                              Project Status
-                            </Text>
-                            <select
-                              style={{
-                                padding: "2px 4px",
-                                borderRadius: 4,
-                                border: "1px solid #d9d9d9",
-                                outline: "none",
-                                fontSize: 10,
-                                maxWidth: 100,
-                                cursor: "pointer",
-                              }}
-                              value={selectedProjectId || ""}
-                              onChange={(e) =>
-                                setSelectedProjectId(e.target.value)
-                              }
-                            >
-                              {dashboardData.projectProgress.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.name}
-                                </option>
-                              ))}
-                            </select>
+
                           </div>
-                          {selectedProject ? (
-                            renderPieChart(selectedProject)
-                          ) : (
-                            <div
-                              style={{
-                                height: 180,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <Text type="secondary">No active projects</Text>
-                            </div>
-                          )}
+                          {renderPieChart()}
                         </div>
                       </Card>
                     </Col>
-
-                    {/* CARD 2: Today's Meetings - REDUCED HEIGHT */}
-                    <Col xs={24} md={12}>
-                      <Card
-                        title={
-                          <Space size={4}>
-                            <VideoCameraOutlined
-                              style={{ color: "#1677ff", fontSize: 14 }}
-                            />
-                            <span style={{ fontSize: 13 }}>
-                              Today's Meetings
-                            </span>
-                            {!calendarStatus?.connected && (
+                    <Col xs={24} lg={8}>
+                      {/* Today's Meetings */}
+                      <div style={{ height: "100%" }}>
+                        {/* <Card
+                          title={
+                            <Space size={4}>
+                              <VideoCameraOutlined
+                                style={{ color: "#1677ff", fontSize: 14 }}
+                              />
+                              <span style={{ fontSize: 13 }}>
+                                Today's Meetings
+                              </span>
+                              {!calendarStatus?.connected && (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={connectCalendar}
+                                  loading={calendarLoading}
+                                  style={{ marginLeft: 4, fontSize: 11 }}
+                                >
+                                  Connect
+                                </Button>
+                              )}
+                            </Space>
+                          }
+                          size="small"
+                          extra={
+                            calendarStatus?.connected && (
+                              <Space size={2}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<ClockCircleOutlined />}
+                                  onClick={syncCalendar}
+                                  loading={calendarLoading}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  Sync
+                                </Button>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  onClick={() => router.push("/calendar")}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  View
+                                </Button>
+                              </Space>
+                            )
+                          }
+                          styles={{ body: { padding: 0 } }}
+                          style={{ height: "260px" }}
+                        >
+                          {calendarLoading ? (
+                            <div style={{ padding: 16, textAlign: "center" }}>
+                              <Skeleton active paragraph={{ rows: 2 }} />
+                            </div>
+                          ) : !calendarStatus?.connected ? (
+                            <div style={{ padding: 12, textAlign: "center" }}>
+                              <VideoCameraOutlined
+                                style={{
+                                  fontSize: 28,
+                                  color: "#bfbfbf",
+                                  marginBottom: 6,
+                                }}
+                              />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                  Connect calendar to see meetings
+                                </Text>
+                              </div>
                               <Button
-                                type="link"
+                                type="primary"
                                 size="small"
                                 onClick={connectCalendar}
-                                loading={calendarLoading}
-                                style={{ marginLeft: 4, fontSize: 11 }}
+                                style={{
+                                  marginTop: 8,
+                                  fontSize: 11,
+                                  height: 24,
+                                }}
                               >
-                                Connect
+                                Connect Zoho Calendar
                               </Button>
-                            )}
+                            </div>
+                          ) : todaysMeetings.length > 0 ? (
+                            <div style={{ height: 220, overflowY: "auto" }}>
+                              <List
+                                size="small"
+                                dataSource={todaysMeetings}
+                                renderItem={(meeting) => {
+                                  const startTime = dayjs(meeting.startTime);
+                                  const endTime = dayjs(meeting.endTime);
+                                  const isOngoing =
+                                    startTime.isBefore(dayjs()) &&
+                                    endTime.isAfter(dayjs());
+
+                                  return (
+                                    <List.Item
+                                      style={{
+                                        padding: "6px 10px",
+                                        borderBottom: "1px solid #f0f0f0",
+                                        background: isOngoing
+                                          ? "#f6ffed"
+                                          : "transparent",
+                                      }}
+                                      actions={[
+                                        <Tooltip
+                                          title="Join Meeting"
+                                          key="join"
+                                        >
+                                          <Button
+                                            type="primary"
+                                            size="small"
+                                            icon={<VideoCameraOutlined />}
+                                            onClick={() =>
+                                              meeting.meetingLink &&
+                                              window.open(
+                                                meeting.meetingLink,
+                                                "_blank",
+                                              )
+                                            }
+                                            disabled={!meeting.meetingLink}
+                                            style={{
+                                              height: 24,
+                                              width: 24,
+                                              backgroundColor:
+                                                meeting.meetingLink
+                                                  ? "#1677ff"
+                                                  : "#f5f5f5",
+                                              borderColor: meeting.meetingLink
+                                                ? "#1677ff"
+                                                : "#d9d9d9",
+                                            }}
+                                          />
+                                        </Tooltip>,
+                                      ]}
+                                    >
+                                      <List.Item.Meta
+                                        avatar={
+                                          <Avatar
+                                            size={22}
+                                            style={{
+                                              backgroundColor: isOngoing
+                                                ? "#52c41a"
+                                                : "#1677ff",
+                                              fontSize: 10,
+                                            }}
+                                          >
+                                            {meeting.title.charAt(0)}
+                                          </Avatar>
+                                        }
+                                        title={
+                                          <Space align="center" size={2}>
+                                            <Text
+                                              strong
+                                              style={{ fontSize: 11 }}
+                                            >
+                                              {meeting.title.length > 18
+                                                ? meeting.title.substring(
+                                                  0,
+                                                  18,
+                                                ) + "..."
+                                                : meeting.title}
+                                            </Text>
+                                            {isOngoing && (
+                                              <Badge
+                                                status="processing"
+                                                style={{ fontSize: 9 }}
+                                                text="Live"
+                                              />
+                                            )}
+                                          </Space>
+                                        }
+                                        description={
+                                          <Text
+                                            type="secondary"
+                                            style={{ fontSize: 9 }}
+                                          >
+                                            <ClockCircleOutlined
+                                              style={{
+                                                marginRight: 2,
+                                                fontSize: 8,
+                                              }}
+                                            />
+                                            {startTime.format("hh:mm A")} -{" "}
+                                            {endTime.format("hh:mm A")}
+                                          </Text>
+                                        }
+                                      />
+                                    </List.Item>
+                                  );
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ padding: 20, textAlign: "center" }}>
+                              <VideoCameraOutlined
+                                style={{
+                                  fontSize: 24,
+                                  color: "#bfbfbf",
+                                  marginBottom: 6,
+                                }}
+                              />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>
+                                  No meetings scheduled
+                                </Text>
+                              </div>
+                            </div>
+                          )}
+                        </Card> */}
+                        <Card
+                          title={
+                            <Space size={4}>
+                              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
+                              <span style={{ fontSize: 13 }}>Today's Meetings</span>
+                              {!calendarStatus?.connected && (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={connectCalendar}
+                                  loading={calendarLoading}
+                                  style={{ marginLeft: 4, fontSize: 11 }}
+                                >
+                                  Connect
+                                </Button>
+                              )}
+                            </Space>
+                          }
+                          size="small"
+                          extra={
+                            calendarStatus?.connected && (
+                              <Space size={2}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<ClockCircleOutlined />}
+                                  onClick={syncCalendar}
+                                  loading={calendarLoading}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  Sync
+                                </Button>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  onClick={() => router.push("/calendar")}
+                                  style={{ fontSize: 11 }}
+                                >
+                                  View
+                                </Button>
+                              </Space>
+                            )
+                          }
+                          styles={{ body: { padding: 0 } }}
+                          style={{ height: '280px' }}
+                        >
+                          {calendarLoading ? (
+                            <div style={{ padding: 16, textAlign: "center" }}>
+                              <Skeleton active paragraph={{ rows: 2 }} />
+                            </div>
+                          ) : !calendarStatus?.connected ? (
+                            <div style={{ padding: 20, textAlign: "center" }}>
+                              <VideoCameraOutlined style={{ fontSize: 28, color: "#bfbfbf", marginBottom: 6 }} />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>Connect calendar to see meetings</Text>
+                              </div>
+                              <Button
+                                type="primary"
+                                size="small"
+                                onClick={connectCalendar}
+                                style={{ marginTop: 8, fontSize: 11, height: 24 }}
+                              >
+                                Connect Zoho Calendar
+                              </Button>
+                            </div>
+                          ) : todaysMeetings.length > 0 ? (
+                            <div style={{ height: 220, overflowY: 'auto' }}>
+                              <List
+                                size="small"
+                                dataSource={todaysMeetings}
+                                renderItem={(meeting) => {
+                                  const startTime = dayjs(meeting.startTime);
+                                  const endTime = dayjs(meeting.endTime);
+                                  const isOngoing = startTime.isBefore(dayjs()) && endTime.isAfter(dayjs());
+
+                                  return (
+                                    <List.Item
+                                      style={{
+                                        padding: "6px 10px",
+                                        borderBottom: "1px solid #f0f0f0",
+                                        background: isOngoing ? "#f6ffed" : "transparent"
+                                      }}
+                                      actions={[
+                                        <Tooltip title="Join Meeting" key="join">
+                                          <Button
+                                            type="primary"
+                                            size="small"
+                                            icon={<VideoCameraOutlined />}
+                                            onClick={() => meeting.meetingLink && window.open(meeting.meetingLink, '_blank')}
+                                            disabled={!meeting.meetingLink}
+                                            style={{
+                                              height: 24,
+                                              width: 24,
+                                              backgroundColor: meeting.meetingLink ? "#1677ff" : "#f5f5f5",
+                                              borderColor: meeting.meetingLink ? "#1677ff" : "#d9d9d9"
+                                            }}
+                                          />
+                                        </Tooltip>
+                                      ]}
+                                    >
+                                      <List.Item.Meta
+                                        avatar={
+                                          <Avatar
+                                            size={22}
+                                            style={{
+                                              backgroundColor: isOngoing ? "#52c41a" : "#1677ff",
+                                              fontSize: 10
+                                            }}
+                                          >
+                                            {meeting.title.charAt(0)}
+                                          </Avatar>
+                                        }
+                                        title={
+                                          <Space align="center" size={2}>
+                                            <Text strong style={{ fontSize: 11 }}>
+                                              {meeting.title.length > 18 ? meeting.title.substring(0, 18) + '...' : meeting.title}
+                                            </Text>
+                                            {isOngoing && (
+                                              <Badge status="processing" style={{ fontSize: 9 }} text="Live" />
+                                            )}
+                                          </Space>
+                                        }
+                                        description={
+                                          <Text type="secondary" style={{ fontSize: 9 }}>
+                                            <ClockCircleOutlined style={{ marginRight: 2, fontSize: 8 }} />
+                                            {startTime.format("hh:mm A")} - {endTime.format("hh:mm A")}
+                                          </Text>
+                                        }
+                                      />
+                                    </List.Item>
+                                  );
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ padding: 20, textAlign: "center" }}>
+                              <VideoCameraOutlined style={{ fontSize: 24, color: "#bfbfbf", marginBottom: 6 }} />
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 11 }}>No meetings scheduled</Text>
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      </div>
+                    </Col>
+                    <Col xs={24} lg={8}>
+                      {/* My Attendance */}
+                      <Card
+                        title={
+                          <Space>
+                            <ClockCircleOutlined style={{ color: "#722ed1" }} />
+                            <span>My Attendance</span>
                           </Space>
                         }
                         size="small"
-                        extra={
-                          calendarStatus?.connected && (
-                            <Space size={2}>
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={<ClockCircleOutlined />}
-                                onClick={syncCalendar}
-                                loading={calendarLoading}
-                                style={{ fontSize: 11 }}
-                              >
-                                Sync
-                              </Button>
-                              <Button
-                                type="text"
-                                size="small"
-                                onClick={() => router.push("/calendar")}
-                                style={{ fontSize: 11 }}
-                              >
-                                View
-                              </Button>
-                            </Space>
-                          )
-                        }
-                        styles={{ body: { padding: 0 } }}
-                        style={{ height: "280px" }}
+                        styles={{ body: { padding: 24 } }}
+                        style={{ height: "260px", justifyContent: "center", alignItems: "center" }}
                       >
-                        {calendarLoading ? (
-                          <div style={{ padding: 16, textAlign: "center" }}>
-                            <Skeleton active paragraph={{ rows: 2 }} />
-                          </div>
-                        ) : !calendarStatus?.connected ? (
-                          <div style={{ padding: 20, textAlign: "center" }}>
-                            <VideoCameraOutlined
-                              style={{
-                                fontSize: 28,
-                                color: "#bfbfbf",
-                                marginBottom: 6,
-                              }}
-                            />
-                            <div>
-                              <Text type="secondary" style={{ fontSize: 11 }}>
-                                Connect calendar to see meetings
-                              </Text>
-                            </div>
-                            <Button
-                              type="primary"
-                              size="small"
-                              onClick={connectCalendar}
-                              style={{ marginTop: 8, fontSize: 11, height: 24 }}
-                            >
-                              Connect Zoho Calendar
-                            </Button>
-                          </div>
-                        ) : todaysMeetings.length > 0 ? (
-                          <div style={{ height: 220, overflowY: "auto" }}>
-                            <List
-                              size="small"
-                              dataSource={todaysMeetings}
-                              renderItem={(meeting) => {
-                                const startTime = dayjs(meeting.startTime);
-                                const endTime = dayjs(meeting.endTime);
-                                const isOngoing =
-                                  startTime.isBefore(dayjs()) &&
-                                  endTime.isAfter(dayjs());
-
-                                return (
-                                  <List.Item
-                                    style={{
-                                      padding: "6px 10px",
-                                      borderBottom: "1px solid #f0f0f0",
-                                      background: isOngoing
-                                        ? "#f6ffed"
-                                        : "transparent",
-                                    }}
-                                    actions={[
-                                      <Tooltip title="Join Meeting" key="join">
-                                        <Button
-                                          type="primary"
-                                          size="small"
-                                          icon={<VideoCameraOutlined />}
-                                          onClick={() =>
-                                            meeting.meetingLink &&
-                                            window.open(
-                                              meeting.meetingLink,
-                                              "_blank",
-                                            )
-                                          }
-                                          disabled={!meeting.meetingLink}
-                                          style={{
-                                            height: 24,
-                                            width: 24,
-                                            backgroundColor: meeting.meetingLink
-                                              ? "#1677ff"
-                                              : "#f5f5f5",
-                                            borderColor: meeting.meetingLink
-                                              ? "#1677ff"
-                                              : "#d9d9d9",
-                                          }}
-                                        />
-                                      </Tooltip>,
-                                    ]}
+                        {todayAttendance ? (
+                          <div style={{ width: "100%" }}>
+                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
+                              {/* Top Left: Clock In/Out Button */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center" }}>
+                                {todayAttendance.canClockIn ? (
+                                  <Button
+                                    type="primary"
+                                    shape="round"
+                                    icon={<PlayCircleOutlined />}
+                                    onClick={handleClockIn}
+                                    loading={isClocking}
+                                    size="middle"
+                                  //style={{ padding: "0 16px" }}
                                   >
-                                    <List.Item.Meta
-                                      avatar={
-                                        <Avatar
-                                          size={22}
-                                          style={{
-                                            backgroundColor: isOngoing
-                                              ? "#52c41a"
-                                              : "#1677ff",
-                                            fontSize: 10,
-                                          }}
-                                        >
-                                          {meeting.title.charAt(0)}
-                                        </Avatar>
-                                      }
-                                      title={
-                                        <Space align="center" size={2}>
-                                          <Text strong style={{ fontSize: 11 }}>
-                                            {meeting.title.length > 18
-                                              ? meeting.title.substring(0, 18) +
-                                                "..."
-                                              : meeting.title}
-                                          </Text>
-                                          {isOngoing && (
-                                            <Badge
-                                              status="processing"
-                                              style={{ fontSize: 9 }}
-                                              text="Live"
-                                            />
-                                          )}
-                                        </Space>
-                                      }
-                                      description={
-                                        <Text
-                                          type="secondary"
-                                          style={{ fontSize: 9 }}
-                                        >
-                                          <ClockCircleOutlined
-                                            style={{
-                                              marginRight: 2,
-                                              fontSize: 8,
-                                            }}
-                                          />
-                                          {startTime.format("hh:mm A")} -{" "}
-                                          {endTime.format("hh:mm A")}
-                                        </Text>
-                                      }
-                                    />
-                                  </List.Item>
-                                );
-                              }}
-                            />
+                                    Clock In
+                                  </Button>
+                                ) : todayAttendance.canClockOut ? (
+                                  <Button
+                                    danger
+                                    shape="round"
+                                    icon={<PauseCircleOutlined />}
+                                    onClick={handleClockOut}
+                                    loading={isClocking}
+                                    size="middle"
+                                    style={{ padding: "0 16px" }}
+                                  >
+                                    Clock Out
+                                  </Button>
+                                ) : (
+                                  <Tag
+                                    icon={<TrophyOutlined />}
+                                    color="success"
+                                    style={{ fontSize: 14, padding: "6px 12px" }}
+                                  >
+                                    Day Complete
+                                  </Tag>
+                                )}
+                              </Col>
+
+                              {/* Top Right: Work Duration */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
+                                <Statistic
+                                  title="Work Duration"
+                                  value={workDuration}
+                                  valueStyle={{
+                                    fontSize: 20,
+                                    color: "#262626",
+                                    fontWeight: 500,
+                                  }}
+                                />
+                              </Col>
+                            </Row>
+
+                            <Divider style={{ margin: "20px 0" }} />
+
+                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
+                              {/* Bottom Left: Clock In Time */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
+                                <Statistic
+                                  title="Clock In"
+                                  value={
+                                    todayAttendance.clockInTime
+                                      ? dayjs(todayAttendance.clockInTime).format(
+                                        "hh:mm A",
+                                      )
+                                      : "--:--"
+                                  }
+                                  valueStyle={{
+                                    fontSize: 16,
+                                    color: "#52c41a",
+                                    fontWeight: 500,
+                                  }}
+                                />
+                              </Col>
+
+                              {/* Bottom Right: Clock Out Time */}
+                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
+                                <Statistic
+                                  title="Clock Out"
+                                  value={
+                                    todayAttendance.clockOutTime
+                                      ? dayjs(
+                                        todayAttendance.clockOutTime,
+                                      ).format("hh:mm A")
+                                      : "--:--"
+                                  }
+                                  valueStyle={{
+                                    fontSize: 16,
+                                    color: "#eb2f96",
+                                    fontWeight: 500,
+                                  }}
+                                />
+                              </Col>
+                            </Row>
                           </div>
                         ) : (
-                          <div style={{ padding: 20, textAlign: "center" }}>
-                            <VideoCameraOutlined
-                              style={{
-                                fontSize: 24,
-                                color: "#bfbfbf",
-                                marginBottom: 6,
-                              }}
-                            />
-                            <div>
-                              <Text type="secondary" style={{ fontSize: 11 }}>
-                                No meetings scheduled
-                              </Text>
-                            </div>
-                          </div>
+                          <Skeleton active paragraph={{ rows: 4 }} />
                         )}
                       </Card>
                     </Col>
                   </Row>
 
-                  {/* CARD 3: Recent Activities - Full width below */}
-                  <Card
-                    title={
-                      <Space>
-                        <ClockCircleOutlined style={{ color: "#52c41a" }} />
-                        <span>Recent Activities</span>
-                      </Space>
-                    }
-                    size="small"
-                    extra={
-                      <Button type="link" size="small">
-                        View All
-                      </Button>
-                    }
-                    styles={{ body: { padding: 0 } }}
-                  >
-                    <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                      {dashboardData.recentActivities.length > 0 ? (
-                        <List
-                          size="small"
-                          dataSource={dashboardData.recentActivities}
-                          renderItem={(item) => (
-                            <List.Item
-                              style={{ padding: "12px 16px", border: "none" }}
-                            >
-                              <List.Item.Meta
-                                avatar={
-                                  <Avatar
-                                    size={32}
-                                    style={{
-                                      backgroundColor: "#1677ff",
-                                      fontSize: 12,
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    {item.avatar}
-                                  </Avatar>
-                                }
-                                title={
-                                  <Text style={{ fontSize: 13 }}>
-                                    <Text strong>{item.user}</Text>{" "}
-                                    {item.action}{" "}
-                                    <Text strong>{item.target}</Text>
-                                  </Text>
-                                }
-                                description={
-                                  <Text
-                                    type="secondary"
-                                    style={{ fontSize: 11 }}
-                                  >
-                                    {formatTimeAgo(item.time)}
-                                  </Text>
-                                }
-                              />
-                            </List.Item>
-                          )}
-                        />
-                      ) : (
-                        <div style={{ padding: 16 }}>
-                          <Text type="secondary">No recent activities</Text>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </Space>
-              </Col>
-
-              {/* Right Column - Sidebar */}
-              <Col xs={24} lg={8}>
-                <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                  {/* People on Leave & Permission Today */}
-                  {dashboardData.todayLeaves && (
-                    <Card
-                      title={
-                        <Space>
-                          <CalendarOutlined style={{ color: "#faad14" }} />
-                          <span>People on Leave & Permission Today</span>
-                        </Space>
-                      }
-                      size="small"
-                      extra={
-                        <Button
-                          type="link"
-                          size="small"
-                          onClick={() => router.push("/leaves")}
-                        >
-                          View All
-                        </Button>
-                      }
-                      styles={{ body: { padding: 16 } }}
-                    >
-                      <Space
-                        direction="vertical"
-                        size={12}
-                        style={{ width: "100%" }}
-                      >
-                        {/* On Leave */}
-                        {dashboardData.todayLeaves.onLeave.length > 0 && (
-                          <>
-                            <div>
-                              <Text
-                                strong
-                                style={{ fontSize: 12, color: "#1677ff" }}
-                              >
-                                🏖️ On Leave (
-                                {dashboardData.todayLeaves.onLeave.length})
-                              </Text>
-                            </div>
-                            <div style={{ maxHeight: 150, overflowY: "auto" }}>
-                              {dashboardData.todayLeaves.onLeave
-                                .slice(0, 3)
-                                .map((leave) => (
-                                  <div
-                                    key={leave.id}
-                                    style={{
-                                      padding: "8px",
-                                      background: "#f0f5ff",
-                                      borderRadius: 6,
-                                      marginBottom: 8,
-                                    }}
-                                  >
-                                    <Space>
-                                      <Avatar
-                                        size="small"
-                                        style={{ backgroundColor: "#1677ff" }}
-                                      >
-                                        {leave.user.name[0]}
-                                      </Avatar>
-                                      <div>
-                                        <Text strong style={{ fontSize: 11 }}>
-                                          {leave.user.name}
-                                        </Text>
-                                        <br />
-                                        <Text
-                                          style={{
-                                            fontSize: 10,
-                                            color: "#666",
-                                          }}
-                                        >
-                                          {leave.type.replace(/_/g, " ")} •{" "}
-                                          {leave.duration}{" "}
-                                          {leave.durationType === "HOURS"
-                                            ? "hrs"
-                                            : "days"}
-                                        </Text>
-                                      </div>
-                                    </Space>
-                                  </div>
-                                ))}
-                            </div>
-                          </>
-                        )}
-
-                        {/* On Permission */}
-                        {dashboardData.todayLeaves.onPermission.length > 0 && (
-                          <>
-                            <Divider style={{ margin: "8px 0" }} />
-                            <div>
-                              <Text
-                                strong
-                                style={{ fontSize: 12, color: "#722ed1" }}
-                              >
-                                ⏰ On Permission (
-                                {dashboardData.todayLeaves.onPermission.length})
-                              </Text>
-                            </div>
-                            <div style={{ maxHeight: 100, overflowY: "auto" }}>
-                              {dashboardData.todayLeaves.onPermission
-                                .slice(0, 3)
-                                .map((leave) => (
-                                  <div
-                                    key={leave.id}
-                                    style={{
-                                      padding: "8px",
-                                      background: "#f9f0ff",
-                                      borderRadius: 6,
-                                      marginBottom: 8,
-                                    }}
-                                  >
-                                    <Space>
-                                      <Avatar
-                                        size="small"
-                                        style={{ backgroundColor: "#722ed1" }}
-                                      >
-                                        {leave.user.name[0]}
-                                      </Avatar>
-                                      <div>
-                                        <Text strong style={{ fontSize: 11 }}>
-                                          {leave.user.name}
-                                        </Text>
-                                        <br />
-                                        <Text
-                                          style={{
-                                            fontSize: 10,
-                                            color: "#666",
-                                          }}
-                                        >
-                                          {leave.duration} hours
-                                        </Text>
-                                      </div>
-                                    </Space>
-                                  </div>
-                                ))}
-                            </div>
-                          </>
-                        )}
-
-                        {/* Working From Home */}
-                        {dashboardData.todayLeaves.workingFromHome.length >
-                          0 && (
-                          <>
-                            <Divider style={{ margin: "8px 0" }} />
-                            <div>
-                              <Text
-                                strong
-                                style={{ fontSize: 12, color: "#52c41a" }}
-                              >
-                                🏠 Working From Home (
-                                {
-                                  dashboardData.todayLeaves.workingFromHome
-                                    .length
-                                }
-                                )
-                              </Text>
-                            </div>
-                            <div style={{ maxHeight: 100, overflowY: "auto" }}>
-                              {dashboardData.todayLeaves.workingFromHome
-                                .slice(0, 3)
-                                .map((leave) => (
-                                  <div
-                                    key={leave.id}
-                                    style={{
-                                      padding: "8px",
-                                      background: "#f6ffed",
-                                      borderRadius: 6,
-                                      marginBottom: 8,
-                                    }}
-                                  >
-                                    <Space>
-                                      <Avatar
-                                        size="small"
-                                        style={{ backgroundColor: "#52c41a" }}
-                                      >
-                                        {leave.user.name[0]}
-                                      </Avatar>
-                                      <div>
-                                        <Text strong style={{ fontSize: 11 }}>
-                                          {leave.user.name}
-                                        </Text>
-                                        <br />
-                                        <Text
-                                          style={{
-                                            fontSize: 10,
-                                            color: "#666",
-                                          }}
-                                        >
-                                          {leave.user.position}
-                                        </Text>
-                                      </div>
-                                    </Space>
-                                  </div>
-                                ))}
-                            </div>
-                          </>
-                        )}
-
-                        {/* Empty State */}
-                        {dashboardData.todayLeaves.onLeave.length === 0 &&
-                          dashboardData.todayLeaves.onPermission.length === 0 &&
-                          dashboardData.todayLeaves.workingFromHome.length ===
-                            0 && (
-                            <div
-                              style={{ textAlign: "center", padding: "20px 0" }}
-                            >
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                No one on leave or permission today
-                              </Text>
-                            </div>
-                          )}
-                      </Space>
-                    </Card>
-                  )}
-
-                  {/* Quick Actions */}
-                  <Card
-                    title={
-                      <Space>
-                        <BellOutlined style={{ color: "#722ed1" }} />
-                        <span>Quick Actions</span>
-                      </Space>
-                    }
-                    size="small"
-                    styles={{ body: { padding: 16 } }}
-                  >
-                    <Space
-                      direction="vertical"
-                      size={8}
-                      style={{ width: "100%" }}
-                    >
-                      <Button
-                        type="primary"
-                        block
-                        icon={<PlusOutlined />}
-                        size="middle"
-                        onClick={() => router.push("/projects/create")}
-                      >
-                        Create New Project
-                      </Button>
-                      <Button
-                        block
-                        icon={<TeamOutlined />}
-                        size="middle"
-                        onClick={() => router.push("/members")}
-                      >
-                        Add Team Member
-                      </Button>
-                      <Button
-                        block
-                        icon={<UserOutlined />}
-                        size="middle"
-                        onClick={() => router.push("/clients")}
-                      >
-                        Add New Client
-                      </Button>
-                      <Divider style={{ margin: "12px 0" }} />
-                      <Row gutter={8}>
-                        <Col span={12}>
-                          <Button
-                            type="dashed"
-                            block
-                            icon={<CalendarOutlined />}
-                            size="small"
-                            style={{ height: "auto", padding: "8px 4px" }}
-                            onClick={() => router.push("/calendar")}
-                          >
-                            Schedule Meeting
-                          </Button>
-                        </Col>
-                        <Col span={12}>
-                          <Button
-                            type="dashed"
-                            block
-                            icon={<ClockCircleOutlined />}
-                            size="small"
-                            style={{ height: "auto", padding: "8px 4px" }}
-                            onClick={() => router.push("/attendance")}
-                          >
-                            Attendance
-                          </Button>
-                        </Col>
-                      </Row>
-
-                      {/* Leave Management Section */}
+                  {/* Row 2: Leave & Recent Tickets */}
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24} lg={8}>
+                      {/* Leave Management */}
                       {dashboardData.leaves && (
-                        <>
-                          <Divider style={{ margin: "12px 0" }}>
-                            Leave Management
-                          </Divider>
-                          <Space
-                            direction="vertical"
-                            size={8}
-                            style={{ width: "100%" }}
+                        <div
+                          style={{
+                            height: "100%", // Ensure it fills the Col
+                          }}
+                        >
+                          <Card
+                            title={
+                              <Space>
+                                <FileTextOutlined
+                                  style={{ color: "#1677ff" }}
+                                />
+                                <span>Leave Management</span>
+                              </Space>
+                            }
+                            size="small"
+                            style={{
+                              height: 250,
+                              borderRadius: 12,
+                            }}
+                            bodyStyle={{
+                              padding: 12,
+                              height: "100%",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 12,
+                            }}
                           >
-                            {dashboardData.leaves.pendingApprovals > 0 && (
-                              <Button
-                                block
-                                icon={<FileTextOutlined />}
-                                size="middle"
-                                onClick={() => router.push("/leaves")}
-                                style={{
-                                  borderColor: "#faad14",
-                                  color: "#faad14",
-                                }}
-                              >
-                                <Space
+                            {/* TOP CONTENT */}
+                            <div>
+                              {/* Pending Approval Button */}
+                              {dashboardData.leaves.pendingApprovals > 0 && (
+                                <Button
+                                  block
+                                  icon={<FileTextOutlined />}
+                                  onClick={() => router.push("/leaves")}
                                   style={{
-                                    width: "100%",
-                                    justifyContent: "space-between",
+                                    marginBottom: 14,
+                                    borderColor: "#faad14",
+                                    color: "#faad14",
+                                    fontWeight: 500,
+                                    height: 38,
+                                    borderRadius: 8,
                                   }}
                                 >
-                                  <span>Pending Approvals</span>
-                                  <Badge
-                                    count={
-                                      dashboardData.leaves.pendingApprovals
-                                    }
-                                    style={{ backgroundColor: "#faad14" }}
-                                  />
-                                </Space>
-                              </Button>
-                            )}
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      width: "100%",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <span>Pending Approvals</span>
+                                    <Badge
+                                      count={
+                                        dashboardData.leaves.pendingApprovals
+                                      }
+                                      style={{ backgroundColor: "#faad14" }}
+                                    />
+                                  </div>
+                                </Button>
+                              )}
 
-                            <Card
-                              size="small"
-                              style={{
-                                backgroundColor: "#f0f5ff",
-                                border: "1px solid #adc6ff",
-                              }}
-                            >
-                              <Space
-                                direction="vertical"
-                                size={4}
-                                style={{ width: "100%" }}
+                              {/* Stats Card */}
+                              <div
+                                style={{
+                                  background: "#f0f5ff",
+                                  border: "1px solid #adc6ff",
+                                  borderRadius: 10,
+                                  padding: 12,
+                                }}
                               >
-                                <Text strong style={{ fontSize: 12 }}>
+                                <Text strong style={{ fontSize: 13 }}>
                                   My Leaves This Month
                                 </Text>
-                                <Row gutter={8}>
+
+                                <Row gutter={12} style={{ marginTop: 12 }}>
                                   <Col span={8}>
                                     <Statistic
                                       title={
-                                        <Text style={{ fontSize: 10 }}>
+                                        <Text style={{ fontSize: 11 }}>
                                           Approved
                                         </Text>
                                       }
@@ -1269,15 +1530,17 @@ function DashboardContent() {
                                         dashboardData.leaves.myLeaves.approved
                                       }
                                       valueStyle={{
-                                        fontSize: 16,
+                                        fontSize: 18,
                                         color: "#52c41a",
+                                        fontWeight: 600,
                                       }}
                                     />
                                   </Col>
+
                                   <Col span={8}>
                                     <Statistic
                                       title={
-                                        <Text style={{ fontSize: 10 }}>
+                                        <Text style={{ fontSize: 11 }}>
                                           Pending
                                         </Text>
                                       }
@@ -1285,15 +1548,17 @@ function DashboardContent() {
                                         dashboardData.leaves.myLeaves.pending
                                       }
                                       valueStyle={{
-                                        fontSize: 16,
+                                        fontSize: 18,
                                         color: "#faad14",
+                                        fontWeight: 600,
                                       }}
                                     />
                                   </Col>
+
                                   <Col span={8}>
                                     <Statistic
                                       title={
-                                        <Text style={{ fontSize: 10 }}>
+                                        <Text style={{ fontSize: 11 }}>
                                           Days
                                         </Text>
                                       }
@@ -1301,101 +1566,150 @@ function DashboardContent() {
                                         dashboardData.leaves.myLeaves.totalDays
                                       }
                                       valueStyle={{
-                                        fontSize: 16,
+                                        fontSize: 18,
                                         color: "#1677ff",
+                                        fontWeight: 600,
                                       }}
                                     />
                                   </Col>
                                 </Row>
-                              </Space>
-                            </Card>
+                              </div>
+                            </div>
 
-                            <Button
-                              type="dashed"
-                              block
-                              icon={<PlusOutlined />}
-                              size="small"
-                              onClick={() => router.push("/leaves")}
+                            {/* BOTTOM ACTION BUTTON */}
+                            <div
+                              style={{
+                                paddingTop: 12,
+                                borderTop: "1px solid #f0f0f0",
+                              }}
                             >
-                              Apply for Leave
-                            </Button>
-                          </Space>
-                        </>
-                      )}
-                    </Space>
-                  </Card>
-
-                  {/* Upcoming Tasks */}
-                  <Card
-                    title={
-                      <Space>
-                        <CalendarOutlined style={{ color: "#faad14" }} />
-                        <span>Upcoming Tasks</span>
-                      </Space>
-                    }
-                    size="small"
-                    extra={
-                      <Button
-                        type="link"
-                        size="small"
-                        onClick={() => router.push("/tickets")}
-                      >
-                        View Calendar
-                      </Button>
-                    }
-                    styles={{ body: { padding: 0 } }}
-                  >
-                    <div style={{ maxHeight: 400, overflowY: "auto" }}>
-                      {dashboardData.upcomingTasks.length > 0 ? (
-                        <List
-                          size="small"
-                          dataSource={dashboardData.upcomingTasks}
-                          renderItem={(item) => (
-                            <List.Item
-                              style={{ padding: "12px 16px", border: "none" }}
-                              actions={[
-                                <Tag
-                                  key="priority"
-                                  color={getPriorityColor(item.priority)}
-                                  style={{ fontSize: 10, margin: 0 }}
-                                >
-                                  {item.priority.toUpperCase()}
-                                </Tag>,
-                              ]}
-                            >
-                              <List.Item.Meta
-                                title={
-                                  <Text strong style={{ fontSize: 13 }}>
-                                    {item.title}
-                                  </Text>
-                                }
-                                description={
-                                  <Text
-                                    type="secondary"
-                                    style={{ fontSize: 11 }}
-                                  >
-                                    <ClockCircleOutlined
-                                      style={{ marginRight: 4 }}
-                                    />
-                                    {formatDueDate(item.time)}
-                                  </Text>
-                                }
-                              />
-                            </List.Item>
-                          )}
-                        />
-                      ) : (
-                        <div style={{ padding: 16 }}>
-                          <Text type="secondary">No upcoming tasks</Text>
+                              <Button
+                                type="primary"
+                                block
+                                icon={<PlusOutlined />}
+                                onClick={() => router.push("/leaves")}
+                                style={{
+                                  borderRadius: 8,
+                                  height: 40,
+                                  fontWeight: 500,
+                                }}
+                              >
+                                Apply for Leave
+                              </Button>
+                            </div>
+                          </Card>
                         </div>
                       )}
-                    </div>
-                  </Card>
-                </Space>
-              </Col>
-            </Row>
-          </>
-        ) : null}
+                    </Col>
+                    <Col xs={24} lg={16}>
+                      {/* Recent Tickets */}
+                      <Card
+                        title={
+                          <Space>
+                            <FileTextOutlined style={{ color: "#722ed1" }} />
+                            <span>Recent Tickets</span>
+                          </Space>
+                        }
+                        size="small"
+                        extra={
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => router.push("/tickets")}
+                          >
+                            View All
+                          </Button>
+                        }
+                        style={{
+                          height: "230px",
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                        bodyStyle={{
+                          padding: 0,
+                          flex: 1,
+                          overflowY: "auto",
+                        }}
+                      >
+                        <Table
+                          dataSource={recentTickets}
+                          columns={[
+                            {
+                              title: "Ticket",
+                              dataIndex: "ticketNumber",
+                              key: "ticketNumber",
+                              width: 120,
+                              render: (text: string) => (
+                                <Text style={{ fontSize: 12 }}>{text}</Text>
+                              ),
+                            },
+
+                            {
+                              title: "Create Time",
+                              dataIndex: "createdAt",
+                              key: "startTime",
+                              width: 100,
+                              render: (text: string) => (
+                                <Text style={{ fontSize: 12 }}>
+                                  {dayjs(text).format("DD/MM/YY")}
+                                </Text>
+                              ),
+                            },
+
+                            {
+                              title: "Status",
+                              dataIndex: "status",
+                              key: "status",
+                              width: 120,
+                              render: (status: string) => {
+                                let color = "default";
+                                if (status === "completed") color = "success";
+                                if (status === "in_progress")
+                                  color = "processing";
+                                if (status === "not_started") color = "default";
+                                if (status === "blocked") color = "error";
+
+                                return (
+                                  <Tag
+                                    color={color}
+                                    style={{ fontSize: 10, margin: 0 }}
+                                  >
+                                    {status?.replace(/_/g, " ").toUpperCase()}
+                                  </Tag>
+                                );
+                              },
+                            },
+                            {
+                              title: "Title",
+                              dataIndex: "title",
+                              key: "title",
+                              ellipsis: true,
+                              render: (text: string) => (
+                                <Text style={{ fontSize: 12 }}>{text}</Text>
+                              ),
+                            },
+                          ]}
+                          pagination={false}
+                          tableLayout="fixed"
+                          size="small"
+                          rowKey="id"
+                          onRow={(record) => ({
+                            onClick: () => {
+                              router.push(`/tickets/${record.id}`);
+                            },
+                          })}
+                        />
+                      </Card>
+                    </Col>
+                  </Row>
+                </>
+              ) : null}
+            </>
+          )}
+
+          {/* ✅ ORGANIZATION SEGMENT */}
+          {activeSegment === "organization" && <Organization />}
+        </div>
       </div>
     </MainLayout>
   );

@@ -464,6 +464,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/recruitment/job-requisitions",
           },
           {
+            key: "/recruitment/candidate-management",
+            label: "Candidate Management",
+            icon: <UserAddOutlined />,
+            path: "/recruitment/candidate-management",
+          },
+          {
             key: "/recruitment-settings",
             label: "Status & Actions",
             icon: <SolutionOutlined />,

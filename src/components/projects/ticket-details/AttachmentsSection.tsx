@@ -42,8 +42,8 @@ export default function AttachmentsSection({
   };
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <Space style={{ marginBottom: 8 }}>
+    <div style={{ marginTop: 12 }}>
+      <Space style={{ marginBottom: 4 }}>
         <Typography.Title level={5} style={{ fontSize: 13, margin: 0 }}>
           Attachments
         </Typography.Title>
@@ -68,7 +68,7 @@ export default function AttachmentsSection({
           border: "1px solid #f0f0f0",
           borderRadius: 4,
           background: "#fff",
-          padding: 16,
+          padding: 12,
         }}
       >
         {!isEditing && (

@@ -120,8 +120,8 @@ export default function RelatedLinksSection({
   };
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+    <div style={{ marginTop: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <Typography.Title level={5} style={{ fontSize: 13, margin: 0 }}>Related Links</Typography.Title>
         {!isEditing && (
           <Select
@@ -147,7 +147,7 @@ export default function RelatedLinksSection({
         )}
       </div>
 
-      <div style={{ border: "1px solid #f0f0f0", borderRadius: 4, background: "#fff", padding: showAddLinkForm ? 16 : 0 }}>
+      <div style={{ border: "1px solid #f0f0f0", borderRadius: 4, background: "#fff", padding: showAddLinkForm ? 12 : 0 }}>
         {/* Add Link Form */}
         {showAddLinkForm && selectedLinkType && (
           <div style={{ marginBottom: 16 }}>
@@ -160,7 +160,7 @@ export default function RelatedLinksSection({
             <div style={{ marginBottom: "12px" }}>
               <Text style={{ fontSize: 12, color: '#8c8c8c' }}>Description</Text>
               <Input
-                placeholder="Enter description..."
+                placeholder="Enter description"
                 value={linkFormData.description}
                 onChange={(e) =>
                   setLinkFormData((prev) => ({
@@ -175,7 +175,7 @@ export default function RelatedLinksSection({
             <div style={{ marginBottom: "12px" }}>
               <Text style={{ fontSize: 12, color: '#8c8c8c' }}>URL</Text>
               <Input
-                placeholder="https://..."
+                placeholder="https://"
                 value={linkFormData.url}
                 onChange={(e) =>
                   setLinkFormData((prev) => ({
@@ -298,7 +298,7 @@ export default function RelatedLinksSection({
                 // Show normal link display
                 return (
                   <List.Item
-                    style={{ padding: "8px 16px", borderBottom: '1px solid #f0f0f0' }}
+                    style={{ padding: "6px 12px", borderBottom: '1px solid #f0f0f0' }}
                     actions={
                       !isEditing
                         ? [

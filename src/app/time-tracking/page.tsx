@@ -15,7 +15,11 @@ export default function TimeTrackingRedirect() {
   return (
     <MainLayout>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <Spin size="large" tip="Redirecting..." />
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Redirecting">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
       </div>
     </MainLayout>
   );

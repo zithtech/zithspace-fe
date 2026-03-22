@@ -138,7 +138,7 @@ export class EmployeeService {
           label: string;
           workEmail: string;
         }>
-      >("/api/employees/select");
+      >("/api/members/select");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

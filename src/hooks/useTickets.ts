@@ -15,9 +15,18 @@ export const ticketKeys = {
   detail: (id: string) => [...ticketKeys.details(), id] as const,
   my: (params: any) => [...ticketKeys.all, "my", params] as const,
   kanban: (params: any) => [...ticketKeys.all, "kanban", params] as const,
+  dashboardStats: () => [...ticketKeys.all, "dashboard-stats"] as const,
 };
 
 // --- Queries ---
+
+export const useTicketDashboardStats = () => {
+  return useQuery({
+    queryKey: ticketKeys.dashboardStats(),
+    queryFn: () => TicketService.getDashboardStats(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
 
 export const useKanbanTickets = (params: any, options?: any) => {
   return useQuery({

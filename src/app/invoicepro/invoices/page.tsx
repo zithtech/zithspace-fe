@@ -1080,7 +1080,7 @@ const startBulkDelete = async () => {
 
 
 
-  if (authLoading) return <MainLayout><Spin tip="Loading..." /></MainLayout>;
+  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><Spin tip="Loading"><div style={{ padding: 20 }} /></Spin></div></MainLayout>;
   if (!canReadInvoice) return null;
 
   return (

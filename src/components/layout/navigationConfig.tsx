@@ -124,16 +124,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.TICKET_READ,
         ],
         children: [
-          {
-            key: "/projects",
-            label: "Overview",
-            icon: <DashboardOutlined />,
-            path: "/projects",
-            requiredAnyPermission: [
-              Permissions.PROJECT_READ,
-              Permissions.TICKET_READ,
-            ],
-          },
+          // {
+          //   key: "/projects",
+          //   label: "Overview",
+          //   icon: <DashboardOutlined />,
+          //   path: "/projects",
+          //   requiredAnyPermission: [
+          //     Permissions.PROJECT_READ,
+          //     Permissions.TICKET_READ,
+          //   ],
+          // },
           //   {
           //     key: "/projects/manage",
           //     label: "Projects",
@@ -565,6 +565,38 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <ControlOutlined />,
         path: "/settings",
         requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "pipeline-group",
+        label: "Pipeline",
+        icon: <ProjectOutlined />,
+        requiredPermission: Permissions.SETTINGS_READ,
+        children: [
+          {
+            key: "/admin/pipeline-settings",
+            label: "Settings",
+            icon: <SettingOutlined />,
+            path: "/admin/pipeline-settings",
+          },
+          {
+            key: "/admin/deals",
+            label: "Deals",
+            icon: <AccountBookOutlined />,
+            path: "/admin/deals",
+          },
+          {
+            key: "/admin/deals/forecast",
+            label: "Forecast",
+            icon: <BarChartOutlined />,
+            path: "/admin/deals/forecast",
+          },
+          {
+            key: "/admin/deals/board",
+            label: "Board",
+            icon: <AppstoreOutlined />,
+            path: "/admin/deals/board",
+          },
+        ],
       },
       {
         key: "/roles",

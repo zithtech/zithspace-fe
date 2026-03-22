@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, Tag, Typography, Avatar, Space, Select, Input, Dropdown, MenuProps, Button } from 'antd';
+import { Card, Tag, Typography, Avatar, Space, Select, Input, Dropdown, MenuProps, Button, Divider } from 'antd';
 import { Ticket } from '@/services/ticketService';
 import { getPriorityColor, getTypeColor, PRIORITY_OPTIONS, TYPE_OPTIONS } from '@/utils/ticketUtils';
 import { MoreOutlined, RocketOutlined, CloseCircleOutlined } from '@ant-design/icons';
@@ -30,14 +30,19 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     isDragging,
   } = useSortable({ id: ticket.id });
 
+  const shadowStyle = isDragging 
+    ? { boxShadow: '0 8px 16px rgba(0,0,0,0.12)' } 
+    : { boxShadow: '0 1px 2px rgba(0,0,0,0.02)' };
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.6 : 1,
     cursor: 'grab',
-    marginBottom: 8,
-    // border: '1px solid #f0f0f0', // Ensure border exists
+    marginBottom: 12,
     backgroundColor: 'white',
+    borderRadius: 12,
+    ...shadowStyle,
   };
 
   // Editing logic
@@ -99,9 +104,24 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             onPointerDown={stopPropagation}
             onMouseDown={stopPropagation}
             onClick={() => startEditing('title', ticket.title)}
-            style={{ cursor: 'text', marginBottom: 8 }}
+            style={{ 
+              cursor: 'text', 
+              marginBottom: 10,
+              minHeight: 40 
+            }}
           >
-            <Text style={{ fontSize: 13 }}>{ticket.title}</Text>
+            <Text style={{ 
+              fontSize: 13, 
+              fontWeight: 500, 
+              color: '#262626',
+              lineHeight: '1.5',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
+            }}>
+              {ticket.title}
+            </Text>
           </div>
       );
   };
@@ -129,8 +149,16 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     return (
       <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('priority', ticket.priority)}>
           <Tag 
+            bordered={false}
             color={getPriorityColor(ticket.priority)} 
-            style={{ margin: 0, fontSize: 10, cursor: 'pointer' }}
+            style={{ 
+              margin: 0, 
+              fontSize: 10, 
+              fontWeight: 700,
+              borderRadius: 4,
+              padding: '0 6px',
+              cursor: 'pointer' 
+            }}
           >
             {ticket.priority}
           </Tag>
@@ -166,11 +194,20 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
       }
       return (
           <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('storyPoint', ticket.storyPoint)}>
-            <Tag 
-                style={{ margin: 0, fontSize: 10, cursor: 'pointer' }}
-            >
+            <div style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                backgroundColor: '#f5f5f5',
+                borderRadius: 4,
+                padding: '0 6px',
+                height: 20,
+                fontSize: 10,
+                fontWeight: 600,
+                color: '#595959',
+                cursor: 'pointer'
+            }}>
                 {ticket.storyPoint !== undefined && ticket.storyPoint !== null ? `${ticket.storyPoint} SP` : '- SP'}
-            </Tag>
+            </div>
           </div>
       );
   };
@@ -243,27 +280,21 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
       <Card 
         size="small" 
         hoverable 
-        bodyStyle={{ padding: '10px' }}
-        style={{ borderRadius: 8, cursor: editingField ? 'default' : 'grab' }}
+        bodyStyle={{ padding: '12px' }}
+        style={{ 
+          borderRadius: 12, 
+          cursor: editingField ? 'default' : 'grab',
+          border: '1px solid #f0f0f0',
+          transition: 'all 0.2s ease',
+        }}
+        className="kanban-card-premium"
       >
         <Space direction="vertical" size={2} style={{ width: '100%' }}>
           {/* Header: ID and Type */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-            <Text type="secondary" style={{ fontSize: 11 }}>{ticket.ticketNumber}</Text>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <Text type="secondary" style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}>{ticket.ticketNumber}</Text>
             
-            <div style={{ display: 'flex', gap: 4 }}>
-                {/* Visual indicator for Sprint actions if Context Menu is hidden */}
-                 {menuItems && menuItems.length > 0 && (
-                     <div onPointerDown={stopPropagation} onClick={(e) => {
-                         e.stopPropagation();
-                         // Ideally show dropdown
-                     }}>
-                        <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-                            <Button type="text" size="small" icon={<MoreOutlined rotate={90} />} style={{ width: 20, height: 20, minWidth: 20 }} />
-                        </Dropdown>
-                     </div>
-                 )}
-
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 {/* Type Edit */}
                  {editingField === 'type' ? (
                      <div onPointerDown={stopPropagation}>
@@ -281,12 +312,35 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
                  ) : (
                     <div onPointerDown={stopPropagation} onMouseDown={stopPropagation} onClick={() => startEditing('type', ticket.type)}>
                         <Tag 
+                            bordered={false}
                             color={getTypeColor(ticket.type)} 
-                            style={{ margin: 0, fontSize: 10, lineHeight: '18px', cursor: 'pointer' }}
+                            style={{ 
+                              margin: 0, 
+                              fontSize: 9, 
+                              fontWeight: 700,
+                              lineHeight: '16px', 
+                              borderRadius: 4,
+                              textTransform: 'uppercase',
+                              cursor: 'pointer' 
+                            }}
                         >
                             {ticket.type}
                         </Tag>
                     </div>
+                 )}
+
+                 {/* Extra Actions Trigger */}
+                 {menuItems && menuItems.length > 0 && (
+                     <div onPointerDown={stopPropagation} onClick={(e) => e.stopPropagation()}>
+                        <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+                            <Button 
+                              type="text" 
+                              size="small" 
+                              icon={<MoreOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />} 
+                              style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                            />
+                        </Dropdown>
+                     </div>
                  )}
             </div>
           </div>
@@ -294,14 +348,23 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
           {/* Title Edit */}
           {renderTitle()}
 
+          <Divider style={{ margin: '8px 0', opacity: 0.6 }} />
+
           {/* Footer: Priority, SP, Assignee */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-            <Space size={4}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Space size={6}>
                  {renderPriority()}
                  {renderStoryPoints()}
             </Space>
             
-            {renderAssignee()}
+            <div style={{ 
+              backgroundColor: '#f9f9f9', 
+              padding: '2px', 
+              borderRadius: '50%', 
+              border: '1px solid #f0f0f0' 
+            }}>
+              {renderAssignee()}
+            </div>
           </div>
         </Space>
       </Card>

@@ -34,7 +34,11 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
         return (
             <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                    <Spin size="large" tip="Loading ticket details..." />
+                <div style={{ padding: 100, textAlign: 'center' }}>
+                    <Spin size="large" tip="Loading ticket details">
+                        <div style={{ height: 100 }} />
+                    </Spin>
+                </div>
                 </div>
             </Layout>
         );

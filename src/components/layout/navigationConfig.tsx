@@ -368,7 +368,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Settings",
             path: "/onboarding/settings",
           },
-       
         ],
       },
 
@@ -388,7 +387,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Configuration",
             path: "/employee-exit/configuration",
           },
-        ]
+        ],
       },
       {
         key: "orgstructure",
@@ -440,19 +439,19 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+      // {
+      //   key: "/recruitment-settings",
+      //   label: "Status & Actions",
+      //   icon: <SolutionOutlined />,
+      //   path: "/recruitment-settings",
+      // },
       {
-        key: "/recruitment-settings",
-        label: "Status & Actions",
-        icon: <SolutionOutlined />,
-        path: "/recruitment-settings",
+        key: "/performance",
+        label: "Performance View",
+        icon: <BarChartOutlined />,
+        path: "/perfomance-management",
+        requiredPermission: Permissions.USER_READ,
       },
-          {
-      key: "/performance",
-      label: "Performance View",
-      icon: <BarChartOutlined />,  
-      path: "/perfomance-management", 
-      requiredPermission: Permissions.USER_READ, 
-    },
       {
         key: "recruitment-group",
         icon: <TeamOutlined />,
@@ -463,6 +462,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             label: "Job Requisitions",
             icon: <ProjectOutlined />,
             path: "/recruitment/job-requisitions",
+          },
+          {
+            key: "/recruitment-settings",
+            label: "Status & Actions",
+            icon: <SolutionOutlined />,
+            path: "/recruitment-settings",
           },
         ],
       },
@@ -570,7 +575,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/salary/Create-payslip",
             requiredPermission: Permissions.SALARY_MANAGE,
           },
-            {
+          {
             key: "/salary/salarypreview",
             label: "Salary Preview",
             icon: <SnippetsOutlined />,
@@ -615,7 +620,11 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     icon: <SettingOutlined />,
     pathPrefixes: ["/clients", "/clients-v2", "/settings", "/admin", "/roles"],
     defaultPath: "/clients-v2",
-    requiredAnyPermission: [Permissions.CLIENT_READ, Permissions.SETTINGS_READ, Permissions.ROLE_READ],
+    requiredAnyPermission: [
+      Permissions.CLIENT_READ,
+      Permissions.SETTINGS_READ,
+      Permissions.ROLE_READ,
+    ],
     items: [
       {
         key: "/clients",

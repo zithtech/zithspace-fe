@@ -1,3 +1,5 @@
+"use client";
+import { useParams } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import VendorForm from "../../components/VendorForm";
 

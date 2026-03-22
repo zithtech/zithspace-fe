@@ -710,44 +710,4 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
     ],
   },
-  {
-    key: "ADMIN",
-    label: "ADMIN",
-    icon: <SettingOutlined />,
-    pathPrefixes: ["/clients", "/clients-v2", "/settings", "/admin", "/roles"],
-    defaultPath: "/clients-v2",
-    requiredAnyPermission: [
-      Permissions.CLIENT_READ,
-      Permissions.SETTINGS_READ,
-      Permissions.ROLE_READ,
-    ],
-    items: [
-      {
-        key: "/clients",
-        label: "Clients (Legacy)",
-        icon: <UserAddOutlined />,
-        path: "/clients",
-      },
-      {
-        key: "/clients-v2",
-        label: "Clients V2",
-        icon: <ApartmentOutlined />,
-        path: "/clients-v2",
-      },
-      {
-        key: "/settings",
-        label: "General Settings",
-        icon: <ControlOutlined />,
-        path: "/settings",
-        requiredPermission: Permissions.SETTINGS_READ,
-      },
-      {
-        key: "/roles",
-        label: "Roles & Permissions",
-        icon: <SafetyOutlined />,
-        path: "/roles",
-        requiredPermission: Permissions.ROLE_READ,
-      },
-    ],
-  },
 ];

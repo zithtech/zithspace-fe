@@ -13,6 +13,7 @@ export interface LeaveAdjustmentViewData {
   employee: string;
   employeeId: string;
   leaveType: string;
+  leaveTypeId: string;
   type: string; // 'Credit' or 'Debit'
   amount: number;
   unit?: string;
@@ -23,19 +24,24 @@ export interface LeaveAdjustmentViewData {
   expiryDate?: string | null;
 }
 
-const transformApiToView = (adj: LeaveAdjustmentAPIResponse): LeaveAdjustmentViewData => ({
+const transformApiToView = (
+  adj: LeaveAdjustmentAPIResponse,
+): LeaveAdjustmentViewData => ({
   key: adj.id,
   id: adj.id,
-  employee: adj.user.name,
-  employeeId: adj.userId,
-  leaveType: adj.leaveType,
+  employee: `${adj.employee.first_name} ${adj.employee.last_name} (${adj.employee.employee_code})`,
+  employeeId: adj.employeeId,
+  leaveType: adj.leaveType.name,
+  leaveTypeId: adj.leaveTypeId,
   type: adj.adjustmentType,
   amount: Number(adj.amount),
   unit: adj.unit,
   reason: adj.reason,
-  approvedBy: adj.approvedBy?.name || 'N/A',
+  approvedBy: adj.approvedBy?.name || "N/A",
   approvedById: adj.approvedById,
-  compOffWorkDate: adj.compOffWorkDate ? dayjs(adj.compOffWorkDate).toISOString() : null,
+  compOffWorkDate: adj.compOffWorkDate
+    ? dayjs(adj.compOffWorkDate).toISOString()
+    : null,
   expiryDate: adj.expiryDate ? dayjs(adj.expiryDate).toISOString() : null,
 });
 
@@ -51,9 +57,14 @@ export const useLeaveAdjustments = () => {
       const data = await LeaveAdjustmentService.getLeaveAdjustments();
       setDataSource(data.map(transformApiToView));
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || "Failed to load leave adjustments.";
+      const errorMessage =
+        err.response?.data?.error || "Failed to load leave adjustments.";
       setError(errorMessage);
-      notification.error({ message: "Error", description: errorMessage, placement: "topRight" });
+      notification.error({
+        message: "Error",
+        description: errorMessage,
+        placement: "topRight",
+      });
     } finally {
       setLoading(false);
     }
@@ -67,22 +78,42 @@ export const useLeaveAdjustments = () => {
     try {
       await LeaveAdjustmentService.createLeaveAdjustment(payload);
       await fetchAdjustments(); // Refetch to get the latest data
-      notification.success({ message: "Adjustment added successfully", placement: "topRight", duration: 3 });
+      notification.success({
+        message: "Adjustment added successfully",
+        placement: "topRight",
+        duration: 3,
+      });
       return true;
     } catch (err: any) {
-      notification.error({ message: "Error", description: err.response?.data?.error || "Failed to add adjustment.", placement: "topRight" });
+      notification.error({
+        message: "Error",
+        description: err.response?.data?.error || "Failed to add adjustment.",
+        placement: "topRight",
+      });
       return false;
     }
   };
 
-  const updateAdjustment = async (id: string, payload: Partial<LeaveAdjustmentPayload>) => {
+  const updateAdjustment = async (
+    id: string,
+    payload: Partial<LeaveAdjustmentPayload>,
+  ) => {
     try {
       await LeaveAdjustmentService.updateLeaveAdjustment(id, payload);
       await fetchAdjustments(); // Refetch to get the latest data
-      notification.success({ message: "Adjustment updated successfully", placement: "topRight", duration: 3 });
+      notification.success({
+        message: "Adjustment updated successfully",
+        placement: "topRight",
+        duration: 3,
+      });
       return true;
     } catch (err: any) {
-      notification.error({ message: "Error", description: err.response?.data?.error || "Failed to update adjustment.", placement: "topRight" });
+      notification.error({
+        message: "Error",
+        description:
+          err.response?.data?.error || "Failed to update adjustment.",
+        placement: "topRight",
+      });
       return false;
     }
   };
@@ -91,10 +122,18 @@ export const useLeaveAdjustments = () => {
     try {
       await LeaveAdjustmentService.deleteLeaveAdjustment(id);
       setDataSource((prev) => prev.filter((item) => item.id !== id));
-      notification.success({ message: "Adjustment deleted successfully", placement: "topRight", duration: 3 });
+      notification.success({
+        message: "Adjustment deleted successfully",
+        placement: "topRight",
+        duration: 3,
+      });
       return true;
     } catch (err: any) {
-      notification.error({ message: "Error", description: "Failed to delete adjustment.", placement: "topRight" });
+      notification.error({
+        message: "Error",
+        description: "Failed to delete adjustment.",
+        placement: "topRight",
+      });
       return false;
     }
   };

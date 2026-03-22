@@ -30,11 +30,14 @@ export type RecurringFrequency =
 
 export interface InvoiceItem {
   id?: string;
-  item: string;
+  itemName: string;
   description?: string;
-  qty: number;
-  price: number;
-  tax?: number;
+  quantity: number;
+  rate: number;
+  taxRate?: number;
+  rowNumber?: number;
+  extraFields?: any;
+  projectId?: string;
 }
 
 export interface Invoice {
@@ -47,25 +50,27 @@ export interface Invoice {
 
   invoiceDate: string;
   dueDate: string;
-  customerId:String,
-  customerSnapshot:JSON,
+  customerId: string;
+  customerSnapshot: any;
 
   subtotal: number;
   taxTotal: number;
   discount: number;
-  total: number;
+  grandTotal: number;
+  discountTotal: number;
   paidAmount: number;
   balanceDue: number;
   recurringFrequency?: RecurringFrequency;
-  taxInclusive:boolean;
+  taxInclusive: boolean;
   notes?: string;
   terms?: string;
-  pdfUrl:string;
+  pdfUrl: string;
 
   sentAt?: string;
   paidAt?: string;
   cancelledAt?: string;
   settingsProfileId?: string;
+  templateId?: string;
 
   customer: {
     id: string;
@@ -73,7 +78,8 @@ export interface Invoice {
     email?: string;
   };
 
-  items: InvoiceItem[];
+  lineItems: InvoiceItem[];
+  metadata?: any;
 
   createdAt: string;
   updatedAt: string;
@@ -98,8 +104,11 @@ interface UpdateInvoiceStatusPayload {
 export interface CreateInvoiceData {
   customerId?: string;
   customerSnapshot?: any;
-  items: InvoiceItem[];
+  items?: InvoiceItem[];
+  lineItems?: InvoiceItem[];
   discount?: number;
+  discountTotal?: number;
+  grandTotal?: number;
   currency: string;
   invoiceDate: string;
   dueDate: string;
@@ -108,10 +117,14 @@ export interface CreateInvoiceData {
   invoiceType?: InvoiceType;
   recurringFrequency?: RecurringFrequency;
   settingsProfileId?: string;
+  templateId?: string;
+  metadata?: any;
 }
 
 export interface UpdateInvoiceData extends Partial<CreateInvoiceData> {
-  items: InvoiceItem[];
+  items?: InvoiceItem[];
+  lineItems?: InvoiceItem[];
+  metadata?: any;
 }
 
 export interface InvoiceListParams {
@@ -347,6 +360,18 @@ class InvoiceService {
     }
   }
 
+  static async bulkDeleteInvoices(ids: string[]): Promise<{ deletedCount: number }> {
+    try {
+      const response = await apiClient.post<ApiResponse<{ deletedCount: number }>>(
+        '/api/invoices/bulk-delete',
+        { ids }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to bulk move invoices to trash');
+    }
+  }
+
   /**
    * Downloads the invoice PDF. 
    * Handles the Bearer token and the backend redirect.
@@ -421,7 +446,63 @@ static async getPaymentHistory(
   }
 }
 
+
+  static async getDeletedInvoices(params?: InvoiceListParams) {
+    try {
+      const response = await apiClient.get<ApiListResponse<Invoice[]>>(
+        '/api/invoices/deleted',
+        { params }
+      );
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to fetch deleted invoices');
+    }
+  }
+
+  static async restoreInvoice(id: string): Promise<Invoice> {
+    try {
+      const response = await apiClient.patch<ApiResponse<Invoice>>(
+        `/api/invoices/${id}/restore`
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to restore invoice');
+    }
+  }
+
+  static async bulkRestoreInvoices(ids: string[]): Promise<{ restoredCount: number }> {
+    try {
+      const response = await apiClient.post<ApiResponse<{ restoredCount: number }>>(
+        '/api/invoices/bulk-restore',
+        { ids }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to bulk restore invoices');
+    }
+  }
+
+  static async permanentDeleteInvoice(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/invoices/${id}/permanent`);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to permanently delete invoice');
+    }
+  }
+
+  static async bulkPermanentDeleteInvoices(ids: string[]): Promise<{ deletedCount: number }> {
+    try {
+      const response = await apiClient.post<ApiResponse<{ deletedCount: number }>>(
+        '/api/invoices/bulk-permanent-delete',
+        { ids }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to bulk permanently delete invoices');
+    }
+  }
 }
+
 
 
 

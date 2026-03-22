@@ -103,23 +103,6 @@ export default function MembersPage() {
   // Available shifts for dropdown
   const [shifts, setShifts] = useState<Shift[]>([]);
 
-  // Protect route - requires user.read permission
-  useEffect(() => {
-    if (!isLoading && !canReadUser) {
-      router.push("/dashboard");
-    }
-  }, [isLoading, canReadUser, router]);
-
-  // Show loading spinner while authentication is being checked
-  if (isLoading) {
-    return <LoadingSpinner message="Loading members..." />;
-  }
-
-  // Don't render if no read permission
-  if (!canReadUser) {
-    return null;
-  }
-
   // Fetch members
   const fetchMembers = async () => {
     try {
@@ -179,6 +162,13 @@ export default function MembersPage() {
       setShifts([]); // Set empty array on error
     }
   };
+
+  // Protect route - requires user.read permission
+  useEffect(() => {
+    if (!isLoading && !canReadUser) {
+      router.push("/dashboard");
+    }
+  }, [isLoading, canReadUser, router]);
 
   useEffect(() => {
     if (user) {
@@ -468,6 +458,16 @@ export default function MembersPage() {
       return () => clearTimeout(timer);
     }
   }, [success, error]);
+
+  // Show loading spinner while authentication is being checked
+  if (isLoading) {
+    return <LoadingSpinner message="Loading members..." />;
+  }
+
+  // Don't render if no read permission
+  if (!canReadUser) {
+    return null;
+  }
 
   // Don't render if no user
   if (!user) {

@@ -65,7 +65,7 @@ const invoices = data?.data ?? [];
 
 
   const totalRevenue = invoices.reduce(
-  (sum, inv) => sum + Number(inv.total || 0),
+  (sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0),
   0
 );
 
@@ -222,7 +222,7 @@ invoices.forEach((inv) => {
 
   const month = d.format("MMM"); // Jan, Feb, Mar...
   yearlyRevenueMap[month] =
-    (yearlyRevenueMap[month] || 0) + Number(inv.total || 0);
+    (yearlyRevenueMap[month] || 0) + Number(inv.grandTotal || (inv as any).total || 0);
 });
 
 // ensure all 12 months appear (even if 0)
@@ -348,13 +348,13 @@ const columns: ColumnsType<any> = [
   },
   {
     title: "Amount",
-    dataIndex: "total",
+    dataIndex: "grandTotal",
     width: 130,
     align: "right" as const,
     className: "px-4",
-    render: (v) => (
+    render: (v, record) => (
       <div className="font-bold text-gray-900">
-        $ {Number(v).toFixed(2)}
+        $ {Number(v || record.total || 0).toFixed(2)}
       </div>
     ),
   },

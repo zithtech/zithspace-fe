@@ -142,7 +142,7 @@ export default function SquadManagement() {
         <Avatar.Group maxCount={2} size="small">
           {record.squadMembers?.filter(m => m.memberType === 'HEAD').map(m => (
             <Tooltip key={m.id} title={`${m.member.name} (Head)`}>
-              <Avatar style={{ backgroundColor: '#52c41a' }}>{m.member.name.substring(0, 1).toUpperCase()}</Avatar>
+              <Avatar style={{ background: 'linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)', fontSize: '10px', fontWeight: 600, border: '1px solid #fff' }}>{m.member.name.substring(0, 1).toUpperCase()}</Avatar>
             </Tooltip>
           ))}
         </Avatar.Group>
@@ -205,7 +205,7 @@ export default function SquadManagement() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: '#ffffff', minHeight: '100%' }}>
+      <div style={{ padding: '20px 24px', background: '#ffffff', minHeight: '100%' }}>
         {/* Top Header Section */}
         <div style={{ marginBottom: '16px' }}>
           <Row justify="space-between" align="middle">
@@ -213,14 +213,14 @@ export default function SquadManagement() {
               <Space size={16} align="start">
                 <div style={{
                   backgroundColor: '#ffffff',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  border: '1px solid #f0f0f0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <TeamOutlined style={{ fontSize: '28px', color: '#1890ff' }} />
+                  <TeamOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
                 </div>
                 <div>
                   <Title level={2} style={{ margin: 0, fontWeight: 600 }}>Squad Management</Title>
@@ -237,11 +237,12 @@ export default function SquadManagement() {
                 size="large"
                 onClick={handleCreate}
                 style={{
-                  borderRadius: '10px',
-                  height: '44px',
-                  padding: '0 24px',
+                  borderRadius: '6px',
+                  height: '36px',
+                  padding: '0 16px',
                   fontWeight: 500,
-                  boxShadow: '0 4px 10px rgba(24, 144, 255, 0.2)'
+                  fontSize: '14px',
+                  boxShadow: 'none'
                 }}
               >
                 Create Squad
@@ -256,10 +257,11 @@ export default function SquadManagement() {
           bordered={false}
           style={{
             marginBottom: '16px',
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            borderRadius: '8px',
+            border: '1px solid #f0f0f0',
+            boxShadow: 'none'
           }}
-          styles={{ body: { padding: '16px 20px' } }}
+          styles={{ body: { padding: '12px 16px' } }}
         >
           <Row gutter={24} align="middle">
             <Col flex="auto">
@@ -305,7 +307,8 @@ export default function SquadManagement() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                      boxShadow: 'none',
+                      border: viewMode === 'grid' ? '1px solid #1890ff' : 'none'
                     }}
                   />
                   <Button
@@ -320,7 +323,8 @@ export default function SquadManagement() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                      boxShadow: 'none',
+                      border: viewMode === 'list' ? '1px solid #1890ff' : 'none'
                     }}
                   />
                 </div>
@@ -353,7 +357,7 @@ export default function SquadManagement() {
           ) : (
             <>
               {viewMode === 'grid' ? (
-                <Row gutter={[20, 20]}>
+                <Row gutter={[16, 16]}>
                   {filteredSquads.map(squad => (
                     <Col key={squad.id} xs={24} sm={12} lg={8} xl={6}>
                       <SquadCard

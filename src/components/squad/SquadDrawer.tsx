@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Drawer, Form, Input, Select, Button, Space, Divider, Tag, App, Typography, Table, Row, Col, Card, Avatar, Tooltip, Popconfirm } from 'antd';
+import { Drawer, Form, Input, Select, Button, Space, Divider, Tag, App, Typography, Table, Row, Col, Card, Avatar, Tooltip, Popconfirm, Switch } from 'antd';
 import { TeamOutlined, PlusOutlined, DeleteOutlined, EditOutlined, SaveOutlined, CloseOutlined, UserAddOutlined, UserOutlined } from '@ant-design/icons';
 import { Squad, SquadService, CreateSquadData, UpdateSquadData, SquadMember } from '@/services/squadService';
 import { MembersService } from '@/services/membersService';
@@ -184,10 +184,10 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
       key: 'name',
       render: (record: SquadMember) => (
         <Space>
-          <Avatar size="small" style={{ backgroundColor: '#1890ff' }}>{record.member.name.charAt(0).toUpperCase()}</Avatar>
+          <Avatar size="small" style={{ background: 'linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)', fontSize: '10px', fontWeight: 600, border: '1px solid #fff' }}>{record.member.name.charAt(0).toUpperCase()}</Avatar>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <Text strong style={{ fontSize: '13px' }}>{record.member.name}</Text>
-            <Text type="secondary" style={{ fontSize: '11px' }}>{record.member.workEmail}</Text>
+            <Text strong style={{ fontSize: '12px' }}>{record.member.name}</Text>
+            <Text type="secondary" style={{ fontSize: '10px' }}>{record.member.workEmail}</Text>
           </div>
         </Space>
       ),
@@ -249,10 +249,11 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
       title={
         <Space size={12}>
           <div style={{
-            backgroundColor: '#e6f7ff',
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
+            backgroundColor: '#ffffff',
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: '1px solid #f0f0f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -260,7 +261,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
             <TeamOutlined style={{ fontSize: '20px', color: '#1890ff' }} />
           </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 600 }}>{initialData ? 'Manage Squad' : 'Create Squad'}</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: '#141414' }}>{initialData ? 'Manage Squad' : 'Create Squad'}</div>
             <div style={{ fontSize: '12px', color: '#8c8c8c', fontWeight: 400 }}>
               {initialData ? `Configuring ${initialData.squadName}` : 'Define a new project team and assign leadership.'}
             </div>
@@ -273,59 +274,70 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
       style={{ padding: 0 }}
       extra={
         <Space>
-          <Button onClick={onClose}>Cancel</Button>
-          {!initialData && (
-            <Button onClick={() => form.submit()} type="primary" loading={loading}>
-              Create
+          <Button onClick={onClose} size="small">Cancel</Button>
+          {initialData && (
+             <Button onClick={() => form.submit()} type="primary" loading={loading} size="small">
+              Save Details
             </Button>
           )}
         </Space>
       }
+      footer={null}
     >
-      <Form form={form} layout="vertical" onFinish={onFinish}>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="squadName"
-              label="Squad Name"
-              rules={[{ required: true, message: 'Please enter squad name' }]}
-            >
-              <Input placeholder="Frontend Team" onChange={handleNameChange} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="squadCode"
-              label="Squad Code"
-              rules={[{ required: true, message: 'Please enter squad code' }]}
-            >
-              <Input placeholder="FRONTEND_TEAM" />
-            </Form.Item>
-          </Col>
-        </Row>
+      <Form form={form} layout="vertical" onFinish={onFinish} style={{ padding: '0 4px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <Text type="secondary" style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+            BASIC INFORMATION
+          </Text>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="squadName"
+                label={<span style={{ fontWeight: 500, fontSize: '12px' }}>Squad Name</span>}
+                rules={[{ required: true, message: 'Please enter squad name' }]}
+                style={{ marginBottom: '12px' }}
+              >
+                <Input placeholder="Frontend Team" onChange={handleNameChange} style={{ borderRadius: '6px', height: '32px', fontSize: '13px' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="squadCode"
+                label={<span style={{ fontWeight: 500, fontSize: '12px' }}>Squad Code</span>}
+                rules={[{ required: true, message: 'Please enter squad code' }]}
+                style={{ marginBottom: '12px' }}
+              >
+                <Input placeholder="FRONTEND_TEAM" style={{ borderRadius: '6px', height: '32px', fontSize: '13px' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </div>
 
         {initialData ? (
-          <div style={{ marginTop: '8px' }}>
-            <Card size="small" bordered={false} style={{ backgroundColor: '#f9fafb', borderRadius: '12px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px' }}>
+          <div style={{ marginTop: '0' }}>
+            <Text type="secondary" style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+              MEMBER ALLOCATION
+            </Text>
+            <Card size="small" bordered={false} style={{ backgroundColor: '#fafafa', borderRadius: '8px', marginBottom: '12px', border: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px' }}>
                 <Space size={24}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500 }}>TOTAL MEMBERS</Text>
-                    <Title level={4} style={{ margin: 0 }}>{localSquadMembers.length}</Title>
+                    <Text type="secondary" style={{ fontSize: '10px', fontWeight: 500 }}>TOTAL CAPACITY</Text>
+                    <Title level={4} style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{localSquadMembers.length}</Title>
                   </div>
-                  <Divider type="vertical" style={{ height: '32px' }} />
+                  <Divider type="vertical" style={{ height: '24px', margin: '0 4px' }} />
                   <div style={{ display: 'flex', gap: '16px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>HEADS</Text>
-                      <Tag color="green" style={{ borderRadius: '6px', margin: 0, fontWeight: 600 }}>{headCount}</Tag>
+                      <Text type="secondary" style={{ fontSize: '10px' }}>HEADS</Text>
+                      <Text strong style={{ fontSize: '13px', color: '#52c41a' }}>{headCount}</Text>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>SUB HEADS</Text>
-                      <Tag color="gold" style={{ borderRadius: '6px', margin: 0, fontWeight: 600 }}>{subHeadCount}</Tag>
+                      <Text type="secondary" style={{ fontSize: '10px' }}>SUB HEADS</Text>
+                      <Text strong style={{ fontSize: '13px', color: '#faad14' }}>{subHeadCount}</Text>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>MEMBERS</Text>
-                      <Tag color="blue" style={{ borderRadius: '6px', margin: 0, fontWeight: 600 }}>{memberCount}</Tag>
+                      <Text type="secondary" style={{ fontSize: '10px' }}>MEMBERS</Text>
+                      <Text strong style={{ fontSize: '13px', color: '#1890ff' }}>{memberCount}</Text>
                     </div>
                   </div>
                 </Space>
@@ -334,7 +346,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                   ghost 
                   icon={showAddMember ? <CloseOutlined /> : <UserAddOutlined />} 
                   onClick={() => setShowAddMember(!showAddMember)}
-                  style={{ borderRadius: '8px' }}
+                  style={{ borderRadius: '6px' }}
                 >
                   {showAddMember ? 'Cancel' : 'Add Members'}
                 </Button>
@@ -342,7 +354,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
             </Card>
 
             {showAddMember && (
-              <Card size="small" style={{ marginBottom: '24px', border: '1px solid #e6f7ff', backgroundColor: '#f0f9ff', borderRadius: '12px' }}>
+              <Card size="small" style={{ marginBottom: '20px', border: '1px solid #e6f7ff', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
                 <Form form={addMemberForm} layout="vertical" onFinish={handleAddMember}>
                   <Row gutter={12} align="bottom">
                     <Col span={12}>
@@ -350,10 +362,7 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
                         <Select placeholder="Search member" showSearch optionFilterProp="label">
                           {members.map(m => (
                             <Option key={m.value} value={m.value} label={m.label}>
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span>{m.label}</span>
-                                <small style={{ color: '#8c8c8c' }}>{m.position}</small>
-                              </div>
+                              {m.label}
                             </Option>
                           ))}
                         </Select>
@@ -378,9 +387,12 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
               </Card>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <Text strong style={{ fontSize: '16px' }}>Member Listing</Text>
-              <Text type="secondary" style={{ fontSize: '13px' }}>{localSquadMembers.length} Employees</Text>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', marginTop: '0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Title level={5} style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>Squad Members</Title>
+                <Tag style={{ borderRadius: '10px', fontSize: '10px', border: 'none', background: '#f0f0f0', lineHeight: '16px' }}>{localSquadMembers.length}</Tag>
+              </div>
+              <Text type="secondary" style={{ fontSize: '11px' }}>Current Allocation</Text>
             </div>
             
             <Table 
@@ -393,33 +405,47 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
               style={{ border: '1px solid #f0f0f0', borderRadius: '8px', overflow: 'hidden' }}
             />
 
-            <Divider style={{ margin: '24px 0' }} />
-            
-            <Form.Item name="squadStatus" label="Squad Status">
-              <Select style={{ width: '200px' }}>
-                <Option value={true}>Active</Option>
-                <Option value={false}>Inactive</Option>
-              </Select>
-            </Form.Item>
-            <Button type="primary" onClick={() => form.submit()} loading={loading} style={{ height: '40px', padding: '0 32px', borderRadius: '8px' }}>
-              Save Squad Details
-            </Button>
+            <div style={{ 
+              padding: '12px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              background: '#fafafa',
+              border: '1px solid #f0f0f0', 
+              borderRadius: '8px',
+              marginTop: '12px' 
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#fff', padding: '6px', borderRadius: '4px', border: '1px solid #f0f0f0' }}>
+                  <SaveOutlined style={{ color: '#8c8c8c', fontSize: '12px' }} />
+                </div>
+                <div>
+                  <Text strong style={{ display: 'block', fontSize: '12px' }}>Squad Active Status</Text>
+                  <Text type="secondary" style={{ fontSize: '10px' }}>Visibility across the platform</Text>
+                </div>
+              </div>
+              <Form.Item name="squadStatus" valuePropName="checked" noStyle>
+                <Switch size="small" checkedChildren="ON" unCheckedChildren="OFF" />
+              </Form.Item>
+            </div>
           </div>
         ) : (
-          <>
-            <Divider orientation="left">Squad Leadership</Divider>
-
+          <div style={{ marginTop: '0' }}>
+            <Text type="secondary" style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
+              SQUAD LEADERSHIP
+            </Text>
             <Form.Item
               name="headIds"
-              label="Squad Head"
+              label={<span style={{ fontWeight: 500, fontSize: '12px' }}>Squad Heads</span>}
               rules={[{ required: true, message: 'Please select at least one head' }]}
+              style={{ marginBottom: '16px' }}
             >
-              <Select mode="multiple" placeholder="Select heads" showSearch optionFilterProp="label">
+              <Select mode="multiple" placeholder="Select heads" showSearch optionFilterProp="label" style={{ borderRadius: '6px' }} size="middle">
                 {members.map(m => (
                   <Option key={m.value} value={m.value} label={m.label}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>{m.label}</span>
-                      <small style={{ color: '#8c8c8c' }}>{m.position} • {m.email}</small>
+                    <div style={{ display: 'flex', flexDirection: 'column', padding: '2px 0' }}>
+                      <span style={{ fontSize: '13px' }}>{m.label}</span>
+                      <small style={{ color: '#8c8c8c', fontSize: '11px' }}>{m.position}</small>
                     </div>
                   </Option>
                 ))}
@@ -428,38 +454,46 @@ const SquadDrawer: React.FC<SquadDrawerProps> = ({ visible, onClose, onSuccess, 
 
             <Form.Item
               name="subHeadIds"
-              label="Squad Sub Head"
+              label={<span style={{ fontWeight: 500, fontSize: '12px' }}>Squad Sub Heads</span>}
+              style={{ marginBottom: '24px' }}
             >
-              <Select mode="multiple" placeholder="Select sub-heads" showSearch optionFilterProp="label">
+              <Select mode="multiple" placeholder="Select sub-heads" showSearch optionFilterProp="label" style={{ borderRadius: '6px' }} size="middle">
                 {members.map(m => (
                   <Option key={m.value} value={m.value} label={m.label}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>{m.label}</span>
-                      <small style={{ color: '#8c8c8c' }}>{m.position} • {m.email}</small>
+                    <div style={{ display: 'flex', flexDirection: 'column', padding: '2px 0' }}>
+                      <span style={{ fontSize: '13px' }}>{m.label}</span>
+                      <small style={{ color: '#8c8c8c', fontSize: '11px' }}>{m.position}</small>
                     </div>
                   </Option>
                 ))}
               </Select>
             </Form.Item>
 
-            <Divider orientation="left">Squad Members</Divider>
-
+            <Text type="secondary" style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '12px' }}>
+              TEAM ASSEMBLY
+            </Text>
             <Form.Item
               name="memberIds"
-              label="Squad Members"
+              label={<span style={{ fontWeight: 500, fontSize: '12px' }}>Squad Members</span>}
+              style={{ marginBottom: '0' }}
             >
-              <Select mode="multiple" placeholder="Select members" showSearch optionFilterProp="label">
+              <Select mode="multiple" placeholder="Select members" showSearch optionFilterProp="label" style={{ borderRadius: '6px' }} size="middle">
                 {members.map(m => (
                   <Option key={m.value} value={m.value} label={m.label}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>{m.label}</span>
-                      <small style={{ color: '#8c8c8c' }}>{m.position} • {m.email}</small>
+                    <div style={{ display: 'flex', flexDirection: 'column', padding: '2px 0' }}>
+                      <span style={{ fontSize: '13px' }}>{m.label}</span>
+                      <small style={{ color: '#8c8c8c', fontSize: '11px' }}>{m.position}</small>
                     </div>
                   </Option>
                 ))}
               </Select>
             </Form.Item>
-          </>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <Button onClick={onClose} style={{ flex: 1, height: '36px', borderRadius: '6px' }}>Cancel</Button>
+              <Button onClick={() => form.submit()} type="primary" loading={loading} style={{ flex: 1, height: '36px', borderRadius: '6px' }}>Create Squad</Button>
+            </div>
+          </div>
         )}
       </Form>
     </Drawer>

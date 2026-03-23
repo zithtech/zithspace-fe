@@ -72,45 +72,39 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
   return (
     <Card
       className="squad-card-premium"
-      hoverable
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{
-        borderRadius: '12px',
+        borderRadius: '8px',
         overflow: 'hidden',
-        transition: 'all 0.3s ease',
-        transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-        boxShadow: isHovered
-          ? '0 12px 24px rgba(0,0,0,0.12)'
-          : '0 4px 12px rgba(0,0,0,0.06)'
+        border: '1px solid #f0f0f0',
+        boxShadow: 'none'
       }}
-      bodyStyle={{ padding: '24px' }}
+      bodyStyle={{ padding: '16px' }}
       actions={[
-        <Button key="open" type="primary" style={{ border: 'none', height: '40px', borderRadius: '8px' }} onClick={() => onOpen(squad)}>View Squad</Button>,
-        <Button key="manage" style={{ height: '40px', borderRadius: '8px' }} onClick={() => onManage(squad)}>Manage Squad</Button>
+        <Button key="open" type="primary" style={{ border: 'none', height: '28px', borderRadius: '4px', fontSize: '12px', padding: '0 12px' }} onClick={() => onOpen(squad)}>View Squad</Button>,
+        <Button key="manage" style={{ height: '28px', borderRadius: '4px', fontSize: '12px', padding: '0 12px' }} onClick={() => onManage(squad)}>Manage Squad</Button>
       ]}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <Avatar
             shape="square"
-            size={40}
+            size={32}
             icon={<TeamOutlined />}
-            style={{ backgroundColor: '#f0f2f5', color: '#1890ff', borderRadius: '8px' }}
+            style={{ backgroundColor: '#f5f5f5', color: '#1890ff', borderRadius: '6px' }}
           />
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Title level={5} style={{ margin: 0 }}>{squad.squadName}</Title>
-              <Space size={4} style={{ color: '#8c8c8c', fontSize: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Title level={5} style={{ margin: 0, fontSize: '14px' }}>{squad.squadName}</Title>
+              <Space size={4} style={{ color: '#8c8c8c', fontSize: '12px' }}>
                 <TeamOutlined />
-                <Text type="secondary">{totalCount}</Text>
+                <Text type="secondary" style={{ fontSize: '12px' }}>{totalCount}</Text>
               </Space>
             </div>
-            <Text type="secondary" style={{ fontSize: '12px' }}>{squad.squadCode}</Text>
+            <Text type="secondary" style={{ fontSize: '11px' }}>{squad.squadCode}</Text>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Tag color={squad.isArchived ? 'orange' : (squad.squadStatus ? 'green' : 'red')} style={{ borderRadius: '12px', margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Tag color={squad.isArchived ? 'orange' : (squad.squadStatus ? 'green' : 'red')} style={{ borderRadius: '4px', margin: 0, fontSize: '10px', lineHeight: '18px' }}>
             {squad.isArchived ? 'Archived' : (squad.squadStatus ? 'Active' : 'Inactive')}
           </Tag>
           <Dropdown overlay={menu} trigger={['click']} placement="bottomRight">
@@ -119,33 +113,33 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
         </div>
       </div>
 
-      <div style={{ marginBottom: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>SQUAD HEADS</Text>
-          <Avatar.Group maxCount={3} size="small">
+      <div style={{ marginBottom: '4px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <Text type="secondary" style={{ fontSize: '11px', fontWeight: 600 }}>SQUAD HEADS</Text>
+          <Avatar.Group maxCount={4} size={28}>
             {squad.squadMembers.filter(m => m.memberType === 'HEAD').map(m => (
               <Tooltip key={m.id} title={m.member.name}>
-                <Avatar style={{ backgroundColor: '#87d068' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
+                <Avatar style={{ background: 'linear-gradient(135deg, #115bcbff 0%, #2575fc 100%)', fontSize: '10px', fontWeight: 600, border: '1.5px solid #fff' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
               </Tooltip>
             ))}
           </Avatar.Group>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>SUB HEADS</Text>
-          <Avatar.Group maxCount={3} size="small">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <Text type="secondary" style={{ fontSize: '11px', fontWeight: 600 }}>SUB HEADS</Text>
+          <Avatar.Group maxCount={4} size={28}>
             {squad.squadMembers.filter(m => m.memberType === 'SUB_HEAD').map(m => (
               <Tooltip key={m.id} title={m.member.name}>
-                <Avatar style={{ backgroundColor: '#2db7f5' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
+                <Avatar style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', fontSize: '10px', fontWeight: 600, border: '1.5px solid #fff' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
               </Tooltip>
             ))}
           </Avatar.Group>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>MEMBERS</Text>
-          <Avatar.Group maxCount={5} size="small">
+          <Text type="secondary" style={{ fontSize: '11px', fontWeight: 600 }}>MEMBERS</Text>
+          <Avatar.Group maxCount={4} size={28}>
             {squad.squadMembers.filter(m => m.memberType === 'MEMBER').map(m => (
               <Tooltip key={m.id} title={m.member.name}>
-                <Avatar style={{ backgroundColor: '#108ee9' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
+                <Avatar style={{ background: '#f0f2f5', color: '# ', fontSize: '10px', fontWeight: 600, border: '1.5px solid #fff' }}>{m.member.name.substring(0, 2).toUpperCase()}</Avatar>
               </Tooltip>
             ))}
           </Avatar.Group>

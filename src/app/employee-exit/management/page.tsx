@@ -22,7 +22,7 @@ import {
   Popconfirm,
   Row,
   Col,
-
+  ConfigProvider,
 } from 'antd';
 import { PlusOutlined, InboxOutlined, ClockCircleOutlined, EyeOutlined, DeleteOutlined, UserOutlined, FileTextOutlined, SearchOutlined, CheckCircleOutlined, CalendarOutlined, CarryOutOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
@@ -90,10 +90,7 @@ export default function EmployeeExitManagementPage() {
       if (results[1].status === 'fulfilled') {
         const data = results[1].value;
         if (Array.isArray(data)) {
-          setEmployees(data.map(e => ({
-            value: e.id,
-            label: `${e.first_name || ''} ${e.last_name || ''} (${e.employee_code || ''})`.trim() || e.id
-          })));
+          setEmployees(data);
         }
       } else console.error('Failed to fetch employees:', results[1].reason);
 
@@ -346,11 +343,10 @@ export default function EmployeeExitManagementPage() {
   ];
 
   const cardStyle = {
-    borderRadius: 12,
-    transition: "all 0.3s ease",
-    cursor: "pointer",
+    borderRadius: 8,
     background: '#fff',
-    border: '1px solid #f0f0f0'
+    border: '1px solid #f0f0f0',
+    boxShadow: 'none',
   };
 
   const totalRequests = requests.length;
@@ -359,8 +355,42 @@ export default function EmployeeExitManagementPage() {
   const completedRequests = requests.filter(r => r.status === 'COMPLETED').length;
 
   return (
-    <MainLayout>
-      <div style={{ padding: '24px', background: '#fff', minHeight: '100vh' }}>
+    <ConfigProvider
+      theme={{
+        token: {
+          borderRadius: 8,
+          boxShadow: 'none',
+        },
+        components: {
+          Table: {
+            rowHoverBg: '#ffffff',
+          },
+          Card: {
+            boxShadow: 'none',
+            boxShadowSecondary: 'none',
+            boxShadowTertiary: 'none',
+          },
+          Drawer: {
+            boxShadow: 'none',
+          },
+          Button: {
+            boxShadow: 'none',
+            primaryShadow: 'none',
+          },
+          Input: {
+            boxShadow: 'none',
+          },
+          Select: {
+            boxShadow: 'none',
+          },
+          DatePicker: {
+            boxShadow: 'none',
+          }
+        }
+      }}
+    >
+      <MainLayout>
+      <div style={{ padding: '32px 40px', background: '#fff', minHeight: '100vh' }}>
         {notificationContextHolder}
         <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
           <Col>
@@ -368,13 +398,14 @@ export default function EmployeeExitManagementPage() {
               <div style={{
                 width: 48,
                 height: 48,
-                borderRadius: '50%',
-                background: '#f0f0f0',
+                borderRadius: '12px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 24,
-                color: '#1890ff'
+                color: '#2563eb'
               }}>
                 <FileTextOutlined />
               </div>
@@ -392,12 +423,12 @@ export default function EmployeeExitManagementPage() {
                 placeholder="Search by Employee Name"
                 allowClear
                 enterButton={<SearchOutlined />}
-                size="large"
+                size="middle"
                 onChange={(e) => handleSearch(e.target.value)}
                 onSearch={handleSearch}
                 style={{ width: 280 }}
               />
-              <Button type="primary" icon={<PlusOutlined />} size="large" onClick={handleCreateNew}>
+              <Button type="primary" icon={<PlusOutlined />} size="middle" onClick={handleCreateNew} style={{ boxShadow: 'none' }}>
                 New Exit Request
               </Button>
             </Space>
@@ -411,8 +442,8 @@ export default function EmployeeExitManagementPage() {
                 <Col><div style={{ color: "#595959", fontSize: 13 }}>Total Employee Requests</div></Col>
                 <Col>
                   <Row align="middle" gutter={8}>
-                    <Col><div style={{ width: 32, height: 32, borderRadius: "50%", background: "#1890ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 16 }}><UserOutlined /></div></Col>
-                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#1890ff" }}>{totalRequests}</div></Col>
+                    <Col><div style={{ width: 32, height: 32, borderRadius: "8px", background: '#eff6ff', display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6", fontSize: 16 }}><UserOutlined /></div></Col>
+                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#1e293b" }}>{totalRequests}</div></Col>
                   </Row>
                 </Col>
               </Row>
@@ -424,8 +455,8 @@ export default function EmployeeExitManagementPage() {
                 <Col><div style={{ color: "#595959", fontSize: 13 }}>Pending Requests</div></Col>
                 <Col>
                   <Row align="middle" gutter={8}>
-                    <Col><div style={{ width: 32, height: 32, borderRadius: "50%", background: "#faad14", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 16 }}><ClockCircleOutlined /></div></Col>
-                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#faad14" }}>{pendingRequests}</div></Col>
+                    <Col><div style={{ width: 32, height: 32, borderRadius: "8px", background: "#fffbeb", display: "flex", alignItems: "center", justifyContent: "center", color: "#d97706", fontSize: 16 }}><ClockCircleOutlined /></div></Col>
+                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#1e293b" }}>{pendingRequests}</div></Col>
                   </Row>
                 </Col>
               </Row>
@@ -437,8 +468,8 @@ export default function EmployeeExitManagementPage() {
                 <Col><div style={{ color: "#595959", fontSize: 13 }}>Notice Period</div></Col>
                 <Col>
                   <Row align="middle" gutter={8}>
-                    <Col><div style={{ width: 32, height: 32, borderRadius: "50%", background: "#872eecff", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 16 }}><CalendarOutlined /></div></Col>
-                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#872eecff" }}>{noticePeriodRequests}</div></Col>
+                    <Col><div style={{ width: 32, height: 32, borderRadius: "8px", background: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#7c3aed", fontSize: 16 }}><CalendarOutlined /></div></Col>
+                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#1e293b" }}>{noticePeriodRequests}</div></Col>
                   </Row>
                 </Col>
               </Row>
@@ -450,8 +481,8 @@ export default function EmployeeExitManagementPage() {
                 <Col><div style={{ color: "#595959", fontSize: 13 }}>Completed Exit</div></Col>
                 <Col>
                   <Row align="middle" gutter={8}>
-                    <Col><div style={{ width: 32, height: 32, borderRadius: "50%", background: "#3f8600", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 16 }}><CarryOutOutlined /></div></Col>
-                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#3f8600" }}>{completedRequests}</div></Col>
+                    <Col><div style={{ width: 32, height: 32, borderRadius: "8px", background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center", color: "#16a34a", fontSize: 16 }}><CarryOutOutlined /></div></Col>
+                    <Col><div style={{ fontSize: 20, fontWeight: 600, color: "#1e293b" }}>{completedRequests}</div></Col>
                   </Row>
                 </Col>
               </Row>
@@ -459,13 +490,14 @@ export default function EmployeeExitManagementPage() {
           </Col>
         </Row>
 
-        <Card bordered={false} style={{ borderRadius: 12 }}>
+        <Card bordered={false} style={{ borderRadius: 8, boxShadow: 'none', border: '1px solid #f0f0f0' }} bodyStyle={{ padding: 0 }}>
           <Table
             columns={columns}
             dataSource={filteredRequests}
             loading={loading}
             rowKey="id"
             pagination={{ pageSize: 10 }}
+            rowClassName={() => 'exit-table-row'}
           />
         </Card>
 
@@ -477,8 +509,8 @@ export default function EmployeeExitManagementPage() {
           extra={
             !viewMode && (
               <Space>
-                <Button onClick={() => setDrawerVisible(false)}>Cancel</Button>
-                <Button type="primary" onClick={handleSubmit} loading={loading}>Submit</Button>
+                <Button onClick={() => setDrawerVisible(false)} style={{ boxShadow: 'none' }}>Cancel</Button>
+                <Button type="primary" onClick={handleSubmit} loading={loading} style={{ boxShadow: 'none' }}>Submit</Button>
               </Space>
             )
           }
@@ -488,18 +520,26 @@ export default function EmployeeExitManagementPage() {
               top: 0,
               zIndex: 1,
               background: '#fff',
+              borderBottom: '1px solid #f0f0f0',
+              padding: '16px 24px',
             },
             body: {
+              padding: '24px',
               paddingBottom: 80,
+              background: '#fff',
+            },
+            mask: {
+              background: 'rgba(0, 0, 0, 0.05)',
             }
           }}
+          style={{ boxShadow: 'none' }}
         >
           <Form
             form={form}
             layout="vertical"
             disabled={viewMode}
           >
-            <Divider orientation="left">Employee Information</Divider>
+            <Divider orientation="left" style={{ borderColor: '#f0f0f0', marginTop: 0 }}>Employee Information</Divider>
             <Row gutter={16}>
               <Col span={24}>
                 <Form.Item name="employeeId" label="Employee" rules={[{ required: true }]}>
@@ -541,7 +581,7 @@ export default function EmployeeExitManagementPage() {
               </Col>
             </Row>
 
-            <Divider orientation="left">Exit Details</Divider>
+            <Divider orientation="left" style={{ borderColor: '#f0f0f0' }}>Exit Details</Divider>
             <Row gutter={16}>
               <Col span={24}>
                 <Form.Item name="exitTypeId" label="Exit Type" rules={[{ required: true }]}>
@@ -598,7 +638,7 @@ export default function EmployeeExitManagementPage() {
               </Col>
             </Row>
 
-            <Divider orientation="left">Notice Handling</Divider>
+            <Divider orientation="left" style={{ borderColor: '#f0f0f0' }}>Notice Handling</Divider>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="waiveNoticePeriod" label="Waive Notice Period" valuePropName="checked">
@@ -624,6 +664,7 @@ export default function EmployeeExitManagementPage() {
           </Form>
         </Drawer>
       </div>
-    </MainLayout>
+      </MainLayout>
+    </ConfigProvider>
   );
 }

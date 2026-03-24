@@ -17,6 +17,7 @@ import {
   notification,
   Row,
   Col,
+  Divider,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -248,11 +249,9 @@ const StatCard = ({
   color: string;
 }) => (
   <Card
-    hoverable
+    className="premium-card"
     bordered={false}
     style={{
-      borderRadius: 8,
-      boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
       height: "100%",
     }}
     bodyStyle={{ padding: "12px" }}
@@ -268,22 +267,22 @@ const StatCard = ({
           <Col>
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: color,
+                width: 38,
+                height: 38,
+                borderRadius: "8px",
+                background: `${color}15`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#fff",
-                fontSize: 19,
+                color: color,
+                fontSize: 18,
               }}
             >
               {icon}
             </div>
           </Col>
           <Col>
-            <div style={{ fontSize: 22, fontWeight: 600, color: color }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#262626" }}>
               {value}
             </div>
           </Col>
@@ -428,29 +427,54 @@ export default function ClientV2DetailsPage() {
               marginBottom: 5,
             }}
           >
-            <Space size="middle">
+            <Space size="middle" align="center">
               <Button
                 icon={<ArrowLeftOutlined />}
                 onClick={() => router.push("/clients-v2")}
               />
-              {/* <UserOutlined style={{ fontSize: "40", fontWeight: "600" }} /> */}
-              <Title level={2} style={{ margin: 0 }}>
-                {client.companyName}
-              </Title>
-              <Tag color="blue">{client.clientCode}</Tag>
-              <Tag color={client.status === "Active" ? "green" : "default"}>
-                {client.status}
-              </Tag>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Title level={4} style={{ margin: 0 }}>
+                    {client.companyName}
+                  </Title>
+                  <Tag color="blue">{client.clientCode}</Tag>
+                  <Tag color={client.status === "Active" ? "green" : "default"}>
+                    {client.status}
+                  </Tag>
+                </div>
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 12,
+                    color: "#8c8c8c",
+                    display: "flex",
+                    gap: 12,
+                  }}
+                >
+                  <Space size={4}>
+                    <GlobalOutlined />
+                    <Text type="secondary">{client.clientType || "N/A"}</Text>
+                  </Space>
+                  <Divider type="vertical" />
+                  <Space size={4}>
+                    <SafetyCertificateOutlined />
+                    <Text type="secondary">{client.industry || "N/A"}</Text>
+                  </Space>
+                </div>
+              </div>
             </Space>
           </div>
 
           <Button
             type="primary"
+            icon={<EditOutlined />}
             onClick={() => router.push(`/clients-v2/create?id=${client.id}`)}
           >
             Edit Client
           </Button>
         </div>
+
+        <Divider style={{ margin: "16px 0" }} />
 
         <Tabs
           defaultActiveKey="1"
@@ -526,10 +550,9 @@ export default function ClientV2DetailsPage() {
                             </Checkbox>
                           </div>
                         }
+                        className="premium-card"
                         bordered={false}
                         style={{
-                          borderRadius: 12,
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                           height: "100%",
                         }}
                         bodyStyle={{ padding: "16px 24px" }}
@@ -638,10 +661,9 @@ export default function ClientV2DetailsPage() {
                             </Checkbox>
                           </div>
                         }
+                        className="premium-card"
                         bordered={false}
                         style={{
-                          borderRadius: 12,
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                           height: "100%",
                         }}
                         bodyStyle={{ padding: "16px 24px" }}
@@ -763,10 +785,9 @@ export default function ClientV2DetailsPage() {
                             </Checkbox>
                           </div>
                         }
+                        className="premium-card"
                         bordered={false}
                         style={{
-                          borderRadius: 12,
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                           height: "100%",
                         }}
                         bodyStyle={{ padding: "16px 24px" }}
@@ -878,10 +899,9 @@ export default function ClientV2DetailsPage() {
                             </Checkbox>
                           </div>
                         }
+                        className="premium-card"
                         bordered={false}
                         style={{
-                          borderRadius: 12,
-                          boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                           height: "100%",
                         }}
                         bodyStyle={{ padding: "16px 24px" }}

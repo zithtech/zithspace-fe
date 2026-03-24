@@ -277,6 +277,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       />
 
       <Modal
+        className="premium-modal"
         title={
           <Space>
             <UserOutlined style={{ color: "#1677ff" }} />
@@ -369,6 +370,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
       </Modal>
 
       <Modal
+        className="premium-modal"
         title={
           <Space>
             <UserOutlined style={{ color: "#1677ff" }} />

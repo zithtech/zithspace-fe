@@ -276,7 +276,7 @@ export default function AllocationsTab({
   });
 
   return (
-    <Card style={{ backgroundColor: "white", height: "60vh" }}>
+    <Card className="premium-card" style={{ height: "60vh" }}>
       {contextHolder}
       <div
         style={{
@@ -317,6 +317,7 @@ export default function AllocationsTab({
       />
 
       <Modal
+        className="premium-modal"
         title={
           <Space>
             <SolutionOutlined style={{ color: "#1677ff" }} />
@@ -405,6 +406,7 @@ export default function AllocationsTab({
       </Modal>
 
       <Modal
+        className="premium-modal"
         title={
           <Space>
             <SolutionOutlined style={{ color: "#1677ff" }} />

@@ -291,7 +291,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   );
 
   return (
-    <Card style={{ backgroundColor: "white", height: "60vh" }}>
+    <Card className="premium-card" style={{ height: "60vh" }}>
       {contextHolder}
       <div
         style={{
@@ -335,6 +335,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       />
 
       <Modal
+        className="premium-modal"
         title={
           <Space>
             <ProjectOutlined style={{ color: "#1677ff" }} />
@@ -466,6 +467,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       </Modal>
 
       <Modal
+        className="premium-modal"
         title={
           <Space>
             <ProjectOutlined style={{ color: "#1677ff" }} />

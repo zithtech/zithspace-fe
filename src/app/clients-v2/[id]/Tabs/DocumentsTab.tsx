@@ -247,7 +247,7 @@ export default function DocumentsTab({
   };
 
   return (
-    <Card style={{ backgroundColor: "white", height: "60vh" }}>
+    <Card className="premium-card" style={{ height: "60vh" }}>
       {contextHolder}
       <div
         style={{
@@ -280,6 +280,7 @@ export default function DocumentsTab({
       />
 
       <Modal
+        className="premium-modal"
         title="Upload Client Document"
         open={isUploadModalVisible}
         onCancel={() => {
@@ -359,6 +360,7 @@ export default function DocumentsTab({
       </Modal>
 
       <Modal
+        className="premium-modal"
         title={viewingDocument?.fileName || "Document Preview"}
         open={viewModalOpen}
         onCancel={() => {

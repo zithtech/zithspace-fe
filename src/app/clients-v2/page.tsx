@@ -14,6 +14,7 @@ import {
   Dropdown,
   Row,
   Col,
+  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -25,6 +26,7 @@ import {
   TeamOutlined,
   UserOutlined,
   WarningOutlined,
+  ProjectOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
@@ -45,11 +47,9 @@ const StatCard = ({
   color: string;
 }) => (
   <Card
-    hoverable
+    className="premium-card"
     bordered={false}
     style={{
-      borderRadius: 8,
-      boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
       height: "100%",
     }}
     bodyStyle={{ padding: "16px" }}
@@ -282,80 +282,12 @@ export default function ClientsV2ListPage() {
     <MainLayout>
       <div
         style={{
-          padding: "24px",
+          padding: "32px",
           height: "calc(100vh - 100px)",
           overflowY: "auto",
+          backgroundColor: "var(--premium-white)",
         }}
       >
-        {/* <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "24px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <TeamOutlined style={{ fontSize: 32, color: "#1677ff" }} />
-            <div>
-              <Title level={3} style={{ margin: 0 }}>
-                Client Management
-              </Title>
-              <Text type="secondary">
-                View, search, and manage all client profiles in the system.
-              </Text>
-            </div>
-          </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => router.push("/clients-v2/create")}
-          >
-            Create Client
-          </Button>
-        </div>
-
-        <Row gutter={[24, 16]} align="stretch" style={{ marginBottom: 24 }}>
-          <Col xs={24} md={8} lg={6}>
-            <StatCard
-              title="Total Clients"
-              value={pagination.total}
-              icon={<UserOutlined />}
-              color="#1890ff"
-            />
-          </Col>
-          <Col xs={24} md={8} lg={6}>
-            <StatCard
-              title="High Risk Companies"
-              value={highRiskCount}
-              icon={<WarningOutlined />}
-              color="#ff4d4f"
-            />
-          </Col>
-          <Col xs={24} md={8} lg={12}>
-            <Card
-              bordered={false}
-              style={{
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              bodyStyle={{
-                flex: 1,
-                display: "flex",
-                justifyContent: "flex-end",
-              }}
-            >
-              <Input.Search
-                placeholder="Search clients by name or code..."
-                allowClear
-                onSearch={handleSearch}
-                style={{ width: "100%", maxWidth: 400 }}
-              />
-            </Card>
-          </Col>
-        </Row> */}
 
         <div style={{ marginBottom: 24 }}>
           <div
@@ -399,7 +331,46 @@ export default function ClientsV2ListPage() {
             </Tag>
           </Space>
         </div>
-        <Table
+
+        <Divider style={{ margin: "24px 0" }} />
+
+        <Card className="premium-card" bodyStyle={{ padding: "24px" }}>
+          <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                title="Total Clients"
+                value={pagination.total}
+                icon={<UserOutlined />}
+                color="#1890ff"
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                title="Active Clients"
+                value={data.filter((c) => c.status === "Active").length}
+                icon={<TeamOutlined />}
+                color="#52c41a"
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                title="High Risk"
+                value={highRiskCount}
+                icon={<WarningOutlined />}
+                color="#ff4d4f"
+              />
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <StatCard
+                title="Avg. Projects"
+                value="2.4"
+                icon={<ProjectOutlined />}
+                color="#722ed1"
+              />
+            </Col>
+          </Row>
+
+          <Table
           columns={columns}
           dataSource={data}
           rowKey="id"
@@ -421,6 +392,7 @@ export default function ClientsV2ListPage() {
               ),
           }}
         />
+      </Card>
       </div>
     </MainLayout>
   );

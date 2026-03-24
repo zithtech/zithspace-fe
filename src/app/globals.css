@@ -98,6 +98,43 @@ body {
   height: 100vh;
 }
 
+:root {
+  --premium-border: 1px solid #e8e8e8;
+  --premium-white: #ffffff;
+  --premium-bg: #f5f5f5;
+}
+
+.premium-card {
+  background: var(--premium-white) !important;
+  border: var(--premium-border) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+
+.premium-card:hover {
+  border-color: #d9d9d9 !important;
+  background: #fafafa !important;
+}
+
+.premium-modal .ant-modal-content {
+  background: var(--premium-white) !important;
+  border: var(--premium-border) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+/* Eliminate table row hover "flow" */
+.ant-table-tbody > tr.ant-table-row:hover > td,
+.ant-table-tbody > tr > td.ant-table-cell-row-hover {
+  background: #fafafa !important;
+}
+
+/* Premium Button Flat Style */
+.ant-btn-primary {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
 /* Ant Design customizations for modern, compact design */
 .ant-layout {
   min-height: 100vh;

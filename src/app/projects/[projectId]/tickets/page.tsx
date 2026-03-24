@@ -38,7 +38,9 @@ export default function ProjectTicketsPage({ params }: PageProps) {
     return (
       <MainLayout>
         <div style={{ padding: 20, textAlign: 'center', paddingTop: 100 }}>
-          <Spin size="large" tip="Loading project..." />
+          <Spin size="large" tip="Loading project">
+            <div style={{ padding: 50 }} />
+          </Spin>
         </div>
       </MainLayout>
     );

@@ -74,7 +74,7 @@ export default function AttachmentUploader({
       accept={accept}
     >
       <Button icon={<UploadOutlined />} loading={isUploading} disabled={disabled} style={style} size="small">
-        {isUploading ? `Uploading (${activeUploads})...` : "Attach File"}
+        {isUploading ? `Uploading (${activeUploads})` : "Attach File"}
       </Button>
     </Upload>
   );

@@ -25,7 +25,11 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
     if (isLoading) {
         return (
             <div className="flex justify-center p-8">
-                <Spin tip="Loading history..." />
+            <div style={{ padding: 20, textAlign: 'center' }}>
+                <Spin tip="Loading history">
+                    <div style={{ height: 40 }} />
+                </Spin>
+            </div>
             </div>
         );
     }

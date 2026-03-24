@@ -54,8 +54,8 @@ export default function CommentsSection({
   };
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <Typography.Title level={5} style={{ fontSize: 13, marginBottom: 8 }}>Comments</Typography.Title>
+    <div style={{ marginTop: 12 }}>
+      <Typography.Title level={5} style={{ fontSize: 13, marginBottom: 4 }}>Comments</Typography.Title>
       <div style={{ border: "1px solid #f0f0f0", borderRadius: 4, background: "#fff" }}>
         {/* Comment List */}
         <List
@@ -67,7 +67,7 @@ export default function CommentsSection({
 
             return (
               <List.Item
-                style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0" }}
+                style={{ padding: "8px 12px", borderBottom: "1px solid #f0f0f0" }}
                 actions={
                   !isEditing && !isEditingThis
                     ? [
@@ -100,7 +100,7 @@ export default function CommentsSection({
                       rows={2}
                       value={editCommentText}
                       onChange={(e) => setEditCommentText(e.target.value)}
-                      style={{ marginBottom: 8, fontSize: 13 }}
+                      style={{ marginBottom: 4, fontSize: 13 }}
                     />
                     <Space size="small" style={{ float: "right" }}>
                       <Button size="small" onClick={() => setEditingCommentId(null)}>Cancel</Button>
@@ -135,16 +135,16 @@ export default function CommentsSection({
               </List.Item>
             );
           }}
-          locale={{ emptyText: <div style={{ padding: 16, textAlign: 'center', color: '#8c8c8c' }}>No comments yet</div> }}
+          locale={{ emptyText: <div style={{ padding: 12, textAlign: 'center', color: '#8c8c8c' }}>No comments yet</div> }}
         />
 
         {/* Input Area */}
-        <div style={{ padding: "12px 16px", background: "#fafafa", borderTop: "1px solid #f0f0f0" }}>
+        <div style={{ padding: "8px 12px", background: "#fafafa", borderTop: "1px solid #f0f0f0" }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <Avatar size={24} icon={<UserOutlined />} style={{ flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <Input
-                placeholder="Add a comment..."
+                placeholder="Add a comment"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 onPressEnter={(e) => {

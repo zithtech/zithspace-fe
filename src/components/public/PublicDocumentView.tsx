@@ -60,7 +60,13 @@ const PublicDocumentView: React.FC<PublicDocumentViewProps> = ({ shareToken }) =
                     background: '#fafafa',
                 }}
             >
-                <Spin size="large" tip="Loading document..." />
+        <div style={{ padding: 20, textAlign: 'center', paddingTop: 100 }}>
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading sprint data">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
+        </div>
             </div>
         );
     }

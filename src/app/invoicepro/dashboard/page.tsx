@@ -554,12 +554,12 @@ const fullCellRender = (value: Dayjs) => {
     }
   });
 
-  if (authLoading) return <MainLayout><Spin tip="Loading..." /></MainLayout>;
+  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><Spin tip="Loading"><div style={{ padding: 20 }} /></Spin></div></MainLayout>;
   if (!canReadInvoice) return null;
 
   return (
     <MainLayout>
-      <Spin spinning={isLoading} tip="Loading dashboard...">
+      <Spin spinning={isLoading} tip="Loading dashboard">
       <div style={{ padding: "20px 24px" }}>
         {/* ================= HEADER ================= */}
         <div style={{ marginBottom: 24 }}>

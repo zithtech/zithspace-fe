@@ -496,7 +496,7 @@ export default function AccountsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
+      <div style={{ padding: 20, background: '#fff', minHeight: '100vh' }}>
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>

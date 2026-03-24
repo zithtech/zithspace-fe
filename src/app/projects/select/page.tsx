@@ -107,7 +107,11 @@ function ProjectSelectContent() {
     return (
       <MainLayout>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Spin size="large" tip="Redirecting to your last project..." />
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Redirecting to your last project">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     );
@@ -325,7 +329,11 @@ export default function ProjectSelectPage() {
     <Suspense fallback={
       <MainLayout>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Spin size="large" tip="Loading..." />
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     }>

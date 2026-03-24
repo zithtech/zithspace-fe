@@ -143,7 +143,7 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
         <Descriptions.Item label="Estimate Hours">
           {ticket?.estimateHours || 0}h
         </Descriptions.Item>
-        <Descriptions.Item label="Assignee">
+        <Descriptions.Item label="Assigned To">
           <Space>
             <Avatar
               size="small"
@@ -154,7 +154,7 @@ export default function TicketInformation({ ticket, onEdit }: TicketInformationP
             {ticket?.assignee?.name || "Unassigned"}
           </Space>
         </Descriptions.Item>
-        <Descriptions.Item label="Report To">
+        <Descriptions.Item label="Reports To">
           {typeof ticket?.reportTo === "string"
             ? ticket.reportTo
             : ticket?.reportTo?.name || "Not assigned"}

@@ -120,20 +120,24 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
   const activeTicket = activeId ? tickets.find((t) => t.id === activeId) : null;
 
   return (
-    <div style={{ height: 'calc(100vh - 200px)', overflowX: 'auto' }}>
-      {/* Complete Sprint Button - Show only for active sprint view */}
+    <div style={{ height: 'calc(100vh - 180px)', display: 'flex', flexDirection: 'column' }}>
+      {/* Complete Sprint Section - Refined for premium look */}
       {kanbanScope === 'active' && activeSprint && onCompleteSprint && (
         <div style={{
           display: 'flex',
           justifyContent: 'flex-end',
-          paddingBottom: "10px",
-          paddingRight: "10px"
+          paddingBottom: "16px",
         }}>
           <Button
             type="primary"
             icon={<CheckCircleOutlined />}
-            size="small"
             onClick={onCompleteSprint}
+            style={{ 
+              borderRadius: 8, 
+              fontWeight: 600, 
+              height: 34,
+              boxShadow: '0 2px 4px rgba(82, 196, 26, 0.15)'
+            }}
           >
             Complete Sprint
           </Button>
@@ -146,7 +150,14 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div style={{ display: 'flex', gap: 16, height: '100%', alignItems: 'flex-start' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: 20, 
+          flex: 1, 
+          overflowX: 'auto',
+          paddingBottom: 16,
+          alignItems: 'stretch'
+        }} className="custom-scrollbar">
           {COLUMNS.map((col) => (
             <KanbanColumn
               key={col.id}
@@ -163,8 +174,24 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
           ))}
         </div>
 
-        <DragOverlay dropAnimation={null}>
-          {activeTicket ? <KanbanCard ticket={activeTicket} projects={projects} members={members} onUpdate={() => { }} /> : null}
+        <DragOverlay dropAnimation={{
+          duration: 200,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+        }}>
+          {activeTicket ? (
+            <div style={{ 
+              transform: 'rotate(2deg)',
+              transition: 'transform 0.2s ease',
+              pointerEvents: 'none'
+            }}>
+              <KanbanCard 
+                ticket={activeTicket} 
+                projects={projects} 
+                members={members} 
+                onUpdate={() => { }} 
+              />
+            </div>
+          ) : null}
         </DragOverlay>
       </DndContext>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 // commit merge merge
-import React, { useState, use, useEffect } from 'react';
+import React, { useState, use, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import MainLayout from '@/components/layout/MainLayout';
@@ -13,13 +13,16 @@ import {
   Button,
   Input,
   Select,
-  App,
   Empty,
   Badge,
   Breadcrumb,
   Popconfirm,
   message as antdMessage,
   Spin,
+  Avatar,
+  Row,
+  Col,
+  Tooltip,
 } from 'antd';
 import {
   FolderOutlined,
@@ -28,15 +31,19 @@ import {
   ReloadOutlined,
   ArrowLeftOutlined,
   RocketOutlined,
+  FileTextOutlined,
+  UserOutlined,
+  ProjectOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { useBucket, useBucketTickets, bucketKeys } from '@/hooks/useBuckets';
-import { useUpdateTicket } from '@/hooks/useTickets';
+import { useUpdateTicket, ticketKeys } from '@/hooks/useTickets';
 import { useMoveToTrash } from '@/hooks/useTrash';
 import { useAvailableSprints } from '@/hooks/useAvailableSprints';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -59,6 +66,7 @@ interface BucketTicket {
     name: string;
     workEmail: string;
   };
+  createdAt: string;
 }
 
 export default function BucketDetailPage({ params }: { params: Promise<{ bucketId: string }> }) {
@@ -67,7 +75,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const { isLoading: authLoading } = useAuth();
   const { canReadProject } = usePermission();
   
-  // Unwrap the params promise using React's use() hook (Next.js 15 requirement)
+  // Unwrap the params promise using React's use() hook
   const { bucketId } = use(params);
 
   // Route guard
@@ -82,21 +90,17 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const [selectedSprint, setSelectedSprint] = useState<string | null>(null);
 
   // Use useBucket hook
-  const { data: bucket, isLoading: bucketLoading, refetch: refetchBucket } = useBucket(bucketId);
+  const { data: bucket, isLoading: bucketLoading } = useBucket(bucketId);
 
   // Use useBucketTickets hook for fetching tickets
   const [page, setPage] = useState(1);
   const { data: ticketsData, isLoading: ticketsLoading, refetch: refetchTickets } = useBucketTickets(bucketId, page, 100);
 
-  // Fetch available sprints (active + planning only) - server-side filtered
-  const { data: sprints, isLoading: sprintsLoading } = useAvailableSprints(
-    bucket?.project?.id
-  );
+  // Fetch available sprints
+  const { data: sprints } = useAvailableSprints(bucket?.project?.id);
 
-  // Use useUpdateTicket hook for moving to sprint
+  // Mutations
   const { mutateAsync: updateTicket, isPending: isMovingToSprint } = useUpdateTicket();
-
-  // Use useMoveToTrash hook
   const { mutateAsync: moveToTrash, isPending: isDeleting } = useMoveToTrash();
 
   const handleMoveToSprint = async () => {
@@ -106,7 +110,6 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
     }
 
     try {
-      // Update all tickets in parallel
       await Promise.all(
         selectedRowKeys.map((ticketId) =>
           updateTicket({
@@ -116,272 +119,386 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
         )
       );
 
-      // Invalidate bucket-related queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(bucketId, page) });
-      queryClient.invalidateQueries({ queryKey: bucketKeys.detail(bucketId) });
+      queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
       
       antdMessage.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
       setSelectedRowKeys([]);
       setSelectedSprint(null);
       refetchTickets();
     } catch (error: any) {
-      console.error('Error moving tickets:', error);
       antdMessage.error(`Failed to move tickets: ${error.message || 'Unknown error'}`);
     }
   };
 
   const handleMoveToTrash = async () => {
-    if (selectedRowKeys.length === 0) {
-      antdMessage.warning("Please select tickets to delete");
-      return;
-    }
+    if (selectedRowKeys.length === 0) return;
 
     try {
       await moveToTrash(selectedRowKeys as string[]);
-      
-      // Invalidate bucket-related queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(bucketId, page) });
-      queryClient.invalidateQueries({ queryKey: bucketKeys.detail(bucketId) });
-      
+      queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
       setSelectedRowKeys([]);
-      refetchBucket();
       refetchTickets();
-    } catch (error: any) {
-      // Error already handled by the hook
-      console.error("Error moving to trash:", error);
-    }
+    } catch (error: any) {}
   };
 
-  const allTickets = ticketsData?.tickets || [];
-  const tickets = allTickets.filter((ticket: BucketTicket) =>
-    searchText
-      ? ticket.title.toLowerCase().includes(searchText.toLowerCase()) ||
-        ticket.ticketNumber.toLowerCase().includes(searchText.toLowerCase())
-      : true
-  );
+  const tickets = useMemo(() => {
+    const all = ticketsData?.tickets || [];
+    if (!searchText) return all;
+    const lower = searchText.toLowerCase();
+    return all.filter((t: BucketTicket) => 
+      t.title.toLowerCase().includes(lower) || 
+      t.ticketNumber.toLowerCase().includes(lower)
+    );
+  }, [ticketsData, searchText]);
 
   const columns: ColumnsType<BucketTicket> = [
     {
-      title: 'Ticket',
+      title: 'Ticket ID',
       dataIndex: 'ticketNumber',
       key: 'ticketNumber',
-      width: 120,
+      width: 140,
       fixed: 'left',
-      render: (text) => <Tag color="blue">{text}</Tag>,
+      render: (text) => (
+        <Text strong style={{ color: '#1677ff', fontFamily: 'monospace', fontSize: 13 }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
-      width: 300,
-    },
-    {
-      title: 'Project',
-      key: 'project',
-      width: 150,
-      render: (_: any, record: BucketTicket) => (
-        <Space>
-          {/* <Tag color="blue">{record.project.code}</Tag> */}
-          <Text>{record.project.name}</Text>
-        </Space>
+      width: 350,
+      render: (text) => (
+        <Text strong style={{ fontSize: 14 }}>{text}</Text>
       ),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 120,
-      render: (status) => (
-        <Tag color={status === 'completed' ? 'success' : status === 'in_progress' ? 'processing' : 'default'}>
-          {status?.replace('_', ' ')}
-        </Tag>
-      ),
+      width: 130,
+      render: (status) => {
+        const color = status === 'completed' ? 'green' : status === 'in_progress' ? 'blue' : 'default';
+        return (
+          <Tag color={color} style={{ borderRadius: 6, textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>
+            {status?.replace('_', ' ')}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Priority',
       dataIndex: 'priority',
       key: 'priority',
-      width: 100,
+      width: 110,
       render: (priority) => {
-        const color = priority === 'HIGH' ? 'red' : priority === 'MEDIUM' ? 'orange' : 'default';
-        return <Tag color={color}>{priority}</Tag>;
+        const colors: any = { HIGH: 'red', MEDIUM: 'orange', LOW: 'blue' };
+        return (
+          <Tag color={colors[priority] || 'default'} style={{ borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+            {priority}
+          </Tag>
+        );
       },
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: 100,
     },
     {
       title: 'Points',
       dataIndex: 'storyPoint',
       key: 'storyPoint',
-      width: 80,
+      width: 90,
       align: 'center',
       render: (points) => (
-        <Badge count={points} showZero style={{ backgroundColor: '#52c41a' }} />
+        <Badge 
+          count={points || 0} 
+          showZero 
+          style={{ backgroundColor: points ? '#52c41a' : '#d9d9d9', boxShadow: 'none' }} 
+        />
       ),
     },
     {
       title: 'Assignee',
-      dataIndex: ['assignee', 'name'],
+      dataIndex: 'assignee',
       key: 'assignee',
-      width: 150,
-      ellipsis: true,
-      render: (name) => name || <Text type="secondary">Unassigned</Text>,
+      width: 180,
+      render: (assignee) => (
+        assignee ? (
+          <Space>
+            <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
+              {assignee.name.charAt(0)}
+            </Avatar>
+            <Text style={{ fontSize: 13 }}>{assignee.name}</Text>
+          </Space>
+        ) : (
+          <Text type="secondary" style={{ fontSize: 13, fontStyle: 'italic' }}>Unassigned</Text>
+        )
+      ),
+    },
+    {
+      title: 'Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 130,
+      render: (date) => (
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {dayjs(date).format('MMM D, YYYY')}
+        </Text>
+      ),
     },
   ];
 
-  // Loading & permission check
-  if (authLoading) {
+  if (authLoading || bucketLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading bucket..." />
+        <div style={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading bucket details">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     );
   }
 
-  if (!canReadProject) {
-    return null;
-  }
-
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Breadcrumb style={{ marginBottom: 16 }}>
-            <Breadcrumb.Item>
-              <Link href="/projects/buckets">Buckets</Link>
-            </Breadcrumb.Item>
-            <Breadcrumb.Item>{bucket?.name || 'Loading...'}</Breadcrumb.Item>
-          </Breadcrumb>
-
-          <Space direction="vertical" size={0} style={{ width: '100%' }}>
-            <Space>
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => router.back()}
-              >
-                Back
-              </Button>
-              <Title level={3} style={{ margin: 0 }}>
-                <FolderOutlined /> {bucket?.name || 'Loading...'}
-              </Title>
-              {bucket?.project && (
-                <Tag color="blue">{bucket.project.name}</Tag>
-              )}
-            </Space>
-            {bucket?.description && (
-              <Text type="secondary">{bucket.description}</Text>
-            )}
-            <Text type="secondary">
-              {tickets.length} ticket(s) in this bucket
-            </Text>
-          </Space>
+      <div style={{ padding: '0 32px 32px', background: '#ffffff', minHeight: '100vh' }}>
+        
+        {/* Breadcrumbs & Simple Navigation */}
+        <div style={{ padding: '20px 0 0' }}>
+          <Breadcrumb 
+            separator={<span style={{ color: '#d9d9d9' }}>/</span>}
+            items={[
+              { title: <Link href="/projects/buckets" style={{ color: '#8c8c8c' }}>Buckets</Link> },
+              { title: <span style={{ color: '#262626', fontWeight: 500 }}>{bucket?.name}</span> },
+            ]}
+          />
         </div>
 
-        {/* Filters & Actions */}
-        <Card style={{ marginBottom: 16 }}>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Input
-              placeholder="Search tickets..."
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 300 }}
-              allowClear
-            />
-            <Space>
-              {selectedRowKeys.length > 0 && (
-                <>
-                  <Select
-                    placeholder="Move to Sprint"
-                    style={{ width: 200 }}
-                    value={selectedSprint}
-                    onChange={setSelectedSprint}
-                    suffixIcon={<RocketOutlined />}
-                  >
-                    {sprints?.map((sprint: any) => (
-                      <Option key={sprint.id} value={sprint.id}>
-                        {sprint.version}
-                      </Option>
-                    ))}
-                  </Select>
-                  <Popconfirm
-                    title="Move to Sprint?"
-                    description={`Move ${selectedRowKeys.length} ticket(s) to sprint "${sprints?.find((s: any) => s.id === selectedSprint)?.version}"?`}
-                    onConfirm={handleMoveToSprint}
-                    okText="Move"
-                    cancelText="Cancel"
-                    disabled={!selectedSprint || selectedRowKeys.length === 0}
-                  >
-                    <Button
-                      type="primary"
-                      icon={<RocketOutlined />}
-                      loading={isMovingToSprint}
-                      disabled={!selectedSprint}
-                    >
-                      Move ({selectedRowKeys.length})
-                    </Button>
-                  </Popconfirm>
-                  <Popconfirm
-                    title="Move to Trash?"
-                    description={`Move ${selectedRowKeys.length} ticket(s) to trash? They can be restored within 7 days.`}
-                    onConfirm={handleMoveToTrash}
-                    okText="Move to Trash"
-                    cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <Button
-                      danger
-                      icon={<DeleteOutlined />}
-                      loading={isDeleting}
-                    >
-                      Delete ({selectedRowKeys.length})
-                    </Button>
-                  </Popconfirm>
-                </>
-              )}
-              <Button icon={<ReloadOutlined />} onClick={() => refetchBucket()}>
-                Refresh
+        {/* Header Section */}
+        <div style={{ 
+          padding: '24px 0', 
+          marginBottom: 32, 
+          borderBottom: '1px solid #f0f0f0' 
+        }}>
+          <Row justify="space-between" align="bottom" gutter={[24, 24]}>
+            <Col>
+              <Space size="large" align="start">
+                <div style={{ 
+                  width: 56, 
+                  height: 56, 
+                  borderRadius: 16, 
+                  background: `${bucket?.color || '#1677ff'}15`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <FolderOutlined style={{ fontSize: 28, color: bucket?.color || '#1677ff' }} />
+                </div>
+                <div style={{ marginTop: -4 }}>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                    {bucket?.name}
+                  </Title>
+                  <Space size="middle" style={{ marginTop: 4 }}>
+                    {bucket?.project ? (
+                      <Space size={6}>
+                        <ProjectOutlined style={{ color: '#8c8c8c' }} />
+                        <Text type="secondary" strong>{bucket.project.name}</Text>
+                        <Tag color="blue" style={{ borderRadius: 4, fontSize: 10, marginLeft: 4 }}>
+                          {bucket.project.code}
+                        </Tag>
+                      </Space>
+                    ) : (
+                      <Tag color="purple">CROSS-PROJECT BUCKET</Tag>
+                    )}
+                    <span style={{ color: '#d9d9d9' }}>|</span>
+                    <Space size={6}>
+                      <FileTextOutlined style={{ color: '#8c8c8c' }} />
+                      <Text type="secondary">{tickets.length} Tickets</Text>
+                    </Space>
+                  </Space>
+                </div>
+              </Space>
+            </Col>
+            <Col>
+              <Button 
+                icon={<ArrowLeftOutlined />} 
+                onClick={() => router.back()}
+                style={{ borderRadius: 8, height: 40 }}
+              >
+                Back to Buckets
               </Button>
-            </Space>
-          </Space>
-        </Card>
-
-        {/* Tickets Table */}
-        <Card>
-          {tickets.length === 0 && !bucketLoading ? (
-            <Empty
-              image={<FolderOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
-              description="No tickets in this bucket"
-            />
-          ) : (
-            <Table
-              columns={columns}
-              dataSource={tickets}
-              rowKey="id"
-              loading={bucketLoading}
-              rowSelection={{
-                selectedRowKeys,
-                onChange: setSelectedRowKeys,
-              }}
-              pagination={{
-                pageSize: 20,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} tickets`,
-              }}
-              scroll={{ x: 1200 }}
-              size="small"
-            />
+            </Col>
+          </Row>
+          {bucket?.description && (
+            <div style={{ marginTop: 20, maxWidth: 800 }}>
+              <Text type="secondary" style={{ fontSize: 14, lineHeight: 1.6 }}>
+                {bucket.description}
+              </Text>
+            </div>
           )}
+        </div>
+
+        {/* Action Bar */}
+        <div style={{ marginBottom: 24 }}>
+          <Row justify="space-between" align="middle" gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Input
+                placeholder="Search by ticket ID or title..."
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  maxWidth: 400, 
+                  height: 44, 
+                  borderRadius: 10,
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)' 
+                }}
+                allowClear
+              />
+            </Col>
+            <Col xs={24} md={12} style={{ textAlign: 'right' }}>
+              <Space size="middle">
+                {selectedRowKeys.length > 0 && (
+                  <div style={{ 
+                    background: '#f0f7ff', 
+                    padding: '4px 8px 4px 16px', 
+                    borderRadius: 12, 
+                    border: '1px solid #bae7ff',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <Text strong style={{ color: '#0050b3', marginRight: 16 }}>
+                      {selectedRowKeys.length} Selected
+                    </Text>
+                    <Space size="small">
+                      <Select
+                        placeholder="Select Sprint"
+                        style={{ width: 160 }}
+                        value={selectedSprint}
+                        onChange={setSelectedSprint}
+                        variant="borderless"
+                        popupClassName="premium-select-popup"
+                        styles={{ popup: { root: { borderRadius: 12 } } }}
+                      >
+                        {sprints?.map((sprint: any) => (
+                          <Option key={sprint.id} value={sprint.id}>
+                            {sprint.version}
+                          </Option>
+                        ))}
+                      </Select>
+                      <Tooltip title="Move to Sprint">
+                        <Button
+                          type="primary"
+                          icon={<RocketOutlined />}
+                          onClick={handleMoveToSprint}
+                          loading={isMovingToSprint}
+                          disabled={!selectedSprint}
+                          style={{ borderRadius: 8 }}
+                        >
+                          Move
+                        </Button>
+                      </Tooltip>
+                      <Popconfirm
+                        title="Delete Tickets"
+                        description={`Move ${selectedRowKeys.length} selected tickets to trash?`}
+                        onConfirm={handleMoveToTrash}
+                        okText="Delete"
+                        cancelText="Cancel"
+                        okButtonProps={{ danger: true }}
+                      >
+                        <Button
+                          danger
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          loading={isDeleting}
+                          style={{ borderRadius: 8 }}
+                        />
+                      </Popconfirm>
+                    </Space>
+                  </div>
+                )}
+                <Button 
+                  icon={<ReloadOutlined />} 
+                  onClick={() => refetchTickets()}
+                  style={{ height: 44, width: 44, borderRadius: 10 }}
+                />
+              </Space>
+            </Col>
+          </Row>
+        </div>
+
+        {/* Results Table */}
+        <Card 
+          bodyStyle={{ padding: 0 }} 
+          style={{ 
+            borderRadius: 16, 
+            overflow: 'hidden', 
+            border: '1px solid #f0f0f0',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+          }}
+        >
+          <Table
+            columns={columns}
+            dataSource={tickets}
+            rowKey="id"
+            loading={ticketsLoading}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys,
+            }}
+            pagination={{
+              pageSize: 20,
+              showSizeChanger: true,
+              showTotal: (total) => (
+                <Text type="secondary" style={{ fontSize: 13 }}>Total <b>{total}</b> tickets</Text>
+              ),
+              style: { padding: '16px 24px' }
+            }}
+            scroll={{ x: 1200 }}
+            className="premium-table"
+            locale={{
+              emptyText: (
+                <Empty
+                  image={<FolderOutlined style={{ fontSize: 48, color: '#f0f0f0' }} />}
+                  description={
+                    <div style={{ padding: '20px 0' }}>
+                      <Text type="secondary" style={{ display: 'block' }}>No tickets found in this bucket</Text>
+                      {searchText && <Text type="secondary" style={{ fontSize: 12 }}>Try adjusting your search criteria</Text>}
+                    </div>
+                  }
+                />
+              )
+            }}
+          />
         </Card>
       </div>
+
+      <style jsx global>{`
+        .premium-table .ant-table-thead > tr > th {
+          background: #fafafa;
+          font-weight: 600;
+          color: #595959;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          padding: 16px;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          padding: 16px;
+        }
+        .premium-table .ant-table-tbody > tr:hover > td {
+          background: #fcfcfc !important;
+        }
+        .premium-select-popup .ant-select-item {
+          border-radius: 6px;
+          margin: 4px;
+        }
+      `}</style>
     </MainLayout>
   );
 }

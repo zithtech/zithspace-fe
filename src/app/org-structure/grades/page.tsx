@@ -3,8 +3,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Card, Typography, Button, Table, Space, Input, Tag, Modal, Form, Select, InputNumber, message, Row, Col, Switch, notification, Tabs, Tooltip,Divider, Spin } from "antd";
-import { ScheduleOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { Card, Typography, Button, Table, Space, Input, Tag, Modal, Form, Select, InputNumber, message, Row, Col, Switch, notification, Tooltip, Divider, Spin, Drawer } from "antd";
+import { ShieldCheck, Edit, Plus, Search, Layers, User } from "lucide-react";
 import { useGrades, GradeViewData } from "@/hooks/useGrades";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +14,6 @@ const { Text } = Typography;
 
 export default function GradesPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrg, canManageOrg } = usePermission();
   // Route guard
@@ -175,287 +174,382 @@ export default function GradesPage() {
     return null;
   }
 
-  const handleTabChange = (key: string) => {
-    router.push(key);
-  };
+
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      bodyStyle={{ padding: "16px 20px" }} 
+      style={{ 
+        borderRadius: 12, 
+        border: "1px solid #f1f5f9", 
+        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
 
   const columns = [
     {
-      title: "Code",
-      dataIndex: "codes",
-      key: "codes",
-      width: 200,
+      title: "Grade Identity",
+      key: "identity",
+      width: "30%",
+      onHeaderCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      onCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      render: (_: any, record: GradeViewData) => (
+        <Space size={12}>
+          <div style={{ 
+            width: 36, 
+            height: 36, 
+            borderRadius: 10, 
+            background: "rgba(22, 119, 255, 0.08)", 
+            color: "#1677ff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: 14
+          }}>
+            {record.code}
+          </div>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{record.name}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>ID: {record.codes}</Text>
+          </div>
+        </Space>
+      ),
     },
-      {
-        title: "Grade ",
-        dataIndex: "code",
-        key: "code",
-        align: "center",
-        width:100,
-         sorter: (a: GradeViewData, b: GradeViewData) =>
-          a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: "base" }),
-        sortDirections: ["ascend", "descend"],
+    {
+      title: "Hierarchy Level",
+      dataIndex: "levelOrder",
+      key: "levelOrder",
+      align: "center" as const,
+      width: 150,
+      render: (level: number) => (
+        <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>
+          Level {level}
+        </Tag>
+      ),
+    },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (description: string) => (
+        <Tooltip placement="topLeft" title={description}>
+          <Text type="secondary" style={{ fontSize: 13 }}>
+            {description || "No description provided"}
+          </Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 120,
+      render: (status: string) => (
+        <Tag
+          style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
+          color={status === "Active" ? "success" : "default"}
+        >
+          {status.toUpperCase()}
+        </Tag>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      align: "right" as const,
+      width: 100,
+      render: (_: any, record: GradeViewData) => {
+        if (!canManageOrg) return null;
+        return (
+          <Space size={4}>
+            <Tooltip title="Edit Grade">
+              <Button
+                type="text"
+                icon={<Edit size={18} style={{ color: "#64748b" }} />}
+                onClick={() => handleEdit(record)}
+                className="action-btn"
+              />
+            </Tooltip>
+          </Space>
+        );
+      },
+    },
+  ];
 
-      },
-      {
-        title: "Grade Name",
-        dataIndex: "name",
-        key: "name",
-        width: 200,
-        sorter: (a: GradeViewData, b: GradeViewData) =>
-          a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
-        sortDirections: ["ascend", "descend"],
-      },
-      {
-        title: "Level Order",
-        dataIndex: "levelOrder",
-        key: "levelOrder",
-        width: 100,
-      },
-      {
-        title: "Description",
-        dataIndex: "description",
-        key: "description",
-        width: 350,
-        ellipsis: {
-          showTitle: false,
-        },
-        render: (description: string) => (
-          <Tooltip placement="topLeft" title={description}>
-            {description}
-          </Tooltip>
-        ),
-      },
-      {
-        title: "Status",
-        dataIndex: "status",
-        key: "status",
-        render: (value: string) => (
-          <Tag color={value === "Active" ? "green" : "red"}>{value}</Tag>
-        ),
-      },
-      {
-        title: "Actions",
-        key: "actions",
-        fixed: "right" as const,
-        render: (_: any, record: GradeViewData) => {
-          if (!canManageOrg) return null;
-          return (
-            <Space style={{gap:18}}>
-              <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}></Button>
-            </Space>
-          );
-        },
-      },
-    ];
+  if (authLoading) {
+    return (
+      <ProtectedRoute>
+        <MainLayout>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#ffffff' }}>
+            <Spin size="large" tip="Loading Organization Data..." />
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!canReadOrg) {
+    return null;
+  }
 
   return (
-    <MainLayout>
-        <div style={{ padding: 24 }}>
+    <ProtectedRoute>
+      <MainLayout>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "#ffffff", 
+          minHeight: "calc(100vh - 64px)" 
+        }}>
           {contextHolder}
-          <div style={{marginTop:20}}>
 
-          <Tabs
-            activeKey={pathname}
-            onChange={handleTabChange}
-            items={[
-              {
-                key: "/org-structure/overview",
-                label: "Overview",
-              },
-              {
-                key: "/org-structure/grades",
-                label: "Grades",
-              },
-              {
-                key: "/org-structure/employment-types",
-                label: "Employment Types",
-              },
-              {
-                key: "/org-structure/departments",
-                label: "Departments",
-              },
-              {
-                key: "/org-structure/sub-departments",
-                label: "Sub-Departments",
-              },
-              {
-                key: "/org-structure/positions",
-                label: "Positions",
-              },
-            ]}
-            />
-            </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 16,
-            }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ScheduleOutlined style={{ color: "#1a64c4ff", fontSize: 20 }} />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Grades
-                  </Typography.Title>
-                </Space>
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Space size={12} align="center">
+                <div style={{ 
+                  background: "rgba(22, 119, 255, 0.08)", 
+                  padding: 10, 
+                  borderRadius: 12, 
+                  color: "#1677ff",
+                  display: "flex"
+                }}>
+                  <ShieldCheck size={24} />
+                </div>
                 <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Define and manage organization grade hierarchy.
-                  </Text>
+                  <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Grades Management</Typography.Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Define and manage organization grade hierarchy and levels.</Text>
+                </div>
+              </Space>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Input 
+                placeholder="Search grades..." 
+                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                style={{ width: 280, borderRadius: 10, height: 44 }}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {canManageOrg && (
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  icon={<Plus size={18} />} 
+                  style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                  onClick={handleAdd}
+                >
+                  New Grade
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Metrics Grid */}
+          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}>
+              <StatCard 
+                label="Total Grades" 
+                value={totalGrades} 
+                icon={Layers} 
+                color="#3b82f6" 
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard 
+                label="Active Status" 
+                value={activeGrades} 
+                icon={ShieldCheck} 
+                color="#10b981" 
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard 
+                label="Inactive Grades" 
+                value={inactiveGrades} 
+                icon={User} 
+                color="#f59e0b" 
+              />
+            </Col>
+          </Row>
+
+          {/* Table Card */}
+          <Card 
+            bodyStyle={{ padding: 0 }} 
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+          >
+            <Table
+              rowKey="key"
+              columns={columns}
+              dataSource={filteredData}
+              loading={loading}
+              size="middle"
+              pagination={{ pageSize: 12, position: ["bottomRight"] }}
+            />
+          </Card>
+        </div>
+
+        {/* Configuration Drawer */}
+        <Drawer
+          title={
+            <Space size={12}>
+              <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
+                <Edit size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
+                  {editingKey ? "Edit Grade Level" : "Create New Grade"}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>
+                  Configure hierarchy rules and grade identity
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <Input.Search
-                  placeholder="Search grades..."
-                  allowClear
-                  style={{ width: 320 }}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                {canManageOrg && (
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Grade</Button>
-                )}
-              </div>
-            </div>
-
-          <Space >
-            <Tag style={{ borderRadius: 12 }}>Total Grades: {totalGrades}</Tag>
-            <Tag style={{ borderRadius: 12 }} color="green">
-              Active: {activeGrades}
-            </Tag>
-            <Tag style={{ borderRadius: 12 }} color="red">
-              Inactive: {inactiveGrades}
-            </Tag>
-          </Space>
-           <Divider style={{marginTop:20}} />
-
-          <Table
-            rowKey="key"
-            size="small"
-            columns={columns as any}
-            dataSource={filteredData}
-            loading={loading}
-            pagination={{ pageSize: 10 }}
-          />
-
-          <Modal
-            title={editingKey ? "Edit Grade" : "Add Grade"}
-            open={isModalOpen}
-            onOk={handleSave}
-            okText={editingKey ? "Update Grade" : "Add Grade"}
-            onCancel={() => setIsModalOpen(false)}
-            confirmLoading={submitting}
-            cancelButtonProps={{ disabled: submitting }}
-            maskClosable={!submitting}
-            destroyOnClose
-            width={450}
-          >
-            <Form form={form} layout="vertical">
-              <Form.Item
-                name="codes"
-                label="Code"
-                rules={[{ required: true, message: "Please enter a code" }]}
+            </Space>
+          }
+          width={480}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
+              <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+              <Button 
+                type="primary" 
+                loading={submitting} 
+                onClick={handleSave} 
+                style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600 }}
               >
-                <Input placeholder="Enter code" disabled />
+                {editingKey ? "Update Grade" : "Create Grade"}
+              </Button>
+            </div>
+          }
+          className="config-drawer"
+        >
+          <Form form={form} layout="vertical" requiredMark={false}>
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Identity & Label</Text>
+              
+              <Form.Item
+                name="name"
+                label={<Text strong style={{ fontSize: 13 }}>Grade Name</Text>}
+                rules={[{ required: true, message: "Please enter grade name" }]}
+              >
+                <Input 
+                  placeholder="e.g. Senior Manager" 
+                  onChange={(e) => {
+                    if (!editingKey) {
+                      const codes = generateCodeFromName(e.target.value);
+                      form.setFieldsValue({ codes });
+                    }
+                  }}
+                />
               </Form.Item>
 
-              {/* Row 1 — Code + Name */}
-              <Row gutter={12}>
+              <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
                     name="code"
-                    label="Grade"
-                    rules={[
-                      { required: true, message: "Please enter grade code" },
-                    ]}
+                    label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
+                    rules={[{ required: true, message: "Required" }]}
                   >
-                    <Input placeholder="Auto-generated (e.g., G1)" disabled />
+                    <Input placeholder="e.g. G1" />
                   </Form.Item>
                 </Col>
-
                 <Col span={12}>
                   <Form.Item
-                    name="name"
-                    label="Grade Name"
-                    normalize={(value) =>
-                      value
-                        ? value.charAt(0).toUpperCase() + value.slice(1)
-                        : value
-                    }
-                    validateTrigger={["onBlur", "onSubmit"]}
-                    rules={[
-                      { required: true, message: "Please enter grade name" },
-                    ]}
+                    name="codes"
+                    label={<Text strong style={{ fontSize: 13 }}>ID Slug</Text>}
+                    rules={[{ required: true, message: "Required" }]}
                   >
-                    <Input
-                      placeholder="Enter Grade name"
-                      onChange={(e) => {
-                        if (!editingKey) {
-                          const codes = generateCodeFromName(e.target.value);
-                          form.setFieldsValue({ codes });
-                        }
-                      }}
-                    />
+                    <Input placeholder="e.g. SENIOR_MANAGER" />
                   </Form.Item>
                 </Col>
               </Row>
+            </div>
 
-              {/* Row 2 — Level + Status */}
-              <Row gutter={12}>
-                <Col span={12}>
-                  <Form.Item
-                    name="levelOrder"
-                    label="Level Order"
-                    rules={[
-                      { required: true, message: "Please enter level order" },
-                    ]}
-                  >
-                    <InputNumber style={{ width: "100%" }} min={1} />
-                  </Form.Item>
-                </Col>
+            <Divider />
 
-                <Col span={12}>
-                  <Form.Item style={{ marginBottom: 0 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "12px 0",
-                        minHeight: 64,
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                          Status
-                        </div>
-                        <div style={{ fontSize: 12, color: "#888" }}>
-                          Enable or disable grade
-                        </div>
-                      </div>
-
-                      <Form.Item
-                        name="status"
-                        valuePropName="checked"
-                        initialValue={true}
-                        noStyle
-                      >
-                        <Switch />
-                      </Form.Item>
-                    </div>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              {/* Row 3 — Description full width */}
-              <Form.Item name="description" label="Description">
-                <Input.TextArea rows={3} />
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Hierarchy Position</Text>
+              <Form.Item
+                name="levelOrder"
+                label={<Text strong style={{ fontSize: 13 }}>Level Sequence Order</Text>}
+                rules={[{ required: true, message: "Required" }]}
+                extra="Higher numbers represent higher levels in the organization."
+              >
+                <InputNumber style={{ width: "100%" }} min={1} placeholder="1" />
               </Form.Item>
-            </Form>
-          </Modal>
-        </div>
+            </div>
+
+            <Divider />
+
+            <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 20 }}>Operations & Visibility</Text>
+              
+              <Form.Item name="status" valuePropName="checked" initialValue={true}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, display: "block" }}>Active Status</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Grading is visible and assignable to positions.</Text>
+                  </div>
+                  <Switch />
+                </div>
+              </Form.Item>
+
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Form.Item name="description" label={<Text strong style={{ fontSize: 13 }}>Internal Description</Text>}>
+                <Input.TextArea rows={3} placeholder="Add specific roles or criteria for this grade..." />
+              </Form.Item>
+            </div>
+          </Form>
+        </Drawer>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .action-btn:hover {
+            background: #f1f5f9 !important;
+            color: #1677ff !important;
+          }
+          .ant-table-thead > tr > th {
+            background: #f8fafc !important;
+            color: #64748b !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            font-size: 11px !important;
+            letter-spacing: 0.05em !important;
+          }
+          .ant-table-row:hover > td {
+            background: #f8fafc !important;
+          }
+          .config-drawer .ant-drawer-header {
+            border-bottom: 1px solid #f1f5f9 !important;
+            padding: 24px !important;
+          }
+          .config-drawer .ant-drawer-footer {
+            border-top: 1px solid #f1f5f9 !important;
+            padding: 16px 24px !important;
+          }
+          .ant-input:focus, .ant-input-focused, .ant-input-number:focus, .ant-input-number-focused {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+          }
+        `}} />
       </MainLayout>
+    </ProtectedRoute>
   );
 }

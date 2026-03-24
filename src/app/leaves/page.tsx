@@ -251,10 +251,8 @@ export default function LeavesPage() {
   }, [approvingLeaveId, rejectingLeaveId, cancellingLeaveId]);
 
   useEffect(() => {
-    fetchLeaveTypes();
-    fetchMyLeaves();
-    fetchPendingApprovals();
-  }, []);
+    router.push("/apply-leave");
+  }, [router]);
 
   useEffect(() => {
     let isMounted = true;

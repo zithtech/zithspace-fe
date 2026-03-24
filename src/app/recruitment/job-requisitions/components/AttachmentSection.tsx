@@ -24,24 +24,33 @@ export interface AttachmentItem {
   isNew?: boolean;       // true if not yet uploaded to R2
 }
 
+export interface AttachmentCategory {
+  key: string;
+  label: string;
+}
+
+const DEFAULT_CATEGORIES: AttachmentCategory[] = [
+  { key: "job_description", label: "Job Description Document" },
+  { key: "client_requirements", label: "Client Requirement File" },
+  { key: "interview_guide", label: "Interview Guide" },
+];
+
 interface AttachmentSectionProps {
   attachments: AttachmentItem[];
   onAttachmentsChange: (attachments: AttachmentItem[]) => void;
   onDeleteSaved?: (attachmentId: string) => Promise<void>;
   loading?: boolean;
+  categories?: AttachmentCategory[];
+  title?: string;
 }
-
-const ATTACHMENT_CATEGORIES = [
-  { key: "job_description", label: "Job Description Document" },
-  { key: "client_requirements", label: "Client Requirement File" },
-  { key: "interview_guide", label: "Interview Guide" },
-];
 
 export default function AttachmentSection({
   attachments,
   onAttachmentsChange,
   onDeleteSaved,
   loading = false,
+  categories = DEFAULT_CATEGORIES,
+  title = "Attachments",
 }: AttachmentSectionProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -115,10 +124,10 @@ export default function AttachmentSection({
   };
 
   return (
-    <Card title="Attachments" bordered={false} style={{ marginBottom: 24 }}>
+    <Card title={title} bordered={false} style={{ marginBottom: 24, borderRadius: '8px' }}>
       <Spin spinning={loading}>
         <Row gutter={[24, 24]}>
-          {ATTACHMENT_CATEGORIES.map((category) => {
+          {categories.map((category) => {
             const attachment = getAttachmentByCategory(category.key);
 
             return (

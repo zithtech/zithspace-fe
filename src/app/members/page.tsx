@@ -52,13 +52,13 @@ interface MemberFormData {
   workEmail: string;
   role: "super_admin" | "admin" | "user";
   position:
-    | "Developer"
-    | "CEO"
-    | "DevOps"
-    | "Project Manager"
-    | "Product Manager"
-    | "UI/UX"
-    | "Business Management";
+  | "Developer"
+  | "CEO"
+  | "DevOps"
+  | "Project Manager"
+  | "Product Manager"
+  | "UI/UX"
+  | "Business Management";
   reportsTo: string;
 }
 
@@ -471,6 +471,16 @@ export default function MembersPage() {
     }
   }, [success, error]);
 
+  // Show loading spinner while authentication is being checked
+  if (isLoading) {
+    return <LoadingSpinner message="Loading members..." />;
+  }
+
+  // Don't render if no read permission
+  if (!canReadUser) {
+    return null;
+  }
+
   // Don't render if no user
   if (!user || isLoading || !canReadUser) {
     if (isLoading) return <LoadingSpinner message="Loading members..." />;
@@ -572,9 +582,9 @@ export default function MembersPage() {
         {/* Filters and Table Container */}
         <Card
           bordered={false}
-          style={{ 
-            marginBottom: 16, 
-            borderRadius: 12, 
+          style={{
+            marginBottom: 16,
+            borderRadius: 12,
             border: '1px solid #f0f0f0',
             boxShadow: 'none'
           }}
@@ -798,9 +808,8 @@ export default function MembersPage() {
                   {managers
                     .filter((m) => m.id !== selectedMember?.id)
                     .map((manager) => (
-                      <Option key={manager.id} value={manager.id}>{`${
-                        manager.name
-                      } - ${manager.id.substring(0, 8)}`}</Option>
+                      <Option key={manager.id} value={manager.id}>{`${manager.name
+                        } - ${manager.id.substring(0, 8)}`}</Option>
                     ))}
                 </Select>
               </Form.Item>

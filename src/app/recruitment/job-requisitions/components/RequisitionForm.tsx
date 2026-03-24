@@ -16,6 +16,7 @@ import {
   Space,
   Typography,
   Spin,
+  Divider,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -49,6 +50,12 @@ export default function RequisitionForm({
   // Dropdown data
   const [clients, setClients] = useState<SelectOption[]>([]);
   const [members, setMembers] = useState<SelectOption[]>([]);
+  const [implementationPartners, setImplementationPartners] = useState<SelectOption[]>([]);
+  const [recruitmentClients, setRecruitmentClients] = useState<SelectOption[]>([]);
+  const [vendors, setVendors] = useState<SelectOption[]>([]);
+  const [implementationContacts, setImplementationContacts] = useState<SelectOption[]>([]);
+  const [clientContacts, setClientContacts] = useState<SelectOption[]>([]);
+  const [vendorContacts, setVendorContacts] = useState<SelectOption[]>([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
   // Attachments — single source of truth for both new (staged) and existing (saved) attachments
@@ -60,12 +67,24 @@ export default function RequisitionForm({
   useEffect(() => {
     const loadDropdowns = async () => {
       try {
-        const [clientData, memberData] = await Promise.all([
+        const [clientData, memberData, partnerData, recClientData, vendorData] = await Promise.all([
           RecruitmentService.getClientsForSelect().catch(() => []),
           RecruitmentService.getMembersForSelect().catch(() => []),
+          RecruitmentService.getImplementationPartnersForSelect().catch(() => []),
+          RecruitmentService.getRecruitmentClientsForSelect().catch(() => []),
+          RecruitmentService.getVendorsForSelect().catch(() => []),
         ]);
         setClients(clientData);
         setMembers(memberData);
+        setImplementationPartners(partnerData);
+        setRecruitmentClients(recClientData);
+        setVendors(vendorData);
+        console.log("RequisitionForm - Dropdowns loaded successfully");
+        console.log("Original Clients Count:", clientData?.length);
+        console.log("Members Count:", memberData?.length);
+        console.log("Implementation Partners:", partnerData);
+        console.log("Recruitment Clients:", recClientData);
+        console.log("Vendors:", vendorData);
       } catch (error) {
         console.error("Failed to load dropdown data:", error);
       } finally {
@@ -75,10 +94,83 @@ export default function RequisitionForm({
     loadDropdowns();
   }, []);
 
+  const handleImplementationChange = async (id: string | null) => {
+    try {
+      console.log("Implementation Partner changed:", id);
+      if (id) {
+        const data = await RecruitmentService.getImplementationContacts(id);
+        console.log("Fetched implementation contacts:", data);
+        setImplementationContacts(data);
+      } else {
+        setImplementationContacts([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch implementation contacts:", error);
+      message.error("Failed to load contacts for the selected partner.");
+    } finally {
+      form.setFieldValue("implementationContactId", undefined);
+    }
+  };
+
+  const handleRecruitmentClientChange = async (id: string | null) => {
+    try {
+      console.log("Recruitment Client changed:", id);
+      if (id) {
+        const data = await RecruitmentService.getRecruitmentClientContacts(id);
+        console.log("Fetched client contacts:", data);
+        setClientContacts(data);
+      } else {
+        setClientContacts([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch client contacts:", error);
+      message.error("Failed to load contacts for the selected client.");
+    } finally {
+      form.setFieldValue("clientContactId", undefined);
+    }
+  };
+
+  const handleVendorChange = async (id: string | null) => {
+    try {
+      console.log("Vendor changed:", id);
+      if (id) {
+        const data = await RecruitmentService.getVendorContacts(id);
+        console.log("Fetched vendor contacts:", data);
+        setVendorContacts(data);
+      } else {
+        setVendorContacts([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch vendor contacts:", error);
+      message.error("Failed to load contacts for the selected vendor.");
+    } finally {
+      form.setFieldValue("vendorContactId", undefined);
+    }
+  };
+
   const fetchRequisition = useCallback(async (id: string) => {
     try {
       setFetching(true);
       const data = await RecruitmentService.getRequisitionById(id);
+
+      // Fetch contacts for all 3 entities in parallel if they exist
+      const [impContacts, cContacts, vContacts] = await Promise.all([
+        data.implementationId
+          ? RecruitmentService.getImplementationContacts(data.implementationId).catch(() => [])
+          : Promise.resolve([]),
+        data.recruitmentClientId
+          ? RecruitmentService.getRecruitmentClientContacts(data.recruitmentClientId).catch(() => [])
+          : Promise.resolve([]),
+        data.vendorIds
+          ? RecruitmentService.getVendorContacts(data.vendorIds).catch(() => [])
+          : Promise.resolve([]),
+      ]);
+
+      setImplementationContacts(impContacts);
+      setClientContacts(cContacts);
+      setVendorContacts(vContacts);
+
+      const savedContactIds = data.jobRequisitionContacts?.map((jc: any) => jc.contactId) || [];
 
       // Parse dates into dayjs objects for the DatePicker
       const formattedData = {
@@ -94,10 +186,14 @@ export default function RequisitionForm({
           ? dayjs(data.expectedClosureDate)
           : null,
         assignedRecruiters: data.assignedRecruiters?.map((r: any) => r.id),
+        // Map saved contact IDs to specific fields
+        implementationContactId: savedContactIds.find(cid => impContacts.some(opt => opt.value === cid)),
+        clientContactId: savedContactIds.find(cid => cContacts.some(opt => opt.value === cid)),
+        vendorContactId: savedContactIds.find(cid => vContacts.some(opt => opt.value === cid)),
         // Parse screening questions from JSON
         screeningQuestions:
           Array.isArray(data.screeningQuestions) &&
-          data.screeningQuestions.length > 0
+            data.screeningQuestions.length > 0
             ? data.screeningQuestions
             : undefined,
       };
@@ -144,6 +240,12 @@ export default function RequisitionForm({
         expectedClosureDate: values.expectedClosureDate?.toISOString() || null,
         // Ensure screening questions is a proper JSON array
         screeningQuestions: values.screeningQuestions || [],
+        // Collect contacts from the 3 separate dropdowns into contactIds array
+        contactIds: [
+          values.implementationContactId,
+          values.clientContactId,
+          values.vendorContactId,
+        ].filter(Boolean),
       };
 
       let requisitionId = params.id as string;
@@ -489,6 +591,93 @@ export default function RequisitionForm({
           </Row>
         </Card>
 
+        {/* ─── External Contacts Setup ─── */}
+        <Card
+          title="External Contacts Setup"
+          bordered={false}
+          style={{ marginBottom: 24 }}
+        >
+          <Row gutter={24}>
+            {/* Implementation Section */}
+            <Col span={8}>
+              <Form.Item name="implementationId" label="Implementation Partner">
+                <Select
+                  placeholder="Select Implementation Partner"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  loading={loadingDropdowns}
+                  options={implementationPartners}
+                  onChange={handleImplementationChange}
+                />
+              </Form.Item>
+              <Divider style={{ margin: "12px 0" }} />
+              <Form.Item name="implementationContactId" label="Implementation Contact">
+                <Select
+                  placeholder="Select Contact"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  options={implementationContacts}
+                  disabled={!form.getFieldValue("implementationId")}
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Client Section */}
+            <Col span={8}>
+              <Form.Item name="recruitmentClientId" label="Client">
+                <Select
+                  placeholder="Select Client"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  loading={loadingDropdowns}
+                  options={recruitmentClients}
+                  onChange={handleRecruitmentClientChange}
+                />
+              </Form.Item>
+              <Divider style={{ margin: "12px 0" }} />
+              <Form.Item name="clientContactId" label="Client Contact">
+                <Select
+                  placeholder="Select Contact"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  options={clientContacts}
+                  disabled={!form.getFieldValue("recruitmentClientId")}
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Vendor Section */}
+            <Col span={8}>
+              <Form.Item name="vendorIds" label="Vendor">
+                <Select
+                  placeholder="Select Vendor"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  loading={loadingDropdowns}
+                  options={vendors}
+                  onChange={handleVendorChange}
+                />
+              </Form.Item>
+              <Divider style={{ margin: "12px 0" }} />
+              <Form.Item name="vendorContactId" label="Vendor Contact">
+                <Select
+                  placeholder="Select Contact"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  options={vendorContacts}
+                  disabled={!form.getFieldValue("vendorIds")}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+
         {/* ─── Billing & Rate Information ─── */}
         <Card
           title="Billing & Rate Information"
@@ -714,12 +903,12 @@ export default function RequisitionForm({
         </Card>
 
         {/* ─── Attachments ─── */}
-          <AttachmentSection
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
-            onDeleteSaved={handleDeleteSavedAttachment}
-            loading={loadingAttachments}
-          />
+        <AttachmentSection
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
+          onDeleteSaved={handleDeleteSavedAttachment}
+          loading={loadingAttachments}
+        />
 
         {/* ─── Internal Notes ─── */}
         <Card

@@ -47,7 +47,7 @@ export function middleware(request: NextRequest) {
   // access token is used on the first API call (axios interceptor refreshes it).
 
   const refreshTokenCookie = request.cookies.get("refreshToken");
-  // Also check for a custom lightweight auth marker cookie set on login
+
   const authMarkerCookie = request.cookies.get("zithmi_auth");
 
   const hasAuthCookie = !!refreshTokenCookie || !!authMarkerCookie;

@@ -48,7 +48,12 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
+import { BsPersonWorkspace } from "react-icons/bs";
 
+import { TiGroup } from "react-icons/ti";
+import { BsGridFill } from "react-icons/bs";
+import { TiGroupOutline } from "react-icons/ti";
+import { BsPersonFillCheck } from "react-icons/bs";
 export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
 
 export interface NavItem {
@@ -260,6 +265,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.DOCUMENT_READ,
       },
       {
+        key: "squadManagement",
+        label: "Squad Management",
+        icon: <TiGroup />,
+        path: "/squad",
+        requiredPermission: Permissions.DOCUMENT_READ,
+      },
+      {
+        key: "candidateForm",
+        label: "Candidate Form",
+        icon: <BsPersonWorkspace />,
+        path: "/candidateForm",
+        requiredPermission: Permissions.DOCUMENT_READ,
+      },
+      {
         key: "releasenotes",
         icon: <FileTextOutlined />,
         label: "Release Notes",
@@ -291,6 +310,77 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     ],
   },
   {
+    key: "ADMIN",
+    label: "ADMIN",
+    icon: <SettingOutlined />,
+    pathPrefixes: [
+      "/clients",
+      "/clients-v2",
+      "/settings",
+      "/admin",
+      "/roles",
+      "/recruitment-client",
+      "/implementation-partner",
+      "/vendor",
+    ],
+    defaultPath: "/clients-v2",
+    requiredAnyPermission: [
+      Permissions.CLIENT_READ,
+      Permissions.SETTINGS_READ,
+      Permissions.ROLE_READ,
+    ],
+    items: [
+      {
+        key: "/clients",
+        label: "Clients (Legacy)",
+        icon: <UserAddOutlined />,
+        path: "/clients",
+      },
+      {
+        key: "/clients-v2",
+        label: "Clients V2",
+        icon: <ApartmentOutlined />,
+        path: "/clients-v2",
+      },
+      {
+        key: "/settings",
+        label: "General Settings",
+        icon: <ControlOutlined />,
+        path: "/settings",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/implementation-partner",
+        label: "Implementations",
+        icon: <BsGridFill />,
+        path: "/implementation-partner",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/recruitment-client",
+        label: "Recruitment Client",
+        icon: <TiGroupOutline />,
+        path: "/recruitment-client",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/vendor",
+        label: "Vendor",
+        icon: <BsPersonFillCheck />,
+        path: "/vendor",
+        requiredPermission: Permissions.SETTINGS_READ,
+      },
+      {
+        key: "/roles",
+        label: "Roles & Permissions",
+        icon: <SafetyOutlined />,
+        path: "/roles",
+        requiredPermission: Permissions.ROLE_READ,
+      },
+    ],
+  },
+
+  {
     key: "HRMS",
     label: "HRMS",
     icon: <TeamOutlined />,
@@ -301,6 +391,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/leaves",
       "/org-structure",
       "/onboarding",
+      "/recruitment",
+      "/employee-exit",
+      "/performance",
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -353,14 +446,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.ONBOARDING_CREATE,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/onboarded",
             icon: <SafetyOutlined />,
             label: "Onborded",
             path: "/onboarding/onboarded",
             requiredPermission: Permissions.ONBOARDING_READ,
           },
           {
-            key: "/onbording/create",
+            key: "/onbording/settings",
             icon: <IoSettingsOutline />,
             label: "Settings",
             path: "/onboarding/settings",
@@ -368,6 +461,24 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
 
+      {
+        key: "employee-exit",
+        icon: <UserOutlined />,
+        label: "Employee Exit",
+        // No specific permission required initially based on requirements
+        children: [
+          {
+            key: "/employee-exit/management",
+            label: "Employee Exit Management",
+            path: "/employee-exit/management",
+          },
+          {
+            key: "/employee-exit/configuration",
+            label: "Configuration",
+            path: "/employee-exit/configuration",
+          },
+        ],
+      },
       {
         key: "orgstructure",
         icon: <ApartmentOutlined />,
@@ -418,6 +529,44 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+      // {
+      //   key: "/recruitment-settings",
+      //   label: "Status & Actions",
+      //   icon: <SolutionOutlined />,
+      //   path: "/recruitment-settings",
+      // },
+      {
+        key: "/performance",
+        label: "Performance View",
+        icon: <BarChartOutlined />,
+        path: "/perfomance-management",
+        requiredPermission: Permissions.USER_READ,
+      },
+      {
+        key: "recruitment-group",
+        icon: <TeamOutlined />,
+        label: "Recruitment",
+        children: [
+          {
+            key: "/recruitment/job-requisitions",
+            label: "Job Requisitions",
+            icon: <ProjectOutlined />,
+            path: "/recruitment/job-requisitions",
+          },
+          {
+            key: "/recruitment/candidate-management",
+            label: "Candidate Management",
+            icon: <UserAddOutlined />,
+            path: "/recruitment/candidate-management",
+          },
+          {
+            key: "/recruitment-settings",
+            label: "Status & Actions",
+            icon: <SolutionOutlined />,
+            path: "/recruitment-settings",
+          },
+        ],
+      },
     ],
   },
   {
@@ -446,7 +595,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       // },
       {
         key: "invoicepro",
-        label: "InvoicePro",
+        label: "Invoice",
         icon: <AccountBookOutlined />,
         requiredPermission: Permissions.INVOICE_READ,
         children: [
@@ -472,6 +621,14 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.INVOICE_CREATE,
           },
           {
+            key: "/invoicepro/templates",
+            label: "Template",
+            icon: <FileAddOutlined />,
+            path: "/invoicepro/templates",
+            requiredPermission: Permissions.INVOICE_CREATE,
+          },
+
+          {
             key: "/invoicepro/customers",
             label: "Customers",
             icon: <UserAddOutlined />,
@@ -484,6 +641,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <SettingOutlined />,
             path: "/invoicepro/settings",
             requiredPermission: Permissions.SETTINGS_UPDATE,
+          },
+          {
+            key: "/invoicepro/trash",
+            label: "Trash",
+            icon: <DeleteOutlined />,
+            path: "/invoicepro/trash",
+            requiredPermission: Permissions.INVOICE_READ,
           },
         ],
       },
@@ -506,6 +670,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <FormOutlined />,
             path: "/salary/Create-payslip",
             requiredPermission: Permissions.SALARY_MANAGE,
+          },
+          {
+            key: "/salary/salarypreview",
+            label: "Salary Preview",
+            icon: <SnippetsOutlined />,
+            path: "/salary/salarypreview",
+            requiredPermission: Permissions.SALARY_READ,
           },
           {
             key: "/salary/My-Payslip",
@@ -536,42 +707,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             requiredPermission: Permissions.SALARY_MANAGE,
           },
         ],
-      },
-    ],
-  },
-  {
-    key: "ADMIN",
-    label: "ADMIN",
-    icon: <SettingOutlined />,
-    pathPrefixes: ["/clients", "/clients-v2", "/settings", "/admin", "/roles"],
-    defaultPath: "/clients-v2",
-    requiredAnyPermission: [Permissions.CLIENT_READ, Permissions.SETTINGS_READ, Permissions.ROLE_READ],
-    items: [
-      {
-        key: "/clients",
-        label: "Clients (Legacy)",
-        icon: <UserAddOutlined />,
-        path: "/clients",
-      },
-      {
-        key: "/clients-v2",
-        label: "Clients V2",
-        icon: <ApartmentOutlined />,
-        path: "/clients-v2",
-      },
-      {
-        key: "/settings",
-        label: "General Settings",
-        icon: <ControlOutlined />,
-        path: "/settings",
-        requiredPermission: Permissions.SETTINGS_READ,
-      },
-      {
-        key: "/roles",
-        label: "Roles & Permissions",
-        icon: <SafetyOutlined />,
-        path: "/roles",
-        requiredPermission: Permissions.ROLE_READ,
       },
     ],
   },

@@ -13,6 +13,8 @@ export interface Customer {
   country?: string | null;
 
   taxId?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
 
   tenantId: string;
   createdBy: string;
@@ -32,6 +34,8 @@ export interface CreateCustomerData {
   country?: string;
 
   taxId?: string;
+  gstin?: string;
+  pan?: string;
 }
 
 export interface UpdateCustomerData {
@@ -44,6 +48,8 @@ export interface UpdateCustomerData {
   country?: string;
 
   taxId?: string;
+  gstin?: string;
+  pan?: string;
 }
 
 export interface CustomersFilters {

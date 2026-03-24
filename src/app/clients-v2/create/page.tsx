@@ -28,15 +28,7 @@ import MainLayout from "@/components/layout/MainLayout";
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-export default function CreateClientV2Page() {
-  return (
-    <Suspense fallback={<Spin />}>
-      <CreateClientV2PageInner />
-    </Suspense>
-  );
-}
-
-function CreateClientV2PageInner() {
+function CreateClientV2Content() {
   const [form] = Form.useForm();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -83,8 +75,7 @@ function CreateClientV2PageInner() {
     } catch (err) {
       console.error(err);
       message.error(
-        `An error occurred while ${
-          isEditMode ? "updating" : "creating"
+        `An error occurred while ${isEditMode ? "updating" : "creating"
         } the client`,
       );
     } finally {
@@ -483,5 +474,17 @@ function CreateClientV2PageInner() {
         </Form>
       </div>
     </MainLayout>
+  );
+}
+
+export default function CreateClientV2Page() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} tip="Loading..." />
+      </div>
+    }>
+      <CreateClientV2Content />
+    </Suspense>
   );
 }

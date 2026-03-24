@@ -8,6 +8,7 @@ import LoadingSpinner from "../common/LoadingSpinner";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
 import { NAVIGATION_CONFIG, ModuleType } from "./navigationConfig";
+import { useLayout } from "@/context/LayoutContext";
 
 const { Content } = Layout;
 
@@ -21,7 +22,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const router = useRouter();
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(true);
+  const { collapsed, toggleCollapsed } = useLayout();
   const [activeModule, setActiveModule] = useState<ModuleType>("WORK");
 
   // Determine active module based on current path
@@ -103,15 +104,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <SideNav
           activeModule={activeModule}
           collapsed={collapsed}
-          onCollapse={() => setCollapsed(!collapsed)}
+          onCollapse={toggleCollapsed}
         />
 
         <Content
           style={{
             margin: 0,
-            padding: 0,
-            background: "#f5f5f5",
-            marginLeft: collapsed ? 65 : 240,
+            // padding: "10px",
+            paddingLeft:"24px",
+            paddingRight:"24px",
+            // background: "#f5f5f5",
+             background: "white",
+            marginLeft: collapsed ? 60 : 240,
             transition: "all 0.2s",
             height: "calc(100vh - 64px)",
             overflow: "auto",

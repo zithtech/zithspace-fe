@@ -1,57 +1,61 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Settings2, Columns3Cog } from "lucide-react";
+import { 
+  Settings2, 
+  ShieldCheck, 
+  Plus, 
+  Search, 
+  LayoutGrid, 
+  LayoutList, 
+  CheckCircle2, 
+  AlertCircle, 
+  XCircle, 
+  ChevronRight, 
+  ArrowRight,
+  User,
+  GraduationCap,
+  Building2,
+  Network,
+  Briefcase,
+  Layers,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  Eye,
+  Zap,
+  Maximize2
+} from "lucide-react";
 import {
   Card,
-  Tabs,
   Form,
   Input,
-  DatePicker,
   Select,
   Button,
   Table,
   Tag,
-  Modal,
-  message,
+  Drawer,
   notification,
   Space,
-  Statistic,
   Row,
   Col,
-  Badge,
   Typography,
   Tooltip,
   Popconfirm,
   Switch,
-  Checkbox,
-  List,
   InputNumber,
   Divider,
   Segmented,
   Avatar,
-  Drawer,
   Collapse,
+  Empty
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import {
-  PlusOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ClockCircleOutlined,
-  ScheduleOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  ApartmentOutlined,
-  SettingOutlined,
-  AppstoreOutlined,
-  BarsOutlined,
-  EyeOutlined,
-} from "@ant-design/icons";
-import { useRouter, usePathname } from "next/navigation";
+import { DeleteOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 import { useLeaveOrigins } from "@/hooks/useLeaveOrigins";
 import { leaveOriginService } from "@/services/leaveOriginService";
 import { MembersService } from "@/services/membersService";
@@ -62,9 +66,7 @@ import { usePositions } from "@/hooks/usePositions";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
 
 const { TextArea } = Input;
-const { RangePicker } = DatePicker;
-const { Paragraph, Text } = Typography;
-const subOriginData: Record<string, string[]> = {};
+const { Text, Title } = Typography;
 
 interface PositionRecord {
   key: string;
@@ -95,9 +97,7 @@ const LeaveConfigListContent = ({
   editingKey: string | null;
   leaveTypes: { label: string; value: string }[];
 }) => {
-  const [activeKey, setActiveKey] = useState<
-    string | string[] | number | number[]
-  >(fields.length > 0 ? fields[0].key : []);
+  const [activeKey, setActiveKey] = useState<string | string[] | number | number[]>(fields.length > 0 ? fields[0].key : []);
   const prevFieldsLength = useRef(fields.length);
 
   useEffect(() => {
@@ -107,249 +107,171 @@ const LeaveConfigListContent = ({
     }
     prevFieldsLength.current = fields.length;
   }, [fields.length]);
-  const switchRowCard = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 12px",
-    border: "1px solid #f0f0f0",
-    borderRadius: 8,
-    marginBottom: 12,
-    background: "#fafafa",
-  };
-
-  const switchTitle = {
-    fontSize: 14,
-    fontWeight: 600,
-  };
-
-  const switchDesc = {
-    fontSize: 12,
-    color: "#8c8c8c",
-    marginTop: 2,
-  };
 
   return (
-    <>
+    <div style={{ marginTop: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <Text strong style={{ color: "#334155", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.025em" }}>Current Rules</Text>
+        <Button 
+          type="link" 
+          icon={<Plus size={14} />} 
+          onClick={() => add()} 
+          size="small" 
+          style={{ padding: 0 }}
+        >
+          Add Rule
+        </Button>
+      </div>
       <Collapse
         accordion
         activeKey={activeKey}
         onChange={setActiveKey}
+        expandIcon={({ isActive }) => <ChevronRight size={14} style={{ transform: isActive ? "rotate(90deg)" : "rotate(0deg)", transition: "0.2s" }} />}
+        style={{ background: "transparent", border: "none" }}
         items={fields.map(({ key, name, ...restField }) => {
-         const leaveConfigs = form.getFieldValue("leaveConfigs") || [];
-
-const selectedInOtherRows = leaveConfigs
-  .filter((_: any, index: number) => index !== name)
-  .flatMap((item: any) => {
-    const types = item?.leaveType;
-    if (Array.isArray(types)) return types;
-    if (typeof types === "string") return [types];
-    return [];
-  });
-
+          const leaveConfigs = form.getFieldValue("leaveConfigs") || [];
           const currentLeaveType = leaveConfigs?.[name]?.leaveType;
+          const label = leaveTypes.find((t) => t.value === currentLeaveType)?.label || `Rule ${name + 1}`;
 
           return {
             key: key,
-            label:
-              leaveTypes.find((t) => t.value === currentLeaveType)?.label ||
-              `Leave Type ${name + 1}`,
-            extra:
-              fields.length > 1 ? (
-                <Popconfirm
-                  title="Are you sure you want to delete?"
-                  onConfirm={() => remove(name)}
-                  onCancel={(e) => e?.stopPropagation()}
-                >
-                  <DeleteOutlined
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ color: "red" }}
-                  />
-                </Popconfirm>
-              ) : null,
+            label: <Text strong style={{ color: currentLeaveType ? "#1e293b" : "#64748b" }}>{label}</Text>,
+            extra: (
+              <Popconfirm
+                title="Remove this rule?"
+                onConfirm={() => remove(name)}
+                onCancel={(e) => e?.stopPropagation()}
+              >
+                <Trash2 
+                  size={14} 
+                  style={{ color: "#94a3b8", transition: "0.2s" }} 
+                  onMouseEnter={(e: any) => e.target.style.color = "#ef4444"}
+                  onMouseLeave={(e: any) => e.target.style.color = "#94a3b8"}
+                  onClick={(e) => e.stopPropagation()} 
+                />
+              </Popconfirm>
+            ),
             children: (
-              <>
-                <Form.Item name={[name, "id"]} hidden>
-                  <Input />
-                </Form.Item>
-               <Row gutter={12}>
-  <Col span={12}>
-    <Form.Item
-      {...restField}
-      name={[name, "leaveType"]}
-      label="Leave Type"
-      rules={[{ required: true }]}
-    >
-      <Select
-        size="small"
-        style={{ width: "100%",height:30 }}
-        placeholder="Leave Type"
-        options={leaveTypes.filter(
-          (type) => !selectedInOtherRows.includes(type.value)
-        )}
-      />
-    </Form.Item>
-  </Col>
+              <div style={{ padding: "0 8px" }}>
+                <Form.Item name={[name, "id"]} hidden><Input /></Form.Item>
+                <Row gutter={16}>
+                  <Col span={14}>
+                    <Form.Item
+                      {...restField}
+                      name={[name, "leaveType"]}
+                      label="Type"
+                      rules={[{ required: true }]}
+                    >
+                      <Select placeholder="Select Type" options={leaveTypes} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={10}>
+                    <Form.Item
+                      {...restField}
+                      name={[name, "unit"]}
+                      label="Unit Value"
+                      rules={[{ required: true }]}
+                    >
+                      <InputNumber min={0} style={{ width: "100%" }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
-  <Col span={12}>
-    <Form.Item
-      {...restField}
-      name={[name, "unit"]}
-      label="Unit"
-      rules={[
-        { required: true, message: "Please enter a unit." },
-        { type: "number", message: "Unit must be a number." },
-      ]}
-    >
-      <InputNumber min={0} style={{ width: "100%" }} />
-    </Form.Item>
-  </Col>
-</Row>
-
-                <Row gutter={12}>
+                <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item
                       {...restField}
                       name={[name, "period"]}
-                      label="Period"
+                      label="Frequency"
                       rules={[{ required: true }]}
                     >
                       <Select
                         options={[
-                          { label: "Month", value: "MONTH" },
-                          { label: "Year", value: "YEAR" },
+                          { label: "Every Month", value: "MONTH" },
+                          { label: "Every Year", value: "YEAR" },
                         ]}
-                        onChange={() => {
-                          form.setFieldValue(["leaveConfigs", name, "months"], undefined);
-                        }}
                       />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.leaveConfigs?.[name]?.period !== curr.leaveConfigs?.[name]?.period}>
-                      {() => {
-                        const period = form.getFieldValue(["leaveConfigs", name, "period"]);
-                        const isYear = period === "YEAR";
-                        return (
-                          <Form.Item
-                            {...restField}
-                            name={[name, "months"]}
-                            label={isYear ? "Years" : "Months"}
-                            rules={[{ required: true, message: `Enter ${isYear ? "years" : "months"}` }]}
-                          >
-                            <InputNumber min={1} style={{ width: "100%" }} />
-                          </Form.Item>
-                        );
-                      }}
+                    <Form.Item
+                      {...restField}
+                      name={[name, "months"]}
+                      label="Interval (Months/Years)"
+                      rules={[{ required: true }]}
+                    >
+                      <InputNumber min={1} style={{ width: "100%" }} />
                     </Form.Item>
                   </Col>
                 </Row>
-                {/* Carry Forward */}
-                <div style={switchRowCard}>
-                  <div>
-                    <div style={switchTitle}>Carry Forward</div>
-                    <div style={switchDesc}>
-                      Allow unused leaves to carry forward
+
+                <div style={{ display: "flex", flexDirection: "row", gap: 12, marginTop: 16 }}>
+                  <div style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "10px 14px", borderRadius: 10, border: "1px solid #f1f5f9" }}>
+                    <div>
+                      <Text strong style={{ fontSize: 13, display: "block" }}>Rule Status</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>Enable this leave type.</Text>
                     </div>
+                    <Form.Item {...restField} name={[name, "status"]} valuePropName="checked" noStyle initialValue={true}>
+                      <Switch size="small" />
+                    </Form.Item>
                   </div>
 
-                  <Form.Item
-                    {...restField}
-                    name={[name, "carryForward"]}
-                    valuePropName="checked"
-                    noStyle
-                  >
-                    <Switch disabled={!editingKey} />
-                  </Form.Item>
-                </div>
-
-                {/* Status */}
-                <div style={{ ...switchRowCard, marginBottom: 0 }}>
-                  <div>
-                    <div style={switchTitle}>Status</div>
-                    <div style={switchDesc}>Leave type is active</div>
+                  <div style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "10px 14px", borderRadius: 10, border: "1px solid #f1f5f9" }}>
+                    <div>
+                      <Text strong style={{ fontSize: 13, display: "block" }}>Carry Forward</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>Allow transfer.</Text>
+                    </div>
+                    <Form.Item {...restField} name={[name, "carryForward"]} valuePropName="checked" noStyle>
+                      <Switch size="small" />
+                    </Form.Item>
                   </div>
-
-                  <Form.Item
-                    {...restField}
-                    name={[name, "status"]}
-                    valuePropName="checked"
-                    initialValue={true}
-                    noStyle
-                  >
-                    <Switch />
-                  </Form.Item>
                 </div>
-              </>
+              </div>
             ),
+            style: { 
+              marginBottom: 8, 
+              background: "#ffffff", 
+              borderRadius: 12, 
+              border: "1px solid #f1f5f9",
+              overflow: "hidden"
+            }
           };
         })}
       />
-      <Button
-        type="dashed"
-        block
-        onClick={() => add()}
-        style={{ marginTop: 12 }}
-      >
-        + Add Another Leave Type
-      </Button>
-    </>
+    </div>
   );
 };
 
-export default function positionConfiguration() {
+export default function LeavePolicyPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const hasApprovalRights =
-    (user as any)?.role === "super_admin" || (user as any)?.role === "admin";
-
-  const [api, contextHolder] = notification.useNotification();
   const [form] = Form.useForm();
-  const originType = Form.useWatch("position", form);
-  // const leaveConfigs = Form.useWatch("leaveConfigs", form);
-  // const [loading, setLoading] = useState(false); // Replaced by hook's loading
-  const [viewType, setViewType] = useState("table");
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [api, contextHolder] = notification.useNotification();
+  
+  const [viewType, setViewType] = useState<string>("table");
   const [searchText, setSearchText] = useState("");
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const [editMode, setEditMode] = useState<"group" | "single">("group");
-  const [currentRecord, setCurrentRecord] = useState<PositionRecord | null>(
-    null,
-  );
+  const [isDetailVisible, setIsDetailVisible] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [currentRecord, setCurrentRecord] = useState<PositionRecord | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
-
-  const [members, setMembers] = useState<{ value: string; label: string }[]>(
-    [],
-  );
+  const [members, setMembers] = useState<{ value: string; label: string }[]>([]);
   const [dataSource, setDataSource] = useState<PositionRecord[]>([]);
 
   const { leaveOrigins, loading, refetch } = useLeaveOrigins();
   const { dataSource: grades, loading: gradesLoading } = useGrades();
   const { departments, loading: departmentsLoading } = useDepartments();
-  const { subDepartments, loading: subDepartmentsLoading } =
-    useSubDepartments();
+  const { subDepartments, loading: subDepartmentsLoading } = useSubDepartments();
   const { dataSource: positions, loading: positionsLoading } = usePositions();
-
   const { leaveTypes: apiLeaveTypes, fetchLeaveTypes } = useLeaveTypes();
 
-  useEffect(() => {
-    fetchLeaveTypes();
-  }, []);
+  const originType = Form.useWatch("position", form);
 
-  const [leaveTypeOptions, setLeaveTypeOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
+  useEffect(() => { fetchLeaveTypes(); }, [fetchLeaveTypes]);
 
-  useEffect(() => {
-    if (apiLeaveTypes) {
-      const options = apiLeaveTypes
-        .filter((lt) => lt.isActive)
-        .map((lt) => ({ label: lt.name, value: lt.id }));
-      setLeaveTypeOptions(options);
-    }
+  const leaveTypeOptions = useMemo(() => {
+    return apiLeaveTypes ? apiLeaveTypes.filter(lt => lt.isActive).map(lt => ({ label: lt.name, value: lt.id })) : [];
   }, [apiLeaveTypes]);
 
   useEffect(() => {
@@ -360,272 +282,144 @@ export default function positionConfiguration() {
           position: origin.origin,
           subOriginId: origin.subOriginId,
           status: type.status,
-          leaveType: type.leaveType?.name, // Display Name
-          leaveTypeId: type.leaveTypeId, // ID for logic
+          leaveType: type.leaveType?.name,
+          leaveTypeId: type.leaveTypeId,
           unit: Number(type.unit),
           period: type.period,
           carryForward: type.carryForward,
-          totalLeaves: Number(type.unit), // Assuming total is unit for now, adjust logic if needed
+          totalLeaves: Number(type.unit),
           accrualInterval: type.accrualInterval,
-        })),
+        }))
       );
       setDataSource(formattedData);
     }
   }, [leaveOrigins]);
 
   useEffect(() => {
-    const fetchMembersForSelect = async () => {
-      try {
-        const memberData = await MembersService.getMembersForSelect();
-        setMembers(memberData);
-      } catch (error) {
-        console.error("Failed to fetch members for select:", error);
-        api.error({
-          message: "Failed to load members",
-          placement: "topRight",
-        });
-      }
-    };
-    fetchMembersForSelect();
+    MembersService.getMembersForSelect().then(setMembers).catch(console.error);
   }, []);
 
-  const uniqueDataSource = Object.values(
-    dataSource.reduce(
-      (acc, item) => {
-        const key = `${item.position}-${item.subOriginId}`;
-        if (!acc[key]) {
-          acc[key] = {
-            ...item,
-            leaveType: Array.isArray(item.leaveType)
-              ? item.leaveType
-              : item.leaveType
-                ? [item.leaveType]
-                : [],
-          };
-        } else {
-          const existingTypes = acc[key].leaveType as string[];
-          const newType = Array.isArray(item.leaveType)
-            ? item.leaveType[0]
-            : item.leaveType;
-          if (newType && !existingTypes.includes(newType)) {
-            existingTypes.push(newType);
-          }
+  const uniqueDataSource = useMemo(() => {
+    const acc: Record<string, PositionRecord> = {};
+    dataSource.forEach(item => {
+      const key = `${item.position}-${item.subOriginId}`;
+      if (!acc[key]) {
+        acc[key] = { ...item, leaveType: item.leaveType ? [item.leaveType as string] : [] };
+      } else {
+        const existingTypes = acc[key].leaveType as string[];
+        if (item.leaveType && !existingTypes.includes(item.leaveType as string)) {
+          existingTypes.push(item.leaveType as string);
         }
-        return acc;
-      },
-      {} as Record<string, PositionRecord>,
-    ),
-  );
-
-  const usedSubOriginIds = uniqueDataSource
-    .filter((item) => item.position === originType)
-    .map((item) => item.subOriginId);
+      }
+    });
+    return Object.values(acc);
+  }, [dataSource]);
 
   const columns: ColumnsType<PositionRecord> = [
     {
-      title: "Orgin",
+      title: "Origin & Category",
       dataIndex: "position",
       key: "position",
-      align: "center",
-      sorter: (a, b) => a.position.localeCompare(b.position),
-      render: (text: string) => <Text strong>{text}</Text>,
-    },
-    {
-      title: "Sub-Orgin",
-      dataIndex: "subOriginId",
-      key: "subOriginId",
-      align: "center",
-      render: (text: string, record: PositionRecord) => {
-        let label = text;
-        if (record.position === "User")
-          label = members.find((m) => m.value === text)?.label || text;
-        else if (record.position === "Grade")
-          label = grades.find((g) => g.id === text)?.name || text;
-        else if (record.position === "Department")
-          label = departments.find((d) => d.id === text)?.name || text;
-        else if (record.position === "Sub-department")
-          label = subDepartments.find((sd) => sd.id === text)?.name || text;
-        else if (record.position === "Position")
-          label = positions.find((p) => p.id === text)?.title || text;
-        return <Text strong>{label || "-"}</Text>;
-      },
-    },
-    {
-      title: "Active Leave",
-      key: "activeLeave",
-      align: "center",
-      render: (_: any, record: PositionRecord) => {
-        const group = dataSource.filter(
-          (i) =>
-            i.position === record.position &&
-            i.subOriginId === record.subOriginId,
+      width: "30%",
+      render: (origin: string, record: PositionRecord) => {
+        let label = record.subOriginId;
+        if (origin === "User") label = members.find(m => m.value === record.subOriginId)?.label || label;
+        else if (origin === "Grade") label = grades.find(g => g.id === record.subOriginId)?.name || label;
+        else if (origin === "Department") label = departments.find(d => d.id === record.subOriginId)?.name || label;
+        else if (origin === "Sub-department") label = subDepartments.find(sd => sd.id === record.subOriginId)?.name || label;
+        else if (origin === "Position") label = positions.find(p => p.id === record.subOriginId)?.title || label;
+
+        const Icon = origin === "User" ? User : origin === "Department" ? Building2 : origin === "Position" ? Briefcase : origin === "Grade" ? GraduationCap : Layers;
+
+        return (
+          <Space size={12}>
+            <div style={{ background: "#f1f5f9", padding: 8, borderRadius: 10, color: "#475569", display: "flex" }}>
+              <Icon size={18} />
+            </div>
+            <div>
+              <Text strong style={{ display: "block", color: "#1e293b" }}>{label}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>{origin}</Text>
+            </div>
+          </Space>
         );
-        const count = group.filter((i) => i.status === "Active").length;
-        return <Tag color="green">{count}</Tag>;
-      },
+      }
     },
     {
-      title: "Inactive Leave",
-      key: "inactiveLeave",
-      align: "center",
-      render: (_: any, record: PositionRecord) => {
-        const group = dataSource.filter(
-          (i) =>
-            i.position === record.position &&
-            i.subOriginId === record.subOriginId,
+      title: "Allocated Policies",
+      key: "policies",
+      render: (_, record) => {
+        const types = record.leaveType as string[];
+        return (
+          <Space size={4} wrap>
+            {types.slice(0, 3).map((t, idx) => <Tag key={idx} color="blue" style={{ borderRadius: 6, border: 0, background: "#eff6ff", color: "#2563eb", fontWeight: 500 }}>{t}</Tag>)}
+            {types.length > 3 && <Text type="secondary" style={{ fontSize: 11 }}>+{types.length - 3} more</Text>}
+          </Space>
         );
-        const count = group.filter((i) => i.status !== "Active").length;
-        return <Tag color="red">{count}</Tag>;
-      },
+      }
     },
     {
-      title: "Action",
-      key: "action",
-      align: "center",
-      render: (_: any, record: any) => (
-        <Space>
-          <Tooltip title="View">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => handleView(record)}
-            />
+      title: "Utilization Status",
+      key: "status",
+      render: (_, record) => {
+        const group = dataSource.filter(i => i.position === record.position && i.subOriginId === record.subOriginId);
+        const active = group.filter(i => i.status === "Active").length;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ProgressCircle percent={(active / group.length) * 100} size={16} />
+            <Text style={{ fontSize: 13, color: "#475569" }}>{active} Active / {group.length} Total</Text>
+          </div>
+        );
+      }
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      align: "right",
+      render: (_, record) => (
+        <Space size={4}>
+          <Tooltip title="View Details">
+            <Button type="text" icon={<Maximize2 size={18} color="#64748b" />} onClick={() => { setCurrentRecord(record); setIsDetailVisible(true); }} className="action-btn" />
           </Tooltip>
-          <Tooltip title="Edit">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
+          <Tooltip title="Edit Config">
+            <Button type="text" icon={<Edit2 size={18} color="#64748b" />} onClick={() => handleEdit(record)} className="action-btn" />
           </Tooltip>
-          <Tooltip title="Delete">
-            <Popconfirm
-              title="Delete this entire position configuration?"
-              onConfirm={() => handleDeleteOrigin(record)}
-              okButtonProps={{
-                loading:
-                  deletingKey === `${record.position}-${record.subOriginId}`,
-              }}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                disabled={!!deletingKey}
-              />
-            </Popconfirm>
-          </Tooltip>
+          <Popconfirm title="Delete configuration?" onConfirm={() => handleDeleteOrigin(record)} okButtonProps={{ danger: true }}>
+            <Button type="text" danger icon={<Trash2 size={18} />} className="action-btn-danger" />
+          </Popconfirm>
         </Space>
-      ),
-    },
+      )
+    }
   ];
 
-  const handleView = (record: PositionRecord) => {
-    setIsDrawerVisible(true);
-    setCurrentRecord(record);
-  };
-
-  const handleEdit = (record: any) => {
-    setEditMode("group");
-    const configsForPosition = dataSource.filter(
-      (item) =>
-        item.position === record.position &&
-        item.subOriginId === record.subOriginId,
-    );
-
+  const handleEdit = (record: PositionRecord) => {
+    const configs = dataSource.filter(i => i.position === record.position && i.subOriginId === record.subOriginId);
     setEditingKey(record.key);
-
-    const leaveConfigsForForm = configsForPosition.map((config) => ({
-      id: config.key, // Pass the ID so we know to update instead of create
-      leaveType: config.leaveTypeId, // Use ID for the form Select
-      unit: config.unit,
-      months: config.accrualInterval,
-      period: config.period,
-      carryForward: config.carryForward,
-      status: config.status === "Active",
-    }));
-
     form.setFieldsValue({
       position: record.position,
       subOriginId: record.subOriginId,
-      leaveConfigs: leaveConfigsForForm.length > 0 ? leaveConfigsForForm : [{}],
+      leaveConfigs: configs.map(c => ({
+        id: c.key,
+        leaveType: c.leaveTypeId,
+        unit: c.unit,
+        months: c.accrualInterval,
+        period: c.period,
+        carryForward: c.carryForward,
+        status: c.status === "Active",
+      }))
     });
-    setIsModalVisible(true);
-  };
-
-  const handleDrawerEdit = (record: any) => {
-    setEditMode("single");
-    setEditingKey(record.key);
-    form.setFieldsValue({
-      position: record.position,
-      leaveConfigs: [
-        {
-          id: record.key, // Pass the ID here as well
-          leaveType: record.leaveTypeId, // Use ID for the form Select
-          unit: record.unit,
-          months: record.accrualInterval,
-          period: record.period,
-          carryForward: record.carryForward,
-          status: record.status === "Active",
-        },
-      ],
-    });
-    setIsModalVisible(true);
-  };
-
-  const handleDeleteLeaveType = async (key: string) => {
-    setDeletingKey(key);
-    try {
-      // This makes the actual API call to delete the leave type.
-      await leaveOriginService.deleteLeaveType(key);
-
-      refetch(); // Refetch data from the server to update the UI.
-
-      api.success({
-        message: "Leave Type deleted successfully",
-        placement: "topRight",
-      });
-    } catch (error) {
-      console.error("Failed to delete leave type:", error);
-      api.error({
-        message: "Failed to delete leave type",
-        placement: "topRight",
-      });
-    } finally {
-      setDeletingKey(null);
-    }
+    setIsDrawerVisible(true);
   };
 
   const handleDeleteOrigin = async (record: PositionRecord) => {
-    const groupKey = `${record.position}-${record.subOriginId}`;
-    const originToDelete = leaveOrigins.find(
-      (o) =>
-        o.origin === record.position && o.subOriginId === record.subOriginId,
-    );
-
-    if (!originToDelete) {
-      api.error({
-        message: "Could not find the origin to delete.",
-        placement: "topRight",
-      });
-      return;
-    }
-
-    setDeletingKey(groupKey);
+    const originToDelete = leaveOrigins.find(o => o.origin === record.position && o.subOriginId === record.subOriginId);
+    if (!originToDelete) return;
+    setDeletingKey(`${record.position}-${record.subOriginId}`);
     try {
       await leaveOriginService.deleteStructure(originToDelete.id);
-
+      api.success({ message: "Configuration Removed", placement: "topRight" });
       refetch();
-
-      api.success({
-        message: "Position Configuration deleted successfully",
-        placement: "topRight",
-      });
-    } catch (error) {
-      console.error("Failed to delete origin:", error);
-      api.error({ message: "Failed to delete origin", placement: "topRight" });
+    } catch {
+      api.error({ message: "Action Failed", placement: "topRight" });
     } finally {
       setDeletingKey(null);
     }
@@ -633,762 +427,240 @@ export default function positionConfiguration() {
 
   const handleSave = async (values: any) => {
     const { position, subOriginId, leaveConfigs } = values;
-
-    if (!editingKey && leaveOrigins) {
-      const exists = leaveOrigins.some(
-        (item) => item.origin === position && item.subOriginId === subOriginId,
-      );
-
-      if (exists) {
-        api.error({
-          message: "Configuration Already Exists",
-          description: "This Origin and Sub-Origin combination already exists.",
-          placement: "topRight",
-        });
-        return;
-      }
-    }
-
     setIsSaving(true);
-
     try {
-      // 1. Find or Create Structure
-      // Check if this structure already exists in our fetched data
-      let structure = leaveOrigins.find(
-        (item) => item.origin === position && item.subOriginId === subOriginId,
-      );
-
+      let structure = leaveOrigins.find(o => o.origin === position && o.subOriginId === subOriginId);
+      const payload = {
+        leaveTypes: leaveConfigs.map((c: any) => ({
+          id: c.id,
+          leaveTypeId: c.leaveType,
+          unit: c.unit,
+          period: c.period,
+          accrualInterval: Number(c.months),
+          carryForward: c.carryForward ?? false,
+          status: c.status ? "Active" : "Inactive",
+        }))
+      };
       if (!structure) {
-        // Create new structure if it doesn't exist
-        await leaveOriginService.createStructure({
-          origin: position,
-          subOriginId: subOriginId,
-          leaveTypes: leaveConfigs.map((config: any) => ({
-            leaveTypeId: config.leaveType, // Form value is ID
-            unit: config.unit,
-            period: config.period,
-           accrualInterval: Number(config.months),
-            carryForward: config.carryForward ?? false,
-            status: config.status ? "Active" : "Inactive",
-          })),
-        });
+        await leaveOriginService.createStructure({ origin: position, subOriginId, ...payload });
       } else {
-        // 2. Update/Add Leave Types for existing structure
-      const leaveTypesPayload = leaveConfigs.map((config: any) => ({
-  id: config.id,
-  leaveTypeId: config.leaveType,
-  unit: config.unit,
-  period: config.period,
-  accrualInterval: Number(config.months), // ⭐ important
-  carryForward: config.carryForward ?? false,
-  status: config.status ? "Active" : "Inactive",
-}));
-
-        await leaveOriginService.updateStructure(structure.id, {
-          leaveTypes: leaveTypesPayload,
-        });
+        await leaveOriginService.updateStructure(structure.id, payload);
       }
-
-      api.success({
-        message: "Configuration saved successfully",
-        placement: "topRight",
-      });
-
-      setIsModalVisible(false);
+      api.success({ message: "Policy Configured", placement: "topRight" });
+      setIsDrawerVisible(false);
       form.resetFields();
       setEditingKey(null);
-      refetch(); // Refresh data from server
-    } catch (error) {
-      console.error(error);
-      api.error({
-        message: "Failed to save configuration",
-        placement: "topRight",
-      });
+      refetch();
+    } catch {
+      api.error({ message: "Sync Error", placement: "topRight" });
     } finally {
       setIsSaving(false);
     }
   };
-  console.log("suborgini data", uniqueDataSource);
+
+  const ProgressCircle = ({ percent, size }: { percent: number; size: number }) => (
+    <div style={{ 
+      width: size, 
+      height: size, 
+      borderRadius: "50%", 
+      background: `conic-gradient(#22c55e ${percent}%, #e2e8f0 0)`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }}>
+      <div style={{ width: size - 4, height: size - 4, borderRadius: "50%", background: "#fff" }} />
+    </div>
+  );
+
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}><Icon size={24} /></div>
+      </div>
+    </Card>
+  );
+
   return (
     <ProtectedRoute>
       <MainLayout>
-        {contextHolder}
-        <div style={{ padding: 24 }}>
-          <div>
-            <Tabs
-              activeKey="positions"
-              onChange={(key) => {
-                const routes: any = {
-                  dashboard: "/leaves-dashboard",
-                  // leaves: "/leaves",
-                  holidays: "/government-holidays",
-                  adjustments: "/leave-adjustments",
-                  configuration: "/leave-type",
-                  positions: "/leave-policy",
-                  addLeaves: "/add-goverment-leaves",
-                  "apply-leave": "/apply-leave",
-                  approvals: "/leave-approvals",
-                };
-                if (routes[key]) router.push(routes[key]);
-              }}
-              items={[
-                {
-                  key: "dashboard",
-                  label: (
-                    <span>
-                      <AppstoreOutlined /> Dashboard
-                    </span>
-                  ),
-                },
-                // {
-                //   key: "leaves",
-                //   label: (
-                //     <span>
-                //       <ClockCircleOutlined /> My Leave Status
-                //     </span>
-                //   ),
-                // },
-                {
-                  key: "apply-leave",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Apply leave
-                    </span>
-                  ),
-                },
-                hasApprovalRights && {
-                  key: "approvals",
-                  label: (
-                    <span>
-                      <CheckCircleOutlined /> Approvals
-                    </span>
-                  ),
-                },
-                {
-                  key: "holidays",
-                  label: (
-                    <span>
-                      <ScheduleOutlined /> Government Holidays
-                    </span>
-                  ),
-                },
-                {
-                  key: "adjustments",
-                  label: (
-                    <span>
-                      <EditOutlined /> Leave Adjustment
-                    </span>
-                  ),
-                },
-                {
-                  key: "configuration",
-                  label: (
-                    <span>
-                      <SettingOutlined /> Leave Type
-                    </span>
-                  ),
-                },
-                {
-                  key: "positions",
-                  label: (
-                    <span>
-                      <ApartmentOutlined /> Leave Policy
-                    </span>
-                  ),
-                },
-                {
-                  key: "addLeaves",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Add Government Leaves
-                    </span>
-                  ),
-                },
-              ].filter(Boolean) as any}
-            />
-          </div>
-          <Card>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ApartmentOutlined
-                    style={{ color: "#1a64c4ff", fontSize: 20 }}
-                  />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Leave Policy
-                  </Typography.Title>
-                </Space>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+          {contextHolder}
+ 
+          {/* Header */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+            <div style={{ flex: 1 }}>
+              <Space size={14} align="center">
+                <div style={{ background: "#f0fdf4", padding: 12, borderRadius: 14, color: "#16a34a", display: "flex" }}>
+                  <ShieldCheck size={28} />
+                </div>
                 <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Configure leave types and assign limits per position.
-                  </Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Leave Policies</Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Map leave rules to organizational structures like Departments, Grades, or Roles.</Text>
                 </div>
-                <div style={{ marginTop: 10 }}>
-                  <Space>
-                    <Tag color="processing" style={{ borderRadius: 12 }}>
-                      Total Origin : {uniqueDataSource.length}
-                    </Tag>
-                    <Tag
-                      style={{ borderRadius: 12 }}
-                      icon={<CheckCircleOutlined />}
-                      color="success"
-                    >
-                      Active :{" "}
-                      {
-                        uniqueDataSource.filter(
-                          (item) => item.status === "Active",
-                        ).length
-                      }
-                    </Tag>
-                    <Tag
-                      style={{ borderRadius: 12 }}
-                      icon={<CloseCircleOutlined />}
-                      color="error"
-                    >
-                      Inactive :{" "}
-                      {
-                        uniqueDataSource.filter(
-                          (item) => item.status !== "Active",
-                        ).length
-                      }
-                    </Tag>
-                  </Space>
-                </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  margin: "0 0 0 28px",
-                  marginBottom: 20,
-                }}
-              >
-                {/* Search */}
-                <Input.Search
-                  placeholder="Search Leave Types...."
-                  allowClear
-                  style={{ width: 360 }}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
-
-                {/* View Switch */}
+              </Space>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Input 
+                placeholder="Search origins..." 
+                prefix={<Search size={16} color="#94a3b8" />}
+                style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid #e2e8f0" }}
+                onChange={e => setSearchText(e.target.value)}
+              />
+              <div style={{ background: "#f1f5f9", padding: "4px", borderRadius: 12, display: "flex", alignItems: "center", height: 44, border: "1px solid #e2e8f0" }}>
                 <Segmented
                   options={[
-                    {
-                      label: (
-                        <span>
-                          <BarsOutlined />
-                          Table
-                        </span>
-                      ),
-                      value: "table",
-                    },
-                    {
-                      label: (
-                        <span>
-                          <AppstoreOutlined />
-                          Card
-                        </span>
-                      ),
-                      value: "card",
-                    },
+                    { label: <div style={{ display: "flex", alignItems: "center", height: 36, padding: "0 10px" }}><LayoutList size={14} /></div>, value: "table" },
+                    { label: <div style={{ display: "flex", alignItems: "center", height: 36, padding: "0 10px" }}><LayoutGrid size={14} /></div>, value: "card" }
                   ]}
                   value={viewType}
-                  onChange={(value) => setViewType(value as string)}
+                  onChange={v => setViewType(v as string)}
+                  style={{ background: "transparent", border: "none" }}
                 />
-
-                {/* Button */}
-                <Button
-                  type="primary"
-                  style={{ width: 200 }}
-                  onClick={() => {
-                    setEditingKey(null);
-                    form.resetFields();
-                    setIsModalVisible(true);
-                  }}
-                >
-                  + Add Configuration
-                </Button>
               </div>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Plus size={18} />} 
+                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
+                onClick={() => { setEditingKey(null); form.resetFields(); setIsDrawerVisible(true); }}
+              >
+                Add Mapping
+              </Button>
             </div>
-            {viewType === "table" ? (
-              <Table
-                columns={columns}
-                dataSource={uniqueDataSource.filter(
-                  (item) =>
-                    item.position
-                      ?.toLowerCase()
-                      .includes(searchText.toLowerCase()) ||
-                    (Array.isArray(item.leaveType)
-                      ? item.leaveType.some((t: string) =>
-                          t.toLowerCase().includes(searchText.toLowerCase()),
-                        )
-                      : item.leaveType
-                          ?.toLowerCase()
-                          .includes(searchText.toLowerCase())),
-                )}
-                size="small"
-                pagination={{ pageSize: 10 }}
-                loading={loading}
-              />
-            ) : (
-              <List
-                grid={{ gutter: 16, column: 3 }}
-                dataSource={uniqueDataSource.filter(
-                  (item) =>
-                    item.position
-                      ?.toLowerCase()
-                      .includes(searchText.toLowerCase()) ||
-                    (Array.isArray(item.leaveType)
-                      ? item.leaveType.some((t: string) =>
-                          t.toLowerCase().includes(searchText.toLowerCase()),
-                        )
-                      : item.leaveType
-                          ?.toLowerCase()
-                          .includes(searchText.toLowerCase())),
-                )}
-                loading={loading}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Card
-                      hoverable
-                      actions={[
-                        <Tooltip title="View" key="view">
-                          <EyeOutlined onClick={() => handleView(item)} />
-                        </Tooltip>,
-                        <Tooltip title="Edit" key="edit">
-                          <EditOutlined onClick={() => handleEdit(item)} />
-                        </Tooltip>,
-                        <Tooltip title="Delete" key="delete">
-                          <Popconfirm
-                            title="Delete this entire position configuration?"
-                            onConfirm={() => handleDeleteOrigin(item)}
-                            okButtonProps={{
-                              loading:
-                                deletingKey ===
-                                `${item.position}-${item.subOriginId}`,
-                            }}
-                            okText="Yes"
-                            cancelText="No"
-                            key="delete"
-                            disabled={!!deletingKey}
-                          >
-                            <DeleteOutlined
-                              style={{ color: deletingKey ? "grey" : "red" }}
-                            />
-                          </Popconfirm>
-                        </Tooltip>,
-                      ]}
-                    >
-                      <Card.Meta
-                        avatar={
-                          <Avatar
-                            style={{
-                              backgroundColor: "#4ea6f8",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {item.position?.[0]?.toUpperCase()}
-                          </Avatar>
-                        }
-                        title={
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            <span style={{ fontWeight: 600 }}>
-                              {item.position}
-                            </span>
-                            {(() => {
-                              const group = dataSource.filter(
-                                (i) =>
-                                  i.position === item.position &&
-                                  i.subOriginId === item.subOriginId,
-                              );
-                              const activeCount = group.filter(
-                                (i) => i.status === "Active",
-                              ).length;
-                              const inactiveCount = group.filter(
-                                (i) => i.status !== "Active",
-                              ).length;
-                              return (
-                                <Space size={6}>
-                                  <Tag color="green">Active: {activeCount}</Tag>
-                                  <Tag color="red">
-                                    Inactive: {inactiveCount}
-                                  </Tag>
-                                </Space>
-                              );
-                            })()}
-                          </div>
-                        }
-                        description={null}
-                      />
-                    </Card>
-                  </List.Item>
-                )}
-                style={{ marginTop: 24 }}
-                pagination={{ pageSize: 9 }}
-              />
-            )}
-          </Card>
+          </div>
 
-          <Modal
-            title={
-              editingKey
-                ? "Edit Position Configuration"
-                : "Add Position Configuration"
-            }
-            open={isModalVisible}
-            onCancel={() => {
-              if (isSaving) return;
-              setIsModalVisible(false);
-              form.resetFields();
-              setEditingKey(null);
-            }}
-            onOk={() => form.submit()}
-            destroyOnClose
-            confirmLoading={isSaving}
-            cancelButtonProps={{ disabled: isSaving }}
-            width={500}
-          >
-            <Form form={form} layout="vertical" onFinish={handleSave}>
-              {/* Origin and Sub-Origin */}
-              <Row gutter={12}>
+          {/* Metrics */}
+          <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}><StatCard label="Total Configurations" value={uniqueDataSource.length} icon={Layers} color="#3b82f6" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Active Mappings" value={dataSource.filter(i => i.status === "Active").length} icon={CheckCircle2} color="#10b981" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Policy Conflicts" value={0} icon={AlertCircle} color="#f59e0b" /></Col>
+          </Row>
+
+          {/* Content */}
+          {uniqueDataSource.length === 0 ? <Empty style={{ marginTop: 100 }} description="No leave policies configured yet." /> : (
+            viewType === "table" ? (
+              <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)" }}>
+                <Table 
+                  columns={columns} 
+                  dataSource={uniqueDataSource.filter(i => i.position.toLowerCase().includes(searchText.toLowerCase()))} 
+                  loading={loading}
+                  pagination={{ pageSize: 12, position: ["bottomRight"] }}
+                />
+              </Card>
+            ) : (
+              <Row gutter={[24, 24]}>
+                {uniqueDataSource.map((item, idx) => (
+                  <Col xs={24} sm={12} lg={8} key={idx}>
+                    <Card 
+                      hoverable 
+                      className="policy-card"
+                      bodyStyle={{ padding: 24 }}
+                      style={{ borderRadius: 20, border: "1px solid #f1f5f9" }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+                        <div style={{ background: "#f8fafc", padding: 10, borderRadius: 12, color: "#64748b" }}>
+                          {item.position === "User" ? <User size={20} /> : item.position === "Department" ? <Building2 size={20} /> : <Briefcase size={20} />}
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <Button type="text" icon={<Edit2 size={16} />} onClick={() => handleEdit(item)} className="small-action-btn" />
+                          <Button type="text" onClick={() => { setCurrentRecord(item); setIsDetailVisible(true); }} icon={<Maximize2 size={16} />} className="small-action-btn" />
+                        </div>
+                      </div>
+                      <Title level={5} style={{ margin: "0 0 4px 0", color: "#1e293b" }}>
+                        {item.position === "User" ? members.find(m => m.value === item.subOriginId)?.label : item.subOriginId}
+                      </Title>
+                      <Text type="secondary" style={{ fontSize: 13, display: "block", marginBottom: 16 }}>{item.position} Configuration</Text>
+                      
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+                        {(item.leaveType as string[]).map((t, i) => <Tag key={i} style={{ borderRadius: 6, margin: 0, background: "#f1f5f9", border: 0, color: "#475569" }}>{t}</Tag>)}
+                      </div>
+
+                      <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Text style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Utilization Balance</Text>
+                        <Tag color="success" style={{ borderRadius: 8, margin: 0, fontWeight: 700 }}>ACTIVE</Tag>
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            )
+          )}
+        </div>
+
+        {/* Configuration Drawer */}
+        <Drawer
+          title={<div style={{ display: "flex", alignItems: "center", gap: 12 }}><div style={{ background: "#f0fdf4", padding: 8, borderRadius: 10, color: "#16a34a" }}><Settings2 size={20} /></div><div><Text strong style={{ fontSize: 18, color: "#1e293b", display: "block" }}>{editingKey ? "Edit Configuration" : "New Policy Mapping"}</Text><Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>{editingKey ? "Modify existing leave allocation rules" : "Assign leave rules to a new team or role"}</Text></div></div>}
+          width={520}
+          open={isDrawerVisible}
+          onClose={() => setIsDrawerVisible(false)}
+          footer={<div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}><Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 10, height: 40 }}>Cancel</Button><Button type="primary" loading={isSaving} onClick={() => form.submit()} style={{ borderRadius: 10, height: 40, padding: "0 24px", fontWeight: 600 }}>Save Changes</Button></div>}
+          className="policy-drawer"
+        >
+          <Form form={form} layout="vertical" onFinish={handleSave} requiredMark={false}>
+            <div style={{ marginBottom: 24 }}>
+              <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Target Identity</Title>
+              <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item
-                    name="position"
-                    label="Orgin"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please select an origin type",
-                      },
-                    ]}
-                  >
-                    <Select
-                      placeholder="Select Type"
-                      disabled={!!editingKey}
-                      options={[
-                        "Grade",
-                        "Department",
-                        "Sub-department",
-                        "Position",
-                        "User",
-                      ].map((p) => ({
-                        label: p,
-                        value: p,
-                      }))}
-                      onChange={() => {
-                        form.setFieldsValue({ subOriginId: undefined });
-                      }}
-                    />
+                  <Form.Item name="position" label={<Text strong style={{ fontSize: 13 }}>Origin Type</Text>} rules={[{ required: true }]}>
+                    <Select disabled={!!editingKey} options={["Grade", "Department", "Sub-department", "Position", "User"].map(v => ({ label: v, value: v }))} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item
-                    name="subOriginId"
-                    label="Sub-Orgin"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Please select a Sub-origin type",
-                      },
-                    ]}
-                  >
-                    <Select
-                      placeholder="Select Name"
-                      disabled={!originType || !!editingKey}
-                      loading={
-                        originType === "Grade"
-                          ? gradesLoading
-                          : originType === "Department"
-                            ? departmentsLoading
-                            : originType === "Sub-department"
-                              ? subDepartmentsLoading
-                              : originType === "Position"
-                                ? positionsLoading
-                                : false
-                      }
-                      options={
-                        originType === "User"
-                          ? members
-                              .filter(
-                                (m) =>
-                                  editingKey ||
-                                  !usedSubOriginIds.includes(m.value),
-                              )
-                              .map((m) => ({ label: m.label, value: m.value }))
-                          : originType === "Grade"
-                            ? grades
-                                .filter(
-                                  (g) =>
-                                    editingKey ||
-                                    !usedSubOriginIds.includes(g.id),
-                                )
-                                .map((g) => ({ label: g.name, value: g.id }))
-                            : originType === "Department"
-                              ? departments
-                                  .filter(
-                                    (d) =>
-                                      editingKey ||
-                                      !usedSubOriginIds.includes(d.id),
-                                  )
-                                  .map((d) => ({
-                                    label: d.name,
-                                    value: d.id,
-                                  }))
-                              : originType === "Sub-department"
-                                ? subDepartments
-                                    .filter(
-                                      (sd) =>
-                                        editingKey ||
-                                        !usedSubOriginIds.includes(sd.id),
-                                    )
-                                    .map((sd) => ({
-                                      label: sd.name,
-                                      value: sd.id,
-                                    }))
-                                : originType === "Position"
-                                  ? positions
-                                      .filter(
-                                        (p) =>
-                                          editingKey ||
-                                          !usedSubOriginIds.includes(p.id),
-                                      )
-                                      .map((p) => ({
-                                        label: p.title,
-                                        value: p.id,
-                                      }))
-                                  : (subOriginData[originType] || []).map(
-                                      (opt) => ({
-                                        label: opt,
-                                        value: opt,
-                                      }),
-                                    )
-                      }
-                    />
+                  <Form.Item name="subOriginId" label={<Text strong style={{ fontSize: 13 }}>Specific Selection</Text>} rules={[{ required: true }]}>
+                    <Select disabled={!originType || !!editingKey} options={originType === "User" ? members : originType === "Grade" ? grades.map(g => ({ label: g.name, value: g.id })) : originType === "Department" ? departments.map(d => ({ label: d.name, value: d.id })) : []} />
                   </Form.Item>
                 </Col>
               </Row>
+            </div>
 
-              {/* Dynamic Leave Config */}
-              <Form.List name="leaveConfigs" initialValue={[{}]}>
-  {(fields, { add, remove }) => (
-    <LeaveConfigListContent
-      fields={fields}
-      add={add}
-      remove={remove}
-      form={form}
-      editingKey={editingKey}
-      leaveTypes={leaveTypeOptions}
-    />
-  )}
-</Form.List>
-            </Form>
-          </Modal>
+            <Divider />
 
-          <Drawer
-            title={
-              currentRecord
-                ? `${currentRecord.position} - ${(() => {
-                    const text = currentRecord.subOriginId;
-                    if (currentRecord.position === "User")
-                      return (
-                        members.find((m) => m.value === text)?.label || text
-                      );
-                    if (currentRecord.position === "Grade")
-                      return grades.find((g) => g.id === text)?.name || text;
-                    if (currentRecord.position === "Department")
-                      return (
-                        departments.find((d) => d.id === text)?.name || text
-                      );
-                    if (currentRecord.position === "Sub-department")
-                      return (
-                        subDepartments.find((sd) => sd.id === text)?.name ||
-                        text
-                      );
-                    if (currentRecord.position === "Position")
-                      return (
-                        positions.find((p) => p.id === text)?.title || text
-                      );
-                    return text;
-                  })()}`
-                : "Details"
-            }
-            placement="right"
-            width={900}
-            open={isDrawerVisible}
-            onClose={() => {
-              setIsDrawerVisible(false);
-              setCurrentRecord(null);
-            }}
-          >
-            <Table
-              columns={[
-                {
-                  title: "Leave Type",
-                  dataIndex: "leaveType",
-                  key: "leaveType",
-                  align: "center",
-                },
-                {
-                  title: "Status",
-                  dataIndex: "status",
-                  key: "status",
-                  align: "center",
-                  render: (status: string) => (
-                    <Tag color={status === "Active" ? "green" : "red"}>
-                      {status}
-                    </Tag>
-                  ),
-                },
-                {
-                  title: "Unit",
-                  dataIndex: "unit",
-                  key: "unit",
-                  align: "center",
-                },
-                // {
-                //   title: "Per Month",
-                //   key: "perMonth",
-                //   align: "center",
-                //   render: (_: any, record: PositionRecord) => {
-                //     const effectiveUnit = record.unit || 0;
-                //     if (record.period === "MONTH")
-                //       return (
-                //         <Text>
-                //           {effectiveUnit}{" "}
-                //           <Tag style={{ borderRadius: 10 }} color="blue">
-                //             day
-                //           </Tag>
-                //         </Text>
-                //       );
-                //     if (record.period === "YEAR")
-                //       return (
-                //         <Text>
-                //           {(effectiveUnit / 12).toFixed(1)}{" "}
-                //           <Tag style={{ borderRadius: 10 }} color="blue">
-                //             day
-                //           </Tag>
-                //         </Text>
-                //       );
-                //     return <Text>-</Text>;
-                //   },
-                // },
-                // {
-                //   title: "Per Year",
-                //   key: "perYear",
-                //   align: "center",
-                //   render: (_: any, record: PositionRecord) => {
-                //     const effectiveUnit = record.unit || 0;
-                //     if (record.period === "MONTH")
-                //       return (
-                //         <Text>
-                //           {effectiveUnit * 12}{" "}
-                //           <Tag style={{ borderRadius: 10 }} color="blue">
-                //             days
-                //           </Tag>
-                //         </Text>
-                //       );
-                //     if (record.period === "YEAR")
-                //       return (
-                //         <Text>
-                //           {effectiveUnit}{" "}
-                //           <Tag style={{ borderRadius: 10 }} color="blue">
-                //             days
-                //           </Tag>
-                //         </Text>
-                //       );
-                //     return <Text>-</Text>;
-                //   },
-                // },
-                {
-  title: "Every",
-  dataIndex: "accrualInterval",
-  render: (value:number) => (
-    <Tag color="purple">
-      Every {value} months
-    </Tag>
-  )
-},
-                {
-                  title: "Carry Forward",
-                  dataIndex: "carryForward",
-                  key: "carryForward",
-                  align: "center",
-                  render: (val: boolean) => (
-                    <Tag color={val ? "blue" : "default"}>
-                      {val ? "Yes" : "No"}
-                    </Tag>
-                  ),
-                },
-                // {
-                //   title: "Total",
-                //   key: "total",
-                //   align: "center",
-                //   render: (_: any, record: PositionRecord) => {
-                //     const effectiveUnit = record.unit || 0;
-                //     let total = 0;
-                //     if (record.period === "MONTH") total = effectiveUnit * 12;
-                //     else if (record.period === "YEAR") total = effectiveUnit;
-                //     return <Text strong>{total}</Text>;
-                //   },
-                // },
-                {
-                  title: "Action",
-                  key: "action",
-                  align: "center",
-                  render: (_: any, record: any) => (
-                    <Space>
-                      <Tooltip title="Edit">
-                        <Button
-                          type="text"
-                          icon={<EditOutlined />}
-                          onClick={() => handleDrawerEdit(record)}
-                        />
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <Popconfirm
-                          title="Are you sure to delete this leave type?"
-                          onConfirm={() => handleDeleteLeaveType(record.key)}
-                          okButtonProps={{
-                            loading: deletingKey === record.key,
-                          }}
-                          okText="Yes"
-                          cancelText="No"
-                        >
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            disabled={!!deletingKey}
-                          />
-                        </Popconfirm>
-                      </Tooltip>
-                    </Space>
-                  ),
-                },
-              ]}
-              dataSource={dataSource.filter(
-                (item) =>
-                  item.position === currentRecord?.position &&
-                  item.subOriginId === currentRecord?.subOriginId,
-              )}
-              pagination={false}
-            />
-          </Drawer>
-        </div>
+            <Form.List name="leaveConfigs">
+              {(fields, { add, remove }) => <LeaveConfigListContent fields={fields} add={add} remove={remove} form={form} editingKey={editingKey} leaveTypes={leaveTypeOptions} />}
+            </Form.List>
+          </Form>
+        </Drawer>
+
+        {/* View Detail Drawer */}
+        <Drawer
+          title="Policy Breakdown"
+          width={800}
+          open={isDetailVisible}
+          onClose={() => setIsDetailVisible(false)}
+          bodyStyle={{ padding: 0 }}
+        >
+          <div style={{ padding: 24, background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+            <Title level={4} style={{ margin: 0 }}>Allocation Overview</Title>
+            <Text type="secondary">Detailed rules for {currentRecord?.subOriginId}</Text>
+          </div>
+          <Table
+            pagination={false}
+            columns={[
+              { title: "LEAVE TYPE", dataIndex: "leaveType", key: "leaveType", render: t => <Text strong color="#1e293b">{t}</Text> },
+              { title: "UNIT", dataIndex: "unit", key: "unit", align: "center", render: u => <Tag color="blue" style={{ borderRadius: 6 }}>{u} Units</Tag> },
+              { title: "EVERY", dataIndex: "accrualInterval", render: m => <Text>{m} Months</Text> },
+              { title: "CARRY FORWARD", dataIndex: "carryForward", render: c => c ? <CheckCircle2 size={16} color="#22c55e" /> : <XCircle size={16} color="#94a3b8" /> },
+              { title: "STATUS", dataIndex: "status", render: s => <Tag color={s === "Active" ? "green" : "red"}>{s}</Tag> }
+            ]}
+            dataSource={dataSource.filter(i => i.position === currentRecord?.position && i.subOriginId === currentRecord?.subOriginId)}
+          />
+        </Drawer>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .action-btn:hover { background: #f1f5f9 !important; border-radius: 8px; }
+          .action-btn-danger:hover { background: #fee2e2 !important; border-radius: 8px; }
+          .small-action-btn { background: #fff !important; color: #64748b !important; border: 1px solid #f1f5f9 !important; border-radius: 10px !important; width: 32px !important; height: 32px !important; display: flex !important; align-items: center; justify-content: center; }
+          .small-action-btn:hover { color: #2563eb !important; border-color: #2563eb !important; }
+          .policy-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+          .policy-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1) !important; border-color: #e2e8f0 !important; }
+          .ant-table-thead > tr > th { background: #f8fafc !important; color: #64748b !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9 !important; }
+          .policy-drawer .ant-drawer-header { padding: 24px !important; border-bottom: 1px solid #f1f5f9 !important; }
+          .policy-drawer .ant-drawer-footer { padding: 16px 24px !important; border-top: 1px solid #f1f5f9 !important; }
+        `}} />
       </MainLayout>
     </ProtectedRoute>
   );

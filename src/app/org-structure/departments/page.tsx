@@ -1,12 +1,12 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
+import { Card, Typography, Button, Space, Input, Table, Tag, Form, Select, Row, Col, Divider, notification, Spin, Tooltip, Switch, Drawer } from "antd";
+import { Building2, Edit, Plus, Search, Filter, Layers, ShieldCheck, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, notification, Select, Row, Col, Divider } from "antd";
-import { ScheduleOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useRouter, usePathname } from "next/navigation";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
 import { MembersService } from "@/services/membersService";
 import { useDepartments } from "@/hooks/useDepartments";
@@ -16,53 +16,19 @@ const { Text } = Typography;
 
 export default function DepartmentsPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrg, canManageOrg } = usePermission();
-  
-  // Protect route - requires org.read permission
-  useEffect(() => {
-    if (!authLoading && !canReadOrg) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canReadOrg, router]);
-
-  // Show loading while auth is being checked
-  if (authLoading) {
-    return null;
-  }
-
-  // Don't render if no read permission
-  if (!canReadOrg) {
-    return null;
-  }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [employmentTypeFilter, setEmploymentTypeFilter] = useState<string | null>(null);
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [submitting, setSubmitting] = useState(false);
 
-  const {
-    employmentTypes,
-    loading: employmentTypesLoading,
-  } = useEmploymentTypes();
-
-  const {
-    departments,
-    loading,
-    createDepartment,
-    updateDepartment,
-    deleteDepartment
-  } = useDepartments();
-
-  const totalDepartments = departments.length;
-  const activeDepartments = departments.filter(d => d.isActive).length;
-  const inactiveDepartments = totalDepartments - activeDepartments;
-
+  const { employmentTypes, loading: employmentTypesLoading } = useEmploymentTypes();
+  const { departments, loading, createDepartment, updateDepartment } = useDepartments();
   const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -77,14 +43,32 @@ export default function DepartmentsPage() {
     fetchMembers();
   }, []);
 
-  const handleTabChange = (key: string) => {
-    router.push(key);
-  };
+  useEffect(() => {
+    if (!authLoading && !canReadOrg) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadOrg, router]);
+
+  if (authLoading) {
+    return (
+      <ProtectedRoute>
+        <MainLayout>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#ffffff' }}>
+            <Spin size="large" tip="Loading Department Data..." />
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!canReadOrg) return null;
+
+  const totalDepartments = departments.length;
+  const activeDepartments = departments.filter((d) => d.isActive).length;
+  const inactiveDepartments = totalDepartments - activeDepartments;
 
   const generateCodeFromName = (name: string): string => {
-    if (!name || typeof name !== 'string') {
-      return '';
-    }
+    if (!name || typeof name !== 'string') return '';
     return name.trim().toUpperCase().replace(/\s+/g, '_');
   };
 
@@ -99,8 +83,7 @@ export default function DepartmentsPage() {
     setEditingKey(record.id);
     form.setFieldsValue({
       ...record,
-      code: record.code,
-      departmentName: record.name, // form field name
+      departmentName: record.name,
     });
     setIsModalOpen(true);
   };
@@ -120,33 +103,27 @@ export default function DepartmentsPage() {
       setSubmitting(true);
       let success = false;
       if (editingKey) {
-        // Update department
         success = await updateDepartment(editingKey, payload);
       } else {
-        // Add new department
         success = await createDepartment(payload);
       }
-      setSubmitting(false);
       
       if (success) {
         setIsModalOpen(false);
         api.success({
           message: `Department ${editingKey ? "Updated" : "Added"}`,
-          description: `The department "${payload.name}" has been ${editingKey ? "updated" : "added"} successfully.`,
+          description: `The department "${payload.name}" has been successfully saved.`,
           placement: "topRight",
-          duration: 1,
+          duration: 2,
         });
       }
     } catch (error) {
+      console.error("Save failed:", error);
+    } finally {
       setSubmitting(false);
-      console.error("Validation failed:", error);
-      api.error({
-        message: "Error",
-        description: `Failed to ${editingKey ? "update" : "add"} department.`,
-        placement: "topRight",
-      });
     }
   };
+
   const filteredData = useMemo(() => {
     return departments.filter((item) => {
       const q = searchText.toLowerCase();
@@ -155,46 +132,78 @@ export default function DepartmentsPage() {
         item.code.toLowerCase().includes(q) ||
         item.name.toLowerCase().includes(q) ||
         (item.employmentType || "").toLowerCase().includes(q) ||
-        (item.description || "").toLowerCase().includes(q) ||
-        (item.head?.name || "").toLowerCase().includes(q);
+        (item.description || "").toLowerCase().includes(q);
       const matchesStatus =
         !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
-      const matchesEmploymentType =
-        !employmentTypeFilter || item.employmentType === employmentTypeFilter;
-      return matchesSearch && matchesStatus && matchesEmploymentType;
+      return matchesSearch && matchesStatus;
     });
-  }, [departments, searchText, statusFilter, employmentTypeFilter]);
+  }, [departments, searchText, statusFilter]);
+
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      bodyStyle={{ padding: "16px 20px" }} 
+      style={{ borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
 
   const columns = [
     {
-      title: "Code",
-      dataIndex: "code",
-      key: "code",
-      sorter: (a: Department, b: Department) =>
-        a.code.localeCompare(b.code),
+      title: "Department Identity",
+      key: "identity",
+      width: "30%",
+      onHeaderCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      onCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      render: (_: any, record: Department) => (
+        <Space size={12}>
+          <div style={{ 
+            width: 36, height: 36, borderRadius: 10, background: "rgba(22, 119, 255, 0.08)", color: "#1677ff",
+            display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14
+          }}>
+            {record.code?.substring(0, 2) || "DP"}
+          </div>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{record.name}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>CODE: {record.code}</Text>
+          </div>
+        </Space>
+      ),
     },
     {
-      title: "Department Name",
-      dataIndex: "name",
-      key: "name",
-      sorter: (a: Department, b: Department) =>
-        a.name.localeCompare(b.name),
-    },
-    {
-      title: "Employment Type",
+      title: "Employment Context",
       dataIndex: "employmentType",
       key: "employmentType",
+      render: (type: string) => (
+        <Tag style={{ borderRadius: 6, fontWeight: 500, background: "#f1f5f9", border: 0, color: "#475569" }}>
+          {type || "NOT ASSIGNED"}
+        </Tag>
+      ),
     },
     {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-    },
-    {
-      title: "Head",
+      title: "Unit Leadership",
       dataIndex: "head",
       key: "head",
-      render: (head: any) => head?.name || "-",
+      render: (head: any) => (
+        <Space size={8}>
+          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, color: "#475569" }}>
+            {head?.name?.charAt(0) || "U"}
+          </div>
+          <Text style={{ fontSize: 13, color: "#1e293b" }}>{head?.name || "No Head Assigned"}</Text>
+        </Space>
+      ),
     },
     {
       title: "Status",
@@ -202,215 +211,192 @@ export default function DepartmentsPage() {
       key: "isActive",
       width: 120,
       render: (isActive: boolean) => (
-        <Tag color={isActive ? "green" : "red"}>{isActive ? "Active" : "Inactive"}</Tag>
+        <Tag style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }} color={isActive ? "success" : "default"}>
+          {isActive ? "ACTIVE" : "INACTIVE"}
+        </Tag>
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 120,
-      render: (_: any, record: Department) => (
-        <Space >
-          <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-        </Space>
-      ),
+      align: "right" as const,
+      width: 100,
+      render: (_: any, record: Department) => {
+        if (!canManageOrg) return null;
+        return (
+          <Tooltip title="Edit Department">
+            <Button
+              type="text"
+              icon={<Edit size={18} style={{ color: "#64748b" }} />}
+              onClick={() => handleEdit(record)}
+              className="action-btn"
+            />
+          </Tooltip>
+        );
+      },
     },
   ];
-
-  const handleFormValuesChange = (changedValues: { departmentName?: string }) => {
-    if (changedValues.departmentName !== undefined) {
-      const name = changedValues.departmentName;
-      const code = generateCodeFromName(name);
-      form.setFieldsValue({ code });
-    }
-  };
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        {contextHolder}
-        <div style={{marginTop:20}}>
-          <Tabs activeKey={pathname} onChange={handleTabChange} items={[
-             { key: "/org-structure/overview", label: "Overview" },
-            { key: "/org-structure/grades", label: "Grades" },
-            { key: "/org-structure/employment-types", label: "Employment Types" },
-            { key: "/org-structure/departments", label: "Departments" },
-            { key: "/org-structure/sub-departments", label: "Sub-Departments" },
-            { key: "/org-structure/positions", label: "Positions" },
-            
-          ]} />
-         
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ScheduleOutlined style={{ color: "#1a64c4ff", fontSize: 20 }} />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Departments Management
-                  </Typography.Title>
-                </Space>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Define and manage organization departments.
-                  </Text>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <Select
-                  placeholder="Status"
-                  allowClear
-                  style={{ width: 120 }}
-                  onChange={(value) => setStatusFilter(value)}
-                >
-                  <Select.Option value="active">Active</Select.Option>
-                  <Select.Option value="inactive">Inactive</Select.Option>
-                </Select>
-                <Select
-                  placeholder="Employment Type"
-                  allowClear
-                  style={{ width: 200 }}
-                  onChange={(value) => setEmploymentTypeFilter(value)}
-                  loading={employmentTypesLoading}
-                >
-                  {employmentTypes.map((et) => (
-                    <Select.Option key={et.id} value={et.name}>
-                      {et.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-                <Input.Search
-                  placeholder="Search..."
-                  allowClear
-                  style={{ width: 300 }}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Department</Button>
-              </div>
-            </div>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+          {contextHolder}
 
-            <Space >
-              <Tag style={{ borderRadius: 12 }}>Total Departments: {totalDepartments}</Tag>
-              <Tag style={{ borderRadius: 12 }} color="green">Active: {activeDepartments}</Tag>
-              <Tag style={{ borderRadius: 12 }} color="red">Inactive: {inactiveDepartments}</Tag>
-            </Space>
-            <Divider style={{marginTop:20}} />
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Space size={12} align="center">
+                <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 10, borderRadius: 12, color: "#1677ff", display: "flex" }}>
+                  <Building2 size={24} />
+                </div>
+                <div>
+                  <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Departments</Typography.Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Manage organizational units, reporting lines, and strategic divisions.</Text>
+                </div>
+              </Space>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Select
+                placeholder="Status"
+                allowClear
+                prefix={<Filter size={14} style={{ marginRight: 4 }} />}
+                style={{ width: 140, height: 44 }}
+                onChange={(value) => setStatusFilter(value)}
+                dropdownStyle={{ borderRadius: 10 }}
+              >
+                <Select.Option value="active">Active</Select.Option>
+                <Select.Option value="inactive">Inactive</Select.Option>
+              </Select>
+              <Input 
+                placeholder="Search departments..." 
+                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                style={{ width: 240, borderRadius: 10, height: 44 }}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+              {canManageOrg && (
+                <Button 
+                  type="primary" size="large" icon={<Plus size={18} />} 
+                  style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                  onClick={handleAdd}
+                >
+                  New Unit
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Metrics Grid */}
+          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}><StatCard label="Total Departments" value={totalDepartments} icon={Layers} color="#3b82f6" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Active Units" value={activeDepartments} icon={ShieldCheck} color="#10b981" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Inactive Units" value={inactiveDepartments} icon={User} color="#f59e0b" /></Col>
+          </Row>
+
+          {/* Table Card */}
+          <Card 
+            bodyStyle={{ padding: 0 }} 
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+          >
             <Table
               rowKey="id"
-              size="small"
               columns={columns}
               dataSource={filteredData}
               loading={loading}
-              pagination={{ pageSize: 10 }}
+              size="middle"
+              pagination={{ pageSize: 12, position: ["bottomRight"] }}
             />
-            <Modal
-              title={editingKey ? "Edit Department" : "Add Department"}
-              open={isModalOpen}
-              onOk={handleSave}
-              okText={editingKey ? "Update Department" : "Add Department"}
-              onCancel={() => setIsModalOpen(false)}
-              confirmLoading={submitting}
-              cancelButtonProps={{ disabled: submitting }}
-              maskClosable={!submitting}
-              destroyOnClose
-              width={450}
-            >
-              <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
-                <Row gutter={12}>
-                  <Col span={12}>
-                    <Form.Item
-                      name="code"
-                      label="Department Code"
-                      rules={[{ required: true, message: "Code is required" }]}
-                    >
-                      <Input placeholder="Auto-generated" disabled />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name="departmentName"
-                      label="Department Name"
-                      normalize={(value) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : value)}
-                      rules={[{ required: true, message: "Please enter a department name" }]}
-                    >
-                      <Input
-                        placeholder="Enter a department name"
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Form.Item
-                  name="employmentType"
-                  label="Employment Type"
-                >
-                  <Select
-                    placeholder="Select an employment type"
-                    loading={employmentTypesLoading}
-                    allowClear
-                  >
-                    {employmentTypes
-                      .filter((et) => et.isActive)
-                      .map((type) => (
-                        <Select.Option key={type.id} value={type.name}>
-                          {type.name}
-                        </Select.Option>
-                      ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item
-                  name="headId"
-                  label="Head"
-                >
-                  <Select placeholder="Select department head" allowClear showSearch optionFilterProp="children">
-                    {members.map((m) => (
-                      <Select.Option key={m.value} value={m.value}>
-                        {m.label}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item name="description" label="Description">
-                  <Input.TextArea rows={3} placeholder="Enter a description for the department." />
-                </Form.Item>
-               <Form.Item style={{ marginBottom: 16 }}>
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: "12px 0",
-      minHeight: 64,
-    }}
-  >
-    <div>
-      <div style={{ fontWeight: 600, marginBottom: 4 }}>
-        Status
-      </div>
-      <div style={{ fontSize: 12, color: "#888" }}>
-        Enable or disable this department.
-      </div>
-    </div>
-
-    <Form.Item
-      name="isActive"
-      valuePropName="checked"
-      initialValue={true}
-      noStyle
-    >
-      <Switch />
-    </Form.Item>
-  </div>
-</Form.Item>
-
-              </Form>
-            </Modal>
-          
+          </Card>
         </div>
+
+        {/* Configuration Drawer */}
+        <Drawer
+          title={
+            <Space size={12}>
+              <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
+                <Edit size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{editingKey ? "Edit Department" : "Create New Unit"}</div>
+                <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>Configure organizational structure and leadership</div>
+              </div>
+            </Space>
+          }
+          width={480}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
+              <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+              <Button 
+                type="primary" loading={submitting} onClick={handleSave} 
+                style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600 }}
+              >
+                {editingKey ? "Update Unit" : "Create Unit"}
+              </Button>
+            </div>
+          }
+          className="config-drawer"
+        >
+          <Form form={form} layout="vertical" requiredMark={false} onValuesChange={(changed) => { if (changed.departmentName !== undefined && !editingKey) { form.setFieldsValue({ code: generateCodeFromName(changed.departmentName) }); } }}>
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Identity & Label</Text>
+              <Form.Item name="departmentName" label={<Text strong style={{ fontSize: 13 }}>Department Name</Text>} rules={[{ required: true, message: "Required" }]}>
+                <Input placeholder="e.g. Research & Development" />
+              </Form.Item>
+              <Form.Item name="code" label={<Text strong style={{ fontSize: 13 }}>Identity Code</Text>} rules={[{ required: true }]}>
+                <Input placeholder="e.g. RD_DEPT" />
+              </Form.Item>
+            </div>
+            <Divider />
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Leadership & Context</Text>
+              <Form.Item name="employmentType" label={<Text strong style={{ fontSize: 13 }}>Employment Context</Text>}>
+                <Select placeholder="Select context" loading={employmentTypesLoading} allowClear>
+                  {employmentTypes.filter(et => et.isActive).map(type => (
+                    <Select.Option key={type.id} value={type.name}>{type.name}</Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="headId" label={<Text strong style={{ fontSize: 13 }}>Department Head</Text>}>
+                <Select placeholder="Select leader" allowClear showSearch optionFilterProp="children">
+                  {members.map(m => (
+                    <Select.Option key={m.value} value={m.value}>{m.label}</Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
+            <Divider />
+            <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 20 }}>Operational Controls</Text>
+              <Form.Item name="isActive" valuePropName="checked" initialValue={true}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, display: "block" }}>Active Status</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Allow units and positions within this department.</Text>
+                  </div>
+                  <Switch />
+                </div>
+              </Form.Item>
+              <Divider style={{ margin: "16px 0" }} />
+              <Form.Item name="description" label={<Text strong style={{ fontSize: 13 }}>Internal Scope</Text>}>
+                <Input.TextArea rows={4} placeholder="Define strategic objectives..." />
+              </Form.Item>
+            </div>
+          </Form>
+        </Drawer>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .action-btn:hover { background: #f1f5f9 !important; color: #1677ff !important; }
+          .ant-table-thead > tr > th {
+            background: #f8fafc !important; color: #64748b !important; font-weight: 600 !important;
+            text-transform: uppercase !important; font-size: 11px !important; letter-spacing: 0.05em !important;
+          }
+          .ant-table-row:hover > td { background: #f8fafc !important; }
+          .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
+          .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
+          .ant-input:focus, .ant-input-focused, .ant-select:focus, .ant-select-focused { border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; }
+        `}} />
       </MainLayout>
     </ProtectedRoute>
   );

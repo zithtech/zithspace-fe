@@ -1,47 +1,31 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
+import { Card, Typography, Button, Space, Input, Table, Tag, Form, Select, Row, Col, Divider, notification, Spin, Tooltip, Switch, Drawer } from "antd";
+import { GitBranch, Edit, Plus, Search, Filter, Layers, ShieldCheck, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import {
-  Card,
-  Typography,
-  Button,
-  Space,
-  Input,
-  Tabs,
-  Table,
-  Tag,
-  Modal,
-  Form,
-  Switch,
-  notification,
-  Select,
-  Row,
-  Col,
-  Popconfirm,
-} from "antd";
-import {
-  ScheduleOutlined,
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
-import { useRouter, usePathname } from "next/navigation";
 import { useDepartments } from "@/hooks/useDepartments";
 import { useSubDepartments } from "@/hooks/useSubDepartments";
+
 const { Text } = Typography;
 
 export default function SubDepartmentsPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const [form] = Form.useForm();
+  const { isLoading: authLoading } = useAuth();
+  const { canReadOrg, canManageOrg } = usePermission();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
+  const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [submitting, setSubmitting] = useState(false);
+
   const { departments, loading: departmentsLoading } = useDepartments();
   const {
     subDepartments,
@@ -49,41 +33,35 @@ export default function SubDepartmentsPage() {
     fetchSubDepartments,
     createSubDepartment,
     updateSubDepartment,
-    deleteSubDepartment,
   } = useSubDepartments();
+
+  useEffect(() => {
+    if (!authLoading && !canReadOrg) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, canReadOrg, router]);
+
+  if (authLoading) {
+    return (
+      <ProtectedRoute>
+        <MainLayout>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#ffffff' }}>
+            <Spin size="large" tip="Loading Sub-Department Data..." />
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!canReadOrg) return null;
 
   const totalSubDepartments = subDepartments.length;
   const activeSubDepartments = subDepartments.filter((d) => d.isActive).length;
   const inactiveSubDepartments = totalSubDepartments - activeSubDepartments;
 
-  const filteredData = useMemo(() => {
-    return subDepartments.filter((item) => {
-      const matchesSearch =
-        item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.code.toLowerCase().includes(searchText.toLowerCase());
-      const matchesStatus =
-        !statusFilter ||
-        (statusFilter === "active" ? item.isActive : !item.isActive);
-      const matchesDepartment =
-        !departmentFilter || item.parentDepartmentId === departmentFilter;
-      return matchesSearch && matchesStatus && matchesDepartment;
-    });
-  }, [subDepartments, searchText, statusFilter, departmentFilter]);
-
   const generateCodeFromName = (name: string): string => {
-    if (!name || typeof name !== "string") {
-      return "";
-    }
-    return name.trim().toUpperCase().replace(/\s+/g, "_");
-  };
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    form.setFieldsValue({ code: generateCodeFromName(name) });
-  };
-
-  const handleTabChange = (key: string) => {
-    router.push(key);
+    if (!name || typeof name !== 'string') return '';
+    return name.trim().toUpperCase().replace(/\s+/g, '_');
   };
 
   const handleAdd = () => {
@@ -98,289 +76,306 @@ export default function SubDepartmentsPage() {
     form.setFieldsValue(record);
     setIsModalOpen(true);
   };
+
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
+      let success = false;
       if (editingId) {
-        await updateSubDepartment(editingId, values);
-        api.success({
-          message: "Sub-Department updated successfully",
-          placement: "topRight",
-        });
+        success = await updateSubDepartment(editingId, values);
       } else {
-        await createSubDepartment(values);
+        success = await createSubDepartment(values);
+      }
+      
+      if (success) {
+        setIsModalOpen(false);
         api.success({
-          message: "Sub-Department created successfully",
+          message: `Sub-Department ${editingId ? "Updated" : "Created"}`,
+          description: `The sub-department "${values.name}" has been successfully saved.`,
           placement: "topRight",
+          duration: 2,
         });
+        fetchSubDepartments();
       }
-      fetchSubDepartments();
-      setIsModalOpen(false);
-    } catch (error: any) {
-      console.error("Validation failed:", error);
-      if (!error.errorFields) {
-        api.error({ message: "Operation failed", placement: "topRight" });
-      }
+    } catch (error) {
+      console.error("Save failed:", error);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const filteredData = useMemo(() => {
+    return subDepartments.filter((item) => {
+      const q = searchText.toLowerCase();
+      const matchesSearch =
+        !searchText.trim() ||
+        item.code.toLowerCase().includes(q) ||
+        item.name.toLowerCase().includes(q) ||
+        (item.description || "").toLowerCase().includes(q);
+      const matchesStatus =
+        !statusFilter || (statusFilter === "active" ? item.isActive : !item.isActive);
+      const matchesDepartment =
+        !departmentFilter || item.parentDepartmentId === departmentFilter;
+      return matchesSearch && matchesStatus && matchesDepartment;
+    });
+  }, [subDepartments, searchText, statusFilter, departmentFilter]);
+
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      bodyStyle={{ padding: "16px 20px" }} 
+      style={{ borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
+
   const columns = [
     {
-      title: "Code",
-      dataIndex: "code",
-      key: "code",
+      title: "Sub-Department Identity",
+      key: "identity",
+      width: "35%",
+      onHeaderCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      onCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      render: (_: any, record: any) => (
+        <Space size={12}>
+          <div style={{ 
+            width: 36, height: 36, borderRadius: 10, background: "rgba(22, 119, 255, 0.08)", color: "#1677ff",
+            display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14
+          }}>
+            {record.code?.substring(0, 2) || "SD"}
+          </div>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{record.name}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>CODE: {record.code}</Text>
+          </div>
+        </Space>
+      ),
     },
     {
-      title: "Sub-Department Name",
-      dataIndex: "name",
-      key: "name",
-    },
-    {
-      title: "Parent Department",
+      title: "Parent Entity",
       dataIndex: "parentDepartmentId",
       key: "parentDepartmentId",
       render: (parentDepartmentId: string, record: any) => {
-        if (record.parentDepartment?.name) return record.parentDepartment.name;
-        const dept = departments.find((d) => d.id === parentDepartmentId);
-        return dept ? dept.name : "-";
+        const deptName = record.parentDepartment?.name || departments.find((d) => d.id === parentDepartmentId)?.name || "NOT ASSIGNED";
+        return (
+          <Tag style={{ borderRadius: 6, fontWeight: 500, background: "#f1f5f9", border: 0, color: "#475569" }}>
+            {deptName}
+          </Tag>
+        );
       },
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
     },
     {
       title: "Status",
       dataIndex: "isActive",
       key: "isActive",
-      render: (status: boolean) => (
-        <Tag color={status ? "green" : "red"}>
-          {status ? "Active" : "Inactive"}
+      width: 120,
+      render: (isActive: boolean) => (
+        <Tag style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }} color={isActive ? "success" : "default"}>
+          {isActive ? "ACTIVE" : "INACTIVE"}
         </Tag>
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: any) => (
-        <Space size="middle">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          />
-        </Space>
-      ),
+      align: "right" as const,
+      width: 100,
+      render: (_: any, record: any) => {
+        if (!canManageOrg) return null;
+        return (
+          <Tooltip title="Edit Sub-Department">
+            <Button
+              type="text"
+              icon={<Edit size={18} style={{ color: "#64748b" }} />}
+              onClick={() => handleEdit(record)}
+              className="action-btn"
+            />
+          </Tooltip>
+        );
+      },
     },
   ];
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        {contextHolder}
-        <div style={{ padding: 24 }}>
-          <Tabs
-            activeKey={pathname}
-            onChange={handleTabChange}
-            items={[
-              { key: "/org-structure/overview", label: "Overview" },
-              { key: "/org-structure/grades", label: "Grades" },
-              {
-                key: "/org-structure/employment-types",
-                label: "Employment Types",
-              },
-              { key: "/org-structure/departments", label: "Departments" },
-              {
-                key: "/org-structure/sub-departments",
-                label: "Sub-Departments",
-              },
-              { key: "/org-structure/positions", label: "Positions" },
-            ]}
-          />
-          <Card>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ScheduleOutlined
-                    style={{ color: "#1a64c4ff", fontSize: 20 }}
-                  />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Sub-Departments Management
-                  </Typography.Title>
-                </Space>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Define and manage organization sub-departments.
-                  </Text>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+          {contextHolder}
+
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Space size={12} align="center">
+                <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 10, borderRadius: 12, color: "#1677ff", display: "flex" }}>
+                  <GitBranch size={24} />
                 </div>
-              </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <Select
-                  placeholder="Status"
-                  allowClear
-                  style={{ width: 120 }}
-                  onChange={(value) => setStatusFilter(value)}
-                >
-                  <Select.Option value="active">Active</Select.Option>
-                  <Select.Option value="inactive">Inactive</Select.Option>
-                </Select>
-                <Select
-                  placeholder="Parent Department"
-                  allowClear
-                  style={{ width: 200 }}
-                  onChange={(value) => setDepartmentFilter(value)}
-                  loading={departmentsLoading}
-                  showSearch
-                  optionFilterProp="children"
-                >
-                  {departments.map((dept) => (
-                    <Select.Option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-                <Input.Search
-                  placeholder="Search..."
-                  allowClear
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 300 }}
-                />
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
+                <div>
+                  <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Sub-Departments</Typography.Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Define specialized organizational units and distinct departmental branches.</Text>
+                </div>
+              </Space>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Select
+                placeholder="Status"
+                allowClear
+                prefix={<Filter size={14} style={{ marginRight: 4 }} />}
+                style={{ width: 130, height: 44 }}
+                onChange={(value) => setStatusFilter(value)}
+                dropdownStyle={{ borderRadius: 10 }}
+              >
+                <Select.Option value="active">Active</Select.Option>
+                <Select.Option value="inactive">Inactive</Select.Option>
+              </Select>
+              <Select
+                placeholder="Department"
+                allowClear
+                style={{ width: 180, height: 44 }}
+                onChange={(value) => setDepartmentFilter(value)}
+                loading={departmentsLoading}
+                showSearch
+                optionFilterProp="children"
+                dropdownStyle={{ borderRadius: 10 }}
+              >
+                {departments.map((dept) => (
+                  <Select.Option key={dept.id} value={dept.id}>{dept.name}</Select.Option>
+                ))}
+              </Select>
+              <Input 
+                placeholder="Search branches..." 
+                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                style={{ width: 220, borderRadius: 10, height: 44 }}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+              {canManageOrg && (
+                <Button 
+                  type="primary" size="large" icon={<Plus size={18} />} 
+                  style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
                   onClick={handleAdd}
                 >
-                  Add Sub-Department
+                  New Branch
                 </Button>
-              </div>
+              )}
             </div>
+          </div>
 
-            <Space style={{ marginBottom: 16 }}>
-              <Tag style={{ borderRadius: 12 }}>
-                Total Sub-Departments: {totalSubDepartments}
-              </Tag>
-              <Tag style={{ borderRadius: 12 }} color="green">
-                Active: {activeSubDepartments}
-              </Tag>
-              <Tag style={{ borderRadius: 12 }} color="red">
-                Inactive: {inactiveSubDepartments}
-              </Tag>
-            </Space>
+          {/* Metrics Grid */}
+          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}><StatCard label="Total Sub-Units" value={totalSubDepartments} icon={Layers} color="#3b82f6" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Active Divisions" value={activeSubDepartments} icon={ShieldCheck} color="#10b981" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Inactive Units" value={inactiveSubDepartments} icon={User} color="#f59e0b" /></Col>
+          </Row>
 
+          {/* Table Card */}
+          <Card 
+            bodyStyle={{ padding: 0 }} 
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+          >
             <Table
-              size="small"
+              rowKey="id"
               columns={columns}
               dataSource={filteredData}
-              rowKey="id"
               loading={subDepartmentsLoading}
+              size="middle"
+              pagination={{ pageSize: 12, position: ["bottomRight"] }}
             />
           </Card>
+        </div>
 
-          <Modal
-            title={editingId ? "Edit Sub-Department" : "Add Sub-Department"}
-            open={isModalOpen}
-            onOk={handleSave}
-            okText={editingId ? "Update Sub-Department" : "Add Sub-Department"}
-            onCancel={() => setIsModalOpen(false)}
-            confirmLoading={submitting}
-            cancelButtonProps={{ disabled: submitting }}
-            maskClosable={!submitting}
-            destroyOnClose
-            width={450}
-          >
-            <Form form={form} layout="vertical">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="code"
-                    label="Code"
-                    rules={[{ required: true, message: "Code is required" }]}
-                  >
-                    <Input placeholder="Auto-generated" disabled />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="name"
-                    label="Sub-Department Name"
-                    normalize={(value) =>
-                      value
-                        ? value.charAt(0).toUpperCase() + value.slice(1)
-                        : value
-                    }
-                    rules={[{ required: true, message: "Please enter name" }]}
-                  >
-                    <Input
-                      placeholder="e.g. Recruitment"
-                      onChange={handleNameChange}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item
-                name="parentDepartmentId"
-                label="Parent Department"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please select parent department",
-                  },
-                ]}
+        {/* Configuration Drawer */}
+        <Drawer
+          title={
+            <Space size={12}>
+              <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
+                <Edit size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{editingId ? "Edit Sub-Department" : "Create New Branch"}</div>
+                <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>Configure specialized unit hierarchy and functions</div>
+              </div>
+            </Space>
+          }
+          width={480}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
+              <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+              <Button 
+                type="primary" loading={submitting} onClick={handleSave} 
+                style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600 }}
               >
-                <Select
-                  placeholder="Select Parent Department"
-                  loading={departmentsLoading}
-                  showSearch
-                  optionFilterProp="children"
-                >
+                {editingId ? "Update Branch" : "Create Branch"}
+              </Button>
+            </div>
+          }
+          className="config-drawer"
+        >
+          <Form form={form} layout="vertical" requiredMark={false} onValuesChange={(changed) => { if (changed.name !== undefined && !editingId) { form.setFieldsValue({ code: generateCodeFromName(changed.name) }); } }}>
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Identity & Label</Text>
+              <Form.Item name="name" label={<Text strong style={{ fontSize: 13 }}>Sub-Department Name</Text>} rules={[{ required: true, message: "Required" }]}>
+                <Input placeholder="e.g. Talent Acquisition" />
+              </Form.Item>
+              <Form.Item name="code" label={<Text strong style={{ fontSize: 13 }}>Identity Code</Text>} rules={[{ required: true }]}>
+                <Input placeholder="Auto-generated" disabled />
+              </Form.Item>
+            </div>
+            <Divider />
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Organizational Context</Text>
+              <Form.Item name="parentDepartmentId" label={<Text strong style={{ fontSize: 13 }}>Parent Department</Text>} rules={[{ required: true, message: "Required" }]}>
+                <Select placeholder="Select Parent Entity" loading={departmentsLoading} showSearch optionFilterProp="children" dropdownStyle={{ borderRadius: 8 }}>
                   {departments.map((dept) => (
-                    <Select.Option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </Select.Option>
+                    <Select.Option key={dept.id} value={dept.id}>{dept.name}</Select.Option>
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="description" label="Description">
-                <Input.TextArea rows={3} />
-              </Form.Item>
-              <Form.Item style={{ marginBottom: 16 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "12px 0",
-                    minHeight: 64,
-                  }}
-                >
+            </div>
+            <Divider />
+            <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 20 }}>Operational Controls</Text>
+              <Form.Item name="isActive" valuePropName="checked" initialValue={true}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                      Status
-                    </div>
-                    <div style={{ fontSize: 12, color: "#888" }}>
-                      Enable or disable this record
-                    </div>
+                    <Text strong style={{ fontSize: 14, display: "block" }}>Active Status</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Enable or disable this organizational branch.</Text>
                   </div>
-
-                  <Form.Item name="isActive" valuePropName="checked" noStyle>
-                    <Switch />
-                  </Form.Item>
+                  <Switch />
                 </div>
               </Form.Item>
-            </Form>
-          </Modal>
-        </div>
+              <Divider style={{ margin: "16px 0" }} />
+              <Form.Item name="description" label={<Text strong style={{ fontSize: 13 }}>Functional Scope</Text>}>
+                <Input.TextArea rows={4} placeholder="Define the core responsibilities of this unit..." />
+              </Form.Item>
+            </div>
+          </Form>
+        </Drawer>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .action-btn:hover { background: #f1f5f9 !important; color: #1677ff !important; }
+          .ant-table-thead > tr > th {
+            background: #f8fafc !important; color: #64748b !important; font-weight: 600 !important;
+            text-transform: uppercase !important; font-size: 11px !important; letter-spacing: 0.05em !important;
+          }
+          .ant-table-row:hover > td { background: #f8fafc !important; }
+          .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
+          .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
+          .ant-input:focus, .ant-input-focused, .ant-select:focus, .ant-select-focused { border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; }
+        `}} />
       </MainLayout>
     </ProtectedRoute>
   );

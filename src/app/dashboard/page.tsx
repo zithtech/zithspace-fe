@@ -1476,7 +1476,7 @@ function DashboardContent() {
                                 <Button
                                   block
                                   icon={<FileTextOutlined />}
-                                  onClick={() => router.push("/leaves")}
+                                  onClick={() => router.push("/leave-approvals")}
                                   style={{
                                     marginBottom: 14,
                                     borderColor: "#faad14",
@@ -1587,7 +1587,7 @@ function DashboardContent() {
                                 type="primary"
                                 block
                                 icon={<PlusOutlined />}
-                                onClick={() => router.push("/leaves")}
+                                onClick={() => router.push("/apply-leave")}
                                 style={{
                                   borderRadius: 8,
                                   height: 40,

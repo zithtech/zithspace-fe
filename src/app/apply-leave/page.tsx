@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import {
   Row,
   Col,
@@ -8,110 +9,90 @@ import {
   DatePicker,
   Button,
   Table,
-  Segmented,
-  Tabs,
-  Statistic,
   Typography,
   Space,
   Tag,
   Input,
   Popconfirm,
   notification,
+  Progress,
 } from "antd";
-import { useState, useEffect } from "react";
-import { dashboardService } from "@/services/dashboardService";
-import MainLayout from "@/components/layout/MainLayout";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { useAuth } from "@/context/AuthContext";
-import {
-  AppstoreOutlined,
-  ClockCircleOutlined,
-  ScheduleOutlined,
-  EditOutlined,
-  SettingOutlined,
-  ApartmentOutlined,
-  PlusOutlined,
-  DownloadOutlined,
-  DeleteOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  TeamOutlined,
-  CalendarOutlined,
-} from "@ant-design/icons";
+import { 
+  Clock, 
+  Calendar, 
+  ClipboardList, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle, 
+  Trash2, 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  History,
+  Info,
+  ArrowRight
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
+import { useAuth } from "@/context/AuthContext";
+import MainLayout from "@/components/layout/MainLayout";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { useLeave } from "@/hooks/useLeave";
+import { LeaveBalance, LeaveBalanceService } from "@/services/leaveBalanceService";
+import { LeaveRequest, LeaveRequestService } from "@/services/leaveRequestService";
+
 dayjs.extend(isBetween);
 
-import { useLeave } from "@/hooks/useLeave";
-import {
-  LeaveBalance,
-  LeaveBalanceService,
-} from "@/services/leaveBalanceService";
-import {
-  LeaveRequest,
-  LeaveRequestService,
-} from "@/services/leaveRequestService";
-
-const { Text } = Typography;
+const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
 const LOP_LEAVE_TYPE_ID = "lop";
+
 export default function LeavePage() {
   const { user } = useAuth();
   const router = useRouter();
-  const hasApprovalRights =
-    (user as any)?.role === "super_admin" ||
-    (user as any)?.role === "admin";
+  const [api, contextHolder] = notification.useNotification();
 
   const {
-    leaveBalances,
-    leaveHistory,
+    leaveBalances: initialBalances,
+    leaveHistory: initialHistory,
     loading,
     applyLeave,
     submitting,
-    updateLeaveStatus,
     cancelLeaveRequest,
   } = useLeave();
 
-  const [currentLeaveBalances, setCurrentLeaveBalances] =
-    useState<LeaveBalance[]>(leaveBalances);
-  const [currentLeaveHistory, setCurrentLeaveHistory] =
-    useState<LeaveRequest[]>(leaveHistory);
-  const [api, contextHolder] = notification.useNotification();
-
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [currentLeaveBalances, setCurrentLeaveBalances] = useState<LeaveBalance[]>([]);
+  const [currentLeaveHistory, setCurrentLeaveHistory] = useState<LeaveRequest[]>([]);
   const [leaveTypeId, setLeaveTypeId] = useState("");
   const [dates, setDates] = useState<any>(null);
   const [reason, setReason] = useState("");
+  
+  // Carousel state
+  const [startIndex, setStartIndex] = useState(0);
+  const visibleCount = 4; // Show 4 cards at a time on Desktop
 
   useEffect(() => {
-    setCurrentLeaveBalances(leaveBalances);
-  }, [leaveBalances]);
+    setCurrentLeaveBalances(initialBalances);
+  }, [initialBalances]);
 
   useEffect(() => {
-    setCurrentLeaveHistory(leaveHistory);
-  }, [leaveHistory]);
+    setCurrentLeaveHistory(initialHistory);
+  }, [initialHistory]);
 
   const isDateBooked = (date: dayjs.Dayjs) => {
     return currentLeaveHistory.some((leave) => {
-      if (leave.status === "REJECTED" || leave.status === "CANCELLED") {
-        return false;
-      }
+      if (leave.status === "REJECTED" || leave.status === "CANCELLED") return false;
       const from = dayjs(leave.fromDate);
       const to = dayjs(leave.toDate);
-      // "[]" includes the start and end dates in the check
       return date.isBetween(from, to, "day", "[]");
     });
   };
 
   const handleApply = async () => {
     if (!leaveTypeId || !dates || dates.length !== 2) {
-      api.error({
-        message: "Missing Information",
-        description: "Please select leave type and dates.",
-        placement: "topRight",
-      });
+      api.error({ message: "Missing Information", description: "Please select leave type and dates." });
       return;
     }
 
@@ -126,327 +107,305 @@ export default function LeavePage() {
       api.success({
         message: "Leave Applied Successfully",
         description: `Leave from ${dates[0].format("YYYY-MM-DD")} to ${dates[1].format("YYYY-MM-DD")}`,
-        placement: "topRight",
         duration: 2,
       });
-
       setDates(null);
       setLeaveTypeId("");
       setReason("");
-
-      // refresh data
       LeaveBalanceService.getLeaveBalances().then(setCurrentLeaveBalances);
       LeaveRequestService.getLeaveRequests().then(setCurrentLeaveHistory);
     }
   };
 
-  const pendingRequests = currentLeaveHistory.filter(
-    (req) => req.status === "PENDING",
-  );
-  
-  const currentEmployeeId = 
-    currentLeaveBalances?.[0]?.employeeId || (user as any)?.employeeId || user?.id;
-
-  const processedHistory = currentLeaveHistory.filter((req) => {
-    if (!currentEmployeeId) return true;
-    return req.employee?.id === currentEmployeeId;
-  });
-
-  const employeeColumn = {
-    title: "Employee Name",
-    key: "employeeName",
-    render: (_: any, record: any) =>
-      `${record.employee?.first_name || ""} ${record.employee?.last_name || ""
-      }`,
+  const handleWithdraw = async (id: string) => {
+    try {
+      await cancelLeaveRequest(id);
+      api.success({ message: "Leave Withdrawn", duration: 2 });
+    } catch (error: any) {
+      api.error({ message: "Withdraw Failed", description: error.message });
+    }
   };
 
-  const baseColumns = [
+  const currentEmployeeId = currentLeaveBalances?.[0]?.employeeId || (user as any)?.employeeId || user?.id;
+  const processedHistory = currentLeaveHistory.filter(req => !currentEmployeeId || req.employee?.id === currentEmployeeId);
+
+  const historyColumns = [
     {
       title: "Leave Type",
       dataIndex: ["leaveType", "name"],
       key: "leaveType",
+      render: (text: string) => <Text strong style={{ color: "#1e293b" }}>{text}</Text>,
     },
     {
-      title: "From Date",
-      dataIndex: "fromDate",
-      key: "fromDate",
-      render: (date: string) => dayjs(date).format("YYYY-MM-DD"),
-    },
-    {
-      title: "To Date",
-      dataIndex: "toDate",
-      key: "toDate",
-      render: (date: string) => dayjs(date).format("YYYY-MM-DD"),
+      title: "Duration",
+      key: "duration",
+      render: (_: any, record: LeaveRequest) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
+          </div>
+          <ArrowRight size={14} color="#94a3b8" />
+          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
+          </div>
+        </div>
+      )
     },
     {
       title: "Reason",
       dataIndex: "reason",
       key: "reason",
+      width: 200,
+      render: (text: string) => <Text type="secondary" style={{ fontSize: 13 }}>{text || "—"}</Text>
     },
     {
-      title: "Duration",
-      key: "duration",
-      render: (_: any, record: any) => {
-        let start = dayjs(record.fromDate);
-        const end = dayjs(record.toDate);
-        let duration = 0;
-
-        if (start.isValid() && end.isValid()) {
-          while (start.isBefore(end, "day") || start.isSame(end, "day")) {
-            if (start.day() !== 0 && start.day() !== 6) {
-              duration++;
-            }
-            start = start.add(1, "day");
-          }
-        }
-        return `${duration} Day${duration !== 1 ? 's' : ''}`;
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => {
+        const configs: any = {
+          APPROVED: { color: "#10b981", bg: "#ecfdf5", icon: <CheckCircle2 size={12} /> },
+          REJECTED: { color: "#ef4444", bg: "#fef2f2", icon: <XCircle size={12} /> },
+          PENDING: { color: "#f59e0b", bg: "#fffbeb", icon: <Clock size={12} /> },
+          CANCELLED: { color: "#64748b", bg: "#f1f5f9", icon: <AlertCircle size={12} /> },
+        };
+        const config = configs[status] || configs.PENDING;
+        return (
+          <Tag style={{ 
+            borderRadius: 20, 
+            background: config.bg, 
+            color: config.color, 
+            border: `1px solid ${config.color}20`,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontWeight: 600,
+            padding: "0 10px"
+          }}>
+            {config.icon} {status}
+          </Tag>
+        );
       },
     },
-  ];
-
-  const statusColumn = {
-    title: "Status",
-    dataIndex: "status",
-    key: "status",
-    render: (status: string) => {
-      let color = "default";
-      if (status === "APPROVED") color = "green";
-      if (status === "REJECTED") color = "red";
-      if (status === "PENDING") color = "orange";
-      if (status === "CANCELLED") color = "gray";
-
-      return <Tag color={color}>{status}</Tag>;
-    },
-  };
-  const cancelColumn = {
-    title: "Action",
-    key: "cancel",
-    render: (_: any, record: any) => {
-      if (record.status !== "PENDING") return null;
-
-      return (
-        <Popconfirm
-          title="Cancel this leave?"
-          onConfirm={() => handleWithdraw(record.id)}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Button danger size="small" icon={<DeleteOutlined />}>
+    {
+      title: "Action",
+      key: "cancel",
+      render: (_: any, record: LeaveRequest) => record.status === "PENDING" && (
+        <Popconfirm title="Withdraw leave?" onConfirm={() => handleWithdraw(record.id)}>
+          <Button type="text" danger size="small" icon={<Trash2 size={14} />} style={{ background: "#fef2f2", borderRadius: 6 }}>
             Withdraw
           </Button>
         </Popconfirm>
-      );
+      ),
     },
-  };
-
-  const historyColumns = [
-    ...baseColumns,
-    statusColumn,
-    cancelColumn,
   ];
-  const handleWithdraw = async (id: string) => {
-    try {
-      await cancelLeaveRequest(id);
 
-      api.success({
-        message: "Leave Withdrawn",
-        description: "Your leave request has been withdrawn successfully.",
-        placement: "topRight",
-        duration: 2,
-      });
-    } catch (error: any) {
-      api.error({
-        message: "Withdraw Failed",
-        description: error.message || "Could not withdraw leave.",
-        placement: "topRight",
-      });
-    }
-  };
+  // Carousel Logic
+  const handleBackward = () => setStartIndex(prev => Math.max(0, prev - 1));
+  const handleForward = () => setStartIndex(prev => Math.min(currentLeaveBalances.length - visibleCount, prev + 1));
+
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
           {contextHolder}
-          <div>
-            <Tabs
-              activeKey="apply-leave"
-              onChange={(key) => {
-                const routes: any = {
-                  dashboard: "/leaves-dashboard",
-                  // leaves: "/leaves",
-                  holidays: "/government-holidays",
-                  adjustments: "/leave-adjustments",
-                  configuration: "/leave-type",
-                  positions: "/leave-policy",
-                  addLeaves: "/add-goverment-leaves",
-                  "apply-leave": "/apply-leave",
-                  approvals: "/leave-approvals"
-                };
-                if (routes[key]) router.push(routes[key]);
-              }}
-              items={[
-                {
-                  key: "dashboard",
-                  label: (
-                    <span>
-                      <AppstoreOutlined /> Dashboard
-                    </span>
-                  ),
-                },
-                // {
-                //   key: "leaves",
-                //   label: (
-                //     <span>
-                //       <ClockCircleOutlined /> Apply Leave
-                //     </span>
-                //   ),
-                // },
-                {
-                  key: "apply-leave",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Apply leave
-                    </span>
-                  ),
-                },
-                hasApprovalRights && {
-                  key: "approvals",
-                  label: (
-                    <span>
-                      <CheckCircleOutlined /> Approvals
-                    </span>
-                  ),
-                },
-                {
-                  key: "holidays",
-                  label: (
-                    <span>
-                      <ScheduleOutlined /> Government Holidays
-                    </span>
-                  ),
-                },
-                {
-                  key: "adjustments",
-                  label: (
-                    <span>
-                      <EditOutlined /> Leave Adjustment
-                    </span>
-                  ),
-                },
-                {
-                  key: "configuration",
-                  label: (
-                    <span>
-                      <SettingOutlined /> Leave Type
-                    </span>
-                  ),
-                },
-                {
-                  key: "positions",
-                  label: (
-                    <span>
-                      <ApartmentOutlined /> Leave Policy
-                    </span>
-                  ),
-                },
-                {
-                  key: "addLeaves",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Add Government Leaves
-                    </span>
-                  ),
-                },
-              ].filter(Boolean) as any}
-            />
+
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Space align="center" size={16}>
+              <div style={{ background: "#eff6ff", width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
+                <Clock size={28} />
+              </div>
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Apply Leave</Title>
+                <Text style={{ color: "#64748b", fontSize: 15 }}>Submit and track your leave requests and balances.</Text>
+              </div>
+            </Space>
           </div>
 
-          <Row gutter={24} >
+          {/* Leave Balances Carousel */}
+          <div style={{ marginBottom: 32, position: "relative", padding: "0 40px" }}>
+            {currentLeaveBalances.length > visibleCount && (
+              <>
+                <Button 
+                  icon={<ChevronLeft size={20} />} 
+                  onClick={handleBackward} 
+                  disabled={startIndex === 0}
+                  style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10, height: 44, width: 44, borderRadius: 22, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                />
+                <Button 
+                  icon={<ChevronRight size={20} />} 
+                  onClick={handleForward} 
+                  disabled={startIndex >= currentLeaveBalances.length - visibleCount}
+                  style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10, height: 44, width: 44, borderRadius: 22, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                />
+              </>
+            )}
+            
+            <Row gutter={[16, 16]} style={{ overflow: "hidden", flexWrap: "nowrap" }}>
+              {currentLeaveBalances.slice(startIndex, startIndex + visibleCount).map((balance) => {
+                const used = balance.total - balance.balance;
+                const percent = balance.total > 0 ? (used / balance.total) * 100 : 0;
+                return (
+                  <Col key={balance.leaveTypeId} style={{ flex: "0 0 25%", minWidth: 0 }}>
+                    <Card
+                      bordered={true}
+                      style={{ borderRadius: 16, borderColor: "#f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)", overflow: "hidden" }}
+                      bodyStyle={{ padding: "16px 20px" }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={{ fontSize: 13, fontWeight: 600, color: "#64748b", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {balance.leaveTypeName}
+                          </Text>
+                          <div style={{ marginTop: 4 }}>
+                            <span style={{ fontSize: 22, fontWeight: 700, color: "#1e293b" }}>{balance.balance}</span>
+                            <span style={{ fontSize: 12, color: "#94a3b8", marginLeft: 4 }}>/ {balance.total}</span>
+                          </div>
+                        </div>
+                        <div style={{ background: "#f1f7ff", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", flexShrink: 0 }}>
+                          <ClipboardList size={16} />
+                        </div>
+                      </div>
+                      
+                      <Progress
+                        percent={Number(percent.toFixed(1))}
+                        strokeColor="#2563eb"
+                        trailColor="#f1f5f9"
+                        showInfo={false}
+                        size="small"
+                        strokeWidth={6}
+                        style={{ marginBottom: 6 }}
+                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 500 }}>
+                        <Text type="secondary">Used: <span style={{ color: "#1e293b" }}>{used}</span></Text>
+                        <Text style={{ color: "#2563eb" }}>{Math.round(percent)}%</Text>
+                      </div>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+          </div>
 
-            {/* Apply Leave Card - Left Side */}
-            <Col xs={24} lg={10}>
-              <Card title="Apply Leave" style={{ marginTop: 10, height: 410 }}>
-                <Row gutter={[16, 16]}>
-                  <Col span={24}>
-                    <Text strong>Leave Type</Text>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={8}>
+              <Card 
+                title={
+                  <Space size={10} align="center">
+                    <div style={{ background: "#eff6ff", height: 32, width: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
+                      <Plus size={18} />
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: 16, color: "#1e293b" }}>New Application</span>
+                  </Space>
+                } 
+                bordered={true}
+                style={{ borderRadius: 16, borderColor: "#f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", height: "100%" }}
+                headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "16px 24px" }}
+                bodyStyle={{ padding: "24px" }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <div>
+                    <Text strong style={{ color: "#475569", display: "block", marginBottom: 8, fontSize: 13 }}>Leave Type</Text>
                     <Select
-                      style={{ width: "100%", marginTop: 8 }}
+                      style={{ width: "100%" }}
+                      size="large"
                       placeholder="Select Leave Type"
                       loading={loading}
                       value={leaveTypeId || undefined}
-                      onChange={(value) => setLeaveTypeId(value)}
+                      onChange={setLeaveTypeId}
+                      className="premium-select"
                       options={[
                         ...currentLeaveBalances.map((lb: LeaveBalance) => ({
                           label: `${lb.leaveTypeName} (${lb.balance || 0}/${lb.total || 0})`,
                           value: lb.leaveTypeId,
                           disabled: !lb.balance || lb.balance <= 0,
                         })),
-                        {
-                          label: "Loss Of Pay (LOP)",
-                          value: LOP_LEAVE_TYPE_ID,
-                        },
+                        { label: "Loss Of Pay (LOP)", value: LOP_LEAVE_TYPE_ID },
                       ]}
                     />
-                  </Col>
+                  </div>
 
-                  <Col span={24}>
-                    <Text strong>Select Dates</Text>
+                  <div>
+                    <Text strong style={{ color: "#475569", display: "block", marginBottom: 8, fontSize: 13 }}>Select Dates</Text>
                     <RangePicker
-                      style={{ width: "100%", marginTop: 8 }}
+                      style={{ width: "100%" }}
+                      size="large"
                       value={dates}
-                      onChange={(values) => setDates(values)}
-                      disabledDate={(current) => {
-                        if (!current) return false;
-                        const isPast = current < dayjs().startOf("day");
-                        const isBooked = isDateBooked(current);
-                        return isPast || isBooked;
-                      }}
+                      onChange={setDates}
+                      className="premium-select"
+                      disabledDate={(current) => current && current < dayjs().startOf("day") || isDateBooked(current)}
                     />
-                  </Col>
+                  </div>
 
-                  <Col span={24}>
-                    <Text strong>Reason</Text>
+                  <div>
+                    <Text strong style={{ color: "#475569", display: "block", marginBottom: 8, fontSize: 13 }}>Reason</Text>
                     <TextArea
                       rows={4}
-                      placeholder="Enter reason for leave..."
+                      placeholder="Give a brief reason for your leave request..."
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      style={{ marginTop: 8 }}
+                      style={{ resize: "none", borderRadius: 12, border: "1px solid #e2e8f0" }}
                     />
-                  </Col>
+                  </div>
 
-                  <Col span={24}>
+                  <div style={{ paddingTop: 8 }}>
                     <Button
                       type="primary"
+                      size="large"
+                      block
                       onClick={handleApply}
                       loading={submitting}
                       disabled={!leaveTypeId || !dates}
+                      style={{ height: 48, borderRadius: 12, fontWeight: 600 }}
+                      icon={<CheckCircle2 size={18} />}
                     >
-                      Apply Leave
+                      Submit Application
                     </Button>
-                  </Col>
-                </Row>
+                  </div>
+                </div>
               </Card>
             </Col>
 
-            {/* Leave Requests Card - Right Side */}
-            <Col xs={24} lg={14}>
-              <Card title="Leave History"
-                styles={{ body: { paddingTop: 8 } }}
-                style={{ marginTop: 10, height: 410 }}
+            <Col xs={24} lg={16}>
+              <Card 
+                title={
+                  <Space size={10} align="center">
+                    <div style={{ background: "#f0fdf4", height: 32, width: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                      <History size={18} />
+                    </div>
+                    <span style={{ fontWeight: 600, fontSize: 16, color: "#1e293b" }}>Request History</span>
+                  </Space>
+                }
+                bordered={true}
+                style={{ borderRadius: 16, borderColor: "#f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", height: "100%" }}
+                headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "16px 24px" }}
+                bodyStyle={{ padding: "0" }}
               >
-
                 <Table
                   dataSource={processedHistory}
-                  columns={historyColumns}
+                  columns={historyColumns as any}
                   rowKey="id"
                   loading={loading}
-                  pagination={{ pageSize: 6 }}
+                  pagination={{ pageSize: 6, position: ["bottomRight"], style: { padding: "16px 24px", margin: 0 } }}
+                  rowClassName={() => "history-table-row"}
                 />
               </Card>
             </Col>
-
           </Row>
+
+          <style dangerouslySetInnerHTML={{__html: `
+            .history-table-row:hover { background-color: #f8fafc !important; }
+            .ant-table-thead > tr > th {
+              background-color: #f1f5f9 !important;
+              color: #475569 !important;
+              font-weight: 600 !important;
+              padding: 16px 24px !important;
+              border-bottom: 2px solid #e2e8f0 !important;
+            }
+            .ant-table-tbody > tr > td { padding: 16px 24px !important; border-bottom: 1px solid #f1f5f9 !important; }
+            .premium-select { height: 44px !important; border-radius: 12px !important; }
+            .premium-select .ant-select-selector { border-radius: 12px !important; height: 44px !important; display: flex !important; alignItems: center !important; }
+          `}} />
         </div>
       </MainLayout>
     </ProtectedRoute>

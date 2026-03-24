@@ -58,9 +58,9 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
             }
           });
         }
-        
+
         // ALSO include the entry's own startTime/endTime range if it's completed (important for manual updates)
-        if (entry.status !== 'RUNNING' && entry.startTime && entry.endTime) {
+        if ((entry.status === 'STOPPED' || entry.status === 'MANUAL_UPDATED') && entry.startTime && entry.endTime) {
           allIntervals.push({
             start: new Date(entry.startTime).getTime(),
             end: new Date(entry.endTime).getTime()
@@ -88,7 +88,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         }
       }
       merged.push(current);
-      
+
       const totalMs = merged.reduce((acc, int) => acc + (int.end - int.start), 0);
       const totalSeconds = Math.floor(totalMs / 1000);
       onTotalChange?.(totalSeconds);
@@ -158,7 +158,11 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       title: "Project",
       dataIndex: ["project", "name"],
       key: "project",
-      render: (text: string) => text || <Text type="secondary">No project</Text>,
+      render: (text: string, record: TimeTrackingEntry) => {
+        if (text) return text;
+        if (record.projectId) return `Project ${record.projectId}`;
+        return <Text type="secondary">No project</Text>;
+      },
     },
     {
       title: "Task",
@@ -172,7 +176,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                 {record.ticket.title}
               </Link>
             ) : (
-              text || <Text type="secondary">No task</Text>
+              text || (record.ticketId ? `Ticket ${record.ticketId}` : <Text type="secondary">No task</Text>)
             )}
           </div>
           {record.description && record.ticket?.title && (
@@ -194,9 +198,9 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               onConfirm={(e) => handleStopAll(e as any)}
               onCancel={(e) => e?.stopPropagation()}
             >
-              <Tag 
-                color="processing" 
-                icon={<RunningIcon />} 
+              <Tag
+                color="processing"
+                icon={<RunningIcon />}
                 style={{ cursor: "pointer" }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -207,13 +211,13 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         }
         if (record.status === "PAUSED") {
           return (
-            <Tag 
-              color="warning" 
-              icon={<PauseCircleOutlined />} 
+            <Tag
+              color="warning"
+              icon={<PauseCircleOutlined />}
               style={{ cursor: "pointer" }}
               onClick={(e) => handleResumeAll(e)}
             >
-              Paused ({formatDuration(val)}) - Click to Resume All
+              Paused ({formatDuration(val)})
             </Tag>
           );
         }
@@ -227,18 +231,18 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       render: (_: any, record: TimeTrackingEntry) => (
         <Space>
           {record.status === "RUNNING" && (
-            <Button 
-              type="text" 
-              icon={<PauseCircleOutlined />} 
-              onClick={(e) => handlePauseAll(e)} 
+            <Button
+              type="text"
+              icon={<PauseCircleOutlined />}
+              onClick={(e) => handlePauseAll(e)}
               title="Pause All Timers"
             />
           )}
           {record.status === "PAUSED" && (
-            <Button 
-              type="text" 
-              icon={<PlayCircleOutlined />} 
-              onClick={(e) => handleResumeAll(e)} 
+            <Button
+              type="text"
+              icon={<PlayCircleOutlined />}
+              onClick={(e) => handleResumeAll(e)}
               title="Resume All Timers"
             />
           )}
@@ -290,6 +294,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
             if (currentChunk) {
               activityChunks.push(currentChunk);
             }
+
             activityChunks.reverse();
 
             const logColumns = [

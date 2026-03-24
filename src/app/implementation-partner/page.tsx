@@ -11,10 +11,9 @@ import {
   Typography,
   Tooltip,
   Dropdown,
-  Modal,
-  message,
   notification,
   Breadcrumb,
+  App,
 } from "antd";
 import type { TablePaginationConfig } from "antd";
 import {
@@ -35,8 +34,9 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 export default function ImplementationPartnerListPage() {
-  const router = useRouter();
   const { tenantId } = useTenant();
+  const router = useRouter();
+  const { modal, notification: antdNotification } = App.useApp();
   const [data, setData] = useState<ImplementationPartner[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
@@ -68,7 +68,7 @@ export default function ImplementationPartnerListPage() {
       }));
     } catch (err) {
       console.error("Failed to fetch implementation partners", err);
-      message.error("Failed to load implementation partners");
+      antdNotification.error({ message: "Failed to load implementation partners" });
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export default function ImplementationPartnerListPage() {
   };
 
   const handleDelete = (id: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Are you sure you want to delete this partner?",
       content: "This action cannot be undone.",
       okText: "Yes, Delete",
@@ -106,10 +106,10 @@ export default function ImplementationPartnerListPage() {
       onOk: async () => {
         try {
           await ImplementationPartnerService.deletePartner(id);
-          notification.success({ message: "Partner Deleted Successfully" });
+          antdNotification.success({ message: "Partner Deleted Successfully" });
           fetchData(pagination.current || 1, pagination.pageSize || 10);
         } catch (err) {
-          message.error("Failed to delete partner");
+          antdNotification.error({ message: "Failed to delete partner" });
         }
       },
     });
@@ -197,13 +197,11 @@ export default function ImplementationPartnerListPage() {
             key: "view",
             label: "View Partner",
             icon: <EyeOutlined />,
-            onClick: () => router.push(`/implementation-partner/view/${record.id}`),
           },
           {
             key: "edit",
             label: "Edit Partner",
             icon: <EditOutlined />,
-            onClick: () => router.push(`/implementation-partner/edit/${record.id}`),
           },
           {
             type: "divider" as const,
@@ -213,12 +211,17 @@ export default function ImplementationPartnerListPage() {
             label: "Delete Partner",
             icon: <DeleteOutlined />,
             danger: true,
-            onClick: () => handleDelete(record.id),
           },
         ];
 
+        const handleMenuClick = ({ key }: { key: string }) => {
+          if (key === "view") router.push(`/implementation-partner/view/${record.id}`);
+          else if (key === "edit") router.push(`/implementation-partner/edit/${record.id}`);
+          else if (key === "delete") handleDelete(record.id);
+        };
+
         return (
-          <Dropdown menu={{ items }} trigger={["click"]}>
+          <Dropdown menu={{ items, onClick: handleMenuClick }} trigger={["click"]}>
             <Button type="text" icon={<MoreOutlined />} />
           </Dropdown>
         );
@@ -228,53 +231,61 @@ export default function ImplementationPartnerListPage() {
 
   return (
     <MainLayout>
-      <div style={{ background: "white" }}>
-        <div style={{ padding: "24px", background: "#fff", minHeight: "100vh" }}>
-          <Breadcrumb style={{ marginBottom: 16 }}>
-            <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
-            <Breadcrumb.Item>Implementation Partners</Breadcrumb.Item>
-          </Breadcrumb>
+      <App>
+        <div style={{ background: "#ffffff", minHeight: "100vh", padding: "24px" }}>
+          <div style={{ maxWidth: "1600px", margin: "0 auto" }}>
+            <Breadcrumb style={{ marginBottom: 16, fontSize: "12px" }}>
+              <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
+              <Breadcrumb.Item>Implementation Partners</Breadcrumb.Item>
+            </Breadcrumb>
 
-          <div style={{
-            background: "#fff",
-            padding: "24px",
-            borderRadius: "8px",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-            marginBottom: 24
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-              <div>
-                <Title level={2} style={{ margin: 0 }}>Implementation Partners</Title>
-                <Text type="secondary">Manage your implementation partners, their contacts, and business relationships.</Text>
+            <div style={{
+              background: "#ffffff",
+              padding: "24px",
+              borderRadius: "8px",
+              border: "1px solid #f0f0f0",
+              marginBottom: 24
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 600 }}>Implementation Partners</Title>
+                  <Text type="secondary" style={{ fontSize: "13px" }}>Manage your technical and business relationships with implementation partners.</Text>
+                </div>
+                <Space>
+                  <Button icon={<SearchOutlined />}>Import</Button>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => router.push("/implementation-partner/create")}
+                    style={{ borderRadius: "6px" }}
+                  >
+                    Add Partner
+                  </Button>
+                </Space>
               </div>
-              <Space>
-                <Button icon={<SearchOutlined />}>Import Partner</Button>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => router.push("/implementation-partner/create")}
-                >
-                  Add Partner
-                </Button>
-              </Space>
-            </div>
 
-            <Space size="large" style={{ marginBottom: 24, width: '100%', justifyContent: 'flex-start' }} wrap>
-              <div style={{ width: 300 }}>
-                <Text strong style={{ display: 'block', marginBottom: 8 }}>Search</Text>
-                <Input.Search
-                  placeholder="Search by partner name..."
-                  allowClear
-                  onSearch={handleSearch}
-                  onChange={(e) => !e.target.value && handleSearch("")}
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <div style={{ width: 200 }}>
-                <Text strong style={{ display: 'block', marginBottom: 8 }}>Industry</Text>
+              <div style={{ 
+                display: 'flex', 
+                gap: '16px', 
+                marginBottom: 24, 
+                padding: '16px', 
+                background: '#fafafa', 
+                borderRadius: '8px',
+                border: '1px solid #f0f0f0'
+              }}>
+                <div style={{ flex: 1 }}>
+                  <Input
+                    placeholder="Search by partner name..."
+                    prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                    allowClear
+                    onSearch={handleSearch}
+                    onChange={(e) => !e.target.value && handleSearch("")}
+                    style={{ borderRadius: '6px' }}
+                  />
+                </div>
                 <Select
                   placeholder="All Industries"
-                  style={{ width: '100%' }}
+                  style={{ width: 200 }}
                   allowClear
                   onChange={(val) => handleFilterChange('industry', val)}
                 >
@@ -284,12 +295,9 @@ export default function ImplementationPartnerListPage() {
                   <Option value="Manufacturing">Manufacturing</Option>
                   <Option value="Retail">Retail</Option>
                 </Select>
-              </div>
-              <div style={{ width: 150 }}>
-                <Text strong style={{ display: 'block', marginBottom: 8 }}>Status</Text>
                 <Select
-                  placeholder="All Status"
-                  style={{ width: '100%' }}
+                  placeholder="Status"
+                  style={{ width: 150 }}
                   allowClear
                   onChange={(val) => handleFilterChange('status', val)}
                 >
@@ -297,26 +305,26 @@ export default function ImplementationPartnerListPage() {
                   <Option value="false">Inactive</Option>
                 </Select>
               </div>
-            </Space>
 
-            <Table
-              columns={columns}
-              dataSource={data}
-              rowKey="id"
-              pagination={{
-                ...pagination,
-                showSizeChanger: true,
-                showTotal: (totalItem) => `Total ${totalItem} partners`,
-              }}
-              loading={loading}
-              onChange={handleTableChange}
-              size="middle"
-            />
+              <Table
+                columns={columns}
+                dataSource={data}
+                rowKey="id"
+                pagination={{
+                  ...pagination,
+                  showSizeChanger: true,
+                  showTotal: (totalItem) => `Total ${totalItem} partners`,
+                }}
+                loading={loading}
+                onChange={handleTableChange}
+                size="middle"
+                className="premium-table"
+                style={{ borderRadius: '8px' }}
+              />
+            </div>
           </div>
         </div>
-
-      </div>
-
+      </App>
     </MainLayout>
   );
 }

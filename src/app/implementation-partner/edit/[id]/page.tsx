@@ -3,6 +3,7 @@
 import MainLayout from "@/components/layout/MainLayout";
 import PartnerForm from "../../components/PartnerForm";
 import { useParams } from "next/navigation";
+import { App } from "antd";
 
 export default function EditPartnerPage() {
   const params = useParams();
@@ -10,7 +11,9 @@ export default function EditPartnerPage() {
 
   return (
     <MainLayout>
-      <PartnerForm id={id} mode="edit" />
+      <App>
+        <PartnerForm id={id} mode="edit" />
+      </App>
     </MainLayout>
   );
 }

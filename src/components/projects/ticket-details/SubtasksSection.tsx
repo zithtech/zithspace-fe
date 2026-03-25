@@ -271,7 +271,7 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
             })}
 
             {/* Creation Input */}
-            <div style={{ padding: '8px 10px', marginTop: 4 }}>
+            <div style={{ padding: '4px 10px' }}>
                 <div
                     className="create-subtask-btn"
                     style={{
@@ -279,9 +279,10 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                         alignItems: 'center',
                         gap: 10,
                         cursor: 'text',
-                        padding: '6px 8px',
-                        borderRadius: 6,
-                        transition: 'background-color 0.2s'
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        border: '1px solid transparent'
                     }}
                     onClick={() => setIsCreating(true)}
                 >
@@ -297,12 +298,24 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                             }}
                             suffix={createTicketMutation.isPending ? <SyncOutlined spin /> : <Button type="text" size="small" icon={<PlusOutlined />} onClick={handleCreateSubtask} />}
                             variant="borderless"
-                            style={{ padding: '4px 0', fontSize: 14 }}
+                            style={{ padding: '4px 0', fontSize: 13 }}
                         />
                     ) : (
                         <>
-                            <PlusOutlined style={{ color: '#1890ff', fontSize: 16 }} />
-                            <Text style={{ fontSize: 14, color: '#1890ff', fontWeight: 500 }}>Create subtask</Text>
+                            <div style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: '50%',
+                                backgroundColor: '#e6f7ff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#1890ff',
+                                transition: 'all 0.2s'
+                            }} className="plus-icon-container">
+                                <PlusOutlined style={{ fontSize: 12 }} />
+                            </div>
+                            <Text style={{ fontSize: 13, color: '#1890ff', fontWeight: 600 }}>Create subtask</Text>
                         </>
                     )}
                 </div>
@@ -313,7 +326,12 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                     background-color: #fafafa;
                 }
                 .create-subtask-btn:hover {
-                    background-color: #e6f7ff;
+                    background-color: #f0f7ff;
+                    border-color: #bae7ff;
+                }
+                .create-subtask-btn:hover .plus-icon-container {
+                    background-color: #1890ff;
+                    color: #fff;
                 }
                 .status-trigger:hover {
                     background-color: #e6f7ff;

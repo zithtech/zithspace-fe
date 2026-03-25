@@ -111,8 +111,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
           style={{
             margin: 0,
             // padding: "10px",
-            paddingLeft:"24px",
-            paddingRight:"24px",
+            paddingLeft:"16px",
+            paddingRight:"16px",
             // background: "#f5f5f5",
              background: "white",
             marginLeft: collapsed ? 60 : 240,

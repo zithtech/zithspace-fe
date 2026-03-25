@@ -36,7 +36,12 @@ import {
   BugOutlined,
   CheckOutlined,
   RocketOutlined,
-  PauseCircleOutlined
+  PauseCircleOutlined,
+  CheckSquareOutlined,
+  HistoryOutlined,
+  MessageOutlined,
+  PaperClipOutlined,
+  CodeOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
@@ -438,7 +443,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       open={open}
       width={1100} // Increased slightly for better column balance and header single-row fitting
       styles={{
-        header: { padding: '12px 20px', borderBottom: '1px solid #f0f0f0' },
+        header: { padding: '12px 20px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#ffffff' },
         body: { padding: 0 }
       }}
       closeIcon={null}
@@ -446,9 +451,19 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       {!ticket ? (
         <div style={{ padding: 40, textAlign: "center" }}><Text>Loading</Text></div>
       ) : (
-        <Row style={{ height: '100%' }}>
+        <Row style={{ height: '100%', backgroundColor: '#ffffff' }}>
           {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
-          <Col xs={24} md={15} style={{ padding: 16, paddingRight: 20, borderRight: '1px solid #f0f0f0', overflowY: 'auto', height: '100%' }}>
+          <Col 
+            xs={24} 
+            md={15} 
+            style={{ 
+              padding: '24px 32px', 
+              borderRight: '1px solid #f0f0f0', 
+              overflowY: 'auto', 
+              height: '100%',
+              backgroundColor: '#ffffff' 
+            }}
+          >
 
             {/* Title */}
             <div style={{ marginBottom: 16 }}>
@@ -471,40 +486,47 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   <Button
                     type="text"
                     size="small"
-                    icon={<EditOutlined />}
+                    style={{ 
+                      fontSize: 12, 
+                      color: "#1890ff", 
+                      fontWeight: 600,
+                      padding: '0 8px',
+                      borderRadius: 4,
+                      background: '#e6f7ff'
+                    }}
                     onClick={() => setDescriptionEditorOpen(true)}
-                    style={{ fontSize: 12, color: "#1890ff", fontWeight: 500 }}
                   >
-                    Quick Edit
+                    Edit
                   </Button>
                 )}
               >
 
                 {descriptionEditorOpen ? (
                   <div style={{
-                    border: '1px solid #d9d9d9',
-                    borderRadius: 12,
-                    padding: 12,
+                    border: '1px solid #1890ff',
+                    borderRadius: 14,
+                    padding: '16px',
                     backgroundColor: '#fff',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                    boxShadow: '0 8px 24px rgba(24, 144, 255, 0.08)',
+                    width: '100%'
                   }}>
                     <TiptapEditor
                       content={editorContent}
                       onChange={(html) => setEditorContent(html)}
-                      placeholder="Add description..."
-                      minHeight={150}
+                      placeholder="Add a detailed description here..."
+                      minHeight={180}
                     />
                     <div
                       style={{
-                        marginTop: 12,
+                        marginTop: 16,
                         display: "flex",
-                        gap: 8,
+                        gap: 12,
                         justifyContent: "flex-end",
                       }}
                     >
                       <Button
                         size="small"
-                        style={{ borderRadius: 6 }}
+                        style={{ borderRadius: 8, padding: '0 16px', height: 32 }}
                         onClick={() => {
                           setDescriptionEditorOpen(false);
                           setEditorContent(ticket.description || ""); // Reset on cancel
@@ -515,10 +537,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       <Button
                         type="primary"
                         size="small"
-                        style={{ borderRadius: 6, fontWeight: 600 }}
+                        style={{ borderRadius: 8, padding: '0 20px', height: 32, fontWeight: 600 }}
                         onClick={handleDescriptionSave}
                       >
-                        Save Changes
+                        Save Description
                       </Button>
                     </div>
                   </div>
@@ -527,23 +549,28 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                     className="description-viewer"
                     onClick={() => setDescriptionEditorOpen(true)}
                     style={{
-                      minHeight: 100,
+                      minHeight: 120,
                       cursor: "text",
-                      padding: "16px",
-                      backgroundColor: "#f9f9f9",
+                      padding: "20px",
+                      backgroundColor: "#ffffff",
                       border: "1px solid #f0f0f0",
-                      borderRadius: 12,
+                      borderRadius: 16,
                       position: "relative",
-                      transition: "all 0.2s ease"
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      width: '100%',
+                      lineHeight: '1.6'
                     }}
                   >
                     {ticket.description ? (
                       <div className="prose max-w-none focus:outline-none"
-                        style={{ color: '#595959', fontSize: 14 }}
+                        style={{ color: '#334155', fontSize: 14 }}
                         dangerouslySetInnerHTML={{ __html: ticket.description }}
                       />
                     ) : (
-                      <Text type="secondary" style={{ fontSize: 14 }}>Describe this ticket in detail</Text>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <Text type="secondary" style={{ fontSize: 14, color: '#94a3b8' }}>No description provided yet.</Text>
+                        <Text type="secondary" style={{ fontSize: 12, color: '#cbd5e1' }}>Click to add details about this ticket...</Text>
+                      </div>
                     )}
 
                     <div
@@ -553,28 +580,31 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         top: 12,
                         right: 12,
                         opacity: 0,
-                        transition: "opacity 0.2s",
+                        transition: "all 0.2s ease",
+                        transform: 'scale(0.9)',
                       }}
                     >
-                      <EditOutlined
-                        style={{
-                          fontSize: 14,
-                          color: "#1890ff",
-                          background: "#fff",
-                          padding: 6,
-                          borderRadius: 6,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                        }}
-                      />
+                      <Tooltip title="Edit Description">
+                        <EditOutlined
+                          style={{
+                            fontSize: 14,
+                            color: "#1890ff",
+                            background: "#fff",
+                            padding: 8,
+                            borderRadius: 8,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                            border: '1px solid #e2e8f0'
+                          }}
+                        />
+                      </Tooltip>
                     </div>
-
                   </div>
                 )}
               </DrawerField>
             </div>
 
             {/* Subtasks Section - Conditional Rendering */}
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 4 }}>
               {ticket.parentId ? (
                 // Current ticket IS a subtask - show info message
                 // <div style={{
@@ -617,7 +647,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               )}
             </div>
 
-            <Divider />
+            <Divider style={{ margin: '16px 0' }} />
 
             {/* Tabs for Comments, Attachments, etc. */}
             <div className="premium-tabs-wrapper">
@@ -628,7 +658,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 items={[
                   {
                     key: 'comments',
-                    label: `Comments (${comments.length})`,
+                    label: (
+                      <span>
+                        <MessageOutlined style={{ marginRight: 8 }} />
+                        Comments ({comments.length})
+                      </span>
+                    ),
                     children: (
                       <CommentsSection
                         comments={comments}
@@ -642,7 +677,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   },
                   {
                     key: 'attachments',
-                    label: `Attachments (${attachments.length})`,
+                    label: (
+                      <span>
+                        <PaperClipOutlined style={{ marginRight: 8 }} />
+                        Attachments ({attachments.length})
+                      </span>
+                    ),
                     children: (
                       <AttachmentsSection
                         attachments={attachments}
@@ -655,7 +695,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   },
                   {
                     key: 'links',
-                    label: `Links (${relatedLinks.length})`,
+                    label: (
+                      <span>
+                        <LinkOutlined style={{ marginRight: 8 }} />
+                        Links ({relatedLinks.length})
+                      </span>
+                    ),
                     children: (
                       <RelatedLinksSection
                         relatedLinks={relatedLinks}
@@ -671,14 +716,24 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   },
                   {
                     key: 'timeline',
-                    label: 'Timeline',
+                    label: (
+                      <span>
+                        <HistoryOutlined style={{ marginRight: 8 }} />
+                        Timeline
+                      </span>
+                    ),
                     children: (
                       <ActivityTimeline ticketId={currentTicketId} />
                     )
                   },
                   {
                     key: 'code',
-                    label: 'Code',
+                    label: (
+                      <span>
+                        <CodeOutlined style={{ marginRight: 8 }} />
+                        Code
+                      </span>
+                    ),
                     children: (
                       <div style={{ paddingTop: 16 }}>
                         {currentTicketId ? (
@@ -703,8 +758,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             xs={24}
             md={9}
             style={{
-              padding: 12,
-              background: "#fdfdfd",
+              padding: '24px 20px',
+              background: "#ffffff",
               height: "100%",
               overflowY: "auto",
               borderLeft: "1px solid #f0f0f0",
@@ -714,51 +769,54 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               {/* Status & Transitions */}
               <div style={{
                 border: '1px solid #f0f0f0',
-                borderRadius: 12,
+                borderRadius: 14,
                 overflow: 'hidden',
-                backgroundColor: '#fff',
-                padding: '16px',
+                backgroundColor: '#ffffff', 
+                padding: '12px 16px', // Compacted from 20px
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 16
+                gap: 12, // Compacted from 16
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
               }}>
                 {/* Current Status Block */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <Text strong style={{ fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Current Status</Text>
-                  <div style={(() => {
-                    const s = ticket.status;
-                    let color = "#8c8c8c";
-                    if (s === "in_progress") color = "#1890ff";
-                    else if (s === "completed" || s === "live") color = "#52c41a";
-                    else if (s === "in_testing") color = "#fa8c16";
-                    else if (s === "in_review") color = "#722ed1";
-                    else if (s === "dev_complete") color = "#13c2c2";
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <Text strong style={{ fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</Text>
+                <div style={(() => {
+                  const s = ticket.status;
+                  let color = "#8c8c8c";
+                  if (s === "in_progress") color = "#1890ff";
+                  else if (s === "completed" || s === "live") color = "#52c41a";
+                  else if (s === "in_testing") color = "#fa8c16";
+                  else if (s === "in_review") color = "#722ed1";
+                  else if (s === "dev_complete") color = "#13c2c2";
 
-                    return {
-                      backgroundColor: color,
-                      borderRadius: 8,
-                      padding: '10px 14px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      color: '#fff',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      transition: 'all 0.2s'
-                    };
-                  })()} className="status-button-v2">
+                  return {
+                    backgroundColor: '#ffffff',
+                    borderRadius: 14,
+                    padding: '10px 14px', // Compacted from 14px 16px
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: color,
+                    cursor: 'pointer',
+                    border: `1px solid ${color}40`,
+                    boxShadow: `0 4px 12px ${color}0a`,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  };
+                })()} className="status-badge-premium">
                     <div style={{ flex: 1 }}>
                       <EditableSelect
                         value={ticket.status}
                         options={STATUS_OPTIONS}
                         onSave={(val) => handleUpdate("status", val)}
-                        mode="tag"
+                        mode="text"
                         plain
+                        textStyle={{ fontWeight: 700, fontSize: 14 }}
                       />
                     </div>
                     {(() => {
                       const s = ticket.status;
-                      const iconStyle = { fontSize: 16, color: '#fff', opacity: 0.9 };
+                      const iconStyle = { fontSize: 20, color: 'inherit' };
                       if (s === "in_progress") return <PlayCircleOutlined style={iconStyle} />;
                       if (s === "completed" || s === "live") return <CheckCircleOutlined style={iconStyle} />;
                       if (s === "in_testing") return <BugOutlined style={iconStyle} />;
@@ -770,71 +828,79 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 </div>
 
                 {/* Suggested Next Step Block */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <Text type="secondary" style={{ fontSize: 10, fontWeight: 600, color: '#bfbfbf', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                    Suggested Next Step
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, color: '#bfbfbf', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Next Action
                   </Text>
 
                   <div style={{ width: '100%' }}>
                     {ticket.status === 'not_started' && (
                       <Button
-                        size="middle"
+                        size="middle" // Compacted from large
                         type="primary"
                         icon={<PlayCircleOutlined />}
                         onClick={() => handleUpdate('status', 'in_progress')}
-                        style={{ fontSize: 12, borderRadius: 8, width: '100%', fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff' }}
+                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.2)' }}
                       >
-                        Start Working
+                        Start Sprint
                       </Button>
                     )}
                     {ticket.status === 'in_progress' && (
                       <Button
-                        size="middle"
+                        size="large"
                         type="primary"
                         icon={<RocketOutlined />}
                         onClick={() => handleUpdate('status', 'dev_complete')}
-                        style={{ fontSize: 12, borderRadius: 8, width: '100%', fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2' }}
+                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2', boxShadow: '0 4px 12px rgba(19, 194, 194, 0.2)' }}
                       >
-                        Dev Complete
+                        Finish Development
                       </Button>
                     )}
                     {ticket.status === 'dev_complete' && (
                       <Button
-                        size="middle"
+                        size="large"
                         type="primary"
                         icon={<BugOutlined />}
                         onClick={() => handleUpdate('status', 'in_testing')}
-                        style={{ fontSize: 12, borderRadius: 8, width: '100%', fontWeight: 600, backgroundColor: '#fa8c16', borderColor: '#fa8c16' }}
+                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#fa8c16', borderColor: '#fa8c16', boxShadow: '0 4px 12px rgba(250, 140, 22, 0.2)' }}
                       >
-                        Send to Testing
+                        Send to QA
                       </Button>
                     )}
                     {ticket.status === 'in_testing' && (
                       <Button
-                        size="middle"
+                        size="large"
                         type="primary"
                         icon={<SyncOutlined />}
                         onClick={() => handleUpdate('status', 'in_review')}
-                        style={{ fontSize: 12, borderRadius: 8, width: '100%', fontWeight: 600, backgroundColor: '#722ed1', borderColor: '#722ed1' }}
+                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#722ed1', borderColor: '#722ed1', boxShadow: '0 4px 12px rgba(114, 46, 209, 0.2)' }}
                       >
-                        Move to Review
+                        Request Review
                       </Button>
                     )}
                     {ticket.status === 'in_review' && (
                       <Button
-                        size="middle"
+                        size="large"
                         type="primary"
                         icon={<CheckOutlined />}
                         onClick={() => handleUpdate('status', 'completed')}
-                        style={{ fontSize: 12, borderRadius: 8, width: '100%', fontWeight: 600, backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#52c41a', borderColor: '#52c41a', boxShadow: '0 4px 12px rgba(82, 196, 26, 0.2)' }}
                       >
-                        Mark as Completed
+                        Complete Ticket
                       </Button>
                     )}
                     {(ticket.status === 'completed' || ticket.status === 'live') && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                        <Text style={{ fontSize: 12, color: '#52c41a', fontWeight: 500 }}>Ticket is finalized</Text>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 10, 
+                        padding: '12px',
+                        background: '#f6ffed',
+                        borderRadius: 10,
+                        border: '1px solid #b7eb8f'
+                      }}>
+                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+                        <Text style={{ fontSize: 13, color: '#389e0d', fontWeight: 600 }}>All steps completed</Text>
                       </div>
                     )}
                   </div>
@@ -1193,16 +1259,35 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           transform: translateY(-1px);
         }
         .description-viewer:hover {
-          border-color: #1890ff80 !important;
-          background: #fff !important;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
+          background-color: #ffffff !important;
+          border-color: #1890ff !important;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
         }
         .description-viewer:hover .description-edit-icon {
           opacity: 1 !important;
+          transform: scale(1) !important;
+        }
+        .premium-tabs-wrapper .ant-tabs-nav {
+          position: sticky !important;
+          top: -16px !important;
+          z-index: 100 !important;
+          background: #ffffff !important;
+          margin-top: 0 !important;
+          border-bottom: 1px solid #f0f0f0 !important;
+        }
+        .premium-tabs-wrapper .ant-tabs-nav::before {
+          content: '' !important;
+          position: absolute !important;
+          top: 0 !important;
+          left: -40px !important;
+          right: -40px !important;
+          bottom: 0 !important;
+          background: #ffffff !important;
+          z-index: -1 !important;
         }
         .premium-tabs-wrapper .ant-tabs-tab {
-          padding: 12px 16px !important;
-          margin: 0 8px !important;
+          padding: 8px 12px !important;
+          margin: 0 2px !important;
           transition: all 0.3s ease !important;
         }
         .premium-tabs-wrapper .ant-tabs-tab-btn {
@@ -1223,30 +1308,35 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           background: transparent !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-item {
-          border-bottom: 1px solid #f0f0f0 !important;
-          margin-bottom: 0 !important;
-          border-radius: 0 !important;
-        }
-        .sidebar-collapse-wrapper .ant-collapse-item:last-child {
-          border-bottom: 0 !important;
+          border: 1px solid #f0f0f0 !important;
+          border-radius: 14px !important;
+          margin-bottom: 12px !important;
+          background: #ffffff !important;
+          overflow: hidden !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-header {
-          background: #fafafa !important;
-          border-radius: 0 !important;
-          padding: 8px 12px !important;
-          align-items: center !important;
-          border-bottom: 1px solid #f0f0f0 !important;
-        }
-        .sidebar-collapse-wrapper .ant-collapse-item:first-child .ant-collapse-header {
-          border-top-left-radius: 8px !important;
-          border-top-right-radius: 8px !important;
+          padding: 14px 16px !important;
+          background: transparent !important;
+          border-bottom: none !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-content {
-          background: #fff !important;
-          border-top: 0 !important;
+          background: transparent !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-content-box {
           padding: 0 !important;
+        }
+        .sidebar-collapse-wrapper .DrawerField-table-variant {
+          border-bottom: 1px solid #f0f0f0 !important;
+        }
+        .sidebar-collapse-wrapper .DrawerField-table-variant:last-child {
+          border-bottom: none !important;
+        }
+        .status-badge-premium:hover {
+          filter: brightness(0.98);
+          background-color: #fff !important;
+          box-shadow: 0 6px 16px rgba(0,0,0,0.06) !important;
+          transform: translateY(-1px);
         }
         .status-button-v2:hover {
           filter: brightness(1.05);

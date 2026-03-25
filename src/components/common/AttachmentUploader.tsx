@@ -73,9 +73,33 @@ export default function AttachmentUploader({
       disabled={disabled}
       accept={accept}
     >
-      <Button icon={<UploadOutlined />} loading={isUploading} disabled={disabled} style={style} size="small">
-        {isUploading ? `Uploading (${activeUploads})` : "Attach File"}
+      <Button 
+        icon={<UploadOutlined style={{ fontSize: 13 }} />} 
+        loading={isUploading} 
+        disabled={disabled} 
+        style={{ 
+          ...style,
+          height: 32,
+          borderRadius: 8,
+          fontWeight: 600,
+          background: isUploading ? "#f0f0f0" : "#fafafa",
+          border: "1px dashed #d9d9d9",
+          color: "#595959",
+          transition: "all 0.2s"
+        }} 
+        size="small"
+        className="uploader-button"
+      >
+        {isUploading ? `Uploading (${activeUploads})...` : "Click to attach or drag files"}
       </Button>
+
+      <style jsx global>{`
+        .uploader-button:hover:not(:disabled) {
+          border-color: #1890ff !important;
+          color: #1890ff !important;
+          background: #e6f7ff !important;
+        }
+      `}</style>
     </Upload>
   );
 }

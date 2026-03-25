@@ -108,6 +108,12 @@ const EmployeeSalaryAssignmentPage = () => {
   const baseSalary = Form.useWatch("baseSalary", form);
   const salaryType = Form.useWatch("salaryType", form);
   const structureId = Form.useWatch("structureId", form);
+  const selectedEmployeeId = Form.useWatch("employeeId", form);
+
+  // Selected employee details for display
+  const selectedEmployeeData = React.useMemo(() => {
+    return onboardedEmployees?.find(emp => emp.id === selectedEmployeeId);
+  }, [selectedEmployeeId, onboardedEmployees]);
 
   // Calculation results from local utility (Frontend-Only Preview)
   const calculationResult = React.useMemo(() => {
@@ -363,6 +369,7 @@ const EmployeeSalaryAssignmentPage = () => {
             label="Assign Employee"
             name="employeeId"
             rules={[{ required: true, message: "Please select an employee" }]}
+            style={{ marginBottom: selectedEmployeeData ? 12 : 24 }}
           >
             <Select
               showSearch
@@ -376,6 +383,39 @@ const EmployeeSalaryAssignmentPage = () => {
               }))}
             />
           </Form.Item>
+
+          {selectedEmployeeData && (
+            <Card 
+              size="small" 
+              style={{ 
+                marginBottom: 24, 
+                backgroundColor: "#fcfcfd", 
+                borderRadius: 12, 
+                border: "1px solid #f0f0f0" 
+              }}
+            >
+              <Row gutter={[16, 8]}>
+                <Col span={24}>
+                  <Space direction="vertical" size={2}>
+                    <Text strong style={{ fontSize: 15 }}>{selectedEmployeeData.firstName} {selectedEmployeeData.lastName}</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>ID: {selectedEmployeeData.employee_code}</Text>
+                  </Space>
+                </Col>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 11, display: "block" }}>MOBILE</Text>
+                  <Text style={{ fontSize: 12 }}>{selectedEmployeeData.mobile || "N/A"}</Text>
+                </Col>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 11, display: "block" }}>WORK MAIL</Text>
+                  <Text style={{ fontSize: 12 }}>{selectedEmployeeData.workEmail || "N/A"}</Text>
+                </Col>
+                <Col span={24}>
+                  <Text type="secondary" style={{ fontSize: 11, display: "block" }}>PERSONAL MAIL</Text>
+                  <Text style={{ fontSize: 12 }}>{selectedEmployeeData.personalEmail || "N/A"}</Text>
+                </Col>
+              </Row>
+            </Card>
+          )}
 
           <Form.Item
             label="Salary Structure"
@@ -411,6 +451,14 @@ const EmployeeSalaryAssignmentPage = () => {
                 label="Amount"
                 name="baseSalary"
                 rules={[{ required: true, message: "Enter amount" }]}
+                help={baseSalary ? (
+                  <Text type="secondary" style={{ fontSize: 11 }}>
+                    {salaryType === "MONTHLY" 
+                      ? `Yearly: ₹${(baseSalary * 12).toLocaleString()}` 
+                      : `Monthly: ₹${(baseSalary / 12).toLocaleString()}`
+                    }
+                  </Text>
+                ) : null}
               >
                 <InputNumber
                   style={{ width: "100%" }}

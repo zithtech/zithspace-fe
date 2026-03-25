@@ -66,14 +66,18 @@ export interface DashboardSummary {
 }
 
 export interface TodayAttendance {
-  id: string;
+  id: string | null;
   userId: string;
   date: string;
-  clockIn?: string;
-  clockOut?: string;
+  clockIn?: string | null;
+  clockOut?: string | null;
   status: string;
   canClockIn: boolean;
   canClockOut: boolean;
+  clockInTime?: string | null;
+  clockOutTime?: string | null;
+  totalWorkMinutes?: number;
+  isClockIn?: boolean;
 }
 
 export class AttendanceService {
@@ -113,9 +117,9 @@ export class AttendanceService {
   /**
    * Clock in for today
    */
-  static async clockIn(data: ClockInData = {}): Promise<Attendance> {
+  static async clockIn(data: ClockInData = {}): Promise<TodayAttendance> {
     try {
-      return await api.post<Attendance>("/api/attendance/clock-in", data);
+      return await api.post<TodayAttendance>("/api/attendance/clock-in", data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -127,9 +131,9 @@ export class AttendanceService {
   /**
    * Clock out for today
    */
-  static async clockOut(data: ClockOutData = {}): Promise<Attendance> {
+  static async clockOut(data: ClockOutData = {}): Promise<TodayAttendance> {
     try {
-      return await api.post<Attendance>("/api/attendance/clock-out", data);
+      return await api.post<TodayAttendance>("/api/attendance/clock-out", data);
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

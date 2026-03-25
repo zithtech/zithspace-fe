@@ -103,7 +103,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                     display: 'grid',
                     gridTemplateColumns: 'repeat(4, 1fr)',
                     gap: 16,
-                    marginBottom: 24,
+                    marginBottom: 16,
                 }}
             >
                 {statCards.map((stat) => (
@@ -147,7 +147,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
             </div>
 
             {/* Recent Document Hubs */}
-            <div style={{ marginBottom:10}}>
+            <div style={{ marginBottom: 6 }}>
                 <Text strong style={{ fontSize: 15 }}>
                     <ClockCircleOutlined style={{ marginRight: 6 }} />
                     Recently Updated
@@ -199,34 +199,25 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                     <ArrowRightOutlined style={{ color: '#bfbfbf', fontSize: 12, marginTop: 4 }} />
                                 </div>
 
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                                    {hub.project && (
-                                        <Tag color="blue" style={{ margin: 0, fontSize: 11, borderRadius: 4 }}>
-                                            {hub.project.name}
-                                        </Tag>
-                                    )}
-                                    {hub.ticket && (
-                                        <Tag color="orange" style={{ margin: 0, fontSize: 11, borderRadius: 4 }}>
-                                            {hub.ticket.ticketNumber}
-                                        </Tag>
-                                    )}
-                                </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#8c8c8c' }}>
-                                        <span>
-                                            <FileTextOutlined style={{ marginRight: 3 }} />
-                                            {fileCount} {fileCount === 1 ? 'file' : 'files'}
-                                        </span>
-                                        {folderCount > 0 && (
-                                            <span>
-                                                <FolderOutlined style={{ marginRight: 3 }} />
-                                                {folderCount}
-                                            </span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                    <div style={{ display: 'flex', gap: 10, fontSize: 12, color: '#8c8c8c', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                                        {hub.project && (
+                                            <Text ellipsis style={{ fontSize: 12, color: '#1677ff', fontWeight: 500, maxWidth: '80px' }}>
+                                                {hub.project.name}
+                                            </Text>
                                         )}
+                                        {hub.ticket && (
+                                            <Tag color="orange" style={{ margin: 0, fontSize: 10, borderRadius: 4, padding: '0 4px', lineHeight: '16px' }}>
+                                                {hub.ticket.ticketNumber}
+                                            </Tag>
+                                        )}
+                                        <span style={{ flexShrink: 0 }}>
+                                            <FileTextOutlined style={{ marginRight: 3 }} />
+                                            {fileCount}
+                                        </span>
                                     </div>
                                     <Tooltip title={format(new Date(hub.updatedAt), 'PPp')}>
-                                        <Text type="secondary" style={{ fontSize: 11 }}>
+                                        <Text type="secondary" style={{ fontSize: 11, flexShrink: 0, marginLeft: 8 }}>
                                             {formatDistanceToNow(new Date(hub.updatedAt), { addSuffix: true })}
                                         </Text>
                                     </Tooltip>

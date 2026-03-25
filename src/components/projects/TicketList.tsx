@@ -957,215 +957,293 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     <div style={{ backgroundColor: '#ffffff', minHeight: '100%', padding: '16px 24px' }}>
       {contextHolder}
       {notifyContextHolder}
-      
+
       {/* Premium Header Row - Sticky */}
-      <div style={{ 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 100, 
-        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(8px)',
-        margin: '0 -24px 20px -24px', 
+        margin: '0 -24px 20px -24px',
         padding: '16px 24px',
         borderBottom: '1px solid #f0f0f0'
       }}>
         <Row justify="space-between" align="middle">
-        <Col flex="1">
-          <Space size={16} align="center" style={{ width: '100%' }}>
-            {/* Project Switcher Group */}
-            <Space size={4} align="center">
-              <Button
-                type="text"
-                icon={<ArrowLeftOutlined style={{ fontSize: 13, color: '#8c8c8c' }} />}
-                onClick={() => router.push('/projects/select?select=true')}
-                style={{ 
-                  backgroundColor: '#f5f5f5', 
-                  borderRadius: 6, 
-                  width: 28, 
-                  height: 28, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
-                }}
-              />
-              <Button
-                type="text"
-                size="small"
-                onClick={() => router.push('/projects/select?select=true')}
-                style={{ 
-                  fontSize: 12, 
-                  color: '#8c8c8c', 
-                  fontWeight: 500,
-                  padding: '0 4px',
-                  height: 28
-                }}
-              >
-                Switch Project
-              </Button>
-            </Space>
-
-            <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
-            
-            {/* Project Name & Code */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
-                {projectName}
-              </Title>
-              <Tag 
-                bordered={false} 
-                color="blue" 
-                style={{ 
-                  fontSize: 11, 
-                  fontWeight: 600, 
-                  borderRadius: 4, 
-                  padding: '0 8px',
-                  margin: 0
-                }}
-              >
-                {projectCode}
-              </Tag>
-            </div>
-
-            <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
-
-            {/* Search Field */}
-            <Input
-              placeholder="Search tickets, IDs, or members..."
-              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-              style={{ 
-                width: 380, 
-                borderRadius: 8, 
-                backgroundColor: '#f9f9f9',
-                border: '1px solid #f0f0f0',
-                height: 36
-              }}
-              value={filters.search}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, search: e.target.value }))
-              }
-              allowClear
-            />
-          </Space>
-        </Col>
-
-        <Col>
-          <Space size={12}>
-            {/* Action Group */}
-            <div style={{ backgroundColor: '#f5f5f5', padding: '4px', borderRadius: 8, display: 'flex' }}>
-              <Tooltip title="Reload tickets">
+          <Col flex="1">
+            <Space size={16} align="center" style={{ width: '100%' }}>
+              {/* Project Switcher Group */}
+              <Space size={4} align="center">
                 <Button
-                  icon={<ReloadOutlined />}
-                  onClick={() => { refetchActive(); refetchBacklog(); }}
-                  loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading}
                   type="text"
-                  style={{ borderRadius: 6 }}
-                />
-              </Tooltip>
-              <Popover
-                content={
-                  <TicketFilters
-                    filters={filters}
-                    onFilterChange={handleFilterChange}
-                    members={members}
-                    onReset={() => setFilters({ status: [], priority: [], assignee: [], search: filters.search })}
-                  />
-                }
-                trigger="click"
-                placement="bottomRight"
-                open={isFilterPopoverOpen}
-                onOpenChange={setIsFilterPopoverOpen}
-              >
-                <Button 
-                  icon={<FilterOutlined />} 
-                  type="text"
-                  style={{ 
+                  icon={<ArrowLeftOutlined style={{ fontSize: 13, color: '#8c8c8c' }} />}
+                  onClick={() => router.push('/projects/select?select=true')}
+                  style={{
+                    backgroundColor: '#f5f5f5',
                     borderRadius: 6,
-                    backgroundColor: activeFilterCount > 0 ? '#e6f4ff' : 'transparent',
-                    color: activeFilterCount > 0 ? '#1677ff' : '#595959'
+                    width: 28,
+                    height: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                />
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={() => router.push('/projects/select?select=true')}
+                  style={{
+                    fontSize: 12,
+                    color: '#8c8c8c',
+                    fontWeight: 500,
+                    padding: '0 4px',
+                    height: 28
                   }}
                 >
-                  Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                  Switch Project
                 </Button>
-              </Popover>
-            </div>
+              </Space>
 
-            <Button
-              type="primary"
-              icon={showCreateForm ? <MinusOutlined /> : <PlusOutlined />}
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
-            >
-              {showCreateForm ? "Close Form" : "Create Ticket"}
-            </Button>
+              <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
 
-            <Divider type="vertical" style={{ height: 24 }} />
-
-            {/* View Mode Switcher */}
-            <div style={{ 
-              backgroundColor: '#f5f5f5', 
-              padding: '2px', 
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              border: '1px solid #f0f0f0'
-            }}>
-              <Radio.Group 
-                value={viewMode} 
-                onChange={(e) => setViewMode(e.target.value)} 
-                buttonStyle="solid" 
-                size="middle"
-                className="premium-switcher"
-              >
-                <Radio.Button 
-                  value="list" 
-                  style={{ 
-                    borderRadius: 8, 
-                    border: 'none',
-                    height: 32,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '0 16px',
-                    fontSize: 13,
-                    fontWeight: viewMode === 'list' ? 600 : 400,
-                    transition: 'all 0.2s ease',
-                    boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+              {/* Project Name & Code */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+                  {projectName}
+                </Title>
+                <Tag
+                  bordered={false}
+                  color="blue"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    borderRadius: 4,
+                    padding: '0 8px',
+                    margin: 0
                   }}
                 >
-                  <BarsOutlined style={{ marginRight: 6 }} /> List
-                </Radio.Button>
-                <Radio.Button 
-                  value="board" 
-                  style={{ 
-                    borderRadius: 8, 
-                    border: 'none',
-                    height: 32,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '0 16px',
-                    fontSize: 13,
-                    fontWeight: viewMode === 'board' ? 600 : 400,
-                    transition: 'all 0.2s ease',
-                    boxShadow: viewMode === 'board' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                  }}
-                >
-                  <AppstoreOutlined style={{ marginRight: 6 }} /> Board
-                </Radio.Button>
-              </Radio.Group>
-            </div>
+                  {projectCode}
+                </Tag>
+              </div>
 
-            {viewMode === 'board' && (
-              <Radio.Group 
-                value={kanbanScope} 
-                onChange={(e) => setKanbanScope(e.target.value as 'active' | 'backlog')} 
-                buttonStyle="solid" 
-                size="small"
+              <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
+
+              {/* Search Field */}
+              <Input
+                placeholder="Search tickets..."
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                style={{
+                  width: 240,
+                  borderRadius: 8,
+                  backgroundColor: '#f9f9f9',
+                  border: '1px solid #f0f0f0',
+                  height: 36
+                }}
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, search: e.target.value }))
+                }
+                allowClear
+              />
+            </Space>
+          </Col>
+
+          <Col>
+            <Space size={8}>
+              {/* Action Group */}
+              <div style={{ backgroundColor: '#f5f5f5', padding: '4px', borderRadius: 8, display: 'flex' }}>
+                <Tooltip title="Reload tickets">
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={() => { refetchActive(); refetchBacklog(); }}
+                    loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading}
+                    type="text"
+                    style={{ borderRadius: 6 }}
+                  />
+                </Tooltip>
+                <Popover
+                  content={
+                    <TicketFilters
+                      filters={filters}
+                      onFilterChange={handleFilterChange}
+                      members={members}
+                      onReset={() => setFilters({ status: [], priority: [], assignee: [], search: filters.search })}
+                    />
+                  }
+                  trigger="click"
+                  placement="bottomRight"
+                  open={isFilterPopoverOpen}
+                  onOpenChange={setIsFilterPopoverOpen}
+                >
+                  <Button
+                    icon={<FilterOutlined />}
+                    type="text"
+                    style={{
+                      borderRadius: 6,
+                      backgroundColor: activeFilterCount > 0 ? '#e6f4ff' : 'transparent',
+                      color: activeFilterCount > 0 ? '#1677ff' : '#595959'
+                    }}
+                  >
+                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                  </Button>
+                </Popover>
+              </div>
+
+              <Button
+                type="primary"
+                icon={showCreateForm ? <MinusOutlined /> : <PlusOutlined />}
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
               >
-                <Radio.Button value="active" style={{ borderRadius: 6, marginRight: 8 }}>Active</Radio.Button>
-                <Radio.Button value="backlog" style={{ borderRadius: 6 }}>Backlog</Radio.Button>
-              </Radio.Group>
-            )}
-          </Space>
-        </Col>
+                {showCreateForm ? "Close" : "Create"}
+              </Button>
+
+              <Divider type="vertical" style={{ height: 24, margin: '0 4px' }} />
+
+              {/* View & Scope Switchers Row */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                {/* View Mode Switcher */}
+                <div style={{
+                  backgroundColor: '#f5f5f5',
+                  padding: '2px',
+                  borderRadius: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  border: '1px solid #f0f0f0'
+                }}>
+                  <Radio.Group
+                    value={viewMode}
+                    onChange={(e) => setViewMode(e.target.value)}
+                    buttonStyle="solid"
+                    size="middle"
+                    className="premium-switcher"
+                  >
+                    <Radio.Button
+                      value="list"
+                      style={{
+                        borderRadius: 8,
+                        border: 'none',
+                        height: 32,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '0 12px',
+                        fontSize: 13,
+                        fontWeight: viewMode === 'list' ? 600 : 400,
+                        transition: 'all 0.2s ease',
+                        boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                      }}
+                    >
+                      <BarsOutlined style={{ marginRight: 6 }} /> List
+                    </Radio.Button>
+                    <Radio.Button
+                      value="board"
+                      style={{
+                        borderRadius: 8,
+                        border: 'none',
+                        height: 32,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '0 12px',
+                        fontSize: 13,
+                        fontWeight: viewMode === 'board' ? 600 : 400,
+                        transition: 'all 0.2s ease',
+                        boxShadow: viewMode === 'board' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                      }}
+                    >
+                      <AppstoreOutlined style={{ marginRight: 6 }} /> Board
+                    </Radio.Button>
+                  </Radio.Group>
+                </div>
+
+                {(viewMode === 'board' || viewMode === 'list') && (
+                  <div style={{
+                    backgroundColor: '#f5f5f5',
+                    padding: '2px',
+                    borderRadius: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    border: '1px solid #f0f0f0'
+                  }}>
+                    <Radio.Group
+                      value={kanbanScope}
+                      onChange={(e) => {
+                        const newScope = e.target.value as 'active' | 'backlog';
+                        setKanbanScope(newScope);
+
+                        // If in list view, auto-scroll to the section
+                        if (viewMode === 'list') {
+                          const sectionId = newScope === 'active' ? 'active-section' : 'backlog-section';
+                          const element = document.getElementById(sectionId);
+                          if (element) {
+                            // Find the scrollable container (MainLayout Content area)
+                            const scrollContainer = element.closest('.ant-layout-content');
+                            const headerOffset = 100; // Account for sticky header
+
+                            if (scrollContainer) {
+                              const elementTop = element.getBoundingClientRect().top;
+                              const containerTop = scrollContainer.getBoundingClientRect().top;
+                              const scrollAmount = elementTop - containerTop - headerOffset;
+
+                              scrollContainer.scrollBy({
+                                top: scrollAmount,
+                                behavior: 'smooth'
+                              });
+                            } else {
+                              // Fallback for window scroll
+                              const elementPosition = element.getBoundingClientRect().top;
+                              const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                              window.scrollTo({
+                                top: offsetPosition,
+                                behavior: 'smooth'
+                              });
+                            }
+                          }
+                        }
+                      }}
+                      buttonStyle="solid"
+                      size="middle"
+                      className="premium-switcher"
+                    >
+                      <Radio.Button
+                        value="active"
+                        style={{
+                          borderRadius: 8,
+                          border: 'none',
+                          height: 32,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '0 12px',
+                          fontSize: 13,
+                          fontWeight: kanbanScope === 'active' ? 600 : 400,
+                          transition: 'all 0.2s ease',
+                          boxShadow: kanbanScope === 'active' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                        }}
+                      >
+                        Active
+                      </Radio.Button>
+                      <Radio.Button
+                        value="backlog"
+                        style={{
+                          borderRadius: 8,
+                          border: 'none',
+                          height: 32,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          padding: '0 12px',
+                          fontSize: 13,
+                          fontWeight: kanbanScope === 'backlog' ? 600 : 400,
+                          transition: 'all 0.2s ease',
+                          boxShadow: kanbanScope === 'backlog' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                        }}
+                      >
+                        Backlog
+                      </Radio.Button>
+                    </Radio.Group>
+                  </div>
+                )}
+              </div>
+            </Space>
+          </Col>
         </Row>
       </div>
 
@@ -1189,109 +1267,112 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       {viewMode === 'list' ? (
         <>
           {/* Active Sprint Section */}
-          {/* Active Sprint Section */}
           {activeSprint && (
             (typeof activeSprint.project === 'string' ? activeSprint.project === projectId : activeSprint.project?.id === projectId)
           ) && (
-              <Card
-                title={
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <Space size={8}>
-                      <Text style={{ fontSize: '16px', fontWeight: 600 }}>
-                        {/* Backend stores sprint name in 'version' field */}
-                        {activeSprint?.version || activeSprint?.name || 'Active Sprint'}
-                      </Text>
-                      <Badge count={activeTickets.length} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
-                      <Tag color="green" bordered={false} style={{ borderRadius: '4px' }}>RUNNING</Tag>
-                    </Space>
-                    <Space>
-                      {activeSprint?.status === 'active' && (
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<CheckCircleOutlined />}
-                          onClick={handleCompleteSprint}
-                        >
-                          Complete Sprint
-                        </Button>
-                      )}
-                      <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
-                        {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
-                        {' - '}
-                        {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
-                      </Text>
-                    </Space>
-                  </div>
-                }
-                style={{ marginBottom: 20 }}
-                styles={{ body: { padding: 10 } }} // Remove padding to flush table with card
-              >
-                <Table
-                  columns={getColumns('active')}
-                  dataSource={activeTickets}
-                  rowKey="id"
-                  loading={activeSprintLoading}
-                  pagination={false}
-                  scroll={{ x: 1200 }}
+              <div id="active-section" style={{ scrollMarginTop: '100px' }}>
+                <Card
+                  title={
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <Space size={8}>
+                        <Text style={{ fontSize: '16px', fontWeight: 600 }}>
+                          {/* Backend stores sprint name in 'version' field */}
+                          {activeSprint?.version || activeSprint?.name || 'Active Sprint'}
+                        </Text>
+                        <Badge count={activeTickets.length} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
+                        <Tag color="green" bordered={false} style={{ borderRadius: '4px' }}>RUNNING</Tag>
+                      </Space>
+                      <Space>
+                        {activeSprint?.status === 'active' && (
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<CheckCircleOutlined />}
+                            onClick={handleCompleteSprint}
+                          >
+                            Complete Sprint
+                          </Button>
+                        )}
+                        <Text type="secondary" style={{ fontSize: '13px', fontWeight: 400 }}>
+                          {activeSprint.startDate ? dayjs(activeSprint.startDate).format('MMM D') : 'TBD'}
+                          {' - '}
+                          {activeSprint.endDate ? dayjs(activeSprint.endDate).format('MMM D') : 'TBD'}
+                        </Text>
+                      </Space>
+                    </div>
+                  }
+                  style={{ marginBottom: 20 }}
+                  styles={{ body: { padding: 10 } }} // Remove padding to flush table with card
+                >
+                  <Table
+                    columns={getColumns('active')}
+                    dataSource={activeTickets}
+                    rowKey="id"
+                    loading={activeSprintLoading}
+                    pagination={false}
+                    scroll={{ x: 1200 }}
 
-                />
-              </Card>
+                  />
+                </Card>
+              </div>
             )}
 
           {/* Backlog Section */}
-          <Card
-            title={
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <Space size={8}>
-                  <Text style={{ fontSize: '16px', fontWeight: 600 }}>Backlog</Text>
-                  <Badge count={totalBacklog} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
-                </Space>
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<PlusOutlined />}
-                  onClick={() => setCreateSprintModalOpen(true)}
-                >
-                  Create Sprint
-                </Button>
-              </div>
-            }
-            styles={{ body: { padding: 10 } }}
-          >
-            <Table
-              columns={getColumns('backlog')}
-              dataSource={backlogTickets}
-              rowKey="id"
-              loading={backlogLoading}
-              pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: totalBacklog,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                pageSizeOptions: ['10', '20', '50', '100'],
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} tickets`,
-                onChange: (page, pageSize) => {
-                  setPagination({
-                    current: page,
-                    pageSize: pageSize || pagination.pageSize,
-                  });
-                },
-              }}
-              scroll={{ x: 1200 }}
+          <div id="backlog-section" style={{ scrollMarginTop: '100px' }}>
+            <Card
+              title={
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <Space size={8}>
+                    <Text style={{ fontSize: '16px', fontWeight: 600 }}>Backlog</Text>
+                    <Badge count={totalBacklog} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
+                  </Space>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => setCreateSprintModalOpen(true)}
+                  >
+                    Create Sprint
+                  </Button>
+                </div>
+              }
+              styles={{ body: { padding: 10 } }}
+            >
+              <Table
+                columns={getColumns('backlog')}
+                dataSource={backlogTickets}
+                rowKey="id"
+                loading={backlogLoading}
+                pagination={{
+                  current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: totalBacklog,
+                  showSizeChanger: true,
+                  showQuickJumper: true,
+                  pageSizeOptions: ['10', '20', '50', '100'],
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} tickets`,
+                  onChange: (page, pageSize) => {
+                    setPagination({
+                      current: page,
+                      pageSize: pageSize || pagination.pageSize,
+                    });
+                  },
+                }}
+                scroll={{ x: 1200 }}
 
-              locale={{
-                emptyText:
-                  backlogTickets.length === 0 && !backlogLoading ? (
-                    <Empty
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description="No backlog tickets found"
-                    />
-                  ) : undefined,
-              }}
-            />
-          </Card>
+                locale={{
+                  emptyText:
+                    backlogTickets.length === 0 && !backlogLoading ? (
+                      <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description="No backlog tickets found"
+                      />
+                    ) : undefined,
+                }}
+              />
+            </Card>
+          </div>
         </>
       ) : (
         <>
@@ -1330,6 +1411,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 kanbanScope={kanbanScope}
                 onSprintAssignment={handleSprintAssignment}
                 onCompleteSprint={handleCompleteSprint}
+                filters={filters}
+                onFilterChange={handleFilterChange}
               />
             </>
           ) : (

@@ -677,7 +677,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     </header>
 
                     {/* Editor Content */}
-                    <main className="flex-1 overflow-auto p-6 bg-white flex flex-col">
+                    <main className="flex-1 overflow-auto px-4 pt-4 pb-2 bg-white flex flex-col">
                         {previewVersion && (
                             <div className="bg-blue-50 border-b border-blue-100 p-3 flex items-center justify-between mb-4 rounded-lg">
                                 <div className="flex items-center gap-2 text-blue-700">

@@ -882,3 +882,30 @@ body {
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
+/* Ticket List Item Hover Animation */
+.ticket-list-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ticket-list-item:hover {
+  background-color: #fafafa !important;
+  transform: translateX(4px);
+  box-shadow: -4px 0 12px rgba(114, 46, 209, 0.05);
+}
+/* Live Pulse Animation */
+@keyframes pulse-soft {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.live-pulse {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: #52c41a;
+  border-radius: 50%;
+  margin-right: 6px;
+  box-shadow: 0 0 8px rgba(82, 196, 26, 0.6);
+  animation: pulse-soft 2s infinite ease-in-out;
+}

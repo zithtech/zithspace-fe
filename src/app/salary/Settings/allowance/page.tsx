@@ -337,7 +337,7 @@ const SalaryComponentManagement = () => {
   };
 
   return (
-    <Card style={{ marginLeft: 5, marginTop: -16 }}>
+    <Card>
       {/* Header */}
 
       <Toaster position="top-right" />
@@ -426,7 +426,7 @@ const SalaryComponentManagement = () => {
 
       <div style={{ marginTop: 22 }}>
         <Card
-          bordered={false}
+          variant="borderless"
           style={{
             boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
             borderRadius: 12,

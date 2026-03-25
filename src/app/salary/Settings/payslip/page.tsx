@@ -119,7 +119,7 @@ export default function PayslipSettings() {
         {/* Header */}
 
         {/* Payslip Fields Card */}
-        <Card style={{ marginTop: -16, marginLeft: 5 }}>
+        <Card>
   {/* HEADER */}
   <Space style={{ width: "100%", justifyContent: "space-between" }}>
     <div>

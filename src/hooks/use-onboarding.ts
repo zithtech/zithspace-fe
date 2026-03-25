@@ -8,7 +8,25 @@ export function useEmployeeOnboarding() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const [onboardedEmployees, setOnboardedEmployees] = useState<any[]>([]);
   const [result, setResult] = useState<any>(null);
+
+  /* ================= FETCH ALL ONBOARDED EMPLOYEES ================= */
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const employees = await EmployeeOnboardingService.getAllEmployees();
+      setOnboardedEmployees(employees);
+      return employees;
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch onboarded employees");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ================= CREATE ONBOARDING ================= */
 
@@ -23,7 +41,7 @@ export function useEmployeeOnboarding() {
 
       setResult(response);
       setSuccess(true);
-
+      await fetchEmployees(); // Refresh list after creation
       return response;
     } catch (err: any) {
       setError(err.message || "Employee onboarding failed");
@@ -41,6 +59,7 @@ export function useEmployeeOnboarding() {
     setError(null);
     setSuccess(false);
     setResult(null);
+    setOnboardedEmployees([]);
   };
 
   /* ================= RETURN ================= */
@@ -51,8 +70,10 @@ export function useEmployeeOnboarding() {
     error,
     success,
     result,
+    onboardedEmployees,
 
     // actions
+    fetchEmployees,
     createOnboarding,
     resetOnboardingState,
   };

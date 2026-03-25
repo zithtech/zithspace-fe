@@ -744,7 +744,7 @@ export default function PreviewDrawer({ open, onClose, data }: Props) {
 
               {/* SUMMARY */}
               <Card
-                bordered={false}
+                variant="borderless"
                 bodyStyle={{
                   padding: "6px 8px", // 🔥 reduce inner space
                 }}
@@ -843,7 +843,7 @@ export default function PreviewDrawer({ open, onClose, data }: Props) {
 
       {/* ================= STATIC FOOTER NOTE ================= */}
       <Card
-        bordered={false}
+        variant="borderless"
         style={{
           marginTop: 20,
           borderRadius: 12,

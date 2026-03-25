@@ -15,7 +15,8 @@ import {
   InputNumber,
   Space,
   Table,
-  Spin
+  Spin,
+  Tag
 } from "antd";
 import {
   InfoCircleOutlined,
@@ -24,6 +25,7 @@ import {
 import { MembersService, Member } from "@/services/membersService";
 import { useCompanyGovernmentHolidays } from "@/hooks/useCompanyGovernmentHolidays";
 import { PayrollService, LeaveSummary } from "@/services/payrollService";
+import { SalaryAssignmentService, EmployeeSalaryAssignment } from "@/services/salaryAssignmentService";
 import * as XLSX from 'xlsx';
 
 const { Title, Paragraph, Text } = Typography;
@@ -74,6 +76,8 @@ export default function SalaryPreviewPage() {
     totalDeduction: number;
     netSalary: number;
   } | null>(null);
+
+  const [activeAssignment, setActiveAssignment] = useState<EmployeeSalaryAssignment | null>(null);
 
   const { holidays, fetchHolidays } = useCompanyGovernmentHolidays();
 
@@ -140,6 +144,16 @@ export default function SalaryPreviewPage() {
       const selectedEmp = employees.find(emp => emp.id === selectedEmployee);
       const empData = MOCK_SALARIES[selectedEmployee];
       
+      // Fetch Active Salary Assignment
+      const assignment = await SalaryAssignmentService.getAssignmentByEmployee(selectedEmployee);
+      setActiveAssignment(assignment || null);
+      
+      if (assignment) {
+        setMonthlySalaryInput(Number(assignment.baseSalary));
+      } else {
+        setMonthlySalaryInput(null);
+      }
+      
       setEmployeeDetails({
         name: selectedEmp?.name || '',
         id: selectedEmployee,
@@ -191,9 +205,7 @@ export default function SalaryPreviewPage() {
       setMonthOverview(monthData);
       setLeaveSummary(leaveSummaryResponse);
 
-      // Reset salary input
-      setMonthlySalaryInput(null);
-      setSalaryCalculation(null);
+      // No manual reset here as we use the fetched assignment salary
 
     } catch (error) {
       console.error("Error generating salary preview:", error);
@@ -350,7 +362,7 @@ export default function SalaryPreviewPage() {
       key: '6',
       description: (
         <span>
-          Total Deduction <Tooltip title="LOP Days × Per Day Salary"><InfoCircleOutlined style={{ fontSize: 12, marginLeft: 4, color: '#999' }} /></Tooltip>
+          LOP Deduction <Tooltip title="LOP Days × Per Day Salary"><InfoCircleOutlined style={{ fontSize: 12, marginLeft: 4, color: '#999' }} /></Tooltip>
         </span>
       ),
       value: { type: 'currency', amount: salaryCalculation.totalDeduction },
@@ -593,25 +605,23 @@ export default function SalaryPreviewPage() {
                     </Col>
                     <Col xs={24} md={8}>
                       <div>
-                        <Text type="secondary" style={{ fontSize: 12 }}>Enter Monthly Salary</Text>
-                        <InputNumber
-                          style={{ width: '100%', marginTop: 4 }}
-                          placeholder="Enter amount"
-                          value={monthlySalaryInput}
-                          onChange={(value) => setMonthlySalaryInput(value)}
-                          formatter={(value) => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                          parser={(value) => value?.replace(/₹\s?|(,*)/g, '') as unknown as number}
-                          min={0}
-                          step={1000}
-                          size="middle"
-                        />
+                        <Text type="secondary" style={{ fontSize: 12 }}>Salary Structure</Text>
+                        <div style={{ marginTop: 4 }}>
+                          {activeAssignment ? (
+                            <Tag color="blue" style={{ fontSize: 13, padding: '4px 8px' }}>
+                              {activeAssignment.structure?.name || "Standard Structure"}
+                            </Tag>
+                          ) : (
+                            <Text type="danger" style={{ fontSize: 13 }}>No Structure Assigned</Text>
+                          )}
+                        </div>
                       </div>
                     </Col>
                     <Col xs={12} md={5}>
                       <div>
-                        <Text type="secondary" style={{ fontSize: 12 }}>Monthly Salary</Text>
-                        <div style={{ fontSize: 16, fontWeight: 500 }}>
-                          {monthlySalaryInput ? formatCurrency(monthlySalaryInput) : '₹ 0'}
+                        <Text type="secondary" style={{ fontSize: 12 }}>Monthly Gross (Assigned)</Text>
+                        <div style={{ fontSize: 16, fontWeight: 500, color: activeAssignment ? '#000' : '#ff4d4f' }}>
+                          {activeAssignment ? formatCurrency(Number(activeAssignment.baseSalary)) : '₹ 0'}
                         </div>
                       </div>
                     </Col>

@@ -42,7 +42,7 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
                 {/* Table Label Column */}
                 <div style={{
                     flex: '0 0 110px',
-                    background: '#fafafa',
+                    background: '#ffffff', // Exact white as requested
                     padding: '6px 10px',
                     borderRight: '1px solid #f0f0f0',
                     display: 'flex',
@@ -61,7 +61,7 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'flex-start',
-                    background: '#fff',
+                    background: 'transparent', // Inherit from container
                     minWidth: 0
                 }}>
                     <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start' }}>
@@ -126,6 +126,8 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
             <div className="field-value" style={{
                 flex: 1,
                 display: 'flex',
+                flexDirection: isHorizontal ? 'row' : 'column',
+                alignItems: isHorizontal ? (layout === 'horizontal' ? 'center' : 'stretch') : 'stretch',
                 justifyContent: isHorizontal ? 'flex-end' : 'flex-start',
                 textAlign: isHorizontal ? 'right' : 'left',
                 width: '100%',

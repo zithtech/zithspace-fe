@@ -13,7 +13,7 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Button } from 'antd';
+import { Button, Avatar, Tooltip, Select } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { Ticket } from '@/services/ticketService';
 import { STATUS_OPTIONS } from '@/utils/ticketUtils';
@@ -29,6 +29,8 @@ interface TicketKanbanProps {
   kanbanScope?: 'active' | 'backlog';
   onSprintAssignment?: (ticketId: string, action: 'add' | 'remove') => void;
   onCompleteSprint?: () => void;
+  filters?: any;
+  onFilterChange?: (key: string, value: any) => void;
 }
 
 const COLUMNS = STATUS_OPTIONS.map(status => ({
@@ -36,7 +38,18 @@ const COLUMNS = STATUS_OPTIONS.map(status => ({
   title: status.label
 }));
 
-export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, members, onTicketUpdate, activeSprint, kanbanScope, onSprintAssignment, onCompleteSprint }) => {
+export const TicketKanban: React.FC<TicketKanbanProps> = ({ 
+  tickets, 
+  projects, 
+  members, 
+  onTicketUpdate, 
+  activeSprint, 
+  kanbanScope, 
+  onSprintAssignment, 
+  onCompleteSprint,
+  filters,
+  onFilterChange
+}) => {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -125,16 +138,75 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
       {kanbanScope === 'active' && activeSprint && onCompleteSprint && (
         <div style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           paddingBottom: "16px",
         }}>
+          {/* Members Avatars - Jira style */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Avatar.Group
+              maxCount={5}
+              size="default"
+              maxStyle={{ color: '#f56a00', backgroundColor: '#fde3cf', cursor: 'pointer' }}
+            >
+              {members.map((member) => {
+                const isSelected = filters?.assignee?.includes(member.value);
+                return (
+                  <Tooltip title={`${member.label} - ${member.position}`} key={member.value}>
+                    <Avatar 
+                      style={{ 
+                        backgroundColor: isSelected ? '#003a8c' : '#1890ff', 
+                        cursor: 'pointer',
+                        border: isSelected ? '2px solid #fff' : 'none',
+                        boxShadow: isSelected ? '0 0 0 2px #1890ff' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => {
+                        if (!onFilterChange) return;
+                        const current = filters?.assignee || [];
+                        const next = current.includes(member.value)
+                          ? current.filter((id: string) => id !== member.value)
+                          : [...current, member.value];
+                        onFilterChange('assignee', next);
+                      }}
+                    >
+                      {member.label.charAt(0)}
+                    </Avatar>
+                  </Tooltip>
+                );
+              })}
+            </Avatar.Group>
+            {members.length > 0 && (
+              <span style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 500, marginRight: 8 }}>
+                {members.length} members
+              </span>
+            )}
+            
+            {onFilterChange && (
+              <Select
+                mode="multiple"
+                placeholder="Filter by users"
+                style={{ minWidth: 200, maxWidth: 400 }}
+                value={filters?.assignee || []}
+                onChange={(values) => onFilterChange('assignee', values)}
+                maxTagCount="responsive"
+                allowClear
+                className="premium-select"
+                options={members.map(m => ({
+                  label: m.label,
+                  value: m.value
+                }))}
+              />
+            )}
+          </div>
+
           <Button
             type="primary"
             icon={<CheckCircleOutlined />}
             onClick={onCompleteSprint}
-            style={{ 
-              borderRadius: 8, 
-              fontWeight: 600, 
+            style={{
+              borderRadius: 8,
+              fontWeight: 600,
               height: 34,
               boxShadow: '0 2px 4px rgba(82, 196, 26, 0.15)'
             }}
@@ -150,10 +222,10 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div style={{ 
-          display: 'flex', 
-          gap: 20, 
-          flex: 1, 
+        <div style={{
+          display: 'flex',
+          gap: 20,
+          flex: 1,
           overflowX: 'auto',
           paddingBottom: 16,
           alignItems: 'stretch'
@@ -179,16 +251,16 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({ tickets, projects, m
           easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
         }}>
           {activeTicket ? (
-            <div style={{ 
+            <div style={{
               transform: 'rotate(2deg)',
               transition: 'transform 0.2s ease',
               pointerEvents: 'none'
             }}>
-              <KanbanCard 
-                ticket={activeTicket} 
-                projects={projects} 
-                members={members} 
-                onUpdate={() => { }} 
+              <KanbanCard
+                ticket={activeTicket}
+                projects={projects}
+                members={members}
+                onUpdate={() => { }}
               />
             </div>
           ) : null}

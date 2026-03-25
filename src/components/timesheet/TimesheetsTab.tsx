@@ -390,11 +390,11 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       overflow: "hidden"
     }}>
       {/* Header Section */}
-      <div style={{ 
-        marginBottom: 16, 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "flex-end", 
+      <div style={{
+        marginBottom: 16,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
         gap: 24,
         position: "sticky",
         top: 0,
@@ -456,45 +456,45 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
         {/* Mini Stats Row */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {stats.map(stat => (
-          <Col key={stat.label} xs={24} sm={8}>
-            <div style={{
-              padding: "16px 20px",
-              background: `${stat.color}08`,
-              borderRadius: 14,
-              border: `1px solid ${stat.color}15`,
-              display: "flex",
-              alignItems: "center",
-              gap: 12
-            }}>
-              <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 10, display: "flex" }}>
-                <stat.icon size={18} />
+          {stats.map(stat => (
+            <Col key={stat.label} xs={24} sm={8}>
+              <div style={{
+                padding: "16px 20px",
+                background: `${stat.color}08`,
+                borderRadius: 14,
+                border: `1px solid ${stat.color}15`,
+                display: "flex",
+                alignItems: "center",
+                gap: 12
+              }}>
+                <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 10, display: "flex" }}>
+                  <stat.icon size={18} />
+                </div>
+                <div>
+                  <Text style={{ color: "#64748b", fontSize: 13, display: "block" }}>{stat.label}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{stat.value}</Text>
+                </div>
               </div>
-              <div>
-                <Text style={{ color: "#64748b", fontSize: 13, display: "block" }}>{stat.label}</Text>
-                <Text style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{stat.value}</Text>
-              </div>
-            </div>
-          </Col>
-        ))}
-      </Row>
+            </Col>
+          ))}
+        </Row>
 
-      <Card
-        bordered={false}
-        style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
-        bodyStyle={{ padding: "0" }}
-      >
-        <Table
-          loading={isLoading}
-          columns={columns}
-          dataSource={filteredData}
-          rowKey="key"
-          size="middle"
-          pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
-          rowClassName={() => "history-table-row"}
-          scroll={{ x: 1000 }}
-        />
-      </Card>
+        <Card
+          bordered={false}
+          style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+          bodyStyle={{ padding: "0" }}
+        >
+          <Table
+            loading={isLoading}
+            columns={columns}
+            dataSource={filteredData}
+            rowKey="key"
+            size="middle"
+            pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+            rowClassName={() => "history-table-row"}
+            scroll={{ x: 1000 }}
+          />
+        </Card>
       </div>
 
       <Modal
@@ -520,52 +520,76 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       <Modal
         open={previewOpen}
         onCancel={() => setPreviewOpen(false)}
-        width={800}
+        width={720}
         centered
-        bodyStyle={{ padding: "0 24px 24px 24px" }}
+        bodyStyle={{ padding: "0" }}
         title={
-          <div style={{ padding: "16px 0", borderBottom: "1px solid #f1f5f9", marginBottom: 16 }}>
+          <div style={{ padding: "16px 24px", borderBottom: "1px solid #f1f5f9" }}>
             {previewTimesheetData && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar size={40} style={{ backgroundColor: "#0ea5e9", fontWeight: 700, fontSize: 16 }}>
+                  <Avatar size={36} style={{ backgroundColor: "#f0f9ff", color: "#0ea5e9", fontWeight: 700, fontSize: 14 }}>
                     {previewTimesheetData.user?.name?.charAt(0).toUpperCase()}
                   </Avatar>
                   <div>
-                    <Text strong style={{ margin: 0, color: "#1e293b", fontSize: 16, display: "block", lineHeight: 1.2 }}>{previewTimesheetData.user?.name}</Text>
+                    <Text strong style={{ margin: 0, color: "#1e293b", fontSize: 15, display: "block", lineHeight: 1.2 }}>{previewTimesheetData.user?.name}</Text>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-                      <Calendar size={12} color="#64748b" />
-                      <Text type="secondary" style={{ fontSize: 12 }}>
+                      <Calendar size={12} color="#94a3b8" />
+                      <Text style={{ fontSize: 12, color: "#64748b" }}>
                         {dayjs(previewTimesheetData.weekStart).format("MMM DD")} – {dayjs(previewTimesheetData.weekEnd).format("MMM DD, YYYY")}
                       </Text>
                     </div>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600, fontSize: 12, margin: 0, padding: "2px 10px" }}>Total: {previewTimesheetData.totalHours}h</Tag>
-                  <Tag color={previewTimesheetData.status === "APPROVED" ? "success" : previewTimesheetData.status === "REJECTED" ? "error" : "warning"} style={{ borderRadius: 6, fontWeight: 600, fontSize: 12, margin: 0, padding: "2px 10px" }}>
-                    {previewTimesheetData.status}
-                  </Tag>
+                  <Tag style={{ borderRadius: 6, fontWeight: 600, fontSize: 11, margin: 0, padding: "2px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569" }}>Total: {previewTimesheetData.totalHours}h</Tag>
+                  {(() => {
+                    const status = previewTimesheetData.status;
+                    const config: any = {
+                      APPROVED: { color: "#10b981", bg: "#f0fdf4", border: "#bbf7d0" },
+                      REJECTED: { color: "#ef4444", bg: "#fef2f2", border: "#fecaca" },
+                      SUBMITTED: { color: "#f59e0b", bg: "#fffbeb", border: "#fef3c7" },
+                    };
+                    const c = config[status] || { color: "#64748b", bg: "#f8fafc", border: "#e2e8f0" };
+                    return (
+                      <Tag style={{
+                        borderRadius: 6,
+                        fontWeight: 600,
+                        fontSize: 11,
+                        margin: 0,
+                        padding: "2px 10px",
+                        color: c.color,
+                        background: c.bg,
+                        border: `1px solid ${c.border}`
+                      }}>
+                        {status}
+                      </Tag>
+                    );
+                  })()}
                 </div>
               </div>
             )}
           </div>
         }
         footer={[
-          <Button key="close" onClick={() => setPreviewOpen(false)} style={{ borderRadius: 8, height: 40, padding: "0 24px" }}>
-            Close
-          </Button>,
+          <div key="footer" style={{ padding: "12px 24px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end" }}>
+            <Button key="close" onClick={() => setPreviewOpen(false)} style={{ borderRadius: 8, height: 38, padding: "0 24px", fontWeight: 500 }}>
+              Close
+            </Button>
+          </div>
         ]}
       >
-        <Table
-          columns={previewColumns as any}
-          dataSource={getPreviewRows()}
-          pagination={false}
-          bordered
-          rowKey="id"
-          size="small"
-          loading={!previewTimesheetData}
-        />
+        <div style={{ padding: "0 24px 24px 24px" }}>
+          <Table
+            columns={previewColumns as any}
+            dataSource={getPreviewRows()}
+            pagination={false}
+            bordered={false}
+            rowKey="id"
+            size="small"
+            loading={!previewTimesheetData}
+          />
+        </div>
       </Modal>
 
       <Modal

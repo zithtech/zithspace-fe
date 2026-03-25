@@ -297,17 +297,17 @@ export default function TeamsTab({
       overflow: "hidden"
     }}>
       {/* Header Section */}
-      <div style={{ 
-        marginBottom: 16, 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "flex-end", 
+      <div style={{
+        marginBottom: 16,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
         gap: 24,
         position: "sticky",
         top: 0,
         background: "#ffffff",
         zIndex: 10,
-        padding: "24px 0 12px 0" 
+        padding: "24px 0 12px 0"
       }}>
         <div style={{ flex: 1 }}>
           <Space size={14} align="center">
@@ -342,49 +342,49 @@ export default function TeamsTab({
           />
         </div>
       </div>
-      
+
       <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
         {/* Stats Row */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {stats.map(stat => (
-          <Col key={stat.label} xs={24} sm={8}>
-            <div style={{
-              padding: "16px 20px",
-              background: `${stat.color}08`,
-              borderRadius: 14,
-              border: `1px solid ${stat.color}15`,
-              display: "flex",
-              alignItems: "center",
-              gap: 12
-            }}>
-              <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 10, display: "flex" }}>
-                <stat.icon size={18} />
+          {stats.map(stat => (
+            <Col key={stat.label} xs={24} sm={8}>
+              <div style={{
+                padding: "16px 20px",
+                background: `${stat.color}08`,
+                borderRadius: 14,
+                border: `1px solid ${stat.color}15`,
+                display: "flex",
+                alignItems: "center",
+                gap: 12
+              }}>
+                <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 10, display: "flex" }}>
+                  <stat.icon size={18} />
+                </div>
+                <div>
+                  <Text style={{ color: "#64748b", fontSize: 13, display: "block" }}>{stat.label}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{stat.value}</Text>
+                </div>
               </div>
-              <div>
-                <Text style={{ color: "#64748b", fontSize: 13, display: "block" }}>{stat.label}</Text>
-                <Text style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{stat.value}</Text>
-              </div>
-            </div>
-          </Col>
-        ))}
-      </Row>
+            </Col>
+          ))}
+        </Row>
 
-      <Card
-        bordered={false}
-        style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
-        bodyStyle={{ padding: 0 }}
-      >
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          rowKey="id"
-          size="middle"
-          loading={isLoading}
-          pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
-          rowClassName={() => "history-table-row"}
-          scroll={{ x: 1000 }}
-        />
-      </Card>
+        <Card
+          bordered={false}
+          style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+          bodyStyle={{ padding: 0 }}
+        >
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            rowKey="id"
+            size="middle"
+            loading={isLoading}
+            pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+            rowClassName={() => "history-table-row"}
+            scroll={{ x: 1000 }}
+          />
+        </Card>
       </div>
 
       {/* Review Modal */}
@@ -409,6 +409,7 @@ export default function TeamsTab({
               <div style={{ display: "flex", gap: 8 }}>
                 <Button danger size="middle" onClick={() => { setRejectOpen(true); setIsModalOpen(false); }} style={{ borderRadius: 8, fontWeight: 500 }} disabled={selectedTimesheet?.status === "REJECTED"}>Reject</Button>
                 <Button type="primary" size="middle" onClick={() => { setApproveOpen(true); setIsModalOpen(false); }} style={{ borderRadius: 8, background: "#0ea5e9", borderColor: "#0ea5e9", fontWeight: 500 }} disabled={selectedTimesheet?.status === "APPROVED"}>Approve</Button>
+                <Button key="export" icon={<ExportOutlined />} onClick={() => handleExport(timesheetRows)} style={{ borderRadius: 8 }}>Export CSV</Button>,
               </div>
             </div>
           </div>
@@ -419,7 +420,7 @@ export default function TeamsTab({
         centered
         bodyStyle={{ padding: "0 24px 24px 24px" }}
         footer={[
-          <Button key="export" icon={<ExportOutlined />} onClick={() => handleExport(timesheetRows)} style={{ borderRadius: 8, height: 40 }}>Export CSV</Button>,
+
           <Button key="close" onClick={closeModal} style={{ borderRadius: 8, height: 40, padding: "0 24px" }}>Close</Button>
         ]}
       >

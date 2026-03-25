@@ -164,7 +164,7 @@ export default function PerformanceManagePage() {
       .year(year)
       .month(month - 1)
       .endOf("month");
-    
+
     let workingDays = 0;
     let currentDay = startOfMonth;
 
@@ -176,7 +176,7 @@ export default function PerformanceManagePage() {
       }
       currentDay = currentDay.add(1, "day");
     }
-    
+
     return workingDays;
   };
 
@@ -228,7 +228,7 @@ export default function PerformanceManagePage() {
       // EXCLUDE WEEKENDS as per user request
       const workingDaysCount = getWorkingDaysCount(selectedYearNum, selectedMonthNum);
       const totalDays = workingDaysCount; // Use working days instead of calendar days
-      
+
       const presentDays = attendanceRecords.filter(
         (r: any) =>
           r.status === "present" ||
@@ -705,13 +705,13 @@ export default function PerformanceManagePage() {
                               {completionRate}%
                             </Text>
                           </div>
-                          <Progress
+                          {/* <Progress
                             percent={completionRate}
                             size="small"
                             showInfo={false}
                             strokeColor="#10b981"
                             strokeWidth={6}
-                          />
+                          /> */}
                         </div>
                       </Card>
                     </Col>
@@ -749,13 +749,13 @@ export default function PerformanceManagePage() {
                               {attendanceRate}%
                             </Text>
                           </div>
-                          <Progress
+                          {/* <Progress
                             percent={attendanceRate}
                             size="small"
                             showInfo={false}
                             strokeColor="#0ea5e9"
                             strokeWidth={6}
-                          />
+                          /> */}
                         </div>
                       </Card>
                     </Col>
@@ -785,13 +785,13 @@ export default function PerformanceManagePage() {
                               {updateRate}%
                             </Text>
                           </div>
-                          <Progress
+                          {/* <Progress
                             percent={updateRate}
                             size="small"
                             showInfo={false}
                             strokeColor="#f59e0b"
                             strokeWidth={6}
-                          />
+                          /> */}
                         </div>
                       </Card>
                     </Col>
@@ -825,13 +825,13 @@ export default function PerformanceManagePage() {
                               {Math.round((attendanceSummary.absentDays / attendanceSummary.totalDays) * 100) || 0}%
                             </Text>
                           </div>
-                          <Progress
+                          {/* <Progress
                             percent={Math.round((attendanceSummary.absentDays / attendanceSummary.totalDays) * 100) || 0}
                             size="small"
                             showInfo={false}
                             strokeColor="#ef4444"
                             strokeWidth={6}
-                          />
+                          /> */}
                         </div>
                       </Card>
                     </Col>
@@ -864,13 +864,13 @@ export default function PerformanceManagePage() {
                         {/* Completed */}
                         <div
                           style={{
-                            background: "#f0fdf4",
+                            background: "transparent",
                             padding: "16px",
                             borderRadius: 12,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
-                            border: "1px solid #dcfce7"
+                            border: "1px solid #e2e8f0"
                           }}
                         >
                           <div>
@@ -900,17 +900,17 @@ export default function PerformanceManagePage() {
                         {/* In Progress */}
                         <div
                           style={{
-                            background: "#fffbeb",
+                            background: "transparent",
                             padding: "16px",
                             borderRadius: 12,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
-                            border: "1px solid #fef3c7"
+                            border: "1px solid #e2e8f0"
                           }}
                         >
                           <div>
-                            <Text style={{ fontSize: 13, color: "#92400e", fontWeight: 500 }}>
+                            <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>
                               In Progress
                             </Text>
                             <div
@@ -944,13 +944,13 @@ export default function PerformanceManagePage() {
                         {/* Pending */}
                         <div
                           style={{
-                            background: "#fff1f2",
+                            background: "transparent",
                             padding: "16px",
                             borderRadius: 12,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
-                            border: "1px solid #ffe4e6"
+                            border: "1px solid #e2e8f0"
                           }}
                         >
                           <div>

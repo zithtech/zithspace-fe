@@ -1261,10 +1261,12 @@ function SubmitDailyUpdateContent() {
                 border: "1px solid #e2e8f0",
                 boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
               }}>
-                <Text strong style={{ fontSize: 16, color: "#1e293b", display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                   <MessageSquare size={18} color="#64748b" />
-                  General Comments
-                </Text>
+                  <Text strong style={{ fontSize: 16, color: "#1e293b", margin: 0 }}>
+                    General Comments
+                  </Text>
+                </div>
                 <Form.Item name="generalNotes" style={{ marginBottom: 0 }}>
                   <TextArea
                     rows={4}

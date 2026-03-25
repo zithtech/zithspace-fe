@@ -134,29 +134,67 @@ export default function UpdateCard({
                 </div>
               </Space>
 
-              <Dropdown
-                trigger={["click"]}
-                menu={{
-                  items: [
-                    { key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable },
-                    { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true },
-                  ],
-                  onClick: (info) => {
-                    info.domEvent.stopPropagation();
-                    if (info.key === "edit") router.push(`/daily-updates/submit?edit=${update.id}`);
-                    if (info.key === "delete") setIsDeleteModalOpen(true);
-                  },
-                }}
-              >
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ cursor: "pointer", padding: 4, borderRadius: 6, color: "#94a3b8" }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+
+                {isMissed && (
+                  <Tag style={{
+                    margin: 0,
+                    borderRadius: 6,
+                    border: "none",
+                    background: "#fff1f2",
+                    color: "#e11d48",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase"
+                  }}>
+                    Missed
+                  </Tag>
+                )}
+
+                <Dropdown
+                  trigger={["click"]}
+                  menu={{
+                    items: [
+                      { key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable },
+                      { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true },
+                    ],
+                    onClick: (info) => {
+                      info.domEvent.stopPropagation();
+                      if (info.key === "edit") router.push(`/daily-updates/submit?edit=${update.id}`);
+                      if (info.key === "delete") setIsDeleteModalOpen(true);
+                    },
+                  }}
                 >
-                  <MoreOutlined />
-                </div>
-              </Dropdown>
+
+
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      cursor: "pointer",
+                      padding: 10,
+                      borderRadius: 6,
+                      color: "#0f172a",     // darker → bold feel
+                      fontSize: 18,         // increase size
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f1f5f9";
+                      e.currentTarget.style.transform = "scale(1.1)";  // slight zoom
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
+                  >
+                    <MoreOutlined />
+                  </div>
+
+                </Dropdown>
+
+              </div>
             </div>
           </div>
 
@@ -191,20 +229,7 @@ export default function UpdateCard({
               }}>
                 <ProjectOutlined style={{ fontSize: 12 }} /> {projectUpdates.length} Projects
               </Tag>
-              {isMissed && (
-                <Tag style={{
-                  margin: 0,
-                  borderRadius: 6,
-                  border: "none",
-                  background: "#fff1f2",
-                  color: "#e11d48",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  textTransform: "uppercase"
-                }}>
-                  Missed
-                </Tag>
-              )}
+
             </div>
 
             {/* Work Content Snapshot */}

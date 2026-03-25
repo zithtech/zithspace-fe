@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -17,22 +16,32 @@ import {
   Input,
   Avatar,
   message,
+  Row,
+  Col,
+  Tooltip,
 } from "antd";
 import {
   EyeOutlined,
-  CheckCircleOutlined,
   WarningOutlined,
-  MoreOutlined,
-  ClockCircleOutlined,
-  TeamOutlined,
   CloseOutlined,
   CheckOutlined,
   ExportOutlined,
 } from "@ant-design/icons";
+import {
+  Users,
+  Search,
+  Filter,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  ChevronRight,
+  MoreVertical,
+  FileText,
+  Mail,
+} from "lucide-react";
 import dayjs from "dayjs";
-import MainLayout from "@/components/layout/MainLayout";
 import { useQueryClient } from "@tanstack/react-query";
-
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useTimesheets, useTimesheetById } from "@/hooks/useTimesheet";
@@ -80,82 +89,29 @@ export default function TeamsTab({
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showRejectedModal, setShowRejectedModal] = useState(false);
-  type TimesheetStatus = "Draft" | "Submitted" | "Approved" | "Rejected";
-  const [status, setStatus] = useState<TimesheetStatus>("Draft");
-  const [rejectedReason, setRejectedReason] = useState("");
   const [isDescModalOpen, setIsDescModalOpen] = useState(false);
   const [selectedDesc, setSelectedDesc] = useState("");
-  const [showApprovedModal, setShowApprovedModal] = useState(false);
-  const searchParams = useSearchParams();
-  const timesheetId = searchParams.get("id");
 
   const closeDesc = () => {
     setIsDescModalOpen(false);
     setSelectedDesc("");
   };
-  
-  const openDesc = (desc: string) => {
-    setSelectedDesc(desc);
-    setIsDescModalOpen(true);
-  };
 
-  // Updated timesheetRows with dynamic date display
-// Updated timesheetRows with proper sorting by date
-// Simpler fix - just sort by date
-const timesheetRows: TimesheetRowUI[] = selectedTimesheet
-  ? [...selectedTimesheet.rows]
+  const timesheetRows: TimesheetRowUI[] = selectedTimesheet
+    ? [...selectedTimesheet.rows]
       .sort((a: any, b: any) => {
-        // Sort by date in ascending order
-        let dateA, dateB;
-        
-        if (a.day) {
-          dateA = dayjs(a.day);
-        } else if (a.date) {
-          dateA = dayjs(a.date);
-        } else {
-          dateA = dayjs(selectedTimesheet.weekStart);
-        }
-        
-        if (b.day) {
-          dateB = dayjs(b.day);
-        } else if (b.date) {
-          dateB = dayjs(b.date);
-        } else {
-          dateB = dayjs(selectedTimesheet.weekStart);
-        }
-        
+        let dateA = a.day ? dayjs(a.day) : a.date ? dayjs(a.date) : dayjs(selectedTimesheet.weekStart);
+        let dateB = b.day ? dayjs(b.day) : b.date ? dayjs(b.date) : dayjs(selectedTimesheet.weekStart);
         return dateA.valueOf() - dateB.valueOf();
       })
       .map((row: any, index: number) => {
-        // Get the actual date from the row
-        let displayDate = "";
-        let dayAbbr = "";
-        let dateObj;
-        
-        if (row.day) {
-          dateObj = dayjs(row.day);
-          displayDate = dateObj.format("MMM DD");
-          dayAbbr = dateObj.format("ddd");
-        } else if (row.date) {
-          dateObj = dayjs(row.date);
-          displayDate = dateObj.format("MMM DD");
-          dayAbbr = dateObj.format("ddd");
-        } else {
-          dateObj = dayjs(selectedTimesheet.weekStart).add(index, "day");
-          displayDate = dateObj.format("MMM DD");
-          dayAbbr = dateObj.format("ddd");
-        }
-
+        let dateObj = row.day ? dayjs(row.day) : row.date ? dayjs(row.date) : dayjs(selectedTimesheet.weekStart).add(index, "day");
         return {
           key: row.id || `row-${index}-${Math.random()}`,
           id: row.id,
-          day: dayAbbr,
-          date: displayDate,
-          employeeName:
-            selectedTimesheet.employeeName ||
-            selectedTimesheet.user?.name ||
-            "Unknown",
+          day: dateObj.format("ddd"),
+          date: dateObj.format("MMM DD"),
+          employeeName: selectedTimesheet.user?.name || "Unknown",
           projectName: row.projectName,
           taskName: row.taskName,
           description: row.description || "",
@@ -164,7 +120,7 @@ const timesheetRows: TimesheetRowUI[] = selectedTimesheet
           billable: row.billable,
         };
       })
-  : [];
+    : [];
 
   const { data: timesheetsData, isLoading } = useTimesheets();
   const timesheets = timesheetsData?.data || [];
@@ -172,32 +128,16 @@ const timesheetRows: TimesheetRowUI[] = selectedTimesheet
   const filteredData = useMemo(() => {
     return timesheets.filter((t) => {
       const userId = t.user?.id;
-
-      const memberOk =
-        selectedMembers.length === 0 ||
-        (userId ? selectedMembers.includes(userId) : false);
-
-      const weekOk = selectedWeek
-        ? dayjs(t.weekStart).startOf("week").isSame(dayjs(selectedWeek), "day")
-        : true;
-
+      const memberOk = selectedMembers.length === 0 || (userId ? selectedMembers.includes(userId) : false);
+      const weekOk = selectedWeek ? dayjs(t.weekStart).startOf("week").isSame(dayjs(selectedWeek), "day") : true;
       return memberOk && weekOk;
     });
   }, [timesheets, selectedMembers, selectedWeek]);
-  
-  useEffect(() => {
-    console.log("Teams Table Data:", filteredData);
-  }, [filteredData]);
-  
+
   const members = useMemo(() => {
     const map = new Map();
     timesheets.forEach((t) => {
-      if (t.user) {
-        map.set(t.user.id, {
-          id: t.user.id,
-          name: t.user.name,
-        });
-      }
+      if (t.user) map.set(t.user.id, { id: t.user.id, name: t.user.name });
     });
     return Array.from(map.values());
   }, [timesheets]);
@@ -207,7 +147,6 @@ const timesheetRows: TimesheetRowUI[] = selectedTimesheet
     for (let i = 0; i < 6; i++) {
       const start = dayjs().startOf("week").subtract(i, "week");
       const end = start.add(6, "day");
-
       weeks.push({
         label: `${start.format("MMM DD")} – ${end.format("MMM DD")}`,
         value: start.format("YYYY-MM-DD"),
@@ -217,96 +156,97 @@ const timesheetRows: TimesheetRowUI[] = selectedTimesheet
   }, []);
 
   /* ---------------- COUNTS ---------------- */
-  const approvedCount = filteredData.filter(
-    (t) => t.status === "APPROVED",
-  ).length;
-
-  const pendingCount = filteredData.filter(
-    (t) => t.status === "SUBMITTED",
-  ).length;
-  
-  const rejectedCount = filteredData.filter(
-    (t) => t.status === "REJECTED",
-  ).length;
+  const approvedCount = filteredData.filter(t => t.status === "APPROVED").length;
+  const pendingCount = filteredData.filter(t => t.status === "SUBMITTED").length;
+  const rejectedCount = filteredData.filter(t => t.status === "REJECTED").length;
 
   /* ---------------- TABLE COLUMNS ---------------- */
   const columns = [
     {
       title: "Employee",
       render: (_: any, r: any) => (
-        <>
-          <strong>{r.user?.name}</strong>
-          <br />
-          <span style={{ color: "#888" }}>{r.user?.email}</span>
-        </>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Avatar size={36} style={{ backgroundColor: "#f0f9ff", color: "#0ea5e9", fontWeight: 600 }}>
+            {r.user?.name?.charAt(0).toUpperCase()}
+          </Avatar>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{r.user?.name}</Text>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <Mail size={12} color="#94a3b8" />
+              <Text style={{ color: "#64748b", fontSize: 12 }}>{r.user?.email}</Text>
+            </div>
+          </div>
+        </div>
       ),
     },
-
     {
-      title: "Date",
+      title: "Week Period",
       render: (_: any, r: any) => {
         const start = dayjs(r.weekStart);
         const end = start.add(6, "day");
-        return `${start.format("MMM DD")} – ${end.format("MMM DD")}`;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+              <Text style={{ fontSize: 13, color: "#475569" }}>{start.format("MMM DD")}</Text>
+            </div>
+            <ChevronRight size={14} color="#94a3b8" />
+            <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+              <Text style={{ fontSize: 13, color: "#475569" }}>{end.format("MMM DD")}</Text>
+            </div>
+          </div>
+        );
       },
     },
-
     {
       title: "Status",
       render: (_: any, r: any) => {
-        if (r.status === "APPROVED") {
-          return (
-            <Space>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-              >
-                <Tag color="green" style={{ marginRight: 0 }}>
-                  Approved
-                </Tag>
-              </span>
-            </Space>
-          );
-        }
-
-        if (r.status === "REJECTED") {
-          return (
-            <Space>
-              <Tag color="red">Rejected</Tag>
-            </Space>
-          );
-        }
-
-        if (r.status === "SUBMITTED") {
-          return <Tag color="orange">Submitted</Tag>;
-        }
-
-        return <Tag color="blue">Draft</Tag>;
+        const config: any = {
+          APPROVED: { color: "#10b981", icon: <CheckCircle2 size={14} />, label: "Approved" },
+          REJECTED: { color: "#ef4444", icon: <AlertCircle size={14} />, label: "Rejected" },
+          SUBMITTED: { color: "#f59e0b", icon: <Clock size={14} />, label: "Submitted" },
+          DRAFT: { color: "#3b82f6", icon: <FileText size={14} />, label: "Draft" },
+        };
+        const st = config[r.status] || { color: "#64748b", icon: <Clock size={14} />, label: r.status };
+        return (
+          <Tag
+            icon={st.icon}
+            style={{
+              borderRadius: 6,
+              background: `${st.color}12`,
+              color: st.color,
+              border: `1px solid ${st.color}30`,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontWeight: 500
+            }}
+          >
+            {st.label}
+          </Tag>
+        );
       },
     },
-
     {
       title: "Total Hours",
       dataIndex: "totalHours",
-      render: (h: number) => `${h}h`,
-    },
-    {
-      title: "Leave",
-      dataIndex: "leave",
+      render: (h: number) => (
+        <Tag style={{ borderRadius: 20, background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontWeight: 600, padding: "0 12px" }}>
+          {h}h
+        </Tag>
+      ),
     },
     {
       title: "Actions",
+      align: "center" as const,
       render: (_: any, r: any) => (
         <Dropdown
+          trigger={["click"]}
           menu={{
             items: [
               {
                 key: "view",
                 icon: <EyeOutlined />,
-                label: "View",
+                label: "Review Timesheet",
                 onClick: () => {
                   setSelectedTimesheet(r);
                   setIsModalOpen(true);
@@ -315,7 +255,7 @@ const timesheetRows: TimesheetRowUI[] = selectedTimesheet
             ],
           }}
         >
-          <Button type="text" icon={<MoreOutlined />} />
+          <Button type="text" icon={<MoreVertical size={16} color="#64748b" />} />
         </Dropdown>
       ),
     },
@@ -328,555 +268,299 @@ const timesheetRows: TimesheetRowUI[] = selectedTimesheet
 
   const handleExport = (rows: TimesheetRowUI[]) => {
     if (!rows.length) return;
-
-    const headers = [
-      "Date",
-      "Day",
-      "Employee",
-      "Project",
-      "Task",
-      "Description",
-      "Hours",
-      "Billable",
-      "Status",
-    ];
-
-    const csvRows = rows.map((r) => [
-      r.date,
-      r.day,
-      r.employeeName,
-      r.projectName ?? "",
-      r.taskName ?? "",
-      r.description ?? "",
-      r.hours ?? 0,
-      r.billable ? "Yes" : "No",
-      r.status ?? "Draft",
-    ]);
-
-    const csvContent = [headers, ...csvRows]
-      .map((row) => row.map(String).join(","))
-      .join("\n");
-
+    const headers = ["Date", "Day", "Employee", "Project", "Task", "Description", "Hours", "Billable", "Status"];
+    const csvRows = rows.map((r) => [r.date, r.day, r.employeeName, r.projectName ?? "", r.taskName ?? "", r.description ?? "", r.hours ?? 0, r.billable ? "Yes" : "No", r.status ?? "Draft"]);
+    const csvContent = [headers, ...csvRows].map((row) => row.map(String).join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "timesheet.csv";
+    link.download = `timesheet_${selectedTimesheet?.user?.name || "export"}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
-  /* ---------------- UI ---------------- */
+  const stats = [
+    { label: "Approved", value: approvedCount, color: "#10b981", icon: CheckCircle2 },
+    { label: "Pending", value: pendingCount, color: "#f59e0b", icon: Clock },
+    { label: "Rejected", value: rejectedCount, color: "#ef4444", icon: AlertCircle },
+  ];
+
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        style={{
-          borderRadius: 12,
-        }}
-        bodyStyle={{
-          padding: "8px 12px",
-        }}
-      >
-        {/* HEADER */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <Title
-              level={4}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 0,
-              }}
-            >
-              <TeamOutlined style={{ color: "#1677ff" }} />
-              Team
-            </Title>
-            <Text style={{ marginLeft: "27px" }} type="secondary">
-              Manage team timesheets and approvals
-            </Text>
-            <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-              <Tag style={{ marginLeft: "27px" }} color="green">
-                Approved: {approvedCount}
-              </Tag>
-              <Tag color="orange">Pending: {pendingCount}</Tag>
-              <Tag color="red">Rejected: {rejectedCount}</Tag>
+    <div style={{
+      margin: "0 -24px",
+      padding: "0 32px 24px 32px",
+      background: "#ffffff",
+      height: "calc(100vh - 72px)",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    }}>
+      {/* Header Section */}
+      <div style={{ 
+        marginBottom: 16, 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "flex-end", 
+        gap: 24,
+        position: "sticky",
+        top: 0,
+        background: "#ffffff",
+        zIndex: 10,
+        padding: "24px 0 12px 0" 
+      }}>
+        <div style={{ flex: 1 }}>
+          <Space size={14} align="center">
+            <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+              <Users size={28} />
             </div>
-          </div>
-
-          {/* FILTERS (right corner) */}
-          <div style={{ display: "flex", gap: 12 }}>
-            <Select
-              mode="multiple"
-              placeholder="Select Members"
-              style={{ width: 180 }}
-              value={selectedMembers}
-              onChange={setSelectedMembers}
-              options={members.map((m) => ({
-                label: m.name,
-                value: m.id,
-              }))}
-            />
-            <Select
-              placeholder="Select Week (Sun – Sat)"
-              style={{ width: 180 }}
-              value={selectedWeek}
-              onChange={setSelectedWeek}
-              options={weekOptions}
-              allowClear
-            />
-          </div>
+            <div>
+              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Team Timesheets</Title>
+              <Text style={{ color: "#64748b", fontSize: 15 }}>Review and manage timesheet submissions from your team members.</Text>
+            </div>
+          </Space>
         </div>
-
-        <Divider />
-        <div style={{ marginTop: 20 }}>
-          <Table
-            columns={columns}
-            dataSource={filteredData}
-            rowKey="id"
-            size="small"
-            loading={isLoading}
-            pagination={{ pageSize: 10 }}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Select
+            mode="multiple"
+            placeholder="Search members..."
+            style={{ width: 220, height: 44 }}
+            className="custom-select-44"
+            value={selectedMembers}
+            onChange={setSelectedMembers}
+            options={members.map((m) => ({ label: m.name, value: m.id }))}
+            maxTagCount="responsive"
+          />
+          <Select
+            placeholder="Filter by week"
+            style={{ width: 200, height: 44 }}
+            value={selectedWeek}
+            onChange={setSelectedWeek}
+            options={weekOptions}
+            allowClear
+            suffixIcon={<Calendar size={16} color="#94a3b8" />}
           />
         </div>
-      </Card>
-
-      <Modal
-        title={
-          <div
-            style={{
+      </div>
+      
+      <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+        {/* Stats Row */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        {stats.map(stat => (
+          <Col key={stat.label} xs={24} sm={8}>
+            <div style={{
+              padding: "16px 20px",
+              background: `${stat.color}08`,
+              borderRadius: 14,
+              border: `1px solid ${stat.color}15`,
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
-              width: "100%",
-            }}
-          >
-            {/* Left side: Avatar + Name + Status */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Avatar
-                size={48}
-                style={{ backgroundColor: "#1677ff", fontWeight: 600 }}
-              >
-                {(
-                  selectedTimesheet?.employeeName ||
-                  selectedTimesheet?.user?.name ||
-                  "Unknown"
-                )
-                  .charAt(0)
-                  .toUpperCase()}
-              </Avatar>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 4,
-                }}
-              >
-                <div style={{ fontWeight: 600, fontSize: 16 }}>
-                  {selectedTimesheet?.employeeName ||
-                    selectedTimesheet?.user?.name ||
-                    "Unknown"}
-                </div>
-
-                <Tag
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 500,
-                    padding: "0 6px",
-                    lineHeight: "18px",
-                  }}
-                  color={
-                    selectedTimesheet?.status === "APPROVED"
-                      ? "green"
-                      : selectedTimesheet?.status === "REJECTED"
-                        ? "red"
-                        : selectedTimesheet?.status === "SUBMITTED"
-                          ? "orange"
-                          : "blue"
-                  }
-                >
-                  {selectedTimesheet?.status || "Draft"}
-                </Tag>
+              gap: 12
+            }}>
+              <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 10, display: "flex" }}>
+                <stat.icon size={18} />
+              </div>
+              <div>
+                <Text style={{ color: "#64748b", fontSize: 13, display: "block" }}>{stat.label}</Text>
+                <Text style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{stat.value}</Text>
               </div>
             </div>
+          </Col>
+        ))}
+      </Row>
 
-            {/* Right side: Approve / Reject Buttons */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                justifyContent: "flex-start",
-                marginTop: 16,
-              }}
-            >
-              <Button
-                type="primary"
-                danger
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => {
-                  setRejectOpen(true);
-                  setIsModalOpen(false);
-                }}
-              >
-                Reject
-              </Button>
-              <Button
-                type="primary"
-                size="small"
-                icon={<CheckOutlined />}
-                style={{ backgroundColor: "#52c41a", border: "none" }}
-                onClick={() => {
-                  setApproveOpen(true);
-                  setIsModalOpen(false);
-                }}
-              >
-                Approve
-              </Button>
-              <Button
-                size="small"
-                style={{
-                  backgroundColor: "#1677ff",
-                  color: "#fff",
-                  border: "none",
-                }}
-                icon={<ExportOutlined />}
-                onClick={() => {
-                  const exportRows: TimesheetRowUI[] = timesheetRows.map(
-                    (r) => ({
-                      ...r,
-                      key: r.key || r.id || "row-" + Math.random(),
-                      employeeName: r.employeeName || "Unknown",
-                      status: r.status as
-                        | "Draft"
-                        | "Submitted"
-                        | "Approved"
-                        | "Rejected",
-                    }),
-                  );
+      <Card
+        bordered={false}
+        style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+        bodyStyle={{ padding: 0 }}
+      >
+        <Table
+          columns={columns}
+          dataSource={filteredData}
+          rowKey="id"
+          size="middle"
+          loading={isLoading}
+          pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+          rowClassName={() => "history-table-row"}
+          scroll={{ x: 1000 }}
+        />
+      </Card>
+      </div>
 
-                  handleExport(exportRows);
-                  setIsModalOpen(false);
-                }}
-              >
-                Export
-              </Button>
+      {/* Review Modal */}
+      <Modal
+        title={
+          <div style={{ padding: "16px 0", borderBottom: "1px solid #f1f5f9", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <Avatar size={40} style={{ backgroundColor: "#0ea5e9", fontWeight: 700, fontSize: 16 }}>
+                  {selectedTimesheet?.user?.name?.charAt(0).toUpperCase()}
+                </Avatar>
+                <div>
+                  <Text strong style={{ margin: 0, color: "#1e293b", fontSize: 16, display: "block", lineHeight: 1.2 }}>{selectedTimesheet?.user?.name}</Text>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <Tag color={selectedTimesheet?.status === "APPROVED" ? "success" : selectedTimesheet?.status === "REJECTED" ? "error" : "warning"} style={{ borderRadius: 6, fontWeight: 600, fontSize: 11, margin: 0 }}>
+                      {selectedTimesheet?.status || "Draft"}
+                    </Tag>
+                    <Text type="secondary" style={{ fontSize: 12 }}>• {selectedTimesheet?.totalHours}h Total</Text>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button danger size="middle" onClick={() => { setRejectOpen(true); setIsModalOpen(false); }} style={{ borderRadius: 8, fontWeight: 500 }} disabled={selectedTimesheet?.status === "REJECTED"}>Reject</Button>
+                <Button type="primary" size="middle" onClick={() => { setApproveOpen(true); setIsModalOpen(false); }} style={{ borderRadius: 8, background: "#0ea5e9", borderColor: "#0ea5e9", fontWeight: 500 }} disabled={selectedTimesheet?.status === "APPROVED"}>Approve</Button>
+              </div>
             </div>
           </div>
         }
         open={isModalOpen}
         onCancel={closeModal}
+        width={800}
+        centered
+        bodyStyle={{ padding: "0 24px 24px 24px" }}
         footer={[
-          <Button key="cancel" onClick={closeModal}>
-            Cancel
-          </Button>,
+          <Button key="export" icon={<ExportOutlined />} onClick={() => handleExport(timesheetRows)} style={{ borderRadius: 8, height: 40 }}>Export CSV</Button>,
+          <Button key="close" onClick={closeModal} style={{ borderRadius: 8, height: 40, padding: "0 24px" }}>Close</Button>
         ]}
-        width={700}
       >
-        {timesheetRows.length > 0 ? (
+        <div style={{ padding: "8px 0" }}>
           <Table<TimesheetRowUI>
-  columns={[
-    { title: "Date", dataIndex: "date", key: "date" },
-    { title: "Day", dataIndex: "day", key: "day" },
-    {
-      title: "Project",
-      dataIndex: "projectName",
-      key: "projectName",
-    },
-    { title: "Task", dataIndex: "taskName", key: "taskName" },
-    {
-      title: "Description",
-      render: (_: any, r) => {
-        const preview = r.description
-          ? r.description.slice(0, 30)
-          : "";
-        const hasMore = r.description && r.description.length > 30;
-
-        return (
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 8 }}
-          >
-            <span>
-              {preview}
-              {hasMore ? "..." : ""}
-            </span>
-            {r.description && r.description.length > 0 && (
-              <Button
-                type="text"
-                icon={<EyeOutlined />}
-                onClick={() => {
-                  setSelectedDesc(r.description || "");
-                  setIsDescModalOpen(true);
-                }}
-              />
-            )}
-          </div>
-        );
-      },
-      dataIndex: "description",
-      key: "description",
-    },
-    { title: "Hours", dataIndex: "hours", key: "hours" },
-  ]}
-  dataSource={timesheetRows}
-  rowKey="key"
-  pagination={false}
-  size="small"
-/>
-        ) : (
-          <p>No data found</p>
-        )}
+            columns={[
+              { title: "Date", dataIndex: "date", key: "date" },
+              { title: "Day", dataIndex: "day", key: "day" },
+              { title: "Project", dataIndex: "projectName", key: "projectName" },
+              { title: "Task", dataIndex: "taskName", key: "taskName" },
+              {
+                title: "Description",
+                render: (_: any, r) => (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Text ellipsis={{ tooltip: r.description }} style={{ maxWidth: 150 }}>{r.description || "-"}</Text>
+                    {r.description && r.description.length > 20 && (
+                      <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => { setSelectedDesc(r.description || ""); setIsDescModalOpen(true); }} />
+                    )}
+                  </div>
+                ),
+              },
+              { title: "Hours", dataIndex: "hours", key: "hours", render: (h) => <strong>{h}h</strong> },
+            ]}
+            dataSource={timesheetRows}
+            rowKey="key"
+            pagination={false}
+            size="small"
+            bordered
+          />
+        </div>
       </Modal>
 
-      {/* rejected drawer */}
+      {/* Reject Drawer */}
       <Drawer
-        title={
-          <Space>
-            <WarningOutlined style={{ color: "#ff4d4f", fontSize: 18 }} />
-            <Text strong style={{ fontSize: 16 }}>
-              Reject Timesheet Entries
-            </Text>
-          </Space>
-        }
+        title={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><AlertCircle size={20} color="#ef4444" /> Reject Timesheet</div>}
         placement="right"
-        width={360}
+        width={400}
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
-        bodyStyle={{ paddingBottom: 80 }}
-        closable={false}
-        extra={
-          <Button
-            type="text"
-            onClick={() => setRejectOpen(false)}
-            icon={<CloseOutlined />}
-          />
-        }
-      >
-        <Text type="secondary">
-          Provide a reason for rejecting this timesheet. The employee will be
-          notified and can make corrections.
-        </Text>
-
-        <div
-          style={{
-            marginTop: 20,
-            padding: 16,
-            background: "#fff7e6",
-            border: "1px solid #ffe7ba",
-            borderRadius: 10,
-            display: "flex",
-            gap: 12,
-            alignItems: "flex-start",
-          }}
-        >
-          <WarningOutlined style={{ color: "#fa8c16", fontSize: 18 }} />
-          <Text>
-            Rejected entries will be unlocked for editing. The employee must
-            resubmit after making corrections.
-          </Text>
-        </div>
-
-        <div style={{ marginTop: 28 }}>
-          <Text strong style={{ fontSize: 15 }}>
-            Quick Reasons
-          </Text>
-
-          <Space wrap size={10} style={{ marginTop: 14 }}>
-            {[
-              "Incorrect project selected",
-              "Hours do not match task complexity",
-              "Missing description",
-              "Needs more detail",
-            ].map((reason) => (
-              <Button
-                key={reason}
-                onClick={() =>
-                  setRejectReason((prev) =>
-                    prev ? `${prev}\n• ${reason}` : `• ${reason}`,
-                  )
-                }
-              >
-                {reason}
-              </Button>
-            ))}
-          </Space>
-        </div>
-
-        <div style={{ marginTop: 28 }}>
-          <Text strong style={{ fontSize: 15 }}>
-            Rejection Reason <Text type="danger">*</Text>
-          </Text>
-
-          <Input.TextArea
-            rows={6}
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Explain why these entries are being rejected..."
-            style={{ marginTop: 10, borderRadius: 8, resize: "none" }}
-          />
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "100%",
-            padding: "16px 24px",
-            borderTop: "1px solid #f0f0f0",
-            background: "#fff",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 12,
-          }}
-        >
-          <Button onClick={() => setRejectOpen(false)}>Cancel</Button>
-          <Button
-            danger
-            type="primary"
-            loading={loading}
-            disabled={!rejectReason}
-            onClick={async () => {
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+            <Button onClick={() => setRejectOpen(false)} style={{ borderRadius: 8 }}>Cancel</Button>
+            <Button danger type="primary" loading={loading} disabled={!rejectReason} onClick={async () => {
               if (!selectedTimesheet?.id) return;
-
               try {
                 setLoading(true);
-                await reviewTimesheet(
-                  selectedTimesheet.id,
-                  "REJECTED",
-                  rejectReason,
-                );
-
-                setStatus("Rejected");
+                await reviewTimesheet(selectedTimesheet.id, "REJECTED", rejectReason);
+                message.success("Timesheet rejected successfully");
                 setRejectOpen(false);
-                setRejectedReason(rejectReason);
                 setRejectReason("");
-                setShowRejectedModal(true);
-
-                await queryClient.invalidateQueries({
-                  queryKey: ["timesheets"],
-                });
+                queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+                onActionCompleted?.();
               } catch (err) {
-                console.error("Rejection failed:", err);
+                message.error("Action failed");
               } finally {
                 setLoading(false);
               }
-            }}
-          >
-            Confirm Rejection
-          </Button>
-
-          <Modal
-            open={showRejectedModal}
-            onCancel={() => setShowRejectedModal(false)}
-            footer={[
-              <Button
-                key="ok"
-                type="primary"
-                onClick={() => {
-                  setShowRejectedModal(false);
-                  setIsModalOpen(false);
-                  onActionCompleted?.();
-                }}
-              >
-                OK
-              </Button>,
-            ]}
-            centered
-            title={
-              <Space>
-                <WarningOutlined style={{ color: "#fa8c16", fontSize: 18 }} />
-                <Text strong>Timesheet Rejected</Text>
-              </Space>
-            }
-          >
-            <Text>
-              Your timesheet has been rejected. Please review the reason below:
-            </Text>
-
-            <div
-              style={{
-                marginTop: 16,
-                padding: 16,
-                background: "#fff7e6",
-                borderRadius: 8,
-                border: "1px solid #ffe7ba",
-              }}
-            >
-              <Text>{rejectedReason}</Text>
-            </div>
-          </Modal>
-
-          <Modal
-            open={approveOpen}
-            onCancel={() => setApproveOpen(false)}
-            centered
-            footer={[
-              <Button key="cancel" onClick={() => setApproveOpen(false)}>
-                Cancel
-              </Button>,
-              <Button
-                key="confirm"
-                type="primary"
-                loading={loading}
-                onClick={async () => {
-                  if (!selectedTimesheet?.id) return;
-
-                  try {
-                    setLoading(true);
-                    await reviewTimesheet(selectedTimesheet.id, "APPROVED");
-
-                    setStatus("Approved");
-                    setApproveOpen(false);
-                    setShowApprovedModal(true);
-                    await queryClient.invalidateQueries({
-                      queryKey: ["timesheets"],
-                    });
-                    onActionCompleted?.();
-                  } catch (err) {
-                    console.error("Approval failed:", err);
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-              >
-                Confirm Approval
-              </Button>,
-            ]}
-            title={
-              <Space>
-                <CheckCircleOutlined
-                  style={{ color: "#52c41a", fontSize: 18 }}
-                />
-                <Text strong>Approve Timesheet</Text>
-              </Space>
-            }
-          >
-            <Text>
-              Are you sure you want to approve this timesheet? Once approved, it
-              cannot be edited.
-            </Text>
-          </Modal>
-
-          <Modal
-            title="Description"
-            open={isDescModalOpen}
-            onCancel={closeDesc}
-            footer={null}
-            width={600}
-          >
-            <p style={{ whiteSpace: "pre-wrap" }}>{selectedDesc}</p>
-          </Modal>
+            }} style={{ borderRadius: 8 }}>Confirm Rejection</Button>
+          </div>
+        }
+      >
+        <Text type="secondary" style={{ display: "block", marginBottom: 20 }}>Please provide a reason for rejecting this timesheet submission.</Text>
+        <Input.TextArea
+          rows={6}
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="Explain what needs to be corrected..."
+          style={{ borderRadius: 10, resize: "none" }}
+        />
+        <div style={{ marginTop: 24 }}>
+          <Text strong style={{ display: "block", marginBottom: 12 }}>Common Reasons:</Text>
+          <Space wrap>
+            {["Incorrect project", "Missing description", "Hours mismatch"].map(r => (
+              <Button key={r} size="small" style={{ borderRadius: 6 }} onClick={() => setRejectReason(prev => prev ? `${prev}\n- ${r}` : `- ${r}`)}>{r}</Button>
+            ))}
+          </Space>
         </div>
       </Drawer>
+
+      {/* Approve Modal */}
+      <Modal
+        title={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><CheckCircle2 size={20} color="#0ea5e9" /> Approve Timesheet</div>}
+        open={approveOpen}
+        onCancel={() => setApproveOpen(false)}
+        okText="Confirm Approval"
+        okButtonProps={{ loading, style: { background: "#0ea5e9", borderColor: "#0ea5e9", borderRadius: 8 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
+        onOk={async () => {
+          if (!selectedTimesheet?.id) return;
+          try {
+            setLoading(true);
+            await reviewTimesheet(selectedTimesheet.id, "APPROVED", "");
+            message.success("Timesheet approved successfully");
+            setApproveOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+            onActionCompleted?.();
+          } catch (err) {
+            message.error("Action failed");
+          } finally {
+            setLoading(false);
+          }
+        }}
+      >
+        <Text>You are about to approve the timesheet for <strong>{selectedTimesheet?.user?.name}</strong>. This will finalize the entries for this period.</Text>
+      </Modal>
+
+      <Modal
+        title="Full Description"
+        open={isDescModalOpen}
+        onCancel={closeDesc}
+        footer={null}
+        centered
+      >
+        <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #e2e8f0" }}>
+          <Text style={{ whiteSpace: "pre-wrap", color: "#334155", lineHeight: 1.6 }}>{selectedDesc}</Text>
+        </div>
+      </Modal>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .history-table-row:hover {
+          background-color: #f8fafc !important;
+          cursor: pointer;
+        }
+        .ant-table-thead > tr > th {
+          background-color: #f1f5f9 !important;
+          color: #475569 !important;
+          font-weight: 600 !important;
+          padding: 12px 16px !important;
+          border-bottom: 2px solid #e2e8f0 !important;
+        }
+        .ant-table-tbody > tr > td {
+          padding: 14px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .custom-select-44 .ant-select-selector {
+          height: 44px !important;
+          padding: 4px 11px !important;
+          border-radius: 12px !important;
+        }
+      `}} />
     </div>
   );
 }

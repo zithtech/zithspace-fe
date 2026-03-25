@@ -10,25 +10,34 @@ import {
   Row,
   Col,
   Dropdown,
-  Menu,
   message,
-  Tooltip,
   Modal,
   notification,
   Badge,
 } from "antd";
 import {
-  ClockCircleOutlined,
-  ProjectOutlined,
-  CheckCircleOutlined,
   MoreOutlined,
+  ProjectOutlined,
 } from "@ant-design/icons";
+import {
+  Clock,
+  Trash2,
+  Edit3,
+  ChevronRight,
+  User,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  Activity
+} from "lucide-react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
 import {
   DailyStatusUpdate,
   ProjectUpdate,
@@ -41,8 +50,8 @@ const { Text } = Typography;
 
 interface UpdateCardProps {
   update: DailyStatusUpdate;
-  onOpen: () => void; // drawer open
-  onDelete: () => void; // refresh list
+  onOpen: () => void;
+  onDelete: () => void;
 }
 
 export default function UpdateCard({
@@ -53,30 +62,22 @@ export default function UpdateCard({
   const [api, contextHolder] = notification.useNotification();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const router = useRouter();
 
-  const handleDelete = () => setIsDeleteModalOpen(true);
+  const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
+  const totalHours = projectUpdates.reduce((sum, p) => sum + (p.hoursWorked || 0), 0);
+  const totalTasks = projectUpdates.reduce((sum, p) => sum + (p.tasks?.length || 0), 0);
 
-  const handleCancelDelete = () => {
-    if (isDeleting) return;
-    setIsDeleteModalOpen(false);
-  };
+  const isMissed = Boolean(update.is_missed);
+  const isEditable = dayjs().diff(dayjs(update.createdAt), "hour") < 24;
 
   const handleConfirmDelete = async () => {
-    if (isDeleting) return; // 🔥 PREVENT DOUBLE CALL
-
+    if (isDeleting) return;
     try {
       setIsDeleting(true);
-
       await DailyUpdateService.deleteUpdate(update.id);
-      api.success({
-        message: "Deleted",
-        description: "Daily update deleted successfully",
-        placement: "topRight",
-      });
-      console.log("id", update.id);
-
       message.success("Daily update deleted successfully");
-      onDelete(); // parent refresh/remove item
+      onDelete();
     } catch (err: any) {
       message.error(err.message || "Failed to delete update");
     } finally {
@@ -85,783 +86,206 @@ export default function UpdateCard({
     }
   };
 
-  const projectUpdates = update.projectUpdates as ProjectUpdate[];
-  const totalHours = projectUpdates.reduce(
-    (sum, project) => sum + (project.hoursWorked || 0),
-    0,
-  );
-  const totalTasks = projectUpdates.reduce(
-    (sum, project) => sum + project.tasks.length,
-    0,
-  );
-  const projectCount = projectUpdates.length;
 
-  // Get all tasks
-  const allTasks = projectUpdates.flatMap((project) => project.tasks);
-
-  // Calculate status summary
-  const statusSummary = allTasks.reduce(
-    (acc, task) => {
-      acc[task.status] = (acc[task.status] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  // Get time range
-  const startTimes = projectUpdates.map((p) => new Date(p.startTime).getTime());
-  const endTimes = projectUpdates.map((p) => new Date(p.endTime).getTime());
-  const earliestStart = new Date(Math.min(...startTimes));
-  const latestEnd = new Date(Math.max(...endTimes));
-
-  const getMoodEmoji = (mood?: string) => {
-    switch (mood) {
-      case "happy":
-        return "😊";
-      case "neutral":
-        return "😐";
-      case "stressed":
-        return "😰";
-      case "blocked":
-        return "🚫";
-      default:
-        return "😐";
-    }
-  };
-
-  const getStatusConfig = (status: string) => {
-    const configs: Record<
-      string,
-      { icon: string; color: string; label: string }
-    > = {
-      pending: { icon: "⏳", color: "default", label: "Pending" },
-      in_progress: { icon: "⚙️", color: "processing", label: "In Progress" },
-      dev_complete: { icon: "✅", color: "success", label: "Complete" },
-      in_testing: { icon: "🧪", color: "warning", label: "Testing" },
-      pushed_to_staging: { icon: "🚀", color: "cyan", label: "Staging" },
-      pushed_to_production: {
-        icon: "🎉",
-        color: "purple",
-        label: "Production",
-      },
-    };
-    return configs[status] || configs.pending;
-  };
-
-  const formatTime = (date: Date) => {
-    return dayjs(date).format("h:mm A");
-  };
-
-  const truncateText = (text: string, maxLength: number = 40) => {
-    return text.length > maxLength
-      ? text.substring(0, maxLength) + "..."
-      : text;
-  };
-  //const isMissed = update.is_missed === true;
-  const isMissed = Boolean(update.is_missed);
-  console.log("isMissed", isMissed);
-  // const isMissed = Boolean(update.is_missed);
-  const router = useRouter();
-
-  // 🔥 24 hour edit rule
-  const isEditable = dayjs().diff(dayjs(update.createdAt), "hour") < 24;
-
-  const handleEdit = () => {
-    router.push(`/daily-updates/submit?edit=${update.id}`);
-  };
-  const getUpdateTypeConfig = (type?: string) => {
-  if (type === "BOD") return { text: "BOD", color: "green" };
-  if (type === "EOD") return { text: "EOD", color: "blue" };
-  return null; // null means NO badge
-};
-
-const CardContent = (
-  <Card
-    hoverable
-    onClick={() => { if (!isDeleteModalOpen) onOpen(); }}
-    style={{
-      borderRadius: 8,
-      boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-      cursor: "pointer",
-      height: "100%",
-      transition: "all 0.3s ease",
-    }}
-    bodyStyle={{ padding: 14 }}
-    className="update-card"
-  >
-    <Modal
-            title="Delete Daily Update"
-            open={isDeleteModalOpen}
-            onOk={handleConfirmDelete}
-            onCancel={handleCancelDelete}
-            okText="Yes, Delete"
-            okType="danger"
-            cancelText="Cancel"
-            confirmLoading={isDeleting} // 🔥 IMPORTANT
-          >
-            Are you sure you want to delete this update?
-          </Modal>
-
-          <Row
-            justify="space-between"
-            align="middle"
-            style={{ marginBottom: 8 }}
-          ></Row>
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-              }}
-            >
-              {/* LEFT – Avatar + Name + Mood + Total Hours */}
-              <Space size={8} align="center">
+  return (
+    <>
+      {contextHolder}
+      <Badge.Ribbon
+        text={update.updateType || "EOD"}
+        color={update.updateType === "BOD" ? "#22c55e" : "#3b82f6"}
+        style={{ top: 5, right: -8, fontSize: 10, fontWeight: 700 }}
+      >
+        <Card
+          hoverable
+          onClick={onOpen}
+          style={{
+            borderRadius: 16,
+            border: "1px solid #e2e8f0",
+            overflow: "hidden",
+            background: "#ffffff",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+          }}
+          bodyStyle={{ padding: 0 }}
+          className="premium-update-card"
+        >
+          {/* Header Section */}
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <Space size={10}>
                 <Avatar
-                  size={36}
-                  style={{ backgroundColor: "#1890ff", fontSize: 14 }}
+                  size={32}
+                  style={{
+                    backgroundColor: update.updateType === "BOD" ? "#dcfce7" : "#dbeafe",
+                    color: update.updateType === "BOD" ? "#166534" : "#1e40af",
+                    fontSize: 12,
+                    fontWeight: 700
+                  }}
                 >
                   {update.user?.name.charAt(0).toUpperCase()}
                 </Avatar>
-
-                <Space size={6} wrap>
-                  <Text strong style={{ fontSize: 13 }}>
+                <div>
+                  <Text strong style={{ fontSize: 13, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
                     {update.user?.name}
                   </Text>
-
-                  <Text style={{ fontSize: 12 }}>
-                    {getMoodEmoji(update.mood)}
+                  <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+                    {update.user?.position?.title || "Team Member"}
                   </Text>
-
-                  {/* TOTAL HOURS next to MOOD */}
-                  <Tag
-                    icon={<ClockCircleOutlined />}
-                    color="blue"
-                    style={{ fontSize: 11, margin: 0 }}
-                  >
-                    {formatHours(totalHours)}
-                  </Tag>
-                </Space>
+                </div>
               </Space>
 
-              {/* RIGHT – MISSED + Dropdown */}
-              <div style={{ display: "flex", gap: "5px" }}>
-                {isMissed && (
-                  <Tag color="red" style={{ fontSize: 10, margin: 0 }}>
-                    MISSED
-                  </Tag>
-                )}
-
-                <Dropdown
-                  trigger={["click"]}
-                  menu={{
-                    items: [
-                      { key: "edit", label: "Edit", disabled: !isEditable },
-                      { key: "delete", label: "Delete", danger: true },
-                    ],
-                    onClick: (info) => {
-                      info.domEvent.stopPropagation(); // prevent card click
-                      if (info.key === "edit") handleEdit();
-                      if (info.key === "delete") handleDelete(); // ✅ open modal
-                    },
-                  }}
+              <Dropdown
+                trigger={["click"]}
+                menu={{
+                  items: [
+                    { key: "edit", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Edit3 size={14} /> Edit</span>, disabled: !isEditable },
+                    { key: "delete", label: <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Trash2 size={14} /> Delete</span>, danger: true },
+                  ],
+                  onClick: (info) => {
+                    info.domEvent.stopPropagation();
+                    if (info.key === "edit") router.push(`/daily-updates/submit?edit=${update.id}`);
+                    if (info.key === "delete") setIsDeleteModalOpen(true);
+                  },
+                }}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ cursor: "pointer", padding: 4, borderRadius: 6, color: "#94a3b8" }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "#f8fafc"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                 >
-                  <span
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <MoreOutlined />
-                  </span>
-                </Dropdown>
-              </div>
+                  <MoreOutlined />
+                </div>
+              </Dropdown>
+            </div>
+          </div>
+
+          <div style={{ padding: 16 }}>
+            {/* Quick Stats Row */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <Tag style={{
+                margin: 0,
+                borderRadius: 6,
+                border: "none",
+                background: "#f0f9ff",
+                color: "#0ea5e9",
+                fontSize: 11,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 4
+              }}>
+                <Clock size={12} /> {formatHours(totalHours)}
+              </Tag>
+              <Tag style={{
+                margin: 0,
+                borderRadius: 6,
+                border: "none",
+                background: "#f8fafc",
+                color: "#64748b",
+                fontSize: 11,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: 4
+              }}>
+                <ProjectOutlined style={{ fontSize: 12 }} /> {projectUpdates.length} Projects
+              </Tag>
+              {isMissed && (
+                <Tag style={{
+                  margin: 0,
+                  borderRadius: 6,
+                  border: "none",
+                  background: "#fff1f2",
+                  color: "#e11d48",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase"
+                }}>
+                  Missed
+                </Tag>
+              )}
             </div>
 
-            {/* POSITION */}
-            <Text
-              type="secondary"
-              style={{
-                fontSize: 11,
-                display: "block",
-                marginTop: 4,
-                marginLeft: 44,
-              }}
-            >
-              {update.user?.position?.title || ""}
-            </Text>
-          </div>
-
-          {/* Project Display - Smart Logic */}
-          <div style={{ marginBottom: 10, marginTop: 8 }}>
-            {projectCount === 1 ? (
-              <div
-                style={{
-                  padding: 8,
-                  backgroundColor: "#fafafa",
-                  borderRadius: 4,
-                  border: "1px solid #e8e8e8",
-                }}
-              >
-                <Text style={{ fontSize: 12 }}>
-                  📦 {projectUpdates[0].projectName}
-                </Text>
+            {/* Work Content Snapshot */}
+            <div style={{
+              background: "#f8fafc",
+              borderRadius: 12,
+              padding: 10,
+              border: "1px solid #f1f5f9",
+              marginBottom: 12
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                <Activity size={12} color="#94a3b8" />
+                <Text strong style={{ fontSize: 11, color: "#64748b" }}>Recent Tasks ({totalTasks})</Text>
               </div>
-            ) : (
-              <div
-                style={{
-                  padding: 8,
-                  backgroundColor: "#fafafa",
-                  borderRadius: 4,
-                  border: "1px solid #e8e8e8",
-                }}
-              >
-                <Space size={4}>
-                  <ProjectOutlined style={{ fontSize: 12, color: "#595959" }} />
-                  <Text style={{ fontSize: 12 }}>{projectCount} Projects</Text>
-                </Space>
-              </div>
-            )}
-          </div>
-
-          {/* Task Display - Smart Logic */}
-          <div style={{ marginBottom: 10 }}>
-            {totalTasks === 1 ? (
-              <div
-                style={{
-                  padding: 8,
-                  backgroundColor: "#fafafa",
-                  borderRadius: 4,
-                  border: "1px solid #e8e8e8",
-                }}
-              >
-                {allTasks[0].type === "ticket" ? (
-                  <Text style={{ fontSize: 11 }}>
-                    🎫 {allTasks[0].ticketNumber}
-                  </Text>
-                ) : (
-                  <Text style={{ fontSize: 11 }} ellipsis>
-                    {truncateText(allTasks[0].description || "", 40)}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {projectUpdates.slice(0, 2).map((p, idx) => (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1" }} />
+                    <Text ellipsis style={{ fontSize: 11, color: "#475569", flex: 1 }}>
+                      <span style={{ fontWeight: 600 }}>{p.projectName}:</span> {p.tasks?.[0]?.description || p.tasks?.[0]?.ticketNumber || "No tasks listed"}
+                    </Text>
+                  </div>
+                ))}
+                {projectUpdates.length > 2 && (
+                  <Text style={{ fontSize: 10, color: "#94a3b8", marginLeft: 10 }}>
+                    + {projectUpdates.length - 2} more projects
                   </Text>
                 )}
               </div>
-            ) : (
-              <div
-                style={{
-                  padding: 8,
-                  backgroundColor: "#fafafa",
-                  borderRadius: 4,
-                  border: "1px solid #e8e8e8",
-                }}
-              >
-                <Space size={4}>
-                  <CheckCircleOutlined
-                    style={{ fontSize: 12, color: "#595959" }}
-                  />
-                  <Text style={{ fontSize: 12 }}>{totalTasks} Tasks</Text>
-                </Space>
-              </div>
-            )}
-          </div>
+            </div>
 
-          {/* Time Tracking - Detailed */}
-          <div
-            style={{
-              marginBottom: 10,
-              padding: 10,
-              backgroundColor: "#fafafa",
-              borderRadius: 4,
-              border: "1px solid #e8e8e8",
-            }}
-          >
-            <Text
-              strong
-              style={{
-                fontSize: 11,
-                display: "block",
-                marginBottom: 8,
-                color: "#595959",
-              }}
-            >
-              ⏰ Time Tracking
-            </Text>
-            <Space direction="vertical" size={4} style={{ width: "100%" }}>
-              <Row justify="space-between">
-                <Text style={{ fontSize: 10, color: "#8c8c8c" }}>Start:</Text>
-                <Text strong style={{ fontSize: 11 }}>
-                  {formatTime(earliestStart)}
+            {/* Footer Row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f1f5f9", paddingTop: 12 }}>
+              <Space direction="vertical" size={2}>
+                {/* <Text style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>DUE DATE</Text>
+                <Text style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>
+                  {dayjs(update.date).format("MMM D, YYYY")}
+                </Text> */}
+                <Text type="secondary" style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>
+                  Due Date:{" "}
+                  {update.is_missed && update.missed_updateAt
+                    ? dayjs(update.missed_updateAt).format("DD MMM YYYY")
+                    : dayjs(update.createdAt).format("DD MMM YYYY")}
                 </Text>
-              </Row>
-              <Row justify="space-between">
-                <Text style={{ fontSize: 10, color: "#8c8c8c" }}>End:</Text>
-                <Text strong style={{ fontSize: 11 }}>
-                  {formatTime(latestEnd)}
-                </Text>
-              </Row>
-              <div
-                style={{ borderTop: "1px solid #e8e8e8", margin: "4px 0" }}
-              />
-              <Row justify="space-between">
-                <Text strong style={{ fontSize: 10 }}>
-                  Total:
-                </Text>
-                <Text strong style={{ fontSize: 12 }}>
-                  {formatHours(totalHours)}
-                </Text>
-              </Row>
-            </Space>
-          </div>
+              </Space>
 
-          {/* Task Summary - Detailed */}
-          {Object.keys(statusSummary).length > 0 && (
-            <div
-              style={{
-                marginBottom: 10,
-                padding: 10,
-                backgroundColor: "#fafafa",
-                borderRadius: 4,
-                border: "1px solid #e8e8e8",
-              }}
-            >
-              <Text
-                strong
-                style={{
-                  fontSize: 11,
-                  display: "block",
-                  marginBottom: 8,
-                  color: "#595959",
-                }}
-              >
-                📊 Task Summary
-              </Text>
-              <Space direction="vertical" size={3} style={{ width: "100%" }}>
-                {/* Sort statuses by priority */}
-                {[
-                  "pushed_to_production",
-                  "pushed_to_staging",
-                  "in_testing",
-                  "dev_complete",
-                  "in_progress",
-                  "pending",
-                ]
-                  .filter((status) => statusSummary[status])
-                  .map((status) => {
-                    const config = getStatusConfig(status);
-                    return (
-                      <Row key={status} justify="space-between" align="middle">
-                        <Space size={4}>
-                          <Text style={{ fontSize: 10 }}>{config.icon}</Text>
-                          <Text style={{ fontSize: 10, color: "#8c8c8c" }}>
-                            {config.label}
-                          </Text>
-                        </Space>
-                        <Text strong style={{ fontSize: 11, color: "#262626" }}>
-                          {statusSummary[status]}
-                        </Text>
-                      </Row>
-                    );
-                  })}
+              <Space direction="vertical" size={2} align="end">
+                <Text style={{ fontSize: 10, color: "#94a3b8", display: "block" }}>SUBMITTED ON</Text>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Text style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>
+                    {dayjs(update.createdAt).format("MMM D, h:mm A")}
+                  </Text>
+                  {/* <ChevronRight size={14} color="#0ea5e9" /> */}
+                </div>
               </Space>
             </div>
-          )}
-          {/*footer*/}
-
-          <div
-            style={{
-              marginTop: 10,
-              paddingTop: 8,
-              borderTop: "1px solid #f0f0f0",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            {/* LEFT SIDE – Due Date (always) */}
-            {/* <Text type="secondary" style={{ fontSize: 10 }}>
-          Due Date:{" "}
-          {dayjs(
-            update.is_missed
-              ? update.missed_updateAt // missed ON → picked date
-              : dayjs().tz("Asia/Kolkata") // missed OFF → same-day date
-          ).format("DD MMM YYYY")}
-        </Text> */}
-            <Text type="secondary" style={{ fontSize: 10 }}>
-              Due Date:{" "}
-              {update.is_missed && update.missed_updateAt
-                ? dayjs(update.missed_updateAt).format("DD MMM YYYY")
-                : dayjs(update.createdAt).format("DD MMM YYYY")}
-            </Text>
-
-            {/* RIGHT SIDE – Submitted Date & Time (always) */}
-            <Text type="secondary" style={{ fontSize: 10 }}>
-              Submitted: {dayjs(update.createdAt).format("DD MMM YYYY, h:mm A")}
-            </Text>
           </div>
-    {/* ALL your existing Card content goes here */}
-  </Card>
-);
-
-
-
-
-  // return (
-  //   <>
-  //     {contextHolder}
-  //     <Badge.Ribbon
-  //       text={getUpdateTypeConfig(update.updateType).text}
-  //       color={getUpdateTypeConfig(update.updateType).color}
-  //       placement="end" // start = top-left, end = top-right
-  //     >
-
-  //       <Card
-  //         hoverable
-  //         //onClick={onOpen}
-  //         onClick={() => {
-  //           if (!isDeleteModalOpen) {
-  //             onOpen();
-  //           }
-  //         }}
-  //         style={{
-  //           borderRadius: 8,
-  //           boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-  //           cursor: "pointer",
-  //           height: "100%",
-  //           transition: "all 0.3s ease",
-  //         }}
-  //         bodyStyle={{ padding: 14 }}
-  //         className="update-card"
-  //       >
-  //         <Modal
-  //           title="Delete Daily Update"
-  //           open={isDeleteModalOpen}
-  //           onOk={handleConfirmDelete}
-  //           onCancel={handleCancelDelete}
-  //           okText="Yes, Delete"
-  //           okType="danger"
-  //           cancelText="Cancel"
-  //           confirmLoading={isDeleting} // 🔥 IMPORTANT
-  //         >
-  //           Are you sure you want to delete this update?
-  //         </Modal>
-
-  //         <Row
-  //           justify="space-between"
-  //           align="middle"
-  //           style={{ marginBottom: 8 }}
-  //         ></Row>
-  //         <div>
-  //           <div
-  //             style={{
-  //               display: "flex",
-  //               alignItems: "center",
-  //               justifyContent: "space-between",
-  //               width: "100%",
-  //             }}
-  //           >
-  //             {/* LEFT – Avatar + Name + Mood + Total Hours */}
-  //             <Space size={8} align="center">
-  //               <Avatar
-  //                 size={36}
-  //                 style={{ backgroundColor: "#1890ff", fontSize: 14 }}
-  //               >
-  //                 {update.user?.name.charAt(0).toUpperCase()}
-  //               </Avatar>
-
-  //               <Space size={6} wrap>
-  //                 <Text strong style={{ fontSize: 13 }}>
-  //                   {update.user?.name}
-  //                 </Text>
-
-  //                 <Text style={{ fontSize: 12 }}>
-  //                   {getMoodEmoji(update.mood)}
-  //                 </Text>
-
-  //                 {/* TOTAL HOURS next to MOOD */}
-  //                 <Tag
-  //                   icon={<ClockCircleOutlined />}
-  //                   color="blue"
-  //                   style={{ fontSize: 11, margin: 0 }}
-  //                 >
-  //                   {formatHours(totalHours)}
-  //                 </Tag>
-  //               </Space>
-  //             </Space>
-
-  //             {/* RIGHT – MISSED + Dropdown */}
-  //             <div style={{ display: "flex", gap: "5px" }}>
-  //               {isMissed && (
-  //                 <Tag color="red" style={{ fontSize: 10, margin: 0 }}>
-  //                   MISSED
-  //                 </Tag>
-  //               )}
-
-  //               <Dropdown
-  //                 trigger={["click"]}
-  //                 menu={{
-  //                   items: [
-  //                     { key: "edit", label: "Edit", disabled: !isEditable },
-  //                     { key: "delete", label: "Delete", danger: true },
-  //                   ],
-  //                   onClick: (info) => {
-  //                     info.domEvent.stopPropagation(); // prevent card click
-  //                     if (info.key === "edit") handleEdit();
-  //                     if (info.key === "delete") handleDelete(); // ✅ open modal
-  //                   },
-  //                 }}
-  //               >
-  //                 <span
-  //                   onClick={(e) => e.stopPropagation()}
-  //                   style={{ cursor: "pointer" }}
-  //                 >
-  //                   <MoreOutlined />
-  //                 </span>
-  //               </Dropdown>
-  //             </div>
-  //           </div>
-
-  //           {/* POSITION */}
-  //           <Text
-  //             type="secondary"
-  //             style={{
-  //               fontSize: 11,
-  //               display: "block",
-  //               marginTop: 4,
-  //               marginLeft: 44,
-  //             }}
-  //           >
-  //             {update.user?.position}
-  //           </Text>
-  //         </div>
-
-  //         {/* Project Display - Smart Logic */}
-  //         <div style={{ marginBottom: 10, marginTop: 8 }}>
-  //           {projectCount === 1 ? (
-  //             <div
-  //               style={{
-  //                 padding: 8,
-  //                 backgroundColor: "#fafafa",
-  //                 borderRadius: 4,
-  //                 border: "1px solid #e8e8e8",
-  //               }}
-  //             >
-  //               <Text style={{ fontSize: 12 }}>
-  //                 📦 {projectUpdates[0].projectName}
-  //               </Text>
-  //             </div>
-  //           ) : (
-  //             <div
-  //               style={{
-  //                 padding: 8,
-  //                 backgroundColor: "#fafafa",
-  //                 borderRadius: 4,
-  //                 border: "1px solid #e8e8e8",
-  //               }}
-  //             >
-  //               <Space size={4}>
-  //                 <ProjectOutlined style={{ fontSize: 12, color: "#595959" }} />
-  //                 <Text style={{ fontSize: 12 }}>{projectCount} Projects</Text>
-  //               </Space>
-  //             </div>
-  //           )}
-  //         </div>
-
-  //         {/* Task Display - Smart Logic */}
-  //         <div style={{ marginBottom: 10 }}>
-  //           {totalTasks === 1 ? (
-  //             <div
-  //               style={{
-  //                 padding: 8,
-  //                 backgroundColor: "#fafafa",
-  //                 borderRadius: 4,
-  //                 border: "1px solid #e8e8e8",
-  //               }}
-  //             >
-  //               {allTasks[0].type === "ticket" ? (
-  //                 <Text style={{ fontSize: 11 }}>
-  //                   🎫 {allTasks[0].ticketNumber}
-  //                 </Text>
-  //               ) : (
-  //                 <Text style={{ fontSize: 11 }} ellipsis>
-  //                   {truncateText(allTasks[0].description || "", 40)}
-  //                 </Text>
-  //               )}
-  //             </div>
-  //           ) : (
-  //             <div
-  //               style={{
-  //                 padding: 8,
-  //                 backgroundColor: "#fafafa",
-  //                 borderRadius: 4,
-  //                 border: "1px solid #e8e8e8",
-  //               }}
-  //             >
-  //               <Space size={4}>
-  //                 <CheckCircleOutlined
-  //                   style={{ fontSize: 12, color: "#595959" }}
-  //                 />
-  //                 <Text style={{ fontSize: 12 }}>{totalTasks} Tasks</Text>
-  //               </Space>
-  //             </div>
-  //           )}
-  //         </div>
-
-  //         {/* Time Tracking - Detailed */}
-  //         <div
-  //           style={{
-  //             marginBottom: 10,
-  //             padding: 10,
-  //             backgroundColor: "#fafafa",
-  //             borderRadius: 4,
-  //             border: "1px solid #e8e8e8",
-  //           }}
-  //         >
-  //           <Text
-  //             strong
-  //             style={{
-  //               fontSize: 11,
-  //               display: "block",
-  //               marginBottom: 8,
-  //               color: "#595959",
-  //             }}
-  //           >
-  //             ⏰ Time Tracking
-  //           </Text>
-  //           <Space direction="vertical" size={4} style={{ width: "100%" }}>
-  //             <Row justify="space-between">
-  //               <Text style={{ fontSize: 10, color: "#8c8c8c" }}>Start:</Text>
-  //               <Text strong style={{ fontSize: 11 }}>
-  //                 {formatTime(earliestStart)}
-  //               </Text>
-  //             </Row>
-  //             <Row justify="space-between">
-  //               <Text style={{ fontSize: 10, color: "#8c8c8c" }}>End:</Text>
-  //               <Text strong style={{ fontSize: 11 }}>
-  //                 {formatTime(latestEnd)}
-  //               </Text>
-  //             </Row>
-  //             <div
-  //               style={{ borderTop: "1px solid #e8e8e8", margin: "4px 0" }}
-  //             />
-  //             <Row justify="space-between">
-  //               <Text strong style={{ fontSize: 10 }}>
-  //                 Total:
-  //               </Text>
-  //               <Text strong style={{ fontSize: 12 }}>
-  //                 {formatHours(totalHours)}
-  //               </Text>
-  //             </Row>
-  //           </Space>
-  //         </div>
-
-  //         {/* Task Summary - Detailed */}
-  //         {Object.keys(statusSummary).length > 0 && (
-  //           <div
-  //             style={{
-  //               marginBottom: 10,
-  //               padding: 10,
-  //               backgroundColor: "#fafafa",
-  //               borderRadius: 4,
-  //               border: "1px solid #e8e8e8",
-  //             }}
-  //           >
-  //             <Text
-  //               strong
-  //               style={{
-  //                 fontSize: 11,
-  //                 display: "block",
-  //                 marginBottom: 8,
-  //                 color: "#595959",
-  //               }}
-  //             >
-  //               📊 Task Summary
-  //             </Text>
-  //             <Space direction="vertical" size={3} style={{ width: "100%" }}>
-  //               {/* Sort statuses by priority */}
-  //               {[
-  //                 "pushed_to_production",
-  //                 "pushed_to_staging",
-  //                 "in_testing",
-  //                 "dev_complete",
-  //                 "in_progress",
-  //                 "pending",
-  //               ]
-  //                 .filter((status) => statusSummary[status])
-  //                 .map((status) => {
-  //                   const config = getStatusConfig(status);
-  //                   return (
-  //                     <Row key={status} justify="space-between" align="middle">
-  //                       <Space size={4}>
-  //                         <Text style={{ fontSize: 10 }}>{config.icon}</Text>
-  //                         <Text style={{ fontSize: 10, color: "#8c8c8c" }}>
-  //                           {config.label}
-  //                         </Text>
-  //                       </Space>
-  //                       <Text strong style={{ fontSize: 11, color: "#262626" }}>
-  //                         {statusSummary[status]}
-  //                       </Text>
-  //                     </Row>
-  //                   );
-  //                 })}
-  //             </Space>
-  //           </div>
-  //         )}
-  //         {/*footer*/}
-
-  //         <div
-  //           style={{
-  //             marginTop: 10,
-  //             paddingTop: 8,
-  //             borderTop: "1px solid #f0f0f0",
-  //             display: "flex",
-  //             justifyContent: "space-between",
-  //             alignItems: "center",
-  //           }}
-  //         >
-  //           {/* LEFT SIDE – Due Date (always) */}
-  //           {/* <Text type="secondary" style={{ fontSize: 10 }}>
-  //         Due Date:{" "}
-  //         {dayjs(
-  //           update.is_missed
-  //             ? update.missed_updateAt // missed ON → picked date
-  //             : dayjs().tz("Asia/Kolkata") // missed OFF → same-day date
-  //         ).format("DD MMM YYYY")}
-  //       </Text> */}
-  //           <Text type="secondary" style={{ fontSize: 10 }}>
-  //             Due Date:{" "}
-  //             {update.is_missed && update.missed_updateAt
-  //               ? dayjs(update.missed_updateAt).format("DD MMM YYYY")
-  //               : dayjs(update.createdAt).format("DD MMM YYYY")}
-  //           </Text>
-
-  //           {/* RIGHT SIDE – Submitted Date & Time (always) */}
-  //           <Text type="secondary" style={{ fontSize: 10 }}>
-  //             Submitted: {dayjs(update.createdAt).format("DD MMM YYYY, h:mm A")}
-  //           </Text>
-  //         </div>
-  //       </Card>
-  //     </Badge.Ribbon>
-  //   </>
-  // );
-
-const updateTypeConfig = getUpdateTypeConfig(update.updateType);
-
-return (
-  <>
-    {contextHolder}
-    {updateTypeConfig ? (
-      <Badge.Ribbon
-        text={updateTypeConfig.text}
-        color={updateTypeConfig.color}
-        placement="end"
-      >
-        {CardContent}
+        </Card>
       </Badge.Ribbon>
-    ) : (
-      CardContent
-    )}
-  </>
-);
 
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#fee2e2", padding: 8, borderRadius: 10, color: "#ef4444" }}>
+              <AlertCircle size={20} />
+            </div>
+            <span>Delete Daily Update</span>
+          </div>
+        }
+        open={isDeleteModalOpen}
+        onOk={handleConfirmDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        okText="Delete Update"
+        okType="danger"
+        cancelText="Keep it"
+        confirmLoading={isDeleting}
+        centered
+        style={{ borderRadius: 16 }}
+      >
+        <p style={{ color: "#64748b" }}>Are you sure you want to delete this status update? This action cannot be undone.</p>
+      </Modal>
+    </>
+  );
 }
-
-
-

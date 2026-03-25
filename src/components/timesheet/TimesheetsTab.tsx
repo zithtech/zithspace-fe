@@ -14,26 +14,33 @@ import {
   Avatar,
   Divider,
   App,
+  Tooltip,
+  Row,
+  Col,
 } from "antd";
 import {
   PlusOutlined,
-  SearchOutlined,
-  FilterOutlined,
   EyeOutlined,
   EditOutlined,
   RedoOutlined,
   DeleteOutlined,
   MoreOutlined,
   WarningOutlined,
-  CheckCircleOutlined,
-  FileTextOutlined,
-  ClockCircleOutlined,
 } from "@ant-design/icons";
+import {
+  FileText,
+  Search,
+  Filter,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  ChevronRight,
+  MoreVertical,
+} from "lucide-react";
 import dayjs from "dayjs";
 import { useState, useMemo, useEffect } from "react";
-import MainLayout from "@/components/layout/MainLayout";
 import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
 import {
   useTimesheets,
   useDeleteTimesheet,
@@ -51,10 +58,7 @@ type Props = {
 };
 
 export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
-  const searchParams = useSearchParams();
-
   const router = useRouter();
-  const [dataSource, setDataSource] = useState<any[]>([]);
   // For showing the rejection reason modal
   const [showRejectReasonModal, setShowRejectReasonModal] = useState(false);
   const [currentRejectReason, setCurrentRejectReason] = useState("");
@@ -69,36 +73,21 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   const deleteMutation = useDeleteTimesheet();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const { message, notification } = App.useApp();
+  const { message } = App.useApp();
   const [isDescModalOpen, setIsDescModalOpen] = useState(false);
   const [selectedDesc, setSelectedDesc] = useState("");
-  
+
   const closeDesc = () => {
     setIsDescModalOpen(false);
     setSelectedDesc("");
   };
-  
+
   const { data: previewTimesheetData, refetch } = useTimesheetById(
     previewId || undefined,
   );
 
   const { data: allTimesheets, isLoading } = useTimesheets();
-  const [tableHeight, setTableHeight] = useState(0);
 
-  useEffect(() => {
-    const calculateHeight = () => {
-      const vh = window.innerHeight;
-      const headerHeight = 160;
-      const paginationHeight = 54;
-      const padding = 24 * 2;
-      setTableHeight(vh - headerHeight - paginationHeight - padding);
-    };
-
-    calculateHeight();
-    window.addEventListener("resize", calculateHeight);
-    return () => window.removeEventListener("resize", calculateHeight);
-  }, []);
-  
   useEffect(() => {
     if (previewId) {
       refetch();
@@ -107,7 +96,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
 
   const tableData = useMemo(() => {
     if (!allTimesheets?.data) return [];
-    
+
     return allTimesheets.data.map((t) => ({
       key: t.id,
       weekStart: t.weekStart,
@@ -120,16 +109,6 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       rejectReason: t.rejectReason || "",
     }));
   }, [allTimesheets]);
-  
-  const dayIndexMap: Record<string, number> = {
-    Sun: 0,
-    Mon: 1,
-    Tue: 2,
-    Wed: 3,
-    Thu: 4,
-    Fri: 5,
-    Sat: 6,
-  };
 
   // Updated previewColumns to show dynamic dates based on each row's actual date
   const previewColumns = [
@@ -137,15 +116,8 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       title: "Date",
       render: (_: any, row: any) => {
         if (!previewTimesheetData?.weekStart) return "-";
-
-        // Try to get the date from the row data
-        if (row.day) {
-          // If row has a day field (ISO date), use it
-          return dayjs(row.day).format("MMM DD");
-        } else if (row.date) {
-          // If row has a date field, use it
-          return dayjs(row.date).format("MMM DD");
-        }
+        if (row.day) return dayjs(row.day).format("MMM DD");
+        if (row.date) return dayjs(row.date).format("MMM DD");
         return "-";
       },
     },
@@ -198,99 +170,54 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
     },
   ];
 
-  // Updated getPreviewRows to preserve row data
-  // const getPreviewRows = () => {
-  //   if (previewTimesheetData?.rows?.length) {
-  //     // Sort rows by date to ensure chronological order
-  //     const sortedRows = [...previewTimesheetData.rows].sort((a, b) => {
-  //       const dateA = a.day ? dayjs(a.day) : dayjs(a.date);
-  //       const dateB = b.day ? dayjs(b.day) : dayjs(b.date);
-  //       return dateA.valueOf() - dateB.valueOf();
-  //     });
-
-  //     return sortedRows.map((row: any, index: number) => ({
-  //       ...row,
-  //       key: row.id || `row-${index}`,
-  //     }));
-  //   }
-
-  //   // If no data, create 7 empty rows for the week
-  //   return Array.from({ length: 7 }).map((_, index) => ({
-  //     id: index,
-  //     key: `empty-${index}`,
-  //     projectName: "-",
-  //     taskName: "-",
-  //     description: "-",
-  //     hours: 0,
-  //     billable: false,
-  //   }));
-  // };
   const getPreviewRows = () => {
-  if (previewTimesheetData?.rows?.length) {
-    // Sort rows by date to ensure chronological order
-    const sortedRows = [...previewTimesheetData.rows].sort((a: any, b: any) => {
-      // Check if properties exist
-      let dateA, dateB;
-      
-      if (a.day) {
-        dateA = dayjs(a.day);
-      } else if (a.date) {
-        dateA = dayjs(a.date);
-      } else {
-        dateA = dayjs(previewTimesheetData.weekStart);
-      }
-      
-      if (b.day) {
-        dateB = dayjs(b.day);
-      } else if (b.date) {
-        dateB = dayjs(b.date);
-      } else {
-        dateB = dayjs(previewTimesheetData.weekStart);
-      }
-      
-      return dateA.valueOf() - dateB.valueOf();
+    if (previewTimesheetData?.rows?.length) {
+      const sortedRows = [...previewTimesheetData.rows].sort((a: any, b: any) => {
+        let dateA = a.day ? dayjs(a.day) : a.date ? dayjs(a.date) : dayjs(previewTimesheetData.weekStart);
+        let dateB = b.day ? dayjs(b.day) : b.date ? dayjs(b.date) : dayjs(previewTimesheetData.weekStart);
+        return dateA.valueOf() - dateB.valueOf();
+      });
+
+      return sortedRows.map((row: any, index: number) => ({
+        ...row,
+        key: row.id || `row-${index}`,
+      }));
+    }
+
+    return Array.from({ length: 7 }).map((_, index) => {
+      const date = dayjs(previewTimesheetData?.weekStart).startOf("week").add(index, "day");
+      return {
+        id: `empty-${index}`,
+        key: `empty-${index}`,
+        projectName: "-",
+        taskName: "-",
+        description: "-",
+        hours: 0,
+        billable: false,
+        day: date.toISOString(),
+      };
     });
-
-    return sortedRows.map((row: any, index: number) => ({
-      ...row,
-      key: row.id || `row-${index}`,
-    }));
-  }
-
-  // If no data, create 7 empty rows for the week
-  return Array.from({ length: 7 }).map((_, index) => {
-    const date = dayjs(previewTimesheetData?.weekStart)
-      .startOf("week")
-      .add(index, "day");
-    
-    return {
-      id: `empty-${index}`,
-      key: `empty-${index}`,
-      projectName: "-",
-      taskName: "-",
-      description: "-",
-      hours: 0,
-      billable: false,
-      day: date.toISOString(),
-    };
-  });
-};
+  };
 
   /* ------------------ Columns ------------------ */
   const columns = useMemo(
     () => [
       {
-        title: "Date",
+        title: "Week Period",
         render: (_: any, record: any) => {
           if (!record.weekStart) return "-";
-
           const start = dayjs(record.weekStart).day(0);
           const end = dayjs(record.weekStart).day(6);
-
           return (
-            <span>
-              {start.format("MMM DD")} – {end.format("MMM DD")}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                <Text style={{ fontSize: 13, color: "#475569" }}>{start.format("MMM DD")}</Text>
+              </div>
+              <ChevronRight size={14} color="#94a3b8" />
+              <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                <Text style={{ fontSize: 13, color: "#475569" }}>{end.format("MMM DD")}</Text>
+              </div>
+            </div>
           );
         },
       },
@@ -298,70 +225,86 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         title: "Status",
         dataIndex: "status",
         render: (status: string, record: any) => {
+          const statusConfig: any = {
+            APPROVED: { color: "#10b981", icon: <CheckCircle2 size={14} />, label: "Approved" },
+            REJECTED: { color: "#ef4444", icon: <AlertCircle size={14} />, label: "Rejected" },
+            SUBMITTED: { color: "#f59e0b", icon: <Clock size={14} />, label: "Submitted" },
+            DRAFT: { color: "#3b82f6", icon: <FileText size={14} />, label: "Draft" },
+          };
+          const config = statusConfig[status] || { color: "#64748b", icon: <Clock size={14} />, label: status };
+
           return (
             <Space>
-              {status === "APPROVED" && (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <Tag color="green" style={{ marginRight: 0 }}>
-                    Approved
-                  </Tag>
-                  <CheckCircleOutlined style={{ color: "#52c41a" }} />
-                </span>
-              )}
-
+              <Tag
+                icon={config.icon}
+                style={{
+                  borderRadius: 6,
+                  background: `${config.color}12`,
+                  color: config.color,
+                  border: `1px solid ${config.color}30`,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontWeight: 500
+                }}
+              >
+                {config.label}
+              </Tag>
               {status === "REJECTED" && (
-                <>
-                  <Tag color="red">Rejected</Tag>
-                  <EyeOutlined
-                    style={{ color: "#fa8c16", cursor: "pointer" }}
+                <Tooltip title="View Reason">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<EyeOutlined style={{ color: "#ef4444" }} />}
                     onClick={(e) => {
                       e.stopPropagation();
                       setCurrentRejectReason(record.rejectReason);
-                      console.log("rejected", record.rejectReason);
                       setShowRejectReasonModal(true);
                     }}
                   />
-                </>
+                </Tooltip>
               )}
-
-              {status === "SUBMITTED" && <Tag color="orange">Submitted</Tag>}
-              {status === "DRAFT" && <Tag color="blue">Draft</Tag>}
             </Space>
           );
         },
       },
       {
-        title: "Approved By",
+        title: "Approver",
         dataIndex: "approvedBy",
         render: (approvedBy: any) => approvedBy?.name || "-",
       },
       {
-        title: "Created Date",
-        dataIndex: "createdAt",
-      },
-      {
         title: "Total Hours",
         dataIndex: "totalHours",
+        render: (hours: string) => (
+          <Tag style={{ borderRadius: 20, background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontWeight: 600, padding: "0 12px" }}>
+            {hours}
+          </Tag>
+        )
       },
       {
         title: "Leave",
         dataIndex: "leave",
         render: (leave: number) => {
-          if (leave > 0) {
-            return (
-              <Tag color="red" icon={<ClockCircleOutlined />}>
-                {leave} {leave === 1 ? "Day" : "Days"}
-              </Tag>
-            );
-          }
-          return <Tag color="default">0 Days</Tag>;
+          const color = leave > 0 ? "#ef4444" : "#64748b";
+          return (
+            <Tag
+              style={{
+                borderRadius: 6,
+                background: `${color}12`,
+                color: color,
+                border: leave > 0 ? `1px solid ${color}30` : "none"
+              }}
+            >
+              {leave} {leave === 1 ? "Day" : "Days"}
+            </Tag>
+          );
         },
+      },
+      {
+        title: "Created At",
+        dataIndex: "createdAt",
+        render: (date: string) => dayjs(date).format("MMM DD, YYYY"),
       },
       {
         title: "Actions",
@@ -394,8 +337,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
                   icon: <RedoOutlined />,
                   label: "Resubmit",
                   onClick: () => {
-                    goToSubmitTimesheet?.();
-                    setPreviewId(record.key);
+                    goToSubmitTimesheet?.(record.key, "resubmit");
                   },
                 },
                 {
@@ -411,316 +353,274 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
               ],
             }}
           >
-            <Button type="text" icon={<MoreOutlined />} />
+            <Button type="text" icon={<MoreVertical size={16} color="#64748b" />} />
           </Dropdown>
         ),
       },
     ],
-    [router],
+    [goToSubmitTimesheet],
   );
 
   const filteredData = useMemo(() => {
     return tableData.filter((item) => {
       const search = searchText.toLowerCase();
-
       const matchesSearch =
         item.employeeName?.toLowerCase().includes(search) ||
         item.status?.toLowerCase().includes(search) ||
         dayjs(item.weekStart).format("MMM DD").toLowerCase().includes(search);
-
       const matchesStatus = !statusFilter || item.status === statusFilter;
-
       return matchesSearch && matchesStatus;
     });
   }, [tableData, searchText, statusFilter]);
-  
-  const approvedCount = filteredData.filter(
-    (t) => t.status === "APPROVED",
-  ).length;
 
-  const pendingCount = filteredData.filter(
-    (t) => t.status === "SUBMITTED",
-  ).length;
-  
-  const rejectedCount = filteredData.filter(
-    (t) => t.status === "REJECTED",
-  ).length;
+  const stats = [
+    { label: "Approved", value: filteredData.filter(t => t.status === "APPROVED").length, color: "#10b981", icon: CheckCircle2 },
+    { label: "Pending", value: filteredData.filter(t => t.status === "SUBMITTED").length, color: "#f59e0b", icon: Clock },
+    { label: "Rejected", value: filteredData.filter(t => t.status === "REJECTED").length, color: "#ef4444", icon: AlertCircle },
+  ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card style={{ borderRadius: 12 }} bodyStyle={{ padding: "6px 10px" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 16,
-          }}
-        >
-          <div>
-            <Title
-              level={4}
-              style={{
-                marginBottom: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <FileTextOutlined style={{ color: "#1677ff" }} />
-              Timesheets
-            </Title>
-
-            <Text type="secondary" style={{ marginLeft: 28, fontSize: 14 }}>
-              Manage and track employee timesheets
-            </Text>
-            <div style={{ marginTop: 8 }}>
-              <Tag style={{ marginLeft: "27px" }} color="green">
-                Approved: {approvedCount}
-              </Tag>
-              <Tag color="orange">Pending: {pendingCount}</Tag>
-              <Tag color="red">Rejected: {rejectedCount}</Tag>
+    <div style={{
+      margin: "0 -24px",
+      padding: "0 32px 24px 32px",
+      background: "#ffffff",
+      height: "calc(100vh - 72px)",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    }}>
+      {/* Header Section */}
+      <div style={{ 
+        marginBottom: 16, 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "flex-end", 
+        gap: 24,
+        position: "sticky",
+        top: 0,
+        background: "#ffffff",
+        zIndex: 10,
+        padding: "24px 0 12px 0"
+      }}>
+        <div style={{ flex: 1 }}>
+          <Space size={14} align="center">
+            <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+              <FileText size={28} />
             </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 16,
-              alignItems: "center",
-              marginBottom: 4,
+            <div>
+              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Timesheets</Title>
+              <Text style={{ color: "#64748b", fontSize: 15 }}>Manage and track your weekly timesheet submissions.</Text>
+            </div>
+          </Space>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Input
+            placeholder="Search timesheets..."
+            prefix={<Search size={16} color="#94a3b8" />}
+            style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid #e2e8f0" }}
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            allowClear
+          />
+          <Dropdown
+            menu={{
+              items: [
+                { key: "all", label: "All Statuses" },
+                { key: "APPROVED", label: "Approved" },
+                { key: "REJECTED", label: "Rejected" },
+                { key: "SUBMITTED", label: "Submitted" },
+                { key: "DRAFT", label: "Draft" },
+              ],
+              onClick: ({ key }) => setStatusFilter(key === "all" ? null : key),
             }}
           >
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Search timesheets"
-              style={{ width: 220 }}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-            />
-
-            <Dropdown
-              menu={{
-                items: [
-                  { key: "all", label: "All" },
-                  { key: "APPROVED", label: "Approved" },
-                  { key: "REJECTED", label: "Rejected" },
-                  { key: "SUBMITTED", label: "Submitted" },
-                ],
-                onClick: ({ key }) =>
-                  setStatusFilter(key === "all" ? null : key),
-              }}
-            >
-              <Button
-                style={{ width: 100, padding: "8px 8px" }}
-                icon={<FilterOutlined />}
-              >
-                {statusFilter ?? "Filter"}
-              </Button>
-            </Dropdown>
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              loading={loading}
-              onClick={() => goToSubmitTimesheet()}
+              style={{ borderRadius: 12, height: 44, display: "flex", alignItems: "center", gap: 8 }}
+              icon={<Filter size={16} />}
             >
-              Create Timesheet
+              {statusFilter ? statusFilter.charAt(0) + statusFilter.slice(1).toLowerCase() : "Filter"}
             </Button>
-          </div>
+          </Dropdown>
+          <Button
+            type="primary"
+            size="large"
+            icon={<PlusOutlined />}
+            style={{ borderRadius: 10, height: 44, fontWeight: 500 }}
+            onClick={() => goToSubmitTimesheet()}
+          >
+            Create Timesheet
+          </Button>
         </div>
+      </div>
 
-        <Divider style={{ margin: "8px 0" }} />
+      <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+        {/* Mini Stats Row */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        {stats.map(stat => (
+          <Col key={stat.label} xs={24} sm={8}>
+            <div style={{
+              padding: "16px 20px",
+              background: `${stat.color}08`,
+              borderRadius: 14,
+              border: `1px solid ${stat.color}15`,
+              display: "flex",
+              alignItems: "center",
+              gap: 12
+            }}>
+              <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 10, display: "flex" }}>
+                <stat.icon size={18} />
+              </div>
+              <div>
+                <Text style={{ color: "#64748b", fontSize: 13, display: "block" }}>{stat.label}</Text>
+                <Text style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{stat.value}</Text>
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
 
+      <Card
+        bordered={false}
+        style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+        bodyStyle={{ padding: "0" }}
+      >
         <Table
-          className="compact-table"
+          loading={isLoading}
           columns={columns}
           dataSource={filteredData}
-          pagination={{ pageSize: 10 }}
           rowKey="key"
-          size="small"
-          bordered
+          size="middle"
+          pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+          rowClassName={() => "history-table-row"}
+          scroll={{ x: 1000 }}
         />
       </Card>
+      </div>
 
       <Modal
         open={showRejectReasonModal}
         onCancel={() => setShowRejectReasonModal(false)}
-        footer={
-          <div style={{ textAlign: "right" }}>
-            <Button
-              type="primary"
-              danger={false}
-              onClick={() => setShowRejectReasonModal(false)}
-              style={{ minWidth: 120 }}
-            >
-              Close
-            </Button>
-          </div>
-        }
+        footer={[
+          <Button key="close" type="primary" onClick={() => setShowRejectReasonModal(false)} style={{ borderRadius: 8 }}>
+            Got it
+          </Button>
+        ]}
         centered
         width={450}
-        bodyStyle={{ padding: 0 }}
+        title={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><AlertCircle size={20} color="#ef4444" /> Rejection Reason</div>}
       >
-        <div style={{ display: "flex" }}>
-          <div style={{ padding: 24, flex: 1 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 16,
-              }}
-            >
-              <WarningOutlined style={{ fontSize: 22, color: "#ff4d4f" }} />
-              <div>
-                <Text strong style={{ fontSize: 18, display: "block" }}>
-                  Rejection Reason
-                </Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Manager feedback for this timesheet
-                </Text>
-              </div>
-            </div>
-
-            <div
-              style={{
-                background: "#ffffff",
-                borderRadius: 12,
-                padding: 18,
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "#262626",
-                whiteSpace: "pre-line",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                minHeight: 90,
-              }}
-            >
-              {currentRejectReason ||
-                "No rejection reason provided by manager."}
-            </div>
+        <div style={{ padding: "8px 0" }}>
+          <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>Manager feedback for this timesheet:</Text>
+          <div style={{ background: "#fff1f0", border: "1px solid #ffa39e", borderRadius: 10, padding: 16, color: "#1e293b", lineHeight: 1.6 }}>
+            {currentRejectReason || "No reasons provided."}
           </div>
         </div>
       </Modal>
-      
+
       <Modal
         open={previewOpen}
         onCancel={() => setPreviewOpen(false)}
-        width={1000}
+        width={800}
         centered
-        bodyStyle={{ padding: 24, background: "#fcfcfc" }}
+        bodyStyle={{ padding: "0 24px 24px 24px" }}
+        title={
+          <div style={{ padding: "16px 0", borderBottom: "1px solid #f1f5f9", marginBottom: 16 }}>
+            {previewTimesheetData && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Avatar size={40} style={{ backgroundColor: "#0ea5e9", fontWeight: 700, fontSize: 16 }}>
+                    {previewTimesheetData.user?.name?.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <div>
+                    <Text strong style={{ margin: 0, color: "#1e293b", fontSize: 16, display: "block", lineHeight: 1.2 }}>{previewTimesheetData.user?.name}</Text>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                      <Calendar size={12} color="#64748b" />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {dayjs(previewTimesheetData.weekStart).format("MMM DD")} – {dayjs(previewTimesheetData.weekEnd).format("MMM DD, YYYY")}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Tag color="blue" style={{ borderRadius: 6, fontWeight: 600, fontSize: 12, margin: 0, padding: "2px 10px" }}>Total: {previewTimesheetData.totalHours}h</Tag>
+                  <Tag color={previewTimesheetData.status === "APPROVED" ? "success" : previewTimesheetData.status === "REJECTED" ? "error" : "warning"} style={{ borderRadius: 6, fontWeight: 600, fontSize: 12, margin: 0, padding: "2px 10px" }}>
+                    {previewTimesheetData.status}
+                  </Tag>
+                </div>
+              </div>
+            )}
+          </div>
+        }
         footer={[
-          <Button key="close" onClick={() => setPreviewOpen(false)}>
+          <Button key="close" onClick={() => setPreviewOpen(false)} style={{ borderRadius: 8, height: 40, padding: "0 24px" }}>
             Close
           </Button>,
         ]}
-        title={
-          previewTimesheetData && (
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <Avatar
-                size={48}
-                style={{ backgroundColor: "#1677ff", fontWeight: 600 }}
-              >
-                {previewTimesheetData.user?.name?.charAt(0).toUpperCase()}
-              </Avatar>
-
-              <div>
-                <Title level={4} style={{ margin: 0 }}>
-                  {previewTimesheetData.user?.name || "-"}
-                </Title>
-                <Tag color="blue" style={{ marginTop: 4 }}>
-                  {dayjs(previewTimesheetData.weekStart).format("MMM DD")} –{" "}
-                  {dayjs(previewTimesheetData.weekEnd).format("MMM DD, YYYY")}
-                </Tag>
-              </div>
-            </div>
-          )
-        }
       >
-        {/* Summary Section */}
-        {previewTimesheetData && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "12px 16px",
-              background: "#f5f7fa",
-              borderRadius: 6,
-              marginBottom: 16,
-              fontWeight: 500,
-            }}
-          >
-            <Text>Total Hours: {previewTimesheetData.totalHours}h</Text>
-            <Tag
-              color={
-                previewTimesheetData.status === "APPROVED"
-                  ? "green"
-                  : previewTimesheetData.status === "REJECTED"
-                    ? "red"
-                    : "orange"
-              }
-            >
-              {previewTimesheetData.status}
-            </Tag>
-          </div>
-        )}
-
-        {/* Timesheet Table */}
         <Table
-          columns={previewColumns}
+          columns={previewColumns as any}
           dataSource={getPreviewRows()}
           pagination={false}
           bordered
           rowKey="id"
-          size="middle"
-          rowClassName={(_, index) =>
-            index % 2 === 0 ? "table-row-light" : "table-row-dark"
-          }
+          size="small"
           loading={!previewTimesheetData}
         />
       </Modal>
-      
+
       <Modal
         open={showDeleteModal}
         onCancel={() => setShowDeleteModal(false)}
         centered
         title="Confirm Deletion"
-        footer={[
-          <Button key="cancel" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>,
-          <Button
-            key="delete"
-            type="primary"
-            loading={loading}
-            danger
-            onClick={() => {
-              if (deleteId) {
-                deleteMutation.mutate(deleteId, {
-                  onSuccess: () => {
-                    setShowDeleteModal(false);
-                    message.success("Timesheet deleted successfully!");
-                  },
-                });
-              }
-            }}
-          >
-            Delete
-          </Button>,
-        ]}
+        okText="Delete"
+        okButtonProps={{ danger: true, style: { borderRadius: 8 } }}
+        cancelButtonProps={{ style: { borderRadius: 8 } }}
+        onOk={() => {
+          if (deleteId) {
+            deleteMutation.mutate(deleteId, {
+              onSuccess: () => {
+                setShowDeleteModal(false);
+                message.success("Timesheet deleted successfully!");
+              },
+            });
+          }
+        }}
       >
-        <Text>Are you sure you want to delete this timesheet?</Text>
+        <Text>Are you sure you want to delete this timesheet? This action cannot be undone.</Text>
       </Modal>
 
       <Modal
-        title="Description"
+        title="Task Description"
         open={isDescModalOpen}
         onCancel={closeDesc}
         footer={null}
         width={600}
+        centered
       >
-        <p style={{ whiteSpace: "pre-wrap" }}>{selectedDesc}</p>
+        <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #e2e8f0" }}>
+          <Text style={{ whiteSpace: "pre-wrap", color: "#334155", lineHeight: 1.6 }}>{selectedDesc}</Text>
+        </div>
       </Modal>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .history-table-row:hover {
+          background-color: #f8fafc !important;
+          cursor: pointer;
+        }
+        .ant-table-thead > tr > th {
+          background-color: #f1f5f9 !important;
+          color: #475569 !important;
+          font-weight: 600 !important;
+          padding: 12px 16px !important;
+          border-bottom: 2px solid #e2e8f0 !important;
+        }
+        .ant-table-tbody > tr > td {
+          padding: 14px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+      `}} />
     </div>
   );
 }

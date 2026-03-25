@@ -2331,6 +2331,22 @@ import {
   DownOutlined,
   UpOutlined,
 } from "@ant-design/icons";
+import {
+  FileText,
+  Calendar,
+  Clock,
+  Plus,
+  ArrowLeft,
+  ArrowRight,
+  ClipboardList,
+  Save,
+  Send,
+  AlertCircle,
+  Copy,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import type { ColumnsType } from "antd/es/table";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -2914,10 +2930,10 @@ export default function SubmittimesheetTab({
           const foundTasks = r.taskIds
             .map((id) => tasks.find((t) => t.id === id))
             .filter(Boolean) as {
-            id: string;
-            name: string;
-            projectId: string;
-          }[];
+              id: string;
+              name: string;
+              projectId: string;
+            }[];
 
           if (foundTasks.length > 0) {
             updatedTaskNames = foundTasks.map((t) => t.name);
@@ -3071,7 +3087,7 @@ export default function SubmittimesheetTab({
         (t: Timesheet) =>
           t.user?.id === sheet?.user?.id &&
           dayjs(t.weekStart).format("YYYY-MM-DD") ===
-            currentDate.startOf("week").format("YYYY-MM-DD"),
+          currentDate.startOf("week").format("YYYY-MM-DD"),
       );
 
       const leaveRows = rows.filter((r) => r.isLeave && !r.isSummary);
@@ -3393,6 +3409,7 @@ export default function SubmittimesheetTab({
   const renderEntryRow = (row: TimesheetRowUI) => {
     const isLeave = row.isLeave;
     const isHoliday = row.isHoliday;
+    const isToday = DAYS.find((d) => d.fullDate === row.date)?.isToday;
     const isWeekendDay = row.day === "Sat" || row.day === "Sun";
 
     return (
@@ -3401,66 +3418,24 @@ export default function SubmittimesheetTab({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "12px",
-          padding: "12px",
-          backgroundColor: isLeave
-            ? "#fff2f0"
-            : isHoliday
-              ? "#f6ffed"
-              : "#ffffff",
-          borderRadius: "8px",
-          marginBottom: "8px",
-          border: isLeave
-            ? "1px solid #ffccc7"
-            : isHoliday
-              ? "1px solid #b7eb8f"
-              : "1px solid #f0f0f0",
-          opacity: isWeekendDay && !isFieldEditable(row) ? 0.7 : 1,
-          width: "100%",
+          gap: 12,
+          padding: "10px 16px",
+          background: isLeave ? "#fff1f2" : isHoliday ? "#f0fdf4" : "#ffffff",
+          borderBottom: "1px solid #f1f5f9",
+          transition: "all 0.2s ease",
+          opacity: isWeekendDay && !isFieldEditable(row) ? 0.6 : 1,
         }}
+        className={`entry-row ${isLeave ? "entry-row-leave" : isHoliday ? "entry-row-holiday" : "entry-row-active"}`}
       >
-        {/* First column - Status/Leave/Holiday Tag */}
-        <div style={{ width: "70px", minWidth: "70px" }}>
-          {isLeave && (
-            <Tag color="red" style={{ width: "100%", textAlign: "center", margin: 0 }}>
-              LEAVE
-            </Tag>
-          )}
-          {isHoliday && !isLeave && (
-            <Tag
-              color="green"
-              icon={<CalendarOutlined />}
-              style={{ width: "100%", textAlign: "center", margin: 0 }}
-            >
-              {row.holidayName?.substring(0, 8) || "HOLIDAY"}
-            </Tag>
-          )}
-          {/* Empty div to maintain alignment when no tag */}
-          {!isLeave && !isHoliday && <div style={{ width: "100%" }}></div>}
-        </div>
-
         {/* Project Select */}
-        <Tooltip
-          title={
-            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
-              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
-              : ""
-          }
-        >
+        <div style={{ width: 150 }}>
           <Select
-            disabled={
-              isViewMode || !isFieldEditable(row) || isLeave || isHoliday
-            }
+            disabled={isViewMode || !isFieldEditable(row) || isLeave || isHoliday}
             bordered={false}
             value={row.projectId}
-            placeholder={
-              isLeave ? "Leave day" : isHoliday ? "Holiday" : "Project"
-            }
-            style={{ width: "150px", minWidth: "150px" }}
-            options={projects.map((p) => ({
-              value: p.id,
-              label: p.name,
-            }))}
+            placeholder="Project"
+            style={{ width: "100%", fontSize: 14 }}
+            options={projects.map((p) => ({ value: p.id, label: p.name }))}
             onChange={(projectId) => {
               const selected = projects.find((p) => p.id === projectId);
               updateRow(row.key, {
@@ -3471,36 +3446,19 @@ export default function SubmittimesheetTab({
               });
             }}
           />
-        </Tooltip>
+        </div>
 
         {/* Tasks Multi-Select */}
-        <Tooltip
-          title={
-            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
-              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
-              : ""
-          }
-        >
+        <div style={{ width: 180 }}>
           <Select
             mode="multiple"
             allowClear
             bordered={false}
             value={row.taskIds}
-            placeholder={
-              isLeave ? "Leave day" : isHoliday ? "Holiday" : "Select tasks"
-            }
-            style={{ width: "180px", minWidth: "180px" }}
-            disabled={
-              isViewMode ||
-              !isFieldEditable(row) ||
-              isLeave ||
-              isHoliday ||
-              !row.projectId
-            }
-            options={getAvailableTasks(row.projectId).map((t) => ({
-              value: t.id,
-              label: t.name,
-            }))}
+            placeholder="Select tasks"
+            style={{ width: "100%", fontSize: 14 }}
+            disabled={isViewMode || !isFieldEditable(row) || isLeave || isHoliday || !row.projectId}
+            options={getAvailableTasks(row.projectId).map((t) => ({ value: t.id, label: t.name }))}
             onChange={(taskIds: string[]) => {
               const selectedTasks = tasks.filter((t) => taskIds.includes(t.id));
               updateRow(row.key, {
@@ -3509,331 +3467,259 @@ export default function SubmittimesheetTab({
               });
             }}
           />
-        </Tooltip>
+        </div>
 
-        {/* Description Input - Expanded */}
-        <Tooltip
-          title={
-            isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
-              ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
-              : ""
-          }
-        >
+        {/* Description Input */}
+        <div style={{ flex: 1 }}>
           <Input
-            placeholder="Description"
+            placeholder="What are you working on?"
             value={row.description}
-            onChange={(e) =>
-              updateRow(row.key, { description: e.target.value })
-            }
-            disabled={
-              isViewMode || !isFieldEditable(row) || isLeave || isHoliday
-            }
-            style={{ flex: 2, minWidth: "220px" }}
+            onChange={(e) => updateRow(row.key, { description: e.target.value })}
+            disabled={isViewMode || !isFieldEditable(row) || isLeave || isHoliday}
+            style={{ width: "100%", fontSize: 14 }}
             bordered={false}
           />
-        </Tooltip>
+        </div>
 
         {/* Hours Input */}
-        <div style={{ width: "80px", minWidth: "80px", textAlign: "center" }}>
-          <Tooltip
-            title={
-              isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
-                ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
-                : ""
-            }
-          >
-            <InputNumber<number>
-              min={0}
-              max={24}
-              step={0.5}
-              value={row.hours}
-              disabled={
-                isViewMode || !isFieldEditable(row) || isLeave || isHoliday
+        <div style={{ width: 80, display: "flex", justifyContent: "center" }}>
+          <InputNumber<number>
+            min={0}
+            max={24}
+            step={0.5}
+            value={row.hours}
+            disabled={isViewMode || !isFieldEditable(row) || isLeave || isHoliday}
+            controls={false}
+            onChange={(value) => {
+              if (!isLeave && !isHoliday) {
+                updateRow(row.key, { hours: value ?? 0 });
               }
-              controls
-              onChange={(value) => {
-                if (!isLeave && !isHoliday) {
-                  updateRow(row.key, {
-                    hours: value ?? 0,
-                  });
-                }
-              }}
-              style={{ width: "70px" }}
-            />
-          </Tooltip>
+            }}
+            style={{ width: 60, textAlign: "center", borderRadius: 6, background: isFieldEditable(row) && !isLeave && !isHoliday ? "#f8fafc" : "transparent" }}
+          />
         </div>
 
-        {/* Billable Switch - Centered */}
-        <div style={{ width: "70px", minWidth: "70px", display: "flex", justifyContent: "center" }}>
-          <Tooltip
-            title={
-              isWeekendDay && !isFieldEditable(row) && !isLeave && !isHoliday
-                ? "This day is disabled. Click the Enable checkbox above to fill the timesheet."
-                : ""
-            }
-          >
-            <Switch
-              disabled={
-                isViewMode || !isFieldEditable(row) || isLeave || isHoliday
-              }
-              checked={row.billable}
-              onChange={(v) =>
-                !isLeave && !isHoliday && updateRow(row.key, { billable: v })
-              }
-              size="small"
-            />
-          </Tooltip>
+        {/* Billable Switch */}
+        <div style={{ width: 70, display: "flex", justifyContent: "center" }}>
+          <Switch
+            disabled={isViewMode || !isFieldEditable(row) || isLeave || isHoliday}
+            checked={row.billable}
+            onChange={(v) => !isLeave && !isHoliday && updateRow(row.key, { billable: v })}
+            size="small"
+          />
         </div>
 
-        {/* Actions - Copy/Delete */}
-        {!isViewMode && !isLeave && !isHoliday && (
-          <div style={{ width: "70px", minWidth: "70px", textAlign: "center" }}>
-            <Space size="middle">
-              <Tooltip
-                title={
-                  isWeekendDay && !isFieldEditable(row)
-                    ? "Enable the day first to copy"
-                    : "Copy entry"
-                }
-              >
-                <SnippetsOutlined
-                  style={{
-                    color: isFieldEditable(row) ? "green" : "#ccc",
-                    cursor: isFieldEditable(row) ? "pointer" : "not-allowed",
-                    fontSize: "16px",
-                  }}
-                  onClick={() => isFieldEditable(row) && handleCopyRow(row)}
-                />
-              </Tooltip>
-              <Tooltip
-                title={
-                  isWeekendDay && !isFieldEditable(row)
-                    ? "Enable the day first to delete"
-                    : "Delete entry"
-                }
-              >
-                <DeleteOutlined
-                  style={{
-                    color: isFieldEditable(row) ? "red" : "#ccc",
-                    cursor: isFieldEditable(row) ? "pointer" : "not-allowed",
-                    fontSize: "16px",
-                  }}
-                  onClick={() => isFieldEditable(row) && handleDeleteRow(row.key)}
-                />
-              </Tooltip>
-            </Space>
+        {/* Actions */}
+        {!isViewMode && (
+          <div style={{ width: 70, display: "flex", justifyContent: "center", gap: 12 }}>
+            {!isLeave && !isHoliday ? (
+              <>
+                <Tooltip title="Copy entry">
+                  <Button
+                    type="text"
+                    icon={<Copy size={16} color={isFieldEditable(row) ? "#64748b" : "#cbd5e1"} />}
+                    disabled={!isFieldEditable(row)}
+                    onClick={() => isFieldEditable(row) && handleCopyRow(row)}
+                    style={{ padding: 0, width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  />
+                </Tooltip>
+                <Tooltip title="Delete entry">
+                  <Button
+                    type="text"
+                    danger
+                    icon={<Trash2 size={16} />}
+                    disabled={!isFieldEditable(row)}
+                    onClick={() => isFieldEditable(row) && handleDeleteRow(row.key)}
+                    style={{ padding: 0, width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  />
+                </Tooltip>
+              </>
+            ) : (
+              <div style={{ width: 64 }} />
+            )}
           </div>
         )}
       </div>
     );
   };
-
   return (
     <>
-      <div
-        style={{
-          padding: 30,
-          marginTop: 0,
-          height: "calc(100vh - 120px)",
+      <div style={{
+        margin: "0 -24px",
+        padding: "0 32px",
+        background: "#ffffff",
+        height: "calc(100vh - 72px)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }}>
+        {/* Header Section */}
+        <div style={{
           display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Card
-          style={{
-            borderRadius: "16px",
-            backgroundColor: "#ffffff",
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-          }}
-          bodyStyle={{
-            padding: "24px",
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-          }}
-        >
-          {/* Sticky Header */}
-          <div
-            className="timesheet-header"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 24,
-              flexWrap: "wrap",
-              position: "sticky",
-              top: 0,
-              backgroundColor: "#ffffff",
-              zIndex: 10,
-              paddingBottom: "16px",
-              borderBottom: "1px solid #f0f0f0",
-              marginBottom: "24px",
-              flexShrink: 0,
-            }}
-          >
-            <div>
-              <Title level={3} style={{ margin: 0, color: "#262626" }}>
-                {isEditMode ? `Edit Timesheet` : `My Timesheet`}
-              </Title>
-              <Text style={{ fontSize: 13, color: "#8c8c8c" }}>
-                {currentDate.format("MMMM YYYY")}
-              </Text>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 24,
+          background: "#ffffff",
+          zIndex: 100,
+          padding: "20px 0 12px 0",
+          borderBottom: "1px solid #f1f5f9",
+          marginBottom: 16,
+          flexShrink: 0
+        }}>
+          <div style={{ flex: 1 }}>
+            <Space size={14} align="center">
+              <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+                <ClipboardList size={28} />
+              </div>
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{isEditMode ? "Edit Timesheet" : "Submit Timesheet"}</Title>
+                <Text style={{ color: "#64748b", fontSize: 15 }}>
+                  {isEditMode
+                    ? "Review and save your updated timesheet for this period."
+                    : "Please fill in your working hours for the current week."}
+                </Text>
+              </div>
+            </Space>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Week Selector Context */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f8fafc", padding: "4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
               <Button
-                icon={<LeftOutlined />}
-                onClick={() => {
-                  setCurrentDate(currentDate.subtract(1, "week"));
-                }}
                 type="text"
-                style={{ color: "#595959" }}
+                icon={<ChevronLeft size={18} />}
+                onClick={() => setCurrentDate(currentDate.subtract(1, "week"))}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 36, width: 36, borderRadius: 8 }}
               />
-              <div
-                style={{
-                  padding: "6px 16px",
-                  backgroundColor: "#fafafa",
-                  borderRadius: 6,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: "#1a1a1a",
-                  minWidth: 200,
-                  textAlign: "center",
-                }}
-              >
-                {currentDate.startOf("week").format("MMM DD")} –{" "}
-                {currentDate.endOf("week").format("MMM DD, YYYY")}
+              <div style={{ padding: "0 16px", fontWeight: 600, color: "#1e293b", fontSize: 14, minWidth: 180, textAlign: "center" }}>
+                {currentDate.startOf("week").format("MMM DD")} – {currentDate.endOf("week").format("MMM DD, YYYY")}
               </div>
               <Button
-                icon={<RightOutlined />}
-                onClick={() => {
-                  setCurrentDate(currentDate.add(1, "week"));
-                }}
                 type="text"
-                style={{ color: "#595959" }}
+                icon={<ChevronRight size={18} />}
+                onClick={() => setCurrentDate(currentDate.add(1, "week"))}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 36, width: 36, borderRadius: 8 }}
               />
             </div>
 
-            <div
-              style={{
-                marginLeft: "auto",
+            <Tooltip title={`${totalHours}h / 40h logged`}>
+              <div style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                padding: "6px 12px",
-                backgroundColor: "#fafafa",
-                borderRadius: 6,
-              }}
+                padding: "6px 16px",
+                background: "#f8fafc",
+                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                height: 44
+              }}>
+                <Clock size={16} color="#64748b" />
+                <div style={{ width: 80 }}>
+                  <Progress
+                    percent={(totalHours / 40) * 100}
+                    showInfo={false}
+                    strokeColor={totalHours >= 40 ? "#10b981" : "#0ea5e9"}
+                    trailColor="#e2e8f0"
+                    strokeWidth={6}
+                  />
+                </div>
+                <Text strong style={{ fontSize: 13, color: "#1e293b" }}>{totalHours}h</Text>
+              </div>
+            </Tooltip>
+
+            <Button
+              icon={<Save size={18} />}
+              loading={saveDraftLoading}
+              onClick={handleSaveDraft}
+              disabled={isViewMode || status === "Submitted"}
+              style={{ height: 44, borderRadius: 10, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}
             >
-              <Text strong style={{ fontSize: 14, whiteSpace: "nowrap" }}>
-                {totalHours}h / 40h
-              </Text>
-              <Progress
-                percent={(totalHours / 40) * 100}
-                showInfo={false}
-                strokeColor={totalHours >= 40 ? "#52c41a" : "#1890ff"}
-                strokeWidth={6}
-                style={{ width: 80 }}
-              />
-            </div>
+              Save Draft
+            </Button>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Button
-                icon={<SaveOutlined />}
-                htmlType="submit"
-                loading={saveDraftLoading}
-                onClick={handleSaveDraft}
-                disabled={isViewMode || status === "Submitted"}
-                style={{
-                  fontWeight: 600,
-                  border: "1px solid grey",
-                  color: "#595959",
-                }}
-              >
-                Save Draft
-              </Button>
-
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={() => setIsSubmitOpen(true)}
-                style={{ minWidth: 100 }}
-              >
-                Submit
-              </Button>
-            </div>
+            <Button
+              type="primary"
+              icon={<Send size={18} />}
+              onClick={() => setIsSubmitOpen(true)}
+              style={{ height: 44, borderRadius: 10, fontWeight: 600, background: "#0ea5e9", borderColor: "#0ea5e9", display: "flex", alignItems: "center", gap: 8 }}
+            >
+              Submit
+            </Button>
           </div>
+        </div>
 
-          <style>
-            {`div[data-scrollable]::-webkit-scrollbar { display: none; }`}
-          </style>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+        .timesheet-scroll-area { 
+          scrollbar-width: none !important; 
+          -ms-overflow-style: none !important;
+        }
+        .timesheet-scroll-area::-webkit-scrollbar { 
+          display: none !important; 
+        }
+        .day-card { 
+          transition: all 0.2s ease; 
+          border: 1px solid #f1f5f9 !important;
+        }
+        .day-card:hover { 
+          border-color: #0ea5e9 !important;
+          box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.05) !important;
+        }
+        .entry-row-active {
+          background: #ffffff;
+        }
+        .entry-row-leave {
+          background: #fff1f2;
+        }
+        .entry-row-holiday {
+          background: #f0fdf4;
+        }
+      `}} />
 
-          {/* Scrollable Content Area */}
-          <div
-            data-scrollable
+        {/* Main Content Card Wrapper */}
+        <div className="timesheet-scroll-area" style={{ flex: 1, overflowY: "auto", padding: "0 0 24px 0", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <Card
+            bordered={false}
             style={{
-              overflowY: "auto",
-              flex: 1,
-              paddingRight: "8px",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
+              borderRadius: 16,
+              border: "1px solid #f1f5f9",
+              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+              overflow: "hidden",
+              marginBottom: 20
             }}
+            bodyStyle={{ padding: "24px 32px" }}
           >
-            {weekLeaveCount > 0 && (
-              <div
-                style={{
-                  marginBottom: 16,
-                  padding: 12,
-                  background: "#fff1f0",
-                  border: "1px solid #ffccc7",
-                  borderRadius: 8,
-                }}
-              >
-                <Space>
-                  <ClockCircleOutlined style={{ color: "#ff4d4f" }} />
-                  <Text strong style={{ color: "#ff4d4f" }}>
-                    Leave Alert:
-                  </Text>
-                  <Text>
-                    You have {weekLeaveCount} leave day(s) this week. Those days
-                    are disabled for timesheet entry.
-                  </Text>
-                </Space>
-              </div>
-            )}
-
-            {weekHolidayCount > 0 && (
-              <div
-                style={{
-                  marginBottom: 16,
-                  padding: 12,
-                  background: "#f6ffed",
-                  border: "1px solid #b7eb8f",
-                  borderRadius: 8,
-                }}
-              >
-                <Space>
-                  <CalendarOutlined style={{ color: "#52c41a" }} />
-                  <Text strong style={{ color: "#52c41a" }}>
-                    Holiday Alert:
-                  </Text>
-                  <Text>
-                    You have {weekHolidayCount} holiday(s) this week. These days
-                    are pre-filled with 8 hours and are not billable.
-                  </Text>
-                </Space>
-              </div>
-            )}
-
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "20px",
-                alignItems: "center",
+                gap: 20,
+                maxWidth: 1000,
+                margin: "0 auto",
+                width: "100%"
               }}
             >
+              {weekLeaveCount > 0 && (
+                <div style={{ padding: "12px 16px", background: "#fff1f2", borderRadius: 12, border: "1px solid #ffe4e6", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ background: "#fff", padding: 6, borderRadius: 8, color: "#f43f5e", display: "flex" }}>
+                    <AlertCircle size={18} />
+                  </div>
+                  <Text style={{ color: "#9f1239", fontSize: 13 }}>
+                    <Text strong style={{ color: "#9f1239" }}>Leave Alert:</Text> You have {weekLeaveCount} leave day(s) this week. These days are disabled for manual entries.
+                  </Text>
+                </div>
+              )}
+
+              {weekHolidayCount > 0 && (
+                <div style={{ padding: "12px 16px", background: "#f0fdf4", borderRadius: 12, border: "1px solid #dcfce7", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ background: "#fff", padding: 6, borderRadius: 8, color: "#10b981", display: "flex" }}>
+                    <Calendar size={18} />
+                  </div>
+                  <Text style={{ color: "#166534", fontSize: 13 }}>
+                    <Text strong style={{ color: "#166534" }}>Holiday Alert:</Text> You have {weekHolidayCount} holiday(s) this week. These days are pre-filled with 8 hours.
+                  </Text>
+                </div>
+              )}
+
               {DAYS.map((day) => {
                 const dayRows = getDayRows(day.label);
                 const dayTotal = getDayTotal(day.label);
@@ -3859,283 +3745,132 @@ export default function SubmittimesheetTab({
                 return (
                   <Card
                     key={day.label}
-                    className="hover-card"
+                    className="day-card"
                     style={{
-                      borderRadius: "12px",
-                      border: isToday
-                        ? "2px solid #1890ff"
-                        : "1px solid #e8e8e8",
-                      backgroundColor: isLeaveDay
-                        ? "#fff2f0"
-                        : isHoliday
-                          ? "#f6ffed"
-                          : "#ffffff",
-                      width: "950px",
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                      borderRadius: 12,
+                      border: isToday ? "1px solid #0ea5e9" : "1px solid #f1f5f9",
+                      background: isLeaveDay ? "#fff1f2" : isHoliday ? "#f0fdf4" : "#ffffff",
                       cursor: "pointer",
-                      flexShrink: 0,
                     }}
-                    bodyStyle={{ padding: "20px" }}
+                    bodyStyle={{ padding: 16 }}
                   >
                     <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                       onClick={() => toggleDayExpand(day.label)}
                     >
-                      <div
-                        style={{
+                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        <div style={{
+                          width: 44,
+                          height: 44,
+                          background: isToday ? "#0ea5e9" : isLeaveDay ? "#f43f5e" : isHoliday ? "#10b981" : "#f8fafc",
+                          borderRadius: 10,
                           display: "flex",
+                          flexDirection: "column",
                           alignItems: "center",
-                          gap: "16px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "38px",
-                            height: "38px",
-                            backgroundColor: isToday
-                              ? "#1890ff"
-                              : isLeaveDay
-                                ? "#ff4d4f"
-                                : isHoliday
-                                  ? "#52c41a"
-                                  : "#f0f0f0",
-                            borderRadius: "8px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color:
-                              isToday || isLeaveDay || isHoliday
-                                ? "white"
-                                : "#595959",
-                            fontSize: "12px",
-                            fontWeight: "bold",
-                            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
-                            gap: "2px",
-                          }}
-                        >
-                          <CalendarOutlined style={{ fontSize: "12px" }} />
-                          <span>{day.dayNumber}</span>
+                          justifyContent: "center",
+                          color: isToday || isLeaveDay || isHoliday ? "white" : "#64748b",
+                          border: isToday || isLeaveDay || isHoliday ? "none" : "1px solid #e2e8f0"
+                        }}>
+                          <Text style={{ color: "inherit", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{day.label.toUpperCase()}</Text>
+                          <Text style={{ color: "inherit", fontSize: 16, fontWeight: 800, lineHeight: 1.2 }}>{day.dayNumber}</Text>
                         </div>
 
                         <div>
-                          <div
-                            style={{
-                              fontSize: "18px",
-                              fontWeight: "600",
-                              color: "#262626",
-                              display: "flex",
-                              gap: "5px",
-                              alignItems: "center",
-                            }}
-                          >
-                            {day.label}
-
-                            {isHoliday && !isLeaveDay && (
-                              <Tag
-                                color="green"
-                                icon={<CalendarOutlined />}
-                                style={{
-                                  fontSize: "10px",
-                                  fontWeight: "bold",
-                                  padding: "2px 8px",
-                                  borderRadius: "12px",
-                                  marginLeft: "8px",
-                                }}
-                              >
-                                {holidayName || "Holiday"}
-                              </Tag>
-                            )}
-
-                            {isLeaveDay && (
-                              <>
-                                {dayRows
-                                  .filter((r) => r.isLeave)
-                                  .map((leaveRow, index) => (
-                                    <Tag
-                                      key={index}
-                                      color={
-                                        leaveRow.leaveType === "sick_leave"
-                                          ? "orange"
-                                          : "red"
-                                      }
-                                      icon={<ClockCircleOutlined />}
-                                      style={{
-                                        fontSize: "10px",
-                                        fontWeight: "bold",
-                                        padding: "2px 8px",
-                                        borderRadius: "12px",
-                                      }}
-                                    >
-                                      {leaveRow.leaveType === "sick_leave"
-                                        ? "Sick Leave"
-                                        : leaveRow.leaveType === "casual_leave"
-                                          ? "Casual Leave"
-                                          : "Leave"}
-                                    </Tag>
-                                  ))}
-                              </>
-                            )}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <Text strong style={{ fontSize: 16, color: "#1e293b" }}>{day.fullDateObj.format("MMMM DD, YYYY")}</Text>
+                            {isToday && <Tag color="blue" style={{ borderRadius: 4, fontWeight: 600 }}>Today</Tag>}
+                            {isHoliday && !isLeaveDay && <Tag color="green" style={{ borderRadius: 4 }}>{holidayName}</Tag>}
+                            {isLeaveDay && <Tag color="red" style={{ borderRadius: 4 }}>On Leave</Tag>}
                           </div>
-                          <div style={{ fontSize: "14px", color: "#8c8c8c" }}>
-                            {day.date}, {day.year}
-                          </div>
+                          <Text style={{ color: "#64748b", fontSize: 13 }}>{dayRows.length} {dayRows.length === 1 ? "entry" : "entries"}</Text>
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "16px",
-                        }}
-                      >
+                      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                         {isExpanded && !isLeaveDay && !isHoliday && (
                           <Button
                             type="primary"
-                            icon={<PlusOutlined />}
+                            icon={<Plus size={14} />}
                             size="small"
                             onClick={(e) => {
                               e.stopPropagation();
                               addEntry(day.label, day.fullDate);
                             }}
                             disabled={isViewMode}
-                            style={{
-                              boxShadow: "0 2px 4px rgba(24, 144, 255, 0.2)",
-                            }}
+                            style={{ borderRadius: 6, background: "#0ea5e9" }}
                           >
                             Add Item
                           </Button>
                         )}
 
-                        {isWeekendDay &&
-                          anyRowEditable &&
-                          !isLeaveDay &&
-                          !isHoliday && (
-                            <Checkbox
-                              checked={allWeekendEnabled}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleWeekendToggle(
-                                  day.label,
-                                  e.target.checked,
-                                  dayRows,
-                                );
-                              }}
-                              style={{ marginRight: 4 }}
-                            >
-                              Enable
-                            </Checkbox>
-                          )}
+                        {isWeekendDay && anyRowEditable && !isLeaveDay && !isHoliday && (
+                          <Checkbox
+                            checked={allWeekendEnabled}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleWeekendToggle(day.label, e.target.checked, dayRows);
+                            }}
+                            style={{ color: "#64748b" }}
+                          >
+                            Enable Weekend
+                          </Checkbox>
+                        )}
 
-                        <div
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            color: isToday ? "#1890ff" : "#595959",
-                            backgroundColor: "#f5f5f5",
-                            padding: "4px 12px",
-                            borderRadius: "20px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                          }}
-                        >
-                          {dayTotal}h
+                        <div style={{
+                          padding: "4px 12px",
+                          background: isToday ? "#0ea5e915" : "#f8fafc",
+                          borderRadius: 20,
+                          border: `1px solid ${isToday ? "#0ea5e930" : "#e2e8f0"}`,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6
+                        }}>
+                          <Clock size={14} color={isToday ? "#0ea5e9" : "#64748b"} />
+                          <Text strong style={{ color: isToday ? "#0ea5e9" : "#1e293b" }}>{dayTotal}h</Text>
                         </div>
-                        <div style={{ color: "#8c8c8c" }}>
-                          {isExpanded ? <UpOutlined /> : <DownOutlined />}
-                        </div>
+
+                        {isExpanded ? <UpOutlined style={{ color: "#94a3b8" }} /> : <DownOutlined style={{ color: "#94a3b8" }} />}
                       </div>
                     </div>
 
                     {isExpanded && (
-                      <div style={{ marginTop: "20px" }}>
+                      <div style={{ marginTop: 20 }}>
                         {dayRows.length > 0 && (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "12px",
-                              padding: "12px",
-                              backgroundColor: "#fafafa",
-                              borderRadius: "8px 8px 0 0",
-                              borderBottom: "2px solid #e8e8e8",
-                              fontWeight: 600,
-                              fontSize: "12px",
-                              color: "#8c8c8c",
-                              textTransform: "uppercase",
-                              letterSpacing: "0.5px",
-                              width: "100%",
-                            }}
-                          >
-                            {/* Empty div for spacing - replaces STATUS column */}
-                            <div style={{ width: "70px", minWidth: "70px" }}></div>
-                            <div style={{ width: "150px", minWidth: "150px" }}>PROJECT</div>
-                            <div style={{ width: "180px", minWidth: "180px" }}>TASKS</div>
-                            <div style={{ flex: 2, minWidth: "220px" }}>DESCRIPTION</div>
-                            <div style={{ width: "80px", minWidth: "80px", textAlign: "center" }}>HOURS</div>
-                            <div style={{ width: "70px", minWidth: "70px", textAlign: "center" }}>BILLABLE</div>
-                            {!isViewMode && (
-                              <div style={{ width: "70px", minWidth: "70px", textAlign: "center" }}>ACTIONS</div>
-                            )}
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            padding: "8px 16px",
+                            background: "#f8fafc",
+                            borderRadius: "8px 8px 0 0",
+                            borderBottom: "1px solid #e2e8f0",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em"
+                          }}>
+                            <div style={{ width: 150 }}>Project</div>
+                            <div style={{ width: 180 }}>Tasks</div>
+                            <div style={{ flex: 1 }}>Description</div>
+                            <div style={{ width: 80, textAlign: "center" }}>Hours</div>
+                            <div style={{ width: 70, textAlign: "center" }}>Billable</div>
+                            {!isViewMode && <div style={{ width: 70, textAlign: "center" }}>Actions</div>}
                           </div>
                         )}
 
-                        {dayRows.length > 0 ? (
-                          dayRows.map((row) => renderEntryRow(row))
-                        ) : (
-                          <div
-                            style={{
-                              padding: "32px",
-                              textAlign: "center",
-                              color: "#8c8c8c",
-                              backgroundColor: "#fafafa",
-                              borderRadius: "8px",
-                              border: "1px dashed #d9d9d9",
-                            }}
-                          >
-                            {isLeaveDay ? (
-                              <div>
-                                <Tag color="red" style={{ marginBottom: 8 }}>
-                                  Leave Day
-                                </Tag>
-                                <div>No entries can be added on leave days</div>
-                              </div>
-                            ) : isHoliday ? (
-                              <div>
-                                <Tag
-                                  color="green"
-                                  icon={<CalendarOutlined />}
-                                  style={{ marginBottom: 8 }}
-                                >
-                                  {holidayName || "Holiday"} (8 hours)
-                                </Tag>
-                                <div>
-                                  Holiday automatically logged with 8 hours
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <ClockCircleOutlined
-                                  style={{
-                                    fontSize: 24,
-                                    marginBottom: 8,
-                                    color: "#bfbfbf",
-                                  }}
-                                />
-                                <div>
-                                  No time entries. Click 'Add Item' to log your
-                                  time.
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                          {dayRows.length > 0 ? (
+                            dayRows.map((row) => renderEntryRow(row))
+                          ) : (
+                            <div style={{ padding: 40, textAlign: "center", background: "#f8fafc", borderRadius: 8, border: "1px dashed #e2e8f0" }}>
+                              <div style={{ color: "#94a3b8", marginBottom: 8 }}><Clock size={32} strokeWidth={1.5} /></div>
+                              <Text style={{ color: "#64748b" }}>
+                                {isLeaveDay ? "No entries allowed on leave days" : isHoliday ? "Holiday hours automatically logged" : "No entries. Click 'Add Item' to record time."}
+                              </Text>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </Card>
@@ -4143,80 +3878,51 @@ export default function SubmittimesheetTab({
               })}
             </div>
 
-            {/* Week Total Footer */}
-            <div
-              style={{
-                marginTop: 32,
-                padding: "20px 32px",
-                backgroundColor: "#fafafa",
-                borderRadius: "12px",
-                border: "1px solid #e8e8e8",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                width: "950px",
-                marginLeft: "auto",
-                marginRight: "auto",
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
-                flexShrink: 0,
-              }}
-            >
-              <Text strong style={{ fontSize: "18px", color: "#262626" }}>
-                Week Total
-              </Text>
-              <div
-                style={{ display: "flex", gap: "40px", alignItems: "center" }}
-              >
-                <div>
-                  <Text
-                    type="secondary"
-                    style={{ marginRight: 8, fontSize: "14px" }}
-                  >
-                    Billable:
-                  </Text>
-                  <Text strong style={{ color: "#52c41a", fontSize: "16px" }}>
-                    {totalBillable}h
-                  </Text>
+            {/* Week Total Footer Area */}
+            <div style={{
+              marginTop: 16,
+              padding: "10px 20px",
+              background: "#f8fafc",
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              maxWidth: 1000,
+              margin: "16px auto 0"
+            }}>
+              <Text strong style={{ color: "#1e293b", fontSize: 14 }}>Weekly Summary</Text>
+              <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <Text style={{ fontSize: 11, color: "#64748b" }}>Billable Hours</Text>
+                  <Text strong style={{ fontSize: 16, color: "#10b981" }}>{totalBillable}h</Text>
                 </div>
-                <div>
-                  <Text
-                    type="secondary"
-                    style={{ marginRight: 8, fontSize: "14px" }}
-                  >
-                    Total:
-                  </Text>
-                  <Text strong style={{ color: "#1890ff", fontSize: "16px" }}>
-                    {totalHours}h
-                  </Text>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <Text style={{ fontSize: 11, color: "#64748b" }}>Total Logged</Text>
+                  <Text strong style={{ fontSize: 16, color: "#0ea5e9" }}>{totalHours}h <Text style={{ fontSize: 12, color: "#94a3b8", fontWeight: 400 }}>/ 40h</Text></Text>
                 </div>
-                {weekLeaveCount > 0 && (
-                  <Tag color="red" icon={<ClockCircleOutlined />}>
-                    {weekLeaveCount} Leave Day(s)
-                  </Tag>
-                )}
-                {weekHolidayCount > 0 && (
-                  <Tag color="green" icon={<CalendarOutlined />}>
-                    {weekHolidayCount} Holiday(s) ({weekHolidayCount * 8}h)
-                  </Tag>
-                )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  {weekLeaveCount > 0 && <Tag color="red" style={{ borderRadius: 6, padding: "2px 10px" }}>{weekLeaveCount} Day Leave</Tag>}
+                  {weekHolidayCount > 0 && <Tag color="green" style={{ borderRadius: 6, padding: "2px 10px" }}>{weekHolidayCount} Day Holiday</Tag>}
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
         {/* Submit Modal */}
         <Modal
           open={isSubmitOpen}
           onCancel={() => setIsSubmitOpen(false)}
           footer={null}
-          width={520}
+          width={460}
           centered
           styles={{
             body: {
               paddingLeft: 16,
               paddingRight: 16,
-              paddingTop: 24,
-              paddingBottom: 24,
+              paddingTop: 16,
+              paddingBottom: 16,
             },
           }}
         >
@@ -4228,13 +3934,13 @@ export default function SubmittimesheetTab({
               margin: 0,
             }}
           >
-            <SendOutlined style={{ color: "#1677ff", fontSize: 20 }} />
+            <SendOutlined style={{ color: "#0ea5e9", fontSize: 16 }} />
             <div>
-              <Text strong style={{ fontSize: 16 }}>
+              <Text strong style={{ fontSize: 14, color: "#1e293b" }}>
                 {isEditMode ? "Save Changes" : "Submit Timesheet"}
               </Text>
               <br />
-              <Text type="secondary">
+              <Text style={{ color: "#64748b", fontSize: 11 }}>
                 {isEditMode
                   ? "Review and save your updated timesheet."
                   : "Review your timesheet summary before submission."}
@@ -4242,70 +3948,73 @@ export default function SubmittimesheetTab({
             </div>
           </div>
 
-          <Divider />
-
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 16,
-              marginBottom: 20,
+              gap: 10,
+              marginTop: 16,
+              marginBottom: 16,
             }}
           >
             <div
               style={{
-                background: "#f2f5f8",
-                borderRadius: 12,
-                padding: 16,
+                background: "#f8fafc",
+                borderRadius: 10,
+                padding: "12px 8px",
                 textAlign: "center",
+                border: "1px solid #f1f5f9"
               }}
             >
-              <ClockCircleOutlined style={{ fontSize: 22, color: "#1677ff" }} />
-              <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
+              <ClockCircleOutlined style={{ fontSize: 18, color: "#0ea5e9" }} />
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: "#1e293b" }}>
                 {totalHours}h
               </div>
-              <div style={{ color: "#6b7a99", fontSize: 13 }}>Total Hours</div>
+              <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>Total Hours</div>
             </div>
 
             <div
               style={{
-                background: "#f2f5f8",
-                borderRadius: 12,
-                padding: 16,
+                background: "#f8fafc",
+                borderRadius: 10,
+                padding: "12px 8px",
                 textAlign: "center",
+                border: "1px solid #f1f5f9"
               }}
             >
-              <DollarOutlined style={{ fontSize: 22, color: "#2fb344" }} />
-              <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
+              <DollarOutlined style={{ fontSize: 18, color: "#10b981" }} />
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: "#1e293b" }}>
                 {totalBillable}h
               </div>
-              <div style={{ color: "#6b7a99", fontSize: 13 }}>Billable</div>
+              <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>Billable</div>
             </div>
 
             <div
               style={{
-                background: "#f2f5f8",
-                borderRadius: 12,
-                padding: 16,
+                background: "#f8fafc",
+                borderRadius: 10,
+                padding: "12px 8px",
                 textAlign: "center",
+                border: "1px solid #f1f5f9"
               }}
             >
-              <FileTextOutlined style={{ fontSize: 22, color: "#6b7a99" }} />
-              <div style={{ fontSize: 22, fontWeight: 600, marginTop: 8 }}>
+              <FileTextOutlined style={{ fontSize: 18, color: "#64748b" }} />
+              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: "#1e293b" }}>
                 {entryCount}
               </div>
-              <div style={{ color: "#6b7a99", fontSize: 13 }}>Entries</div>
+              <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>Entries</div>
             </div>
           </div>
 
           <div
             style={{
-              background: "#f7f9fb",
-              borderRadius: 12,
-              padding: 16,
+              background: "#f8fafc",
+              borderRadius: 10,
+              padding: 12,
+              border: "1px solid #f1f5f9"
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 12, color: "#475569" }}>
               Projects (
               {
                 new Set(
@@ -4331,8 +4040,11 @@ export default function SubmittimesheetTab({
                   key={projectName}
                   style={{
                     borderRadius: 999,
-                    padding: "4px 10px",
+                    padding: "2px 10px",
                     background: "#fff",
+                    fontSize: 11,
+                    border: "1px solid #e2e8f0",
+                    color: "#475569"
                   }}
                 >
                   {projectName}
@@ -4344,20 +4056,20 @@ export default function SubmittimesheetTab({
           {weekLeaveCount > 0 && (
             <div
               style={{
-                marginTop: 16,
-                padding: 12,
+                marginTop: 12,
+                padding: "8px 12px",
                 borderRadius: 8,
-                background: "#fff1f0",
-                color: "#ff4d4f",
+                background: "#fff1f2",
+                color: "#e11d48",
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
+                fontSize: 12
               }}
             >
-              <ClockCircleOutlined />
+              <ClockCircleOutlined style={{ fontSize: 14 }} />
               <span>
-                You have {weekLeaveCount} leave day(s) this week. Leave days are
-                automatically excluded.
+                You have {weekLeaveCount} leave day(s) this week.
               </span>
             </div>
           )}
@@ -4365,20 +4077,20 @@ export default function SubmittimesheetTab({
           {weekHolidayCount > 0 && (
             <div
               style={{
-                marginTop: 16,
-                padding: 12,
+                marginTop: 12,
+                padding: "8px 12px",
                 borderRadius: 8,
-                background: "#f6ffed",
-                color: "#52c41a",
+                background: "#f0fdf4",
+                color: "#166534",
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
+                fontSize: 12
               }}
             >
-              <CalendarOutlined />
+              <CalendarOutlined style={{ fontSize: 14 }} />
               <span>
-                You have {weekHolidayCount} holiday(s) this week. Holiday days
-                are automatically logged with 8 hours and are not billable.
+                You have {weekHolidayCount} holiday(s) this week.
               </span>
             </div>
           )}
@@ -4386,39 +4098,33 @@ export default function SubmittimesheetTab({
           {totalHours < expectedHours && (
             <div
               style={{
-                marginTop: 16,
-                padding: 12,
+                marginTop: 12,
+                padding: "8px 12px",
                 borderRadius: 8,
-                background: "#fff7e6",
-                color: "#fa8c16",
+                background: "#fffbeb",
+                color: "#b45309",
                 display: "flex",
                 gap: 8,
                 alignItems: "center",
+                fontSize: 12
               }}
             >
-              <WarningOutlined />
+              <WarningOutlined style={{ fontSize: 14 }} />
               <span>
-                Warning: You've logged {expectedHours - totalHours}h less than
-                expected.
+                Logged {expectedHours - totalHours}h less than expected.
               </span>
             </div>
           )}
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 12,
-              marginTop: 24,
-            }}
-          >
-            <Button onClick={() => setIsSubmitOpen(false)}>Cancel</Button>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+            <Button onClick={() => setIsSubmitOpen(false)} style={{ borderRadius: 8 }}>Cancel</Button>
             {!isPreviewMode && (
               <Button
                 type="primary"
                 loading={isEditMode ? saveChangesLoading : submitLoading}
-                icon={isEditMode ? <SaveOutlined /> : <SendOutlined />}
+                icon={isEditMode ? <Save size={16} /> : <Send size={16} />}
                 onClick={isEditMode ? handleSaveChanges : handleSubmitTimesheet}
+                style={{ borderRadius: 8, background: "#0ea5e9", borderColor: "#0ea5e9", display: "flex", alignItems: "center", gap: 8 }}
               >
                 {isEditMode ? "Save Changes" : "Submit Timesheet"}
               </Button>

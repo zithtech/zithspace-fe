@@ -926,15 +926,15 @@ const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
 });
     
     const completed = ticketsInMonth.filter((t: Ticket) => 
-      ["completed", "dev_complete", "done"].includes(t.status?.toLowerCase())
+      ["completed", "done", "live"].includes(t.status?.toLowerCase())
     ).length;
     
     const inProgress = ticketsInMonth.filter((t: Ticket) => 
-      ["in progress", "in_progress", "in testing", "in_testing", "in review"].includes(t.status?.toLowerCase())
+      ["in progress", "in_progress", "in review", "in_review"].includes(t.status?.toLowerCase())
     ).length;
     
     const pending = ticketsInMonth.filter((t: Ticket) => 
-      ["pending", "open", "to do", "not_started", "todo", "backlog"].includes(t.status?.toLowerCase())
+      ["pending", "open", "to do", "not_started", "todo", "backlog", "testing", "in testing", "in_testing", "dev_complete", "dev complete"].includes(t.status?.toLowerCase())
     ).length;
 
     const total = ticketsInMonth.length;
@@ -942,32 +942,35 @@ const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
     // Process Daily Updates
     const updates = (updatesRes || []) as DailyUpdate[];
     
-    const bodDays = new Set<string>();
-    const eodDays = new Set<string>();
-    const updatesList: UpdatesListItem[] = []; // ✅ Explicitly typed as UpdatesListItem[]
+    let bodCount = 0;
+    let eodCount = 0;
+    const dailyMap = new Map<string, UpdatesListItem>();
     
     updates.forEach((update: DailyUpdate) => {
       const updateDate = dayjs(update.date).format("YYYY-MM-DD");
       
-      const hasBOD = (update.projectUpdates?.length ?? 0) > 0 || update.updateType === 'BOD';
-      if (hasBOD) {
-        bodDays.add(updateDate);
-      }
+      const isBOD = update.updateType === 'BOD';
+      const isEOD = update.updateType === 'EOD';
       
-      const hasEOD = !!update.totalHoursWorked || update.updateType === 'EOD';
-      if (hasEOD) {
-        eodDays.add(updateDate);
-      }
+      if (isBOD) bodCount++;
+      if (isEOD) eodCount++;
       
-      updatesList.push({
-        key: update.id || updateDate,
-        date: updateDate,
-        bod: hasBOD,
-        eod: hasEOD,
-        type: hasEOD ? 'EOD' : (hasBOD ? 'BOD' : 'Update'),
-      });
+      if (!dailyMap.has(updateDate)) {
+        dailyMap.set(updateDate, {
+          key: update.id || updateDate,
+          date: updateDate,
+          bod: isBOD,
+          eod: isEOD,
+          type: update.updateType || 'Update',
+        });
+      } else {
+        const existing = dailyMap.get(updateDate)!;
+        if (isBOD) existing.bod = true;
+        if (isEOD) existing.eod = true;
+      }
     });
 
+    const updatesList = Array.from(dailyMap.values());
     updatesList.sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix());
 
     // Return the data
@@ -989,18 +992,18 @@ const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
           closed: t.closedAt ? dayjs(t.closedAt).format("YYYY-MM-DD") : "-",
         })),
         distribution: [
-          { name: "Completed", value: completed, color: "#52c41a" },
-          { name: "In Progress", value: inProgress, color: "#faad14" },
-          { name: "Pending", value: pending, color: "#f5222d" },
+          { name: "Completed", value: completed, color: "#10b981" },
+          { name: "In Progress", value: inProgress, color: "#f59e0b" },
+          { name: "Pending", value: pending, color: "#ef4444" },
         ],
       },
       dailyUpdates: {
         summary: {
-          bod: bodDays.size,
-          eod: eodDays.size,
-          total: updatesList.length,
+          bod: bodCount,
+          eod: eodCount,
+          total: dailyMap.size,
         },
-        logs: updatesList, // ✅ Now properly typed
+        logs: updatesList,
       },
     };
   };

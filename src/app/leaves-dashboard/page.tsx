@@ -5,10 +5,8 @@ import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
-import { TrendingUpDown, AudioLines } from "lucide-react";
 import {
   Card,
-  Tabs,
   Typography,
   Row,
   Col,
@@ -21,7 +19,20 @@ import {
   Badge,
   Button,
   Tooltip,
+  Divider,
 } from "antd";
+import { 
+  TrendingUpDown, 
+  AudioLines, 
+  Clock, 
+  Users, 
+  ArrowRight, 
+  ChevronRight,
+  Activity,
+  Calendar as CalendarIcon,
+  CheckCircle2,
+  Settings2
+} from "lucide-react";
 import {
   AppstoreOutlined,
   ClockCircleOutlined,
@@ -40,8 +51,10 @@ import { useCompanyGovernmentHolidays } from "@/hooks/useCompanyGovernmentHolida
 import dayjs from "dayjs";
 import { useLeaveOrigins } from "@/hooks/useLeaveOrigins";
 import { useLeaveAdjustments } from "@/hooks/useLeaveAdjustments";
+import { leaveService, Leave as LeaveModel } from "@/services/leaveService";
+import { LeaveBalanceService } from "@/services/leaveBalanceService";
 
-// Import images from the assets folder
+// Import images from assets
 import bhogiImage from "../../assets/holidays/bhogi.jpg";
 import pongalImage from "../../assets/holidays/pongal.jpg";
 import mattuPongalImage from "../../assets/holidays/mattupongal.jpg";
@@ -75,6 +88,9 @@ export default function LeavesDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { canManageLeaves } = usePermission();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [onLeaveToday, setOnLeaveToday] = useState<LeaveModel[]>([]);
+  const [loadingExtras, setLoadingExtras] = useState(true);
   
   const hasApprovalRights =
     (user as any)?.role === "super_admin" ||
@@ -120,6 +136,28 @@ export default function LeavesDashboardPage() {
   useEffect(() => {
     fetchLeaveTypes();
     fetchHolidays();
+    
+    const fetchDashboardExtras = async () => {
+      try {
+        setLoadingExtras(true);
+        const [pending, allLeaves] = await Promise.all([
+          leaveService.getPendingApprovals(),
+          leaveService.getAllLeaves({ 
+            startDate: dayjs().format("YYYY-MM-DD"),
+            endDate: dayjs().format("YYYY-MM-DD"),
+            status: "APPROVED"
+          })
+        ]);
+        setPendingApprovalsCount(pending.length);
+        setOnLeaveToday(allLeaves.data);
+      } catch (err) {
+        console.error("Error fetching dashboard extras:", err);
+      } finally {
+        setLoadingExtras(false);
+      }
+    };
+
+    fetchDashboardExtras();
   }, [fetchLeaveTypes, fetchHolidays]);
 
   useEffect(() => {
@@ -158,18 +196,18 @@ export default function LeavesDashboardPage() {
         .reduce((sum, adj) => sum + (Number(adj.amount) || 0), 0);
 
       // Holidays Stats
-      const today = dayjs();
+      const today = dayjs().startOf("day");
       const upcomingHolidays = holidays.filter(
         (h) =>
           h.status === "ACTIVE" &&
-          dayjs(h.fromDate).isAfter(today) &&
+          dayjs(h.fromDate).isAfter(today, "day") &&
           dayjs(h.fromDate).diff(today, "day") <= 90,
       ).length;
       const nextHolidayRaw = holidays
         .filter(
           (h) =>
             h.status === "ACTIVE" &&
-            (dayjs(h.fromDate).isAfter(today) ||
+            (dayjs(h.fromDate).isAfter(today, "day") ||
               dayjs(h.fromDate).isSame(today, "day")),
         )
         .sort(
@@ -210,803 +248,303 @@ export default function LeavesDashboardPage() {
 
     calculateStats();
   }, [loading, leaveTypes, holidays, leaveOrigins, adjustments]);
-  const cardStyle = {
-    borderRadius: 12,
-    // boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-    transition: "all 0.3s ease",
-    cursor: "pointer",
-  };
+
+  const QuickActionCard = ({ icon: Icon, title, desc, path, color }: any) => (
+    <Card 
+      hoverable 
+      className="quick-action-card"
+      onClick={() => router.push(path)}
+      bodyStyle={{ padding: 20 }}
+      style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ 
+          background: `${color}10`, 
+          color: color,
+          width: 48, 
+          height: 48, 
+          borderRadius: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <Icon size={24} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <Typography.Text strong style={{ fontSize: 16, display: "block", color: "#1e293b" }}>{title}</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>{desc}</Typography.Text>
+        </div>
+        <ChevronRight size={18} style={{ color: "#cbd5e1" }} />
+      </div>
+    </Card>
+  );
+
+  const StatBox = ({ label, value, icon: Icon, color, subText }: any) => (
+    <Card bodyStyle={{ padding: 24 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+        <Typography.Text style={{ color: "#64748b", fontWeight: 500, fontSize: 14 }}>{label}</Typography.Text>
+        <div style={{ color: color, background: `${color}15`, padding: 8, borderRadius: 10 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>{value}</div>
+      {subText && <Typography.Text style={{ fontSize: 12, color: "#94a3b8" }}>{subText}</Typography.Text>}
+    </Card>
+  );
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div  >
-          <div  style={{marginTop: 20}}>
-            <Tabs
-              activeKey="dashboard"
-              onChange={(key) => {
-                if (key === "dashboard") router.push("/leaves-dashboard");
-                // if (key === "leaves") router.push("/leaves");
-                if (key === "holidays") router.push("/government-holidays");
-                if (key === "adjustments") router.push("/leave-adjustments");
-                if (key === "configuration")
-                  router.push("/leave-type");
-                if (key === "positions") router.push("/leave-policy");
-                if (key === "addLeaves") router.push("/add-goverment-leaves");
-                if (key === "apply-leave") router.push("/apply-leave");
-                if(key === "approvals") router.push("/leave-approvals")
-              }}
-              items={[
-                {
-                  key: "dashboard",
-                  label: (
-                    <span>
-                      <AppstoreOutlined /> Dashboard
-                    </span>
-                  ),
-                },
-                // {
-                //   key: "leaves",
-                //   label: (
-                //     <span>
-                //       <ClockCircleOutlined /> Apply Leave
-                //     </span>
-                //   ),
-                // },
-                {
-                  key: "apply-leave",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Apply leave
-                    </span>
-                  ),
-                },
-                hasApprovalRights && {
-                  key: "approvals",
-                  label: (
-                    <span>
-                      <CheckCircleOutlined /> Approvals
-                    </span>
-                  ),
-                },
-                {
-                  key: "holidays",
-                  label: (
-                    <span>
-                      <ScheduleOutlined /> Government Holidays
-                    </span>
-                  ),
-                },
-                {
-                  key: "adjustments",
-                  label: (
-                    <span>
-                      <EditOutlined /> Leave Adjustment
-                    </span>
-                  ),
-                },
-                {
-                  key: "configuration",
-                  label: (
-                    <span>
-                      <SettingOutlined /> Leave Type
-                    </span>
-                  ),
-                },
-                {
-                  key: "positions",
-                  label: (
-                    <span>
-                      <ApartmentOutlined /> Leave Policy
-                    </span>
-                  ),
-                },
-                {
-                  key: "addLeaves",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Add Government Leaves
-                    </span>
-                  ),
-                },
-              ].filter(Boolean) as any}
-              
-            />
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "#ffffff",
+          minHeight: "calc(100vh - 64px)"
+        }}>
+          {/* Header & Welcome */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+                Leave Dashboard
+              </Typography.Title>
+              <Typography.Text style={{ color: "#64748b", fontSize: 15 }}>
+                Greetings, {user?.name || "Admin"}! Here&apos;s what&apos;s happening in your workspace today.
+              </Typography.Text>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<PlusOutlined />} 
+                style={{ borderRadius: 10, height: 44, fontWeight: 500 }}
+                onClick={() => router.push("/apply-leave")}
+              >
+                Apply Leave
+              </Button>
+            </div>
           </div>
-          <Row gutter={[16, 16]}>
-            {/* postion configuration */}
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                loading={loading}
-                size="small"
-                onClick={() => router.push("/leave-configuration")}
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle,
-                }}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT SIDE - Title */}
-                  <Col>
-                    <div style={{ color: "#595959", fontSize: 14 }}>
-                      Total Leave Types
-                    </div>
-                  </Col>
 
-                  {/* RIGHT SIDE - Icon + Number */}
-                  <Col>
-                    <Row align="middle" gutter={12}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: "#872eecff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 19,
-                          }}
-                        >
-                          <SettingOutlined />
-                        </div>
-                      </Col>
-
-                      {/* NUMBER */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 22,
-                            fontWeight: 600,
-                            color: "#872eecff",
-                          }}
-                        >
-                          {stats?.totalLeaveTypes}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
+          <Row gutter={[24, 24]}>
+            {/* Top Metrics Row */}
+            <Col xs={24} sm={12} lg={6}>
+              <StatBox 
+                label="On Leave Today" 
+                value={onLeaveToday.length} 
+                icon={Users} 
+                color="#0ea5e9"
+                subText={`${onLeaveToday.length > 0 ? "Employee list updated" : "All staff present"}`}
+              />
             </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                loading={loading}
-                onClick={() => router.push("/leave-configuration")}
-                size="small"
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle}}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT - Name */}
-                  <Col>
-                    <div style={{ color: "#595959", fontSize: 14 }}>
-                      Active Leave Types
-                    </div>
-                  </Col>
-
-                  {/* RIGHT - Icon → Number */}
-                  <Col>
-                    <Row align="middle" gutter={10}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: "#3f8600",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 18,
-                          }}
-                        >
-                          <AudioLines size={18} />
-                        </div>
-                      </Col>
-
-                      {/* NUMBER */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 22,
-                            fontWeight: 600,
-                            color: "#3f8600",
-                          }}
-                        >
-                          {stats?.activeLeaveTypes}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
+            <Col xs={24} sm={12} lg={6}>
+              <StatBox 
+                label="Approval Queue" 
+                value={pendingApprovalsCount} 
+                icon={CheckCircle2} 
+                color="#f59e0b"
+                subText={`${pendingApprovalsCount} requests awaiting review`}
+              />
             </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                onClick={() => router.push("/government-holidays")}
-                loading={loading}
-                size="small"
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle,
-                }}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT - Title */}
-                  <Col>
-                    <div style={{ color: "#595959", fontSize: 14 }}>
-                      Holidays Status
-                    </div>
-                  </Col>
-
-                  {/* RIGHT - Icon → Number */}
-                  <Col>
-                    <Row align="middle" gutter={12}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            background: "#efdc08ff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 18,
-                          }}
-                        >
-                          <CalendarOutlined />
-                        </div>
-                      </Col>
-
-                      {/* NUMBER */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 20,
-                            fontWeight: 600,
-                            color: "#efdc08ff",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {`${stats?.activeHolidays || 0} / ${stats?.inactiveHolidays || 0}`}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
+            <Col xs={24} sm={12} lg={6}>
+              <StatBox 
+                label="Next Holiday" 
+                value={stats?.nextHoliday ? dayjs(stats.nextHoliday.from_date).format("DD MMM") : "N/A"} 
+                icon={CalendarIcon} 
+                color="#ef4444"
+                subText={stats?.nextHoliday?.name || "No upcoming holidays"}
+              />
             </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                onClick={() => router.push("/government-holidays")}
-                loading={loading}
-                bordered={false}
-                bodyStyle={{ padding: 16 }}
-                style={{
-                  ...cardStyle,
-                }}
-              >
-                <Row align="middle" justify="space-between">
-                  {/* LEFT - Title */}
-                  <Col>
-                    <div
-                      style={
-                        stats?.isHolidayToday
-                          ? { color: "#faad14", fontWeight: 600, fontSize: 14 }
-                          : { color: "#595959", fontSize: 14 }
-                      }
-                    >
-                      {stats?.isHolidayToday
-                        ? "Today's Holiday"
-                        : "Upcoming Holiday"}
-                    </div>
-                  </Col>
-
-                  {/* RIGHT - Icon → Text */}
-                  <Col>
-                    <Row align="middle" gutter={10}>
-                      {/* ICON */}
-                      <Col>
-                        <div
-                          style={{
-                            width: 25,
-                            height: 25,
-                            borderRadius: "50%",
-                            background: "#faad14",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 12,
-                          }}
-                        >
-                          <CalendarOutlined />
-                        </div>
-                      </Col>
-
-                      {/* TEXT */}
-                      <Col>
-                        <div
-                          style={{
-                            fontSize: 16,
-                            fontWeight: 600,
-                            color: "#8b8b8bff",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {stats?.nextHoliday ? (
-                            <>
-                              {stats.nextHoliday.name}
-                              <span
-                                style={{
-                                  fontSize: 8,
-                                  color: "#8c8c8c",
-                                
-                                }}
-                              >
-                                {dayjs(stats.nextHoliday.from_date).format(
-                                  "DD MMM",
-                                )}
-                              </span>
-                            </>
-                          ) : (
-                            "None"
-                          )}
-                        </div>
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Card>
+            <Col xs={24} sm={12} lg={6}>
+              <StatBox 
+                label="Active Policies" 
+                value={stats?.activeLeaveTypes || 0} 
+                icon={Settings2} 
+                color="#8b5cf6"
+                subText={`${stats?.totalLeaveTypes} total types configured`}
+              />
             </Col>
 
-            {canManageLeaves && (
-              <>
-                <Col xs={24} sm={12} md={6}>
-                  <Card
-                    onClick={() => router.push("/leave-adjustments")}
-                    loading={loading}
-                    size="small"
-                    bodyStyle={{ padding: 16 }}
-                    style={{
-                      ...cardStyle,
-                     
-                    }}
-                  >
-                    <Row align="middle" justify="space-between">
-                      {/* LEFT - Title */}
-                      <Col>
-                        <div style={{ color: "#595959", fontSize: 14 }}>
-                          Total Adjustments
-                        </div>
-                      </Col>
+            {/* Main Content Area */}
+            <Col xs={24} lg={16}>
+              <Space direction="vertical" size={24} style={{ width: "100%" }}>
+                {/* Management Center */}
+                <div>
+                  <Typography.Title level={4} style={{ marginBottom: 16, color: "#334155" }}>Management Center</Typography.Title>
+                  <Row gutter={[16, 16]}>
+                    <Col span={12}>
+                      <QuickActionCard 
+                        title="Leave Configuration" 
+                        desc="Manage leave types and allocation rules"
+                        path="/leave-type"
+                        icon={Settings2}
+                        color="#8b5cf6"
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <QuickActionCard 
+                        title="Government Holidays" 
+                        desc="View and update company holiday list"
+                        path="/government-holidays"
+                        icon={CalendarIcon}
+                        color="#ef4444"
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <QuickActionCard 
+                        title="Leave Adjustments" 
+                        desc="Manual corrections and comp-offs"
+                        path="/leave-adjustments"
+                        icon={Activity}
+                        color="#0ea5e9"
+                      />
+                    </Col>
+                    <Col span={12}>
+                      <QuickActionCard 
+                        title="Position Config" 
+                        desc="Assign leave rules to designations"
+                        path="/leave-policy"
+                        icon={ApartmentOutlined}
+                        color="#22c55e"
+                      />
+                    </Col>
+                  </Row>
+                </div>
 
-                      {/* RIGHT - Icon → Number */}
-                      <Col>
-                        <Row align="middle" gutter={12}>
-                          {/* ICON */}
-                          <Col>
-                            <div
-                              style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: "50%",
-                                background: "#ec51e6ff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#fff",
-                                fontSize: 18,
-                              }}
-                            >
-                              <EditOutlined />
-                            </div>
-                          </Col>
-
-                          {/* NUMBER */}
-                          <Col>
-                            <div
-                              style={{
-                                fontSize: 22,
-                                fontWeight: 600,
-                                color: "#8543ffff",
-                              }}
-                            >
-                              {stats?.adjustmentsThisMonth}
-                            </div>
-                          </Col>
-                        </Row>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                  <Card
-                    onClick={() => router.push("/leave-adjustments")}
-                    loading={loading}
-                    size="small"
-                    bodyStyle={{ padding: 16 }}
-                    style={{
-                      ...cardStyle,
-                        }}
-                  >
-                    <Row align="middle" justify="space-between">
-                      {/* LEFT - Title */}
-                      <Col>
-                        <div style={{ color: "#595959", fontSize: 14 }}>
-                          Credits vs Debits
-                        </div>
-                      </Col>
-
-                      {/* RIGHT - Icon → Number */}
-                      <Col>
-                        <Row align="middle" gutter={12}>
-                          {/* ICON */}
-                          <Col>
-                            <div
-                              style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: "50%",
-                                background: "#ff665bff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#fff",
-                                fontSize: 18,
-                              }}
-                            >
-                              <TrendingUpDown size={18} />
-                            </div>
-                          </Col>
-
-                          {/* NUMBER */}
-                          <Col>
-                            <div
-                              style={{
-                                fontSize: 20,
-                                fontWeight: 600,
-                                color: "#ff665bff",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {`${stats?.credits || 0} / ${stats?.debits || 0}`}
-                            </div>
-                          </Col>
-                        </Row>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-                {/* postion configuration */}
-                <Col xs={24} sm={12} md={6}>
-                  <Card
-                    onClick={() => router.push("/position-configuration")}
-                    loading={loading}
-                    size="small"
-                    bodyStyle={{ padding: 16 }}
-                    style={{
-                      ...cardStyle,
-                        }}
-                  >
-                    <Row align="middle" justify="space-between">
-                      {/* LEFT - Title */}
-                      <Col>
-                        <div style={{ color: "#595959", fontSize: 14 }}>
-                          Total Origin
-                        </div>
-                      </Col>
-
-                      {/* RIGHT - Icon → Number */}
-                      <Col>
-                        <Row align="middle" gutter={12}>
-                          {/* ICON */}
-                          <Col>
-                            <div
-                              style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: "50%",
-                                background: "#2e94e8ff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#fff",
-                                fontSize: 18,
-                              }}
-                            >
-                              <ApartmentOutlined />
-                            </div>
-                          </Col>
-
-                          {/* NUMBER */}
-                          <Col>
-                            <div
-                              style={{
-                                fontSize: 22,
-                                fontWeight: 600,
-                                color: "#2e94e8ff",
-                              }}
-                            >
-                              {stats?.totalPositions}
-                            </div>
-                          </Col>
-                        </Row>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-                {/* postion configuration */}
-                <Col xs={24} sm={12} md={6}>
-                  <Card
-                    onClick={() => router.push("/position-configuration")}
-                    loading={loading}
-                    size="small"
-                    bodyStyle={{ padding: 16 }}
-                    style={{
-                      ...cardStyle,
-                        }}
-                  >
-                    <Row align="middle" justify="space-between">
-                      {/* LEFT - Title */}
-                      <Col>
-                        <div style={{ color: "#595959", fontSize: 14 }}>
-                          Avg Leave / Position
-                        </div>
-                      </Col>
-
-                      {/* RIGHT - Icon → Number */}
-                      <Col>
-                        <Row align="middle" gutter={12}>
-                          {/* ICON */}
-                          <Col>
-                            <div
-                              style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: "50%",
-                                background: "#4fef85ff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#fff",
-                                fontSize: 18,
-                              }}
-                            >
-                              <CalendarOutlined />
-                            </div>
-                          </Col>
-
-                          {/* NUMBER */}
-                          <Col>
-                            <div
-                              style={{
-                                fontSize: 20,
-                                fontWeight: 600,
-                                color: "#3f8600",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {stats?.avgLeavePerPosition} days
-                            </div>
-                          </Col>
-                        </Row>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-              </>
-            )}
-
-            <Col xs={24} md={12}>
-              <Card
-                title="Recent Leave Adjustments"
-                loading={loading}
-                size="small"
-                bordered={false}
-                style={{
-                  borderRadius: 14,
-                  // boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  width: "100%",
-                }}
-                extra={
-                  <Typography.Link
-                    onClick={() => router.push("/leave-adjustments")}
-                  >
-                    View All
-                  </Typography.Link>
-                }
-              >
-                {/* Scroll container */}
-                <div
-                  style={{
-                    maxHeight: 300, // 👈 height for ~4 items
-                    overflowY: "auto", // 👈 enable scroll
-                    paddingRight: 10,
-                  }}
+                {/* Who's Out Today List */}
+                <Card 
+                  title={<span style={{ color: "#334155", fontWeight: 600 }}>Who&apos;s on Leave Today</span>}
+                  style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                  extra={<Tag color="blue" style={{ borderRadius: 6 }}>{onLeaveToday.length} Out</Tag>}
                 >
                   <List
-                    dataSource={adjustments || []}
-                    renderItem={(item) => {
-                      const isCredit = item.type === "Credit";
-
-                      return (
-                        <List.Item style={{ padding: "8px 0" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              width: "100%",
-                              gap: 8,
-                            }}
-                          >
-                            {/* Avatar */}
-                            <Avatar
-                              size={44}
-                              style={{
-                                backgroundColor: isCredit
-                                  ? "#c9eeff"
-                                  : "#fff1f0",
-                                color: isCredit ? "#1677ff" : "#f5222d",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {item.employee?.[0]}
-                            </Avatar>
-
-                            {/* Name + Leave Type */}
-                            <div style={{ flex: 1 }}>
-                              <Text strong>{item.employee}</Text>
-                              <br />
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                {item.leaveType}
-                              </Text>
-                            </div>
-
-                            {/* Amount + Type */}
-                            <Space>
-                              <Tag
-                                color={isCredit ? "success" : "error"}
-                                style={{ borderRadius: 12 }}
-                              >
-                                {isCredit ? "+" : "-"} {item.amount ?? 1} Day
-                              </Tag>
-
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                {item.type}
-                              </Text>
-                            </Space>
-                          </div>
-                        </List.Item>
-                      );
-                    }}
+                    dataSource={onLeaveToday}
+                    locale={{ emptyText: <div style={{ padding: 40, color: "#94a3b8" }}>No employees are on leave today.</div> }}
+                    renderItem={(item: LeaveModel) => (
+                      <List.Item style={{ padding: "12px 0" }}>
+                        <List.Item.Meta
+                          avatar={<Avatar size={40} style={{ backgroundColor: "#f0f9ff", color: "#0ea5e9" }}>{item.user?.name[0]}</Avatar>}
+                          title={<span style={{ fontWeight: 600, color: "#1e293b" }}>{item.user?.name}</span>}
+                          description={<span style={{ fontSize: 13, color: "#64748b" }}>{item.user?.position || "Staff Member"}</span>}
+                        />
+                        <Tag style={{ borderRadius: 8, background: "#f1f5f9", border: 0, fontWeight: 500, color: "#475569" }}>
+                          {item.type}
+                        </Tag>
+                        <Tag color="warning" style={{ borderRadius: 8, fontWeight: 500 }}>
+                          {item.duration} {item.durationType === "FULL_DAY" ? "Day" : "Half Day"}
+                        </Tag>
+                      </List.Item>
+                    )}
                   />
-                </div>
-              </Card>
+                </Card>
+              </Space>
             </Col>
-            <Col xs={24} md={12}>
-              <Card
-                loading={loading}
-                bordered={false}
-                size="small"
-                style={{
-                  borderRadius: 14,
-                  // boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-                  width: "100%",
-                  //right: 260,
-                }}
-                title={
-                  <Space>
-                    <CalendarOutlined style={{ color: "#ff4d4f" }} />
-                    <Text strong>Holiday Calendar</Text>
-                  </Space>
-                }
-                extra={
-                  <Tag color="error" style={{ borderRadius: 12 }}>
-                    ● Holiday
-                  </Tag>
-                }
-              >
-                <Calendar
-                  fullscreen={false}
-                  headerRender={({ value, onChange }) => (
-                    <div
-                      style={{
-                        padding: "0 0 8px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text strong style={{ fontSize: 14 }}>
-                        {value.format("MMMM YYYY")}
-                      </Text>
 
-                      <Space>
-                        <Button
-                          size="small"
-                          onClick={() =>
-                            onChange(value.clone().subtract(1, "month"))
-                          }
-                        >
-                          ‹
-                        </Button>
-                        <Button
-                          size="small"
-                          onClick={() =>
-                            onChange(value.clone().add(1, "month"))
-                          }
-                        >
-                          ›
-                        </Button>
-                      </Space>
-                    </div>
-                  )}
-                  fullCellRender={(value) => {
-                    const dateString = value.format("YYYY-MM-DD");
-                    const holiday = holidays.find(
-                      (h) => h.fromDate === dateString && h.status === "ACTIVE",
-                    );
-
-                    const content = (
-                      <div className="ant-picker-cell-inner">
-                        <div className="ant-picker-calendar-date-value">
-                          {value.date()}
-                        </div>
-                        <div className="ant-picker-calendar-date-content">
-                          {holiday && <Badge color="red" />}
-                        </div>
+            {/* Sidebar Column */}
+            <Col xs={24} lg={8}>
+              <Space direction="vertical" size={24} style={{ width: "100%" }}>
+                {/* Holiday Calendar */}
+                <Card 
+                  title={<span style={{ color: "#334155", fontWeight: 600 }}>Holiday Calendar</span>}
+                  style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                  bodyStyle={{ padding: 12 }}
+                >
+                  <Calendar
+                    fullscreen={false}
+                    headerRender={({ value, onChange }) => (
+                      <div style={{ padding: "0 0 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Typography.Text strong style={{ fontSize: 16, color: "#1e293b" }}>
+                          {value.format("MMMM YYYY")}
+                        </Typography.Text>
+                        <Space>
+                          <Button size="small" shape="circle" icon={<ChevronRight style={{ transform: "rotate(180deg)" }} size={14} />} onClick={() => onChange(value.clone().subtract(1, "month"))} />
+                          <Button size="small" shape="circle" icon={<ChevronRight size={14} />} onClick={() => onChange(value.clone().add(1, "month"))} />
+                        </Space>
                       </div>
-                    );
+                    )}
+                    fullCellRender={(value) => {
+                      const current = value.startOf("day");
+                      const holiday = holidays.find(h => {
+                        const start = dayjs(h.fromDate).startOf("day");
+                        const end = dayjs(h.toDate || h.fromDate).startOf("day");
+                        return h.status === "ACTIVE" && 
+                          (current.isSame(start) || current.isSame(end) || (current.isAfter(start) && current.isBefore(end)));
+                      });
+                      
+                      const content = (
+                        <div style={{ height: 32, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                          <div style={{ 
+                            width: 28, 
+                            height: 28, 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center", 
+                            borderRadius: 8,
+                            background: holiday ? "#fee2e2" : "transparent",
+                            color: holiday ? "#ef4444" : "inherit",
+                            fontWeight: holiday ? 600 : 400
+                          }}>
+                            {value.date()}
+                          </div>
+                          {holiday && <div style={{ width: 4, height: 4, background: "#ef4444", borderRadius: "50%", marginTop: 2 }}></div>}
+                        </div>
+                      );
 
-                    if (holiday) {
-                      return (
-                        <Tooltip
-                          title={
-                            <div style={{ textAlign: "center" }}>
-                              <img
-                                // Use the specific holiday image, or fallback to default
-                                src={
-                                  (
-                                    holidayImageMap[holiday.holidayName] ||
-                                    defaultHolidayImage
-                                  ).src
-                                }
-                                alt={holiday.holidayName}
-                                style={{
-                                  width: 120,
-                                  height: "auto",
-                                  borderRadius: 4,
-                                  marginBottom: 4,
-                                }}
-                              />
-                              <div style={{ fontWeight: 600 }}>
-                                {holiday.holidayName}
-                              </div>
-                            </div>
-                          }
-                        >
+                      return holiday ? (
+                        <Tooltip title={holiday.holidayName}>
                           {content}
                         </Tooltip>
-                      );
-                    }
-                    return content;
-                  }}
-                />
-              </Card>
+                      ) : content;
+                    }}
+                  />
+                </Card>
+
+                {/* Recent Adjustments */}
+                <Card 
+                  title={<span style={{ color: "#334155", fontWeight: 600 }}>Recent Adjustments</span>}
+                  style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                  extra={<Typography.Link onClick={() => router.push("/leave-adjustments")}>View All</Typography.Link>}
+                >
+                  <List
+                    dataSource={adjustments.slice(0, 5)}
+                    renderItem={(item) => (
+                      <List.Item style={{ padding: "10px 0", borderBottom: "1px solid #f8fafc" }}>
+                        <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <Typography.Text strong style={{ fontSize: 14, display: "block" }}>{item.employee.split(" (")[0]}</Typography.Text>
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>{item.leaveType}</Typography.Text>
+                          </div>
+                          <Tag color={item.type === "Credit" ? "success" : "error"} style={{ borderRadius: 6, border: 0, fontWeight: 600 }}>
+                            {item.type === "Credit" ? "+" : "-"}{item.amount}
+                          </Tag>
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </Card>
+              </Space>
             </Col>
           </Row>
         </div>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .quick-action-card:hover {
+            border-color: #0ea5e9 !important;
+            transform: translateY(-2px);
+            transition: all 0.2s ease;
+          }
+          .ant-card-head {
+            border-bottom: 1px solid #f1f5f9 !important;
+            min-height: 56px !important;
+          }
+          .ant-list-item {
+            border-bottom: 1px solid #f8fafc !important;
+          }
+          .ant-list-item:last-child {
+            border-bottom: none !important;
+          }
+          .ant-picker-calendar-full .ant-picker-panel {
+            background: transparent !important;
+          }
+        `}} />
       </MainLayout>
     </ProtectedRoute>
   );

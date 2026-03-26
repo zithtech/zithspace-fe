@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
+import TicketService from '@/services/ticketService';
 import {
   Card,
   Typography,
@@ -26,12 +27,15 @@ import {
   DeleteOutlined,
   ReloadOutlined,
   FolderOutlined,
+  ProjectOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useUserProjects } from '@/hooks/useGlobalData';
 import { useTickets } from '@/hooks/useTickets';
 import { useMoveToTrash } from '@/hooks/useTrash';
 import { Ticket } from '@/services/ticketService';
+import { Avatar, Tooltip, Row, Col } from 'antd';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -65,6 +69,50 @@ export default function ArchivedTicketsPage() {
     limit: pageSize,
   });
 
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      setStatsLoading(true);
+      try {
+        const stats = await TicketService.getDashboardStats();
+        setDashboardStats(stats);
+      } catch (error) {
+        console.error("Failed to load dashboard stats:", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
+
+  const totalArchived = ticketsData?.pagination?.total || 0;
+
+  // Calculate project-wise archived counts
+  const projectStats = useMemo(() => {
+    if (!dashboardStats?.projectStats || !projects) return [];
+
+    return projects.map((p: any) => {
+      const stats = dashboardStats.projectStats.find((s: any) => s.id === p.id);
+      // Try both lowercase and uppercase 'completed'/'archived'
+      const archivedCount = stats?.statuses?.reduce((acc: number, s: any) => {
+        const statusStr = s.status?.toLowerCase() || '';
+        if (statusStr === 'completed' || statusStr === 'archived' || statusStr === 'finished') {
+          return acc + s.count;
+        }
+        return acc;
+      }, 0) || 0;
+
+      return {
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        count: archivedCount
+      };
+    }).filter(p => p.count > 0).sort((a, b) => b.count - a.count).slice(0, 10); // Show up to 10
+  }, [dashboardStats, projects]);
+
   // Use useMoveToTrash hook
   const { mutateAsync: moveToTrash, isPending: isDeleting } = useMoveToTrash();
 
@@ -89,31 +137,36 @@ export default function ArchivedTicketsPage() {
 
   const columns: ColumnsType<Ticket> = [
     {
-      title: 'Ticket',
+      title: 'Ticket #',
       dataIndex: 'ticketNumber',
       key: 'ticketNumber',
-      width: 120,
+      width: 140,
       fixed: 'left',
-      render: (text) => <Tag color="default">{text}</Tag>,
+      render: (text) => (
+        <Text strong style={{ background: '#f5f5f5', padding: '4px 10px', borderRadius: 6, fontSize: 13, color: '#1677ff', fontFamily: 'monospace' }}>
+          {text}
+        </Text>
+      ),
     },
     {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
-      width: 300,
+      width: 350,
+      render: (text) => <Text strong style={{ fontSize: 14 }}>{text}</Text>
     },
     {
       title: 'Project',
       key: 'project',
-      width: 150,
+      width: 180,
       render: (_: any, record: Ticket) => {
         const project = typeof record.project === 'object' ? record.project : null;
         if (!project) return null;
         return (
           <Space>
-            <Tag color="blue">{project.code}</Tag>
-            <Text>{project.name}</Text>
+            <Tag color="cyan" style={{ borderRadius: 4, fontWeight: 600 }}>{project.code}</Tag>
+            <Text type="secondary" style={{ fontSize: 13 }}>{project.name}</Text>
           </Space>
         );
       },
@@ -122,9 +175,9 @@ export default function ArchivedTicketsPage() {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      width: 120,
+      width: 130,
       render: (status) => (
-        <Tag color={status === 'completed' ? 'success' : 'default'}>
+        <Tag color={status === 'completed' ? 'success' : 'default'} style={{ borderRadius: 6, textTransform: 'uppercase', fontSize: 10, fontWeight: 600 }}>
           {status?.replace('_', ' ')}
         </Tag>
       ),
@@ -133,36 +186,47 @@ export default function ArchivedTicketsPage() {
       title: 'Priority',
       dataIndex: 'priority',
       key: 'priority',
-      width: 100,
+      width: 120,
       render: (priority) => {
-        const color = priority === 'HIGH' ? 'red' : priority === 'MEDIUM' ? 'orange' : 'default';
-        return <Tag color={color}>{priority}</Tag>;
+        const colors: Record<string, string> = {
+          'HIGH': '#ff4d4f',
+          'MEDIUM': '#faad14',
+          'LOW': '#52c41a'
+        };
+        return (
+          <Space size={6}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: colors[priority] || '#d9d9d9' }} />
+            <Text style={{ fontSize: 12, fontWeight: 500 }}>{priority}</Text>
+          </Space>
+        );
       },
     },
     {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: 100,
-    },
-    {
-      title: 'Points',
-      dataIndex: 'storyPoint',
-      key: 'storyPoint',
-      width: 80,
-      align: 'center',
-      render: (points) => (
-        <Badge count={points} showZero style={{ backgroundColor: '#52c41a' }} />
-      ),
-    },
-    {
       title: 'Assignee',
-      dataIndex: ['assignee', 'name'],
       key: 'assignee',
-      width: 150,
-      ellipsis: true,
-      render: (name) => name || <Text type="secondary">Unassigned</Text>,
+      width: 200,
+      render: (_: any, record: Ticket) => {
+        const name = record.assignee?.name;
+        if (!name) return <Text type="secondary" italic style={{ fontSize: 13 }}>Unassigned</Text>;
+        return (
+          <Space>
+            <Avatar size="small" style={{ backgroundColor: '#1677ff', fontSize: 10 }}>{name.charAt(0)}</Avatar>
+            <Text style={{ fontSize: 13 }}>{name}</Text>
+          </Space>
+        );
+      },
     },
+    {
+      title: 'Archived',
+      dataIndex: 'updatedAt',
+      key: 'archivedAt',
+      width: 150,
+      render: (date) => (
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </Text>
+      )
+    }
   ];
 
   // Loading & permission check
@@ -170,7 +234,11 @@ export default function ArchivedTicketsPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading archived tickets..." />
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading trash">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     );
@@ -182,85 +250,179 @@ export default function ArchivedTicketsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
-        <div style={{ marginBottom: 24 }}>
-          <Space direction="vertical" size={0} style={{ width: '100%' }}>
-            <Title level={3} style={{ margin: 0 }}>
-              <FolderOpenOutlined /> Archived Tickets
-            </Title>
-            <Text type="secondary">
-              Completed tickets that were archived during sprint completion. These tickets are stored long-term.
-            </Text>
-          </Space>
+      <div style={{ padding: "0 32px 32px", background: "#ffffff", minHeight: "100vh" }}>
+        {/* Header Section */}
+        <div style={{
+          padding: "24px 0",
+          marginBottom: 32,
+          borderBottom: "1px solid #f0f0f0",
+          background: "#fff",
+          position: "sticky",
+          top: 0,
+          zIndex: 10
+        }}>
+          <Row justify="space-between" align="middle" gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: "#f0f5ff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
+                  <FolderOpenOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+                </div>
+                <Space direction="vertical" size={2}>
+                  <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: "-0.02em" }}>
+                    Archived Tickets
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    Completed issues stored for long-term tracking and reporting
+                  </Text>
+                </Space>
+              </div>
+            </Col>
+            <Col xs={24} md={12} style={{ textAlign: "right" }}>
+              <Space size="middle">
+                {selectedRowKeys.length > 0 && (
+                  <Popconfirm
+                    title="Move to Trash"
+                    description={`Move ${selectedRowKeys.length} issues to trash?`}
+                    onConfirm={handleDelete}
+                    okText="Move to Trash"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
+                    styles={{ body: { padding: '12px' } }}
+                  >
+                    <Button
+                      danger
+                      type="primary"
+                      icon={<DeleteOutlined />}
+                      loading={isDeleting}
+                      style={{ height: 40, borderRadius: 8, fontWeight: 600 }}
+                    >
+                      Delete Selection ({selectedRowKeys.length})
+                    </Button>
+                  </Popconfirm>
+                )}
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => refetch()}
+                  style={{ height: 40, borderRadius: 8 }}
+                />
+              </Space>
+            </Col>
+          </Row>
         </div>
 
-        {/* Filters */}
-        <Card style={{ marginBottom: 16 }}>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Space wrap>
+        {/* Stats Row */}
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+
+
+          {statsLoading ? (
+            <div style={{ flex: 1 }}>
+              <Card style={{ borderRadius: 12, border: '1px solid #f0f0f0', height: 82, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Spin size="small" />
+              </Card>
+            </div>
+          ) : (
+            projectStats.map((p: any) => (
+              <div key={p.id} style={{ flex: '0 0 160px' }}>
+                <Card
+                  styles={{ body: { padding: '16px 20px' } }}
+                  style={{
+                    borderRadius: 12,
+                    height: '100%',
+                    border: selectedProject === p.id ? '2px solid #1677ff' : '1px solid #f0f0f0',
+                    background: selectedProject === p.id ? '#f0f5ff' : '#fff',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    boxShadow: selectedProject === p.id ? '0 4px 12px rgba(22, 119, 255, 0.15)' : 'none'
+                  }}
+                  onClick={() => setSelectedProject(p.id)}
+                >
+                  <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#8c8c8c' }}>{p.code}</Text>
+                      {selectedProject === p.id && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1677ff' }} />}
+                    </div>
+                    <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{p.count}</Title>
+                    <Text ellipsis style={{ fontSize: 11, color: '#bfbfbf', display: 'block', marginTop: -2 }}>{p.name}</Text>
+                  </Space>
+                </Card>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Filters Row */}
+        <Card styles={{ body: { padding: 16 } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", marginBottom: 24 }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} md={12} lg={8}>
               <Input
-                placeholder="Search tickets..."
-                prefix={<SearchOutlined />}
+                placeholder="Search by title or ticket #..."
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: 250 }}
+                style={{ borderRadius: 8 }}
                 allowClear
+                size="large"
               />
+            </Col>
+            <Col xs={24} md={12} lg={6}>
               <Select
                 placeholder="All Projects"
-                style={{ width: 200 }}
+                style={{ width: '100%' }}
                 value={selectedProject}
                 onChange={setSelectedProject}
                 allowClear
+                size="large"
+                suffixIcon={<ProjectOutlined />}
+                styles={{ popup: { root: { borderRadius: 8 } } }}
               >
                 {projects?.map((project: any) => (
                   <Option key={project.id} value={project.id}>
-                    {project.code} - {project.name}
+                    <Space>
+                      <Tag style={{ borderRadius: 4 }}>{project.code}</Tag>
+                      <span>{project.name}</span>
+                    </Space>
                   </Option>
                 ))}
               </Select>
-            </Space>
-            <Space>
-              {selectedRowKeys.length > 0 && (
-                <Popconfirm
-                  title="Move to Trash?"
-                  description={`Move ${selectedRowKeys.length} archived ticket(s) to trash? They can be restored within 7 days.`}
-                  onConfirm={handleDelete}
-                  okText="Move to Trash"
-                  cancelText="Cancel"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button
-                    danger
-                    icon={<DeleteOutlined />}
-                    loading={isDeleting}
-                  >
-                    Delete ({selectedRowKeys.length})
-                  </Button>
-                </Popconfirm>
-              )}
-              <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-                Refresh
-              </Button>
-            </Space>
-          </Space>
+            </Col>
+            <Col flex="auto" style={{ textAlign: 'right' }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                Showing <b>{tickets.length}</b> of <b>{totalArchived}</b> archived tickets
+              </Text>
+            </Col>
+          </Row>
         </Card>
 
         {/* Tickets Table */}
-        <Card>
+        <Card
+          styles={{ body: { padding: 0 } }}
+          style={{
+            borderRadius: 16,
+            overflow: "hidden",
+            border: "1px solid #f0f0f0",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+          }}
+        >
           {tickets.length === 0 && !isLoading ? (
-            <Empty
-              image={<FolderOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />}
-              description={
-                <div>
-                  <Text type="secondary">No archived tickets found</Text>
-                  <br />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Tickets are automatically archived when sprints are completed
-                  </Text>
-                </div>
-              }
-            />
+            <div style={{ padding: '64px 0' }}>
+              <Empty
+                image={<FolderOutlined style={{ fontSize: 64, color: '#f0f0f0' }} />}
+                description={
+                  <div style={{ padding: '20px 0' }}>
+                    <Text type="secondary" style={{ display: "block", fontSize: 16, fontWeight: 500 }}>No archived tickets found</Text>
+                    <Text type="secondary" style={{ fontSize: 13 }}>Tickets are automatically archived when sprints are completed</Text>
+                  </div>
+                }
+              />
+            </div>
           ) : (
             <Table
               columns={columns}
@@ -276,17 +438,36 @@ export default function ArchivedTicketsPage() {
                 pageSize,
                 total: pagination?.total || 0,
                 showSizeChanger: true,
-                showTotal: (total) => `Total ${total} archived tickets`,
+                showTotal: (total) => <Text type="secondary" style={{ fontSize: 13 }}>Total <b>{total}</b> Archived Tickets</Text>,
                 onChange: (newPage, newPageSize) => {
                   setPage(newPage);
                   setPageSize(newPageSize);
                 },
+                style: { padding: '16px 24px' }
               }}
-              scroll={{ x: 1400 }}
-              size="small"
+              className="premium-table"
+              scroll={{ x: 1300 }}
             />
           )}
         </Card>
+
+        <style jsx global>{`
+          .premium-table .ant-table-thead > tr > th {
+            background: #fafafa;
+            font-weight: 600;
+            color: #595959;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            padding: 16px;
+          }
+          .premium-table .ant-table-tbody > tr > td {
+            padding: 16px;
+          }
+          .ant-table-row:hover .ant-typography-strong {
+            color: #1677ff;
+          }
+        `}</style>
       </div>
     </MainLayout>
   );

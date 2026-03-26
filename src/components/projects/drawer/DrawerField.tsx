@@ -12,6 +12,8 @@ interface DrawerFieldProps {
     interactive?: boolean;
     // Layout mode: default is horizontal (sidebar style), vertical is for main content areas
     layout?: 'horizontal' | 'vertical';
+    // Visual variant: table style for sidebar lists
+    variant?: 'default' | 'table';
 }
 
 export const DrawerField: React.FC<DrawerFieldProps> = ({
@@ -19,21 +21,85 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
     children,
     action,
     interactive = true,
-    layout = 'horizontal'
+    layout = 'horizontal',
+    variant = 'default'
 }) => {
     const isHorizontal = layout === 'horizontal';
+    const isTable = variant === 'table';
+
+    if (isTable) {
+        return (
+            <div 
+                className={`drawer-field table-variant ${interactive ? 'interactive' : ''}`}
+                style={{
+                    display: 'flex',
+                    borderBottom: '1px solid #f0f0f0',
+                    minHeight: 32,
+                    transition: 'background-color 0.2s',
+                    overflow: 'hidden'
+                }}
+            >
+                {/* Table Label Column */}
+                <div style={{
+                    flex: '0 0 110px',
+                    background: '#ffffff', // Exact white as requested
+                    padding: '6px 10px',
+                    borderRight: '1px solid #f0f0f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start'
+                }}>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, color: '#595959' }}>
+                        {label}
+                    </Text>
+                </div>
+
+                {/* Table Value Column */}
+                <div style={{
+                    flex: 1,
+                    padding: '6px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    background: 'transparent', // Inherit from container
+                    minWidth: 0
+                }}>
+                    <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start' }}>
+                        {children}
+                    </div>
+                    {action && (
+                        <div className="field-action" style={{ marginLeft: 'auto', opacity: 0, transition: 'opacity 0.2s' }}>
+                            {action}
+                        </div>
+                    )}
+                </div>
+
+                <style jsx>{`
+                    .drawer-field.interactive:hover {
+                        background-color: #f5f5f5;
+                    }
+                    .drawer-field:hover .field-action {
+                        opacity: 1;
+                    }
+                    :global(.drawer-field.table-variant .ant-typography) {
+                        margin-bottom: 0 !important;
+                    }
+                `}</style>
+            </div>
+        );
+    }
 
     return (
         <div
             className={`drawer-field ${interactive ? 'interactive' : ''} ${layout}`}
             style={{
-                marginBottom: 8, // Reduced from 16
-                padding: '4px 0', // Minimal padding
+                marginBottom: 4, 
+                padding: '2px 0', 
                 display: 'flex',
                 flexDirection: isHorizontal ? 'row' : 'column',
                 alignItems: isHorizontal ? 'center' : 'flex-start',
                 justifyContent: isHorizontal ? 'space-between' : 'flex-start',
-                minHeight: 32,
+                minHeight: 28, 
                 borderRadius: 4,
                 transition: 'background-color 0.2s',
             }}
@@ -44,8 +110,8 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
                 justifyContent: 'space-between',
                 width: isHorizontal ? 'auto' : '100%',
                 flex: isHorizontal ? '0 0 100px' : 'none',
-                marginRight: isHorizontal ? 12 : 0,
-                marginBottom: isHorizontal ? 0 : 8
+                marginRight: isHorizontal ? 8 : 0, 
+                marginBottom: isHorizontal ? 0 : 4 
             }}>
                 <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
                     {label}
@@ -60,6 +126,8 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
             <div className="field-value" style={{
                 flex: 1,
                 display: 'flex',
+                flexDirection: isHorizontal ? 'row' : 'column',
+                alignItems: isHorizontal ? (layout === 'horizontal' ? 'center' : 'stretch') : 'stretch',
                 justifyContent: isHorizontal ? 'flex-end' : 'flex-start',
                 textAlign: isHorizontal ? 'right' : 'left',
                 width: '100%',
@@ -70,7 +138,7 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
 
             <style jsx>{`
                 .drawer-field.interactive:hover {
-                    background-color: transparent; // Remove bg hover for cleaner look, or keep subtle
+                    background-color: transparent; 
                 }
                 .drawer-field:hover .field-action {
                     opacity: 1;

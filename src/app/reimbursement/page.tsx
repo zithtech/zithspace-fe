@@ -42,7 +42,11 @@ export default function ReimbursementPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     );

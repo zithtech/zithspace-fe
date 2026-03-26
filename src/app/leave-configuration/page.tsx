@@ -257,8 +257,8 @@ export default function leaveConfiguration() {
   } = useLeaveTypes();
 
   useEffect(() => {
-    fetchLeaveTypes();
-  }, []);
+    router.push("/leave-type");
+  }, [router]);
 
   useEffect(() => {
     if (apiLeaveTypes) {

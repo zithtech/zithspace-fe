@@ -130,7 +130,13 @@ export class EmployeeService {
    */
   static async getEmployeesForSelect(): Promise<any[]> {
     try {
-      return await api.get<any[]>("/api/clients-v2/employees/select");
+      return await api.get<
+        Array<{
+          value: string;
+          label: string;
+          workEmail: string;
+        }>
+      >("/api/members/select");
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

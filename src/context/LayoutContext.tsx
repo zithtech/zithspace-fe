@@ -48,7 +48,7 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const setCollapsed = (value: boolean) => {
         setCollapsedState(value);
         localStorage.setItem('sidebar-collapsed', JSON.stringify(value));
-        
+
         // Async sync to backend
         if (isAuthenticated) {
             axios.patch('/api/user/preferences', { sidebarCollapsed: value })

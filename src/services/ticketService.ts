@@ -691,6 +691,8 @@ class TicketService {
       totalTickets: number;
       completedTickets: number;
       endDate: string;
+      status?: string;
+      startDate?: string;
     }>
   > {
     try {

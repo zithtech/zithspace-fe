@@ -46,6 +46,8 @@ import {
   HomeOutlined,
   PlusOutlined,
   AppstoreOutlined,
+  CheckCircleOutlined,
+  ScheduleOutlined,
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
@@ -129,16 +131,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           Permissions.TICKET_READ,
         ],
         children: [
-          {
-            key: "/projects",
-            label: "Overview",
-            icon: <DashboardOutlined />,
-            path: "/projects",
-            requiredAnyPermission: [
-              Permissions.PROJECT_READ,
-              Permissions.TICKET_READ,
-            ],
-          },
+          // {
+          //   key: "/projects",
+          //   label: "Overview",
+          //   icon: <DashboardOutlined />,
+          //   path: "/projects",
+          //   requiredAnyPermission: [
+          //     Permissions.PROJECT_READ,
+          //     Permissions.TICKET_READ,
+          //   ],
+          // },
           //   {
           //     key: "/projects/manage",
           //     label: "Projects",
@@ -371,6 +373,38 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.SETTINGS_READ,
       },
       {
+        key: "pipeline-group",
+        label: "Pipeline",
+        icon: <ProjectOutlined />,
+        requiredPermission: Permissions.SETTINGS_READ,
+        children: [
+          {
+            key: "/admin/pipeline-settings",
+            label: "Settings",
+            icon: <SettingOutlined />,
+            path: "/admin/pipeline-settings",
+          },
+          {
+            key: "/admin/deals",
+            label: "Deals",
+            icon: <AccountBookOutlined />,
+            path: "/admin/deals",
+          },
+          {
+            key: "/admin/deals/forecast",
+            label: "Forecast",
+            icon: <BarChartOutlined />,
+            path: "/admin/deals/forecast",
+          },
+          {
+            key: "/admin/deals/board",
+            label: "Board",
+            icon: <AppstoreOutlined />,
+            path: "/admin/deals/board",
+          },
+        ],
+      },
+      {
         key: "/roles",
         label: "Roles & Permissions",
         icon: <SafetyOutlined />,
@@ -389,6 +423,16 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/profile",
       "/attendance",
       "/leaves",
+      "/leaves-dashboard",
+      "/apply-leave",
+      "/leave-approvals",
+      "/government-holidays",
+      "/leave-adjustments",
+      "/leave-type",
+      "/leave-policy",
+      "/leave-configuration",
+      "/leave",
+      "/add-goverment-leaves",
       "/org-structure",
       "/onboarding",
       "/recruitment",
@@ -425,11 +469,71 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.ATTENDANCE_READ,
       },
       {
-        key: "/leaves-dashboard",
+        key: "leave-management-group",
         label: "Leave Management",
         icon: <CalendarOutlined />,
-        path: "/leaves-dashboard",
         requiredPermission: Permissions.LEAVE_READ,
+        children: [
+          {
+            key: "/leaves-dashboard",
+            label: "Dashboard",
+            icon: <AppstoreOutlined />,
+            path: "/leaves-dashboard",
+            requiredPermission: Permissions.LEAVE_READ,
+          },
+          {
+            key: "/apply-leave",
+            label: "Apply Leave",
+            icon: <PlusOutlined />,
+            path: "/apply-leave",
+            requiredPermission: Permissions.LEAVE_READ,
+          },
+          {
+            key: "/leave-approvals",
+            label: "Approvals",
+            icon: <CheckSquareOutlined />,
+            path: "/leave-approvals",
+            requiredAnyPermission: [
+              Permissions.LEAVE_MANAGE,
+              Permissions.LEAVE_APPROVE,
+            ],
+          },
+          {
+            key: "/government-holidays",
+            label: "Government Holidays",
+            icon: <ScheduleOutlined />,
+            path: "/government-holidays",
+            requiredPermission: Permissions.LEAVE_READ,
+          },
+          {
+            key: "/leave-adjustments",
+            label: "Leave Adjustment",
+            icon: <EditOutlined />,
+            path: "/leave-adjustments",
+            requiredPermission: Permissions.LEAVE_MANAGE,
+          },
+          {
+            key: "/leave-type",
+            label: "Leave Type",
+            icon: <SettingOutlined />,
+            path: "/leave-type",
+            requiredPermission: Permissions.LEAVE_MANAGE,
+          },
+          {
+            key: "/leave-policy",
+            label: "Leave Policy",
+            icon: <ApartmentOutlined />,
+            path: "/leave-policy",
+            requiredPermission: Permissions.LEAVE_MANAGE,
+          },
+          {
+            key: "/add-goverment-leaves",
+            label: "Add Govt Leaves",
+            icon: <PlusOutlined />,
+            path: "/add-goverment-leaves",
+            requiredPermission: Permissions.LEAVE_MANAGE,
+          },
+        ],
       },
 
       {

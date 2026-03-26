@@ -39,6 +39,7 @@ import {
   Input,
   Modal,
   Table,
+  Empty,
 } from "antd";
 import {
   TeamOutlined,
@@ -58,6 +59,10 @@ import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   StarOutlined,
+  LoginOutlined,
+  LogoutOutlined,
+  FormOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import { redirect, useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -481,14 +486,6 @@ function DashboardContent() {
         color: "#52c41a",
         change: "Last 5 days avg",
       },
-      // {
-      //   title: "Assigned Tickets / Closed Tickets",
-      //   value: dashboardData.stats.tickets.display,
-      //   icon: <UserOutlined style={{ color: "#faad14" }} />,
-      //   color: "#faad14",
-      //   change: dashboardData.trends.ticketCompletionRate,
-      // },
-
       {
         title: "Today's Attendance",
         value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
@@ -529,7 +526,7 @@ function DashboardContent() {
     </div>
   );
 
-  const renderPieChart = () => {
+  const renderTicketSummary = () => {
     if (!tickets || tickets.length === 0) {
       return (
         <div
@@ -540,102 +537,114 @@ function DashboardContent() {
             justifyContent: "center",
           }}
         >
-          <Text type="secondary">No tickets found</Text>
+          <Empty description="No tickets found" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       );
     }
 
     const totalTickets = tickets.length;
-    const notStartedTickets = tickets.filter(
-      (t) => t.status === "not_started" || t.status === "NOT_STARTED",
-    ).length;
     const completedTickets = tickets.filter((t) =>
-      ["completed", "COMPLETED", "live", "LIVE"].includes(t.status),
+      ["completed", "live", "done"].includes(t.status?.toLowerCase())
     ).length;
-    const inProgressTickets =
-      totalTickets - notStartedTickets - completedTickets;
+    const inProgressTickets = tickets.filter(
+      (t) => t.status?.toLowerCase() === "in_progress" || t.status?.toLowerCase() === "doing"
+    ).length;
+    const blockedTickets = tickets.filter(
+      (t) => t.status?.toLowerCase() === "blocked"
+    ).length;
 
-    const notStartedDeg = (notStartedTickets / totalTickets) * 360;
-    const inProgressDeg = (inProgressTickets / totalTickets) * 360;
-
-    const gradient = `conic-gradient(
-    #d9d9d9 0deg ${notStartedDeg}deg,
-    #1677ff ${notStartedDeg}deg ${notStartedDeg + inProgressDeg}deg,
-    #52c41a ${notStartedDeg + inProgressDeg}deg 360deg
-  )`;
-
-    const progress =
-      totalTickets > 0
-        ? Math.round((completedTickets / totalTickets) * 100)
-        : 0;
+    const completionRate = totalTickets > 0 ? Math.round((completedTickets / totalTickets) * 100) : 0;
 
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          padding: "4px 4px",
-          gap: "12px",
-        }}
-      >
-        {/* Pie Chart */}
-        <div
-          style={{
-            width: 140,
-            height: 140,
-            borderRadius: "50%",
-            background: gradient,
-            position: "relative",
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: 20,
-              left: 20,
-              width: 100,
-              height: 100,
-              borderRadius: "50%",
-              background: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        justifyContent: 'center',
+        padding: '0 4px'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: 4,
+          position: 'relative',
+          paddingTop: 4
+        }}>
+          <Progress
+            type="dashboard"
+            percent={completionRate}
+            strokeColor={{
+              '0%': '#1677ff',
+              '100%': '#52c41a',
             }}
-          >
-            <div style={{ fontSize: 20, fontWeight: "bold" }}>{progress}%</div>
-          </div>
+            strokeWidth={10}
+            width={115}
+            gapDegree={80}
+            format={(percent) => (
+              <div style={{ marginTop: -5 }}>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#262626', letterSpacing: '-0.5px' }}>{percent}%</div>
+                <div style={{ fontSize: 8, color: '#bfbfbf', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
+              </div>
+            )}
+          />
         </div>
 
-        {/* Legend */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-around",
-            width: "100%",
-            gap: "8px",
-          }}
-        >
-          <LegendItem
-            color="#d9d9d9"
-            label="Not Started"
-            value={notStartedTickets}
-          />
-          <LegendItem
-            color="#1677ff"
-            label="In Progress"
-            value={inProgressTickets}
-          />
-          <LegendItem
-            color="#52c41a"
-            label="Completed"
-            value={completedTickets}
-          />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '8px',
+          marginTop: '0px'
+        }}>
+          {/* Active Pill */}
+          <div style={{
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(22, 119, 255, 0.02) 100%)',
+            padding: '8px 4px',
+            borderRadius: '12px',
+            border: '1px solid rgba(22, 119, 255, 0.12)',
+            transition: 'all 0.3s'
+          }} className="metric-pill">
+            <Space direction="vertical" size={0}>
+              <Text strong style={{ fontSize: 16, color: '#1677ff', lineHeight: 1 }}>{inProgressTickets}</Text>
+              <Text style={{ fontSize: 8, color: '#1677ff', textTransform: 'uppercase', fontWeight: 700 }}>Active</Text>
+            </Space>
+          </div>
+
+          {/* Done Pill */}
+          <div style={{
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, rgba(82, 196, 26, 0.08) 0%, rgba(82, 196, 26, 0.02) 100%)',
+            padding: '8px 4px',
+            borderRadius: '12px',
+            border: '1px solid rgba(82, 196, 26, 0.12)',
+            transition: 'all 0.3s'
+          }} className="metric-pill">
+            <Space direction="vertical" size={0}>
+              <Text strong style={{ fontSize: 16, color: '#52c41a', lineHeight: 1 }}>{completedTickets}</Text>
+              <Text style={{ fontSize: 8, color: '#52c41a', textTransform: 'uppercase', fontWeight: 700 }}>Done</Text>
+            </Space>
+          </div>
+
+          {/* Blocked/Total Pill */}
+          <div style={{
+            textAlign: 'center',
+            background: blockedTickets > 0
+              ? 'linear-gradient(135deg, rgba(255, 77, 79, 0.08) 0%, rgba(255, 77, 79, 0.02) 100%)'
+              : 'linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.02) 100%)',
+            padding: '8px 4px',
+            borderRadius: '12px',
+            border: blockedTickets > 0 ? '1px solid rgba(255, 77, 79, 0.15)' : '1px solid #e8e8e8',
+            transition: 'all 0.3s'
+          }} className="metric-pill">
+            <Space direction="vertical" size={0}>
+              <Text strong style={{ fontSize: 16, color: blockedTickets > 0 ? '#ff4d4f' : '#595959', lineHeight: 1 }}>
+                {blockedTickets > 0 ? blockedTickets : totalTickets}
+              </Text>
+              <Text style={{ fontSize: 8, color: blockedTickets > 0 ? '#ff4d4f' : '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>
+                {blockedTickets > 0 ? 'Blocked' : 'Total'}
+              </Text>
+            </Space>
+          </div>
         </div>
       </div>
     );
@@ -770,7 +779,7 @@ function DashboardContent() {
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ height: "100%", borderLeft: "4px solid #52c41a" }}
+                        style={{ height: "100%", borderLeft: "4px solid grey" }}
                         styles={{
                           body: { padding: "8px 16px", height: "100%" },
                         }}
@@ -873,7 +882,7 @@ function DashboardContent() {
                         <Card
                           size="small"
                           style={{
-                            borderLeft: `4px solid ${stat.color}`,
+                            borderLeft: `4px solid grey`,
                             height: "100%",
                           }}
                           styles={{ body: { padding: 16 } }}
@@ -935,6 +944,7 @@ function DashboardContent() {
                           <Space>
                             <TrophyOutlined style={{ color: "#1677ff" }} />
                             <span>My Tickets</span>
+                            <span className="live-pulse" style={{ marginLeft: 8 }} />
                           </Space>
                         }
                         size="small"
@@ -948,7 +958,7 @@ function DashboardContent() {
                           </Button>
                         }
                         styles={{ body: { padding: 8 } }}
-                        style={{ height: "260px" }}
+                        style={{ height: "280px" }}
                       >
                         <div style={{ height: "100%" }}>
                           <div
@@ -961,7 +971,7 @@ function DashboardContent() {
                           >
 
                           </div>
-                          {renderPieChart()}
+                          {renderTicketSummary()}
                         </div>
                       </Card>
                     </Col>
@@ -1016,7 +1026,7 @@ function DashboardContent() {
                             )
                           }
                           styles={{ body: { padding: 0 } }}
-                          style={{ height: "260px" }}
+                          style={{ height: "280px" }}
                         >
                           {calendarLoading ? (
                             <div style={{ padding: 16, textAlign: "center" }}>
@@ -1330,105 +1340,126 @@ function DashboardContent() {
                             <span>My Attendance</span>
                           </Space>
                         }
+                        extra={
+                          todayAttendance && (
+                            <Tag
+                              color={todayAttendance.canClockIn ? "default" : todayAttendance.canClockOut ? "processing" : "success"}
+                              style={{ borderRadius: '6px', margin: 0 }}
+                            >
+                              {todayAttendance.canClockIn ? "Not Clocked In" : todayAttendance.canClockOut ? "Active Now" : "Shift Completed"}
+                            </Tag>
+                          )
+                        }
                         size="small"
-                        styles={{ body: { padding: 24 } }}
-                        style={{ height: "260px", justifyContent: "center", alignItems: "center" }}
+                        style={{
+                          height: "280px",
+                          borderRadius: "16px",
+                          border: "1px solid #f0f0f0",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                          overflow: 'hidden'
+                        }}
+                        styles={{ body: { padding: '20px 24px' } }}
                       >
                         {todayAttendance ? (
-                          <div style={{ width: "100%" }}>
-                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
-                              {/* Top Left: Clock In/Out Button */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center" }}>
-                                {todayAttendance.canClockIn ? (
-                                  <Button
-                                    type="primary"
-                                    shape="round"
-                                    icon={<PlayCircleOutlined />}
-                                    onClick={handleClockIn}
-                                    loading={isClocking}
-                                    size="middle"
-                                  //style={{ padding: "0 16px" }}
-                                  >
-                                    Clock In
-                                  </Button>
-                                ) : todayAttendance.canClockOut ? (
-                                  <Button
-                                    danger
-                                    shape="round"
-                                    icon={<PauseCircleOutlined />}
-                                    onClick={handleClockOut}
-                                    loading={isClocking}
-                                    size="middle"
-                                    style={{ padding: "0 16px" }}
-                                  >
-                                    Clock Out
-                                  </Button>
-                                ) : (
-                                  <Tag
-                                    icon={<TrophyOutlined />}
-                                    color="success"
-                                    style={{ fontSize: 14, padding: "6px 12px" }}
-                                  >
-                                    Day Complete
-                                  </Tag>
-                                )}
-                              </Col>
+                          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>TOTAL WORK DURATION</Text>
+                              <div style={{
+                                fontSize: 32,
+                                fontWeight: 700,
+                                color: (todayAttendance.canClockOut) ? '#722ed1' : '#262626',
+                                letterSpacing: '-0.5px',
+                                lineHeight: 1
+                              }}>
+                                {workDuration || "00:00:00"}
+                              </div>
+                            </div>
 
-                              {/* Top Right: Work Duration */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
-                                <Statistic
-                                  title="Work Duration"
-                                  value={workDuration}
-                                  valueStyle={{
-                                    fontSize: 20,
-                                    color: "#262626",
-                                    fontWeight: 500,
+                            <div style={{
+                              // background: '#f9f0ff',
+                              borderRadius: '12px',
+                              padding: '12px',
+                              display: 'flex',
+                              justifyContent: 'space-around',
+                              marginBottom: 16
+                            }}>
+                              <div style={{ textAlign: 'center' }}>
+                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK IN</Text>
+                                <Space size={4}>
+                                  <LoginOutlined style={{ fontSize: 12, color: '#52c41a' }} />
+                                  <Text strong style={{ fontSize: 13 }}>
+                                    {todayAttendance.clockInTime ? dayjs(todayAttendance.clockInTime).format("hh:mm A") : "--:--"}
+                                  </Text>
+                                </Space>
+                              </div>
+                              <Divider type="vertical" style={{ height: '32px', borderLeftColor: '#d6e4ff' }} />
+                              <div style={{ textAlign: 'center' }}>
+                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK OUT</Text>
+                                <Space size={4}>
+                                  <LogoutOutlined style={{ fontSize: 12, color: '#ff4d4f' }} />
+                                  <Text strong style={{ fontSize: 13 }}>
+                                    {todayAttendance.clockOutTime ? dayjs(todayAttendance.clockOutTime).format("hh:mm A") : "--:--"}
+                                  </Text>
+                                </Space>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "center" }}>
+                              {todayAttendance.canClockIn ? (
+                                <Button
+                                  type="primary"
+                                  block
+                                  icon={<PlayCircleOutlined />}
+                                  onClick={handleClockIn}
+                                  loading={isClocking}
+                                  size="large"
+                                  style={{
+                                    borderRadius: '10px',
+                                    height: 44,
+                                    background: '#722ed1',
+                                    borderColor: '#722ed1',
+                                    boxShadow: '0 4px 10px rgba(114, 46, 209, 0.25)',
+                                    fontWeight: 600
                                   }}
-                                />
-                              </Col>
-                            </Row>
-
-                            <Divider style={{ margin: "20px 0" }} />
-
-                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
-                              {/* Bottom Left: Clock In Time */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
-                                <Statistic
-                                  title="Clock In"
-                                  value={
-                                    todayAttendance.clockInTime
-                                      ? dayjs(todayAttendance.clockInTime).format(
-                                        "hh:mm A",
-                                      )
-                                      : "--:--"
-                                  }
-                                  valueStyle={{
-                                    fontSize: 16,
-                                    color: "#52c41a",
-                                    fontWeight: 500,
+                                >
+                                  Clock In Now
+                                </Button>
+                              ) : todayAttendance.canClockOut ? (
+                                <Button
+                                  danger
+                                  block
+                                  icon={<PauseCircleOutlined />}
+                                  onClick={handleClockOut}
+                                  loading={isClocking}
+                                  size="large"
+                                  style={{
+                                    borderRadius: '10px',
+                                    height: 44,
+                                    boxShadow: '0 4px 10px rgba(255, 77, 79, 0.2)',
+                                    fontWeight: 600
                                   }}
-                                />
-                              </Col>
-
-                              {/* Bottom Right: Clock Out Time */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
-                                <Statistic
-                                  title="Clock Out"
-                                  value={
-                                    todayAttendance.clockOutTime
-                                      ? dayjs(
-                                        todayAttendance.clockOutTime,
-                                      ).format("hh:mm A")
-                                      : "--:--"
-                                  }
-                                  valueStyle={{
-                                    fontSize: 16,
-                                    color: "#eb2f96",
-                                    fontWeight: 500,
-                                  }}
-                                />
-                              </Col>
-                            </Row>
+                                >
+                                  Clock Out
+                                </Button>
+                              ) : (
+                                <div style={{
+                                  width: '100%',
+                                  padding: '10px',
+                                  // background: '#f6ffed',
+                                  border: '1px solid #b7eb8f',
+                                  borderRadius: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 8,
+                                  color: '#52c41a',
+                                  fontWeight: 500
+                                }}>
+                                  <TrophyOutlined />
+                                  <span>Shift Completed Successfully</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <Skeleton active paragraph={{ rows: 4 }} />
@@ -1440,166 +1471,146 @@ function DashboardContent() {
                   {/* Row 2: Leave & Recent Tickets */}
                   <Row gutter={[16, 16]}>
                     <Col xs={24} lg={8}>
-                      {/* Leave Management */}
-                      {dashboardData.leaves && (
-                        <div
+                      {/* Action Cards Container */}
+                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                        {/* Apply Leave Card */}
+                        <Card
+                          hoverable
                           style={{
-                            height: "100%", // Ensure it fills the Col
+                            borderRadius: 14,
+                            // background: 'linear-gradient(135deg, #e6f4ff 0%, #ffffff 100%)',
+                            border: '1px solid #bae0ff',
+                            boxShadow: '0 2px 8px rgba(22, 119, 255, 0.04)',
+                            overflow: 'hidden'
                           }}
+                          styles={{ body: { padding: '12px 16px' } }}
+                          onClick={() => router.push("/leave/apply")}
                         >
-                          <Card
-                            title={
-                              <Space>
-                                <FileTextOutlined
-                                  style={{ color: "#1677ff" }}
-                                />
-                                <span>Leave Management</span>
-                              </Space>
-                            }
-                            size="small"
-                            style={{
-                              height: 250,
-                              borderRadius: 12,
-                            }}
-                            bodyStyle={{
-                              padding: 12,
-                              height: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 12,
-                            }}
-                          >
-                            {/* TOP CONTENT */}
-                            <div>
-                              {/* Pending Approval Button */}
-                              {dashboardData.leaves.pendingApprovals > 0 && (
-                                <Button
-                                  block
-                                  icon={<FileTextOutlined />}
-                                  onClick={() => router.push("/leaves")}
-                                  style={{
-                                    marginBottom: 14,
-                                    borderColor: "#faad14",
-                                    color: "#faad14",
-                                    fontWeight: 500,
-                                    height: 38,
-                                    borderRadius: 8,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      width: "100%",
-                                      alignItems: "center",
-                                    }}
-                                  >
-                                    <span>Pending Approvals</span>
-                                    <Badge
-                                      count={
-                                        dashboardData.leaves.pendingApprovals
-                                      }
-                                      style={{ backgroundColor: "#faad14" }}
-                                    />
-                                  </div>
-                                </Button>
-                              )}
-
-                              {/* Stats Card */}
-                              <div
-                                style={{
-                                  background: "#f0f5ff",
-                                  border: "1px solid #adc6ff",
-                                  borderRadius: 10,
-                                  padding: 12,
-                                }}
-                              >
-                                <Text strong style={{ fontSize: 13 }}>
-                                  My Leaves This Month
-                                </Text>
-
-                                <Row gutter={12} style={{ marginTop: 12 }}>
-                                  <Col span={8}>
-                                    <Statistic
-                                      title={
-                                        <Text style={{ fontSize: 11 }}>
-                                          Approved
-                                        </Text>
-                                      }
-                                      value={
-                                        dashboardData.leaves.myLeaves.approved
-                                      }
-                                      valueStyle={{
-                                        fontSize: 18,
-                                        color: "#52c41a",
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  </Col>
-
-                                  <Col span={8}>
-                                    <Statistic
-                                      title={
-                                        <Text style={{ fontSize: 11 }}>
-                                          Pending
-                                        </Text>
-                                      }
-                                      value={
-                                        dashboardData.leaves.myLeaves.pending
-                                      }
-                                      valueStyle={{
-                                        fontSize: 18,
-                                        color: "#faad14",
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  </Col>
-
-                                  <Col span={8}>
-                                    <Statistic
-                                      title={
-                                        <Text style={{ fontSize: 11 }}>
-                                          Days
-                                        </Text>
-                                      }
-                                      value={
-                                        dashboardData.leaves.myLeaves.totalDays
-                                      }
-                                      valueStyle={{
-                                        fontSize: 18,
-                                        color: "#1677ff",
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  </Col>
-                                </Row>
-                              </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: '#1677ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 4px rgba(22, 119, 255, 0.15)'
+                            }}>
+                              <FormOutlined style={{ fontSize: 20, color: '#fff' }} />
                             </div>
-
-                            {/* BOTTOM ACTION BUTTON */}
-                            <div
+                            <div style={{ flex: 1 }}>
+                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Apply Leave</Title>
+                              <Text type="secondary" style={{ fontSize: 11 }}>Request time off easily</Text>
+                            </div>
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="small"
+                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
                               style={{
-                                paddingTop: 12,
-                                borderTop: "1px solid #f0f0f0",
+                                background: '#1677ff',
+                                border: 'none',
+                                width: 24,
+                                height: 24,
+                                minWidth: 24
                               }}
-                            >
-                              <Button
-                                type="primary"
-                                block
-                                icon={<PlusOutlined />}
-                                onClick={() => router.push("/leaves")}
-                                style={{
-                                  borderRadius: 8,
-                                  height: 40,
-                                  fontWeight: 500,
-                                }}
-                              >
-                                Apply for Leave
-                              </Button>
+                            />
+                          </div>
+                        </Card>
+
+                        {/* Apply Reimbursement Card */}
+                        <Card
+                          hoverable
+                          style={{
+                            borderRadius: 14,
+                            // background: 'linear-gradient(135deg, #f9f0ff 0%, #ffffff 100%)',
+                            border: '1px solid #efdbff',
+                            boxShadow: '0 2px 8px rgba(114, 46, 209, 0.04)',
+                            overflow: 'hidden'
+                          }}
+                          styles={{ body: { padding: '12px 16px' } }}
+                          onClick={() => router.push("/reimbursement/apply")}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: '#722ed1',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 4px rgba(114, 46, 209, 0.15)'
+                            }}>
+                              <WalletOutlined style={{ fontSize: 20, color: '#fff' }} />
                             </div>
-                          </Card>
-                        </div>
-                      )}
+                            <div style={{ flex: 1 }}>
+                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Reimbursement</Title>
+                              <Text type="secondary" style={{ fontSize: 11 }}>Submit expense claims</Text>
+                            </div>
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="small"
+                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                              style={{
+                                background: '#722ed1',
+                                border: 'none',
+                                width: 24,
+                                height: 24,
+                                minWidth: 24
+                              }}
+                            />
+                          </div>
+                        </Card>
+
+                        {/* Submit Timesheet Card */}
+                        <Card
+                          hoverable
+                          style={{
+                            borderRadius: 14,
+                            // background: 'linear-gradient(135deg, #e6fffb 0%, #ffffff 100%)',
+                            border: '1px solid #87e8de',
+                            boxShadow: '0 2px 8px rgba(19, 194, 194, 0.04)',
+                            overflow: 'hidden'
+                          }}
+                          styles={{ body: { padding: '12px 16px' } }}
+                          onClick={() => router.push("/timesheet/submit")}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: '#13c2c2',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 4px rgba(19, 194, 194, 0.15)'
+                            }}>
+                              <ClockCircleOutlined style={{ fontSize: 20, color: '#fff' }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Submit Timesheet</Title>
+                              <Text type="secondary" style={{ fontSize: 11 }}>Log your daily hours</Text>
+                            </div>
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="small"
+                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                              style={{
+                                background: '#13c2c2',
+                                border: 'none',
+                                width: 24,
+                                height: 24,
+                                minWidth: 24
+                              }}
+                            />
+                          </div>
+                        </Card>
+                      </Space>
                     </Col>
                     <Col xs={24} lg={16}>
                       {/* Recent Tickets */}
@@ -1631,73 +1642,139 @@ function DashboardContent() {
                           overflowY: "auto",
                         }}
                       >
-                        <Table
+                        <List
                           dataSource={recentTickets}
-                          columns={[
-                            {
-                              title: "Ticket",
-                              dataIndex: "ticketNumber",
-                              key: "ticketNumber",
-                              width: 120,
-                              render: (text: string) => (
-                                <Text style={{ fontSize: 12 }}>{text}</Text>
-                              ),
-                            },
+                          className="no-scrollbar"
+                          style={{ padding: '0 4px' }}
+                          renderItem={(item: any) => (
+                            <List.Item
+                              onClick={() => router.push(`/tickets/${item.id}`)}
+                              style={{
+                                padding: "12px 14px",
+                                cursor: "pointer",
+                                borderBottom: "1px solid #f0f0f0",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "12px",
+                                borderRadius: '12px',
+                                margin: '4px 0'
+                              }}
+                              className="ticket-list-item"
+                            >
+                              {/* Priority Bar Indicator */}
+                              <div
+                                style={{
+                                  width: "4px",
+                                  height: "36px",
+                                  borderRadius: "2px",
+                                  background: getPriorityColor(item.priority),
+                                  flexShrink: 0,
+                                }}
+                              />
 
-                            {
-                              title: "Create Time",
-                              dataIndex: "createdAt",
-                              key: "startTime",
-                              width: 100,
-                              render: (text: string) => (
-                                <Text style={{ fontSize: 12 }}>
-                                  {dayjs(text).format("DD/MM/YY")}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 3,
+                                  }}
+                                >
+                                  <Space size={8}>
+                                    <Text
+                                      type="secondary"
+                                      style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
+                                    >
+                                      {item.ticketNumber}
+                                    </Text>
+                                    <Tag
+                                      style={{
+                                        fontSize: 9,
+                                        margin: 0,
+                                        borderRadius: "4px",
+                                        background: "#f5f5f5",
+                                        border: "none",
+                                        color: '#8c8c8c'
+                                      }}
+                                    >
+                                      {typeof item.project === "string"
+                                        ? item.project
+                                        : item.project?.code ||
+                                        item.project?.name}
+                                    </Tag>
+                                  </Space>
+                                  <Text type="secondary" style={{ fontSize: 10, color: '#bfbfbf' }}>
+                                    {formatTimeAgo(item.createdAt)}
+                                  </Text>
+                                </div>
+
+                                <Text
+                                  strong
+                                  ellipsis={{ tooltip: item.title }}
+                                  style={{
+                                    fontSize: 13,
+                                    display: "block",
+                                    color: "#262626",
+                                    lineHeight: 1.3,
+                                    marginBottom: 6
+                                  }}
+                                >
+                                  {item.title}
                                 </Text>
-                              ),
-                            },
 
-                            {
-                              title: "Status",
-                              dataIndex: "status",
-                              key: "status",
-                              width: 120,
-                              render: (status: string) => {
-                                let color = "default";
-                                if (status === "completed") color = "success";
-                                if (status === "in_progress")
-                                  color = "processing";
-                                if (status === "not_started") color = "default";
-                                if (status === "blocked") color = "error";
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                  }}
+                                >
+                                  {(() => {
+                                    let color = "default";
+                                    const status = item.status?.toLowerCase();
+                                    if (status === "completed" || status === "live") color = "success";
+                                    if (status === "in_progress") color = "processing";
+                                    if (status === "not_started") color = "default";
+                                    if (status === "blocked") color = "error";
 
-                                return (
-                                  <Tag
-                                    color={color}
-                                    style={{ fontSize: 10, margin: 0 }}
-                                  >
-                                    {status?.replace(/_/g, " ").toUpperCase()}
-                                  </Tag>
-                                );
-                              },
-                            },
-                            {
-                              title: "Title",
-                              dataIndex: "title",
-                              key: "title",
-                              ellipsis: true,
-                              render: (text: string) => (
-                                <Text style={{ fontSize: 12 }}>{text}</Text>
-                              ),
-                            },
-                          ]}
-                          pagination={false}
-                          tableLayout="fixed"
-                          size="small"
-                          rowKey="id"
-                          onRow={(record) => ({
-                            onClick: () => {
-                              router.push(`/tickets/${record.id}`);
-                            },
-                          })}
+                                    return (
+                                      <Tag
+                                        color={color}
+                                        style={{
+                                          fontSize: 9,
+                                          margin: 0,
+                                          borderRadius: "5px",
+                                          padding: "0 8px",
+                                          border: 'none',
+                                          fontWeight: 600
+                                        }}
+                                      >
+                                        {item.status?.replace(/_/g, " ").toUpperCase()}
+                                      </Tag>
+                                    );
+                                  })()}
+
+                                  {item.assignee && (
+                                    <Tooltip title={`Assignee: ${item.assignee.name}`}>
+                                      <Avatar
+                                        size={20}
+                                        src={item.assignee.avatar}
+                                        style={{
+                                          backgroundColor: "#722ed1",
+                                          fontSize: 10,
+                                          border: '1.5px solid white',
+                                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                        }}
+                                      >
+                                        {item.assignee.name?.charAt(0).toUpperCase()}
+                                      </Avatar>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </div>
+                            </List.Item>
+                          )}
                         />
                       </Card>
                     </Col>

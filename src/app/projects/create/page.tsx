@@ -32,7 +32,7 @@ export default function ProjectsCreatePage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
+      <div style={{ height: "100%", overflow: "hidden" }}>
         <CreateTicket />
       </div>
     </MainLayout>

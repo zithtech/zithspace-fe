@@ -55,7 +55,11 @@ export default function ViewDailyUpdatesPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+          <Spin size="large" tip="Loading">
+            <div style={{ padding: 100, textAlign: 'center' }}>
+              <div style={{ padding: 20 }} />
+            </div>
+          </Spin>
         </div>
       </MainLayout>
     );

@@ -232,7 +232,11 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
             height: 400,
           }}
         >
-          <Spin size="large" tip="Loading sprint data..." />
+        <div style={{ padding: 40, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading sprint data">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       ) : (
         <Tabs

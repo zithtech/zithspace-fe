@@ -221,30 +221,62 @@ export default function TopNav({
         {/* Logo Area */}
         <div
           style={{
-            width: isMobile ? 'auto' : (collapsed ? 80 : 240),
+            width: isMobile ? 'auto' : (collapsed ? 64 : 'auto'),
+            minWidth: isMobile ? 'auto' : (collapsed ? 64 : 180),
             marginRight: isMobile ? 12 : 0,
             height: '100%',
             transition: "all 0.2s",
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
-            justifyContent: isMobile ? "flex-start" : "center"
+            justifyContent: "flex-start"
           }}
         >
-          <Text
-            strong
-            style={{
-              fontSize: isMobile ? 22 : 26,
-              background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              fontWeight: 800,
-              lineHeight: 1,
-              letterSpacing: "-0.5px"
-            }}
-          >
-            {isMobile ? 'Z' : (collapsed ? 'Z' : 'Zithtech')}
-          </Text>
+           {user?.tenantLogo ? (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+               <img 
+                 src={user.tenantLogo} 
+                 alt={user.tenantName || 'Logo'} 
+                 style={{ 
+                   height: isMobile ? 32 : 40, 
+                   width: 'auto',
+                   maxWidth: isMobile ? 120 : 200,
+                   objectFit: 'contain'
+                 }} 
+               />
+               {!collapsed && !isMobile && (
+                 <Text 
+                   strong 
+                   style={{ 
+                     fontSize: 18, 
+                     color: '#262626', 
+                     whiteSpace: 'nowrap',
+                     background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
+                     WebkitBackgroundClip: "text",
+                     WebkitTextFillColor: "transparent",
+                     fontWeight: 700
+                   }}
+                 >
+                   {user?.tenantName}
+                 </Text>
+               )}
+             </div>
+          ) : (
+            <Text
+              strong
+              style={{
+                fontSize: isMobile ? 22 : 26,
+                background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontWeight: 800,
+                lineHeight: 1,
+                letterSpacing: "-0.5px"
+              }}
+            >
+              {isMobile ? (user?.tenantName?.charAt(0) || 'Z') : (collapsed ? (user?.tenantName?.charAt(0) || 'Z') : (user?.tenantName || 'Zithtech'))}
+            </Text>
+          )}
         </div>
 
         {/* Module Selector - Hidden on Mobile, moved to dropdown/hamburger if needed */}
@@ -259,7 +291,7 @@ export default function TopNav({
               flex: 1,
               maxWidth: 700,
               background: 'transparent',
-              marginLeft: 24,
+              marginLeft: 0,
             }}
           />
         )}

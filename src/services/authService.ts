@@ -44,6 +44,7 @@ export interface UserProfile {
     id: string;
     name: string;
     subdomain: string;
+    logoUrl?: string | null;
   };
   dateOfBirth?: string;
   createdAt: string;

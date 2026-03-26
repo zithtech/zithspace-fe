@@ -412,14 +412,14 @@ function DashboardContent() {
       case "low":
         return "#52c41a";
       default:
-        return "#d9d9d9";
+        return "#8c8c8c";
     }
   };
 
   const getProgressColor = (progress: number) => {
     if (progress >= 75) return "#52c41a";
     if (progress >= 40) return "#1677ff";
-    return "#faad14";
+    return "#8c8c8c";
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -473,24 +473,24 @@ function DashboardContent() {
   const stats = dashboardData
     ? [
       {
-        title: "Assigned Tickets / Closed Tickets",
+        title: "Assigned / Closed Tickets",
         value: `${myTicketsStats.total} / ${myTicketsStats.closed}`,
-        icon: <UserOutlined style={{ color: "#faad14" }} />,
-        color: "#faad14",
+        icon: <UserOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: dashboardData.trends.ticketCompletionRate,
       },
       {
-        title: "Average Working Hours ",
+        title: "Average Working Hours",
         value: averageWorkHours,
-        icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
-        color: "#52c41a",
+        icon: <ProjectOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: "Last 5 days avg",
       },
       {
         title: "Today's Attendance",
         value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-        icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
-        color: "#722ed1",
+        icon: <ClockCircleOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
         isAttendance: true,
         stats: dashboardData.stats.attendance,
@@ -573,17 +573,14 @@ function DashboardContent() {
           <Progress
             type="dashboard"
             percent={completionRate}
-            strokeColor={{
-              '0%': '#1677ff',
-              '100%': '#52c41a',
-            }}
+            strokeColor="#1677ff"
             strokeWidth={10}
             width={115}
             gapDegree={80}
             format={(percent) => (
               <div style={{ marginTop: -5 }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: '#262626', letterSpacing: '-0.5px' }}>{percent}%</div>
-                <div style={{ fontSize: 8, color: '#bfbfbf', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: '#262626', letterSpacing: '-0.5px' }}>{percent}%</div>
+                <div style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
               </div>
             )}
           />
@@ -598,49 +595,47 @@ function DashboardContent() {
           {/* Active Pill */}
           <div style={{
             textAlign: 'center',
-            background: 'linear-gradient(135deg, rgba(22, 119, 255, 0.08) 0%, rgba(22, 119, 255, 0.02) 100%)',
+            background: 'rgba(0, 0, 0, 0.02)',
             padding: '8px 4px',
             borderRadius: '12px',
-            border: '1px solid rgba(22, 119, 255, 0.12)',
+            border: '1px solid #f0f0f0',
             transition: 'all 0.3s'
           }} className="metric-pill">
             <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: '#1677ff', lineHeight: 1 }}>{inProgressTickets}</Text>
-              <Text style={{ fontSize: 8, color: '#1677ff', textTransform: 'uppercase', fontWeight: 700 }}>Active</Text>
+              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>{inProgressTickets}</Text>
+              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>Active</Text>
             </Space>
           </div>
 
           {/* Done Pill */}
           <div style={{
             textAlign: 'center',
-            background: 'linear-gradient(135deg, rgba(82, 196, 26, 0.08) 0%, rgba(82, 196, 26, 0.02) 100%)',
+            background: 'rgba(0, 0, 0, 0.02)',
             padding: '8px 4px',
             borderRadius: '12px',
-            border: '1px solid rgba(82, 196, 26, 0.12)',
+            border: '1px solid #f0f0f0',
             transition: 'all 0.3s'
           }} className="metric-pill">
             <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: '#52c41a', lineHeight: 1 }}>{completedTickets}</Text>
-              <Text style={{ fontSize: 8, color: '#52c41a', textTransform: 'uppercase', fontWeight: 700 }}>Done</Text>
+              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>{completedTickets}</Text>
+              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>Done</Text>
             </Space>
           </div>
 
           {/* Blocked/Total Pill */}
           <div style={{
             textAlign: 'center',
-            background: blockedTickets > 0
-              ? 'linear-gradient(135deg, rgba(255, 77, 79, 0.08) 0%, rgba(255, 77, 79, 0.02) 100%)'
-              : 'linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.02) 100%)',
+            background: 'rgba(0, 0, 0, 0.02)',
             padding: '8px 4px',
             borderRadius: '12px',
-            border: blockedTickets > 0 ? '1px solid rgba(255, 77, 79, 0.15)' : '1px solid #e8e8e8',
+            border: '1px solid #f0f0f0',
             transition: 'all 0.3s'
           }} className="metric-pill">
             <Space direction="vertical" size={0}>
-              <Text strong style={{ fontSize: 16, color: blockedTickets > 0 ? '#ff4d4f' : '#595959', lineHeight: 1 }}>
+              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>
                 {blockedTickets > 0 ? blockedTickets : totalTickets}
               </Text>
-              <Text style={{ fontSize: 8, color: blockedTickets > 0 ? '#ff4d4f' : '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>
+              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>
                 {blockedTickets > 0 ? 'Blocked' : 'Total'}
               </Text>
             </Space>
@@ -678,7 +673,7 @@ function DashboardContent() {
 
   return (
     <MainLayout>
-      <div style={{ background: "white" }}>
+      <div style={{ background: "#ffffff", minHeight: "100vh" }}>
         <div style={{ padding: 20 }}>
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
           <div
@@ -700,8 +695,8 @@ function DashboardContent() {
 
             <Segmented
               options={[
-                { label: "Me", value: "me" },
-                { label: "Organization", value: "organization" },
+                { label: "Me", value: "me", icon: <UserOutlined /> },
+                { label: "Organization", value: "organization", icon: <TeamOutlined /> },
               ]}
               value={activeSegment}
               onChange={(value) =>
@@ -779,7 +774,12 @@ function DashboardContent() {
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ height: "100%", borderLeft: "4px solid grey" }}
+                        style={{
+                          height: "100%",
+                          borderRadius: "16px",
+                          border: "1px solid #f0f0f0",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                        }}
                         styles={{
                           body: { padding: "8px 16px", height: "100%" },
                         }}
@@ -882,8 +882,10 @@ function DashboardContent() {
                         <Card
                           size="small"
                           style={{
-                            borderLeft: `4px solid grey`,
                             height: "100%",
+                            borderRadius: "16px",
+                            border: "1px solid #f0f0f0",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
                           }}
                           styles={{ body: { padding: 16 } }}
                         >
@@ -943,7 +945,7 @@ function DashboardContent() {
                         title={
                           <Space>
                             <TrophyOutlined style={{ color: "#1677ff" }} />
-                            <span>My Tickets</span>
+                            <span style={{ fontSize: 15, fontWeight: 600 }}>My Tickets</span>
                             <span className="live-pulse" style={{ marginLeft: 8 }} />
                           </Space>
                         }
@@ -958,7 +960,12 @@ function DashboardContent() {
                           </Button>
                         }
                         styles={{ body: { padding: 8 } }}
-                        style={{ height: "280px" }}
+                        style={{
+                          height: "280px",
+                          borderRadius: "16px",
+                          border: "1px solid #f0f0f0",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                        }}
                       >
                         <div style={{ height: "100%" }}>
                           <div
@@ -1189,8 +1196,8 @@ function DashboardContent() {
                         <Card
                           title={
                             <Space size={4}>
-                              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
-                              <span style={{ fontSize: 13 }}>Today's Meetings</span>
+                              <VideoCameraOutlined style={{ color: "#8c8c8c", fontSize: 14 }} />
+                              <span style={{ fontSize: 15, fontWeight: 600 }}>Today's Meetings</span>
                               {!calendarStatus?.connected && (
                                 <Button
                                   type="link"
@@ -1230,7 +1237,12 @@ function DashboardContent() {
                             )
                           }
                           styles={{ body: { padding: 0 } }}
-                          style={{ height: '280px' }}
+                          style={{
+                            height: '280px',
+                            borderRadius: "16px",
+                            border: "1px solid #f0f0f0",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                          }}
                         >
                           {calendarLoading ? (
                             <div style={{ padding: 16, textAlign: "center" }}>
@@ -1336,8 +1348,8 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <ClockCircleOutlined style={{ color: "#722ed1" }} />
-                            <span>My Attendance</span>
+                            <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
+                            <span style={{ fontSize: 15, fontWeight: 600 }}>My Attendance</span>
                           </Space>
                         }
                         extra={
@@ -1355,7 +1367,7 @@ function DashboardContent() {
                           height: "280px",
                           borderRadius: "16px",
                           border: "1px solid #f0f0f0",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                           overflow: 'hidden'
                         }}
                         styles={{ body: { padding: '20px 24px' } }}
@@ -1376,12 +1388,13 @@ function DashboardContent() {
                             </div>
 
                             <div style={{
-                              // background: '#f9f0ff',
+                              background: '#ffffff',
                               borderRadius: '12px',
                               padding: '12px',
                               display: 'flex',
                               justifyContent: 'space-around',
-                              marginBottom: 16
+                              marginBottom: 16,
+                              border: '1px solid #f0f0f0'
                             }}>
                               <div style={{ textAlign: 'center' }}>
                                 <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK IN</Text>
@@ -1416,9 +1429,9 @@ function DashboardContent() {
                                   style={{
                                     borderRadius: '10px',
                                     height: 44,
-                                    background: '#722ed1',
-                                    borderColor: '#722ed1',
-                                    boxShadow: '0 4px 10px rgba(114, 46, 209, 0.25)',
+                                    background: '#1677ff',
+                                    borderColor: '#1677ff',
+                                    boxShadow: '0 2px 4px rgba(22, 119, 255, 0.1)',
                                     fontWeight: 600
                                   }}
                                 >
@@ -1478,26 +1491,25 @@ function DashboardContent() {
                           hoverable
                           style={{
                             borderRadius: 14,
-                            // background: 'linear-gradient(135deg, #e6f4ff 0%, #ffffff 100%)',
-                            border: '1px solid #bae0ff',
-                            boxShadow: '0 2px 8px rgba(22, 119, 255, 0.04)',
+                            border: '1px solid #f0f0f0',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                             overflow: 'hidden'
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/leave/apply")}
+                          onClick={() => router.push("/apply-leave")}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                             <div style={{
                               width: 38,
                               height: 38,
                               borderRadius: 10,
-                              background: '#1677ff',
+                              background: '#f8f9fa',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(22, 119, 255, 0.15)'
+                              border: '1px solid #f0f0f0'
                             }}>
-                              <FormOutlined style={{ fontSize: 20, color: '#fff' }} />
+                              <FormOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
                             </div>
                             <div style={{ flex: 1 }}>
                               <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Apply Leave</Title>
@@ -1513,7 +1525,10 @@ function DashboardContent() {
                                 border: 'none',
                                 width: 24,
                                 height: 24,
-                                minWidth: 24
+                                minWidth: 24,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
                             />
                           </div>
@@ -1524,26 +1539,25 @@ function DashboardContent() {
                           hoverable
                           style={{
                             borderRadius: 14,
-                            // background: 'linear-gradient(135deg, #f9f0ff 0%, #ffffff 100%)',
-                            border: '1px solid #efdbff',
-                            boxShadow: '0 2px 8px rgba(114, 46, 209, 0.04)',
+                            border: '1px solid #f0f0f0',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                             overflow: 'hidden'
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
-                          onClick={() => router.push("/reimbursement/apply")}
+                          onClick={() => router.push("/reimburseCreate")}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                             <div style={{
                               width: 38,
                               height: 38,
                               borderRadius: 10,
-                              background: '#722ed1',
+                              background: '#f8f9fa',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(114, 46, 209, 0.15)'
+                              border: '1px solid #f0f0f0'
                             }}>
-                              <WalletOutlined style={{ fontSize: 20, color: '#fff' }} />
+                              <WalletOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
                             </div>
                             <div style={{ flex: 1 }}>
                               <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Reimbursement</Title>
@@ -1555,11 +1569,14 @@ function DashboardContent() {
                               size="small"
                               icon={<PlusOutlined style={{ fontSize: 12 }} />}
                               style={{
-                                background: '#722ed1',
+                                background: '#1677ff',
                                 border: 'none',
                                 width: 24,
                                 height: 24,
-                                minWidth: 24
+                                minWidth: 24,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
                             />
                           </div>
@@ -1570,9 +1587,8 @@ function DashboardContent() {
                           hoverable
                           style={{
                             borderRadius: 14,
-                            // background: 'linear-gradient(135deg, #e6fffb 0%, #ffffff 100%)',
-                            border: '1px solid #87e8de',
-                            boxShadow: '0 2px 8px rgba(19, 194, 194, 0.04)',
+                            border: '1px solid #f0f0f0',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                             overflow: 'hidden'
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
@@ -1583,13 +1599,13 @@ function DashboardContent() {
                               width: 38,
                               height: 38,
                               borderRadius: 10,
-                              background: '#13c2c2',
+                              background: '#f8f9fa',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(19, 194, 194, 0.15)'
+                              border: '1px solid #f0f0f0'
                             }}>
-                              <ClockCircleOutlined style={{ fontSize: 20, color: '#fff' }} />
+                              <ClockCircleOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
                             </div>
                             <div style={{ flex: 1 }}>
                               <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Submit Timesheet</Title>
@@ -1601,11 +1617,14 @@ function DashboardContent() {
                               size="small"
                               icon={<PlusOutlined style={{ fontSize: 12 }} />}
                               style={{
-                                background: '#13c2c2',
+                                background: '#1677ff',
                                 border: 'none',
                                 width: 24,
                                 height: 24,
-                                minWidth: 24
+                                minWidth: 24,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
                             />
                           </div>
@@ -1617,8 +1636,8 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <FileTextOutlined style={{ color: "#722ed1" }} />
-                            <span>Recent Tickets</span>
+                            <FileTextOutlined style={{ color: "#8c8c8c" }} />
+                            <span style={{ fontSize: 15, fontWeight: 600 }}>Recent Tickets</span>
                           </Space>
                         }
                         size="small"
@@ -1635,6 +1654,9 @@ function DashboardContent() {
                           height: "230px",
                           display: "flex",
                           flexDirection: "column",
+                          borderRadius: "16px",
+                          border: "1px solid #f0f0f0",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
                         }}
                         bodyStyle={{
                           padding: 0,

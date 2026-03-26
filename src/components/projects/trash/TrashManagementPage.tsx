@@ -47,6 +47,13 @@ dayjs.extend(relativeTime);
 dayjs.extend(duration);
 
 const { Title, Text } = Typography;
+ 
+const calculateDaysRemaining = (deletedAt: string) => {
+  const deleteDate = dayjs(deletedAt);
+  const purgeDate = deleteDate.add(7, "days");
+  const daysRemaining = purgeDate.diff(dayjs(), "days");
+  return Math.max(0, daysRemaining);
+};
 
 export default function TrashManagementPage() {
   const [page, setPage] = useState(1);
@@ -164,12 +171,7 @@ export default function TrashManagementPage() {
     }),
   };
 
-  const calculateDaysRemaining = (deletedAt: string) => {
-    const deleteDate = dayjs(deletedAt);
-    const purgeDate = deleteDate.add(7, "days");
-    const daysRemaining = purgeDate.diff(dayjs(), "days");
-    return Math.max(0, daysRemaining);
-  };
+
 
   const columns = [
     {

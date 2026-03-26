@@ -19,6 +19,8 @@ import {
   HistoryOutlined,
   RocketOutlined,
   WarningOutlined,
+  TrophyOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 import { useSprintCompletionSummary, useCompleteSprint } from "@/hooks/useSprintCompletion";
 import { SummaryTab } from "./tabs/SummaryTab";
@@ -112,112 +114,135 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
 
   // Calculate completion progress
   const completionPercentage = summary?.statistics.completionPercentage || 0;
-  const canComplete = summary?.statistics.pendingTickets === 0;
 
   return (
     <Modal
       title={
         <div
           style={{
-            paddingBottom: 16,
+            padding: "16px 24px",
             borderBottom: "1px solid #f0f0f0",
+            background: "linear-gradient(to right, #ffffff, #f9fbff)",
           }}
         >
-          <Space direction="vertical" size={4} style={{ width: "100%" }}>
-            <Space>
-              <RocketOutlined style={{ fontSize: 20, color: "#1890ff" }} />
-              <Title level={4} style={{ margin: 0 }}>
-                Sprint Completion
-              </Title>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Space size={12}>
+              <div 
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 10, 
+                  background: 'rgba(24, 144, 255, 0.1)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center' 
+                }}
+              >
+                <RocketOutlined style={{ fontSize: 22, color: "#1890ff" }} />
+              </div>
+              <Space direction="vertical" size={0}>
+                <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
+                  Sprint Completion
+                </Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  Finalize and review sprint activities
+                </Text>
+              </Space>
             </Space>
             {summary && (
-              <Space size={16} style={{ marginTop: 8 }}>
-                <Text type="secondary">
-                  <strong>{summary.sprint.name}</strong>
-                </Text>
-                <Tag color="blue">{summary.sprint.project.code}</Tag>
-                <Tag
-                  color={
-                    summary.sprint.status === "active" ? "processing" : "default"
-                  }
+              <Space size={12}>
+                <Tag color="blue" style={{ borderRadius: 6, padding: '2px 10px', fontWeight: 500 }}>
+                  {summary.sprint.project.code}
+                </Tag>
+                <Tag 
+                  color={summary.sprint.status === "active" ? "processing" : "default"}
+                  style={{ borderRadius: 6, padding: '2px 10px', textTransform: 'capitalize' }}
                 >
                   {summary.sprint.status}
                 </Tag>
-                <Badge
-                  status={canComplete ? "success" : "warning"}
-                  text={
-                    summary
-                      ? canComplete
-                        ? "Ready to Complete"
-                        : `${summary.statistics.pendingTickets} Pending`
-                      : "Loading..."
-                  }
-                />
               </Space>
             )}
-          </Space>
+          </div>
         </div>
       }
       open={open}
       onCancel={onClose}
-      width="85%"
-      style={{ top: 20 }}
+      width={1100}
+      centered
       styles={{
-        body: { padding: 0, height: "calc(85vh - 110px)", overflow: "hidden" },
+        header: { padding: 0, margin: 0 },
+        body: { padding: 0, height: "calc(85vh - 120px)", overflow: "hidden" },
       }}
       footer={
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "12px 0",
-          }}
-        >
-          <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '16px 24px', background: '#ffffff', borderTop: '1px solid #f0f0f0' }}>
+          <Space size={32}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f0f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1890ff' }}>
+                <FileTextOutlined style={{ fontSize: 18 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Total Tickets</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary?.statistics.totalTickets || 0}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#52c41a' }}>
+                <TrophyOutlined style={{ fontSize: 18 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Resolved Points</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary?.statistics.completedPoints || 0}</div>
+              </div>
+            </div>
+
             {summary && (
-              <Space size={24}>
-                <Space size={8}>
-                  <CheckCircleOutlined
-                    style={{ color: "#52c41a", fontSize: 16 }}
-                  />
-                  <Text>
-                    <strong>{summary.statistics.completedTickets}</strong> Completed
-                  </Text>
-                </Space>
-                <Space size={8}>
-                  <ClockCircleOutlined
-                    style={{ color: "#faad14", fontSize: 16 }}
-                  />
-                  <Text>
-                    <strong>{summary.statistics.pendingTickets}</strong> Pending
-                  </Text>
-                </Space>
-                <Space size={8}>
-                  <FileTextOutlined style={{ fontSize: 16 }} />
-                  <Text>
-                    <strong>{summary.statistics.totalTickets}</strong> Total
-                  </Text>
-                </Space>
-                <Space size={8}>
-                  <Text type="secondary">Progress:</Text>
-                  <Tag color={completionPercentage === 100 ? "success" : "processing"}>
-                    {completionPercentage}%
-                  </Tag>
-                </Space>
-              </Space>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: summary.statistics.pendingTickets > 0 ? '#fffbe6' : '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: summary.statistics.pendingTickets > 0 ? '#faad14' : '#52c41a' }}>
+                  <ClockCircleOutlined style={{ fontSize: 18 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Pending</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary.statistics.pendingTickets}</div>
+                </div>
+              </div>
             )}
-          </div>
-          <Space>
-            <Button onClick={onClose}>Cancel</Button>
+          </Space>
+
+          <Space size={12}>
+            <Button 
+              onClick={onClose}
+              style={{ 
+                borderRadius: 8, 
+                height: 40, 
+                padding: '0 24px',
+                fontWeight: 600,
+                border: '1px solid #d9d9d9',
+                color: '#595959'
+              }}
+            >
+              Cancel
+            </Button>
             <Button
               type="primary"
-              icon={<RocketOutlined />}
               onClick={handleCompleteSprint}
-              disabled={!canComplete}
               loading={completeSprint.isPending}
+              disabled={summary?.statistics.pendingTickets > 0}
+              style={{ 
+                borderRadius: 8, 
+                height: 40, 
+                padding: '0 32px',
+                fontWeight: 700,
+                background: summary?.statistics.pendingTickets === 0 ? 'linear-gradient(90deg, #1890ff, #096dd9)' : undefined,
+                border: 'none',
+                boxShadow: summary?.statistics.pendingTickets === 0 ? '0 4px 12px rgba(24, 144, 255, 0.3)' : undefined,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
             >
-              Complete Sprint
+              <span>Complete Sprint</span>
+              <ArrowRightOutlined />
             </Button>
           </Space>
         </div>
@@ -232,11 +257,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
             height: 400,
           }}
         >
-        <div style={{ padding: 40, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading sprint data">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+          <Spin size="large" tip="Loading sprint data" />
         </div>
       ) : (
         <Tabs
@@ -295,16 +316,6 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
               ),
               children: <CompletedTicketsTab tickets={summary.tickets.completed} />,
             },
-            // {
-            //   key: "audit",
-            //   label: (
-            //     <Space>
-            //       <HistoryOutlined />
-            //       <span>Audit Log</span>
-            //     </Space>
-            //   ),
-            //   children: <AuditLogTab sprintId={sprintId || ""} />,
-            // },
           ]}
         />
       )}

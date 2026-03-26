@@ -212,11 +212,38 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         requiredPermission: Permissions.PROJECT_READ,
       },
       {
-        key: "timesheet",
+        key: "timesheet-group",
         label: "Timesheet",
         icon: <ClockCircleOutlined />,
-        path: "/timesheet",
         requiredPermission: Permissions.TIMESHEET_READ,
+        children: [
+          {
+            key: "/timesheet/dashboard",
+            label: "Dashboard",
+            icon: <DashboardOutlined />,
+            path: "/timesheet/dashboard",
+          },
+          {
+            key: "/timesheet",
+            label: "My Timesheets",
+            icon: <FileTextOutlined />,
+            path: "/timesheet",
+          },
+          {
+            key: "/timesheet/submit",
+            label: "Submit Timesheet",
+            icon: <EditOutlined />,
+            path: "/timesheet/submit",
+            requiredPermission: Permissions.TIMESHEET_CREATE,
+          },
+          {
+            key: "/timesheet/teams",
+            label: "Teams",
+            icon: <TeamOutlined />,
+            path: "/timesheet/teams",
+            requiredPermission: Permissions.TIMESHEET_APPROVE,
+          },
+        ],
       },
       {
         key: "time-tracking",

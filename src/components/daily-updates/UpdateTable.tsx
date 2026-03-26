@@ -3,11 +3,14 @@
 import React from "react";
 import { Table, Avatar, Tag, Space, Typography, Button } from "antd";
 import {
-  EyeOutlined,
-  ClockCircleOutlined,
-  ProjectOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
+  MoreHorizontal,
+  Clock,
+  Package,
+  CheckCircle2,
+  Eye,
+  Activity,
+  User,
+} from "lucide-react";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import {
@@ -33,8 +36,8 @@ interface TableDataType {
   totalHours: number;
   projectCount: number;
   taskCount: number;
-  submittedAt: string;
-  dueDate: string;
+  submittedAt: string | Date;
+  dueDate: string | Date;
 }
 
 export default function UpdateTable({
@@ -42,85 +45,55 @@ export default function UpdateTable({
   loading,
   onViewDetails,
 }: UpdateTableProps) {
-  const getMoodEmoji = (mood?: string) => {
-    switch (mood) {
-      case "happy":
-        return "😊";
-      case "neutral":
-        return "😐";
-      case "stressed":
-        return "😰";
-      case "blocked":
-        return "🚫";
-      default:
-        return "😐";
-    }
-  };
-
-  const getMoodColor = (mood?: string) => {
-    switch (mood) {
-      case "happy":
-        return "success";
-      case "neutral":
-        return "default";
-      case "stressed":
-        return "warning";
-      case "blocked":
-        return "error";
-      default:
-        return "default";
-    }
-  };
 
   const columns: ColumnsType<TableDataType> = [
     {
-      title: "User",
+      title: "Team Member",
       dataIndex: "userName",
       key: "userName",
       width: 200,
       fixed: "left",
-      render: (name: string, record) => (
-        <Space size={8}>
-          <Avatar
-            size={36}
-            style={{ backgroundColor: "#1890ff", fontSize: 14 }}
-          >
-            {name.charAt(0).toUpperCase()}
-          </Avatar>
-          <div>
-            <Text
-              strong
-              style={{ fontSize: 13, display: "block", lineHeight: 1.3 }}
+      render: (name: string, record) => {
+        const updateType = record.update.updateType || "EOD";
+        return (
+          <Space size={10}>
+            <Avatar
+              size={32}
+              style={{
+                backgroundColor: updateType === "BOD" ? "#dcfce7" : "#dbeafe",
+                color: updateType === "BOD" ? "#166534" : "#1e40af",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
             >
-              {name}
-            </Text>
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              {record.userPosition}
-            </Text>
-          </div>
-        </Space>
-      ),
+              {name.charAt(0).toUpperCase()}
+            </Avatar>
+            <div>
+              <Text strong style={{ fontSize: 13, display: "block", color: "#1e293b", lineHeight: 1.2 }}>
+                {name}
+              </Text>
+              <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+                {record.userPosition || "Team Member"}
+              </Text>
+            </div>
+          </Space>
+        );
+      },
     },
-
     {
       title: "Projects",
       dataIndex: "projectCount",
       key: "projectCount",
-      width: 150,
+      width: 140,
       render: (count: number, record) => {
-        const projectUpdates = record.update.projectUpdates as ProjectUpdate[];
-        if (count === 1) {
-          return (
-            <Text style={{ fontSize: 12 }}>
-              📦 {projectUpdates[0].projectName}
-            </Text>
-          );
-        }
+        const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
         return (
-          <Space size={4}>
-            <ProjectOutlined style={{ fontSize: 12, color: "#1890ff" }} />
-            <Text style={{ fontSize: 12 }}>{count}</Text>
-          </Space>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Package size={14} color="#94a3b8" />
+            <Text style={{ fontSize: 12, color: "#475569" }}>
+              {count === 1 ? projectUpdates[0]?.projectName : `${count} Projects`}
+            </Text>
+          </div>
         );
       },
     },
@@ -128,41 +101,36 @@ export default function UpdateTable({
       title: "Tasks",
       dataIndex: "taskCount",
       key: "taskCount",
-      width: 180,
+      width: 200,
       render: (count: number, record) => {
-        const projectUpdates = record.update.projectUpdates as ProjectUpdate[];
-        const allTasks = projectUpdates.flatMap((p) => p.tasks);
-        if (count === 1) {
-          const task = allTasks[0];
-          if (task.type === "ticket") {
-            return <Text style={{ fontSize: 11 }}>🎫 {task.ticketNumber}</Text>;
-          }
-          const description = task.description || "";
-          const truncated =
-            description.length > 30
-              ? description.substring(0, 30) + "..."
-              : description;
-          return <Text style={{ fontSize: 11 }}>{truncated}</Text>;
-        }
+        const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
+        const firstTask = projectUpdates[0]?.tasks?.[0];
         return (
-          <Space size={4}>
-            <CheckCircleOutlined style={{ fontSize: 12, color: "#52c41a" }} />
-            <Text style={{ fontSize: 12 }}>{count}</Text>
-          </Space>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <CheckCircle2 size={14} color="#22c55e" />
+            <Text ellipsis style={{ fontSize: 12, color: "#475569", maxWidth: 160 }}>
+              {count === 1 ? (firstTask?.ticketNumber || firstTask?.description) : `${count} Tasks Completed`}
+            </Text>
+          </div>
         );
       },
     },
-
     {
       title: "Hours",
       dataIndex: "totalHours",
       key: "totalHours",
-      width: 100,
+      width: 110,
       render: (hours: number) => (
         <Tag
-          icon={<ClockCircleOutlined />}
-          color="blue"
-          style={{ fontSize: 12 }}
+          style={{
+            borderRadius: 6,
+            background: "#eff6ff",
+            border: "none",
+            color: "#3b82f6",
+            fontSize: 11,
+            fontWeight: 600,
+            padding: "2px 8px"
+          }}
         >
           {formatHours(hours)}
         </Tag>
@@ -172,51 +140,59 @@ export default function UpdateTable({
       title: "Due Date",
       dataIndex: "dueDate",
       key: "dueDate",
-      width: 120,
-      render: (date: string) => <Text style={{ fontSize: 12 }}>{date}</Text>,
-    },
-    {
-      title: "Submitted",
-      dataIndex: "submittedAt",
-      key: "submittedAt",
-      width: 120,
-      render: (time: string) => (
-        <Text style={{ fontSize: 12 }}>{dayjs(time).format("h:mm A")}</Text>
+      width: 130,
+      render: (date: string) => (
+        <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+          {dayjs(date).format("DD MMM YYYY")}
+        </Text>
       ),
     },
     {
-      title: "Actions",
+      title: "Submitted On",
+      dataIndex: "submittedAt",
+      key: "submittedAt",
+      width: 140,
+      render: (time: string | Date) => (
+        <Text style={{ fontSize: 12, color: "#64748b" }}>
+          {dayjs(time).format("MMM D, h:mm A")}
+        </Text>
+      ),
+    },
+    {
+      title: "",
       key: "actions",
-      width: 100,
+      width: 80,
       fixed: "right",
       render: (_, record) => (
         <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => onViewDetails(record.update)}
-          style={{ padding: 0 }}
-        >
-          View
-        </Button>
+          type="text"
+          icon={<Eye size={16} color="#0ea5e9" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewDetails(record.update);
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#f0f9ff",
+            borderRadius: 8
+          }}
+        />
       ),
     },
   ];
 
   const dataSource: TableDataType[] = updates.map((update) => {
-    const projectUpdates = update.projectUpdates as ProjectUpdate[];
+    const projectUpdates = (update.projectUpdates || []) as ProjectUpdate[];
     const totalHours = projectUpdates.reduce(
       (sum, project) => sum + (project.hoursWorked || 0),
-      0,
+      0
     );
     const totalTasks = projectUpdates.reduce(
-      (sum, project) => sum + project.tasks.length,
-      0,
+      (sum, project) => sum + (project.tasks?.length || 0),
+      0
     );
-    const projectCount = projectUpdates.length;
-    const dueDate =
-      update.is_missed && update.missed_updateAt
-        ? dayjs(update.missed_updateAt).format("DD MMM YYYY")
-        : dayjs(update.createdAt).format("DD MMM YYYY");
 
     return {
       key: update.id,
@@ -225,13 +201,14 @@ export default function UpdateTable({
       userPosition: update.user?.position?.title || "",
       mood: update.mood || "neutral",
       totalHours,
-      projectCount,
+      projectCount: projectUpdates.length,
       taskCount: totalTasks,
-      submittedAt:
-        typeof update.submittedAt === "string"
-          ? update.submittedAt
-          : update.submittedAt.toISOString(),
-      dueDate,
+      submittedAt: typeof update.submittedAt === "string"
+        ? update.submittedAt
+        : update.submittedAt?.toISOString() || update.createdAt,
+      dueDate: update.is_missed && update.missed_updateAt
+        ? update.missed_updateAt
+        : update.createdAt,
     };
   });
 
@@ -244,17 +221,17 @@ export default function UpdateTable({
         pageSize: 10,
         showSizeChanger: true,
         showTotal: (total) => `Total ${total} updates`,
+        style: { padding: "0 24px 24px" }
       }}
-      scroll={{ x: 900 }}
+      scroll={{ x: 1000 }}
       onRow={(record) => ({
         onClick: () => onViewDetails(record.update),
         style: { cursor: "pointer" },
       })}
       style={{
-        backgroundColor: "#fff",
-        borderRadius: 8,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+        background: "transparent",
       }}
+      className="premium-table"
     />
   );
 }

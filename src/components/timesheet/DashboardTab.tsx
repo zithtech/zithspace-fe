@@ -1,4 +1,3 @@
-"use client";
 import {
   Typography,
   Space,
@@ -11,13 +10,16 @@ import {
 } from "antd";
 import {
   ReloadOutlined,
-  ScheduleOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
   CalendarOutlined,
-  CloseCircleOutlined,
-  DashboardOutlined,
 } from "@ant-design/icons";
+import {
+  LayoutDashboard,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  RefreshCw,
+} from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -33,18 +35,29 @@ import {
 import { useTimesheets } from "@/hooks/useTimesheet";
 import dayjs from "dayjs";
 import { useState } from "react";
-import isoWeek from "dayjs/plugin/isoWeek";
-
 
 const { Title, Text } = Typography;
 
-const STATUS_COLORS = ["#2e844a", "#f4b400", "#d32f2f"]; // Salesforce-like
+const STATUS_COLORS = ["#10b981", "#f59e0b", "#ef4444"]; // Match Leave Management colors
+
+const StatBox = ({ label, value, icon: Icon, color, subText }: any) => (
+  <Card bodyStyle={{ padding: 16 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", height: "100%" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+      <Text style={{ color: "#64748b", fontWeight: 500, fontSize: 13 }}>{label}</Text>
+      <div style={{ color: color, background: `${color}15`, padding: 6, borderRadius: 8 }}>
+        <Icon size={18} />
+      </div>
+    </div>
+    <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{value}</div>
+    {subText && <Text style={{ fontSize: 11, color: "#94a3b8" }}>{subText}</Text>}
+  </Card>
+);
 
 export default function DashboardTab() {
-
   const [weekFilter, setWeekFilter] = useState<"all" | "thisWeek" | "lastWeek">(
     "all",
   );
+
   const getWeekRange = () => {
     if (weekFilter === "thisWeek") {
       return {
@@ -65,6 +78,7 @@ export default function DashboardTab() {
 
     return {};
   };
+
   const { fromDate, toDate } = getWeekRange();
   const { data, isLoading } = useTimesheets({
     page: 1,
@@ -87,6 +101,7 @@ export default function DashboardTab() {
   const rejected = timesheets.filter(
     (t: any) => t.status === "REJECTED",
   ).length;
+
   const weeklyHoursData = timesheets.map((t: any) => {
     const totalHours =
       t.rows?.reduce((sum: number, r: any) => sum + (r.hours ?? 0), 0) || 0;
@@ -109,55 +124,16 @@ export default function DashboardTab() {
             border: "1px solid #f0f0f0",
           }}
         >
-          <div
-            style={{
-              fontWeight: 600,
-              marginBottom: 6,
-            }}
-          >
-            {label}
-          </div>
-
-          <div
-            style={{
-              color: "#1677ff", // Salesforce blue
-              fontWeight: 500,
-            }}
-          >
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>{label}</div>
+          <div style={{ color: "#0ea5e9", fontWeight: 500 }}>
             Total Hours : {payload[0].value} hours
           </div>
         </div>
       );
     }
-
     return null;
   };
-  const kpis = [
-    {
-      label: "Total Timesheets",
-      value: total,
-      color: "#1677ff",
-      icon: <ScheduleOutlined />,
-    },
-    {
-      label: "Approved",
-      value: approved,
-      color: "#52c41a",
-      icon: <CheckCircleOutlined />,
-    },
-    {
-      label: "Pending Approval",
-      value: pending,
-      color: "#faad14",
-      icon: <ClockCircleOutlined />,
-    },
-    {
-      label: "Rejected",
-      value: rejected,
-      color: "#ff4d4f",
-      icon: <CloseCircleOutlined />,
-    },
-  ];
+
   const statusData = [
     { name: "Approved", value: approved },
     { name: "Pending", value: pending },
@@ -165,54 +141,47 @@ export default function DashboardTab() {
   ];
 
   return (
-    <div
-      style={{
-        padding: "12px", // 👈 padding reduce
-        height: "calc(100vh - 112px)", // 👈 fixed viewport height
-        overflow: "hidden", // 👈 page scroll stop
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 24px",
-          background: "#ffffff",
-          borderRadius: 8,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          marginBottom: 24,
-          marginTop: "10px",
-        }}
-      >
-        {/* Left: Title */}
-        <div>
-          <Title
-            level={4}
-            style={{
-              margin: 0,
-              marginTop: "6px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            <DashboardOutlined style={{ color: "#1677ff" }} />
-            Timesheet Dashboard
-          </Title>
-          <Text style={{ marginLeft: "27px" }} type="secondary">
-            Weekly Activity Overview
-          </Text>
+    <div style={{
+      margin: "0 -24px",
+      padding: "0 32px 24px 32px",
+      background: "#ffffff",
+      height: "calc(100vh - 72px)",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    }}>
+      {/* Header section match Leave Management */}
+      <div style={{ 
+        marginBottom: 8, 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center",
+        position: "sticky",
+        top: 0,
+        background: "#ffffff",
+        zIndex: 10,
+        padding: "16px 0 4px 0"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+            <LayoutDashboard size={28} />
+          </div>
+          <div>
+            <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+              Timesheet Dashboard
+            </Title>
+            <Text style={{ color: "#64748b", fontSize: 15 }}>
+              Weekly activity and timesheet status overview
+            </Text>
+          </div>
         </div>
+
         <Space size={12}>
           <Select
             prefix={<CalendarOutlined />}
             value={weekFilter}
-            style={{ width: 180 }}
-            onChange={(value) => {
-              console.log("SELECT CHANGE 👉", value); // 👈 DEBUG
-              setWeekFilter(value);
-            }}
+            style={{ width: 180, height: 44 }}
+            onChange={setWeekFilter}
             options={[
               { label: "All Weeks", value: "all" },
               { label: "This Week", value: "thisWeek" },
@@ -221,111 +190,71 @@ export default function DashboardTab() {
           />
           <Tooltip title="Refresh">
             <Button
-              icon={<ReloadOutlined />}
-              type="default"
+              size="large"
+              style={{ borderRadius: 10, height: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
+              icon={<RefreshCw size={18} />}
               onClick={() => window.location.reload()}
             />
           </Tooltip>
-          
-
         </Space>
       </div>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        {kpis.map((item) => (
-          <Col key={item.label} xs={24} sm={12} md={12} lg={6}>
-            <div
-              style={{
-                position: "relative",
-                background: "#ffffff",
-                borderRadius: 8,
-                padding: "12px 10px",
-                borderLeft: `4px solid ${item.color}`,
-                boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-                transition: "all 0.2s ease",
-                cursor: "pointer",
-                height: "100%",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.boxShadow =
-                  "0 4px 10px rgba(0,0,0,0.12)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.08)")
-              }
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: 12,
-                  right: 20,
-                  width: 28,
-                  height: 28,
-                  borderRadius: "3px",
-                  background: "#e6f7ff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: item.color,
-                }}
-              >
-                {item.icon}
-              </div>
-
-              {/* Number */}
-              <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 600,
-                  color: "#1f1f1f",
-                  marginBottom: 4,
-                }}
-              >
-                {item.value}
-              </div>
-
-              {/* Label */}
-              <Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  letterSpacing: 0.6,
-                  textTransform: "uppercase",
-                }}
-              >
-                {item.label}
-              </Text>
-            </div>
-          </Col>
-        ))}
+      <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
+        <Row gutter={[16, 12]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <StatBox
+            label="Total Timesheets"
+            value={total}
+            icon={FileText}
+            color="#0ea5e9"
+            subText="All recorded records"
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <StatBox
+            label="Approved"
+            value={approved}
+            icon={CheckCircle2}
+            color="#10b981"
+            subText={`${approved} processed successfully`}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <StatBox
+            label="Pending Approval"
+            value={pending}
+            icon={Clock}
+            color="#f59e0b"
+            subText="Awaiting manager review"
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <StatBox
+            label="Rejected"
+            value={rejected}
+            icon={AlertCircle}
+            color="#ef4444"
+            subText="Requires resubmission"
+          />
+        </Col>
       </Row>
 
-      <Row gutter={16}>
+      <Row gutter={[16, 16]}>
         {/* LEFT: Status Breakdown */}
-        <Col xs={24} lg={12} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={10}>
           <Card
-            title={<Text style={{ letterSpacing: 0.6 }}>STATUS BREAKDOWN</Text>}
-            bordered={false}
-            style={{
-              borderRadius: 8,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-              height: "100%",
-            }}
-            bodyStyle={{
-              padding: "8px 12px",
-            }}
-            headStyle={{
-              padding: "8px 12px",
-              minHeight: "auto",
-            }}
+            title={<span style={{ color: "#334155", fontWeight: 600 }}>Status Breakdown</span>}
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
+            headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "0 20px", minHeight: 48 }}
+            bodyStyle={{ padding: "12px 20px" }}
           >
-            <div style={{ height: 220 }}>
+            <div style={{ height: 210 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={statusData}
-                    innerRadius={70}
-                    outerRadius={100}
+                    innerRadius={50}
+                    outerRadius={75}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -333,24 +262,12 @@ export default function DashboardTab() {
                       <Cell key={index} fill={STATUS_COLORS[index]} />
                     ))}
                   </Pie>
-
-                  {/* Custom Tooltip */}
                   <RechartsTooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
-                          <div
-                            style={{
-                              background: "#fff",
-                              border: "1px solid #ccc",
-                              padding: "6px 10px",
-                              borderRadius: 4,
-                              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                              fontSize: 12,
-                            }}
-                          >
-                            <strong>{payload[0].name}</strong>:{" "}
-                            {payload[0].value}
+                          <div style={{ background: "#fff", border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", fontSize: 13 }}>
+                            <strong style={{ color: "#1e293b" }}>{payload[0].name}</strong>: {payload[0].value}
                           </div>
                         );
                       }
@@ -362,28 +279,11 @@ export default function DashboardTab() {
             </div>
 
             {/* Legend */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 16,
-                marginTop: 12,
-              }}
-            >
+            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 8 }}>
               {statusData.map((item, i) => (
-                <div
-                  key={item.name}
-                  style={{ display: "flex", alignItems: "center", gap: 6 }}
-                >
-                  <span
-                    style={{
-                      width: 10,
-                      height: 10,
-                      background: STATUS_COLORS[i],
-                      borderRadius: 2,
-                    }}
-                  />
-                  <Text>{item.name}</Text>
+                <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 10, height: 10, background: STATUS_COLORS[i], borderRadius: "50%" }} />
+                  <Text style={{ color: "#475569", fontWeight: 500 }}>{item.name}</Text>
                 </div>
               ))}
             </div>
@@ -391,38 +291,35 @@ export default function DashboardTab() {
         </Col>
 
         {/* RIGHT: Weekly Hours Trend */}
-        <Col xs={24} lg={12} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={14}>
           <Card
-            title={
-              <Text style={{ letterSpacing: 0.6 }}>WEEKLY HOURS TREND</Text>
-            }
-            bordered={false}
-            style={{
-              borderRadius: 8,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-              height: "100%",
-            }}
-            bodyStyle={{ paddingBottom: 12 }}
+            title={<span style={{ color: "#334155", fontWeight: 600 }}>Weekly Hours Trend</span>}
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
+            headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "0 20px", minHeight: 48 }}
+            bodyStyle={{ padding: "12px 20px" }}
           >
-            <div style={{ height: 300 }}>
+            <div style={{ height: 240 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyHoursData} barCategoryGap={6}>
-                  <CartesianGrid strokeDasharray="6 6" vertical={false} />
-
-                  <XAxis dataKey="week" axisLine={false} tickLine={false} />
-
-                  <YAxis axisLine={false} tickLine={false} />
-
-                  <RechartsTooltip
-                    content={<CustomTooltip />}
-                    cursor={{ fill: "#d9d9d9" }} // 👈 grey hover background
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="week"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                    dy={10}
                   />
-
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                  />
+                  <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: "#f8fafc" }} />
                   <Bar
                     dataKey="hours"
-                    fill="#1677ff"
-                    barSize={40}
-                    radius={[6, 6, 0, 0]}
+                    fill="#0ea5e9"
+                    barSize={30}
+                    radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -430,6 +327,18 @@ export default function DashboardTab() {
           </Card>
         </Col>
       </Row>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .ant-table-thead > tr > th {
+          background-color: #f1f5f9 !important;
+          color: #475569 !important;
+          font-weight: 600 !important;
+        }
+          box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+        }
+      `}} />
+      </div>
     </div>
   );
 }

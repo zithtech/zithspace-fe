@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Suspense } from "react";
 import { Spin } from "antd";
-import TimesheetContent from "./TimesheetContent";
+import TimesheetsTab from "@/components/timesheet/TimesheetsTab";
 
 export default function MyTimesheetsPage() {
   const { isLoading: authLoading } = useAuth();
@@ -21,14 +21,23 @@ export default function MyTimesheetsPage() {
     }
   }, [authLoading, canReadTimesheet, router]);
 
+  const goToSubmitTimesheet = (
+    id?: string,
+    mode: "edit" | "resubmit" | "create" = "edit",
+  ) => {
+    if (id) {
+      router.push(`/timesheet/submit?id=${id}&mode=${mode}`);
+    } else {
+      router.push(`/timesheet/submit?mode=create`);
+    }
+  };
+
   // Loading state
   if (authLoading) {
     return (
-      <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
-        </div>
-      </MainLayout>
+      <div style={{ padding: 24, textAlign: 'center' }}>
+        <Spin size="large" tip="Loading..." />
+      </div>
     );
   }
 
@@ -53,7 +62,7 @@ export default function MyTimesheetsPage() {
           </div>
         }
       >
-        <TimesheetContent />
+        <TimesheetsTab goToSubmitTimesheet={goToSubmitTimesheet} />
       </Suspense>
     </MainLayout>
   );

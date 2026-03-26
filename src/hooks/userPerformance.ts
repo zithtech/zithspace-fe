@@ -13,7 +13,7 @@
 //   const { userId, month, year } = filters;
 
 //   const queryKey = ["performance", userId, month, year];
-  
+
 //   const queryFn = async () => {
 //     if (!userId || !month || !year) return null;
 
@@ -23,7 +23,7 @@
 //       .month(parseInt(month) - 1)
 //       .startOf("month")
 //       .format("YYYY-MM-DD");
-      
+
 //     const endDate = dayjs()
 //       .year(parseInt(year))
 //       .month(parseInt(month) - 1)
@@ -39,16 +39,16 @@
 //     });
 
 //     const tickets = ticketsResponse.data || [];
-    
+
 //     // Calculate ticket statistics
 //     const completed = tickets.filter((t: any) => 
 //       ["completed", "dev_complete", "done"].includes(t.status?.toLowerCase())
 //     ).length;
-    
+
 //     const inProgress = tickets.filter((t: any) => 
 //       ["in progress", "in_progress", "in testing", "in_testing", "in review"].includes(t.status?.toLowerCase())
 //     ).length;
-    
+
 //     const pending = tickets.filter((t: any) => 
 //       ["pending", "open", "to do", "not_started", "todo", "backlog"].includes(t.status?.toLowerCase())
 //     ).length;
@@ -108,21 +108,21 @@
 //   const { userId, month, year } = filters;
 
 //   const queryKey = ["performance", userId, month, year];
-  
+
 //   const queryFn = async () => {
 //     if (!userId || !month || !year) return null;
 
 //     // ✅ FIX: Correct date calculation
 //     const selectedYear = parseInt(year);
 //     const selectedMonth = parseInt(month) - 1; // 0-indexed for JS (0 = Jan)
-    
+
 //     // Start date = first day of month
 //     const startDate = dayjs()
 //       .year(selectedYear)
 //       .month(selectedMonth)
 //       .startOf("month")
 //       .format("YYYY-MM-DD");
-    
+
 //     // End date = last day of month  
 //     const endDate = dayjs()
 //       .year(selectedYear)
@@ -140,7 +140,7 @@
 //         endDate,
 //         limit: 1000
 //       }),
-      
+
 //       DailyUpdateService.getTeamUpdates({
 //         userId: userId,
 //         startDate,
@@ -154,15 +154,15 @@
 
 //     // Process Tickets
 //     const tickets = ticketsRes?.data || [];
-    
+
 //     const completed = tickets.filter((t: any) => 
 //       ["completed", "dev_complete", "done"].includes(t.status?.toLowerCase())
 //     ).length;
-    
+
 //     const inProgress = tickets.filter((t: any) => 
 //       ["in progress", "in_progress", "in testing", "in_testing", "in review"].includes(t.status?.toLowerCase())
 //     ).length;
-    
+
 //     const pending = tickets.filter((t: any) => 
 //       ["pending", "open", "to do", "not_started", "todo", "backlog"].includes(t.status?.toLowerCase())
 //     ).length;
@@ -171,32 +171,32 @@
 
 //     // 📅 Process Daily Updates
 //     const updates = updatesRes || [];
-    
+
 //     console.log("Raw updates from API:", updates); // Debug log
-    
+
 //     // Count BOD and EOD
 //     const bodDays = new Set();
 //     const eodDays = new Set();
 //     const updatesList = [];
-    
+
 //     updates.forEach((update: any) => {
 //       const updateDate = dayjs(update.date).format("YYYY-MM-DD");
-      
+
 //       // Log each update date to debug
 //       console.log("Update date:", updateDate);
-      
+
 //       // Check BOD
 //       const hasBOD = update.projectUpdates?.length > 0 || update.updateType === 'BOD';
 //       if (hasBOD) {
 //         bodDays.add(updateDate);
 //       }
-      
+
 //       // Check EOD
 //       const hasEOD = update.totalHoursWorked || update.updateType === 'EOD';
 //       if (hasEOD) {
 //         eodDays.add(updateDate);
 //       }
-      
+
 //       updatesList.push({
 //         key: update.id || updateDate,
 //         date: updateDate,
@@ -274,19 +274,19 @@
 // //   const { userId, month, year } = filters;
 
 // //   const queryKey = ["performance", userId, month, year];
-  
+
 // //   const queryFn = async () => {
 // //     if (!userId || !month || !year) return null;
 
 // //     const selectedYear = parseInt(year);
 // //     const selectedMonth = parseInt(month) - 1;
-    
+
 // //     const startDate = dayjs()
 // //       .year(selectedYear)
 // //       .month(selectedMonth)
 // //       .startOf("month")
 // //       .format("YYYY-MM-DD");
-    
+
 // //     const endDate = dayjs()
 // //       .year(selectedYear)
 // //       .month(selectedMonth)
@@ -302,7 +302,7 @@
 // //         endDate,
 // //         limit: 1000
 // //       }),
-      
+
 // //       DailyUpdateService.getTeamUpdates({
 // //         userId: userId,
 // //         startDate,
@@ -316,15 +316,15 @@
 
 // //     // Process Tickets
 // //     const tickets = ticketsRes?.data || [];
-    
+
 // //     const completed = tickets.filter((t: any) => 
 // //       ["completed", "dev_complete", "done"].includes(t.status?.toLowerCase())
 // //     ).length;
-    
+
 // //     const inProgress = tickets.filter((t: any) => 
 // //       ["in progress", "in_progress", "in testing", "in_testing", "in review"].includes(t.status?.toLowerCase())
 // //     ).length;
-    
+
 // //     const pending = tickets.filter((t: any) => 
 // //       ["pending", "open", "to do", "not_started", "todo", "backlog"].includes(t.status?.toLowerCase())
 // //     ).length;
@@ -333,31 +333,31 @@
 
 // //     // 📅 Process Daily Updates
 // //     const updates = updatesRes || [];
-    
+
 // //     console.log("Raw updates from API:", updates);
-    
+
 // //     const bodDays = new Set();
 // //     const eodDays = new Set();
 // //     const updatesList = [];
-    
+
 // //     updates.forEach((update: any) => {
 // //       // ✅ Fix: Convert date properly
 // //       const updateDate = dayjs(update.date).format("YYYY-MM-DD");
-      
+
 // //       console.log("Processing update date:", updateDate);
-      
+
 // //       // Check BOD
 // //       const hasBOD = update.projectUpdates?.length > 0 || update.updateType === 'BOD';
 // //       if (hasBOD) {
 // //         bodDays.add(updateDate);
 // //       }
-      
+
 // //       // Check EOD
 // //       const hasEOD = update.totalHoursWorked || update.updateType === 'EOD';
 // //       if (hasEOD) {
 // //         eodDays.add(updateDate);
 // //       }
-      
+
 // //       updatesList.push({
 // //         key: update.id || updateDate,
 // //         date: updateDate,
@@ -421,19 +421,19 @@
 // //   const { userId, month, year } = filters;
 
 // //   const queryKey = ["performance", userId, month, year];
-  
+
 // //   const queryFn = async () => {
 // //     if (!userId || !month || !year) return null;
 
 // //     const selectedYear = parseInt(year);
 // //     const selectedMonth = parseInt(month) - 1;
-    
+
 // //     const startDate = dayjs()
 // //       .year(selectedYear)
 // //       .month(selectedMonth)
 // //       .startOf("month")
 // //       .format("YYYY-MM-DD");
-    
+
 // //     const endDate = dayjs()
 // //       .year(selectedYear)
 // //       .month(selectedMonth)
@@ -450,7 +450,7 @@
 // //         // endDate,
 // //         limit: 1000
 // //       }),
-      
+
 // //       DailyUpdateService.getTeamUpdates({
 // //         userId: userId,
 // //         startDate,
@@ -464,7 +464,7 @@
 
 // //     // 🎯 IMPORTANT: Filter tickets by month on frontend
 // //     const allTickets = ticketsRes?.data || [];
-    
+
 // //     // Filter tickets that were CREATED in this month
 // //     const ticketsInMonth = allTickets.filter((ticket: any) => {
 // //       // Try different date fields that might exist
@@ -475,20 +475,20 @@
 // //           : (ticket.date 
 // //             ? dayjs(ticket.date)
 // //             : null));
-      
+
 // //       if (!ticketDate || !ticketDate.isValid()) {
 // //         console.log("Ticket without valid date:", ticket);
 // //         return false;
 // //       }
-      
+
 // //       // Check if ticket was created in selected month/year
 // //       const isInMonth = ticketDate.month() === selectedMonth && 
 // //                         ticketDate.year() === selectedYear;
-      
+
 // //       if (isInMonth) {
 // //         console.log(`Ticket ${ticket.ticketNumber || ticket.id} in month:`, ticketDate.format());
 // //       }
-      
+
 // //       return isInMonth;
 // //     });
 
@@ -499,11 +499,11 @@
 // //     const completed = ticketsInMonth.filter((t: any) => 
 // //       ["completed", "dev_complete", "done"].includes(t.status?.toLowerCase())
 // //     ).length;
-    
+
 // //     const inProgress = ticketsInMonth.filter((t: any) => 
 // //       ["in progress", "in_progress", "in testing", "in_testing", "in review"].includes(t.status?.toLowerCase())
 // //     ).length;
-    
+
 // //     const pending = ticketsInMonth.filter((t: any) => 
 // //       ["pending", "open", "to do", "not_started", "todo", "backlog"].includes(t.status?.toLowerCase())
 // //     ).length;
@@ -511,7 +511,7 @@
 // //     const total = ticketsInMonth.length;
 
 // //     // ... rest of your daily updates code remains same ...
-    
+
 // //     return {
 // //       tickets: {
 // //         summary: {
@@ -563,19 +563,19 @@
 //   const { userId, month, year } = filters;
 
 //   const queryKey = ["performance", userId, month, year];
-  
+
 //   const queryFn = async () => {
 //     if (!userId || !month || !year) return null;
 
 //     const selectedYear = parseInt(year);
 //     const selectedMonth = parseInt(month) - 1;
-    
+
 //     const startDate = dayjs()
 //       .year(selectedYear)
 //       .month(selectedMonth)
 //       .startOf("month")
 //       .format("YYYY-MM-DD");
-    
+
 //     const endDate = dayjs()
 //       .year(selectedYear)
 //       .month(selectedMonth)
@@ -589,7 +589,7 @@
 //         assigneeId: userId,
 //         limit: 1000
 //       }),
-      
+
 //       DailyUpdateService.getTeamUpdates({
 //         userId: userId,
 //         startDate,
@@ -603,19 +603,19 @@
 
 //     // Process Tickets - WITH CLIENT-SIDE DATE FILTERING
 //     // const allTickets = ticketsRes?.data || [];
-    
+
 //     // // Filter tickets by date range on frontend
 //     // const ticketsInMonth = allTickets.filter((ticket: any) => {
 //     //   const ticketDate = ticket.createdAt 
 //     //     ? dayjs(ticket.createdAt) 
 //     //     : (ticket.updatedAt ? dayjs(ticket.updatedAt) : null);
-      
+
 //     //   if (!ticketDate) return false;
-      
+
 //     //   return ticketDate.month() === selectedMonth && 
 //     //          ticketDate.year() === selectedYear;
 //     // });
-    
+
 //     // console.log(`📊 Before filter: ${allTickets.length} tickets`);
 //     // console.log(`📊 After filter: ${ticketsInMonth.length} tickets for ${month}/${year}`);
 //     // AFTER getting tickets from API
@@ -646,12 +646,12 @@
 // const ticketsInMonth = allTickets.filter((ticket: any) => {
 //   const ticketDate = ticket.createdAt ? dayjs(ticket.createdAt) : null;
 //   if (!ticketDate) return false;
-  
+
 //   const ticketMonth = ticketDate.month(); // 0-11
 //   const ticketYear = ticketDate.year();
-  
+
 //   const isMatch = ticketMonth === selectedMonth && ticketYear === selectedYear;
-  
+
 //   // Log each ticket's comparison
 //   console.log(`   Checking ${ticket.ticketNumber || ticket.id}:`, {
 //     ticketMonth: ticketMonth + 1,
@@ -661,22 +661,22 @@
 //     isMatch,
 //     date: ticketDate.format("YYYY-MM-DD")
 //   });
-  
+
 //   return isMatch;
 // });
 
 // console.log("4️⃣ Tickets IN selected month:", ticketsInMonth.length);
 // console.log("5️⃣ Tickets NOT in selected month:", allTickets.length - ticketsInMonth.length);
 // console.log("🔴🔴🔴 DEBUG END 🔴🔴🔴");
-    
+
 //     const completed = ticketsInMonth.filter((t: any) => 
 //       ["completed", "dev_complete", "done"].includes(t.status?.toLowerCase())
 //     ).length;
-    
+
 //     const inProgress = ticketsInMonth.filter((t: any) => 
 //       ["in progress", "in_progress", "in testing", "in_testing", "in review"].includes(t.status?.toLowerCase())
 //     ).length;
-    
+
 //     const pending = ticketsInMonth.filter((t: any) => 
 //       ["pending", "open", "to do", "not_started", "todo", "backlog"].includes(t.status?.toLowerCase())
 //     ).length;
@@ -685,24 +685,24 @@
 
 //     // Process Daily Updates
 //     const updates = updatesRes || [];
-    
+
 //     const bodDays = new Set();
 //     const eodDays = new Set();
 //     const updatesList = [];
-    
+
 //     updates.forEach((update: any) => {
 //       const updateDate = dayjs(update.date).format("YYYY-MM-DD");
-      
+
 //       const hasBOD = update.projectUpdates?.length > 0 || update.updateType === 'BOD';
 //       if (hasBOD) {
 //         bodDays.add(updateDate);
 //       }
-      
+
 //       const hasEOD = update.totalHoursWorked || update.updateType === 'EOD';
 //       if (hasEOD) {
 //         eodDays.add(updateDate);
 //       }
-      
+
 //       updatesList.push({
 //         key: update.id || updateDate,
 //         date: updateDate,
@@ -802,19 +802,19 @@ export const usePerformance = (filters: PerformanceFilters) => {
   const { userId, month, year } = filters;
 
   const queryKey = ["performance", userId, month, year];
-  
+
   const queryFn = async () => {
     if (!userId || !month || !year) return null;
 
     const selectedYear = parseInt(year);
     const selectedMonth = parseInt(month) - 1;
-    
+
     const startDate = dayjs()
       .year(selectedYear)
       .month(selectedMonth)
       .startOf("month")
       .format("YYYY-MM-DD");
-    
+
     const endDate = dayjs()
       .year(selectedYear)
       .month(selectedMonth)
@@ -828,7 +828,7 @@ export const usePerformance = (filters: PerformanceFilters) => {
         assigneeId: userId,
         limit: 1000
       }),
-      
+
       DailyUpdateService.getTeamUpdates({
         userId: userId,
         startDate,
@@ -859,21 +859,21 @@ export const usePerformance = (filters: PerformanceFilters) => {
       });
     });
 
-    console.log("3️⃣ Selected Month/Year:", { 
+    console.log("3️⃣ Selected Month/Year:", {
       selectedMonth: selectedMonth + 1,
-      selectedYear 
+      selectedYear
     });
 
     // Filter tickets
     // const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
     //   const ticketDate = ticket.createdAt ? dayjs(ticket.createdAt) : null;
     //   if (!ticketDate) return false;
-      
+
     //   const ticketMonth = ticketDate.month();
     //   const ticketYear = ticketDate.year();
-      
+
     //   const isMatch = ticketMonth === selectedMonth && ticketYear === selectedYear;
-      
+
     //   console.log(`   Checking ${ticket.ticketNumber || ticket.id}:`, {
     //     ticketMonth: ticketMonth + 1,
     //     ticketYear,
@@ -882,7 +882,7 @@ export const usePerformance = (filters: PerformanceFilters) => {
     //     isMatch,
     //     date: ticketDate.format("YYYY-MM-DD")
     //   });
-      
+
     //   return isMatch;
     // });
 
@@ -890,84 +890,87 @@ export const usePerformance = (filters: PerformanceFilters) => {
     // console.log("5️⃣ Tickets NOT in selected month:", allTickets.length - ticketsInMonth.length);
     // console.log("🔴🔴🔴 DEBUG END 🔴🔴🔴");
     // Filter tickets by date range (more reliable than month/year comparison)
-const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
-  // Get the date from various possible fields
-  const dateString = ticket.createdAt || 
-                     (ticket as any).created_date || 
-                     (ticket as any).date;
-  
-  if (!dateString) {
-    console.log("❌ Ticket has no date:", ticket.id);
-    return false;
-  }
-  
-  const ticketDate = dayjs(dateString);
-  
-  if (!ticketDate.isValid()) {
-    console.log("❌ Invalid date for ticket:", ticket.id, dateString);
-    return false;
-  }
-  
-  // Create start and end of selected month
-  const monthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
-  const monthEnd = dayjs().year(selectedYear).month(selectedMonth).endOf('month');
-  
-  // Check if ticket date is within the month
-  const isInMonth = ticketDate.isAfter(monthStart) && ticketDate.isBefore(monthEnd);
-  
-  console.log(`📊 Ticket ${ticket.ticketNumber || ticket.id}:`, {
-    date: ticketDate.format("YYYY-MM-DD"),
-    inMonth: isInMonth,
-    monthStart: monthStart.format("YYYY-MM-DD"),
-    monthEnd: monthEnd.format("YYYY-MM-DD")
-  });
-  
-  return isInMonth;
-});
-    
-    const completed = ticketsInMonth.filter((t: Ticket) => 
-      ["completed", "dev_complete", "done"].includes(t.status?.toLowerCase())
+    const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
+      // Get the date from various possible fields
+      const dateString = ticket.createdAt ||
+        (ticket as any).created_date ||
+        (ticket as any).date;
+
+      if (!dateString) {
+        console.log("❌ Ticket has no date:", ticket.id);
+        return false;
+      }
+
+      const ticketDate = dayjs(dateString);
+
+      if (!ticketDate.isValid()) {
+        console.log("❌ Invalid date for ticket:", ticket.id, dateString);
+        return false;
+      }
+
+      // Create start and end of selected month
+      const monthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+      const monthEnd = dayjs().year(selectedYear).month(selectedMonth).endOf('month');
+
+      // Check if ticket date is within the month
+      const isInMonth = ticketDate.isAfter(monthStart) && ticketDate.isBefore(monthEnd);
+
+      console.log(`📊 Ticket ${ticket.ticketNumber || ticket.id}:`, {
+        date: ticketDate.format("YYYY-MM-DD"),
+        inMonth: isInMonth,
+        monthStart: monthStart.format("YYYY-MM-DD"),
+        monthEnd: monthEnd.format("YYYY-MM-DD")
+      });
+
+      return isInMonth;
+    });
+
+    const completed = ticketsInMonth.filter((t: Ticket) =>
+      ["completed", "done", "live"].includes(t.status?.toLowerCase())
     ).length;
-    
-    const inProgress = ticketsInMonth.filter((t: Ticket) => 
-      ["in progress", "in_progress", "in testing", "in_testing", "in review"].includes(t.status?.toLowerCase())
+
+    const inProgress = ticketsInMonth.filter((t: Ticket) =>
+      ["in progress", "in_progress", "in review", "in_review"].includes(t.status?.toLowerCase())
     ).length;
-    
-    const pending = ticketsInMonth.filter((t: Ticket) => 
-      ["pending", "open", "to do", "not_started", "todo", "backlog"].includes(t.status?.toLowerCase())
+
+    const pending = ticketsInMonth.filter((t: Ticket) =>
+      ["pending", "open", "to do", "not_started", "todo", "backlog", "testing", "in testing", "in_testing", "dev_complete", "dev complete"].includes(t.status?.toLowerCase())
     ).length;
 
     const total = ticketsInMonth.length;
 
     // Process Daily Updates
     const updates = (updatesRes || []) as DailyUpdate[];
-    
-    const bodDays = new Set<string>();
-    const eodDays = new Set<string>();
-    const updatesList: UpdatesListItem[] = []; // ✅ Explicitly typed as UpdatesListItem[]
-    
+
+    let bodCount = 0;
+    let eodCount = 0;
+    const dailyMap = new Map<string, UpdatesListItem>();
+
     updates.forEach((update: DailyUpdate) => {
       const updateDate = dayjs(update.date).format("YYYY-MM-DD");
-      
-      const hasBOD = (update.projectUpdates?.length ?? 0) > 0 || update.updateType === 'BOD';
-      if (hasBOD) {
-        bodDays.add(updateDate);
+
+      const isBOD = update.updateType === 'BOD';
+      const isEOD = update.updateType === 'EOD';
+
+      if (isBOD) bodCount++;
+      if (isEOD) eodCount++;
+
+      if (!dailyMap.has(updateDate)) {
+        dailyMap.set(updateDate, {
+          key: update.id || updateDate,
+          date: updateDate,
+          bod: isBOD,
+          eod: isEOD,
+          type: update.updateType || 'Update',
+        });
+      } else {
+        const existing = dailyMap.get(updateDate)!;
+        if (isBOD) existing.bod = true;
+        if (isEOD) existing.eod = true;
       }
-      
-      const hasEOD = !!update.totalHoursWorked || update.updateType === 'EOD';
-      if (hasEOD) {
-        eodDays.add(updateDate);
-      }
-      
-      updatesList.push({
-        key: update.id || updateDate,
-        date: updateDate,
-        bod: hasBOD,
-        eod: hasEOD,
-        type: hasEOD ? 'EOD' : (hasBOD ? 'BOD' : 'Update'),
-      });
     });
 
+    const updatesList = Array.from(dailyMap.values());
     updatesList.sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix());
 
     // Return the data
@@ -981,7 +984,7 @@ const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
         },
         details: ticketsInMonth.slice(0, 10).map((t: Ticket) => ({
           key: t.id,
-          ticketId: t.ticketNumber || `TKT-${t.id?.slice(0,4)}`,
+          ticketId: t.ticketNumber || `TKT-${t.id?.slice(0, 4)}`,
           title: t.title,
           status: t.status,
           priority: t.priority,
@@ -989,18 +992,18 @@ const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
           closed: t.closedAt ? dayjs(t.closedAt).format("YYYY-MM-DD") : "-",
         })),
         distribution: [
-          { name: "Completed", value: completed, color: "#52c41a" },
-          { name: "In Progress", value: inProgress, color: "#faad14" },
-          { name: "Pending", value: pending, color: "#f5222d" },
+          { name: "Completed", value: completed, color: "#10b981" },
+          { name: "In Progress", value: inProgress, color: "#f59e0b" },
+          { name: "Pending", value: pending, color: "#ef4444" },
         ],
       },
       dailyUpdates: {
         summary: {
-          bod: bodDays.size,
-          eod: eodDays.size,
-          total: updatesList.length,
+          bod: bodCount,
+          eod: eodCount,
+          total: dailyMap.size,
         },
-        logs: updatesList, // ✅ Now properly typed
+        logs: updatesList,
       },
     };
   };

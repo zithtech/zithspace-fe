@@ -12,11 +12,13 @@ export const TimeTrackerPopover: React.FC = () => {
   const { notification } = App.useApp();
   const {
     activeEntry,
+    activeEntries,
     isLoading,
     isPopoverOpen,
     setPopoverOpen,
     fetchActiveTimer,
     startTimer,
+    startMultipleTimers,
     pauseTimer,
     resumeTimer,
     stopTimer
@@ -33,23 +35,27 @@ export const TimeTrackerPopover: React.FC = () => {
     loadProjects();
   }, []);
 
-  // Pre-fill form when there's an active (running/paused) entry
+  // Pre-fill form when there are active entries
   useEffect(() => {
-    if (activeEntry && (activeEntry.status === 'RUNNING' || activeEntry.status === 'PAUSED')) {
+    const runningOrPaused = activeEntries.filter(e => e.status === 'RUNNING' || e.status === 'PAUSED');
+    if (runningOrPaused.length > 0) {
+      const pIds = Array.from(new Set(runningOrPaused.map(e => e.projectId).filter(Boolean))) as string[];
+      const tIds = Array.from(new Set(runningOrPaused.map(e => e.ticketId).filter(Boolean))) as string[];
+
       form.setFieldsValue({
-        projectId: activeEntry.projectId,
-        ticketId: activeEntry.ticketId,
-        description: activeEntry.description,
-        billable: activeEntry.billable,
-        billingRate: activeEntry.billingRate,
+        projectId: pIds,
+        ticketId: tIds,
+        description: runningOrPaused[0].description, // Use the most recent description
+        billable: runningOrPaused.some(e => e.billable),
+        billingRate: runningOrPaused[0].billingRate,
       });
-      if (activeEntry.projectId) {
-        loadTickets(activeEntry.projectId);
+      if (pIds.length > 0) {
+        loadTickets(pIds);
       }
-    } else if (!activeEntry) {
+    } else if (activeEntries.length === 0) {
       form.resetFields();
     }
-  }, [activeEntry?.id]);
+  }, [activeEntries.length]);
 
   // Elapsed time ticker
   useEffect(() => {
@@ -78,25 +84,44 @@ export const TimeTrackerPopover: React.FC = () => {
 
   const loadProjects = async () => {
     try {
-      const res = await ProjectService.getProjects();
-      setProjects(res.data || []);
+      const res = await ProjectService.getUserProjects();
+      setProjects(res || []);
     } catch (err) {
       // omit Error log to stay clean
     }
   };
 
-  const loadTickets = async (projectId: string) => {
+  const loadTickets = async (projectIds: string[]) => {
+    if (!projectIds || projectIds.length === 0) {
+      setTickets([]);
+      return;
+    }
     try {
-      const res = await TicketService.getProjectTickets(projectId);
-      setTickets(res || []);
+      // Use individual try-catches to ensure one failing project doesn't block others
+      const ticketPromises = projectIds.map(async (pid) => {
+        try {
+          // Only fetch tickets assigned to the current user for this project
+          const projectTickets = await TicketService.getMyTicketsByProject(pid);
+          return (projectTickets || []).map(t => ({ ...t, projectId: pid }));
+        } catch (err) {
+          console.error(`Failed to load tickets for project ${pid}:`, err);
+          return [];
+        }
+      });
+
+      const allTicketsResults = await Promise.all(ticketPromises);
+      const mergedTickets = allTicketsResults.flat();
+
+      setTickets(mergedTickets);
     } catch (err) {
+      console.error("General error in loadTickets:", err);
       setTickets([]);
     }
   };
 
-  const handleProjectChange = (projectId: string) => {
-    form.setFieldsValue({ ticketId: undefined });
-    loadTickets(projectId);
+  const handleProjectChange = (projectIds: string[]) => {
+    form.setFieldsValue({ ticketId: [] });
+    loadTickets(projectIds);
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -108,16 +133,24 @@ export const TimeTrackerPopover: React.FC = () => {
 
   const handleStart = async (values: any) => {
     try {
-      await startTimer({
-        projectId: values.projectId,
-        ticketId: values.ticketId,
-        description: values.description,
-        billable: values.billable,
-        billingRate: values.billingRate
+      const entriesToCreate = values.ticketId.map((tId: string) => {
+        const ticket = tickets.find(t => t.id === tId);
+        // Fallback to searching in all visible ticket options if needed
+        const pId = ticket?.projectId || (values.projectId.length === 1 ? values.projectId[0] : undefined);
+
+        return {
+          projectId: pId,
+          ticketId: tId,
+          description: values.description,
+          billable: values.billable,
+          billingRate: values.billingRate
+        };
       });
-      notification.success({ message: "Timer started successfully!" });
+
+      await startMultipleTimers(entriesToCreate);
+      notification.success({ message: "Timers started successfully!" });
     } catch (error: any) {
-      notification.error({ message: "Failed to start timer", description: error.message });
+      notification.error({ message: "Failed to start timers", description: error.message });
     }
   };
 
@@ -130,6 +163,8 @@ export const TimeTrackerPopover: React.FC = () => {
       notification.error({ message: "Failed to stop timer", description: error.message });
     }
   };
+
+  const selectedPids = Form.useWatch('projectId', form) || [];
 
   const renderContent = () => (
     <div style={{ width: 320 }}>
@@ -167,7 +202,7 @@ export const TimeTrackerPopover: React.FC = () => {
                 type="primary"
                 shape="circle"
                 icon={<PlayCircleFilled style={{ fontSize: 32 }} />}
-                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#10b981' }}
+                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1890ff' }}
                 onClick={async () => { try { await resumeTimer(); } catch (e) { } }}
                 loading={isLoading}
               />
@@ -187,7 +222,7 @@ export const TimeTrackerPopover: React.FC = () => {
             type="primary"
             shape="circle"
             icon={<PlayCircleFilled style={{ fontSize: 32 }} />}
-            style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#10b981' }}
+            style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1890ff' }}
             onClick={() => form.submit()}
             loading={isLoading}
           />
@@ -201,39 +236,45 @@ export const TimeTrackerPopover: React.FC = () => {
         initialValues={{ billable: false }}
         disabled={!!activeEntry || isLoading}
       >
-        <Form.Item 
-          name="projectId" 
-          label="Project" 
-          rules={[{ required: true, message: 'Please select a project' }]}
+        <Form.Item
+          name="projectId"
+          label="Project"
+          rules={[{ required: true, message: 'Please select at least one project' }]}
         >
-          <Select placeholder="Select a project" onChange={handleProjectChange} allowClear disabled={!!activeEntry || isLoading} showSearch filterOption={(input, option) => String(option?.children ?? '').toLowerCase().includes(input.toLowerCase())}>
-            {projects.map(p => <Select.Option key={p.id} value={p.id}>{p.name}</Select.Option>)}
-          </Select>
+          <Select
+            mode="multiple"
+            placeholder="Select project(s)"
+            onChange={handleProjectChange}
+            allowClear
+            disabled={!!activeEntry || isLoading}
+            showSearch
+            options={projects.map(p => ({ label: p.label, value: p.value }))}
+            filterOption={(input, option) => String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+          />
         </Form.Item>
 
-        <Form.Item 
-          name="ticketId" 
+        <Form.Item
+          name="ticketId"
           label="Task / Ticket"
-          rules={[{ required: true, message: 'Please select a task' }]}
+          rules={[{ required: true, message: 'Please select at least one task' }]}
         >
-          <Select placeholder="Select a task" allowClear disabled={!!activeEntry || isLoading || !form.getFieldValue('projectId')} showSearch filterOption={(input, option) => String(option?.children ?? '').toLowerCase().includes(input.toLowerCase())}>
-            {tickets.map(t => <Select.Option key={t.id} value={t.id}>{t.title}</Select.Option>)}
-          </Select>
+          <Select
+            mode="multiple"
+            placeholder="Select task(s)"
+            allowClear
+            disabled={!!activeEntry || isLoading || !selectedPids.length}
+            showSearch
+            options={tickets.map(t => ({
+              label: `${t.title} ${selectedPids.length > 1 ? `(${projects.find(p => p.value === t.projectId)?.label || 'Unknown'})` : ''}`,
+              value: t.id
+            }))}
+            filterOption={(input, option) => String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+          />
         </Form.Item>
 
         <Form.Item name="description" label="What are you working on?">
           <Input.TextArea rows={2} placeholder="Description..." />
         </Form.Item>
-        {/*
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Form.Item name="billable" label="Billable" valuePropName="checked" style={{ marginBottom: 0 }}>
-            <Switch />
-          </Form.Item>
-          <Form.Item name="billingRate" label="Rate/hr ($)" style={{ marginBottom: 0 }}>
-            <Input type="number" placeholder="0.00" style={{ width: 100 }} />
-          </Form.Item>
-        </div>
-        */}
       </Form>
 
       <div style={{ marginTop: 24, textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
@@ -260,13 +301,18 @@ export const TimeTrackerPopover: React.FC = () => {
     >
       <Button
         type={activeEntry ? (activeEntry.status === 'RUNNING' ? "primary" : "default") : "default"}
-        danger={activeEntry?.status === 'RUNNING'}
-        icon={activeEntry ? (activeEntry.status === 'RUNNING' ? <div style={{ width: 12, height: 12, backgroundColor: 'currentColor', borderRadius: 2 }} /> : <PauseCircleFilled style={{ color: '#f59e0b' }} />) : <PlayCircleFilled style={{ color: '#10b981' }} />}
+        icon={activeEntry ? (activeEntry.status === 'RUNNING' ? <div style={{ width: 12, height: 12, backgroundColor: 'currentColor', borderRadius: 2 }} /> : <PauseCircleFilled style={{ color: '#f59e0b' }} />) : <PlayCircleFilled style={{ color: '#1890ff' }} />}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          backgroundColor: activeEntry ? (activeEntry.status === 'RUNNING' ? '#fef2f2' : '#fffbeb') : 'white',
-          color: activeEntry ? (activeEntry.status === 'RUNNING' ? '#ef4444' : '#d97706') : '#374151',
-          borderColor: activeEntry ? (activeEntry.status === 'RUNNING' ? '#fca5a5' : '#fcd34d') : '#d1d5db'
+          backgroundColor: activeEntry
+            ? (activeEntry.status === 'RUNNING' ? '#f0fdf4' : '#fffbeb')
+            : 'white',
+          color: activeEntry
+            ? (activeEntry.status === 'RUNNING' ? '#15803d' : '#d97706')
+            : '#374151',
+          borderColor: activeEntry
+            ? (activeEntry.status === 'RUNNING' ? '#bcf0da' : '#fcd34d')
+            : '#d1d5db'
         }}
       >
         <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatTime(elapsedTime)}</span>

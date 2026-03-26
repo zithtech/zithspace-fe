@@ -227,7 +227,7 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
               type="primary"
               onClick={handleCompleteSprint}
               loading={completeSprint.isPending}
-              disabled={summary?.statistics.pendingTickets > 0}
+              disabled={(summary?.statistics.pendingTickets ?? 0) > 0}
               style={{ 
                 borderRadius: 8, 
                 height: 40, 

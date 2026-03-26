@@ -46,52 +46,21 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
       // Filter entries for this specific day
       const dayEntries = entries.filter(e => dayjs(e.startTime).format('YYYY-MM-DD') === date);
       
-      // Apply wall-clock duration logic (Completed Only)
-      const allIntervals: { start: number; end: number }[] = [];
-      dayEntries.forEach(entry => {
-        if (entry.logs && entry.logs.length > 0) {
-          const sortedLogs = [...entry.logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          let currentStart: number | null = null;
-
-          sortedLogs.forEach(log => {
-            if (log.action === 'STARTED' || log.action === 'RESUMED') {
-              currentStart = new Date(log.createdAt).getTime();
-            } else if ((log.action === 'PAUSED' || log.action === 'STOPPED') && currentStart !== null) {
-              allIntervals.push({ start: currentStart, end: new Date(log.createdAt).getTime() });
-              currentStart = null;
-            }
-          });
-        }
-
-        // Include entry-level interval for manual/completed records
-        if (entry.status !== 'RUNNING' && entry.startTime && entry.endTime) {
-          allIntervals.push({
-            start: new Date(entry.startTime).getTime(),
-            end: new Date(entry.endTime).getTime()
-          });
-        }
-      });
-
       let totalSeconds = 0;
-      if (allIntervals.length > 0) {
-        // Merge overlapping intervals
-        allIntervals.sort((a, b) => a.start - b.start);
-        const merged: { start: number; end: number }[] = [];
-        let current = allIntervals[0];
+      dayEntries.forEach(entry => {
+        // Add recorded duration
+        totalSeconds += (entry.duration || 0);
 
-        for (let j = 1; j < allIntervals.length; j++) {
-          const next = allIntervals[j];
-          if (next.start <= current.end) {
-            current.end = Math.max(current.end, next.end);
-          } else {
-            merged.push(current);
-            current = next;
+        // If running, add current live session time
+        if (entry.status === 'RUNNING' && entry.logs) {
+          const lastLog = [...entry.logs].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
+            const now = new Date().getTime();
+            const start = new Date(lastLog.createdAt).getTime();
+            totalSeconds += Math.floor((now - start) / 1000);
           }
         }
-        merged.push(current);
-        const totalMs = merged.reduce((sum, interval) => sum + (interval.end - interval.start), 0);
-        totalSeconds = Math.floor(totalMs / 1000);
-      }
+      });
 
       stats.push({ date, seconds: totalSeconds });
     }
@@ -129,9 +98,9 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
 
   return (
     <Card 
-      title={<Space><Text strong>7-Day History</Text><Tag color="blue" style={{ marginLeft: 12 }}>Last 7 Days Avg: {averageHours} Hours</Tag></Space>}
-      style={{ height: '100%', background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}
-      styles={{ body: { padding: '12px 16px' } }}
+      title={<Space><Text strong style={{ color: '#1e293b' }}>7-Day History</Text><Tag color="blue" style={{ marginLeft: 12, borderRadius: 6 }}>Last 7 Days Avg: {averageHours} Hours</Tag></Space>}
+      style={{ height: '100%', background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: 'hidden' }}
+      styles={{ body: { padding: '0px' } }}
     >
       {loading ? (
         <Skeleton active paragraph={{ rows: 8 }} />

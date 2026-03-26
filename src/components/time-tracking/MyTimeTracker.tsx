@@ -41,56 +41,23 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   // Total time calculation (Completed Only)
   useEffect(() => {
     const calculateTotal = () => {
-      const allIntervals: { start: number; end: number }[] = [];
+      let totalSeconds = 0;
 
       entries.forEach(entry => {
-        // Collect intervals from logs
-        if (entry.logs && entry.logs.length > 0) {
-          const sortedLogs = [...entry.logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          let currentStart: number | null = null;
+        // Add recorded duration
+        totalSeconds += (entry.duration || 0);
 
-          sortedLogs.forEach(log => {
-            if (log.action === 'STARTED' || log.action === 'RESUMED') {
-              currentStart = new Date(log.createdAt).getTime();
-            } else if ((log.action === 'PAUSED' || log.action === 'STOPPED') && currentStart !== null) {
-              allIntervals.push({ start: currentStart, end: new Date(log.createdAt).getTime() });
-              currentStart = null;
-            }
-          });
-        }
-
-        // ALSO include the entry's own startTime/endTime range if it's completed (important for manual updates)
-        if ((entry.status === 'STOPPED' || entry.status === 'MANUAL_UPDATED') && entry.startTime && entry.endTime) {
-          allIntervals.push({
-            start: new Date(entry.startTime).getTime(),
-            end: new Date(entry.endTime).getTime()
-          });
+        // If running, add current live session time
+        if (entry.status === 'RUNNING' && entry.logs) {
+          const lastLog = [...entry.logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
+            const now = new Date().getTime();
+            const start = new Date(lastLog.createdAt).getTime();
+            totalSeconds += Math.floor((now - start) / 1000);
+          }
         }
       });
 
-      if (allIntervals.length === 0) {
-        onTotalChange?.(0);
-        return;
-      }
-
-      // Merge overlapping intervals
-      allIntervals.sort((a, b) => a.start - b.start);
-      const merged: { start: number; end: number }[] = [];
-      let current = allIntervals[0];
-
-      for (let i = 1; i < allIntervals.length; i++) {
-        const next = allIntervals[i];
-        if (next.start <= current.end) {
-          current.end = Math.max(current.end, next.end);
-        } else {
-          merged.push(current);
-          current = next;
-        }
-      }
-      merged.push(current);
-
-      const totalMs = merged.reduce((acc, int) => acc + (int.end - int.start), 0);
-      const totalSeconds = Math.floor(totalMs / 1000);
       onTotalChange?.(totalSeconds);
     };
 
@@ -198,14 +165,23 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               onConfirm={(e) => handleStopAll(e as any)}
               onCancel={(e) => e?.stopPropagation()}
             >
-              <Tag
-                color="processing"
-                icon={<RunningIcon />}
-                style={{ cursor: "pointer" }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                Running (Click to Stop All)
-              </Tag>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="pulse-indicator" />
+                <Tag
+                  color="processing"
+                  icon={<RunningIcon />}
+                  style={{
+                    cursor: "pointer",
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    padding: '2px 10px',
+                    border: '1px solid #bae6fd'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Running
+                </Tag>
+              </div>
             </Popconfirm>
           );
         }
@@ -241,7 +217,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
           {record.status === "PAUSED" && (
             <Button
               type="text"
-              icon={<PlayCircleOutlined />}
+              icon={<PlayCircleOutlined style={{ color: '#1677ff' }} />}
               onClick={(e) => handleResumeAll(e)}
               title="Resume All Timers"
             />
@@ -255,15 +231,25 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   ];
 
   return (
-    <Card style={{ height: '100%', background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}>
+    <Card style={{
+      height: '100%',
+      background: "#fff",
+      borderRadius: 16,
+      border: "1px solid #f1f5f9",
+      overflow: "hidden"
+    }}
+      styles={{ body: { padding: 0 } }}
+    >
       <Table
         columns={columns}
         dataSource={entries}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 20 }}
+        rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
         expandable={{
           expandedRowRender: (record) => {
+            // ... (rest of the expandable code remains exactly same as user's version)
             if (!record.logs || record.logs.length === 0) {
               return <Text type="secondary" style={{ padding: '8px 16px', display: 'block' }}>No activity logs recorded.</Text>;
             }
@@ -304,20 +290,20 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                 key: "action",
                 render: (text: string) => {
                   let color = text === 'Initial Session' ? 'blue' : 'cyan';
-                  return <Tag color={color}>{text}</Tag>;
+                  return <Tag color={color} style={{ borderRadius: 4 }}>{text}</Tag>;
                 }
               },
               {
                 title: "Start Time",
                 dataIndex: "startTime",
                 key: "startTime",
-                render: (text: string) => <Text type="secondary">{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text>
+                render: (text: string) => <Text type="secondary" style={{ fontSize: 13 }}>{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text>
               },
               {
                 title: "End Time",
                 dataIndex: "endTime",
                 key: "endTime",
-                render: (text: string) => text ? <Text type="secondary">{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text> : <Tag color="processing" icon={<PlayCircleOutlined />}>Running</Tag>
+                render: (text: string) => text ? <Text type="secondary" style={{ fontSize: 13 }}>{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text> : <Tag color="processing" icon={<PlayCircleOutlined />} style={{ borderRadius: 4 }}>Running</Tag>
               },
               {
                 title: "Duration",
@@ -327,20 +313,67 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
               }
             ];
             return (
-              <div style={{ padding: '8px 24px', backgroundColor: '#fafafa' }}>
-                <Text strong style={{ marginBottom: 8, display: 'block' }}>Detailed Activity</Text>
+              <div style={{ padding: '24px 32px', background: '#ffffff' }}>
+                <Text strong style={{ marginBottom: 16, display: 'block', color: '#64748b', fontSize: 11, letterSpacing: '0.05em' }}>DETAILED ACTIVITY HISTORY</Text>
                 <Table
                   columns={logColumns}
                   dataSource={activityChunks}
                   rowKey="id"
                   pagination={false}
                   size="small"
+                  style={{ background: 'transparent' }}
                 />
               </div>
             );
           }
         }}
       />
+      <style jsx global>{`
+        .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          border-bottom: 1px solid #e2e8f0 !important;
+          padding: 12px 16px !important;
+        }
+        .ant-table-tbody > tr > td {
+          padding: 14px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+          font-size: 14px !important;
+          color: #1e293b !important;
+        }
+        .ant-table-row:hover > td {
+          background-color: #f8fafc !important;
+        }
+        .running-row {
+          background-color: #f0f7ff !important;
+        }
+        .nested-history-table .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          font-size: 10px !important;
+          padding: 8px 12px !important;
+        }
+        .nested-history-table .ant-table-tbody > tr > td {
+          padding: 10px 12px !important;
+          font-size: 13px !important;
+        }
+        .pulse-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #1677ff;
+          box-shadow: 0 0 0 rgba(22, 119, 255, 0.4);
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7); }
+          70% { box-shadow: 0 0 0 8px rgba(22, 119, 255, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(22, 119, 255, 0); }
+        }
+      `}</style>
     </Card>
   );
 }

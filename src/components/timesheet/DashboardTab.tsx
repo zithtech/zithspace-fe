@@ -41,15 +41,29 @@ const { Title, Text } = Typography;
 const STATUS_COLORS = ["#10b981", "#f59e0b", "#ef4444"]; // Match Leave Management colors
 
 const StatBox = ({ label, value, icon: Icon, color, subText }: any) => (
-  <Card bodyStyle={{ padding: 16 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", height: "100%" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-      <Text style={{ color: "#64748b", fontWeight: 500, fontSize: 13 }}>{label}</Text>
-      <div style={{ color: color, background: `${color}15`, padding: 6, borderRadius: 8 }}>
-        <Icon size={18} />
+  <Card 
+    bodyStyle={{ padding: "16px 20px" }} 
+    style={{ 
+      borderRadius: 16, 
+      border: "1px solid #f1f5f9", 
+      boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      height: "100%"
+    }}
+  >
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        {subText && (
+          <div style={{ marginTop: 2 }}>
+            <Text style={{ fontSize: 11, color: "#94a3b8" }}>{subText}</Text>
+          </div>
+        )}
+      </div>
+      <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+        <Icon size={20} />
       </div>
     </div>
-    <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{value}</div>
-    {subText && <Text style={{ fontSize: 11, color: "#94a3b8" }}>{subText}</Text>}
   </Card>
 );
 

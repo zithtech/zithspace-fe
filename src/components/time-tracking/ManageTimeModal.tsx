@@ -195,9 +195,11 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
   return (
     <Modal
       title={
-        <Space>
-          <ClockCircleOutlined style={{ color: '#1677ff' }} />
-          <span>Manage Time (Administrative)</span>
+        <Space size="middle">
+          <div style={{ background: "#e0f2fe", padding: 6, borderRadius: 8, display: "flex", color: "#0ea5e9" }}>
+            <ClockCircleOutlined style={{ fontSize: 18 }} />
+          </div>
+          <span style={{ fontWeight: 700, color: "#1e293b", fontSize: 16 }}>Log Time Session</span>
         </Space>
       }
       open={open}
@@ -343,20 +345,28 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
           </Text>
         )}
 
-        <Form.Item style={{ marginBottom: 0, marginTop: 12, textAlign: 'right' }}>
+        <Form.Item style={{ marginBottom: 0, marginTop: 32, textAlign: 'right' }}>
           <Space size="middle">
-            <Button onClick={onClose} icon={<CloseCircleOutlined />}>Cancel</Button>
+            <Button
+              onClick={onClose}
+              icon={<CloseCircleOutlined />}
+              style={{ borderRadius: 8, height: 40 }}
+            >
+              Cancel
+            </Button>
             <Button
               type="primary"
               htmlType="submit"
               loading={loading}
               icon={<CheckCircleOutlined />}
               style={{
-                height: '40px',
-                padding: '0 32px',
-                borderRadius: '20px',
+                height: 40,
+                padding: '0 24px',
+                borderRadius: 8,
                 fontWeight: 600,
-                boxShadow: '0 4px 10px rgba(22, 119, 255, 0.3)'
+                background: "#1677ff",
+                border: "none",
+                // boxShadow: '0 4px 10px rgba(22, 119, 255, 0.25)'
               }}
             >
               Create Entry

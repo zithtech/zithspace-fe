@@ -202,7 +202,7 @@ export const TimeTrackerPopover: React.FC = () => {
                 type="primary"
                 shape="circle"
                 icon={<PlayCircleFilled style={{ fontSize: 32 }} />}
-                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1890ff' }}
+                style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1677ff' }}
                 onClick={async () => { try { await resumeTimer(); } catch (e) { } }}
                 loading={isLoading}
               />
@@ -222,7 +222,7 @@ export const TimeTrackerPopover: React.FC = () => {
             type="primary"
             shape="circle"
             icon={<PlayCircleFilled style={{ fontSize: 32 }} />}
-            style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1890ff' }}
+            style={{ width: 64, height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1677ff' }}
             onClick={() => form.submit()}
             loading={isLoading}
           />
@@ -301,7 +301,7 @@ export const TimeTrackerPopover: React.FC = () => {
     >
       <Button
         type={activeEntry ? (activeEntry.status === 'RUNNING' ? "primary" : "default") : "default"}
-        icon={activeEntry ? (activeEntry.status === 'RUNNING' ? <div style={{ width: 12, height: 12, backgroundColor: 'currentColor', borderRadius: 2 }} /> : <PauseCircleFilled style={{ color: '#f59e0b' }} />) : <PlayCircleFilled style={{ color: '#1890ff' }} />}
+        icon={activeEntry ? (activeEntry.status === 'RUNNING' ? <div style={{ width: 12, height: 12, backgroundColor: 'currentColor', borderRadius: 2 }} /> : <PauseCircleFilled style={{ color: '#f59e0b' }} />) : <PlayCircleFilled style={{ color: '#1677ff' }} />}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           backgroundColor: activeEntry

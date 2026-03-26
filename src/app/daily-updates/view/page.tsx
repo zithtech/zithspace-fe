@@ -28,18 +28,19 @@ import {
   CalendarOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { 
-  Plus, 
-  RefreshCw, 
-  LayoutGrid, 
-  List as ListIcon, 
-  Zap, 
-  Clock, 
-  Users, 
+import {
+  Plus,
+  RefreshCw,
+  LayoutGrid,
+  List as ListIcon,
+  Zap,
+  Clock,
+  Users,
   Filter,
   Calendar as CalendarIcon,
   ChevronRight,
-  Activity
+  Activity,
+  FileText
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -253,7 +254,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
     >
       {contextHolder}
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .daily-view-scroll-area::-webkit-scrollbar {
           display: none;
         }
@@ -286,17 +288,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         flexShrink: 0
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{
-            background: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.3)"
-          }}>
-            <Activity color="white" size={24} />
+          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+            <FileText size={28} />
           </div>
           <div>
             <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
@@ -332,9 +325,9 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
               padding: "0 20px",
               borderRadius: 10,
               fontWeight: 600,
-              background: "#0ea5e9",
-              borderColor: "#0ea5e9",
-              boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
+              background: '#1677ff',
+              // borderColor: "#0ea5e9",
+              // boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
               display: "flex",
               alignItems: "center",
               gap: 8
@@ -346,13 +339,13 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       </div>
 
       {/* Internal Scroll Area */}
-      <div className="daily-view-scroll-area" style={{ 
-        flex: 1, 
-        overflowY: "auto", 
+      <div className="daily-view-scroll-area" style={{
+        flex: 1,
+        overflowY: "auto",
         padding: "24px 32px"
       }}>
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-          
+
           {/* Compact Filters Card */}
           <Card className="premium-filter-card" bodyStyle={{ padding: "12px 20px" }}>
             <div style={{ display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
@@ -427,23 +420,23 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   value={viewMode}
                   onChange={(value) => setViewMode(value as ViewMode)}
                   options={[
-                    { 
+                    {
                       label: (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 4px" }}>
                           <LayoutGrid size={14} />
                           <span>Cards</span>
                         </div>
-                      ), 
-                      value: "card" 
+                      ),
+                      value: "card"
                     },
-                    { 
+                    {
                       label: (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 4px" }}>
                           <ListIcon size={14} />
                           <span>List</span>
                         </div>
-                      ), 
-                      value: "list" 
+                      ),
+                      value: "list"
                     },
                   ]}
                   style={{ borderRadius: 8, padding: 3 }}

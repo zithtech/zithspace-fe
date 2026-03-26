@@ -58,6 +58,27 @@ type Props = {
 };
 
 export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      bodyStyle={{ padding: "16px 20px" }} 
+      style={{ 
+        borderRadius: 12, 
+        border: "1px solid #f1f5f9", 
+        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
+
   const router = useRouter();
   // For showing the rejection reason modal
   const [showRejectReasonModal, setShowRejectReasonModal] = useState(false);
@@ -455,26 +476,15 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
 
       <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, scrollbarWidth: "none" }}>
         {/* Mini Stats Row */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
           {stats.map(stat => (
             <Col key={stat.label} xs={24} sm={8}>
-              <div style={{
-                padding: "16px 20px",
-                background: `${stat.color}08`,
-                borderRadius: 14,
-                border: `1px solid ${stat.color}15`,
-                display: "flex",
-                alignItems: "center",
-                gap: 12
-              }}>
-                <div style={{ color: stat.color, background: `${stat.color}15`, padding: 8, borderRadius: 10, display: "flex" }}>
-                  <stat.icon size={18} />
-                </div>
-                <div>
-                  <Text style={{ color: "#64748b", fontSize: 13, display: "block" }}>{stat.label}</Text>
-                  <Text style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{stat.value}</Text>
-                </div>
-              </div>
+              <StatCard 
+                label={stat.label} 
+                value={stat.value} 
+                icon={stat.icon} 
+                color={stat.color} 
+              />
             </Col>
           ))}
         </Row>

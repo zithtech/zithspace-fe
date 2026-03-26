@@ -367,7 +367,7 @@ export default function TopNav({
               setNewShortcutPath("");
             }
           }}
-          dropdownRender={() => (
+          popupRender={() => (
             <div
               style={{
                 width: 300,

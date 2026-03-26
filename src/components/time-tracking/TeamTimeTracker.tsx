@@ -9,7 +9,8 @@ import {
   SearchOutlined,
   EditOutlined,
   HistoryOutlined,
-  UserOutlined
+  UserOutlined,
+  ReloadOutlined
 } from "@ant-design/icons";
 const { RangePicker } = DatePicker;
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
@@ -273,77 +274,49 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       }
     });
 
-    // Calculate wall-clock total for each user by merging all their intervals
+    // Calculate total duration for each user by summing entry durations
     Object.values(userMap).forEach(userData => {
-      const allIntervals: { start: number; end: number }[] = [];
+      let totalSeconds = 0;
 
       userData.entries.forEach(entry => {
-        const entrySessions = processLogsToSessions(entry.logs, entry.startTime, entry.endTime);
+        // Add recorded duration
+        totalSeconds += (entry.duration || 0);
 
-        // Also ensure we count the main entry's duration if it was manually set
-        if (entrySessions.length === 0 && entry.startTime && entry.endTime && entry.status !== 'RUNNING') {
-          allIntervals.push({
-            start: new Date(entry.startTime).getTime(),
-            end: new Date(entry.endTime).getTime()
-          });
-        }
-
-        entrySessions.forEach(s => {
-          if (s.end) {
-            allIntervals.push({
-              start: new Date(s.start).getTime(),
-              end: new Date(s.end).getTime()
-            });
-          }
-        });
-
-        // Also include the entry's overall range if completed (important for manual updates)
-        // (This was redundant but kept for safety in case processLogsToSessions missed it)
-        if ((entry.status === 'STOPPED' || entry.status === 'MANUAL_UPDATED') && entry.startTime && entry.endTime) {
-          const start = new Date(entry.startTime).getTime();
-          const end = new Date(entry.endTime).getTime();
-          if (!isNaN(start) && !isNaN(end)) {
-            allIntervals.push({ start, end });
+        // If running, add current live session time
+        if (entry.status === 'RUNNING' && entry.logs) {
+          const lastLog = [...entry.logs].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
+            const now = currentTime.getTime();
+            const start = new Date(lastLog.createdAt).getTime();
+            totalSeconds += Math.floor((now - start) / 1000);
           }
         }
       });
 
-      if (allIntervals.length > 0) {
-        allIntervals.sort((a, b) => a.start - b.start);
-        const merged: { start: number; end: number }[] = [];
-        let current = allIntervals[0];
+      userData.totalSeconds = totalSeconds;
 
-        for (let i = 1; i < allIntervals.length; i++) {
-          const next = allIntervals[i];
-          if (next.start <= current.end) {
-            current.end = Math.max(current.end, next.end);
-          } else {
-            merged.push(current);
-            current = next;
+      // Advanced View: Calculate project breakdown for tooltips (already fairly accurate, but let's keep it consistent)
+      const projBreakdown: Record<string, { seconds: number; name: string }> = {};
+      userData.entries.forEach(e => {
+        const pId = (e.project && typeof e.project === 'object') ? e.project.id : (e.project || 'unknown');
+        const pName = (e.project && typeof e.project === 'object') ? e.project.name : (e.project || 'No Project');
+
+        if (!projBreakdown[pId]) projBreakdown[pId] = { seconds: 0, name: pName };
+
+        // Add entry's duration
+        projBreakdown[pId].seconds += (e.duration || 0);
+
+        // Add live time if running
+        if (e.status === 'RUNNING' && e.logs) {
+          const lastLog = [...e.logs].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
+            const now = currentTime.getTime();
+            const start = new Date(lastLog.createdAt).getTime();
+            projBreakdown[pId].seconds += Math.floor((now - start) / 1000);
           }
         }
-        merged.push(current);
-
-        const totalMs = merged.reduce((acc, int) => acc + (int.end - int.start), 0);
-        userData.totalSeconds = Math.floor(totalMs / 1000);
-
-        // Advanced View: Calculate project breakdown for tooltips
-        const projBreakdown: Record<string, { seconds: number; name: string }> = {};
-        userData.entries.forEach(e => {
-          const sessions = processLogsToSessions(e.logs, e.startTime, e.endTime);
-          const pId = (e.project && typeof e.project === 'object') ? e.project.id : (e.project || 'unknown');
-          const pName = (e.project && typeof e.project === 'object') ? e.project.name : (e.project || 'No Project');
-
-          if (!projBreakdown[pId]) projBreakdown[pId] = { seconds: 0, name: pName };
-
-          sessions.forEach(s => {
-            const start = new Date(s.start).getTime();
-            const end = s.end ? new Date(s.end).getTime() : currentTime.getTime();
-            projBreakdown[pId].seconds += Math.floor((end - start) / 1000);
-          });
-        });
-        (userData as any).projectBreakdown = Object.values(projBreakdown).sort((a, b) => b.seconds - a.seconds);
-      }
+      });
+      (userData as any).projectBreakdown = Object.values(projBreakdown).sort((a, b) => b.seconds - a.seconds);
     });
 
     return Object.values(userMap).sort((a, b) => b.totalSeconds - a.totalSeconds);
@@ -388,7 +361,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         const percent = Math.min(100, (record.totalSeconds / targetSeconds) * 100);
         let color = "#cbd5e1"; // Slate (0-50%)
         if (percent > 90) color = "#10b981"; // Emerald (90-100%)
-        else if (percent > 50) color = "#6366f1"; // Indigo (50-90%)
+        else if (percent > 50) color = "#1677ff"; // Blue (50-90%)
 
         return (
           <Tooltip
@@ -679,122 +652,119 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
   return (
     <div style={{ padding: '0 0 24px 0' }}>
-      <Row gutter={12} style={{ marginBottom: 16 }}>
+      <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
-          <Card bordered={false} className="glass-card stat-card-indigo" styles={{ body: { padding: '12px 16px' } }}>
-            <Space align="center" size="small">
-              <div className="icon-box-indigo" style={{ padding: 8 }}>
-                <TeamOutlined style={{ fontSize: 18 }} />
-              </div>
+          <Card bordered={true} style={{ borderRadius: 12, border: '1px solid #f1f5f9', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <Text className="stat-label">Active Members</Text>
-                <div className="stat-value" style={{ fontSize: 20 }}>{stats.activeUsers}</div>
+                <Text style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>Active Members</Text>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>{stats.activeUsers}</div>
               </div>
-            </Space>
+              <div style={{ background: '#eff6ff', color: '#2563eb', padding: 10, borderRadius: 12, display: 'flex' }}>
+                <TeamOutlined style={{ fontSize: 20 }} />
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={false} className="glass-card stat-card-emerald" styles={{ body: { padding: '12px 16px' } }}>
-            <Space align="center" size="small">
-              <div className="icon-box-emerald" style={{ padding: 8 }}>
-                <ClockCircleOutlined style={{ fontSize: 18 }} />
-              </div>
+          <Card bordered={true} style={{ borderRadius: 12, border: '1px solid #f1f5f9', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <Text className="stat-label">Total Work Hours</Text>
-                <div className="stat-value" style={{ fontSize: 20 }}>{formatTime(stats.totalSeconds)}</div>
+                <Text style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>Total Work Hours</Text>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>{formatTime(stats.totalSeconds)}</div>
               </div>
-            </Space>
+              <div style={{ background: '#ecfdf5', color: '#10b981', padding: 10, borderRadius: 12, display: 'flex' }}>
+                <ClockCircleOutlined style={{ fontSize: 20 }} />
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={false} className="glass-card stat-card-violet" styles={{ body: { padding: '12px 16px' } }}>
-            <Space align="center" size="small">
-              <div className="icon-box-violet" style={{ padding: 8 }}>
-                <RocketOutlined style={{ fontSize: 18 }} />
-              </div>
+          <Card bordered={true} style={{ borderRadius: 12, border: '1px solid #f1f5f9', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <Text className="stat-label">Project Coverage</Text>
-                <div className="stat-value" style={{ fontSize: 20 }}>{stats.uniqueProjects}</div>
+                <Text style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>Project Coverage</Text>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>{stats.uniqueProjects}</div>
               </div>
-            </Space>
+              <div style={{ background: '#fff7ed', color: '#f59e0b', padding: 10, borderRadius: 12, display: 'flex' }}>
+                <RocketOutlined style={{ fontSize: 20 }} />
+              </div>
+            </div>
           </Card>
         </Col>
       </Row>
 
-      <Card variant="borderless" title={<Text strong style={{ fontSize: 16 }}>Team Activity</Text>} styles={{ body: { padding: '0 16px 16px' } }} className="glass-card">
-        <div className="control-bar" style={{ padding: '12px 16px', marginBottom: 12 }}>
-          <Select
-            placeholder="Filter by Member"
-            style={{ width: 200 }}
-            allowClear
-            onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
-          >
-            {members.map(m => <Select.Option key={m.value} value={m.value}>{m.label}</Select.Option>)}
-          </Select>
-          <Select
-            placeholder="Filter by Project"
-            style={{ width: 200 }}
-            allowClear
-            onChange={(val) => setFilters(f => ({ ...f, projectId: val }))}
-          >
-            {projects.map(p => <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>)}
-          </Select>
-          <Input
-            placeholder="Search tasks or descriptions..."
-            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            style={{ width: 300 }}
-            onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
-          />
-          <RangePicker
-            value={filters.dateRange}
-            onChange={(dates) => setFilters(f => ({ ...f, dateRange: dates as any }))}
-            presets={[
-              { label: 'Today', value: [dayjs().startOf('day'), dayjs().endOf('day')] },
-              { label: 'Yesterday', value: [dayjs().subtract(1, 'd').startOf('day'), dayjs().subtract(1, 'd').endOf('day')] },
-              { label: 'This Week', value: [dayjs().startOf('week'), dayjs().endOf('week')] },
-            ]}
-          />
-          <Button onClick={fetchTeamEntries}>Refresh</Button>
-        </div>
-
-        <Table
-          columns={userColumns}
-          dataSource={groupedData}
-          loading={loading}
-          rowKey={(record) => record.user.id}
-          expandable={{ expandedRowRender }}
-          pagination={{ pageSize: 20 }}
-          size="middle"
+      <div style={{ marginBottom: 20, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Select
+          placeholder="Member"
+          style={{ width: 160, height: 32 }}
+          size="small"
+          allowClear
+          onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
+        >
+          {members.map(m => <Select.Option key={m.value} value={m.value}>{m.label}</Select.Option>)}
+        </Select>
+        <Select
+          placeholder="Project"
+          style={{ width: 160, height: 32 }}
+          size="small"
+          allowClear
+          onChange={(val) => setFilters(f => ({ ...f, projectId: val }))}
+        >
+          {projects.map(p => <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>)}
+        </Select>
+        <Input
+          placeholder="Search..."
+          prefix={<SearchOutlined style={{ color: '#94a3b8', fontSize: 13 }} />}
+          style={{ width: 220, height: 32, borderRadius: 6, fontSize: 13 }}
+          size="small"
+          onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
         />
-      </Card>
+        <RangePicker
+          style={{ height: 32, borderRadius: 6 }}
+          size="small"
+          value={filters.dateRange}
+          onChange={(dates) => setFilters(f => ({ ...f, dateRange: dates as any }))}
+        />
+        <Tooltip title="Refresh Data">
+          <Button 
+            onClick={fetchTeamEntries} 
+            icon={<ReloadOutlined />} 
+            style={{ height: 32, width: 32, padding: 0, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            size="small"
+          />
+        </Tooltip>
+      </div>
+
+      <Table
+        columns={userColumns}
+        dataSource={groupedData}
+        loading={loading}
+        rowKey={(record) => record.user.id}
+        expandable={{ expandedRowRender }}
+        pagination={{ pageSize: 20 }}
+        size="middle"
+      />
 
       <style jsx global>{`
-        .glass-card {
-            background: #fff !important;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 12px !important;
-            transition: all 0.2s ease !important;
+        .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          border-bottom: 1px solid #e2e8f0 !important;
         }
-        .stat-label {
-            color: #64748b;
-            font-size: 13px;
-            font-weight: 500;
-            display: block;
-            margin-bottom: 2px;
+        .ant-table-tbody > tr > td {
+          padding: 14px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+          font-size: 14px !important;
+          color: #1e293b !important;
         }
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1e293b;
-            line-height: 1.2;
+        .ant-table-row:hover > td {
+          background-color: #f8fafc !important;
         }
-        .icon-box-indigo { background: #e0e7ff; color: #4338ca; padding: 12px; border-radius: 12px; display: flex; }
-        .icon-box-emerald { background: #d1fae5; color: #047857; padding: 12px; border-radius: 12px; display: flex; }
-        .icon-box-violet { background: #ede9fe; color: #6d28d9; padding: 12px; border-radius: 12px; display: flex; }
-        
-        .stat-card-indigo { border-left: 4px solid #6366f1 !important; }
-        .stat-card-emerald { border-left: 4px solid #10b981 !important; }
-        .stat-card-violet { border-left: 4px solid #8b5cf6 !important; }
 
         .pulse-tag {
             animation: pulse-border 2s infinite;

@@ -1,8 +1,7 @@
-import { Form, Input, Select, DatePicker, Row, Col, Checkbox } from "antd";
-import { HomeOutlined } from "@ant-design/icons";
+import { Form, Input, Select, DatePicker, Row, Col, Checkbox, Card, Divider, Space } from "antd";
+import { UserOutlined, EnvironmentOutlined, PhoneOutlined, IdcardOutlined } from "@ant-design/icons";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import dayjs from "dayjs";
-import bcrypt from "bcryptjs";
 
 const { Option } = Select;
 
@@ -13,6 +12,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
   const [identityForm] = Form.useForm();
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [formData, setFormData] = useState<any>({
     address: {
       current: {},
@@ -20,17 +20,10 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
     },
   });
 
-  /* =====================================================
-    Repopulate all 4 form instances when `data` prop arrives.
-    This fires when the user clicks "Previous" and comes back
-    to this step — allData.personal is passed as `data` and
-    we restore every field exactly as the user left it.
-  ====================================================== */
   useEffect(() => {
     if (data && Object.keys(data).length > 0) {
       setFormData(data);
 
-      // ── Basic form fields ──────────────────────────────
       basicForm.setFieldsValue({
         firstName: data.firstName,
         lastName: data.lastName,
@@ -42,7 +35,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
         workEmail: data.workEmail,
       });
 
-      // ── Address form fields ────────────────────────────
       const cur = data.address?.current || {};
       const per = data.address?.permanent || {};
       addressForm.setFieldsValue({
@@ -60,38 +52,28 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
         p_country: per.p_country,
       });
 
-      // ── Emergency Info form fields ─────────────────────
       emergencyInfoForm.setFieldsValue({
         relationship: data.relationship,
         relationName: data.relationName,
         relationMobile: data.relationMobile,
       });
 
-      // ── Identity form fields ───────────────────────────
       identityForm.setFieldsValue({
         aadhaar: data.aadhaar,
         pan: data.pan,
         passport: data.passport,
       });
     }
-  }, [data]);
+  }, [data, basicForm, addressForm, emergencyInfoForm, identityForm]);
 
-  /* =====================================================
-    getData() — called by the parent (Onboarding) when the
-    user clicks Continue / Previous / Submit.
-    We read live values from all 4 form instances and merge
-    them into one object so nothing is missed.
-  ====================================================== */
   useImperativeHandle(ref, () => ({
     getData: () => {
-      // Pull live values straight from every form instance
       const basicValues = basicForm.getFieldsValue();
       const addressValues = addressForm.getFieldsValue();
       const emergencyValues = emergencyInfoForm.getFieldsValue();
       const identityValues = identityForm.getFieldsValue();
 
       return {
-        // Basic
         ...basicValues,
         dob: basicValues?.dob
           ? typeof basicValues.dob === "string"
@@ -99,7 +81,6 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             : basicValues.dob.format("YYYY-MM-DD")
           : null,
 
-        // Address (structured)
         address: {
           current: {
             c_flat: addressValues.c_flat,
@@ -118,19 +99,12 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             p_country: addressValues.p_country,
           },
         },
-
-        // Emergency
         ...emergencyValues,
-
-        // Identity
         ...identityValues,
       };
     },
   }));
 
-  /* =====================================================
-    "Same as current address" checkbox handler
-  ====================================================== */
   const onSameAddressChange = (e: any) => {
     const checked = e.target.checked;
     setSameAsCurrent(checked);
@@ -154,10 +128,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
         p_country: current.c_country,
       };
 
-      // Update the UI
       addressForm.setFieldsValue(permanent);
-
-      // Update local state so getData() also returns the copied values
       setFormData((prev: any) => ({
         ...prev,
         address: {
@@ -168,541 +139,265 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
     }
   };
 
-  const labelStyle = { fontSize: 11 };
-  const inputStyle = { height: 25, fontSize: 11 };
+  const labelStyle = { fontSize: 12, fontWeight: 500 };
 
   return (
-    <div
-      style={{
-        padding: "10px",
-        display: "flex",
-        flexDirection: "row",
-        gap: "10px",
-      }}
-    >
-      {/* ── COLUMN 1 : Basic Information ─────────────────── */}
-      <div style={{ width: "30%", background: "white" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingBottom: "24px" }}>
+      {/* Basic Information */}
+      <Card 
+        title={<Space><UserOutlined style={{ color: "#1677ff" }} /> <span>Basic Information</span></Space>} 
+        bordered={false} 
+        styles={{ body: { padding: "24px" } }}
+      >
         <Form
           form={basicForm}
           layout="vertical"
           requiredMark={false}
-          size="small"
-          /* 
-            BUG FIX: Previously this did setFormData(allValues) which
-            completely replaced formData (including the `address` key).
-            Now we merge with spread so address is never wiped out.
-          */
           onValuesChange={(_, allValues) =>
             setFormData((prev: any) => ({ ...prev, ...allValues }))
           }
-          style={{
-            background: "#ffffff",
-            borderRadius: "12px",
-            padding: "16px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)",
-            border: "1px solid rgba(0, 0, 0, 0.04)",
-            height: "450px",
-          }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", marginBottom: 12 }}
-          >
-            <HomeOutlined style={{ color: "#1677ff", marginRight: 6 }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
-              Basic Information
-            </span>
-          </div>
-
-          <Row gutter={[8, 4]}>
-            {/* First Name - Full Width */}
-            <Col span={24}>
+          <Row gutter={24}>
+            <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>First Name</span>}
                 name="firstName"
-                rules={[{ required: true, message: "Enter your name" }]}
-                style={{ marginBottom: 6 }}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Input
-                  placeholder="First Name"
-                  style={{ height: 25, fontSize: 12 }}
-                />
+                <Input placeholder="First Name" />
               </Form.Item>
             </Col>
-
-            {/* Last Name - Full Width */}
-            <Col span={24}>
+            <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>Last Name</span>}
                 name="lastName"
                 rules={[{ required: true, message: "Required" }]}
-                style={{ marginBottom: 6 }}
               >
-                <Input
-                  placeholder="Last Name"
-                  style={{ height: 25, fontSize: 12 }}
-                />
+                <Input placeholder="Last Name" />
               </Form.Item>
             </Col>
-
-            {/* Gender - Full Width */}
-            <Col span={24}>
+            <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>Gender</span>}
                 name="gender"
-                rules={[{ required: true }]}
-                style={{ marginBottom: 6 }}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Select
-                  placeholder="Select"
-                  style={{ height: 25, fontSize: 12 }}
-                >
+                <Select placeholder="Select Gender">
                   <Option value="male">Male</Option>
                   <Option value="female">Female</Option>
+                  <Option value="other">Other</Option>
                 </Select>
               </Form.Item>
             </Col>
-
-            {/* Date of Birth - Full Width */}
-            <Col span={24}>
+            <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>Date of Birth</span>}
                 name="dob"
-                rules={[{ required: true }]}
-                style={{ marginBottom: 6 }}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <DatePicker
-                  style={{ width: "100%", height: 25, fontSize: 12 }}
-                />
+                <DatePicker style={{ width: "100%" }} />
               </Form.Item>
             </Col>
-
-            {/* Blood Group | Mobile Number */}
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>Blood Group</span>}
                 name="bloodGroup"
-                rules={[{ required: true }]}
-                style={{ marginBottom: 6 }}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Select
-                  placeholder="Select"
-                  style={{ height: 25, fontSize: 12 }}
-                >
-                  <Option value="A+">A+</Option>
-                  <Option value="A-">A-</Option>
-                  <Option value="B+">B+</Option>
-                  <Option value="B-">B-</Option>
-                  <Option value="AB+">AB+</Option>
-                  <Option value="AB-">AB-</Option>
-                  <Option value="O+">O+</Option>
-                  <Option value="O-">O-</Option>
+                <Select placeholder="Select Blood Group">
+                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bg => (
+                    <Option key={bg} value={bg}>{bg}</Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
-
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>Mobile Number</span>}
                 name="mobile"
                 rules={[
-                  { required: true },
-                  { pattern: /^[0-9]{10}$/, message: "Invalid" },
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]{10}$/, message: "Invalid format" },
                 ]}
-                style={{ marginBottom: 6 }}
               >
-                <Input
-                  placeholder="Mobile"
-                  maxLength={10}
-                  style={{ height: 25, fontSize: 12 }}
-                />
+                <Input placeholder="Mobile Number" maxLength={10} />
               </Form.Item>
             </Col>
-
-            {/* Personal Email | Work Email */}
             <Col span={12}>
               <Form.Item
                 label={<span style={labelStyle}>Personal Email</span>}
                 name="personalEmail"
-                rules={[{ required: true, type: "email" }]}
-                style={{ marginBottom: 6 }}
+                rules={[{ required: true, type: "email", message: "Invalid email" }]}
               >
-                <Input
-                  placeholder="Personal Email"
-                  style={{ height: 25, fontSize: 12 }}
-                />
+                <Input placeholder="Personal Email" />
               </Form.Item>
             </Col>
-
             <Col span={12}>
               <Form.Item
                 label={<span style={labelStyle}>Work Email</span>}
                 name="workEmail"
-                rules={[{ required: true, type: "email" }]}
-                style={{ marginBottom: 6 }}
+                rules={[{ required: true, type: "email", message: "Invalid email" }]}
               >
-                <Input
-                  placeholder="Work Email"
-                  style={{ height: 25, fontSize: 12 }}
-                />
+                <Input placeholder="Work Email" />
               </Form.Item>
             </Col>
           </Row>
         </Form>
-      </div>
+      </Card>
 
-      {/* ── COLUMN 2 : Address Information ───────────────── */}
-      <div style={{ width: "40%" }}>
+      {/* Address Information */}
+      <Card 
+        title={<Space><EnvironmentOutlined style={{ color: "#1677ff" }} /> <span>Address Information</span></Space>} 
+        bordered={false}
+        styles={{ body: { padding: "24px" } }}
+      >
         <Form
           form={addressForm}
           layout="vertical"
-          size="small"
           requiredMark={false}
-          onValuesChange={(_, allValues) => {
-            setFormData((prev: any) => ({
-              ...prev,
-              address: {
-                current: {
-                  c_flat: allValues.c_flat,
-                  c_area: allValues.c_area,
-                  c_city: allValues.c_city,
-                  c_state: allValues.c_state,
-                  c_pincode: allValues.c_pincode,
-                  c_country: allValues.c_country,
-                },
-                permanent: {
-                  p_flat: allValues.p_flat,
-                  p_area: allValues.p_area,
-                  p_city: allValues.p_city,
-                  p_state: allValues.p_state,
-                  p_pincode: allValues.p_pincode,
-                  p_country: allValues.p_country,
-                },
-              },
-            }));
-          }}
-          style={{
-            background: "#ffffff",
-            padding: "16px",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
-            border: "1px solid rgba(0, 0, 0, 0.05)",
-            height: "450px",
-          }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", marginBottom: 12 }}
-          >
-            <HomeOutlined style={{ color: "#1677ff", marginRight: 6 }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
-              Address Information
-            </span>
-          </div>
-
-          {/* CURRENT ADDRESS */}
-          <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: "#1677ff" }}>
             Current Address
           </div>
-          <Row gutter={8}>
+          <Row gutter={24}>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Flat / Door No</span>}
-                name="c_flat"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Flat No" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Flat / Door No</span>} name="c_flat" rules={[{ required: true }]}>
+                <Input placeholder="Flat No" />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Area</span>}
-                name="c_area"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Area" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Area</span>} name="c_area" rules={[{ required: true }]}>
+                <Input placeholder="Area" />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>City</span>}
-                name="c_city"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="City" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>City</span>} name="c_city" rules={[{ required: true }]}>
+                <Input placeholder="City" />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>State</span>}
-                name="c_state"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="State" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>State</span>} name="c_state" rules={[{ required: true }]}>
+                <Input placeholder="State" />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Pincode</span>}
-                name="c_pincode"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Pincode" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Pincode</span>} name="c_pincode" rules={[{ required: true }]}>
+                <Input placeholder="Pincode" />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Country</span>}
-                name="c_country"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Country" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Country</span>} name="c_country" rules={[{ required: true }]}>
+                <Input placeholder="Country" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Checkbox
-            checked={sameAsCurrent}
-            onChange={onSameAddressChange}
-            style={{ fontSize: 11, marginBottom: 12 }}
-          >
-            Same as current
-          </Checkbox>
-
-          {/* PERMANENT ADDRESS */}
-          <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 8 }}>
-            Permanent Address
+          <Divider style={{ margin: "16px 0" }} />
+          
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
+              Permanent Address
+            </div>
+            <Checkbox checked={sameAsCurrent} onChange={onSameAddressChange}>
+              Same as current address
+            </Checkbox>
           </div>
-          <Row gutter={8}>
+
+          <Row gutter={24}>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Flat / Door No</span>}
-                name="p_flat"
-              >
-                <Input placeholder="Flat No" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Flat / Door No</span>} name="p_flat">
+                <Input placeholder="Flat No" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Area</span>}
-                name="p_area"
-              >
-                <Input placeholder="Area" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Area</span>} name="p_area">
+                <Input placeholder="Area" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>City</span>}
-                name="p_city"
-              >
-                <Input placeholder="City" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>City</span>} name="p_city">
+                <Input placeholder="City" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>State</span>}
-                name="p_state"
-              >
-                <Input placeholder="State" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>State</span>} name="p_state">
+                <Input placeholder="State" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Pincode</span>}
-                name="p_pincode"
-              >
-                <Input placeholder="Pincode" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Pincode</span>} name="p_pincode">
+                <Input placeholder="Pincode" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item
-                label={<span style={labelStyle}>Country</span>}
-                name="p_country"
-              >
-                <Input placeholder="Country" style={inputStyle} />
+              <Form.Item label={<span style={labelStyle}>Country</span>} name="p_country">
+                <Input placeholder="Country" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
           </Row>
         </Form>
-      </div>
+      </Card>
 
-      {/* ── COLUMN 3 : Emergency + Identity ──────────────── */}
-      <div
-        style={{
-          width: "30%",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          // height: "450px",
-        }}
-      >
-        {/* Emergency Information */}
-        <Form
-          layout="vertical"
-          form={emergencyInfoForm}
-          size="small"
-          requiredMark={false}
-          onValuesChange={(_, allValues) =>
-            setFormData((prev: any) => ({ ...prev, ...allValues }))
-          }
-          style={{
-            width: "90%",
-            background: "#ffffff",
-            padding: "16px",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-          }}
-        >
-          <div
-            style={{ display: "flex", alignItems: "center", marginBottom: 12 }}
+      <Row gutter={24}>
+        <Col span={12}>
+          {/* Emergency Information */}
+          <Card 
+            title={<Space><PhoneOutlined style={{ color: "#1677ff" }} /> <span>Emergency Information</span></Space>} 
+            bordered={false}
+            styles={{ body: { padding: "24px" } }}
+            style={{ height: "100%" }}
           >
-            <HomeOutlined style={{ color: "#1677ff", marginRight: 6 }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
-              Emergency Information
-            </span>
-          </div>
+            <Form form={emergencyInfoForm} layout="vertical" requiredMark={false}>
+              <Form.Item label={<span style={labelStyle}>Relationship</span>} name="relationship" rules={[{ required: true }]}>
+                <Select placeholder="Select Relationship">
+                  <Option value="father">Father</Option>
+                  <Option value="mother">Mother</Option>
+                  <Option value="spouse">Spouse</Option>
+                  <Option value="guardian">Guardian</Option>
+                </Select>
+              </Form.Item>
+              <Form.Item label={<span style={labelStyle}>Name</span>} name="relationName" rules={[{ required: true }]}>
+                <Input placeholder="Name" />
+              </Form.Item>
+              <Form.Item label={<span style={labelStyle}>Mobile</span>} name="relationMobile" rules={[{ required: true }]}>
+                <Input placeholder="Mobile Number" maxLength={10} />
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
 
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}>Relationship</span>}
-            name="relationship"
-            rules={[{ required: true, message: "Required" }]}
-            style={{ marginBottom: 10 }}
+        <Col span={12}>
+          {/* Identity Information */}
+          <Card 
+            title={<Space><IdcardOutlined style={{ color: "#1677ff" }} /> <span>Identity Information</span></Space>} 
+            bordered={false}
+            styles={{ body: { padding: "24px" } }}
+            style={{ height: "100%" }}
           >
-            <Select
-              placeholder="Select relationship"
-              style={{ height: 25, fontSize: 11 }}
-            >
-              <Option value="father">Father</Option>
-              <Option value="mother">Mother</Option>
-              <Option value="spouse">Spouse</Option>
-              <Option value="guardian">Guardian</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}>Name</span>}
-            name="relationName"
-            rules={[{ required: true, message: "Required" }]}
-            style={{ marginBottom: 10 }}
-          >
-            <Input placeholder="Name" style={{ height: 25, fontSize: 11 }} />
-          </Form.Item>
-
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}>Mobile</span>}
-            name="relationMobile"
-            rules={[
-              { required: true, message: "Required" },
-              {
-                pattern: /^[0-9]{10}$/,
-                message: "Enter valid 10-digit number",
-              },
-            ]}
-            style={{ marginBottom: 0 }}
-          >
-            <Input
-              placeholder="Mobile Number"
-              maxLength={10}
-              style={{ height: 25, fontSize: 11 }}
-            />
-          </Form.Item>
-        </Form>
-
-        {/* Identity Information */}
-        <Form
-          layout="vertical"
-          size="small"
-          form={identityForm}
-          requiredMark={false}
-          onValuesChange={(_, allValues) =>
-            setFormData((prev: any) => ({ ...prev, ...allValues }))
-          }
-          style={{
-            width: "90%",
-            background: "#ffffff",
-            padding: "13px",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-            height: "190px",
-          }}
-        >
-          <div
-            style={{ display: "flex", alignItems: "center", marginBottom: 12 }}
-          >
-            <HomeOutlined style={{ color: "#1677ff", marginRight: 6 }} />
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
-              Identity Information
-            </span>
-          </div>
-
-          <Form.Item
-            label={<span style={{ fontSize: 11 }}>Aadhaar Number</span>}
-            name="aadhaar"
-            rules={[
-              { required: true, message: "Aadhaar is required" },
-              {
-                pattern: /^[0-9]{12}$/,
-                message: "Enter valid 12-digit Aadhaar",
-              },
-            ]}
-            style={{ marginBottom: 10 }}
-          >
-            <Input
-              placeholder="Aadhaar Number"
-              maxLength={12}
-              style={{ height: 25, fontSize: 11 }}
-            />
-          </Form.Item>
-
-          <div
-            style={{
-              display: "flex",
-              // alignItems: "center",
-              justifyContent: "space-around",
-              flexDirection: "row",
-              gap: "10px",
-            }}
-          >
-            <Form.Item
-              label={<span style={{ fontSize: 11 }}>PAN Number</span>}
-              name="pan"
-              rules={[
-                { required: true, message: "PAN is required" },
-                {
-                  pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
-                  message: "Enter valid PAN (ABCDE1234F)",
-                },
-              ]}
-              style={{ marginBottom: 10, width: "50%" }}
-            >
-              <Input
-                placeholder="PAN Number"
-                style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label={
-                <span style={{ fontSize: 11 }}>Passport Number (Optional)</span>
-              }
-              name="passport"
-              rules={[
-                {
-                  required: true,
-                  pattern: /^[A-Z]{1}[0-9]{7}$/,
-                  message: "Enter valid Passport number",
-                },
-              ]}
-              style={{ marginBottom: 0, width: "50%" }}
-            >
-              <Input
-                placeholder="Passport Number"
-                style={{ height: 25, fontSize: 11, textTransform: "uppercase" }}
-              />
-            </Form.Item>
-          </div>
-        </Form>
-      </div>
+            <Form form={identityForm} layout="vertical" requiredMark={false}>
+              <Form.Item label={<span style={labelStyle}>Aadhaar Number</span>} name="aadhaar" rules={[{ required: true, len: 12 }]}>
+                <Input placeholder="Aadhaar Number" maxLength={12} />
+              </Form.Item>
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item label={<span style={labelStyle}>PAN Number</span>} name="pan" rules={[{ required: true }]}>
+                    <Input placeholder="PAN" style={{ textTransform: "uppercase" }} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label={<span style={labelStyle}>Passport (Optional)</span>} name="passport">
+                    <Input placeholder="Passport" style={{ textTransform: "uppercase" }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 });
+
+PersonalDetails.displayName = "PersonalDetails";
 
 export default PersonalDetails;

@@ -29,10 +29,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* 🔹 Personal Details Card */}
       <Card
+        bordered
         style={{
-          borderRadius: 12,
-          padding: 16,
-          // reduced from default
+          borderRadius: 8,
+          padding: 8,
+          boxShadow: "none",
+          border: "1px solid #f0f0f0",
         }}
       >
         <Row gutter={[16, 10]}>
@@ -110,15 +112,18 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
       </Card>
 
       {/* 🔹 Address Card */}
-      <Card style={{ borderRadius: 12 }}>
+      <Card bordered style={{ borderRadius: 8, boxShadow: "none", border: "1px solid #f0f0f0" }}>
         <Row gutter={24} align="stretch">
           {/* 🔹 LEFT SIDE - ADDRESSES */}
           <Col span={14}>
             {/* Current Address */}
             <Card
+              bordered
               style={{
                 marginBottom: 16,
                 borderRadius: 8,
+                boxShadow: "none",
+                border: "1px solid #f0f0f0",
               }}
             >
               <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
@@ -143,7 +148,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
             </Card>
 
             {/* Permanent Address */}
-            <Card style={{ borderRadius: 8 }}>
+            <Card bordered style={{ borderRadius: 8, boxShadow: "none", border: "1px solid #f0f0f0" }}>
               <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
                 <FaHome size={18} />
                 <Text strong style={{ display: "block", marginBottom: 8 }}>
@@ -168,9 +173,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           {/* 🔹 RIGHT SIDE - RELATION (ONLY ONCE) */}
           <Col span={10}>
             <Card
+              bordered
               style={{
                 borderRadius: 8,
                 height: "100%",
+                boxShadow: "none",
+                border: "1px solid #f0f0f0",
               }}
             >
               <Text strong style={{ display: "block", marginBottom: 12 }}>

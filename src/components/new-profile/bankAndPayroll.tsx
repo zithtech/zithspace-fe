@@ -25,11 +25,14 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
 
   return (
     <Card
+      bordered
       style={{
-        borderRadius: 12,
-        background: "#fafafa",
-        padding: 20,
+        borderRadius: 8,
+        background: "#ffffff",
+        padding: "16px 20px",
         maxWidth: 1000,
+        boxShadow: "none",
+        border: "1px solid #f0f0f0",
       }}
     >
       {/* 🔹 Title */}

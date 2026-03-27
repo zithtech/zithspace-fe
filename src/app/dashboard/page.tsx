@@ -669,22 +669,22 @@ function DashboardContent() {
 
   return (
     <MainLayout>
-      <div style={{ background: "white" }}>
-        <div style={{ padding: 20 }}>
+      <div style={{ background: "#ffffff", minHeight: "100vh" }}>
+        <div style={{ padding: "16px 20px" }}>
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
           <div
             style={{
-              marginBottom: 16,
+              marginBottom: 20,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
             }}
           >
             <div>
-              <Title level={2} style={{ margin: 0, color: "#262626" }}>
+              <Title level={3} style={{ margin: 0, color: "#141414", fontWeight: 600 }}>
                 Welcome back, {user?.name}!
               </Title>
-              <Text type="secondary" style={{ fontSize: 14 }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>
                 Here&apos;s what&apos;s happening with your projects today.
               </Text>
             </div>
@@ -741,23 +741,23 @@ function DashboardContent() {
               {/* Loading State */}
               {loading ? (
                 <>
-                  <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
                     {[1, 2, 3, 4].map((i) => (
                       <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card size="small">
+                        <Card size="small" bordered style={{ boxShadow: "none" }}>
                           <Skeleton active paragraph={{ rows: 1 }} />
                         </Card>
                       </Col>
                     ))}
                   </Row>
-                  <Row gutter={[16, 16]}>
+                  <Row gutter={[12, 12]}>
                     <Col xs={24} lg={16}>
-                      <Card size="small">
+                      <Card size="small" bordered style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
                     <Col xs={24} lg={8}>
-                      <Card size="small">
+                      <Card size="small" bordered style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
@@ -766,13 +766,14 @@ function DashboardContent() {
               ) : dashboardData ? (
                 <>
                   {/* Statistics Cards */}
-                  <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ height: "100%", borderLeft: "4px solid #52c41a" }}
+                        bordered
+                        style={{ height: "100%", borderLeft: "4px solid #52c41a", boxShadow: "none" }}
                         styles={{
-                          body: { padding: "8px 16px", height: "100%" },
+                          body: { padding: "12px 16px", height: "100%" },
                         }}
                       >
                         <Row
@@ -872,9 +873,11 @@ function DashboardContent() {
                       <Col xs={24} sm={12} lg={6} key={index}>
                         <Card
                           size="small"
+                          bordered
                           style={{
                             borderLeft: `4px solid ${stat.color}`,
                             height: "100%",
+                            boxShadow: "none",
                           }}
                           styles={{ body: { padding: 16 } }}
                         >
@@ -927,28 +930,30 @@ function DashboardContent() {
                   </Row>
 
                   {/* Row 1: My Info */}
-                  <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                     <Col xs={24} lg={8}>
                       {/* My Tickets */}
                       <Card
                         title={
                           <Space>
-                            <TrophyOutlined style={{ color: "#1677ff" }} />
-                            <span>My Tickets</span>
+                            <TrophyOutlined style={{ color: "#1677ff", fontSize: 13 }} />
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>My Tickets</span>
                           </Space>
                         }
                         size="small"
+                        bordered
                         extra={
                           <Button
                             type="link"
                             size="small"
                             onClick={() => router.push("/tickets")}
+                            style={{ fontSize: 12 }}
                           >
-                            View Tickets
+                            View
                           </Button>
                         }
-                        styles={{ body: { padding: 8 } }}
-                        style={{ height: "260px" }}
+                        styles={{ body: { padding: 12 } }}
+                        style={{ height: "260px", boxShadow: "none" }}
                       >
                         <div style={{ height: "100%" }}>
                           <div
@@ -1179,8 +1184,8 @@ function DashboardContent() {
                         <Card
                           title={
                             <Space size={4}>
-                              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
-                              <span style={{ fontSize: 13 }}>Today's Meetings</span>
+                              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 13 }} />
+                              <span style={{ fontSize: 13, fontWeight: 600 }}>Today's Meetings</span>
                               {!calendarStatus?.connected && (
                                 <Button
                                   type="link"
@@ -1195,13 +1200,14 @@ function DashboardContent() {
                             </Space>
                           }
                           size="small"
+                          bordered
                           extra={
                             calendarStatus?.connected && (
                               <Space size={2}>
                                 <Button
                                   type="text"
                                   size="small"
-                                  icon={<ClockCircleOutlined />}
+                                  icon={<ClockCircleOutlined style={{ fontSize: 11 }} />}
                                   onClick={syncCalendar}
                                   loading={calendarLoading}
                                   style={{ fontSize: 11 }}
@@ -1220,7 +1226,7 @@ function DashboardContent() {
                             )
                           }
                           styles={{ body: { padding: 0 } }}
-                          style={{ height: '280px' }}
+                          style={{ height: "260px", boxShadow: "none" }}
                         >
                           {calendarLoading ? (
                             <div style={{ padding: 16, textAlign: "center" }}>
@@ -1326,13 +1332,14 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <ClockCircleOutlined style={{ color: "#722ed1" }} />
-                            <span>My Attendance</span>
+                            <ClockCircleOutlined style={{ color: "#722ed1", fontSize: 13 }} />
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>My Attendance</span>
                           </Space>
                         }
                         size="small"
-                        styles={{ body: { padding: 24 } }}
-                        style={{ height: "260px", justifyContent: "center", alignItems: "center" }}
+                        bordered
+                        styles={{ body: { padding: 20 } }}
+                        style={{ height: "260px", boxShadow: "none" }}
                       >
                         {todayAttendance ? (
                           <div style={{ width: "100%" }}>
@@ -1438,7 +1445,7 @@ function DashboardContent() {
                   </Row>
 
                   {/* Row 2: Leave & Recent Tickets */}
-                  <Row gutter={[16, 16]}>
+                  <Row gutter={[12, 12]}>
                     <Col xs={24} lg={8}>
                       {/* Leave Management */}
                       {dashboardData.leaves && (
@@ -1451,22 +1458,25 @@ function DashboardContent() {
                             title={
                               <Space>
                                 <FileTextOutlined
-                                  style={{ color: "#1677ff" }}
+                                  style={{ color: "#1677ff", fontSize: 13 }}
                                 />
-                                <span>Leave Management</span>
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>Leave Management</span>
                               </Space>
                             }
                             size="small"
+                            bordered
                             style={{
                               height: 250,
-                              borderRadius: 12,
+                              boxShadow: "none",
                             }}
-                            bodyStyle={{
-                              padding: 12,
-                              height: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 12,
+                            styles={{
+                              body: {
+                                padding: 12,
+                                height: "calc(100% - 37px)",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 10,
+                              }
                             }}
                           >
                             {/* TOP CONTENT */}
@@ -1606,16 +1616,18 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <FileTextOutlined style={{ color: "#722ed1" }} />
-                            <span>Recent Tickets</span>
+                            <FileTextOutlined style={{ color: "#722ed1", fontSize: 13 }} />
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>Recent Tickets</span>
                           </Space>
                         }
                         size="small"
+                        bordered
                         extra={
                           <Button
                             type="link"
                             size="small"
                             onClick={() => router.push("/tickets")}
+                            style={{ fontSize: 12 }}
                           >
                             View All
                           </Button>
@@ -1624,11 +1636,14 @@ function DashboardContent() {
                           height: "230px",
                           display: "flex",
                           flexDirection: "column",
+                          boxShadow: "none",
                         }}
-                        bodyStyle={{
-                          padding: 0,
-                          flex: 1,
-                          overflowY: "auto",
+                        styles={{
+                          body: {
+                            padding: 0,
+                            flex: 1,
+                            overflowY: "auto",
+                          }
                         }}
                       >
                         <Table

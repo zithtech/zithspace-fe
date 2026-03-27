@@ -17,11 +17,13 @@ export interface ExitTypePayload {
 
 export class ExitTypeService {
   static async getAll() {
-    return await api.get<ExitType[]>("/api/exit/exit-type");
+    const response = await api.get<any>("/api/exit/exit-type");
+    return response.data?.data || response.data || response;
   }
 
   static async getById(id: string) {
-    return await api.get<ExitType>(`/api/exit/exit-type/${id}`);
+    const response = await api.get<any>(`/api/exit/exit-type/${id}`);
+    return response.data?.data || response.data || response;
   }
 
   static async create(payload: ExitTypePayload) {

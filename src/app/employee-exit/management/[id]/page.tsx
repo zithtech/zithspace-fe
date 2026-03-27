@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import MainLayout from '@/components/layout/MainLayout';
+import dayjs from 'dayjs';
 import {
   Card,
   Typography,
@@ -14,79 +14,154 @@ import {
   Tag,
   Divider,
   Spin,
-  message,
-  notification,
   Table,
-  Input as AntInput,
-  Select as AntSelect,
+  Input,
+  Select,
   InputNumber,
   Modal,
   Form,
+  Upload,
+  notification,
 } from 'antd';
 import {
-  ArrowLeftOutlined,
-  UserOutlined,
-  CalendarOutlined,
-  FileTextOutlined,
-  SolutionOutlined,
-  InfoCircleOutlined,
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  DollarOutlined,
-  CommentOutlined,
-  CheckCircleOutlined,
-  EyeOutlined
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
+  ArrowLeft,
+  User,
+  Calendar,
+  FileText,
+  Info,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Briefcase,
+  Building,
+  Clock,
+  CheckCircle2,
+  History,
+  MessageSquare,
+  Wallet,
+  UserCheck,
+  ShieldCheck,
+  Building2,
+  Trophy,
+  CheckCircle,
+  HelpCircle,
+  MapPin,
+  Mail,
+  Users,
+} from 'lucide-react';
+
+// Components
+import MainLayout from '@/components/layout/MainLayout';
+import ProtectedRoute from '@/components/common/ProtectedRoute';
+
+// Services
 import { EmployeeExitService, EmployeeExitRequest, EmployeeAsset } from '@/services/employeeExitService';
 import { ExitTypeService, ExitType } from '@/services/exitTypeService';
 import { ReasonForExitService, ReasonForExit } from '@/services/reasonForExitService';
 import { PositionService, Position } from '@/services/positionService';
 import { DepartmentService } from '@/services/departmentService';
-import { Upload } from 'antd';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+
+const PlaceholderTab = ({ title, icon: Icon }: { title: string, icon: any }) => (
+  <div style={{ padding: '60px 0', textAlign: 'center', background: '#fbfcfd', borderRadius: 16, border: '1px dashed #e2e8f0', margin: '24px 0' }}>
+    <Space direction="vertical" align="center" size={20}>
+      <div style={{ color: '#3b82f6', background: '#fff', padding: 20, borderRadius: '50%', boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}>
+        <Icon size={40} strokeWidth={1.5} />
+      </div>
+      <div>
+        <Title level={4} style={{ margin: 0, color: '#1e293b', fontWeight: 600 }}>{title}</Title>
+        <Text style={{ color: '#64748b', fontSize: 15 }}>This section is currently being prepared for the next release.</Text>
+      </div>
+    </Space>
+  </div>
+);
+
+// --- Components ---
+
+const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      marginBottom: "10px",
+      padding: "8px 12px",
+      background: "#ffffff",
+      borderRadius: "10px",
+      border: "1px solid #f1f5f9",
+      transition: "all 0.2s ease",
+    }}
+  >
+    {icon && (
+      <div
+        style={{
+          marginRight: "12px",
+          color: color,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "32px",
+          height: "32px",
+          background: `${color}10`,
+          borderRadius: "8px",
+        }}
+      >
+        {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+      </div>
+    )}
+    <div style={{ flex: 1 }}>
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 600,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          marginBottom: "2px",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: "13px",
+          color: "#1e293b",
+          fontWeight: 500,
+        }}
+      >
+        {value || "-"}
+      </div>
+    </div>
+  </div>
+);
+
+const DetailCard = ({ label, value, icon: Icon }: { label: string, value: any, icon: any }) => (
+  <RowItem label={label} value={value} icon={<Icon />} />
+);
+
+// --- Page Component ---
 
 export default function ExitRequestViewPage() {
   const { id } = useParams();
   const router = useRouter();
   const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const [form] = Form.useForm();
+  const [assetForm] = Form.useForm();
+
+  // State
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<EmployeeExitRequest | null>(null);
+  const [assets, setAssets] = useState<EmployeeAsset[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<EmployeeAsset | null>(null);
 
-  // Master data for resolving IDs
+  // Master Data
   const [exitTypes, setExitTypes] = useState<ExitType[]>([]);
   const [reasons, setReasons] = useState<ReasonForExit[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [assets, setAssets] = useState<EmployeeAsset[]>([]);
-  const [assetsLoading, setAssetsLoading] = useState(false);
-  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [assetForm] = Form.useForm();
-  const [editingAsset, setEditingAsset] = useState<EmployeeAsset | null>(null);
-
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState('');
-
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-
-  const handleBeforeUpload = (file: File) => {
-    if (file.size > MAX_SIZE) {
-      message.error("File size must be less than 5MB");
-      return Upload.LIST_IGNORE;
-    }
-    return false; // prevent auto upload
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (err) => reject(err);
-    });
-  };
 
   const fetchRequestData = useCallback(async () => {
     setLoading(true);
@@ -109,15 +184,12 @@ export default function ExitRequestViewPage() {
         fetchAssets(requestData.employeeId);
       }
     } catch (error) {
-      console.error('Error fetching view data:', error);
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to load exit request details'
-      });
+      console.error('Error fetching data:', error);
+      notificationApi.error({ message: 'Error', description: 'Failed to load details' });
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, notificationApi]);
 
   const fetchAssets = async (employeeId: string) => {
     setAssetsLoading(true);
@@ -126,10 +198,6 @@ export default function ExitRequestViewPage() {
       setAssets(data);
     } catch (error) {
       console.error('Error fetching assets:', error);
-      notificationApi.error({
-        message: 'Error',
-        description: 'Failed to load assets'
-      });
     } finally {
       setAssetsLoading(false);
     }
@@ -141,24 +209,26 @@ export default function ExitRequestViewPage() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-          <Spin size="large" tip="Loading Exit Details..." />
-        </div>
-      </MainLayout>
+      <ProtectedRoute>
+        <MainLayout>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+            <Spin size="large" tip="Loading Exit Details..." />
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
     );
   }
 
   if (!request) {
     return (
-      <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Title level={4}>Exit Request Not Found</Title>
-          <Button type="primary" onClick={() => router.push('/employee-exit/management')}>
-            Back to Management
-          </Button>
-        </div>
-      </MainLayout>
+      <ProtectedRoute>
+        <MainLayout>
+          <div style={{ padding: 48, textAlign: 'center' }}>
+            <Title level={4}>Request Not Found</Title>
+            <Button type="primary" onClick={() => router.push('/employee-exit/management')}>Back to List</Button>
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
     );
   }
 
@@ -168,279 +238,148 @@ export default function ExitRequestViewPage() {
   const getDepartmentName = (id: string) => departments.find(d => d.id === id)?.name || 'N/A';
 
   const employeeName = `${request.employee?.first_name} ${request.employee?.last_name}`;
+  const noticeRemaining = dayjs(request.proposedLastWorkingDay).diff(dayjs().startOf('day'), 'day');
 
-  // Notice Remaining Calculation
-  const lwd = dayjs(request.proposedLastWorkingDay);
-  const today = dayjs().startOf('day');
-  const remaining = lwd.diff(today, 'day');
-  const noticeRemainingStr = remaining > 0 ? `${remaining} days` : 'Completed';
-
-  const DetailItem = ({ label, value, icon }: { label: string, value: string | React.ReactNode, icon?: React.ReactNode }) => (
-    <Card size="small" style={{ marginBottom: 16, height: '100%', borderRadius: 8 }}>
-      <Space direction="vertical" size={4} style={{ width: '100%' }}>
-        <Space size={8}>
-          {icon && <span style={{ color: '#1890ff' }}>{icon}</span>}
-          <Text type="secondary" style={{ fontSize: 13 }}>{label}</Text>
-        </Space>
-        <Text strong style={{ fontSize: 15, display: 'block' }}>{value}</Text>
-      </Space>
-    </Card>
-  );
-  const overviewTab = (
-    <div style={{ padding: '24px 0' }}>
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Employee Name" value={employeeName} icon={<UserOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Employee ID" value={request.employee?.employee_code || 'N/A'} icon={<SolutionOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Position" value={getPositionName(request.positionId)} icon={<SolutionOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Reporting Manager" value={request.reportingManagerName || request.reportingManagerId || 'N/A'} icon={<UserOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Notice Remaining" value={noticeRemainingStr} icon={<CalendarOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Exit Type" value={<Tag color="blue">{getExitTypeName(request.exitTypeId)}</Tag>} icon={<FileTextOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Resignation Date" value={dayjs(request.resignationDate).format('DD MMM YYYY')} icon={<CalendarOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Department" value={getDepartmentName(request.departmentId)} icon={<SolutionOutlined />} />
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <DetailItem label="Last Working Day" value={dayjs(request.proposedLastWorkingDay).format('DD MMM YYYY')} icon={<CalendarOutlined />} />
-        </Col>
-        <Col xs={24} md={16}>
-          <DetailItem label="Reason" value={getReasonName(request.exitReasonId)} icon={<InfoCircleOutlined />} />
-        </Col>
-        <Col xs={24} md={24}>
-          <Card size="small" title="Details" style={{ borderRadius: 8 }}>
-            <Paragraph>{request.explanation || 'No detailed explanation provided.'}</Paragraph>
-          </Card>
-        </Col>
-      </Row>
-    </div>
-  );
-
+  // Asset Handlers
   const handleAssetSubmit = async () => {
     try {
       const values = await assetForm.validateFields();
-      
-      const fileObj = values.image?.[0];
-      let imageBase64 = "";
-      let fileName = "";
+      const payload = { ...values, returnStatus: values.returnStatus || "Pending", condition: values.condition || "Good" };
 
-      // If new image selected
-      if (fileObj?.originFileObj) {
-        imageBase64 = await fileToBase64(fileObj.originFileObj);
-        fileName = fileObj.originFileObj.name;
-      }
-      // If editing existing asset (already saved URL)
-      else if (fileObj?.url) {
-        imageBase64 = fileObj.url;
-      }
-
-      const payload = {
-        ...values,
-        image: imageBase64,
-        imageName: fileName,
-        returnStatus: values.returnStatus || "Pending",
-        condition: values.condition || "Good",
-        deduction: values.deduction || 0,
-        remarks: values.remarks || ""
-      };
-
-      if (editingAsset && editingAsset.id) {
+      if (editingAsset?.id) {
         await EmployeeExitService.updateEmployeeAsset(request.employeeId, editingAsset.id, payload);
-        notificationApi.success({
-          message: 'Success',
-          description: "Asset updated successfully"
-        });
+        notificationApi.success({ message: 'Success', description: "Asset updated" });
       } else {
         await EmployeeExitService.addEmployeeAsset(request.employeeId, payload);
-        notificationApi.success({
-          message: 'Success',
-          description: "Asset added successfully"
-        });
+        notificationApi.success({ message: 'Success', description: "Asset added" });
       }
       setIsAssetModalOpen(false);
-      assetForm.resetFields();
-      setEditingAsset(null);
       fetchAssets(request.employeeId);
     } catch (error) {
-      console.error("Error saving asset:", error);
-      notificationApi.error({
-        message: 'Error',
-        description: "Failed to save asset"
-      });
+      notificationApi.error({ message: 'Error', description: "Failed to save asset" });
     }
   };
 
-  const handleInlineUpdate = async (assetId: string, field: string, value: any) => {
-    try {
-      await EmployeeExitService.updateEmployeeAsset(request.employeeId, assetId, { [field]: value });
-      fetchAssets(request.employeeId);
-    } catch (error) {
-      console.error("Error updating asset inline:", error);
-      notificationApi.error({
-        message: 'Error',
-        description: "Failed to update asset"
-      });
-    }
-  };
+  const overviewTab = (
+    <div style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* 🚀 Exit Context & Status */}
+      <div style={{
+        background: "White",
+        padding: 24,
+        borderRadius: 20,
+        border: "1px solid #e2e8f0",
+        position: "relative",
+        overflow: "hidden"
+      }}>
+        <div style={{
+          position: "absolute",
+          top: -20,
+          right: -20,
+          width: 100,
+          height: 100,
+          background: "#3b82f608",
+          borderRadius: "50%"
+        }} />
 
-  const handleDeleteAsset = async (assetId: string) => {
-    try {
-      await EmployeeExitService.deleteEmployeeAsset(request.employeeId, assetId);
-      notificationApi.success({
-        message: 'Success',
-        description: "Asset deleted successfully"
-      });
-      fetchAssets(request.employeeId);
-    } catch (error) {
-      console.error("Error deleting asset:", error);
-      notificationApi.error({
-        message: 'Error',
-        description: "Failed to delete asset"
-      });
-    }
-  };
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <div style={{ background: "#3b82f6", padding: 8, borderRadius: 10, color: "White" }}>
+            <FileText size={20} />
+          </div>
+          <div>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", display: "block" }}>Request Overview</span>
+            <span style={{ fontSize: 13, color: "#64748b" }}>Core details of the resignation request</span>
+          </div>
+        </div>
+
+        <Row gutter={[16, 0]}>
+          <Col span={8}><RowItem label="Employee" value={employeeName} icon={<User />} /></Col>
+          <Col span={8}><RowItem label="Employee ID" value={request.employee?.employee_code} icon={<FileText />} /></Col>
+          <Col span={8}><RowItem label="Position" value={getPositionName(request.positionId)} icon={<Briefcase />} color="#8b5cf6" /></Col>
+          <Col span={8}><RowItem label="Department" value={getDepartmentName(request.departmentId)} icon={<Building2 />} color="#8b5cf6" /></Col>
+          <Col span={8}><RowItem label="Reporting Manager" value={request.reportingManagerName} icon={<UserCheck />} color="#10b981" /></Col>
+          <Col span={8}>
+            <RowItem
+              label="Exit Type"
+              value={<Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{getExitTypeName(request.exitTypeId)}</Tag>}
+              icon={<Info />}
+              color="#ef4444"
+            />
+          </Col>
+        </Row>
+      </div>
+
+      {/* 📅 Timeline & Reasons */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
+        <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <Calendar size={18} style={{ color: "#3b82f6" }} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>Timeline Details</span>
+          </div>
+          <Row gutter={[16, 0]}>
+            <Col span={12}><RowItem label="Resignation Date" value={dayjs(request.resignationDate).format('DD MMM YYYY')} icon={<Calendar />} /></Col>
+            <Col span={12}><RowItem label="Last Working Day" value={dayjs(request.proposedLastWorkingDay).format('DD MMM YYYY')} icon={<Calendar />} color="#10b981" /></Col>
+            <Col span={24}>
+              <RowItem
+                label="Days Remaining"
+                value={
+                  <span style={{ color: noticeRemaining < 0 ? "#10b981" : "#3b82f6", fontWeight: 700 }}>
+                    {noticeRemaining < 0 ? 'Resignation Period Completed' : `${noticeRemaining} Days to LWD`}
+                  </span>
+                }
+                icon={<Clock />}
+                color={noticeRemaining < 0 ? "#10b981" : "#3b82f6"}
+              />
+            </Col>
+          </Row>
+        </div>
+
+        <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <HelpCircle size={18} style={{ color: "#f59e0b" }} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>Resignation Context</span>
+          </div>
+          <RowItem label="Primary Reason" value={getReasonName(request.exitReasonId)} icon={<MessageSquare />} color="#f59e0b" />
+          <RowItem label="Current Status" value={<Tag color="orange" style={{ borderRadius: 6, margin: 0 }}>{request.status || 'PENDING'}</Tag>} icon={<ShieldCheck />} color="#f59e0b" />
+        </div>
+      </div>
+
+      {/* 📝 Explanation Block */}
+      <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <div style={{ background: "#6366f115", padding: 8, borderRadius: 10, color: "#6366f1" }}>
+            <FileText size={20} />
+          </div>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Detailed Explanation</span>
+        </div>
+        <div style={{
+          padding: 18,
+          background: "#f8fafc",
+          borderRadius: 16,
+          border: "1px solid #f1f5f9",
+          fontSize: 14,
+          color: "#475569",
+          lineHeight: 1.6,
+          minHeight: 100
+        }}>
+          {request.explanation || 'No detailed explanation provided by the employee.'}
+        </div>
+      </div>
+    </div>
+  );
 
   const assetColumns = [
+    { title: 'Asset Name', dataIndex: 'item', key: 'item' },
+    { title: 'Return Status', dataIndex: 'returnStatus', key: 'returnStatus', render: (s: string) => <Tag color={s === 'Returned' ? 'success' : 'warning'}>{s}</Tag> },
+    { title: 'Condition', dataIndex: 'condition', key: 'condition' },
+    { title: 'Deduction', dataIndex: 'deduction', key: 'deduction', render: (v: number) => `$${v || 0}` },
     {
-      title: 'Asset Name',
-      dataIndex: 'item',
-      key: 'item',
-    },
-    {
-      title: 'Asset ID',
-      dataIndex: 'id',
-      key: 'id',
-      render: (id: string) => <Text copyable>{id?.substring(0, 8)}...</Text>
-    },
-    {
-      title: 'Image',
-      dataIndex: 'image',
-      key: 'image',
-      render: (image: string) => (
-        image ? (
-          <Button 
-            type="text" 
-            icon={<EyeOutlined />} 
-            onClick={() => {
-              setPreviewImage(image);
-              setPreviewOpen(true);
-            }} 
-          />
-        ) : '-'
-      )
-    },
-    {
-      title: 'Issued Day',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => dayjs(date).format('DD/MM/YY')
-    },
-    {
-      title: 'Return Status',
-      dataIndex: 'returnStatus',
-      key: 'returnStatus',
-      render: (status: string, record: EmployeeAsset) => (
-        <AntSelect
-          value={status}
-          onChange={(val) => handleInlineUpdate(record.id!, 'returnStatus', val)}
-          style={{ width: 120 }}
-          bordered={false}
-          className="inline-edit-select"
-        >
-          <AntSelect.Option value="Pending">Pending</AntSelect.Option>
-          <AntSelect.Option value="Returned">Returned</AntSelect.Option>
-          <AntSelect.Option value="Damaged">Damaged</AntSelect.Option>
-          <AntSelect.Option value="Lost">Lost</AntSelect.Option>
-        </AntSelect>
-      )
-    },
-    {
-      title: 'Condition',
-      dataIndex: 'condition',
-      key: 'condition',
-      render: (condition: string, record: EmployeeAsset) => (
-        <AntSelect
-          value={condition}
-          onChange={(val) => handleInlineUpdate(record.id!, 'condition', val)}
-          style={{ width: 100 }}
-          bordered={false}
-          className="inline-edit-select"
-        >
-          <AntSelect.Option value="Good">Good</AntSelect.Option>
-          <AntSelect.Option value="Bad">Bad</AntSelect.Option>
-        </AntSelect>
-      )
-    },
-    {
-      title: 'Deduction',
-      dataIndex: 'deduction',
-      key: 'deduction',
-      render: (val: number, record: EmployeeAsset) => (
-        <InputNumber
-          value={val}
-          onBlur={(e) => handleInlineUpdate(record.id!, 'deduction', Number(e.target.value))}
-          onPressEnter={(e: any) => handleInlineUpdate(record.id!, 'deduction', Number(e.target.value))}
-          bordered={false}
-        />
-      )
-    },
-    {
-      title: 'Remarks',
-      dataIndex: 'remarks',
-      key: 'remarks',
-      render: (val: string, record: EmployeeAsset) => (
-        <AntInput
-          defaultValue={val}
-          onBlur={(e) => handleInlineUpdate(record.id!, 'remarks', e.target.value)}
-          onPressEnter={(e: any) => handleInlineUpdate(record.id!, 'remarks', e.target.value)}
-          bordered={false}
-        />
-      )
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
+      title: 'Action',
+      key: 'action',
+      align: 'right' as const,
       render: (_: any, record: EmployeeAsset) => (
         <Space>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingAsset(record);
-              assetForm.setFieldsValue({
-                ...record,
-                image: record.image
-                  ? [
-                      {
-                        uid: "-1",
-                        name: "asset.png",
-                        status: "done",
-                        url: record.image,
-                      },
-                    ]
-                  : [],
-              });
-              setIsAssetModalOpen(true);
-            }}
-          />
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteAsset(record.id!)}
-          />
+          <Button type="text" icon={<Edit size={16} />} onClick={() => { setEditingAsset(record); assetForm.setFieldsValue(record); setIsAssetModalOpen(true); }} />
+          <Button type="text" danger icon={<Trash2 size={16} />} onClick={async () => { await EmployeeExitService.deleteEmployeeAsset(request.employeeId, record.id!); fetchAssets(request.employeeId); }} />
         </Space>
       )
     }
@@ -448,215 +387,101 @@ export default function ExitRequestViewPage() {
 
   const assetsTab = (
     <div style={{ padding: '24px 0' }}>
-      <Row justify="end" style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setEditingAsset(null);
-            assetForm.resetFields();
-            setIsAssetModalOpen(true);
-          }}
-        >
-          Add Manual Asset
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Button type="primary" icon={<Plus size={16} />} onClick={() => { setEditingAsset(null); assetForm.resetFields(); setIsAssetModalOpen(true); }}>
+          Add Asset
         </Button>
-      </Row>
+      </div>
       <Table
         columns={assetColumns}
         dataSource={assets}
         rowKey="id"
         loading={assetsLoading}
         pagination={false}
-        bordered
+        className="modern-table"
       />
-
-      <Modal
-        title={
-          <Space>
-            <PlusOutlined style={{ color: '#1890ff' }} />
-            <Text strong>{editingAsset ? 'Edit Manual Asset' : 'Add Manual Asset'}</Text>
-          </Space>
-        }
-        open={isAssetModalOpen}
-        onCancel={() => setIsAssetModalOpen(false)}
-        onOk={handleAssetSubmit}
-        okText={editingAsset ? 'Update' : 'Add Asset'}
-        width={600}
-        destroyOnClose
-      >
-        <Space direction="vertical" style={{ width: '100%', marginBottom: 24 }}>
-          <Text type="secondary">This form is used to manually assign assets to the employee during the exit process.</Text>
-        </Space>
-
-        <Form form={assetForm} layout="vertical" initialValues={{ returnStatus: 'Pending', condition: 'Good' }}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="Asset Name" name="item" rules={[{ required: true }]}>
-                <AntSelect placeholder="Select item">
-                  <AntSelect.Option value="Mobile">Mobile</AntSelect.Option>
-                  <AntSelect.Option value="Laptop">Laptop</AntSelect.Option>
-                  <AntSelect.Option value="Tab">Tab</AntSelect.Option>
-                  <AntSelect.Option value="Monitor">Monitor</AntSelect.Option>
-                  <AntSelect.Option value="Keyboard">Keyboard</AntSelect.Option>
-                  <AntSelect.Option value="Mouse">Mouse</AntSelect.Option>
-                  <AntSelect.Option value="Bag">Bag</AntSelect.Option>
-                  <AntSelect.Option value="Headphone">Headphone</AntSelect.Option>
-                </AntSelect>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Brand Name" name="brand" rules={[{ required: true }]}>
-                <AntInput />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Model Name" name="model" rules={[{ required: true }]}>
-                <AntInput />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Model Number" name="modelNumber" rules={[{ required: true }]}>
-                <AntInput />
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Form.Item
-                label="Upload Image"
-                name="image"
-                valuePropName="fileList"
-                getValueFromEvent={(e) => e?.fileList}
-              >
-                <Upload
-                  listType="picture-card"
-                  beforeUpload={handleBeforeUpload}
-                  maxCount={1}
-                >
-                  <div>
-                    <PlusOutlined />
-                    <div style={{ marginTop: 8 }}>Upload</div>
-                  </div>
-                </Upload>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Return Status" name="returnStatus">
-                <AntSelect>
-                  <AntSelect.Option value="Pending">Pending</AntSelect.Option>
-                  <AntSelect.Option value="Returned">Returned</AntSelect.Option>
-                  <AntSelect.Option value="Damaged">Damaged</AntSelect.Option>
-                  <AntSelect.Option value="Lost">Lost</AntSelect.Option>
-                </AntSelect>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Condition" name="condition">
-                <AntSelect>
-                  <AntSelect.Option value="Good">Good</AntSelect.Option>
-                  <AntSelect.Option value="Bad">Bad</AntSelect.Option>
-                </AntSelect>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Deduction" name="deduction">
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Remark" name="remarks">
-                <AntInput />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
-
-      <Modal
-        open={previewOpen}
-        title="Asset Image Preview"
-        footer={null}
-        onCancel={() => setPreviewOpen(false)}
-        centered
-        width={800}
-      >
-        <img alt="asset" style={{ width: '100%', borderRadius: 8 }} src={previewImage} />
-      </Modal>
     </div>
   );
 
   return (
-    <MainLayout>
-      <div style={{ padding: '24px', background: '#fff', minHeight: '100vh' }}>
-        {notificationContextHolder}
-        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-          <Col>
-            <Space direction="vertical" size={2}>
-              <Title level={2} style={{ margin: 0 }}>Exit Management</Title>
-            </Space>
-          </Col>
-          <Col>
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => router.push('/employee-exit/management')}
-              size="large"
-            >
-              Back
-            </Button>
-          </Col>
-        </Row>
+    <ProtectedRoute>
+      <MainLayout>
+        <div style={{ padding: '24px 32px', background: '#fff', minHeight: '100vh' }}>
+          {notificationContextHolder}
 
-        <Card bordered={false} style={{ marginBottom: 24, background: '#f9f9f9', borderRadius: 12 }}>
-          <Row align="middle" gutter={24}>
-            <Col>
-              <div style={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                background: '#e6f7ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 32,
-                color: '#1890ff'
-              }}>
-                <UserOutlined />
-              </div>
-            </Col>
-            <Col>
-              <Space direction="vertical" size={0}>
-                <Title level={4} style={{ margin: 0 }}>{employeeName}</Title>
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Space size={16} align="center">
+              <Button
+                icon={<ArrowLeft size={18} />}
+                onClick={() => router.push('/employee-exit/management')}
+                style={{ borderRadius: 10, height: 40, width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              />
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{employeeName}</Title>
                 <Space split={<Divider type="vertical" />}>
-                  <Text type="secondary">ID: {request.employee?.employee_code || 'N/A'}</Text>
-                  <Text type="secondary">Department: {getDepartmentName(request.departmentId)}</Text>
+                  <Text style={{ color: "#64748b" }}>ID: {request.employee?.employee_code || 'N/A'}</Text>
+                  <Text style={{ color: "#64748b" }}>{getDepartmentName(request.departmentId)}</Text>
                 </Space>
-              </Space>
-            </Col>
-          </Row>
-        </Card>
+              </div>
+            </Space>
+            <Tag color="orange" style={{ padding: "4px 12px", borderRadius: 20, fontWeight: 600 }}>{request.status || 'PENDING'}</Tag>
+          </div>
 
-        <Tabs
-          defaultActiveKey="1"
-          style={{ fontWeight: 600 }}
-          items={[
-            {
-              key: '1',
-              label: 'Overview',
-              children: overviewTab,
-            },
-            {
-              key: '2',
-              label: 'Approved',
-              children: <div style={{ padding: 24, textAlign: 'center' }}><Text type="secondary">Approval details placeholder</Text></div>,
-            },
-            {
-              key: '3',
-              label: 'Assets',
-              children: assetsTab,
-            },
-          ]}
-        />
-      </div>
-    </MainLayout>
+          <Tabs
+            defaultActiveKey="1"
+            className="modern-tabs"
+            items={[
+              { key: '1', label: 'Overview', children: overviewTab },
+              { key: '2', label: 'Approvals', children: <PlaceholderTab title="Approvals" icon={UserCheck} /> },
+              { key: '3', label: 'Assets & Clearance', children: assetsTab },
+              { key: '4', label: 'FNF Settlement', children: <PlaceholderTab title="FNF Settlement" icon={Wallet} /> },
+              { key: '5', label: 'Exit Interview', children: <PlaceholderTab title="Exit Interview" icon={MessageSquare} /> },
+              { key: '6', label: 'Activity Log', children: <PlaceholderTab title="Activity Log" icon={History} /> },
+            ]}
+          />
+        </div>
+
+        <Modal
+          title={editingAsset ? "Edit Asset" : "Add Asset"}
+          open={isAssetModalOpen}
+          onCancel={() => setIsAssetModalOpen(false)}
+          onOk={handleAssetSubmit}
+          destroyOnClose
+        >
+          <Form form={assetForm} layout="vertical">
+            <Form.Item label="Item Name" name="item" rules={[{ required: true }]}><Input /></Form.Item>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label="Return Status" name="returnStatus">
+                  <Select options={[{ value: 'Pending', label: 'Pending' }, { value: 'Returned', label: 'Returned' }, { value: 'Damaged', label: 'Damaged' }]} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Condition" name="condition">
+                  <Select options={[{ value: 'Good', label: 'Good' }, { value: 'Fair', label: 'Fair' }, { value: 'Bad', label: 'Bad' }]} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item label="Deduction Amount" name="deduction"><InputNumber style={{ width: '100%' }} min={0} /></Form.Item>
+            <Form.Item label="Remarks" name="remarks"><Input.TextArea rows={2} /></Form.Item>
+          </Form>
+        </Modal>
+
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          .modern-tabs .ant-tabs-nav { margin-bottom: 0 !important; }
+          .modern-tabs .ant-tabs-tab { padding: 12px 0 !important; margin: 0 32px 0 0 !important; }
+          .modern-tabs .ant-tabs-tab-btn { font-size: 15px !important; font-weight: 600 !important; color: #64748b !important; }
+          .modern-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: #2563eb !important; }
+          .modern-tabs .ant-tabs-ink-bar { height: 3px !important; background: #2563eb !important; }
+          
+          .ant-table-thead > tr > th { 
+            background: #f8fafc !important; color: #64748b !important; 
+            font-weight: 600 !important; text-transform: uppercase !important; 
+            font-size: 11px !important; letter-spacing: 0.05em !important; 
+          }
+        `}} />
+      </MainLayout>
+    </ProtectedRoute>
   );
 }
-
-const Paragraph = Typography.Paragraph;

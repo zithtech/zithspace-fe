@@ -8,25 +8,36 @@ import {
   Divider,
   Empty,
   Image,
+  Typography,
+  Tooltip,
+  Row,
+  Col
 } from "antd";
 import {
-  EnvironmentOutlined,
-  CalendarOutlined,
-  UserOutlined,
-  PhoneOutlined,
-  FileTextOutlined,
-  DownloadOutlined,
-  EyeOutlined,
-  HistoryOutlined,
-  MailOutlined,
-} from "@ant-design/icons";
+  MapPin,
+  Calendar,
+  User,
+  Phone,
+  FileText,
+  Download,
+  Eye,
+  Clock,
+  Mail,
+  Building2,
+  ExternalLink,
+} from "lucide-react";
 import dayjs from "dayjs";
+
+const { Text, Title } = Typography;
 
 const EmployeeHistoryView = ({ data }: any) => {
   if (!data || data.length === 0) {
     return (
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <Empty description="No employment history available" />
+      <div style={{ padding: "40px 0", textAlign: "center", background: "#ffffff", borderRadius: 16, border: "1px dashed #e2e8f0" }}>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={<Text type="secondary">No employment history available</Text>}
+        />
       </div>
     );
   }
@@ -57,498 +68,246 @@ const EmployeeHistoryView = ({ data }: any) => {
     return (
       <div
         style={{
-          padding: "12px",
-          background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-          borderRadius: 8,
-          border: "1px solid #bae6fd",
-          marginBottom: 8,
+          padding: "16px",
+          background: "#ffffff",
+          borderRadius: 12,
+          border: "1px solid #e2e8f0",
+          marginBottom: 12,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          transition: "all 0.2s ease",
         }}
       >
-        <div
-          style={{
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: "#eff6ff",
             display: "flex",
-            justifyContent: "space-between",
             alignItems: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <FileTextOutlined style={{ color: "#0284c7", fontSize: 16 }} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#0c4a6e" }}>
-                {label}
-              </div>
-              <div style={{ fontSize: 10, color: "#64748b" }}>{fileName}</div>
-            </div>
+            justifyContent: "center",
+            color: "#3b82f6"
+          }}>
+            <FileText size={20} />
           </div>
-          <Space size={4}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+              {label}
+            </div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>{fileName.length > 30 ? fileName.substring(0, 30) + "..." : fileName}</div>
+          </div>
+        </div>
+        <Space size={8}>
+          <Tooltip title="View Document">
             <Button
-              size="small"
-              icon={<EyeOutlined />}
+              type="text"
+              icon={<Eye size={16} />}
               onClick={() => window.open(fileUrl, "_blank")}
-              style={{
-                background: "#0284c7",
-                color: "white",
-                border: "none",
-                fontSize: 11,
-              }}
-            >
-              View
-            </Button>
+              style={{ color: "#64748b" }}
+            />
+          </Tooltip>
+          <Tooltip title="Download">
             <Button
-              size="small"
-              icon={<DownloadOutlined />}
+              type="text"
+              icon={<Download size={16} />}
               onClick={() => {
                 const link = document.createElement("a");
                 link.href = fileUrl;
                 link.download = fileName;
                 link.click();
               }}
-              style={{ fontSize: 11 }}
-            >
-              Download
-            </Button>
-          </Space>
-        </div>
+              style={{ color: "#64748b" }}
+            />
+          </Tooltip>
+        </Space>
       </div>
     );
   };
 
   return (
-    <div style={{ padding: "16px" }}>
+    <div style={{ padding: "0" }}>
       {data.map((company: any, index: number) => (
         <Card
           key={index}
           style={{
-            marginBottom: 24,
-            borderRadius: 12,
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+            marginBottom: 16,
+            borderRadius: 16,
+            border: "1px solid #f1f5f9",
             overflow: "hidden",
+            background: "#ffffff",
+            boxShadow: "none",
           }}
-          headStyle={{
-            background: "linear-gradient(135deg, #d6dfeb 0%, #a9bbd1 100%)",
-            color: "white",
-            borderBottom: "none",
-            padding: "16px 24px",
-          }}
-          bodyStyle={{ padding: 0 }}
-          title={
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <HistoryOutlined style={{ fontSize: 20 }} />
+          bodyStyle={{ padding: 20 }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                background: "#ffffff",
+                border: "1px solid #f1f5f9",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#1e293b"
+              }}>
+                <Building2 size={24} />
+              </div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>
+                <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
                   {company.companyName || `Company ${index + 1}`}
-                </div>
-                <div style={{ fontSize: 12, opacity: 0.9, fontWeight: 400 }}>
+                </Title>
+                <div style={{ fontSize: 14, color: "#64748b", fontWeight: 500 }}>
                   {company.designation || "Position not specified"}
                 </div>
               </div>
             </div>
-          }
-          extra={
             <Tag
               style={{
-                background: "rgba(255, 255, 255, 0.2)",
-                color: "white",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                fontSize: 12,
+                borderRadius: 20,
                 padding: "4px 12px",
+                fontWeight: 600,
+                background: "#f0fdf4",
+                color: "#166534",
+                border: "none",
               }}
             >
-              {company.employmentType || "Full Time"}
+              {company.employmentType?.toUpperCase() || "FULL TIME"}
             </Tag>
-          }
-        >
-          <div style={{ padding: "24px" }}>
-            {/* Company & Tenure Details */}
-            <div
-              style={{
-                display: "flex",
-                gap: 24,
-                marginBottom: 24,
-                flexWrap: "wrap",
-              }}
-            >
-              {/* Company Information */}
-              <div
-                style={{
-                  flex: "1 1 45%",
-                  minWidth: 300,
-                  padding: 16,
-                  background:
-                    "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-                  borderRadius: 12,
-                  border: "1px solid #e2e8f0",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    marginBottom: 12,
-                    color: "#1e293b",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <EnvironmentOutlined style={{ color: "#1677ff" }} />
-                  Company Information
-                </div>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {company.location && (
-                    <div style={{ display: "flex", fontSize: 12 }}>
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#64748b",
-                          width: 100,
-                        }}
-                      >
-                        Location:
-                      </span>
-                      <span style={{ color: "#1e293b" }}>
-                        {company.location}
-                      </span>
-                    </div>
-                  )}
-                  {company.industry && (
-                    <div style={{ display: "flex", fontSize: 12 }}>
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#64748b",
-                          width: 100,
-                        }}
-                      >
-                        Industry:
-                      </span>
-                      <span style={{ color: "#1e293b" }}>
-                        {company.industry}
-                      </span>
-                    </div>
-                  )}
-                  {company.address && (
-                    <div style={{ display: "flex", fontSize: 12 }}>
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#64748b",
-                          width: 100,
-                        }}
-                      >
-                        Address:
-                      </span>
-                      <span style={{ color: "#1e293b" }}>
-                        {company.address}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Tenure Information */}
-              <div
-                style={{
-                  flex: "1 1 45%",
-                  minWidth: 300,
-                  padding: 16,
-                  background:
-                    "linear-gradient(135deg, #e9f3f4 0%, #e1e6ea 100%)",
-                  borderRadius: 12,
-                  border: "1px solid #b5d8f0",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    marginBottom: 12,
-                    color: "#3b67ae",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <CalendarOutlined style={{ color: "#3b67ae" }} />
-                  Tenure Details
-                </div>
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {company.doj && (
-                    <div style={{ display: "flex", fontSize: 12 }}>
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#78716c",
-                          width: 120,
-                        }}
-                      >
-                        Joined:
-                      </span>
-                      <span style={{ color: "#292524" }}>
-                        {dayjs(company.doj).format("DD MMM YYYY")}
-                      </span>
-                    </div>
-                  )}
-                  {company.lwd && (
-                    <div style={{ display: "flex", fontSize: 12 }}>
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#78716c",
-                          width: 120,
-                        }}
-                      >
-                        Last Working Day:
-                      </span>
-                      <span style={{ color: "#292524" }}>
-                        {dayjs(company.lwd).format("DD MMM YYYY")}
-                      </span>
-                    </div>
-                  )}
-                  {company.doj && company.lwd && (
-                    <div style={{ display: "flex", fontSize: 12 }}>
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#78716c",
-                          width: 120,
-                        }}
-                      >
-                        Duration:
-                      </span>
-                      <span style={{ color: "#292524" }}>
-                        {dayjs(company.lwd).diff(dayjs(company.doj), "month")}{" "}
-                        months
-                      </span>
-                    </div>
-                  )}
-                  {company.reasonForLeaving && (
-                    <div style={{ display: "flex", fontSize: 12 }}>
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: "#78716c",
-                          width: 120,
-                        }}
-                      >
-                        Reason:
-                      </span>
-                      <span style={{ color: "#292524" }}>
-                        {company.reasonForLeaving}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <Divider style={{ margin: "16px 0" }} />
-
-            {/* Documents Section */}
-            <div style={{ marginBottom: 24 }}>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  marginBottom: 16,
-                  color: "#1e293b",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <FileTextOutlined style={{ color: "#1677ff" }} />
-                Documents & Certificates
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <DocumentCard
-                  label="Experience Letter"
-                  fileData={company.experienceLetter}
-                />
-                <DocumentCard
-                  label="Offer Letter"
-                  fileData={company.offerLetter}
-                />
-                <DocumentCard
-                  label="Service Letter"
-                  fileData={company.serviceLetter}
-                />
-                <DocumentCard
-                  label="Relieving Letter"
-                  fileData={company.relievingLetter}
-                />
-
-                {/* Form 16 */}
-                {company.form16 && company.form16.length > 0 && (
-                  <>
-                    {company.form16.map((form16Item: any, idx: number) => (
-                      <DocumentCard
-                        key={`form16-${idx}`}
-                        label={`Form 16 #${idx + 1}`}
-                        fileData={form16Item.file || form16Item}
-                      />
-                    ))}
-                  </>
-                )}
-
-                {/* Payslips */}
-                {company.payslips && company.payslips.length > 0 && (
-                  <>
-                    {company.payslips.map((payslip: any, idx: number) => (
-                      <DocumentCard
-                        key={`payslip-${idx}`}
-                        label={`Payslip #${idx + 1}`}
-                        fileData={payslip.file || payslip}
-                      />
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Contact Details */}
-            {company.contacts && company.contacts.length > 0 && (
-              <>
-                <Divider style={{ margin: "16px 0" }} />
-                <div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      marginBottom: 16,
-                      color: "#1e293b",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <UserOutlined style={{ color: "#1677ff" }} />
-                    Contact Persons
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fill, minmax(280px, 1fr))",
-                      gap: 16,
-                    }}
-                  >
-                    {company.contacts.map((contact: any, idx: number) => {
-                      const roleLabelMap: any = {
-                        hr: "HR",
-                        manager: "Manager",
-                        teamLead: "Team Leader",
-                        reportingManager: "Reporting Manager",
-                      };
-                      const roleLabel =
-                        roleLabelMap[contact.contactRole] || "Contact";
-
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            padding: 16,
-                            // background:
-                            //   "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
-                            background:
-                              "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-                            borderRadius: 12,
-                            border: "1px solid #d3ded7",
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 600,
-                              color: "#166534",
-                              marginBottom: 12,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <Tag
-                              color="#1677ff"
-                              style={{
-                                fontSize: 10,
-                                padding: "2px 8px",
-                                margin: 0,
-                              }}
-                            >
-                              {roleLabel}
-                            </Tag>
-                          </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 6,
-                            }}
-                          >
-                            {contact.contactName && (
-                              <div style={{ display: "flex", fontSize: 11 }}>
-                                <UserOutlined
-                                  style={{
-                                    color: "#1677ff",
-                                    marginRight: 8,
-                                    fontSize: 12,
-                                  }}
-                                />
-                                <span
-                                  style={{ fontWeight: 500, color: "#1677ff" }}
-                                >
-                                  {contact.contactName}
-                                </span>
-                              </div>
-                            )}
-                            {contact.contactNumber && (
-                              <div style={{ display: "flex", fontSize: 11 }}>
-                                <PhoneOutlined
-                                  style={{
-                                    color: "#1677ff",
-                                    marginRight: 8,
-                                    fontSize: 12,
-                                  }}
-                                />
-                                <span style={{ color: "#1677ff" }}>
-                                  {contact.contactNumber}
-                                </span>
-                              </div>
-                            )}
-                            {contact.contactEmail && (
-                              <div style={{ display: "flex", fontSize: 11 }}>
-                                <MailOutlined
-                                  style={{
-                                    color: "#1677ff",
-                                    marginRight: 8,
-                                    fontSize: 12,
-                                  }}
-                                />
-                                <span style={{ color: "#1677ff" }}>
-                                  {contact.contactEmail}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
+
+          <Row gutter={[24, 24]}>
+            {/* Company Info */}
+            <Col span={12}>
+              <div style={{
+                padding: "16px 20px",
+                background: "#ffffff",
+                borderRadius: 16,
+                height: "100%",
+                border: "1px solid #f1f5f9"
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
+                  <MapPin size={16} color="#3b82f6" />
+                  Company Details
+                </div>
+                <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Location</Text>
+                    <Text strong style={{ fontSize: 12 }}>{company.location || "-"}</Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Industry</Text>
+                    <Text strong style={{ fontSize: 12 }}>{company.industry || "-"}</Text>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Address</Text>
+                    <Text style={{ fontSize: 12, color: "#1e293b" }}>{company.address || "-"}</Text>
+                  </div>
+                </Space>
+              </div>
+            </Col>
+
+            {/* Tenure Info */}
+            <Col span={12}>
+              <div style={{
+                padding: "16px 20px",
+                background: "#ffffff",
+                borderRadius: 16,
+                height: "100%",
+                border: "1px solid #f1f5f9"
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: "#0369a1", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Calendar size={16} color="#0284c7" />
+                  Tenure Information
+                </div>
+                <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <Text style={{ fontSize: 12, color: "#0369a1" }}>Joining Date</Text>
+                    <Text strong style={{ fontSize: 12, color: "#0c4a6e" }}>{company.doj ? dayjs(company.doj).format("DD MMM YYYY") : "-"}</Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <Text style={{ fontSize: 12, color: "#0369a1" }}>Last Working Day</Text>
+                    <Text strong style={{ fontSize: 12, color: "#0c4a6e" }}>{company.lwd ? dayjs(company.lwd).format("DD MMM YYYY") : "-"}</Text>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <Text style={{ fontSize: 12, color: "#0369a1" }}>Duration</Text>
+                    <Tag color="blue" style={{ borderRadius: 6, margin: 0 }}>
+                      {company.doj && company.lwd ? `${dayjs(company.lwd).diff(dayjs(company.doj), "month")} months` : "-"}
+                    </Tag>
+                  </div>
+                </Space>
+              </div>
+            </Col>
+
+            {/* Documents */}
+            <Col span={24}>
+              <Divider style={{ margin: "4px 0" }} />
+              <div style={{ marginBottom: 16, marginTop: 8 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+                  <FileText size={18} color="#3b82f6" />
+                  Documents & Certificates
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+                  <DocumentCard label="Experience Letter" fileData={company.experienceLetter} />
+                  <DocumentCard label="Offer Letter" fileData={company.offerLetter} />
+                  <DocumentCard label="Service Letter" fileData={company.serviceLetter} />
+                  <DocumentCard label="Relieving Letter" fileData={company.relievingLetter} />
+                  {company.form16?.map((item: any, idx: number) => (
+                    <DocumentCard key={`f16-${idx}`} label={`Form 16 #${idx + 1}`} fileData={item.file || item} />
+                  ))}
+                  {company.payslips?.map((item: any, idx: number) => (
+                    <DocumentCard key={`ps-${idx}`} label={`Payslip #${idx + 1}`} fileData={item.file || item} />
+                  ))}
+                </div>
+              </div>
+            </Col>
+
+            {/* Contacts */}
+            {company.contacts?.length > 0 && (
+              <Col span={24}>
+                <Divider style={{ margin: "4px 0" }} />
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+                    <User size={18} color="#3b82f6" />
+                    Reference Contacts
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                    {company.contacts.map((contact: any, idx: number) => (
+                      <div key={idx} style={{
+                        padding: 16,
+                        background: "#ffffff",
+                        borderRadius: 12,
+                        border: "1px solid #e2e8f0"
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                          <Tag color="blue" style={{ borderRadius: 6 }}>{contact.contactRole?.toUpperCase() || "CONTACT"}</Tag>
+                        </div>
+                        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <User size={14} color="#64748b" />
+                            <Text strong style={{ fontSize: 13 }}>{contact.contactName}</Text>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <Phone size={14} color="#64748b" />
+                            <Text style={{ fontSize: 12 }}>{contact.contactNumber}</Text>
+                          </div>
+                          {contact.contactEmail && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <Mail size={14} color="#64748b" />
+                              <Text style={{ fontSize: 12 }}>{contact.contactEmail}</Text>
+                            </div>
+                          )}
+                        </Space>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Col>
+            )}
+          </Row>
         </Card>
       ))}
     </div>

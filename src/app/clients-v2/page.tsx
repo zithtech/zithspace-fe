@@ -5,88 +5,54 @@ import {
   Table,
   Button,
   Input,
-  Select,
   Tag,
   Space,
   Card,
   Typography,
   Tooltip,
-  Dropdown,
   Row,
   Col,
   Divider,
 } from "antd";
 import {
-  PlusOutlined,
-  MinusOutlined,
-  SearchOutlined,
-  EditOutlined,
-  EyeOutlined,
-  MoreOutlined,
-  TeamOutlined,
-  UserOutlined,
-  WarningOutlined,
-  ProjectOutlined,
-} from "@ant-design/icons";
+  Plus,
+  Search,
+  Building2,
+  Users,
+  AlertCircle,
+  Zap,
+  CheckCircle2,
+  Settings2,
+  Eye,
+  PlusCircle,
+  MinusCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTenant } from "@/context/TenantContext";
 import { api, apiUtils } from "@/lib/axios";
 import MainLayout from "@/components/layout/MainLayout";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 const { Title, Text } = Typography;
 
-const StatCard = ({
-  title,
-  value,
-  icon,
-  color,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  color: string;
-}) => (
-  <Card
-    className="premium-card"
-    bordered={false}
-    style={{
-      height: "100%",
+const StatCard = ({ label, value, icon: Icon, color }: any) => (
+  <Card 
+    bodyStyle={{ padding: "16px 20px" }} 
+    style={{ 
+      borderRadius: 12, 
+      border: "1px solid #f1f5f9", 
+      height: "100%"
     }}
-    bodyStyle={{ padding: "16px" }}
   >
-    <Row align="middle" justify="space-between" wrap={false}>
-      <Col>
-        <div style={{ color: "#595959", fontSize: 14, fontWeight: 500 }}>
-          {title}
-        </div>
-      </Col>
-      <Col>
-        <Row align="middle" gutter={12} wrap={false}>
-          <Col>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                background: color,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 19,
-              }}
-            >
-              {icon}
-            </div>
-          </Col>
-          <Col>
-            <div style={{ fontSize: 22, fontWeight: 600, color: color }}>
-              {value}
-            </div>
-          </Col>
-        </Row>
-      </Col>
-    </Row>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+      </div>
+      <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+        <Icon size={20} />
+      </div>
+    </div>
   </Card>
 );
 
@@ -178,58 +144,81 @@ export default function ClientsV2ListPage() {
 
   const columns = [
     {
-      title: "Client Code",
-      dataIndex: "clientCode",
-      key: "clientCode",
+      title: "Client Entity",
+      key: "client",
+      width: "35%",
+      render: (_: any, record: any) => (
+        <Space size={12}>
+          <div style={{ 
+            width: 36, 
+            height: 36, 
+            borderRadius: 10, 
+            background: "#f0f9ff", 
+            color: "#0369a1",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: 14
+          }}>
+            {record.clientCode?.substring(0, 2).toUpperCase() || "CL"}
+          </div>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{record.companyName}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>{record.clientCode} • {record.clientType}</Text>
+          </div>
+        </Space>
+      ),
     },
     {
-      title: "Company Name",
-      dataIndex: "companyName",
-      key: "companyName",
-    },
-    {
-      title: "Client Type",
-      dataIndex: "clientType",
-      key: "clientType",
-    },
-    {
-      title: "Risk Level",
+      title: "Risk Analysis",
       dataIndex: "riskLevel",
       key: "riskLevel",
       render: (risk: string) => (
         <Tag
+          style={{ borderRadius: 6, fontWeight: 500, border: 0 }}
           color={
-            risk === "High" ? "red" : risk === "Medium" ? "orange" : "green"
+            risk === "High" ? "error" : risk === "Medium" ? "warning" : "success"
           }
         >
-          {risk || "N/A"}
+          {risk?.toUpperCase() || "LOW"}
         </Tag>
       ),
     },
     {
-      title: "Status",
+      title: "Business Status",
       dataIndex: "status",
       key: "status",
       render: (status: string) => (
-        <Tag color={status === "Active" ? "green" : "default"}>{status}</Tag>
+        <Tag 
+          style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
+          color={status === "Active" ? "success" : "default"}
+        >
+          {status?.toUpperCase() || "INACTIVE"}
+        </Tag>
       ),
     },
     {
       title: "Actions",
       key: "actions",
+      align: "right" as const,
       render: (_: any, record: any) => (
-        <Space size="middle">
+        <Space size={4}>
           <Tooltip title="View Details">
             <Button
               type="text"
-              icon={<EyeOutlined />}
+              icon={<Eye size={18} style={{ color: "#64748b" }} />}
               onClick={() => router.push(`/clients-v2/${record.id}`)}
+              className="action-btn"
             />
+          </Tooltip>
+          <Tooltip title="Edit Configuration">
             <Button
               type="text"
-              icon={<EditOutlined />}
+              icon={<Settings2 size={18} style={{ color: "#64748b" }} />}
               onClick={() => router.push(`/clients-v2/create?id=${record.id}`)}
-            ></Button>
+              className="action-btn"
+            />
           </Tooltip>
         </Space>
       ),
@@ -237,25 +226,31 @@ export default function ClientsV2ListPage() {
   ];
 
   const projectColumns = [
-    { title: "Project Name", dataIndex: "name", key: "name" },
-    { title: "Project Code", dataIndex: "code", key: "code" },
+    { 
+      title: "Project Name", 
+      dataIndex: "name", 
+      key: "name",
+      render: (text: string) => <Text strong style={{ fontSize: 13 }}>{text}</Text>
+    },
+    { title: "Code", dataIndex: "code", key: "code" },
     {
-      title: "Budget",
+      title: "Budget Allocation",
       dataIndex: "budget",
       key: "budget",
-      render: (val: number) => (val ? `$${val.toLocaleString()}` : "N/A"),
+      render: (val: number) => (val ? <Text style={{ color: "#059669", fontWeight: 600 }}>${val.toLocaleString()}</Text> : "N/A"),
     },
     {
-      title: "Outstanding",
-      dataIndex: "outstanding",
-      key: "outstanding",
-      render: () => "N/A",
-    },
-    {
-      title: "Manager",
+      title: "Project Manager",
       dataIndex: "projectManager",
       key: "projectManager",
-      render: (pm: any) => (pm ? pm.name : "N/A"),
+      render: (pm: any) => (pm ? (
+        <Space>
+          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600 }}>
+            {pm.name?.charAt(0)}
+          </div>
+          <Text style={{ fontSize: 13 }}>{pm.name}</Text>
+        </Space>
+      ) : "N/A"),
     },
   ];
 
@@ -264,8 +259,13 @@ export default function ClientsV2ListPage() {
     const isLoading = expandedLoading === record.id;
 
     return (
-      <Card style={{ margin: "10px 0" }}>
-        {/* <Title level={5}>Projects for {record.companyName}</Title> */}
+      <div style={{ padding: "0 24px 24px 72px", background: "#fcfdfe" }}>
+        <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 20, height: 1, background: "#e2e8f0" }} />
+          <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Active Projects for {record.companyName}
+          </Text>
+        </div>
         <Table
           columns={projectColumns}
           dataSource={projects}
@@ -273,127 +273,151 @@ export default function ClientsV2ListPage() {
           rowKey="id"
           pagination={false}
           size="small"
+          className="nested-project-table"
         />
-      </Card>
+      </div>
     );
   };
 
   return (
-    <MainLayout>
-      <div
-        style={{
-          padding: "32px",
-          height: "calc(100vh - 100px)",
-          overflowY: "auto",
-          backgroundColor: "var(--premium-white)",
-        }}
-      >
-
-        <div style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Space align="center" size="middle">
-              <TeamOutlined style={{ fontSize: 24, color: "inherit" }} />
-              <Title level={3} style={{ margin: 0 }}>
-                Client Management
-              </Title>
-            </Space>
-            <Space>
-              <Input.Search
-                placeholder="Search clients by name or code..."
-                allowClear
-                onSearch={handleSearch}
-                style={{ width: 300 }}
-              />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => router.push("/clients-v2/create")}
-              >
-                Create Client
-              </Button>
+    <ProtectedRoute>
+      <MainLayout>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "#ffffff", 
+          minHeight: "calc(100vh - 64px)" 
+        }}>
+        
+        {/* Header Section */}
+        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div style={{ flex: 1 }}>
+            <Space size={12} align="center">
+              <div style={{ 
+                background: "#eff6ff", 
+                padding: 10, 
+                borderRadius: 12, 
+                color: "#2563eb",
+                display: "flex"
+              }}>
+                <Building2 size={24} />
+              </div>
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Client Management</Title>
+                <Text style={{ color: "#64748b", fontSize: 15 }}>Monitor, manage, and configure all client entity profiles and their associated projects.</Text>
+              </div>
             </Space>
           </div>
-          <Text type="secondary" style={{ display: "block", marginTop: 4 }}>
-            View, search, and manage all client profiles in the system.
-          </Text>
-          <Space style={{ marginTop: 8 }}>
-            <Tag icon={<UserOutlined />} color="blue">
-              Total Clients: {pagination.total}
-            </Tag>
-            <Tag icon={<WarningOutlined />} color="red">
-              High Risk Companies: {highRiskCount}
-            </Tag>
-          </Space>
+          <div style={{ display: "flex", gap: 12 }}>
+            <Input 
+              placeholder="Search clients..." 
+              prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+              style={{ width: 280, borderRadius: 10, height: 44 }}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            <Button 
+              type="primary" 
+              size="large" 
+              icon={<Plus size={18} />} 
+              style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+              onClick={() => router.push("/clients-v2/create")}
+            >
+              Create Client
+            </Button>
+          </div>
         </div>
 
-        <Divider style={{ margin: "24px 0" }} />
+        {/* Metrics Grid */}
+        <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+          <Col xs={24} sm={6}>
+            <StatCard 
+              label="Total Partners" 
+              value={pagination.total} 
+              icon={Users} 
+              color="#3b82f6" 
+            />
+          </Col>
+          <Col xs={24} sm={6}>
+            <StatCard 
+              label="Active Accounts" 
+              value={data.filter((c) => c.status === "Active").length} 
+              icon={CheckCircle2} 
+              color="#10b981" 
+            />
+          </Col>
+          <Col xs={24} sm={6}>
+            <StatCard 
+              label="High Risk Entities" 
+              value={highRiskCount} 
+              icon={AlertCircle} 
+              color="#ef4444" 
+            />
+          </Col>
+          <Col xs={24} sm={6}>
+            <StatCard 
+              label="Average Projects" 
+              value="2.4" 
+              icon={Zap} 
+              color="#f59e0b" 
+            />
+          </Col>
+        </Row>
 
-        <Card className="premium-card" bodyStyle={{ padding: "24px" }}>
-          <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                title="Total Clients"
-                value={pagination.total}
-                icon={<UserOutlined />}
-                color="#1890ff"
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                title="Active Clients"
-                value={data.filter((c) => c.status === "Active").length}
-                icon={<TeamOutlined />}
-                color="#52c41a"
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                title="High Risk"
-                value={highRiskCount}
-                icon={<WarningOutlined />}
-                color="#ff4d4f"
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                title="Avg. Projects"
-                value="2.4"
-                icon={<ProjectOutlined />}
-                color="#722ed1"
-              />
-            </Col>
-          </Row>
-
+        {/* Table Card */}
+        <Card 
+          bodyStyle={{ padding: 0 }} 
+          style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
+        >
           <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          pagination={pagination}
-          loading={loading}
-          onChange={handleTableChange}
-          expandable={{
-            expandedRowRender,
-            onExpand: (expanded, record) => {
-              if (expanded) {
-                fetchClientProjects(record.id);
-              }
-            },
-            expandIcon: ({ expanded, onExpand, record }) =>
-              expanded ? (
-                <MinusOutlined onClick={(e) => onExpand(record, e)} />
-              ) : (
-                <PlusOutlined onClick={(e) => onExpand(record, e)} />
-              ),
-          }}
-        />
-      </Card>
+            columns={columns}
+            dataSource={data}
+            rowKey="id"
+            size="middle"
+            pagination={{
+              ...pagination,
+              pageSizeOptions: ["10", "20", "50"],
+              showSizeChanger: true,
+              position: ["bottomRight"]
+            }}
+            loading={loading}
+            onChange={handleTableChange}
+            expandable={{
+              expandedRowRender,
+              onExpand: (expanded, record) => {
+                if (expanded) {
+                  fetchClientProjects(record.id);
+                }
+              },
+              expandIcon: ({ expanded, onExpand, record }) =>
+                expanded ? (
+                  <MinusCircle size={18} style={{ color: "#94a3b8", cursor: "pointer" }} onClick={(e: any) => onExpand(record, e)} />
+                ) : (
+                  <PlusCircle size={18} style={{ color: "#3b82f6", cursor: "pointer" }} onClick={(e: any) => onExpand(record, e)} />
+                ),
+            }}
+          />
+        </Card>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .ant-table-thead > tr > th {
+            background: #f8fafc !important;
+            color: #64748b !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            font-size: 11px !important;
+            letter-spacing: 0.05em !important;
+          }
+          .ant-input:focus, .ant-input-focused {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+          }
+          .nested-project-table .ant-table-thead > tr > th {
+            background: transparent !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+          }
+        `}} />
       </div>
     </MainLayout>
+    </ProtectedRoute>
   );
 }

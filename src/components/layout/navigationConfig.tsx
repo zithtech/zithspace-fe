@@ -51,6 +51,8 @@ import {
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
+import { ImProfile } from "react-icons/im";
+
 
 import { TiGroup } from "react-icons/ti";
 import { BsGridFill } from "react-icons/bs";
@@ -426,7 +428,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/new-profile",
         label: "Profile 2.0",
-        icon: <SolutionOutlined />,
+        icon: <ImProfile />,
         path: "/new-profile",
       },
       {

@@ -157,10 +157,9 @@ const NewProfilePage = () => {
   const radius = { sm: "6px", md: "8px", lg: "12px", full: "9999px" };
 
   const shadow = {
-    card: "0 1px 2px 0 rgba(0,0,0,0.03),0 1px 6px -1px rgba(0,0,0,0.02),0 2px 4px 0 rgba(0,0,0,0.02)",
-    float:
-      "0 6px 16px 0 rgba(0,0,0,0.08),0 3px 6px -4px rgba(0,0,0,0.12),0 9px 28px 8px rgba(0,0,0,0.05)",
-    input: "0 0 0 2px rgba(22,119,255,0.2)",
+    card: "none",
+    float: "none",
+    input: "0 0 0 2px rgba(22,119,255,0.1)",
   };
 
   interface InfoCardProps {
@@ -182,14 +181,12 @@ const NewProfilePage = () => {
           justifyContent: "space-between",
           padding: "10px 14px", // 👈 Reduced padding
           borderRadius: "8px", // 👈 Smaller radius
-          background: "#f5f5f5",
-          border: "1px solid #e5e5e5",
+          background: "#ffffff",
+          border: "1px solid #f0f0f0",
           cursor: "pointer",
           transition: "all 0.2s ease",
-          boxShadow: hover
-            ? "0 4px 10px rgba(0,0,0,0.06)"
-            : "0 1px 2px rgba(0,0,0,0.03)",
-          transform: hover ? "translateY(-2px)" : "translateY(0px)",
+          boxShadow: "none",
+          transform: "none",
         }}
       >
         {/* Left */}
@@ -224,8 +221,8 @@ const NewProfilePage = () => {
         <span
           style={{
             fontSize: "12px", // 👈 Reduced
-            background: "#f0f0f0",
-            padding: "3px 8px", // 👈 Reduced
+            background: "#f9f9f9",
+            padding: "2px 6px", // 👈 Reduced
             borderRadius: "4px",
             fontWeight: 600,
             color: "#262626",
@@ -315,12 +312,11 @@ const NewProfilePage = () => {
         style={{
           display: "flex",
           flexDirection: "row",
-          // padding: "10px",
-          gap: "10px",
+          gap: "12px",
           position: "relative",
           height: "100vh",
           width: "100%",
-          background: "#f5f5f5",
+          background: "#ffffff",
           overflow: "hidden",
         }}
       >
@@ -329,10 +325,11 @@ const NewProfilePage = () => {
           style={{
             display: "flex",
             flexDirection: "column",
-            width: "20%", // 👈 Reduced from 25%
+            width: "300px", // 👈 Fixed width for sidebar feel but within flow
+            flexShrink: 0,
             height: "100vh",
             background: "white",
-            position: "fixed",
+            borderRight: "1px solid #f0f0f0",
             gap: "10px",
             alignItems: "center",
           }}
@@ -359,8 +356,8 @@ const NewProfilePage = () => {
             style={{
               background: color.bgCard,
               borderRadius: radius.md,
-              border: `1px solid ${color.border}`,
-              boxShadow: shadow.card,
+              border: `1px solid ${color.borderLight}`,
+              boxShadow: "none",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
@@ -524,8 +521,8 @@ const NewProfilePage = () => {
           <div
             style={{
               display: "flex",
-              paddingTop: "40px",
-              gap: "17px",
+              paddingTop: "24px",
+              gap: "12px",
               flexDirection: "column",
               width: "85%",
             }}
@@ -564,11 +561,11 @@ const NewProfilePage = () => {
             display: "flex",
             flexDirection: "column",
             background: "white",
-            width: "80%",
+            flex: 1, // 👈 Take remaining space
             height: "100vh",
-            marginLeft: "22%",
-            padding: "10px",
+            padding: "20px",
             gap: "12px",
+            overflow: "hidden",
           }}
         >
           {/* 🔹 Header */}

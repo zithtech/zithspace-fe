@@ -13,15 +13,19 @@ import {
   Popconfirm,
   notification,
   Card,
+  Tooltip,
 } from "antd";
 import {
-  UploadOutlined,
-  DownloadOutlined,
-  FilePdfOutlined,
-  FileWordOutlined,
-  EyeOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
+  Upload as UploadIcon,
+  Download,
+  FileText,
+  FileCode,
+  FilePlus,
+  Eye,
+  Trash2,
+  FileCheck,
+  Search,
+} from "lucide-react";
 import { api } from "@/lib/axios";
 
 const { Option } = Select;
@@ -65,83 +69,114 @@ export default function DocumentsTab({
   const [notify, contextHolder] = notification.useNotification();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<any>(null);
+
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    if (ext === "pdf") return <FileText size={18} style={{ color: "#ef4444" }} />;
+    if (["doc", "docx"].includes(ext || "")) return <FileText size={18} style={{ color: "#3b82f6" }} />;
+    return <FileCode size={18} style={{ color: "#64748b" }} />;
+  };
+
   const columns = [
     {
       title: "Document Name",
       dataIndex: "fileName",
       key: "fileName",
-      render: (text: string) => (
-        <span>
-          {text.endsWith(".pdf") ? (
-            <FilePdfOutlined style={{ color: "red", marginRight: 8 }} />
-          ) : (
-            <FileWordOutlined style={{ color: "blue", marginRight: 8 }} />
-          )}
-          {text}
-        </span>
+      width: 300,
+      render: (text: string, record: any) => (
+        <Space size={12}>
+          <div style={{ background: "#f8fafc", padding: 8, borderRadius: 8, display: "flex" }}>
+            {getFileIcon(text)}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>{text}</div>
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>{record.documentType || "Unclassified"}</div>
+          </div>
+        </Space>
       ),
     },
     {
-      title: "Category",
-      dataIndex: "category",
-      key: "category",
+      title: "Classification",
+      key: "classification",
+      render: (_: any, record: any) => (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{record.category}</div>
+          <div style={{ fontSize: 11, color: "#94a3b8" }}>Group</div>
+        </div>
+      ),
     },
     {
-      title: "Document Type",
-      dataIndex: "documentType",
-      key: "documentType",
-    },
-    {
-      title: "Version",
+      title: "Revision",
       dataIndex: "version",
       key: "version",
-      render: (v: number) => <Tag color="blue">v{v}</Tag>,
+      render: (v: number) => (
+        <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, background: "#f1f5f9", color: "#64748b" }}>
+            REV {v || 1}
+        </Tag>
+      ),
     },
     {
-      title: "Uploaded Date",
+      title: "Ingestion Date",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (date: string) => (
+        <div style={{ fontSize: 13, color: "#64748b" }}>
+            {new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </div>
+      ),
     },
     {
-      title: "Actions",
+      title: "",
       key: "actions",
+      align: "right" as const,
       render: (_: any, record: any) => (
         <Space>
-          <Button
-            type="text"
-            icon={<EyeOutlined style={{ fontSize: 14 }} />}
-            onClick={() => {
-              if (record.fileUrl) {
-                setViewingDocument(record);
-                setViewModalOpen(true);
-              } else {
-                notify.info({
-                  message: "Info",
-                  description: "Preview not available for this document",
-                  placement: "top",
-                });
-              }
-            }}
-          />
-          <Button
-            type="text"
-            icon={<DownloadOutlined style={{ fontSize: 14 }} />}
-            onClick={() => handleDownload(record)}
-          />
-
-          <Popconfirm
-            title="Delete Document"
-            description="Are you sure to delete this document?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
+          <Tooltip title="Preview Content">
             <Button
               type="text"
-              danger
-              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+              className="premium-action-btn"
+              icon={<Eye size={16} />}
+              onClick={() => {
+                if (record.fileUrl) {
+                  setViewingDocument(record);
+                  setViewModalOpen(true);
+                } else {
+                  notify.info({
+                    message: "Preview Notification",
+                    description: "Live preview is not supported for this file type.",
+                    placement: "top",
+                  });
+                }
+              }}
+              style={{ color: "#64748b" }}
             />
+          </Tooltip>
+          <Tooltip title="Download File">
+            <Button
+              type="text"
+              className="premium-action-btn"
+              icon={<Download size={16} />}
+              onClick={() => handleDownload(record)}
+              style={{ color: "#64748b" }}
+            />
+          </Tooltip>
+
+          <Popconfirm
+            title="Purge Document"
+            description="Are you sure you want to permanently delete this document archive?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Purge"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete Archive">
+                <Button
+                    type="text"
+                    danger
+                    className="premium-action-btn"
+                    icon={<Trash2 size={16} />}
+                />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -167,8 +202,8 @@ export default function DocumentsTab({
       const values = await form.validateFields();
       if (fileList.length === 0) {
         notify.error({
-          message: "Error",
-          description: "Please select a file to upload",
+          message: "Upload Error",
+          description: "No file selected for ingestion.",
           placement: "top",
         });
         return;
@@ -186,12 +221,11 @@ export default function DocumentsTab({
           documentType: values.documentType,
         };
 
-        console.log("Submitting payload to /api/clients-v2/.../documents");
         await api.post(`/api/clients-v2/${clientId}/documents`, payload);
 
         notify.success({
-          message: "Success",
-          description: "Document uploaded successfully",
+          message: "Ingestion Success",
+          description: "Document has been successfully archived.",
           placement: "top",
         });
         setUploading(false);
@@ -200,19 +234,15 @@ export default function DocumentsTab({
         setFileList([]);
         onRefresh();
       } catch (err: any) {
-        console.error("API Upload Error:", err);
-        const errorMessage =
-          err.response?.data?.error || "Failed to upload document";
         notify.error({
-          message: "Error",
-          description: errorMessage,
+          message: "Upload Failed",
+          description: err.response?.data?.error || "Failed to process document upload.",
           placement: "top",
         });
         setUploading(false);
       }
     } catch (err: any) {
-      console.error("Form validation failed:", err);
-      // Form validation failed - Ant Design forms will automatically show inline red text errors
+        // Validation handled by AntD
     }
   };
 
@@ -232,155 +262,191 @@ export default function DocumentsTab({
     try {
       await api.delete(`/api/clients-v2/${clientId}/documents/${documentId}`);
       notify.success({
-        message: "Success",
-        description: "Document deleted successfully",
+        message: "Deletion Complete",
+        description: "Document archive has been successfully removed.",
         placement: "top",
       });
       onRefresh();
     } catch (error) {
       notify.error({
         message: "Error",
-        description: "Failed to delete document",
+        description: "Failed to purge document archive.",
         placement: "top",
       });
     }
   };
 
   return (
-    <Card style={{ backgroundColor: "white", height: "60vh" }}>
+    <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
+      <Card 
+        style={{ 
+            borderRadius: 16, 
+            border: "1px solid #f1f5f9",
+            background: "#fff"
         }}
+        bodyStyle={{ padding: "0" }}
       >
-        <div>
-          <p
-            style={{ fontSize: 12, fontWeight: 600, margin: 0, color: "grey" }}
+        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Document Repository</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Centralized storage for all MSA, SOW, NDAs, and legal annexures</div>
+          </div>
+          <Button
+            type="primary"
+            size="large"
+            icon={<FilePlus size={18} />}
+            onClick={() => setIsUploadModalVisible(true)}
+            style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
           >
-            Manage MSA, SOW, NDAs, and other client documents here...
-          </p>
+            Archive Document
+          </Button>
         </div>
-        <Button
-          type="primary"
-          icon={<UploadOutlined />}
-          onClick={() => setIsUploadModalVisible(true)}
-        >
-          Upload Document
-        </Button>
-      </div>
-      <Table
-        dataSource={documents}
-        columns={columns}
-        rowKey="id"
-        pagination={false}
-      />
 
+        <Table
+          dataSource={documents}
+          columns={columns}
+          rowKey="id"
+          pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          className="premium-table"
+          locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No document archives available</div> }}
+        />
+      </Card>
+
+      {/* Upload Modal */}
       <Modal
-        title="Upload Client Document"
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
+                <UploadIcon size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 18 }}>Archive New Document</span>
+          </div>
+        }
         open={isUploadModalVisible}
         onCancel={() => {
           setIsUploadModalVisible(false);
           form.resetFields();
           setFileList([]);
         }}
-        footer={[
-          <Button key="cancel" onClick={() => setIsUploadModalVisible(false)}>
-            Cancel
-          </Button>,
-          <Button
-            key="upload"
-            type="primary"
-            loading={uploading}
-            onClick={handleUpload}
-          >
-            Upload
-          </Button>,
-        ]}
+        footer={null}
+        width={500}
+        centered
+        className="premium-modal"
       >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="category"
-            label="Category"
-            rules={[{ required: true, message: "Please select a category" }]}
-          >
-            <Select
-              placeholder="Select Category"
-              onChange={handleCategoryChange}
+        <div style={{ padding: "8px 0" }}>
+            <Form form={form} layout="vertical">
+            <Form.Item
+                name="category"
+                label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Primary Category</span>}
+                rules={[{ required: true, message: "Selection required" }]}
             >
-              {Object.keys(DOCUMENT_CATEGORIES).map((cat) => (
-                <Option key={cat} value={cat}>
-                  {cat}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="documentType"
-            label="Document Subtype"
-            rules={[
-              { required: true, message: "Please select a document type" },
-            ]}
-          >
-            <Select
-              placeholder="Select Document Type"
-              disabled={!selectedCategory}
-            >
-              {selectedCategory &&
-                DOCUMENT_CATEGORIES[selectedCategory].map((type) => (
-                  <Option key={type} value={type}>
-                    {type}
-                  </Option>
+                <Select
+                    placeholder="E.g. Legal, Sales"
+                    onChange={handleCategoryChange}
+                    style={{ borderRadius: 8, height: 40 }}
+                >
+                {Object.keys(DOCUMENT_CATEGORIES).map((cat) => (
+                    <Option key={cat} value={cat}>
+                    {cat}
+                    </Option>
                 ))}
-            </Select>
-          </Form.Item>
+                </Select>
+            </Form.Item>
 
-          <Form.Item label="File" required>
-            <Upload
-              fileList={fileList}
-              beforeUpload={(file) => {
-                setFileList([{ ...file, originFileObj: file }]);
-                return false; // Prevent auto upload
-              }}
-              onChange={(info) => {
-                setFileList(info.fileList);
-              }}
-              onRemove={() => setFileList([])}
-              maxCount={1}
+            <Form.Item
+                name="documentType"
+                label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Document Subtype</span>}
+                rules={[{ required: true, message: "Selection required" }]}
             >
-              <Button icon={<UploadOutlined />}>Select File</Button>
-            </Upload>
-          </Form.Item>
-        </Form>
+                <Select
+                    placeholder="Select specific type..."
+                    disabled={!selectedCategory}
+                    style={{ borderRadius: 8, height: 40 }}
+                >
+                {selectedCategory &&
+                    DOCUMENT_CATEGORIES[selectedCategory].map((type) => (
+                    <Option key={type} value={type}>
+                        {type}
+                    </Option>
+                    ))}
+                </Select>
+            </Form.Item>
+
+            <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Target File</span>} required>
+                <Upload.Dragger
+                    fileList={fileList}
+                    beforeUpload={(file) => {
+                        setFileList([{ ...file, originFileObj: file }]);
+                        return false;
+                    }}
+                    onRemove={() => setFileList([])}
+                    maxCount={1}
+                    style={{ borderRadius: 12, background: "#f8fafc", border: "1px dashed #cbd5e1" }}
+                >
+                    <div style={{ padding: "20px 0" }}>
+                        <p className="ant-upload-drag-icon" style={{ display: "flex", justifyContent: "center", color: "#3b82f6" }}>
+                            <FilePlus size={32} />
+                        </p>
+                        <p style={{ fontSize: 14, color: "#1e293b", fontWeight: 600 }}>Click or drag to upload</p>
+                        <p style={{ fontSize: 12, color: "#64748b" }}>Support for PDF, DOCX, and JPG formats</p>
+                    </div>
+                </Upload.Dragger>
+            </Form.Item>
+
+            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
+                <Button 
+                    onClick={() => setIsUploadModalVisible(false)}
+                    style={{ borderRadius: 8, height: 40 }}
+                >
+                    Cancel
+                </Button>
+                <Button 
+                    type="primary" 
+                    onClick={handleUpload}
+                    loading={uploading}
+                    style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+                >
+                    Start Ingestion
+                </Button>
+            </div>
+            </Form>
+        </div>
       </Modal>
 
+      {/* Preview Modal */}
       <Modal
-        title={viewingDocument?.fileName || "Document Preview"}
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#f0fdf4", padding: 8, borderRadius: 8, color: "#16a34a", display: "flex" }}>
+                <Eye size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>Archive Preview: {viewingDocument?.fileName}</span>
+          </div>
+        }
         open={viewModalOpen}
         onCancel={() => {
           setViewModalOpen(false);
           setViewingDocument(null);
         }}
         footer={[
-          <Button key="close" onClick={() => setViewModalOpen(false)}>
-            Close
+          <Button key="close" style={{ borderRadius: 8 }} onClick={() => setViewModalOpen(false)}>
+            Close View
           </Button>,
           <Button
             key="download"
             type="primary"
-            icon={<DownloadOutlined />}
+            icon={<Download size={16} />}
             onClick={() => handleDownload(viewingDocument)}
+            style={{ borderRadius: 8, fontWeight: 600 }}
           >
-            Download
+            Download Archive
           </Button>,
         ]}
-        width={800}
+        width={900}
         centered
-        bodyStyle={{ height: "70vh" }}
+        bodyStyle={{ height: "75vh", padding: 0 }}
+        className="premium-modal"
       >
         {viewingDocument && (
           <iframe
@@ -392,6 +458,31 @@ export default function DocumentsTab({
           />
         )}
       </Modal>
-    </Card>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .premium-table .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          padding: 16px 24px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          padding: 16px 24px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .premium-action-btn:hover {
+          background: #f1f5f9 !important;
+          color: #3b82f6 !important;
+        }
+        .ant-modal-header {
+            border-bottom: 1px solid #f1f5f9 !important;
+            padding-bottom: 16px !important;
+        }
+      `}} />
+    </div>
   );
 }

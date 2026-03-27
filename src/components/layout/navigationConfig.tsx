@@ -51,6 +51,8 @@ import {
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
+import { ImProfile } from "react-icons/im";
+
 
 import { TiGroup } from "react-icons/ti";
 import { BsGridFill } from "react-icons/bs";
@@ -485,15 +487,35 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/new-profile",
         label: "Profile 2.0",
-        icon: <SolutionOutlined />,
+        icon: <ImProfile />,
         path: "/new-profile",
       },
       {
-        key: "/attendance",
+        key: "attendance-group",
         label: "Attendance",
         icon: <ClockCircleOutlined />,
-        path: "/attendance",
         requiredPermission: Permissions.ATTENDANCE_READ,
+        children: [
+          {
+            key: "/attendance/dashboard",
+            label: "Dashboard",
+            icon: <DashboardOutlined />,
+            path: "/attendance/dashboard",
+          },
+          {
+            key: "/attendance/clock-in-out",
+            label: "Clock In/Out",
+            icon: <ClockCircleOutlined />,
+            path: "/attendance/clock-in-out",
+          },
+          {
+            key: "/attendance/manage",
+            label: "Manage Attendance",
+            icon: <TeamOutlined />,
+            path: "/attendance/manage",
+            requiredPermission: Permissions.ATTENDANCE_MANAGE,
+          },
+        ],
       },
       {
         key: "leave-management-group",

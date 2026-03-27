@@ -799,9 +799,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 const member = members.find((m) => m.value === option?.value);
                 return member
                   ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                  member.position
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
+                    (member.position?.toLowerCase() ?? "").includes(input.toLowerCase())
                   : false;
               }}
               options={members.map((member) => ({

@@ -678,17 +678,17 @@ function DashboardContent() {
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
           <div
             style={{
-              marginBottom: 16,
+              marginBottom: 20,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
             }}
           >
             <div>
-              <Title level={2} style={{ margin: 0, color: "#262626" }}>
+              <Title level={3} style={{ margin: 0, color: "#141414", fontWeight: 600 }}>
                 Welcome back, {user?.name}!
               </Title>
-              <Text type="secondary" style={{ fontSize: 14 }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>
                 Here&apos;s what&apos;s happening with your projects today.
               </Text>
             </div>
@@ -745,23 +745,23 @@ function DashboardContent() {
               {/* Loading State */}
               {loading ? (
                 <>
-                  <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
                     {[1, 2, 3, 4].map((i) => (
                       <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card size="small">
+                        <Card size="small" bordered style={{ boxShadow: "none" }}>
                           <Skeleton active paragraph={{ rows: 1 }} />
                         </Card>
                       </Col>
                     ))}
                   </Row>
-                  <Row gutter={[16, 16]}>
+                  <Row gutter={[12, 12]}>
                     <Col xs={24} lg={16}>
-                      <Card size="small">
+                      <Card size="small" bordered style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
                     <Col xs={24} lg={8}>
-                      <Card size="small">
+                      <Card size="small" bordered style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
@@ -770,7 +770,7 @@ function DashboardContent() {
               ) : dashboardData ? (
                 <>
                   {/* Statistics Cards */}
-                  <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
@@ -781,7 +781,7 @@ function DashboardContent() {
                           boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
                         }}
                         styles={{
-                          body: { padding: "8px 16px", height: "100%" },
+                          body: { padding: "12px 16px", height: "100%" },
                         }}
                       >
                         <Row
@@ -881,6 +881,7 @@ function DashboardContent() {
                       <Col xs={24} sm={12} lg={6} key={index}>
                         <Card
                           size="small"
+                          bordered
                           style={{
                             height: "100%",
                             borderRadius: "16px",
@@ -938,7 +939,7 @@ function DashboardContent() {
                   </Row>
 
                   {/* Row 1: My Info */}
-                  <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                     <Col xs={24} lg={8}>
                       {/* My Tickets */}
                       <Card
@@ -950,22 +951,19 @@ function DashboardContent() {
                           </Space>
                         }
                         size="small"
+                        bordered
                         extra={
                           <Button
                             type="link"
                             size="small"
                             onClick={() => router.push("/tickets")}
+                            style={{ fontSize: 12 }}
                           >
-                            View Tickets
+                            View
                           </Button>
                         }
-                        styles={{ body: { padding: 8 } }}
-                        style={{
-                          height: "280px",
-                          borderRadius: "16px",
-                          border: "1px solid #f0f0f0",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
-                        }}
+                        styles={{ body: { padding: 12 } }}
+                        style={{ height: "260px", boxShadow: "none" }}
                       >
                         <div style={{ height: "100%" }}>
                           <div
@@ -1212,13 +1210,14 @@ function DashboardContent() {
                             </Space>
                           }
                           size="small"
+                          bordered
                           extra={
                             calendarStatus?.connected && (
                               <Space size={2}>
                                 <Button
                                   type="text"
                                   size="small"
-                                  icon={<ClockCircleOutlined />}
+                                  icon={<ClockCircleOutlined style={{ fontSize: 11 }} />}
                                   onClick={syncCalendar}
                                   loading={calendarLoading}
                                   style={{ fontSize: 11 }}
@@ -1237,12 +1236,7 @@ function DashboardContent() {
                             )
                           }
                           styles={{ body: { padding: 0 } }}
-                          style={{
-                            height: '280px',
-                            borderRadius: "16px",
-                            border: "1px solid #f0f0f0",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
-                          }}
+                          style={{ height: "260px", boxShadow: "none" }}
                         >
                           {calendarLoading ? (
                             <div style={{ padding: 16, textAlign: "center" }}>
@@ -1363,14 +1357,9 @@ function DashboardContent() {
                           )
                         }
                         size="small"
-                        style={{
-                          height: "280px",
-                          borderRadius: "16px",
-                          border: "1px solid #f0f0f0",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                          overflow: 'hidden'
-                        }}
-                        styles={{ body: { padding: '20px 24px' } }}
+                        bordered
+                        styles={{ body: { padding: 20 } }}
+                        style={{ height: "260px", boxShadow: "none" }}
                       >
                         {todayAttendance ? (
                           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -1482,7 +1471,7 @@ function DashboardContent() {
                   </Row>
 
                   {/* Row 2: Leave & Recent Tickets */}
-                  <Row gutter={[16, 16]}>
+                  <Row gutter={[12, 12]}>
                     <Col xs={24} lg={8}>
                       {/* Action Cards Container */}
                       <Space direction="vertical" size={8} style={{ width: '100%' }}>
@@ -1641,11 +1630,13 @@ function DashboardContent() {
                           </Space>
                         }
                         size="small"
+                        bordered
                         extra={
                           <Button
                             type="link"
                             size="small"
                             onClick={() => router.push("/tickets")}
+                            style={{ fontSize: 12 }}
                           >
                             View All
                           </Button>
@@ -1654,14 +1645,14 @@ function DashboardContent() {
                           height: "230px",
                           display: "flex",
                           flexDirection: "column",
-                          borderRadius: "16px",
-                          border: "1px solid #f0f0f0",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                          boxShadow: "none",
                         }}
-                        bodyStyle={{
-                          padding: 0,
-                          flex: 1,
-                          overflowY: "auto",
+                        styles={{
+                          body: {
+                            padding: 0,
+                            flex: 1,
+                            overflowY: "auto",
+                          }
                         }}
                       >
                         <List

@@ -232,35 +232,35 @@ export default function TopNav({
             justifyContent: "flex-start"
           }}
         >
-           {user?.tenantLogo ? (
-             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-               <img 
-                 src={user.tenantLogo} 
-                 alt={user.tenantName || 'Logo'} 
-                 style={{ 
-                   height: isMobile ? 32 : 40, 
-                   width: 'auto',
-                   maxWidth: isMobile ? 120 : 200,
-                   objectFit: 'contain'
-                 }} 
-               />
-               {!collapsed && !isMobile && (
-                 <Text 
-                   strong 
-                   style={{ 
-                     fontSize: 18, 
-                     color: '#262626', 
-                     whiteSpace: 'nowrap',
-                     background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
-                     WebkitBackgroundClip: "text",
-                     WebkitTextFillColor: "transparent",
-                     fontWeight: 700
-                   }}
-                 >
-                   {user?.tenantName}
-                 </Text>
-               )}
-             </div>
+          {user?.tenantLogo ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img
+                src={user.tenantLogo}
+                alt={user.tenantName || 'Logo'}
+                style={{
+                  height: isMobile ? 32 : 40,
+                  width: 'auto',
+                  maxWidth: isMobile ? 120 : 200,
+                  objectFit: 'contain'
+                }}
+              />
+              {!collapsed && !isMobile && (
+                <Text
+                  strong
+                  style={{
+                    fontSize: 18,
+                    color: '#262626',
+                    whiteSpace: 'nowrap',
+                    background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    fontWeight: 700
+                  }}
+                >
+                  {user?.tenantName}
+                </Text>
+              )}
+            </div>
           ) : (
             <Text
               strong

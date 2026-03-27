@@ -10,11 +10,13 @@ export type ViewMode = "edit" | "preview" | "combined";
 interface DocumentEditorProps {
   editor: BlockNoteEditor | null;
   viewMode: ViewMode;
+  onChange?: () => void;
 }
 
 const DocumentEditor: React.FC<DocumentEditorProps> = ({
   editor,
   viewMode,
+  onChange,
 }) => {
   // Secondary editor for the "Combined" view's preview pane
   const previewEditor = useCreateBlockNote();
@@ -40,15 +42,18 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
     if (viewMode === "combined" && previewEditor) {
       previewEditor.replaceBlocks(previewEditor.document, editor.document);
     }
+    if (onChange) {
+      onChange();
+    }
   }
 
-  const renderEditor = (instance: BlockNoteEditor, editable: boolean, onChange?: () => void) => (
+  const renderEditor = (instance: BlockNoteEditor, editable: boolean, onInternalChange?: () => void) => (
     <div className="h-full overflow-auto p-4 bg-white rounded-lg shadow-sm border border-gray-100">
       <BlockNoteView
         editor={instance}
         editable={editable}
         theme="light"
-        onChange={onChange}
+        onChange={onInternalChange || (editable ? onChange : undefined)}
       />
     </div>
   );

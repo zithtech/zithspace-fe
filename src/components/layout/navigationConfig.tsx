@@ -46,6 +46,7 @@ import {
   HomeOutlined,
   PlusOutlined,
   AppstoreOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
 
@@ -517,12 +518,31 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/salary/Create-payslip",
             requiredPermission: Permissions.SALARY_MANAGE,
           },
-            {
+          {
             key: "/salary/salarypreview",
             label: "Salary Preview",
             icon: <SnippetsOutlined />,
-            path: "/salary/salarypreview",
             requiredPermission: Permissions.SALARY_READ,
+            children: [
+              {
+                key: "/salary/salarypreview/preview",
+                label: "Preview",
+                icon: <EyeOutlined />,
+                path: "/salary/salarypreview/preview",
+              },
+              {
+                key: "/salary/salarypreview/bulk-preview",
+                label: "Bulk Preview",
+                icon: <SnippetsOutlined />,
+                path: "/salary/salarypreview/bulk-preview",
+              },
+              {
+                key: "/salary/salarypreview/approvals",
+                label: "Approvals",
+                icon: <CheckCircleOutlined />,
+                path: "/salary/salarypreview/approvals",
+              },
+            ],
           },
           {
             key: "/salary/My-Payslip",
@@ -537,6 +557,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             icon: <FileAddOutlined />,
             path: "/salary/Generate-payslip",
             requiredPermission: Permissions.SALARY_MANAGE,
+          },
+            {
+            key: "/salary/approved-payouts",
+            label: "Approved Payrolls",
+            icon: <SolutionOutlined />,
+            path: "/salary/approved-payouts",
+            requiredPermission: Permissions.SALARY_READ,
           },
           {
             key: "/salary/Payslips",
@@ -586,6 +613,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
                 label: "Assign Structure",
                 icon: <UserAddOutlined />,
                 path: "/salary/Settings/employeeAssignment",
+              },
+              {
+                key: "/salary/Settings/salary-approver",
+                label: "Salary Approvers",
+                icon: <UserAddOutlined />,
+                path: "/salary/Settings/salary-approver",
               },
             ],
           },

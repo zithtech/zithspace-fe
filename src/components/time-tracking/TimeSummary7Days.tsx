@@ -6,6 +6,7 @@ import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.
 import dayjs from "dayjs";
 
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
+import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 
 const { Text } = Typography;
 
@@ -46,21 +47,7 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
       // Filter entries for this specific day
       const dayEntries = entries.filter(e => dayjs(e.startTime).format('YYYY-MM-DD') === date);
       
-      let totalSeconds = 0;
-      dayEntries.forEach(entry => {
-        // Add recorded duration
-        totalSeconds += (entry.duration || 0);
-
-        // If running, add current live session time
-        if (entry.status === 'RUNNING' && entry.logs) {
-          const lastLog = [...entry.logs].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
-            const now = new Date().getTime();
-            const start = new Date(lastLog.createdAt).getTime();
-            totalSeconds += Math.floor((now - start) / 1000);
-          }
-        }
-      });
+      const totalSeconds = calculateNetDuration(dayEntries);
 
       stats.push({ date, seconds: totalSeconds });
     }

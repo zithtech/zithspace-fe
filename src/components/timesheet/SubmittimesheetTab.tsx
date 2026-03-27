@@ -3519,6 +3519,15 @@ export default function SubmittimesheetTab({
                 updateRow(row.key, { hours: value ?? 0 });
               }
             }}
+            onKeyDown={(e) => {
+              const allowedKeys = ["Backspace", "Delete", "Tab", "Escape", "Enter", ".", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+              if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey) {
+                return;
+              }
+              if (!/^\d$/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
             style={{ width: 60, textAlign: "center", borderRadius: 6, background: isFieldEditable(row) && !isLeave && !isHoliday ? "#f8fafc" : "transparent" }}
           />
         </div>

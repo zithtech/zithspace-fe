@@ -1046,6 +1046,7 @@ function SubmitDailyUpdateContent() {
                               value: p.value,
                             }))}
                             showSearch
+                            optionFilterProp="label"
                             size="middle"
                             style={{ width: "100%" }}
                             suffixIcon={<ChevronRight size={14} />}
@@ -1172,6 +1173,7 @@ function SubmitDailyUpdateContent() {
                                   value: t.id,
                                 })) || []}
                                 showSearch
+                                optionFilterProp="label"
                                 style={{ width: "100%" }}
                                 disabled={!update.projectId}
                               />

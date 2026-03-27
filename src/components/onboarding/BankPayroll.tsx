@@ -46,6 +46,18 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
     format as before).
   ====================================================== */
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      try {
+        await Promise.all([
+          bankform.validateFields(),
+          payrollform.validateFields(),
+        ]);
+        return true;
+      } catch (error) {
+        console.error("Validation failed:", error);
+        return false;
+      }
+    },
     getData: () => {
       return {
         ...bankform.getFieldsValue(),
@@ -76,7 +88,12 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={{ fontWeight: 500 }}>Bank Name</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Input placeholder="Enter Bank Name" />
+                <Input placeholder="Enter Bank Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
 
@@ -86,7 +103,12 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={{ fontWeight: 500 }}>Account Holder Name</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Input placeholder="Account Holder Name" />
+                <Input placeholder="Account Holder Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
 
@@ -94,9 +116,19 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               <Form.Item
                 name="accountNumber"
                 label={<span style={{ fontWeight: 500 }}>Account Number</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
-                <Input placeholder="Account Number" />
+                <Input
+                  placeholder="Account Number"
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
 
@@ -116,7 +148,12 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
                 label={<span style={{ fontWeight: 500 }}>Branch Name</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Input placeholder="Branch Name" />
+                <Input placeholder="Branch Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
 
@@ -154,9 +191,19 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               <Form.Item
                 name="uanNumber"
                 label={<span style={{ fontWeight: 500 }}>UAN Number</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
-                <Input placeholder="UAN Number" />
+                <Input
+                  placeholder="UAN Number"
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
 
@@ -164,9 +211,19 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               <Form.Item
                 name="pfNumber"
                 label={<span style={{ fontWeight: 500 }}>PF Number</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
-                <Input placeholder="PF Number" />
+                <Input
+                  placeholder="PF Number"
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
 
@@ -174,9 +231,19 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
               <Form.Item
                 name="esiNumber"
                 label={<span style={{ fontWeight: 500 }}>ESI Number</span>}
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
-                <Input placeholder="ESI Number" />
+                <Input
+                  placeholder="ESI Number"
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
 

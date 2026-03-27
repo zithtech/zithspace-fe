@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Steps, Button, Form, Spin } from "antd";
+import { Steps, Button, Form, Spin, message } from "antd";
 import PersonalDetails from "@/components/onboarding/PersonalDetails";
 import EmploymentDetails from "@/components/onboarding/EmploymentDetails";
 import BankPayroll from "@/components/onboarding/BankPayroll";
@@ -82,6 +82,15 @@ const Onboarding = () => {
     try {
       const currentRef = refs[current];
 
+      // Perform validation if current step has a validate method
+      if (currentRef?.current?.validate) {
+        const isValid = await currentRef.current.validate();
+        if (!isValid) {
+          console.log("Validation Failed for current step");
+          return;
+        }
+      }
+
       if (currentRef?.current?.getData) {
         const stepData = currentRef.current.getData();
         setAllData((prev: any) => ({
@@ -96,7 +105,7 @@ const Onboarding = () => {
       }
       setCurrent((prev) => prev + 1);
     } catch (error) {
-      console.log("Validation Failed:", error);
+      console.log("Next Step Error:", error);
     }
   };
 
@@ -198,7 +207,7 @@ const Onboarding = () => {
       console.log("🔥 FINAL SUBMIT PAYLOAD 👉", finalData);
 
       await createOnboarding(finalData);
-      window.alert("Onboarding Process Completed");
+      message.success("Onboarding Process Completed");
       setAllData({
         personal: {},
         employment: {},
@@ -317,17 +326,15 @@ const Onboarding = () => {
         {/* Buttons */}
         <div
           style={{
-            position: "fixed",
+            position: "sticky",
             bottom: 0,
-            left: 0,
-            right: 0,
-            width: "100%",
             display: "flex",
             justifyContent: "space-between",
             padding: "16px 24px",
             background: "#fff",
             borderTop: "1px solid #f0f0f0",
             zIndex: 1000,
+            marginTop: "20px",
           }}
         >
           <div>{current > 0 && <Button onClick={prev}>Previous</Button>}</div>

@@ -67,6 +67,20 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
   }, [data, basicForm, addressForm, emergencyInfoForm, identityForm]);
 
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      try {
+        await Promise.all([
+          basicForm.validateFields(),
+          addressForm.validateFields(),
+          emergencyInfoForm.validateFields(),
+          identityForm.validateFields(),
+        ]);
+        return true;
+      } catch (error) {
+        console.error("Validation failed:", error);
+        return false;
+      }
+    },
     getData: () => {
       const basicValues = basicForm.getFieldsValue();
       const addressValues = addressForm.getFieldsValue();
@@ -144,9 +158,9 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingBottom: "24px" }}>
       {/* Basic Information */}
-      <Card 
-        title={<Space><UserOutlined style={{ color: "#1677ff" }} /> <span>Basic Information</span></Space>} 
-        bordered={false} 
+      <Card
+        title={<Space><UserOutlined style={{ color: "#1677ff" }} /> <span>Basic Information</span></Space>}
+        bordered={false}
         styles={{ body: { padding: "24px" } }}
       >
         <Form
@@ -162,18 +176,37 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               <Form.Item
                 label={<span style={labelStyle}>First Name</span>}
                 name="firstName"
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
               >
-                <Input placeholder="First Name" />
+                <Input
+                  placeholder="First Name"
+                  onKeyDown={(e) => {
+                    if (e.key.length > 1) return;
+                    if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item
                 label={<span style={labelStyle}>Last Name</span>}
                 name="lastName"
-                rules={[{ required: true, message: "Required" }]}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
               >
-                <Input placeholder="Last Name" />
+                <Input placeholder="Last Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -217,10 +250,18 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                 name="mobile"
                 rules={[
                   { required: true, message: "Required" },
-                  { pattern: /^[0-9]{10}$/, message: "Invalid format" },
+                  { pattern: /^[0-9]{10}$/, message: "Invalid format (10 digits)" },
                 ]}
               >
-                <Input placeholder="Mobile Number" maxLength={10} />
+                <Input
+                  placeholder="Mobile Number"
+                  maxLength={10}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -246,8 +287,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
       </Card>
 
       {/* Address Information */}
-      <Card 
-        title={<Space><EnvironmentOutlined style={{ color: "#1677ff" }} /> <span>Address Information</span></Space>} 
+      <Card
+        title={<Space><EnvironmentOutlined style={{ color: "#1677ff" }} /> <span>Address Information</span></Space>}
         bordered={false}
         styles={{ body: { padding: "24px" } }}
       >
@@ -271,29 +312,80 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>City</span>} name="c_city" rules={[{ required: true }]}>
-                <Input placeholder="City" />
+              <Form.Item
+                label={<span style={labelStyle}>City</span>}
+                name="c_city"
+                rules={[
+                  { required: true },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
+              >
+                <Input placeholder="City" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>State</span>} name="c_state" rules={[{ required: true }]}>
-                <Input placeholder="State" />
+              <Form.Item
+                label={<span style={labelStyle}>State</span>}
+                name="c_state"
+                rules={[
+                  { required: true },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
+              >
+                <Input placeholder="State" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Pincode</span>} name="c_pincode" rules={[{ required: true }]}>
-                <Input placeholder="Pincode" />
+              <Form.Item
+                label={<span style={labelStyle}>Pincode</span>}
+                name="c_pincode"
+                rules={[
+                  { required: true },
+                  { pattern: /^[0-9]{6}$/, message: "Invalid pincode" }
+                ]}
+              >
+                <Input
+                  placeholder="Pincode"
+                  maxLength={6}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Country</span>} name="c_country" rules={[{ required: true }]}>
-                <Input placeholder="Country" />
+              <Form.Item
+                label={<span style={labelStyle}>Country</span>}
+                name="c_country"
+                rules={[
+                  { required: true },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
+              >
+                <Input placeholder="Country" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
           </Row>
 
           <Divider style={{ margin: "16px 0" }} />
-          
+
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
               Permanent Address
@@ -315,22 +407,47 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>City</span>} name="p_city">
+              <Form.Item
+                label={<span style={labelStyle}>City</span>}
+                name="p_city"
+                rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}
+              >
                 <Input placeholder="City" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>State</span>} name="p_state">
+              <Form.Item
+                label={<span style={labelStyle}>State</span>}
+                name="p_state"
+                rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}
+              >
                 <Input placeholder="State" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Pincode</span>} name="p_pincode">
-                <Input placeholder="Pincode" disabled={sameAsCurrent} />
+              <Form.Item
+                label={<span style={labelStyle}>Pincode</span>}
+                name="p_pincode"
+                rules={[{ pattern: /^[0-9]{6}$/, message: "Invalid pincode" }]}
+              >
+                <Input
+                  placeholder="Pincode"
+                  disabled={sameAsCurrent}
+                  maxLength={6}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={<span style={labelStyle}>Country</span>} name="p_country">
+              <Form.Item
+                label={<span style={labelStyle}>Country</span>}
+                name="p_country"
+                rules={[{ pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }]}
+              >
                 <Input placeholder="Country" disabled={sameAsCurrent} />
               </Form.Item>
             </Col>
@@ -341,8 +458,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
       <Row gutter={24}>
         <Col span={12}>
           {/* Emergency Information */}
-          <Card 
-            title={<Space><PhoneOutlined style={{ color: "#1677ff" }} /> <span>Emergency Information</span></Space>} 
+          <Card
+            title={<Space><PhoneOutlined style={{ color: "#1677ff" }} /> <span>Emergency Information</span></Space>}
             bordered={false}
             styles={{ body: { padding: "24px" } }}
             style={{ height: "100%" }}
@@ -356,11 +473,38 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
                   <Option value="guardian">Guardian</Option>
                 </Select>
               </Form.Item>
-              <Form.Item label={<span style={labelStyle}>Name</span>} name="relationName" rules={[{ required: true }]}>
-                <Input placeholder="Name" />
+              <Form.Item
+                label={<span style={labelStyle}>Name</span>}
+                name="relationName"
+                rules={[
+                  { required: true },
+                  { pattern: /^[A-Za-z\s-]+$/, message: "Only letters allowed" }
+                ]}
+              >
+                <Input placeholder="Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
-              <Form.Item label={<span style={labelStyle}>Mobile</span>} name="relationMobile" rules={[{ required: true }]}>
-                <Input placeholder="Mobile Number" maxLength={10} />
+              <Form.Item
+                label={<span style={labelStyle}>Mobile</span>}
+                name="relationMobile"
+                rules={[
+                  { required: true },
+                  { pattern: /^[0-9]{10}$/, message: "Invalid format (10 digits)" }
+                ]}
+              >
+                <Input
+                  placeholder="Mobile Number"
+                  maxLength={10}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
             </Form>
           </Card>
@@ -368,15 +512,30 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
         <Col span={12}>
           {/* Identity Information */}
-          <Card 
-            title={<Space><IdcardOutlined style={{ color: "#1677ff" }} /> <span>Identity Information</span></Space>} 
+          <Card
+            title={<Space><IdcardOutlined style={{ color: "#1677ff" }} /> <span>Identity Information</span></Space>}
             bordered={false}
             styles={{ body: { padding: "24px" } }}
             style={{ height: "100%" }}
           >
             <Form form={identityForm} layout="vertical" requiredMark={false}>
-              <Form.Item label={<span style={labelStyle}>Aadhaar Number</span>} name="aadhaar" rules={[{ required: true, len: 12 }]}>
-                <Input placeholder="Aadhaar Number" maxLength={12} />
+              <Form.Item
+                label={<span style={labelStyle}>Aadhaar Number</span>}
+                name="aadhaar"
+                rules={[
+                  { required: true, len: 12, message: "Aadhaar must be 12 digits" },
+                  { pattern: /^[0-9]{12}$/, message: "Only numeric values allowed" }
+                ]}
+              >
+                <Input
+                  placeholder="Aadhaar Number"
+                  maxLength={12}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
               </Form.Item>
               <Row gutter={12}>
                 <Col span={12}>

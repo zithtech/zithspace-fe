@@ -255,12 +255,25 @@ function CreateClientV2Content() {
                       name="yearOfIncorporation"
                       label="Year of Incorporation"
                     >
-                      <Input placeholder="YYYY" />
+                      <Input placeholder="YYYY" type="number" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item name="country" label="Country">
-                      <Input placeholder="Country" />
+                      <Input
+                        placeholder="Country"
+                        onKeyDown={(e) => {
+                          if (
+                            !/^[A-Za-z\s-]$/.test(e.key) &&
+                            e.key !== "Backspace" &&
+                            e.key !== "ArrowLeft" &&
+                            e.key !== "ArrowRight" &&
+                            e.key !== "Tab"
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -323,7 +336,7 @@ function CreateClientV2Content() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="contractValue" label="Contract Value">
-                      <InputNumber style={{ width: "100%" }} />
+                      <InputNumber type="number" style={{ width: "100%" }} />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -338,7 +351,7 @@ function CreateClientV2Content() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="creditLimit" label="Credit Limit">
-                      <InputNumber style={{ width: "100%" }} />
+                      <InputNumber type="number" style={{ width: "100%" }} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -421,12 +434,22 @@ function CreateClientV2Content() {
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item name="bankName" label="Bank Name">
-                      <Input />
+                      <Input onKeyDown={(e) => {
+                        if (
+                          !/^[A-Za-z\s-]$/.test(e.key) &&
+                          e.key !== "Backspace" &&
+                          e.key !== "ArrowLeft" &&
+                          e.key !== "ArrowRight" &&
+                          e.key !== "Tab"
+                        ) {
+                          e.preventDefault();
+                        }
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item name="bankAccountNumber" label="Account Number">
-                      <Input />
+                      <Input type="number" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>

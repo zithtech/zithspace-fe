@@ -198,7 +198,7 @@ export default function AllocationsTab({
       key: "employee",
       render: (_: any, record: any) => (
         <Space size={12}>
-          <Avatar 
+          <Avatar
             shape="square"
             style={{ backgroundColor: "#f8fafc", color: "#64748b", borderRadius: 8 }}
             icon={<User size={16} />}
@@ -222,10 +222,10 @@ export default function AllocationsTab({
       key: "billingType",
       render: (type: string) => (
         <Space size={6}>
-            <div style={{ padding: 4, background: "#f1f5f9", borderRadius: 6, color: "#64748b" }}>
-                <TrendingUp size={14} />
-            </div>
-            <span style={{ fontWeight: 500, color: "#475569" }}>{type}</span>
+          <div style={{ padding: 4, background: "#f1f5f9", borderRadius: 6, color: "#64748b" }}>
+            <TrendingUp size={14} />
+          </div>
+          <span style={{ fontWeight: 500, color: "#475569" }}>{type}</span>
         </Space>
       )
     },
@@ -235,7 +235,7 @@ export default function AllocationsTab({
       key: "billAmount",
       render: (amount: number) => (
         <span style={{ fontWeight: 600, color: "#0f172a" }}>
-            ${Number(amount || 0).toLocaleString()} <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 400 }}>/ month</span>
+          ${Number(amount || 0).toLocaleString()} <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 400 }}>/ month</span>
         </span>
       )
     },
@@ -244,15 +244,15 @@ export default function AllocationsTab({
       key: "duration",
       render: (_: any, record: any) => (
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Space size={6} style={{ fontSize: 13, color: "#475569" }}>
-                <Calendar size={14} style={{ color: "#94a3b8" }} />
-                <span>{dayjs(record.startDate).format("MMM DD, YYYY")}</span>
-            </Space>
-            {record.endDate && (
-                <div style={{ fontSize: 11, color: "#94a3b8", marginLeft: 20 }}>
-                    to {dayjs(record.endDate).format("MMM DD, YYYY")}
-                </div>
-            )}
+          <Space size={6} style={{ fontSize: 13, color: "#475569" }}>
+            <Calendar size={14} style={{ color: "#94a3b8" }} />
+            <span>{dayjs(record.startDate).format("MMM DD, YYYY")}</span>
+          </Space>
+          {record.endDate && (
+            <div style={{ fontSize: 11, color: "#94a3b8", marginLeft: 20 }}>
+              to {dayjs(record.endDate).format("MMM DD, YYYY")}
+            </div>
+          )}
         </div>
       )
     },
@@ -265,16 +265,16 @@ export default function AllocationsTab({
         return (
           <Space size={12}>
             <Switch
-                size="small"
-                checked={isActive}
-                onChange={(checked) => handleStatusChange(record.id, checked)}
-                style={{ backgroundColor: isActive ? "#10b981" : "#cbd5e1" }}
+              size="small"
+              checked={isActive}
+              onChange={(checked) => handleStatusChange(record.id, checked)}
+              style={{ backgroundColor: isActive ? "#10b981" : "#cbd5e1" }}
             />
-            <Tag 
-                style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }} 
-                color={isActive ? "success" : "default"}
+            <Tag
+              style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
+              color={isActive ? "success" : "default"}
             >
-                {status?.toUpperCase()}
+              {status?.toUpperCase()}
             </Tag>
           </Space>
         );
@@ -306,11 +306,11 @@ export default function AllocationsTab({
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card 
-        style={{ 
-            borderRadius: 16, 
-            border: "1px solid #f1f5f9",
-            background: "#fff"
+      <Card
+        style={{
+          borderRadius: 16,
+          border: "1px solid #f1f5f9",
+          background: "#fff"
         }}
         bodyStyle={{ padding: "0" }}
       >
@@ -353,7 +353,7 @@ export default function AllocationsTab({
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
-                <Briefcase size={20} />
+              <Briefcase size={20} />
             </div>
             <span style={{ fontWeight: 700, fontSize: 18 }}>New Resource Allocation</span>
           </div>
@@ -367,89 +367,90 @@ export default function AllocationsTab({
         className="premium-modal"
       >
         <div style={{ padding: "8px 0" }}>
-            <Form form={form} layout="vertical" onFinish={handleAdd}>
+          <Form form={form} layout="vertical" onFinish={handleAdd}>
             <Form.Item
-                name="employeeId"
-                label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Select Expert Resource</span>}
-                rules={[{ required: true, message: "Resource selection is required" }]}
+              name="employeeId"
+              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Select Expert Resource</span>}
+              rules={[{ required: true, message: "Resource selection is required" }]}
             >
-                <Select
-                    showSearch
-                    placeholder="Search by name..."
-                    loading={employees.length === 0}
-                    filterOption={(input, option) =>
-                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                    }
-                    options={employees}
-                    style={{ borderRadius: 8, height: 44 }}
-                />
+              <Select
+                showSearch
+                placeholder="Search by name..."
+                loading={employees.length === 0}
+                filterOption={(input, option) =>
+                  (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                options={employees}
+                style={{ borderRadius: 8, height: 44 }}
+              />
             </Form.Item>
 
             <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item
-                        name="billingType"
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
-                        rules={[{ required: true }]}
-                    >
-                        <Select style={{ borderRadius: 8, height: 40 }}>
-                        <Option value="T&M">Time & Material (T&M)</Option>
-                        <Option value="Fixed Price">Fixed Price</Option>
-                        <Option value="Retainer">Retainer</Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item 
-                        name="billAmount" 
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Monthly Bill Rate</span>}
-                    >
-                        <InputNumber 
-                            prefix={<DollarSign size={14} style={{ color: "#94a3b8" }} />} 
-                            style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }} 
-                            placeholder="0.00"
-                        />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="billingType"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
+                  rules={[{ required: true }]}
+                >
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Option value="T&M">Time & Material (T&M)</Option>
+                    <Option value="Fixed Price">Fixed Price</Option>
+                    <Option value="Retainer">Retainer</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="billAmount"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Monthly Bill Rate</span>}
+                >
+                  <InputNumber
+                    type="number"
+                    prefix={<DollarSign size={14} style={{ color: "#94a3b8" }} />}
+                    style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
+                    placeholder="0.00"
+                  />
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item
-                        name="startDate"
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocation Start</span>}
-                        rules={[{ required: true }]}
-                    >
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item 
-                        name="endDate" 
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date (Optional)</span>}
-                    >
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="startDate"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocation Start</span>}
+                  rules={[{ required: true }]}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="endDate"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date (Optional)</span>}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
 
             <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-                <Button 
-                    onClick={() => setIsModalOpen(false)}
-                    style={{ borderRadius: 8, height: 40, fontWeight: 500 }}
-                >
-                    Cancel
-                </Button>
-                <Button 
-                    type="primary" 
-                    htmlType="submit" 
-                    loading={loading}
-                    style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
-                >
-                    Create Allocation
-                </Button>
+              <Button
+                onClick={() => setIsModalOpen(false)}
+                style={{ borderRadius: 8, height: 40, fontWeight: 500 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+              >
+                Create Allocation
+              </Button>
             </div>
-            </Form>
+          </Form>
         </div>
       </Modal>
 
@@ -458,7 +459,7 @@ export default function AllocationsTab({
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 8, color: "#0ea5e9", display: "flex" }}>
-                <Edit2 size={20} />
+              <Edit2 size={20} />
             </div>
             <span style={{ fontWeight: 700, fontSize: 18 }}>Modify Allocation</span>
           </div>
@@ -474,79 +475,80 @@ export default function AllocationsTab({
         className="premium-modal"
       >
         <div style={{ padding: "8px 0" }}>
-            <Form form={editForm} layout="vertical" onFinish={handleEdit}>
+          <Form form={editForm} layout="vertical" onFinish={handleEdit}>
             <Form.Item
-                name="employeeId"
-                label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Expert Resource</span>}
+              name="employeeId"
+              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Expert Resource</span>}
             >
-                <Select disabled options={employees} style={{ borderRadius: 8, height: 44 }} />
+              <Select disabled options={employees} style={{ borderRadius: 8, height: 44 }} />
             </Form.Item>
 
             <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item
-                        name="billingType"
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
-                        rules={[{ required: true }]}
-                    >
-                        <Select style={{ borderRadius: 8, height: 40 }}>
-                        <Option value="T&M">Time & Material (T&M)</Option>
-                        <Option value="Fixed Price">Fixed Price</Option>
-                        <Option value="Retainer">Retainer</Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item 
-                        name="billAmount" 
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Bill Rate</span>}
-                    >
-                        <InputNumber prefix={<DollarSign size={14} />} style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }} />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="billingType"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
+                  rules={[{ required: true }]}
+                >
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Option value="T&M">Time & Material (T&M)</Option>
+                    <Option value="Fixed Price">Fixed Price</Option>
+                    <Option value="Retainer">Retainer</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="billAmount"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Bill Rate</span>}
+                >
+                  <InputNumber prefix={<DollarSign size={14} />} style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }} />
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item
-                        name="startDate"
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>}
-                        rules={[{ required: true }]}
-                    >
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name="endDate" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>}>
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="startDate"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>}
+                  rules={[{ required: true }]}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="endDate" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>}>
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
 
             <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-                <Button 
-                    onClick={() => {
-                        setIsEditModalOpen(false);
-                        setEditingAllocation(null);
-                    }}
-                    style={{ borderRadius: 8, height: 40 }}
-                >
-                    Cancel
-                </Button>
-                <Button 
-                    type="primary" 
-                    htmlType="submit" 
-                    loading={loading}
-                    style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
-                >
-                    Save Changes
-                </Button>
+              <Button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingAllocation(null);
+                }}
+                style={{ borderRadius: 8, height: 40 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+              >
+                Save Changes
+              </Button>
             </div>
-            </Form>
+          </Form>
         </div>
       </Modal>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .premium-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
           color: #64748b !important;

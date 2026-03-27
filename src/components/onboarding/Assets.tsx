@@ -16,6 +16,7 @@ import {
   Col,
   Select,
   Typography,
+  message,
 } from "antd";
 import { 
   Plus, 
@@ -96,6 +97,9 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
   }, [data]);
 
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      return true; // Assets are managed via drawer, so no main form to validate here
+    },
     getData: () => assets,
   }));
 
@@ -109,7 +113,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
   const handleBeforeUpload = (file: File) => {
     if (file.size > MAX_SIZE) {
-      window.alert("File size must be less than 5MB");
+      message.error("File size must be less than 5MB");
       return Upload.LIST_IGNORE; // ❌ stop file from adding to list
     }
 

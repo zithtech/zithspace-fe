@@ -54,7 +54,8 @@ import {
   Meh,
   Frown,
   Activity,
-  Zap
+  Zap,
+  FileText
 } from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { ProjectService } from "@/services/projectService";
@@ -794,17 +795,8 @@ function SubmitDailyUpdateContent() {
         flexShrink: 0
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{
-            background: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.3)"
-          }}>
-            <Zap color="white" size={24} />
+          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+            <FileText size={28} />
           </div>
           <div>
             <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
@@ -850,9 +842,10 @@ function SubmitDailyUpdateContent() {
               padding: "0 20px",
               borderRadius: 10,
               fontWeight: 600,
-              background: "#0ea5e9",
-              borderColor: "#0ea5e9",
-              boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
+              // background: "#0ea5e9",
+              background: "#1677ff",
+              // borderColor: "#0ea5e9",
+              // boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
               display: "flex",
               alignItems: "center",
               gap: 8

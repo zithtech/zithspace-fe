@@ -2307,6 +2307,8 @@ import {
   App,
   Card,
   Collapse,
+  Row,
+  Col,
 } from "antd";
 import {
   LeftOutlined,
@@ -2346,6 +2348,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 import type { ColumnsType } from "antd/es/table";
@@ -2404,6 +2407,27 @@ type SubmitTimesheetTabProps = {
 export default function SubmittimesheetTab({
   onSubmitted,
 }: SubmitTimesheetTabProps) {
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card
+      bodyStyle={{ padding: "16px 20px" }}
+      style={{
+        borderRadius: 12,
+        border: "1px solid #f1f5f9",
+        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
+
   const { user } = useAuth();
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
@@ -3640,7 +3664,7 @@ export default function SubmittimesheetTab({
               type="primary"
               icon={<Send size={18} />}
               onClick={() => setIsSubmitOpen(true)}
-              style={{ height: 44, borderRadius: 10, fontWeight: 600, background: "#0ea5e9", borderColor: "#0ea5e9", display: "flex", alignItems: "center", gap: 8 }}
+              style={{ height: 44, borderRadius: 10, fontWeight: 600, background: '#1677ff', display: "flex", alignItems: "center", gap: 8 }}
             >
               Submit
             </Button>
@@ -3948,63 +3972,32 @@ export default function SubmittimesheetTab({
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 10,
-              marginTop: 16,
-              marginBottom: 16,
-            }}
-          >
-            <div
-              style={{
-                background: "#f8fafc",
-                borderRadius: 10,
-                padding: "12px 8px",
-                textAlign: "center",
-                border: "1px solid #f1f5f9"
-              }}
-            >
-              <ClockCircleOutlined style={{ fontSize: 18, color: "#0ea5e9" }} />
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: "#1e293b" }}>
-                {totalHours}h
-              </div>
-              <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>Total Hours</div>
-            </div>
-
-            <div
-              style={{
-                background: "#f8fafc",
-                borderRadius: 10,
-                padding: "12px 8px",
-                textAlign: "center",
-                border: "1px solid #f1f5f9"
-              }}
-            >
-              <DollarOutlined style={{ fontSize: 18, color: "#10b981" }} />
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: "#1e293b" }}>
-                {totalBillable}h
-              </div>
-              <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>Billable</div>
-            </div>
-
-            <div
-              style={{
-                background: "#f8fafc",
-                borderRadius: 10,
-                padding: "12px 8px",
-                textAlign: "center",
-                border: "1px solid #f1f5f9"
-              }}
-            >
-              <FileTextOutlined style={{ fontSize: 18, color: "#64748b" }} />
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: "#1e293b" }}>
-                {entryCount}
-              </div>
-              <div style={{ color: "#64748b", fontSize: 11, fontWeight: 500 }}>Entries</div>
-            </div>
-          </div>
+          <Row gutter={[20, 20]} style={{ marginTop: 16, marginBottom: 16 }}>
+            <Col xs={24} sm={8}>
+              <StatCard
+                label="Total Hours"
+                value={`${totalHours}h`}
+                icon={Clock}
+                color="#3b82f6"
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard
+                label="Billable"
+                value={`${totalBillable}h`}
+                icon={Zap}
+                color="#10b981"
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard
+                label="Entries"
+                value={entryCount}
+                icon={FileText}
+                color="#64748b"
+              />
+            </Col>
+          </Row>
 
           <div
             style={{

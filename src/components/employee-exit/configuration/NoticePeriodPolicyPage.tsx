@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Table,
   Button,
-  Modal,
   Form,
   Input,
   Select,
@@ -14,21 +13,28 @@ import {
   Typography,
   Row,
   Col,
-  message,
+  Tag,
   notification,
   Popconfirm,
   Tooltip,
+  Drawer,
+  Divider,
 } from 'antd';
 import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-} from '@ant-design/icons';
+  Clock,
+  ArrowRight,
+  ShieldCheck,
+  Plus,
+  Search,
+  Settings2,
+  Trash2,
+  Edit,
+} from 'lucide-react';
 import { NoticePolicy, NoticePolicyService, NoticePolicyPayload } from '@/services/noticePolicyService';
 import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position } from '@/services/positionService';
 
-const { Title, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 export default function NoticePeriodPolicyPage() {
@@ -41,6 +47,8 @@ export default function NoticePeriodPolicyPage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [levelOptions, setLevelOptions] = useState<{ label: string; value: string }[]>([]);
   const [levelType, setLevelType] = useState<string>('');
+  const [searchText, setSearchText] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const [notificationApi, notificationContextHolder] = notification.useNotification();
 
@@ -52,12 +60,9 @@ export default function NoticePeriodPolicyPage() {
   const fetchPolicies = async () => {
     setLoading(true);
     try {
-      console.log('Fetching policies...');
       const data = await NoticePolicyService.getAll();
-      console.log('Fetched policies:', data);
       setPolicies(data || []);
     } catch (error: any) {
-      console.error('Fetch error:', error);
       notificationApi.error({
         message: 'Error',
         description: 'Failed to fetch policies: ' + error.message
@@ -76,7 +81,7 @@ export default function NoticePeriodPolicyPage() {
       setGrades(gradesData || []);
       setPositions(positionsData || []);
     } catch (error: any) {
-      console.error('Error fetching levels:', error);
+      process.env.NODE_ENV === 'development' && console.error('Error fetching levels:', error);
     }
   };
 
@@ -133,6 +138,7 @@ export default function NoticePeriodPolicyPage() {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       const values = await form.validateFields();
       const payload: NoticePolicyPayload = {
@@ -164,22 +170,22 @@ export default function NoticePeriodPolicyPage() {
       setModalVisible(false);
       fetchPolicies();
     } catch (error: any) {
-      // Use the message from the server if available
       const errorMsg = error.response?.data?.message || error.message || 'Failed to save policy';
       notificationApi.error({
         message: 'Error',
         description: errorMsg
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const updateGeneratedCode = () => {
     const name = form.getFieldValue('policy_name') || '';
     const levelId = form.getFieldValue('level_id') || '';
-    
+
     if (name) {
       let code = name.toUpperCase().replace(/\s+/g, '_');
-      // If we have a level id, append a suffix to ensure uniqueness per level
       if (levelId) {
         const shortId = levelId.toString().slice(-4).toUpperCase();
         code = `${code}_${shortId}`;
@@ -203,49 +209,110 @@ export default function NoticePeriodPolicyPage() {
       title: 'Policy Name',
       dataIndex: 'policyName',
       key: 'policyName',
+      render: (text: string, record: NoticePolicy) => (
+        <Space size={12}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "#eff6ff",
+            color: "#2563eb",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: 14
+          }}>
+            <Clock size={18} />
+          </div>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{text}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>{record.code}</Text>
+          </div>
+        </Space>
+      ),
     },
     {
-      title: 'Code',
-      dataIndex: 'code',
-      key: 'code',
-    },
-    {
-      title: 'Level Values',
+      title: 'Applicable Level',
       key: 'levelId',
-      render: (record: NoticePolicy) => getLevelName(record.levelType, record.levelId),
+      render: (record: NoticePolicy) => (
+        <Space direction="vertical" size={0}>
+          <Tag color="purple" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>
+            {record.levelType}
+          </Tag>
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {getLevelName(record.levelType, record.levelId)}
+          </Text>
+        </Space>
+      ),
     },
     {
-      title: 'Notice Period Days',
-      dataIndex: 'noticePeriodDays',
+      title: 'Notice Period',
       key: 'noticePeriodDays',
+      render: (record: NoticePolicy) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ padding: "4px 8px", background: "#f0fdf4", borderRadius: 6, color: "#16a34a", fontWeight: 700 }}>
+            {record.noticePeriodDays} Days
+          </div>
+          <ArrowRight size={14} style={{ color: "#94a3b8" }} />
+          <Text type="secondary" style={{ fontSize: 12 }}>Standard</Text>
+        </div>
+      ),
     },
     {
-      title: 'Probation Notice Days',
-      dataIndex: 'probationNoticeDays',
-      key: 'probationNoticeDays',
+      title: 'Calculation',
+      key: 'calculation',
+      render: (record: NoticePolicy) => (
+        <Space size={16}>
+          <Tooltip title="Buyout Calculation Type">
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <ShieldCheck size={14} color="#3b82f6" />
+              <Text style={{ fontSize: 13, color: "#475569" }}>{record.buyoutCalculatingType}</Text>
+            </div>
+          </Tooltip>
+        </Space>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: boolean) => (
+        <Tag
+          style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
+          color={status ? "success" : "default"}
+        >
+          {status ? "ACTIVE" : "INACTIVE"}
+        </Tag>
+      ),
     },
     {
       title: 'Actions',
       key: 'actions',
+      align: 'right' as const,
       render: (record: NoticePolicy) => (
-        <Space size="middle">
-          <Tooltip title="Edit">
+        <Space size={4}>
+          <Tooltip title="Edit Rules">
             <Button
               type="text"
-              icon={<EditOutlined style={{ color: '#1890ff' }} />}
+              icon={<Edit size={18} style={{ color: '#64748b' }} />}
               onClick={() => handleEdit(record)}
+              className="action-btn"
             />
           </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this policy?"
+            title="Delete this policy?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
+            okButtonProps={{ danger: true }}
           >
-            <Tooltip title="Delete">
+            <Tooltip title="Delete Rule">
               <Button
                 type="text"
-                icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
+                danger
+                icon={<Trash2 size={18} />}
+                className="action-btn-danger"
               />
             </Tooltip>
           </Popconfirm>
@@ -257,12 +324,21 @@ export default function NoticePeriodPolicyPage() {
   return (
     <div style={{ padding: '8px 0' }}>
       {notificationContextHolder}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={5} style={{ margin: 0 }}>Notice Period Policy</Title>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Input
+            placeholder="Search rules..."
+            prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+            style={{ width: 280, borderRadius: 10, height: 40 }}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        </div>
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<Plus size={18} />}
           onClick={handleAdd}
+          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
         >
           Add New Rule
         </Button>
@@ -270,147 +346,199 @@ export default function NoticePeriodPolicyPage() {
 
       <Table
         columns={columns}
-        dataSource={policies}
+        dataSource={policies.filter(p =>
+          (p.policyName || "").toLowerCase().includes(searchText.toLowerCase()) ||
+          (p.code || "").toLowerCase().includes(searchText.toLowerCase())
+        )}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 10 }}
+        pagination={{ pageSize: 10, position: ["bottomRight"] }}
         size="middle"
+        style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
       />
 
-      <Modal
-        title={editingPolicy ? 'Edit Policy' : 'Add Policy'}
+      <Drawer
+        title={
+          <Space size={12}>
+            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb", display: "flex" }}>
+              <Settings2 size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
+                {editingPolicy ? "Edit Rule" : "Create New Rule"}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>
+                Configure notice periods and level mappings
+              </div>
+            </div>
+          </Space>
+        }
+        width={520}
         open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={handleSave}
-        width={800}
-        okText={editingPolicy ? 'Update' : 'Save'}
+        onClose={() => setModalVisible(false)}
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
+            <Button onClick={() => setModalVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+            <Button
+              type="primary"
+              loading={isSaving}
+              onClick={handleSave}
+              style={{ borderRadius: 8, height: 40, padding: "0 24px" }}
+            >
+              {editingPolicy ? 'Update Configuration' : 'Save Configuration'}
+            </Button>
+          </div>
+        }
+        className="config-drawer"
       >
-        <div style={{ marginBottom: 20 }}>
-          <Paragraph type="secondary" style={{ fontSize: 13 }}>
-            This form is used to create a Notice Period Policy that defines notice period rules for employees based on their level (Grade or Position).
-          </Paragraph>
-        </div>
-
-        <Form
-          form={form}
-          layout="vertical"
-        >
-          <Row gutter={16}>
-            <Col span={6}>
-              <Form.Item
-                name="policy_name"
-                label="Policy Name"
-                rules={[{ required: true, message: 'Please enter policy name' }]}
-              >
-                <Input placeholder="Enter policy name" onChange={updateGeneratedCode} />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="code"
-                label="Code"
-                rules={[{ required: true, message: 'Please enter code' }]}
-              >
-                <Input placeholder="Auto-generated code" />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="level_type"
-                label="Level Type"
-                rules={[{ required: true, message: 'Please select level type' }]}
-              >
-                <Select
-                  placeholder="Select level type"
-                  onChange={(val) => {
-                    setLevelType(val);
-                    form.setFieldsValue({ level_id: undefined });
-                    updateGeneratedCode();
-                  }}
+        <Form form={form} layout="vertical" requiredMark={false}>
+          <div style={{ marginBottom: 24 }}>
+            <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Notice Strategy</Title>
+            <Row gutter={16}>
+              <Col span={14}>
+                <Form.Item
+                  name="policy_name"
+                  label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
+                  rules={[{ required: true, message: 'Required' }]}
                 >
-                  <Select.Option value="Grades">Grades</Select.Option>
-                  <Select.Option value="Positions">Positions</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="level_id"
-                label="Level Values"
-                rules={[{ required: true, message: 'Please select level value' }]}
-              >
-                <Select
-                  placeholder="Select value"
-                  showSearch
-                  optionFilterProp="children"
-                  options={levelOptions}
-                  disabled={!levelType}
-                  onChange={updateGeneratedCode}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+                  <Input placeholder="e.g. Executive Notice" onChange={updateGeneratedCode} />
+                </Form.Item>
+              </Col>
+              <Col span={10}>
+                <Form.Item
+                  name="code"
+                  label={<Text strong style={{ fontSize: 13 }}>Reference Code</Text>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Input placeholder="Auto-gen" disabled />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Row gutter={16}>
-            <Col span={6}>
-              <Form.Item
-                name="notice_period_days"
-                label="Notice Period Days"
-                rules={[{ required: true, message: 'Please enter days' }]}
-              >
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="Enter days" />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="probotion_period_days"
-                label="Probation Period Days"
-              >
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="Enter days" />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="probation_notice_days"
-                label="Probation Notice Days"
-              >
-                <InputNumber style={{ width: '100%' }} min={0} placeholder="Enter days" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={6}>
-              <Form.Item
-                name="buyout_calculating_type"
-                label="Buyout Type"
-                valuePropName="checked"
-              >
-                <Switch checkedChildren="Gross" unCheckedChildren="Basic" />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                name="status"
-                label="Status"
-                valuePropName="checked"
-              >
-                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="level_type"
+                  label={<Text strong style={{ fontSize: 13 }}>Mapping Level</Text>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Select
+                    placeholder="Select level"
+                    onChange={(val) => {
+                      setLevelType(val);
+                      form.setFieldsValue({ level_id: undefined });
+                      updateGeneratedCode();
+                    }}
+                  >
+                    <Select.Option value="Grades">Grades</Select.Option>
+                    <Select.Option value="Positions">Positions</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="level_id"
+                  label={<Text strong style={{ fontSize: 13 }}>Specific Entity</Text>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Select
+                    placeholder="Select value"
+                    showSearch
+                    optionFilterProp="children"
+                    options={levelOptions}
+                    disabled={!levelType}
+                    onChange={updateGeneratedCode}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
 
-          <Row gutter={16}>
-            <Col span={24}>
-              <Form.Item
-                name="description"
-                label="Description"
-              >
-                <TextArea rows={3} placeholder="Enter description (optional)" />
+          <Divider />
+
+          <div style={{ marginBottom: 24 }}>
+            <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Period Durations</Title>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  name="notice_period_days"
+                  label={<Text strong style={{ fontSize: 13 }}>Notice Days</Text>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <InputNumber style={{ width: '100%' }} min={0} placeholder="e.g. 60" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="probotion_period_days"
+                  label={<Text strong style={{ fontSize: 13 }}>Probation</Text>}
+                >
+                  <InputNumber style={{ width: '100%' }} min={0} placeholder="Days" />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="probation_notice_days"
+                  label={<Text strong style={{ fontSize: 13 }}>Prob. Notice</Text>}
+                >
+                  <InputNumber style={{ width: '100%' }} min={0} placeholder="Days" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
+
+          <Divider />
+
+          <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
+            <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "#334155" }}>Policy Controls</Title>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <Text strong style={{ fontSize: 14, display: "block" }}>Gross Buyout</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>Calculate buyout based on Gross instead of Basic.</Text>
+              </div>
+              <Form.Item name="buyout_calculating_type" valuePropName="checked" noStyle>
+                <Switch checkedChildren="ON" unCheckedChildren="OFF" />
               </Form.Item>
-            </Col>
-          </Row>
+            </div>
+
+            <Divider style={{ margin: "16px 0" }} />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <Text strong style={{ fontSize: 14, display: "block" }}>Active Policy</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>Allow this rule to be applied to new requests.</Text>
+              </div>
+              <Form.Item name="status" valuePropName="checked" noStyle>
+                <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
+              </Form.Item>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 24 }}>
+            <Form.Item name="description" label={<Text strong style={{ fontSize: 13 }}>Additional Context</Text>}>
+              <TextArea rows={3} placeholder="Provide details about this policy rule..." />
+            </Form.Item>
+          </div>
         </Form>
-      </Modal>
+      </Drawer>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .action-btn:hover { background: #f1f5f9 !important; color: #2563eb !important; }
+        .action-btn-danger:hover { background: #fff1f2 !important; }
+        .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          text-transform: uppercase !important;
+          font-size: 11px !important;
+          letter-spacing: 0.05em !important;
+        }
+        .ant-table-row:hover > td { background: #f8fafc !important; }
+        .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
+        .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
+      `}} />
     </div>
   );
 }

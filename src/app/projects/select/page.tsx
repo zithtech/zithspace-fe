@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Tag, Input, Empty, Space, Avatar, Tooltip, Progress, Badge, Spin } from 'antd';
-import { 
-  SearchOutlined, 
-  ProjectOutlined, 
-  UserOutlined, 
-  TeamOutlined, 
-  CheckCircleOutlined, 
-  SyncOutlined, 
+import {
+  SearchOutlined,
+  ProjectOutlined,
+  UserOutlined,
+  TeamOutlined,
+  CheckCircleOutlined,
+  SyncOutlined,
   ClockCircleOutlined,
   LayoutOutlined,
   ArrowRightOutlined
@@ -24,15 +24,12 @@ import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
 
-// Helper to generate a consistent color from a string
-const stringToColor = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const c = (hash & 0x00ffffff).toString(16).toUpperCase();
-  return '#' + '00000'.substring(0, 6 - c.length) + c;
-};
+// Professional blue color palette constants
+const BLUE_PRIMARY = '#2563eb';
+const BLUE_LIGHT = '#eff6ff';
+const BLUE_BORDER = '#dbeafe';
+const BLUE_TEXT = '#1e3a8a';
+const BLUE_MUTE = '#60a5fa';
 
 function ProjectSelectContent() {
   const router = useRouter();
@@ -50,20 +47,6 @@ function ProjectSelectContent() {
     }
   }, [authLoading, canReadProject, router]);
 
-  // Auto-redirect logic
-  React.useEffect(() => {
-    const isExplicitSelect = searchParams.get('select') === 'true';
-
-    if (!isExplicitSelect) {
-      const lastProjectId = localStorage.getItem('lastProjectId');
-      if (lastProjectId) {
-        router.replace(`/projects/${lastProjectId}/tickets`);
-        return;
-      }
-    }
-    setIsRedirecting(false);
-  }, [router, searchParams]);
-
   // Fetch projects
   const { data: response, isLoading: projectsLoading } = useQuery({
     queryKey: ['projects', 'selection'],
@@ -74,6 +57,35 @@ function ProjectSelectContent() {
 
   const projects = Array.isArray(response) ? response : (response?.data || []);
   const isLoading = authLoading || projectsLoading;
+
+  // Optimized redirect logic with verification
+  useEffect(() => {
+    // Wait until auth and projects are loaded
+    if (authLoading || projectsLoading) return;
+    
+    // If explicitly selecting, don't redirect
+    const isExplicitSelect = searchParams.get('select') === 'true';
+    if (isExplicitSelect) {
+      setIsRedirecting(false);
+      return;
+    }
+
+    const lastProjectId = localStorage.getItem('lastProjectId');
+    if (lastProjectId) {
+      // Verify the ID belongs to an accessible project
+      const isValid = projects.some((p: any) => p.id === lastProjectId || p.value === lastProjectId);
+      
+      if (isValid) {
+        router.replace(`/projects/${lastProjectId}/tickets`);
+        return;
+      } else {
+        // Clear invalid ID to prevent loops
+        localStorage.removeItem('lastProjectId');
+      }
+    }
+    
+    setIsRedirecting(false);
+  }, [authLoading, projectsLoading, projects, router, searchParams]);
 
   if (!canReadProject && !authLoading) {
     return null;
@@ -96,16 +108,16 @@ function ProjectSelectContent() {
 
   return (
     <MainLayout>
-      <div style={{ 
-        padding: '32px 40px 48px 40px', 
-        minHeight: '100vh', 
+      <div style={{
+        padding: '32px 40px 48px 40px',
+        minHeight: '100vh',
         background: '#ffffff',
         fontFamily: "'Inter', sans-serif"
       }}>
         {/* Header Section - Modern Single Row Layout */}
-        <div style={{ 
-          maxWidth: 1200, 
-          margin: '0 auto 40px auto', 
+        <div style={{
+          maxWidth: 1200,
+          margin: '0 auto 40px auto',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -114,10 +126,10 @@ function ProjectSelectContent() {
         }}>
           <div style={{ flex: '1 1 auto', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-              <LayoutOutlined style={{ color: '#6366f1', fontSize: 24 }} />
-              <Title level={2} style={{ 
-                margin: 0, 
-                fontWeight: 800, 
+              <LayoutOutlined style={{ color: BLUE_PRIMARY, fontSize: 24 }} />
+              <Title level={2} style={{
+                margin: 0,
+                fontWeight: 800,
                 letterSpacing: '-0.025em',
                 fontSize: '2rem',
                 color: '#0f172a'
@@ -125,17 +137,17 @@ function ProjectSelectContent() {
                 My Projects
               </Title>
             </div>
-            <Paragraph style={{ 
-              fontSize: 15, 
-              color: '#64748b', 
-              maxWidth: 500, 
+            <Paragraph style={{
+              fontSize: 15,
+              color: '#64748b',
+              maxWidth: 500,
               margin: 0,
               lineHeight: 1.5
             }}>
               Manage your workflow, track progress, and collaborate with your team.
             </Paragraph>
           </div>
-          
+
           <div style={{ flex: '0 0 400px', minWidth: 300 }}>
             <Input
               size="large"
@@ -144,8 +156,8 @@ function ProjectSelectContent() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               allowClear
-              style={{ 
-                borderRadius: 12, 
+              style={{
+                borderRadius: 12,
                 height: 48,
                 fontSize: 14,
                 border: '1px solid #e2e8f0',
@@ -168,10 +180,10 @@ function ProjectSelectContent() {
               ))}
             </Row>
           ) : filteredProjects.length === 0 ? (
-            <div style={{ 
-              background: '#fff', 
-              borderRadius: 24, 
-              padding: '80px 40px', 
+            <div style={{
+              background: '#fff',
+              borderRadius: 24,
+              padding: '80px 40px',
               textAlign: 'center',
               border: '1px solid #f1f5f9'
             }}>
@@ -193,8 +205,6 @@ function ProjectSelectContent() {
                 const progressPercent = (project?.totalTickets || 0) > 0
                   ? Math.round(((project?.completedTickets || 0) / (project?.totalTickets || 1)) * 100)
                   : 0;
-                
-                const projectColor = stringToColor(project?.name || 'Project');
 
                 return (
                   <Col xs={24} sm={12} lg={8} key={project?.id || 'unknown'}>
@@ -215,48 +225,48 @@ function ProjectSelectContent() {
                     >
                       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         {/* Card Header: Name and Abbreviated Tag */}
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
-                          marginBottom: 16 
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: 16
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                            <div style={{ 
-                              backgroundColor: `${projectColor}15`, 
-                              color: projectColor,
+                            <div style={{
+                              backgroundColor: BLUE_LIGHT,
+                              color: BLUE_PRIMARY,
                               padding: '4px 10px',
                               borderRadius: 8,
                               fontSize: 13,
                               fontWeight: 800,
                               letterSpacing: '0.05em',
-                              border: `1px solid ${projectColor}30`,
+                              border: `1px solid ${BLUE_BORDER}`,
                               flexShrink: 0
                             }}>
                               {project?.name?.substring(0, 2).toUpperCase() || 'PR'}
                             </div>
-                            <Title level={4} style={{ 
-                              margin: 0, 
-                              fontWeight: 700, 
+                            <Title level={4} style={{
+                              margin: 0,
+                              fontWeight: 700,
                               fontSize: 17,
                               color: '#0f172a'
                             }} ellipsis={{ tooltip: project?.name }}>
                               {project?.name || 'Untitled Project'}
                             </Title>
                           </div>
-                          
-                          <Tag 
+
+                          <Tag
                             color={project?.status === 'active' ? 'processing' : 'default'}
-                            style={{ 
-                              margin: 0, 
-                              borderRadius: 100, 
+                            style={{
+                              margin: 0,
+                              borderRadius: 100,
                               padding: '1px 10px',
                               fontWeight: 600,
                               textTransform: 'capitalize',
                               fontSize: 11,
                               border: 'none',
-                              background: project?.status === 'active' ? '#eef2ff' : '#f8fafc',
-                              color: project?.status === 'active' ? '#4f46e5' : '#64748b',
+                              background: project?.status === 'active' ? BLUE_LIGHT : '#f8fafc',
+                              color: project?.status === 'active' ? BLUE_PRIMARY : '#64748b',
                               marginLeft: 12
                             }}
                           >
@@ -283,13 +293,10 @@ function ProjectSelectContent() {
                             <Text style={{ fontSize: 13, color: '#475569', fontWeight: 600 }}>Task Progress</Text>
                             <Text style={{ fontSize: 13, color: '#0f172a', fontWeight: 700 }}>{progressPercent}%</Text>
                           </div>
-                          <Progress 
-                            percent={progressPercent} 
-                            showInfo={false} 
-                            strokeColor={{
-                              '0%': '#6366f1',
-                              '100%': '#818cf8',
-                            }}
+                          <Progress
+                            percent={progressPercent}
+                            showInfo={false}
+                            strokeColor={BLUE_PRIMARY}
                             trailColor="#f1f5f9"
                             strokeWidth={8}
                             style={{ margin: 0 }}
@@ -297,9 +304,9 @@ function ProjectSelectContent() {
                         </div>
 
                         {/* Stats & Members */}
-                        <div style={{ 
-                          marginTop: 'auto', 
-                          paddingTop: 20, 
+                        <div style={{
+                          marginTop: 'auto',
+                          paddingTop: 20,
                           borderTop: '1px solid #f1f5f9',
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -323,18 +330,18 @@ function ProjectSelectContent() {
                           <Avatar.Group
                             maxCount={3}
                             size="small"
-                            maxStyle={{ 
-                              color: '#4338ca', 
-                              backgroundColor: '#e0e7ff',
+                            maxStyle={{
+                              color: BLUE_TEXT,
+                              backgroundColor: BLUE_LIGHT,
                               fontSize: 10,
                               fontWeight: 700
                             }}
                           >
                             {project?.members?.map((member: any, idx: number) => (
                               <Tooltip title={member?.user?.name} key={idx}>
-                                <Avatar 
-                                  src={member?.user?.avatar} 
-                                  style={{ backgroundColor: stringToColor(member?.user?.name || '') }}
+                                <Avatar
+                                  src={member?.user?.avatar}
+                                  style={{ backgroundColor: BLUE_MUTE }}
                                 >
                                   {member?.user?.name?.[0]?.toUpperCase()}
                                 </Avatar>
@@ -344,15 +351,15 @@ function ProjectSelectContent() {
                         </div>
 
                         {/* Hover Action */}
-                        <div className="card-arrow" style={{ 
-                          position: 'absolute', 
-                          top: 24, 
-                          right: 24, 
+                        <div className="card-arrow" style={{
+                          position: 'absolute',
+                          top: 24,
+                          right: 24,
                           opacity: 0,
                           transform: 'translateX(-10px)',
                           transition: 'all 0.3s ease'
                         }}>
-                          <ArrowRightOutlined style={{ color: '#6366f1', fontSize: 16 }} />
+                          <ArrowRightOutlined style={{ color: BLUE_PRIMARY, fontSize: 16 }} />
                         </div>
                       </div>
                     </Card>
@@ -365,7 +372,7 @@ function ProjectSelectContent() {
 
         <style jsx global>{`
           .project-selection-card:hover {
-            border-color: #e0e7ff !important;
+            border-color: ${BLUE_BORDER} !important;
             transform: translateY(-4px);
             box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.05) !important;
           }

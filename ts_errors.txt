@@ -1,0 +1,16 @@
+src/app/onboarding/onboarded/page.tsx(2995,6): error TS17008: JSX element 'ProtectedRoute' has no corresponding closing tag.
+src/app/onboarding/onboarded/page.tsx(3180,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/app/onboarding/onboarded/page.tsx(3184,3): error TS1109: Expression expected.
+src/app/onboarding/onboarded/page.tsx(3185,20): error TS1005: '}' expected.
+src/app/onboarding/onboarded/page.tsx(3185,34): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/app/onboarding/onboarded/page.tsx(3189,17): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/app/onboarding/onboarded/page.tsx(3190,5): error TS1109: Expression expected.
+src/app/onboarding/onboarded/page.tsx(3191,32): error TS1005: '}' expected.
+src/app/onboarding/onboarded/page.tsx(3192,5): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/app/onboarding/onboarded/page.tsx(3193,3): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/app/onboarding/onboarded/page.tsx(3197,5): error TS1109: Expression expected.
+src/app/onboarding/onboarded/page.tsx(3208,3): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/app/onboarding/onboarded/page.tsx(3212,5): error TS1109: Expression expected.
+src/app/onboarding/onboarded/page.tsx(3213,3): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/app/onboarding/onboarded/page.tsx(3216,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/app/onboarding/onboarded/page.tsx(3217,1): error TS1005: '</' expected.

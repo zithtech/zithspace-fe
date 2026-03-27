@@ -510,63 +510,51 @@ export default function PerformanceManagePage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: "16px", minHeight: "100vh" }}>
+      <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#ffffff" }}>
         {/* Sticky Header Section */}
         <div
           style={{
             position: "sticky",
             top: 0,
             zIndex: 100,
-            // backgroundColor: "#f5f5f5",
+            // backgroundColor: "#ffffff",
             paddingTop: "16px",
             paddingBottom: "8px",
             marginBottom: 16,
-            // borderBottom: "1px solid #e8e8e8",
+            // borderBottom: "1px solid #f1f5f9",
           }}
         >
           {/* Header Text */}
           <div style={{ marginBottom: 16 }}>
-            <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+            <Title level={4} style={{ margin: 0, fontWeight: 600, color: "#0f172a", letterSpacing: "-0.02em" }}>
               Performance Management
             </Title>
-            <Text style={{ color: "#64748b", fontSize: "14px" }}>
+            <Text style={{ color: "#64748b", fontSize: "13px" }}>
               Comprehensive tracking of employee efficiency and engagement metrics
             </Text>
           </div>
           <Card
             size="small"
             style={{
-              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-              borderRadius: "16px",
-              border: "1px solid #f1f5f9",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
               position: "relative",
               overflow: "hidden",
               background: "#ffffff",
+              boxShadow: "none",
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "4px",
-                background: "linear-gradient(90deg, #0ea5e9, #6366f1, #a855f7)",
-                borderRadius: "16px 16px 0 0",
-              }}
-            />
+            {/* Removed gradient bar */}
 
             <Space wrap style={{ padding: "8px 4px" }} size={16}>
               <Select
                 placeholder="Select Employee"
                 style={{ width: 220 }}
-                size="large"
                 value={selectedMember}
                 onChange={setSelectedMember}
                 loading={loading}
                 allowClear
                 showSearch
-                className="premium-select"
               >
                 {members.map((member) => (
                   <Option key={member.value} value={member.value}>
@@ -578,10 +566,8 @@ export default function PerformanceManagePage() {
               <Select
                 placeholder="Month"
                 style={{ width: 130 }}
-                size="large"
                 value={selectedMonth}
                 onChange={setSelectedMonth}
-                className="premium-select"
               >
                 {months.map((month) => (
                   <Option key={month.value} value={month.value}>
@@ -593,10 +579,8 @@ export default function PerformanceManagePage() {
               <Select
                 placeholder="Year"
                 style={{ width: 100 }}
-                size="large"
                 value={selectedYear}
                 onChange={setSelectedYear}
-                className="premium-select"
               >
                 {years.map((year) => (
                   <Option key={year} value={year}>
@@ -613,11 +597,11 @@ export default function PerformanceManagePage() {
                 disabled={!selectedMember || !selectedMonth || !selectedYear}
                 loading={performanceLoading || attendanceLoading}
                 style={{
-                  borderRadius: "12px",
-                  background: "#0ea5e9",
+                  borderRadius: "8px",
+                  background: "#0f172a",
                   height: "40px",
-                  padding: "0 24px",
-                  fontWeight: 600,
+                  padding: "0 20px",
+                  fontWeight: 500,
 
                 }}
               >
@@ -637,8 +621,8 @@ export default function PerformanceManagePage() {
                     gap: "8px"
                   }}
                 >
-                  <Avatar size={24} icon={<UserOutlined />} style={{ backgroundColor: "#0ea5e9" }} />
-                  <Text strong style={{ color: "#0369a1", fontSize: "14px" }}>
+                  <Avatar size={24} icon={<UserOutlined />} style={{ backgroundColor: "#f1f5f9", color: "#64748b" }} />
+                  <Text strong style={{ color: "#334155", fontSize: "13px" }}>
                     {selectedUserDetails.label}
                   </Text>
                 </div>
@@ -684,7 +668,7 @@ export default function PerformanceManagePage() {
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ borderRadius: "16px", border: "1px solid #f1f5f9", height: "100%" }}
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
                         bodyStyle={{ padding: "16px" }}
                       >
                         <Statistic
@@ -719,7 +703,7 @@ export default function PerformanceManagePage() {
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ borderRadius: "16px", border: "1px solid #f1f5f9", height: "100%" }}
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
                         bodyStyle={{ padding: "16px" }}
                       >
                         <Statistic
@@ -763,7 +747,7 @@ export default function PerformanceManagePage() {
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ borderRadius: "16px", border: "1px solid #f1f5f9", height: "100%" }}
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
                         bodyStyle={{ padding: "16px" }}
                       >
                         <Statistic
@@ -799,7 +783,7 @@ export default function PerformanceManagePage() {
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ borderRadius: "16px", border: "1px solid #f1f5f9", height: "100%" }}
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
                         bodyStyle={{ padding: "16px" }}
                       >
                         <Statistic
@@ -841,16 +825,16 @@ export default function PerformanceManagePage() {
                 {/* Tickets Overview */}
                 <Card
                   size="small"
-                  style={{ borderRadius: "16px", border: "1px solid #f1f5f9", marginBottom: 20 }}
+                  style={{ borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: 20, boxShadow: "none" }}
                   title={
                     <Space size={8}>
-                      <div style={{ background: "#e0f2fe", padding: "6px", borderRadius: "8px", display: "flex" }}>
-                        <TagOutlined style={{ color: "#0ea5e9" }} />
+                      <div style={{ background: "#f1f5f9", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                        <TagOutlined style={{ color: "#64748b" }} />
                       </div>
-                      <span style={{ fontSize: 16, fontWeight: 600, color: "#1e293b" }}>Tickets Overview</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Tickets Overview</span>
                     </Space>
                   }
-                  extra={<Tag color="blue" style={{ borderRadius: "6px" }}>Total: {ticketSummary.total}</Tag>}
+                  extra={<Tag style={{ borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>Total: {ticketSummary.total}</Tag>}
                 >
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
@@ -1120,19 +1104,19 @@ export default function PerformanceManagePage() {
                 {selectedMember && (
                   <Card
                     size="small"
-                    style={{ borderRadius: "16px", border: "1px solid #f1f5f9" }}
+                    style={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "none" }}
                     title={
                       <Space size={8}>
-                        <div style={{ background: "#f0f9ff", padding: "6px", borderRadius: "8px", display: "flex" }}>
-                          <FileTextOutlined style={{ color: "#0ea5e9" }} />
+                        <div style={{ background: "#f1f5f9", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                          <FileTextOutlined style={{ color: "#64748b" }} />
                         </div>
-                        <span style={{ fontSize: 16, fontWeight: 600, color: "#1e293b" }}>Daily Updates Log</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Daily Updates Log</span>
                       </Space>
                     }
                     extra={
                       <Space size={8}>
-                        <Tag color="blue" style={{ borderRadius: "4px" }}>BOD: {dailyUpdatesSummary.bod}</Tag>
-                        <Tag color="orange" style={{ borderRadius: "4px" }}>EOD: {dailyUpdatesSummary.eod}</Tag>
+                        <Tag style={{ borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>BOD: {dailyUpdatesSummary.bod}</Tag>
+                        <Tag style={{ borderRadius: "4px", border: "none", background: "#fef3c7", color: "#92400e" }}>EOD: {dailyUpdatesSummary.eod}</Tag>
                       </Space>
                     }
                   >
@@ -1142,7 +1126,6 @@ export default function PerformanceManagePage() {
                       rowKey="key"
                       pagination={{ pageSize: 5, size: "small" }}
                       size="small"
-                      className="premium-table"
                       locale={{ emptyText: "No update logs found for this period" }}
                     />
                   </Card>
@@ -1165,23 +1148,23 @@ export default function PerformanceManagePage() {
                 {selectedUserDetails && (
                   <Card
                     size="small"
-                    bodyStyle={{ padding: "8px 12px" }}
-                    style={{ borderRadius: "12px", border: "1px solid #f1f5f9", background: "linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%)" }}
+                    bodyStyle={{ padding: "12px" }}
+                    style={{ borderRadius: "12px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "none" }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <Avatar
                         size={36}
                         icon={<UserOutlined />}
-                        style={{ backgroundColor: "#0ea5e9" }}
+                        style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}
                       />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Text strong style={{ fontSize: "14px", color: "#0f172a", display: "block", lineHeight: 1.1 }}>
                           {selectedUserDetails.label}
                         </Text>
-                        <Space size={4} style={{ marginTop: 2 }} wrap>
-                          <Tag color="blue" style={{ fontSize: "9px", margin: 0, padding: "0 4px", border: "none" }}>Active</Tag>
+                        <Space size={4} style={{ marginTop: 4 }} wrap>
+                          <Tag style={{ fontSize: "10px", margin: 0, padding: "0 6px", borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>Active</Tag>
                           {selectedUserDetails.position && (
-                            <Tag color="cyan" style={{ fontSize: "9px", margin: 0, padding: "0 4px", border: "none" }}>
+                            <Tag style={{ fontSize: "10px", margin: 0, padding: "0 6px", borderRadius: "4px", border: "none", background: "#e0f2fe", color: "#0369a1" }}>
                               {selectedUserDetails.position}
                             </Tag>
                           )}
@@ -1194,10 +1177,10 @@ export default function PerformanceManagePage() {
                 {/* Efficiency Metrics Card */}
                 <Card
                   size="small"
-                  title={<span style={{ fontSize: "12px", fontWeight: 700 }}>Performance Summary</span>}
-                  style={{ borderRadius: "12px", border: "1px solid #f1f5f9" }}
-                  headStyle={{ padding: "2px 12px", minHeight: "28px", borderBottom: "1px solid #f1f5f9" }}
-                  bodyStyle={{ padding: "10px 12px" }}
+                  title={<span style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }}>Performance Summary</span>}
+                  style={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "none" }}
+                  headStyle={{ padding: "4px 12px", minHeight: "32px", borderBottom: "1px solid #f1f5f9" }}
+                  bodyStyle={{ padding: "12px" }}
                 >
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <div>
@@ -1244,13 +1227,13 @@ export default function PerformanceManagePage() {
                 {/* Compact Score Card */}
                 <Card
                   size="small"
-                  bodyStyle={{ padding: "8px 12px" }}
-                  style={{ borderRadius: "12px", border: "1px solid #f1f5f9", background: "linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%)" }}
+                  bodyStyle={{ padding: "12px" }}
+                  style={{ borderRadius: "12px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "none" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", flexDirection: "column" }}>
-                      <Text style={{ fontSize: "10px", color: "#0ea5e9", fontWeight: 700, lineHeight: 1 }}>Overall</Text>
-                      <Text style={{ fontSize: "24px", fontWeight: "800", color: "#0284c7", margin: "2px 0", lineHeight: 1 }}>
+                      <Text style={{ fontSize: "10px", color: "#64748b", fontWeight: 600, lineHeight: 1 }}>Overall</Text>
+                      <Text style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", margin: "4px 0", lineHeight: 1 }}>
                         {performanceScore}%
                       </Text>
                     </div>

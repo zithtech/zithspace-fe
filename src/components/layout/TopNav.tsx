@@ -26,10 +26,12 @@ interface ShortcutItem {
   path: string;
 }
 import { Inbox } from '@novu/nextjs';
-import { ModuleType, NAVIGATION_CONFIG } from './navigationConfig';
+import { ModuleType, NAVIGATION_CONFIG, NAV_MOBILE_BREAKPOINT } from './navigationConfig';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useIsBreakpoint } from '@/hooks/use-is-breakpoint';
 import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
+import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -52,7 +54,9 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
+  const { isPopoverOpen, setPopoverOpen } = useTimeTrackerStore();
   const screens = useBreakpoint();
+  const isCustomBreakpoint = useIsBreakpoint("max", 1214); // true when width <= 1213
 
   // Bookmarks state
   const [shortcutPopoverVisible, setShortcutPopoverVisible] = useState(false);
@@ -93,7 +97,7 @@ export default function TopNav({
   };
 
   // Breakpoints logic
-  const isMobile = !screens.lg;
+  const isMobile = useIsBreakpoint("max", NAV_MOBILE_BREAKPOINT + 1);
   const isSmallMobile = !screens.sm;
 
   // Filter modules by permission
@@ -167,7 +171,7 @@ export default function TopNav({
     }
   };
 
-  const menuItems = visibleModules.map(module => ({
+  const menuItems = visibleModules.map((module, index) => ({
     key: module.key,
     label: (
       <div style={{
@@ -180,8 +184,8 @@ export default function TopNav({
         position: 'relative',
         transition: 'all 0.3s'
       }}>
-        <span style={{ fontSize: '16px', display: 'flex' }}>{module.icon}</span>
-        <span style={{ fontSize: '13px', letterSpacing: '0.3px' }}>{module.label}</span>
+        <span className="module-icon" style={{ fontSize: '16px', display: 'flex' }}>{module.icon}</span>
+        <span className={`module-text module-text-${index}`} style={{ fontSize: '13px', letterSpacing: '0.3px' }}>{module.label}</span>
         {activeModule === module.key && (
           <div style={{
             position: 'absolute',
@@ -197,6 +201,160 @@ export default function TopNav({
       </div>
     ),
   }));
+
+  const renderShortcutsDropdownContent = (isModal = false) => (
+    <div
+      style={{
+        width: isModal ? "100%" : 300,
+        backgroundColor: "white",
+        boxShadow: isModal ? "none" : "0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03)",
+        borderRadius: isModal ? 0 : 8,
+        border: isModal ? "none" : "1px solid #f0f0f0",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "12px 16px",
+          borderBottom: "1px solid #f0f0f0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Space>
+          <StarFilled style={{ color: "#1677ff" }} />
+          <Text strong>Bookmarks</Text>
+        </Space>
+      </div>
+
+      <div style={{ maxHeight: 300, overflowY: "auto" }}>
+        {shortcuts.length > 0 ? (
+          shortcuts.map((item: ShortcutItem) => (
+            <div
+              key={item.id}
+              className="shortcut-item"
+              onMouseEnter={() => setHoveredShortcutId(item.id)}
+              onMouseLeave={() => setHoveredShortcutId(null)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 16px",
+                cursor: "pointer",
+                transition: "background-color 0.2s",
+              }}
+            >
+              <div
+                onClick={() => {
+                  router.push(item.path);
+                  setShortcutPopoverVisible(false);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <FolderOutlined
+                  style={{ color: "#8c8c8c", fontSize: 16 }}
+                />
+                <Text
+                  style={{ fontSize: 13, color: "#262626" }}
+                  ellipsis
+                >
+                  {item.name}
+                </Text>
+              </div>
+
+              {hoveredShortcutId === item.id ? (
+                <Tooltip title="Delete Bookmark">
+                  <Button
+                    type="text"
+                    shape="circle"
+                    icon={
+                      <DeleteOutlined
+                        style={{ fontSize: 14, color: "#8c8c8c" }}
+                      />
+                    }
+                    size="small"
+                    onClick={(e) => handleDeleteBookmark(item.id, e)}
+                  />
+                </Tooltip>
+              ) : (
+                <RightOutlined
+                  style={{ fontSize: 10, color: "#bfbfbf" }}
+                />
+              )}
+            </div>
+          ))
+        ) : (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No bookmarks"
+            style={{ padding: "20px 0" }}
+          />
+        )}
+      </div>
+
+      <div
+        style={{
+          padding: "8px 16px",
+          borderTop: "1px solid #f0f0f0",
+          background: "#fafafa",
+        }}
+      >
+        {isAddMode ? (
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <Input
+              placeholder="Name"
+              value={newShortcutName}
+              onChange={(e) => setNewShortcutName(e.target.value)}
+              size="small"
+            />
+            <Input
+              placeholder="URL"
+              value={newShortcutPath}
+              onChange={(e) => setNewShortcutPath(e.target.value)}
+              size="small"
+            />
+            <Space
+              style={{ justifyContent: "flex-end", width: "100%" }}
+            >
+              <Button
+                size="small"
+                onClick={() => setIsAddMode(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                size="small"
+                onClick={handleSaveBookmark}
+              >
+                Save
+              </Button>
+            </Space>
+          </Space>
+        ) : (
+          <Button
+            type="text"
+            icon={<PlusOutlined />}
+            onClick={() => setIsAddMode(true)}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              padding: "4px 0",
+            }}
+          >
+            Add Bookmark
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <Header
@@ -247,7 +405,7 @@ export default function TopNav({
                   objectFit: 'contain'
                 }}
               />
-              {!collapsed && !isMobile && (
+              {!collapsed && user?.tenantName && (
                 <Text
                   strong
                   style={{
@@ -277,7 +435,7 @@ export default function TopNav({
                 letterSpacing: "-0.5px"
               }}
             >
-              {isMobile ? (user?.tenantName?.charAt(0) || 'Z') : (collapsed ? (user?.tenantName?.charAt(0) || 'Z') : (user?.tenantName || 'Zithtech'))}
+              {collapsed ? (user?.tenantName?.charAt(0) || 'Z') : (user?.tenantName || 'Zithtech')}
             </Text>
           )}
         </div>
@@ -312,7 +470,7 @@ export default function TopNav({
             }}
             trigger={["click"]}
           >
-            <Button type="text" icon={<AppstoreOutlined />} style={{ fontWeight: 600 }}>
+            <Button type="text" icon={<AppstoreOutlined />} style={{ fontWeight: 600, marginLeft: 20 }}>
               {!isSmallMobile && activeModule}
             </Button>
           </Dropdown>
@@ -321,7 +479,7 @@ export default function TopNav({
 
       {/* Right Side: User Actions */}
       <Space size={isSmallMobile ? 4 : 12} align="center" style={{ flexShrink: 0 }}>
-        {!isMobile ? (
+        {!isCustomBreakpoint ? (
           <>
             <TimeTrackerPopover />
             <Button
@@ -353,7 +511,7 @@ export default function TopNav({
               />
             </div>
             <Dropdown
-              open={shortcutPopoverVisible}
+              open={shortcutPopoverVisible && !isCustomBreakpoint}
               onOpenChange={(visible) => {
                 if (!visible && deleteModalOpen) return;
                 setShortcutPopoverVisible(visible);
@@ -363,168 +521,13 @@ export default function TopNav({
                   setNewShortcutPath("");
                 }
               }}
-              dropdownRender={() => (
-                <div
-                  style={{
-                    width: 300,
-                    backgroundColor: "white",
-                    boxShadow:
-                      "0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03)",
-                    borderRadius: 8,
-                    border: "1px solid #f0f0f0",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "12px 16px",
-                      borderBottom: "1px solid #f0f0f0",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Space>
-                      <StarFilled style={{ color: "#1677ff" }} />
-                      <Text strong>Bookmarks</Text>
-                    </Space>
-                  </div>
-
-                  {/* Bookmark List */}
-                  <div style={{ maxHeight: 300, overflowY: "auto" }}>
-                    {shortcuts.length > 0 ? (
-                      shortcuts.map((item: ShortcutItem) => (
-                        <div
-                          key={item.id}
-                          className="shortcut-item"
-                          onMouseEnter={() => setHoveredShortcutId(item.id)}
-                          onMouseLeave={() => setHoveredShortcutId(null)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "10px 16px",
-                            cursor: "pointer",
-                            transition: "background-color 0.2s",
-                          }}
-                        >
-                          <div
-                            onClick={() => {
-                              router.push(item.path);
-                              setShortcutPopoverVisible(false);
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 12,
-                              flex: 1,
-                              minWidth: 0,
-                            }}
-                          >
-                            <FolderOutlined
-                              style={{ color: "#8c8c8c", fontSize: 16 }}
-                            />
-                            <Text
-                              style={{ fontSize: 13, color: "#262626" }}
-                              ellipsis
-                            >
-                              {item.name}
-                            </Text>
-                          </div>
-
-                          {hoveredShortcutId === item.id ? (
-                            <Tooltip title="Delete Bookmark">
-                              <Button
-                                type="text"
-                                shape="circle"
-                                icon={
-                                  <DeleteOutlined
-                                    style={{ fontSize: 14, color: "#8c8c8c" }}
-                                  />
-                                }
-                                size="small"
-                                onClick={(e) => handleDeleteBookmark(item.id, e)}
-                              />
-                            </Tooltip>
-                          ) : (
-                            <RightOutlined
-                              style={{ fontSize: 10, color: "#bfbfbf" }}
-                            />
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="No bookmarks"
-                        style={{ padding: "20px 0" }}
-                      />
-                    )}
-                  </div>
-
-                  {/* Add/Form Section */}
-                  <div
-                    style={{
-                      padding: "8px 16px",
-                      borderTop: "1px solid #f0f0f0",
-                      background: "#fafafa",
-                    }}
-                  >
-                    {isAddMode ? (
-                      <Space direction="vertical" style={{ width: "100%" }}>
-                        <Input
-                          placeholder="Name"
-                          value={newShortcutName}
-                          onChange={(e) => setNewShortcutName(e.target.value)}
-                          size="small"
-                        />
-                        <Input
-                          placeholder="URL"
-                          value={newShortcutPath}
-                          onChange={(e) => setNewShortcutPath(e.target.value)}
-                          size="small"
-                        />
-                        <Space
-                          style={{ justifyContent: "flex-end", width: "100%" }}
-                        >
-                          <Button
-                            size="small"
-                            onClick={() => setIsAddMode(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="primary"
-                            size="small"
-                            onClick={handleSaveBookmark}
-                          >
-                            Save
-                          </Button>
-                        </Space>
-                      </Space>
-                    ) : (
-                      <Button
-                        type="text"
-                        icon={<PlusOutlined />}
-                        onClick={() => setIsAddMode(true)}
-                        style={{
-                          width: "100%",
-                          textAlign: "left",
-                          padding: "4px 0",
-                        }}
-                      >
-                        Add Bookmark
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
+              popupRender={() => renderShortcutsDropdownContent(false)}
               trigger={["click"]}
             >
               <Button
                 type="text"
                 icon={
-                  shortcutPopoverVisible ? (
+                  (shortcutPopoverVisible && !isCustomBreakpoint) ? (
                     <StarFilled style={{ color: "#1677ff" }} />
                   ) : (
                     <StarOutlined />
@@ -539,7 +542,8 @@ export default function TopNav({
               items: [
                 {
                   key: 'timer',
-                  label: <TimeTrackerPopover />,
+                  label: <TimeTrackerPopover isMenuItem />,
+                  onClick: () => setPopoverOpen(true)
                 },
                 {
                   key: 'mail',
@@ -562,7 +566,7 @@ export default function TopNav({
                 {
                   key: 'notification',
                   label: (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <Inbox
                         applicationIdentifier="67g_5lVLFWvd"
                         subscriberId={user?.id}
@@ -574,24 +578,18 @@ export default function TopNav({
                           },
                         }}
                       />
-                      <span>Notifications</span>
+                      <span style={{ fontSize: 13, color: '#262626' }}>Notifications</span>
                     </div>
                   ),
                 },
                 {
                   key: 'bookmarks',
-                  label: (
-                    <div 
-                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShortcutPopoverVisible(true);
-                      }}
-                    >
-                      <StarOutlined />
-                      <span>Bookmarks</span>
-                    </div>
-                  ),
+                  label: 'Bookmarks',
+                  icon: <StarOutlined />,
+                  onClick: (e) => {
+                    e.domEvent.stopPropagation();
+                    setShortcutPopoverVisible(true);
+                  }
                 }
               ]
             }}
@@ -600,6 +598,42 @@ export default function TopNav({
           >
             <Button type="text" icon={<MoreOutlined style={{ fontSize: 20 }} />} />
           </Dropdown>
+        )}
+
+        {/* Mobile Bookmark Modal - Ensuring bookmarks only show when specifically clicked on mobile */}
+        {isCustomBreakpoint && (
+          <Modal
+            open={shortcutPopoverVisible}
+            onCancel={() => {
+              if (deleteModalOpen) return;
+              setShortcutPopoverVisible(false);
+              setIsAddMode(false);
+            }}
+            footer={null}
+            title={null}
+            closable={false}
+            width={320}
+            centered
+            styles={{ body: { padding: 0 } }}
+          >
+            {renderShortcutsDropdownContent(true)}
+          </Modal>
+        )}
+
+        {/* Mobile Timer Modal - Rendering form content directly for seamless mobile use */}
+        {isCustomBreakpoint && (
+          <Modal
+            open={isPopoverOpen}
+            onCancel={() => setPopoverOpen(false)}
+            footer={null}
+            title={<div style={{ textAlign: 'center', paddingBottom: 12, borderBottom: '1px solid #f0f0f0' }}>Time Tracker</div>}
+            closable={true}
+            width={340}
+            centered
+            styles={{ body: { padding: "20px 24px" } }}
+          >
+             <TimeTrackerPopover showContentOnly />
+          </Modal>
         )}
 
         <Divider type="vertical" style={{ margin: isSmallMobile ? "0 4px" : "0 8px" }} />
@@ -658,6 +692,24 @@ export default function TopNav({
                 }
                 .ant-header {
                     transition: all 0.3s ease;
+                }
+                .module-text {
+                    transition: all 0.2s ease;
+                }
+                @media (max-width: 1100px) {
+                    .module-text-4 { display: none !important; }
+                }
+                @media (max-width: 1000px) {
+                    .module-text-3 { display: none !important; }
+                }
+                @media (max-width: 900px) {
+                    .module-text-2 { display: none !important; }
+                }
+                @media (max-width: 800px) {
+                    .module-text-1 { display: none !important; }
+                }
+                @media (max-width: 700px) {
+                    .module-text-0 { display: none !important; }
                 }
                 /* Hide the default Ant Design horizontal menu bottom bar */
                 .ant-menu-horizontal > .ant-menu-item::after, 

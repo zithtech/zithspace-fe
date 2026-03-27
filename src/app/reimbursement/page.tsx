@@ -13,7 +13,7 @@ import {
   DollarOutlined,
   SettingOutlined,
   PlusOutlined,
-  ApartmentOutlined 
+  ApartmentOutlined
 } from "@ant-design/icons";
 
 import EmployeeTab from "@/components/reimbursement/EmployeeTab";
@@ -42,11 +42,11 @@ export default function ReimbursementPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );
@@ -103,7 +103,7 @@ export default function ReimbursementPage() {
               ),
               children: <SettingsTab />,
             },
-             {
+            {
               key: "reimbursement configuration",
               label: (
                 <Space>

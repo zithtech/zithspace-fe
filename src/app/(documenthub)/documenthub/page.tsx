@@ -257,7 +257,7 @@ const DocumentHubPage = (props: Props) => {
     <MainLayout>
       {contextHolder}
       {modalContextHolder}
-      <div className="h-[calc(100vh-64px)] flex flex-col p-6">
+      <div className="h-[calc(100vh-64px)] flex flex-col px-2 pt-4 pb-2">
         <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
@@ -286,9 +286,11 @@ const DocumentHubPage = (props: Props) => {
         </div>
 
         {/* Main Card - This will scroll as a whole */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-y-auto" style={{marginBottom:20}}>
+        <div
+        // className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-y-auto" style={{marginBottom:20}}
+        >
           {/* Dashboard Cards */}
-          <div className="p-4">
+          <div className="px-4 pt-4 pb-2">
             <DocumentHubDashboard
               documentHubs={documentHubs}
               isLoading={hubsLoading}
@@ -298,7 +300,7 @@ const DocumentHubPage = (props: Props) => {
 
           {/* Filters Section - Sticky inside the card */}
           <div className="sticky top-0  bg-white z-20">
-            <div className="p-4 flex items-center gap-2 justify-between">
+            <div className="px-4 py-2 flex items-center gap-2 justify-between">
               <div className="flex items-center gap-2 w-full">
                 <Input
                   placeholder="Search..."
@@ -344,7 +346,7 @@ const DocumentHubPage = (props: Props) => {
             </div>
           </div>
 
-         
+
           <div className="p-2">
             <Table
               columns={columns}

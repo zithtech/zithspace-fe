@@ -267,13 +267,14 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
   const hasPendingTickets = pendingTickets.length > 0;
 
   return (
-    <div style={{ padding: 24, height: "calc(85vh - 220px)", overflow: "auto" }}>
+    <div style={{ padding: '24px 32px', height: "calc(85vh - 220px)", overflow: "auto", background: '#ffffff' }}>
       {!hasPendingTickets ? (
-        <Empty
-          description="No pending tickets"
-          style={{ marginTop: 100 }}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+        <div style={{ padding: '100px 0', textAlign: 'center' }}>
+          <Empty
+            description={<Text type="secondary" style={{ fontSize: 16 }}>All tickets have been resolved!</Text>}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        </div>
       ) : (
         <>
           {/* Empty State Warning */}
@@ -282,172 +283,198 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
             <Alert
               message="Limited Resolution Options"
               description={
-                <Space direction="vertical" size={4}>
+                <Space direction="vertical" size={2}>
                   {summary.availableDestinations.sprints.length === 0 && (
-                    <Text>• No upcoming sprints available. You can move tickets to Backlog or Trash.</Text>
-                  )}
+                    <Text style={{ fontSize: 13 }}>• No upcoming sprints available. You can move tickets to Backlog or Trash.</Text>
+                  ) || null}
                   {summary.availableDestinations.buckets.length === 0 && (
-                    <Text>• No buckets found. Create a bucket in the Buckets page to organize tickets.</Text>
-                  )}
+                    <Text style={{ fontSize: 13 }}>• No buckets found. Create a bucket in the Buckets page to organize tickets.</Text>
+                  ) || null}
                 </Space>
               }
               type="warning"
               showIcon
-              closable
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: 24, borderRadius: 12 }}
             />
           )}
 
           {/* Bulk Action Toolbar */}
-          <Card style={{ marginBottom: 16 }}>
-            <Space direction="vertical" size={12} style={{ width: "100%" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Space>
-                  <Text strong>Select Tickets & Choose Action</Text>
-                  <Text type="secondary">
-                    ({selectedRowKeys.length} of {summary.tickets.pending.length} tickets selected)
+          <Card 
+            bordered={false} 
+            style={{ 
+              marginBottom: 24, 
+              borderRadius: 16, 
+              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
+              background: '#ffffff',
+              border: '1px solid #f0f0f0'
+            }}
+            styles={{ body: { padding: '16px 24px' } }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: 'wrap', gap: 16 }}>
+              <Space direction="vertical" size={0}>
+                <Text strong style={{ fontSize: 15, color: '#1a1a1a' }}>Resolve Pending Tickets</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Selected <strong>{selectedRowKeys.length}</strong> of {summary.tickets.pending.length} tickets
+                </Text>
+              </Space>
+
+              <Space size={12} wrap>
+                {selectedRowKeys.length > 0 && (
+                  <>
+                    <Tooltip title="Move to Backlog">
+                      <Button
+                        icon={<ArrowLeftOutlined />}
+                        onClick={() => handleBulkAction('move_to_backlog')}
+                        style={{ borderRadius: 8, height: 36 }}
+                      >
+                        Backlog
+                      </Button>
+                    </Tooltip>
+                    
+                    <Select
+                      placeholder="Move to Sprint"
+                      style={{ width: 180 }}
+                      onChange={(value) => {
+                        if (value === '__create_new__') {
+                          setShowSprintModal(true);
+                        } else {
+                          handleBulkAction('move_to_sprint', value);
+                        }
+                      }}
+                      suffixIcon={<RocketOutlined />}
+                      dropdownStyle={{ borderRadius: 8 }}
+                    >
+                      {summary.availableDestinations.sprints.map((sprint) => (
+                        <Option key={sprint.id} value={sprint.id}>
+                          {sprint.version}
+                        </Option>
+                      ))}
+                      <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 8 }}>
+                        <PlusOutlined style={{ marginRight: 8 }} />
+                        Create New Sprint
+                      </Option>
+                    </Select>
+
+                    <Select
+                      placeholder="Move to Bucket"
+                      style={{ width: 180 }}
+                      onChange={(value) => {
+                        if (value === '__create_new__') {
+                          setShowBucketModal(true);
+                        } else {
+                          handleBulkAction('move_to_bucket', value);
+                        }
+                      }}
+                      suffixIcon={<FolderOutlined />}
+                      dropdownStyle={{ borderRadius: 8 }}
+                    >
+                      {summary.availableDestinations.buckets.map((bucket) => (
+                        <Option key={bucket.id} value={bucket.id}>
+                          {bucket.name}
+                        </Option>
+                      ))}
+                      <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 8 }}>
+                        <PlusOutlined style={{ marginRight: 8 }} />
+                        Create New Bucket
+                      </Option>
+                    </Select>
+
+                    <Tooltip title="Move to Trash">
+                      <Button
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleBulkAction('move_to_trash')}
+                        style={{ borderRadius: 8, height: 36 }}
+                      />
+                    </Tooltip>
+
+                    {activeBulkAction && (
+                      <div style={{ display: 'flex', alignItems: 'center', marginLeft: 8, gap: 12 }}>
+                        <Divider type="vertical" style={{ height: 24, margin: '0 4px' }} />
+                        <Button
+                          type="primary"
+                          icon={<SendOutlined />}
+                          onClick={handleSubmit}
+                          loading={bulkResolve.isPending}
+                          style={{ 
+                            borderRadius: 8, 
+                            height: 36, 
+                            padding: '0 20px',
+                            background: 'linear-gradient(90deg, #1890ff, #096dd9)',
+                            border: 'none',
+                            boxShadow: '0 4px 10px rgba(24, 144, 255, 0.25)'
+                          }}
+                        >
+                          Resolve {selectedRowKeys.length}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+                {selectedRowKeys.length === 0 && (
+                  <Text type="secondary" style={{ fontStyle: 'italic', fontSize: 13 }}>
+                    Select tickets from the table below to take action
                   </Text>
-                </Space>
-              </div>
-
-              {selectedRowKeys.length > 0 && (
-                <Space wrap>
-                  <Button
-                    size="small"
-                    icon={<ArrowLeftOutlined />}
-                    onClick={() => handleBulkAction('move_to_backlog')}
-                  >
-                    Move to Backlog
-                  </Button>
-                  <Select
-                    placeholder="Move to Sprint"
-                    style={{ width: 180 }}
-                    size="small"
-                    onChange={(value) => {
-                      if (value === '__create_new__') {
-                        setShowSprintModal(true);
-                      } else {
-                        handleBulkAction('move_to_sprint', value);
-                      }
-                    }}
-                    suffixIcon={<RocketOutlined />}
-                  >
-                    {summary.availableDestinations.sprints.map((sprint) => (
-                      <Option key={sprint.id} value={sprint.id}>
-                        {sprint.version}
-                      </Option>
-                    ))}
-                    <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
-                      <PlusOutlined style={{ marginRight: 8 }} />
-                      Create New Sprint
-                    </Option>
-                  </Select>
-                  <Select
-                    placeholder="Move to Bucket"
-                    style={{ width: 180 }}
-                    size="small"
-                    onChange={(value) => {
-                      if (value === '__create_new__') {
-                        setShowBucketModal(true);
-                      } else {
-                        handleBulkAction('move_to_bucket', value);
-                      }
-                    }}
-                    suffixIcon={<FolderOutlined />}
-                  >
-                    {summary.availableDestinations.buckets.map((bucket) => (
-                      <Option key={bucket.id} value={bucket.id}>
-                        {bucket.name}
-                      </Option>
-                    ))}
-                    <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
-                      <PlusOutlined style={{ marginRight: 8 }} />
-                      Create New Bucket
-                    </Option>
-                  </Select>
-                  <Button
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleBulkAction('move_to_trash')}
-                  >
-                    Move to Trash
-                  </Button>
-
-                  {/* Inline Resolve & Clear Buttons */}
-                  {activeBulkAction && (
-                    <>
-                      <Divider type="vertical" style={{ height: 24, margin: '0 8px' }} />
-                      <Button
-                        type="primary"
-                        size="small"
-                        icon={<SendOutlined />}
-                        onClick={handleSubmit}
-                        loading={bulkResolve.isPending}
-                      >
-                        Resolve ({selectedRowKeys.length})
-                      </Button>
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setSelectedRowKeys([]);
-                          setActiveBulkAction(null);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    </>
-                  )}
-                </Space>
-              )}
-            </Space>
+                )}
+              </Space>
+            </div>
           </Card>
 
           {/* Active Bulk Action Banner */}
           {activeBulkAction && selectedRowKeys.length > 0 && (
-            <Alert
-              message={
-                <Space>
-                  <Text strong>Active Action:</Text>
-                  <Tag color={SprintCompletionService.getActionColor(activeBulkAction.action)}>
-                    {SprintCompletionService.getActionLabel(activeBulkAction.action)}
-                    {activeBulkAction.destinationName && ` → ${activeBulkAction.destinationName}`}
-                  </Tag>
-                  <Text type="secondary">
-                    for {selectedRowKeys.length} selected ticket(s)
-                  </Text>
-                </Space>
-              }
-              type="info"
-              showIcon
-              closable
-              onClose={() => setActiveBulkAction(null)}
-              action={
-                <Button size="small" onClick={() => setActiveBulkAction(null)}>
-                  Clear
-                </Button>
-              }
-              style={{ marginBottom: 16 }}
-            />
+            <div 
+              style={{ 
+                marginBottom: 20, 
+                padding: '12px 20px', 
+                background: '#e6f7ff', 
+                border: '1px solid #91d5ff', 
+                borderRadius: 12,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                animation: 'fadeIn 0.3s ease-out'
+              }}
+            >
+              <Space>
+                <RocketOutlined style={{ color: '#1890ff', fontSize: 16 }} />
+                <Text strong>Pending Action:</Text>
+                <Tag color={SprintCompletionService.getActionColor(activeBulkAction.action)} style={{ borderRadius: 4, margin: 0, fontWeight: 500 }}>
+                  {SprintCompletionService.getActionLabel(activeBulkAction.action)}
+                  {activeBulkAction.destinationName && ` → ${activeBulkAction.destinationName}`}
+                </Tag>
+                <Text>for {selectedRowKeys.length} ticket(s)</Text>
+              </Space>
+              <Button 
+                type="text" 
+                size="small" 
+                onClick={() => setActiveBulkAction(null)}
+                style={{ color: '#1890ff' }}
+              >
+                Cancel Action
+              </Button>
+            </div>
           )}
 
           {/* Tickets Table */}
-          <Table
-            columns={columns}
-            dataSource={summary.tickets.pending}
-            rowKey="id"
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} tickets`,
-            }}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: setSelectedRowKeys,
-            }}
-            scroll={{ x: 1000 }}
-            size="small"
-          />
+          <div style={{ background: '#ffffff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)', border: '1px solid #f0f0f0' }}>
+            <Table
+              columns={columns}
+              dataSource={summary.tickets.pending}
+              rowKey="id"
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} pending tickets`,
+              }}
+              rowSelection={{
+                selectedRowKeys,
+                onChange: setSelectedRowKeys,
+              }}
+              scroll={{ x: 1000 }}
+              size="middle"
+              className="custom-premium-table"
+            />
+          </div>
 
           {/* Sprint Creation Modal */}
           <Modal

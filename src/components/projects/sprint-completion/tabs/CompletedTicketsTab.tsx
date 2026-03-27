@@ -10,6 +10,7 @@ import {
   Badge,
   Avatar,
   Tooltip,
+  Card,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -23,7 +24,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 interface CompletedTicketsTabProps {
   tickets: SprintTicket[];
@@ -43,7 +44,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
       key: "ticketNumber",
       width: 120,
       fixed: "left",
-      render: (text) => <Tag color="green">{text}</Tag>,
+      render: (text) => <Tag color="blue">{text}</Tag>,
     },
     {
       title: "Title",
@@ -109,7 +110,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
         <Badge 
           count={points} 
           showZero 
-          style={{ backgroundColor: '#52c41a' }} 
+          style={{ backgroundColor: '#1890ff' }} 
         />
       ),
     },
@@ -146,75 +147,123 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
   ];
 
   return (
-    <div style={{ padding: 24, height: "calc(85vh - 220px)", overflow: "auto" }}>
+    <div style={{ padding: '24px 32px', height: "calc(85vh - 220px)", overflow: "auto", background: '#ffffff' }}>
       {tickets.length === 0 ? (
-        <Empty
-          description="No completed tickets"
-          style={{ marginTop: 100 }}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+        <div style={{ padding: '100px 0', textAlign: 'center' }}>
+          <Empty
+            description={<Text type="secondary" style={{ fontSize: 16 }}>No tickets completed in this sprint yet.</Text>}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        </div>
       ) : (
         <>
           {/* Summary Header */}
-          <div
-            style={{
-              marginBottom: 16,
-              padding: 16,
-              background: "#f6ffed",
-              border: "1px solid #b7eb8f",
-              borderRadius: 8,
+          <Card 
+            bordered={false} 
+            style={{ 
+              marginBottom: 20, 
+              borderRadius: 16, 
+              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.03)',
+              background: '#ffffff',
+              border: '1px solid #f0f0f0'
             }}
+            styles={{ body: { padding: '16px 24px' } }}
           >
-            <Space size={24}>
-              <Space>
-                <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 20 }} />
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
-                    Completed Tickets
-                  </Text>
-                  <Text strong style={{ fontSize: 20 }}>
-                    {tickets.length}
-                  </Text>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Space size={48}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ 
+                    width: 44, 
+                    height: 44, 
+                    borderRadius: 12, 
+                    background: 'rgba(24, 144, 255, 0.1)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#1890ff'
+                  }}>
+                    <CheckCircleOutlined style={{ fontSize: 22 }} />
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Resolved</Text>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{tickets.length}</Title>
+                      <Text type="secondary" style={{ fontSize: 13 }}>Tickets</Text>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ 
+                    width: 44, 
+                    height: 44, 
+                    borderRadius: 12, 
+                    background: 'rgba(24, 144, 255, 0.1)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#1890ff'
+                  }}>
+                    <TrophyOutlined style={{ fontSize: 22 }} />
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Velocity</Text>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{totalPoints}</Title>
+                      <Text type="secondary" style={{ fontSize: 13 }}>Points</Text>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ 
+                    width: 44, 
+                    height: 44, 
+                    borderRadius: 12, 
+                    background: 'rgba(24, 144, 255, 0.1)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: '#1890ff'
+                  }}>
+                    <UserOutlined style={{ fontSize: 22 }} />
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Squad</Text>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      <Title level={4} style={{ margin: 0, fontWeight: 700 }}>
+                        {new Set(tickets.map(t => t.assignee?.id).filter(Boolean)).size}
+                      </Title>
+                      <Text type="secondary" style={{ fontSize: 13 }}>Contributors</Text>
+                    </div>
+                  </div>
                 </div>
               </Space>
-              <Space>
-                <TrophyOutlined style={{ color: "#52c41a", fontSize: 20 }} />
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
-                    Story Points
-                  </Text>
-                  <Text strong style={{ fontSize: 20 }}>
-                    {totalPoints}
-                  </Text>
-                </div>
-              </Space>
-              <Space>
-                <UserOutlined style={{ color: "#52c41a", fontSize: 20 }} />
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
-                    Contributors
-                  </Text>
-                  <Text strong style={{ fontSize: 20 }}>
-                    {new Set(tickets.map(t => t.assignee?.id).filter(Boolean)).size}
-                  </Text>
-                </div>
-              </Space>
-            </Space>
-          </div>
+
+              <div style={{ textAlign: 'right' }}>
+                <Tag color="success" style={{ borderRadius: 6, padding: '4px 12px', fontWeight: 600, fontSize: 13, border: 'none' }}>
+                  SPRINT SUCCESS
+                </Tag>
+              </div>
+            </div>
+          </Card>
 
           {/* Tickets Table */}
-          <Table
-            columns={columns}
-            dataSource={tickets}
-            rowKey="id"
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} completed tickets`,
-            }}
-            scroll={{ x: 1200 }}
-            size="small"
-          />
+          <div style={{ background: '#ffffff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)', border: '1px solid #f0f0f0' }}>
+            <Table
+              columns={columns}
+              dataSource={tickets}
+              rowKey="id"
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `Total ${total} completed tickets`,
+              }}
+              scroll={{ x: 1200 }}
+              size="middle"
+              className="custom-premium-table"
+            />
+          </div>
         </>
       )}
     </div>

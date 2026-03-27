@@ -42,45 +42,27 @@ export default function AttachmentsSection({
   };
 
   return (
-    <div style={{ marginTop: 12 }}>
-      <Space style={{ marginBottom: 4 }}>
-        <Typography.Title level={5} style={{ fontSize: 13, margin: 0 }}>
+    <div style={{ marginTop: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Typography.Title level={5} style={{ fontSize: 13, margin: 0, color: '#595959' }}>
           Attachments
+          {attachments.length > 0 && (
+            <span style={{ fontSize: 12, color: '#bfbfbf', fontWeight: 400, marginLeft: 6 }}>
+              • {attachments.length} files
+            </span>
+          )}
         </Typography.Title>
-        {attachments.length > 0 && (
-          <Tag
-            style={{
-              borderRadius: 10,
-              fontSize: 10,
-              lineHeight: "16px",
-              border: "none",
-              background: "#e6f7ff",
-              color: "#1890ff",
-            }}
-          >
-            {attachments.length}
-          </Tag>
-        )}
-      </Space>
-
-      <div
-        style={{
-          border: "1px solid #f0f0f0",
-          borderRadius: 4,
-          background: "#fff",
-          padding: 12,
-        }}
-      >
+        
         {!isEditing && (
-          <div style={{ marginBottom: 16 }}>
-            <AttachmentUploader
-              onUpload={handleUpload}
-              maxSize={5}
-              disabled={isEditing}
-            />
-          </div>
+          <AttachmentUploader
+            onUpload={handleUpload}
+            maxSize={5}
+            disabled={isEditing}
+          />
         )}
+      </div>
 
+      <div style={{ padding: '0 4px' }}>
         <AttachmentList
           attachments={attachments}
           onDelete={handleDelete}

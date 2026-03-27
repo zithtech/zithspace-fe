@@ -10,7 +10,7 @@ export interface TimeTrackingEntry {
   startTime: string;
   endTime?: string;
   duration?: number;
-  status: "RUNNING" | "STOPPED" | "PAUSED";
+  status: "RUNNING" | "STOPPED" | "PAUSED" | "MANUAL_UPDATED";
   logs?: Array<{ id: string; action: string; createdAt: string }>;
   project?: { id: string; name: string; code?: string };
   ticket?: { id: string; title: string; ticketNumber?: string };
@@ -102,6 +102,25 @@ export class TimeTrackingService {
     } catch (error) {
       if (error instanceof ApiError) throw new Error(error.message);
       throw new Error('Failed to delete entry');
+    }
+  }
+
+  static async addManualEntry(data: {
+    userId?: string;
+    projectId?: string;
+    ticketId?: string;
+    description?: string;
+    startTime: string;
+    endTime: string;
+    billable?: boolean;
+    billingRate?: number;
+  }): Promise<TimeTrackingEntry> {
+    try {
+      const res = await api.post<TimeTrackingEntry>('/api/time-tracking/manual', data);
+      return res;
+    } catch (error) {
+      if (error instanceof ApiError) throw new Error(error.message);
+      throw new Error('Failed to add manual entry');
     }
   }
 }

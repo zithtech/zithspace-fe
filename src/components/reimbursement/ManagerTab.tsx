@@ -462,25 +462,25 @@
 //             font-weight: 600 !important;
 //             background-color: #fafafa !important;
 //           }
-          
+
 //           .manager-table .ant-table-tbody > tr > td {
 //             padding: 6px 10px !important;
 //             font-size: 12px !important;
 //           }
-          
+
 //           .manager-table .ant-table-tbody > tr:hover > td {
 //             background-color: #f5f9ff !important;
 //           }
-          
+
 //           .manager-table .ant-btn {
 //             height: 26px !important;
 //             width: 26px !important;
 //           }
-          
+
 //           .manager-table .ant-pagination {
 //             margin-top: 10px !important;
 //           }
-          
+
 //           .manager-table .ant-pagination-item {
 //             min-width: 26px !important;
 //             height: 26px !important;
@@ -1037,7 +1037,7 @@
 
 // export default function EmployeeTab() {
 //   const router = useRouter();
-  
+
 //   // Fetch data from hooks
 //   const { 
 //     data: reimbursements = [], 
@@ -1103,7 +1103,7 @@
 //       key: "description",
 //       render: (_: any, record: ReimbursementResponse) => {
 //         const description = record.items?.[0]?.description;
-        
+
 //         if (record.items && record.items.length > 1) {
 //           return (
 //             <div>
@@ -1112,7 +1112,7 @@
 //             </div>
 //           );
 //         }
-        
+
 //         return description || '—';
 //       },
 //     },
@@ -1140,7 +1140,7 @@
 //             onClick={() => handleEdit(record.id)}
 //             disabled={deleteMutation.isPending} // Disable while deleting
 //           />
-          
+
 //           <Popconfirm
 //             title="Delete Reimbursement"
 //             description="Are you sure you want to delete this reimbursement?"
@@ -1302,7 +1302,7 @@
 //       key: "description",
 //       render: (_: any, record: ReimbursementResponse) => {
 //         const description = record.items?.[0]?.description;
-        
+
 //         if (record.items && record.items.length > 1) {
 //           return (
 //             <div>
@@ -1311,7 +1311,7 @@
 //             </div>
 //           );
 //         }
-        
+
 //         return description || '—';
 //       },
 //     },
@@ -1389,7 +1389,7 @@
 //   // Transform data - split items into separate rows (no "+X more" message)
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       // Get employee details
 //       const employeeName = reimbursement.employeeName || 
@@ -1399,7 +1399,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       // If there are multiple items, create separate row for each
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
@@ -1432,7 +1432,7 @@
 //         });
 //       }
 //     });
-    
+
 //     console.log('📊 Transformed data (separate rows):', rows);
 //     return rows;
 //   }, [reimbursements]);
@@ -1524,12 +1524,12 @@
 //         <div className="text-gray-500 text-sm">Total Reimbursements</div>
 //         <div className="text-2xl font-bold">{reimbursements.length}</div>
 //       </Tag>
-      
+
 //       <Tag className="!p-4 !h-auto !bg-white !border !rounded-lg !block">
 //         <div className="text-gray-500 text-sm">Total Items</div>
 //         <div className="text-2xl font-bold">{transformedData.length}</div>
 //       </Tag>
-      
+
 //       <Tag className="!p-4 !h-auto !bg-white !border !rounded-lg !block">
 //         <div className="text-gray-500 text-sm">Total Amount</div>
 //         <div className="text-2xl font-bold text-green-600">
@@ -1567,7 +1567,7 @@
 
 // export default function ManagerReimbursementsPage() {
 //   const [searchText, setSearchText] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -1579,7 +1579,7 @@
 //   // Transform data - split items into separate rows (functionality unchanged)
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       // Get employee details
 //       const employeeName = reimbursement.employeeName || 
@@ -1589,7 +1589,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       // If there are multiple items, create separate row for each
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
@@ -1619,7 +1619,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -1701,7 +1701,7 @@
 //           Team Reimbursements
 //         </h2>
 //       </div>
-      
+
 //       <Space size={8}>
 //         <Button 
 //           icon={<ReloadOutlined />} 
@@ -1731,11 +1731,11 @@
 //       <Tag color="blue" className="!px-3 !py-1 !text-sm">
 //         Total Reimbursements: {reimbursements.length}
 //       </Tag>
-      
+
 //       <Tag color="green" className="!px-3 !py-1 !text-sm">
 //         Total Items: {transformedData.length}
 //       </Tag>
-      
+
 //       <Tag color="purple" className="!px-3 !py-1 !text-sm">
 //         Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //       </Tag>
@@ -1773,8 +1773,8 @@
 //   const [previewVisible, setPreviewVisible] = useState(false);
 //   const [previewUrl, setPreviewUrl] = useState("");
 //   const [previewFileName, setPreviewFileName] = useState("");
- 
-  
+
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -1800,7 +1800,7 @@
 //   // Transform data - split items into separate rows
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -1809,7 +1809,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -1840,10 +1840,10 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
- 
+
 
 //   // Filter data based on search
 //   const filteredData = useMemo(() => {
@@ -1911,7 +1911,7 @@
 //       key: "document",
 //       render: (_: any, record: any) => {
 //         const hasAttachments = record.attachments && record.attachments.length > 0;
-        
+
 //         return hasAttachments ? (
 //           <Button 
 //             type="link" 
@@ -1954,7 +1954,7 @@
 //             Team Reimbursements
 //           </h2>
 //         </div>
-        
+
 //         <Space size={8}>
 //           <Button 
 //             icon={<ReloadOutlined />} 
@@ -1984,11 +1984,11 @@
 //         <Tag color="blue" className="!px-3 !py-1 !text-sm">
 //           Total Reimbursements: {reimbursements.length}
 //         </Tag>
-        
+
 //         <Tag color="green" className="!px-3 !py-1 !text-sm">
 //           Total Items: {transformedData.length}
 //         </Tag>
-        
+
 //         <Tag color="purple" className="!px-3 !py-1 !text-sm">
 //           Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //         </Tag>
@@ -2047,7 +2047,7 @@
 //   const [searchText, setSearchText] = useState("");
 //   const [previewVisible, setPreviewVisible] = useState(false);
 //   const [selectedFile, setSelectedFile] = useState<any>(null);
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -2072,7 +2072,7 @@
 //   // Transform data - split items into separate rows
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -2081,7 +2081,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -2112,7 +2112,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -2201,11 +2201,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // If multiple files, show list
 //         if (attachments.length > 1) {
 //           return (
@@ -2233,7 +2233,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         return (
@@ -2278,7 +2278,7 @@
 //             Team Reimbursements
 //           </h2>
 //         </div>
-        
+
 //         <Space size={8}>
 //           <Button 
 //             icon={<ReloadOutlined />} 
@@ -2308,11 +2308,11 @@
 //         <Tag color="blue" className="!px-3 !py-1 !text-sm">
 //           Total Reimbursements: {reimbursements.length}
 //         </Tag>
-        
+
 //         <Tag color="green" className="!px-3 !py-1 !text-sm">
 //           Total Items: {transformedData.length}
 //         </Tag>
-        
+
 //         <Tag color="purple" className="!px-3 !py-1 !text-sm">
 //           Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //         </Tag>
@@ -2408,7 +2408,7 @@
 
 // export default function ManagerReimbursementsPage() {
 //   const [searchText, setSearchText] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -2423,7 +2423,7 @@
 //   // Transform data
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -2432,7 +2432,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -2450,7 +2450,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -2513,11 +2513,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Multiple files
 //         if (attachments.length > 1) {
 //           return (
@@ -2545,7 +2545,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         return (
@@ -2589,7 +2589,7 @@
 //             Team Reimbursements
 //           </h2>
 //         </div>
-        
+
 //         <Space size={8}>
 //           <Button 
 //             icon={<ReloadOutlined />} 
@@ -2619,11 +2619,11 @@
 //         <Tag color="blue" className="!px-3 !py-1 !text-sm">
 //           Total Reimbursements: {reimbursements.length}
 //         </Tag>
-        
+
 //         <Tag color="green" className="!px-3 !py-1 !text-sm">
 //           Total Items: {transformedData.length}
 //         </Tag>
-        
+
 //         <Tag color="purple" className="!px-3 !py-1 !text-sm">
 //           Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //         </Tag>
@@ -2657,7 +2657,7 @@
 
 // export default function ManagerReimbursementsPage() {
 //   const [searchText, setSearchText] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -2672,7 +2672,7 @@
 //   // Transform data
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -2681,7 +2681,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -2699,7 +2699,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -2717,29 +2717,29 @@
 //   const getViewerUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     // Google Docs Viewer (works for PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX)
 //     const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
-    
+
 //     // Microsoft Office Online Viewer (for Office files)
 //     const officeViewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
-    
+
 //     // Check if it's an Office document
 //     const isOfficeDoc = 
 //       fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //       fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //       fileName.endsWith('.ppt') || fileName.endsWith('.pptx') ||
 //       fileType.includes('document') || fileType.includes('spreadsheet') || fileType.includes('presentation');
-    
+
 //     // Check if it's PDF
 //     const isPdf = fileName.endsWith('.pdf') || fileType === 'application/pdf';
-    
+
 //     // Check if it's image
 //     const isImage = fileType?.startsWith('image/') || 
 //                    fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //                    fileName.endsWith('.png') || fileName.endsWith('.gif') ||
 //                    fileName.endsWith('.bmp') || fileName.endsWith('.webp');
-    
+
 //     if (isPdf) {
 //       return file.fileUrl; // Browser PDF viewer
 //     } else if (isImage) {
@@ -2762,7 +2762,7 @@
 //   // Check file type for icon
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
-    
+
 //     if (fileName.endsWith('.pdf')) return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return <FileOutlined className="text-blue-500" />;
 //     if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return <FileOutlined className="text-green-500" />;
@@ -2815,11 +2815,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Multiple files
 //         if (attachments.length > 1) {
 //           return (
@@ -2848,12 +2848,12 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         const fileName = file.fileName || '';
 //         const fileExt = fileName.split('.').pop()?.toUpperCase();
-        
+
 //         return (
 //           <Button
 //             type="link"
@@ -2906,7 +2906,7 @@
 //       >
 //         Approve
 //       </Button>
-      
+
 //       <Button
 //         type="text"
 //         size="small"
@@ -2937,11 +2937,11 @@
 //         <Tag color="blue" className="!px-3 !py-1 !text-sm">
 //           Total Reimbursements: {reimbursements.length}
 //         </Tag>
-        
+
 //         <Tag color="green" className="!px-3 !py-1 !text-sm">
 //           Total Items: {transformedData.length}
 //         </Tag>
-        
+
 //         <Tag color="purple" className="!px-3 !py-1 !text-sm">
 //           Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //         </Tag>
@@ -2978,7 +2978,7 @@
 //   const [searchText, setSearchText] = useState("");
 //   const [previewVisible, setPreviewVisible] = useState(false);
 //   const [previewFile, setPreviewFile] = useState<any>(null);
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -2993,7 +2993,7 @@
 //   // Transform data
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -3002,7 +3002,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -3020,7 +3020,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -3044,13 +3044,13 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     // For PDF files
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       // Use Google Docs Viewer for PDF (works without proxy)
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // For Office documents (Word, Excel, PowerPoint)
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
@@ -3058,19 +3058,19 @@
 //       // Use Microsoft Office Online Viewer
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     // For images, return direct URL
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     // For text files
 //     if (fileName.endsWith('.txt') || fileType === 'text/plain') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Default to Google Docs Viewer for any other file
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
@@ -3078,7 +3078,7 @@
 //   // Check file type for icon
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
-    
+
 //     if (fileName.endsWith('.pdf')) return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return <FileOutlined className="text-blue-500" />;
 //     if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return <FileOutlined className="text-green-500" />;
@@ -3131,11 +3131,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Multiple files
 //         if (attachments.length > 1) {
 //           return (
@@ -3164,12 +3164,12 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         const fileName = file.fileName || '';
 //         const fileExt = fileName.split('.').pop()?.toUpperCase();
-        
+
 //         return (
 //           <Button
 //             type="link"
@@ -3207,7 +3207,7 @@
 //           >
 //             Approve
 //           </Button>
-          
+
 //           <Button
 //             type="text"
 //             size="small"
@@ -3238,11 +3238,11 @@
 //         <Tag color="blue" className="!px-3 !py-1 !text-sm">
 //           Total Reimbursements: {reimbursements.length}
 //         </Tag>
-        
+
 //         <Tag color="green" className="!px-3 !py-1 !text-sm">
 //           Total Items: {transformedData.length}
 //         </Tag>
-        
+
 //         <Tag color="purple" className="!px-3 !py-1 !text-sm">
 //           Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //         </Tag>
@@ -3308,7 +3308,7 @@
 //   const [searchText, setSearchText] = useState("");
 //   const [previewVisible, setPreviewVisible] = useState(false);
 //   const [previewFile, setPreviewFile] = useState<any>(null);
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -3323,7 +3323,7 @@
 //   // Transform data
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -3332,7 +3332,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -3350,7 +3350,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -3379,7 +3379,7 @@
 //     document.body.appendChild(link);
 //     link.click();
 //     document.body.removeChild(link);
-    
+
 //     message.success(`Downloading ${file.fileName}`);
 //   };
 
@@ -3387,31 +3387,31 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     // For PDF files
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // For Office documents
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     // For images
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     // For text files
 //     if (fileName.endsWith('.txt') || fileType === 'text/plain') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Default
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
@@ -3419,7 +3419,7 @@
 //   // Check file type for icon
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
-    
+
 //     if (fileName.endsWith('.pdf')) return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return <FileOutlined className="text-blue-500" />;
 //     if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return <FileOutlined className="text-green-500" />;
@@ -3472,11 +3472,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Multiple files
 //         if (attachments.length > 1) {
 //           return (
@@ -3514,12 +3514,12 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         const fileName = file.fileName || '';
 //         const fileExt = fileName.split('.').pop()?.toUpperCase();
-        
+
 //         return (
 //           <Space>
 //             <Button
@@ -3567,7 +3567,7 @@
 //           >
 //             Approve
 //           </Button>
-          
+
 //           <Button
 //             type="text"
 //             size="small"
@@ -3598,11 +3598,11 @@
 //         <Tag color="blue" className="!px-3 !py-1 !text-sm">
 //           Total Reimbursements: {reimbursements.length}
 //         </Tag>
-        
+
 //         <Tag color="green" className="!px-3 !py-1 !text-sm">
 //           Total Items: {transformedData.length}
 //         </Tag>
-        
+
 //         <Tag color="purple" className="!px-3 !py-1 !text-sm">
 //           Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //         </Tag>
@@ -3611,11 +3611,11 @@
 //   <Tag color="blue" className="!px-2 !py-0.5 !text-[10px] !leading-4 !h-5">
 //     Total Reimbursements: {reimbursements.length}
 //   </Tag>
-  
+
 //   <Tag color="green" className="!px-2 !py-0.5 !text-[10px] !leading-4 !h-5">
 //     Total Items: {transformedData.length}
 //   </Tag>
-  
+
 //   <Tag color="purple" className="!px-2 !py-0.5 !text-[10px] !leading-4 !h-5">
 //     Total Amount: ₹{transformedData.reduce((sum, r) => sum + Number(r.amount || 0), 0).toLocaleString("en-IN")}
 //   </Tag>
@@ -3704,7 +3704,7 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -3723,7 +3723,7 @@
 //   // Transform data
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -3731,7 +3731,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -3751,7 +3751,7 @@
 //         });
 //       }
 //     });
-    
+
 //     console.log('📊 Transformed data:', rows);
 //     return rows;
 //   }, [reimbursements]);
@@ -3769,13 +3769,13 @@
 //   // Handle approve
 //   const handleApprove = (record: any) => {
 //     console.log("✅ Approve button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     // Call approve mutation
 //     approveMutation.mutate(record.reimbursementItemId);
 //   };
@@ -3783,13 +3783,13 @@
 //   // Handle reject button click
 //   const handleRejectClick = (record: any) => {
 //     console.log("❌ Reject button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -3800,14 +3800,14 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     console.log("📤 Confirming reject for:", selectedItem.reimbursementItemId, "remarks:", rejectRemarks);
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
 //     });
-    
+
 //     // Close modal and reset
 //     setRejectModalVisible(false);
 //     setRejectRemarks("");
@@ -3834,18 +3834,18 @@
 //   // Get iframe URL
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
-    
+
 //     if (fileName.endsWith('.pdf')) {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     return file.fileUrl;
 //   };
 
 //   // Get file icon
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
-    
+
 //     if (fileName.endsWith('.pdf')) return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) return <FileOutlined className="text-blue-500" />;
 //     if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return <FileOutlined className="text-green-500" />;
@@ -3900,11 +3900,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         return (
 //           <Space>
 //             {attachments.map((file: any, idx: number) => (
@@ -3936,7 +3936,7 @@
 //         if (record.itemStatus !== 'PENDING') {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -3949,7 +3949,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -4097,7 +4097,7 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -4116,7 +4116,7 @@
 //   // Transform data
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -4124,7 +4124,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -4144,7 +4144,7 @@
 //         });
 //       }
 //     });
-    
+
 //     console.log('📊 Transformed data:', rows);
 //     return rows;
 //   }, [reimbursements]);
@@ -4156,7 +4156,7 @@
 //   // Transform data
 //   useEffect(() => {
 //   console.log('📦 Raw reimbursements:', reimbursements);
-  
+
 //   // Check all unique status values
 //   const allStatuses = new Set();
 //   reimbursements.forEach((reimbursement: any) => {
@@ -4167,7 +4167,7 @@
 //   console.log('🔍 Unique status values from API:', Array.from(allStatuses));
 //   // Monitor item status changes
 
-  
+
 //   // Check transformed data statuses
 //   const transformedStatuses = new Set(transformedData.map(item => item.itemStatus));
 //   console.log('🔍 Transformed data statuses:', Array.from(transformedStatuses));
@@ -4186,13 +4186,13 @@
 //   // Handle approve with success/error
 //   const handleApprove = (record: any) => {
 //     console.log("✅ Approve button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(record.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
@@ -4207,13 +4207,13 @@
 //   // Handle reject button click
 //   const handleRejectClick = (record: any) => {
 //     console.log("❌ Reject button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -4224,9 +4224,9 @@
 //   //     message.error("No item selected");
 //   //     return;
 //   //   }
-    
+
 //   //   console.log("📤 Confirming reject for:", selectedItem.reimbursementItemId, "remarks:", rejectRemarks);
-    
+
 //   //   rejectMutation.mutate({
 //   //     id: selectedItem.reimbursementItemId,
 //   //     remarks: rejectRemarks || "Rejected by manager"
@@ -4249,13 +4249,13 @@
 //     message.error("No item selected");
 //     return;
 //   }
-  
+
 //   console.log("📤 Confirming reject for item:", {
 //     itemId: selectedItem.reimbursementItemId,
 //     currentStatus: selectedItem.itemStatus,
 //     remarks: rejectRemarks
 //   });
-  
+
 //   rejectMutation.mutate({
 //     id: selectedItem.reimbursementItemId,
 //     remarks: rejectRemarks || "Rejected by manager"
@@ -4263,12 +4263,12 @@
 //     onSuccess: (data) => {
 //       console.log("✅ Reject success for item:", selectedItem.reimbursementItemId, "Response:", data);
 //       message.success("Item rejected successfully");
-      
+
 //       // Force refetch
 //       refetch().then(() => {
 //         console.log("📊 Data after refetch should show updated item status");
 //       });
-      
+
 //       setRejectModalVisible(false);
 //       setRejectRemarks("");
 //       setSelectedItem(null);
@@ -4300,19 +4300,19 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     // PDF files
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Office documents
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     // Images
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
@@ -4320,12 +4320,12 @@
 //         fileName.endsWith('.bmp') || fileName.endsWith('.webp')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     // Text files
 //     if (fileName.endsWith('.txt') || fileType === 'text/plain') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Default to Google Docs Viewer
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
@@ -4334,7 +4334,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -4347,7 +4347,7 @@
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -4401,11 +4401,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Multiple files
 //         if (attachments.length > 1) {
 //           return (
@@ -4443,12 +4443,12 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         const fileName = file.fileName || '';
 //         const fileExt = fileName.split('.').pop()?.toUpperCase();
-        
+
 //         return (
 //           <Space>
 //             <Button
@@ -4489,7 +4489,7 @@
 //         if (record.itemStatus !== 'PENDING') {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -4502,7 +4502,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -4676,7 +4676,7 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -4696,7 +4696,7 @@
 //   // Transform data
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -4704,7 +4704,7 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
 //           rows.push({
@@ -4726,20 +4726,20 @@
 //         });
 //       }
 //     });
-    
+
 //     console.log('📊 Transformed data:', rows);
 //     return rows;
 //   }, [reimbursements]);
 
 
 
-  
+
 //   console.log("API items with approvers:", reimbursements.map(r => r.items));
 
 //   // Monitor status changes
 //   useEffect(() => {
 //     console.log('📦 Raw reimbursements:', reimbursements);
-    
+
 //     // Check all unique status values
 //     const allStatuses = new Set();
 //     reimbursements.forEach((reimbursement: any) => {
@@ -4749,7 +4749,7 @@
 //     });
 //     console.log('🔍 Unique status values from API:', Array.from(allStatuses));
 //     console.log("📌 After action reimbursements:", reimbursements);
-    
+
 //     // Check transformed data statuses
 //     const transformedStatuses = new Set(transformedData.map(item => item.itemStatus));
 //     console.log('🔍 Transformed data statuses:', Array.from(transformedStatuses));
@@ -4768,13 +4768,13 @@
 //   // Handle approve with success/error
 //   const handleApprove = (record: any) => {
 //     console.log("✅ Approve button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(record.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
@@ -4793,13 +4793,13 @@
 //   // Handle reject button click
 //   const handleRejectClick = (record: any) => {
 //     console.log("❌ Reject button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -4810,13 +4810,13 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     console.log("📤 Confirming reject for item:", {
 //       itemId: selectedItem.reimbursementItemId,
 //       currentStatus: selectedItem.itemStatus,
 //       remarks: rejectRemarks
 //     });
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -4824,12 +4824,12 @@
 //       onSuccess: (data) => {
 //         console.log("✅ Reject success for item:", selectedItem.reimbursementItemId, "Response:", data);
 //         message.success("Item rejected successfully");
-        
+
 //         // Close modal first
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         // Force refetch after a short delay
 //         setTimeout(() => {
 //           console.log("🔄 Forcing refetch...");
@@ -4870,19 +4870,19 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     // PDF files
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Office documents
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     // Images
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
@@ -4890,12 +4890,12 @@
 //         fileName.endsWith('.bmp') || fileName.endsWith('.webp')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     // Text files
 //     if (fileName.endsWith('.txt') || fileType === 'text/plain') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Default to Google Docs Viewer
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
@@ -4904,7 +4904,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -4917,7 +4917,7 @@
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -4969,11 +4969,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Multiple files
 //         if (attachments.length > 1) {
 //           return (
@@ -5011,12 +5011,12 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         const fileName = file.fileName || '';
 //         const fileExt = fileName.split('.').pop()?.toUpperCase();
-        
+
 //         return (
 //           <Space>
 //             <Button
@@ -5057,7 +5057,7 @@
 //         if (record.itemStatus !== 'PENDING') {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -5070,7 +5070,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -5235,7 +5235,7 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -5251,11 +5251,11 @@
 //   // 🔴 TRANSFORM DATA - Use approverStatus from API (ReimbursementItemApprover table)
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     if (!reimbursements || !Array.isArray(reimbursements)) {
 //       return rows;
 //     }
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -5263,14 +5263,14 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
-          
+
 //           // 🔴 ONLY THIS LINE CHANGED - Use approverStatus from ReimbursementItemApprover table
 //           // If backend sends approverStatus, use it. Otherwise fallback to item.status
 //           const status = item.approverStatus || item.status || 'PENDING';
-          
+
 //           rows.push({
 //             key: `${reimbursement.id}-${item.id || index}`,
 //             reimbursementId: reimbursement.id,
@@ -5289,14 +5289,14 @@
 //         });
 //       }
 //     });
-    
+
 //     console.log('📊 Transformed data with approver status:', 
 //       rows.map(r => ({ 
 //         itemId: r.reimbursementItemId, 
 //         status: r.itemStatus
 //       }))
 //     );
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -5313,13 +5313,13 @@
 //   // Handle approve with success/error
 //   const handleApprove = (record: any) => {
 //     console.log("✅ Approve button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(record.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
@@ -5338,13 +5338,13 @@
 //   // Handle reject button click
 //   const handleRejectClick = (record: any) => {
 //     console.log("❌ Reject button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -5355,13 +5355,13 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     console.log("📤 Confirming reject for item:", {
 //       itemId: selectedItem.reimbursementItemId,
 //       currentStatus: selectedItem.itemStatus,
 //       remarks: rejectRemarks
 //     });
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -5369,12 +5369,12 @@
 //       onSuccess: (data) => {
 //         console.log("✅ Reject success for item:", selectedItem.reimbursementItemId, "Response:", data);
 //         message.success("Item rejected successfully");
-        
+
 //         // Close modal first
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         // Force refetch after a short delay
 //         setTimeout(() => {
 //           console.log("🔄 Forcing refetch...");
@@ -5415,19 +5415,19 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     // PDF files
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Office documents
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     // Images
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
@@ -5435,12 +5435,12 @@
 //         fileName.endsWith('.bmp') || fileName.endsWith('.webp')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     // Text files
 //     if (fileName.endsWith('.txt') || fileType === 'text/plain') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Default to Google Docs Viewer
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
@@ -5449,7 +5449,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -5462,7 +5462,7 @@
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -5514,11 +5514,11 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Multiple files
 //         if (attachments.length > 1) {
 //           return (
@@ -5556,12 +5556,12 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Single file
 //         const file = attachments[0];
 //         const fileName = file.fileName || '';
 //         const fileExt = fileName.split('.').pop()?.toUpperCase();
-        
+
 //         return (
 //           <Space>
 //             <Button
@@ -5602,7 +5602,7 @@
 //         if (record.itemStatus !== 'PENDING') {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -5615,7 +5615,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -5778,7 +5778,7 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -5794,11 +5794,11 @@
 //   // 🔴 TRANSFORM DATA - Use approverStatus from API (ReimbursementItemApprover table)
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     if (!reimbursements || !Array.isArray(reimbursements)) {
 //       return rows;
 //     }
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -5806,14 +5806,14 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
-          
+
 //           // 🔴 ONLY THIS LINE CHANGED - Use approverStatus from ReimbursementItemApprover table
 //           // If backend sends approverStatus, use it. Otherwise fallback to item.status
 //           const status = item.approverStatus || item.status || 'PENDING';
-          
+
 //           rows.push({
 //             key: `${reimbursement.id}-${item.id || index}`,
 //             reimbursementId: reimbursement.id,
@@ -5832,14 +5832,14 @@
 //         });
 //       }
 //     });
-    
+
 //     console.log('📊 Transformed data with approver status:', 
 //       rows.map(r => ({ 
 //         itemId: r.reimbursementItemId, 
 //         status: r.itemStatus
 //       }))
 //     );
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -5856,13 +5856,13 @@
 //   // Handle approve with success/error
 //   const handleApprove = (record: any) => {
 //     console.log("✅ Approve button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(record.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
@@ -5881,13 +5881,13 @@
 //   // Handle reject button click
 //   const handleRejectClick = (record: any) => {
 //     console.log("❌ Reject button clicked for:", record);
-    
+
 //     if (!record.reimbursementItemId) {
 //       console.error("❌ No reimbursementItemId found:", record);
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -5898,13 +5898,13 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     console.log("📤 Confirming reject for item:", {
 //       itemId: selectedItem.reimbursementItemId,
 //       currentStatus: selectedItem.itemStatus,
 //       remarks: rejectRemarks
 //     });
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -5912,12 +5912,12 @@
 //       onSuccess: (data) => {
 //         console.log("✅ Reject success for item:", selectedItem.reimbursementItemId, "Response:", data);
 //         message.success("Item rejected successfully");
-        
+
 //         // Close modal first
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         // Force refetch after a short delay
 //         setTimeout(() => {
 //           console.log("🔄 Forcing refetch...");
@@ -5958,19 +5958,19 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     // PDF files
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Office documents
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     // Images
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
@@ -5978,12 +5978,12 @@
 //         fileName.endsWith('.bmp') || fileName.endsWith('.webp')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     // Text files
 //     if (fileName.endsWith('.txt') || fileType === 'text/plain') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     // Default to Google Docs Viewer
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
@@ -5992,7 +5992,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -6005,7 +6005,7 @@
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -6057,16 +6057,16 @@
 //       key: "documents",
 //       render: (_: any, record: any) => {
 //         const attachments = record.attachments || [];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Single file
 //         if (attachments.length === 1) {
 //           const file = attachments[0];
 //           const fileName = file.fileName || '';
-          
+
 //           return (
 //             <Button
 //               type="link"
@@ -6082,12 +6082,12 @@
 //             </Button>
 //           );
 //         }
-        
+
 //         // Multiple files - Show first file + "more" button
 //         const firstFile = attachments[0];
 //         const remainingCount = attachments.length - 1;
 //         const fileName = firstFile.fileName || '';
-        
+
 //         return (
 //           <Space>
 //             {/* First file - click to view */}
@@ -6103,7 +6103,7 @@
 //                 ? fileName.substring(0, 20) + '...' 
 //                 : fileName}
 //             </Button>
-            
+
 //             {/* More button - opens SAME file when clicked */}
 //             {remainingCount > 0 && (
 //               <Button
@@ -6132,7 +6132,7 @@
 //         const isPending = record.itemStatus === 'PENDING';
 //         const isApproved = record.itemStatus === 'APPROVED';
 //         const isRejected = record.itemStatus === 'REJECTED';
-        
+
 //         // If approved or rejected, disable buttons but still show them
 //         if (isApproved || isRejected) {
 //           return (
@@ -6146,7 +6146,7 @@
 //               >
 //                 Approve
 //               </Button>
-              
+
 //               <Button
 //                 type="text"
 //                 size="small"
@@ -6159,7 +6159,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         // Pending items - normal buttons (not disabled)
 //         return (
 //           <Space size={4}>
@@ -6173,7 +6173,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -6339,10 +6339,10 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   // NEW STATE for expanded items
 //   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -6357,11 +6357,11 @@
 //   // Debug - log reimbursements
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     if (!reimbursements || !Array.isArray(reimbursements)) {
 //       return rows;
 //     }
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -6369,12 +6369,12 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
-          
+
 //           const status = item.approverStatus || item.status || 'PENDING';
-          
+
 //           rows.push({
 //             key: `${reimbursement.id}-${item.id || index}`,
 //             reimbursementId: reimbursement.id,
@@ -6392,7 +6392,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -6412,7 +6412,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(record.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
@@ -6433,7 +6433,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -6444,7 +6444,7 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -6454,7 +6454,7 @@
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -6498,23 +6498,23 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
 
@@ -6522,7 +6522,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -6533,7 +6533,7 @@
 //       return <FileOutlined className="text-orange-500" />;
 //     if (fileType?.startsWith('image/')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -6587,16 +6587,16 @@
 //         const attachments = record.attachments || [];
 //         const itemKey = record.key;
 //         const isExpanded = expandedItems[itemKey];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Single file
 //         if (attachments.length === 1) {
 //           const file = attachments[0];
 //           const fileName = file.fileName || '';
-          
+
 //           return (
 //             <Button
 //               type="link"
@@ -6609,12 +6609,12 @@
 //             </Button>
 //           );
 //         }
-        
+
 //         // Multiple files
 //         const firstFile = attachments[0];
 //         const remainingFiles = attachments.slice(1);
 //         const fileName = firstFile.fileName || '';
-        
+
 //         return (
 //           <div className="flex flex-col gap-1">
 //             {/* First file always visible */}
@@ -6627,7 +6627,7 @@
 //             >
 //               {fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}
 //             </Button>
-            
+
 //             {/* Expand/Collapse button */}
 //             {remainingFiles.length > 0 && (
 //               <Button
@@ -6640,7 +6640,7 @@
 //                 {isExpanded ? 'Show less' : `+${remainingFiles.length} more`}
 //               </Button>
 //             )}
-            
+
 //             {/* Expanded files list */}
 //             {isExpanded && (
 //               <div className="pl-2 mt-1 space-y-1 border-l-2 border-gray-200">
@@ -6676,7 +6676,7 @@
 //         const isPending = record.itemStatus === 'PENDING';
 //         const isApproved = record.itemStatus === 'APPROVED';
 //         const isRejected = record.itemStatus === 'REJECTED';
-        
+
 //         if (isApproved || isRejected) {
 //           return (
 //             <Space size={4}>
@@ -6689,7 +6689,7 @@
 //               >
 //                 Approve
 //               </Button>
-              
+
 //               <Button
 //                 type="text"
 //                 size="small"
@@ -6702,7 +6702,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -6715,7 +6715,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -6881,14 +6881,14 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   // NEW STATE for approve confirmation modal
 //   const [approveModalVisible, setApproveModalVisible] = useState(false);
 //   const [itemToApprove, setItemToApprove] = useState<any>(null);
-  
+
 //   // NEW STATE for expanded items
 //   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -6903,11 +6903,11 @@
 //   // Debug - log reimbursements
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     if (!reimbursements || !Array.isArray(reimbursements)) {
 //       return rows;
 //     }
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -6915,12 +6915,12 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
-          
+
 //           const status = item.approverStatus || item.status || 'PENDING';
-          
+
 //           rows.push({
 //             key: `${reimbursement.id}-${item.id || index}`,
 //             reimbursementId: reimbursement.id,
@@ -6938,7 +6938,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -6958,7 +6958,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setItemToApprove(record);
 //     setApproveModalVisible(true);
 //   };
@@ -6969,13 +6969,13 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(itemToApprove.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
 //         setApproveModalVisible(false);
 //         setItemToApprove(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -6995,7 +6995,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -7006,7 +7006,7 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -7016,7 +7016,7 @@
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -7060,23 +7060,23 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
 
@@ -7084,7 +7084,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -7095,7 +7095,7 @@
 //       return <FileOutlined className="text-orange-500" />;
 //     if (fileType?.startsWith('image/')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -7149,16 +7149,16 @@
 //     //     const attachments = record.attachments || [];
 //     //     const itemKey = record.key;
 //     //     const isExpanded = expandedItems[itemKey];
-        
+
 //     //     if (attachments.length === 0) {
 //     //       return <span className="text-gray-400">—</span>;
 //     //     }
-        
+
 //     //     // Single file
 //     //     if (attachments.length === 1) {
 //     //       const file = attachments[0];
 //     //       const fileName = file.fileName || '';
-          
+
 //     //       return (
 //     //         <Button
 //     //           type="link"
@@ -7171,12 +7171,12 @@
 //     //         </Button>
 //     //       );
 //     //     }
-        
+
 //     //     // Multiple files
 //     //     const firstFile = attachments[0];
 //     //     const remainingFiles = attachments.slice(1);
 //     //     const fileName = firstFile.fileName || '';
-        
+
 //     //     return (
 //     //       <div className="flex flex-col gap-1">
 //     //         {/* First file always visible */}
@@ -7189,7 +7189,7 @@
 //     //         >
 //     //           {fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}
 //     //         </Button>
-            
+
 //     //         {/* Expand/Collapse button */}
 //     //         {remainingFiles.length > 0 && (
 //     //           <Button
@@ -7202,7 +7202,7 @@
 //     //             {isExpanded ? 'Show less' : `+${remainingFiles.length} more`}
 //     //           </Button>
 //     //         )}
-            
+
 //     //         {/* Expanded files list */}
 //     //         {isExpanded && (
 //     //           <div className="pl-2 mt-1 space-y-1 border-l-2 border-gray-200">
@@ -7233,16 +7233,16 @@
 //     const attachments = record.attachments || [];
 //     const itemKey = record.key;
 //     const isExpanded = expandedItems[itemKey];
-    
+
 //     if (attachments.length === 0) {
 //       return <span className="text-gray-400">—</span>;
 //     }
-    
+
 //     // Single file
 //     if (attachments.length === 1) {
 //       const file = attachments[0];
 //       const fileName = file.fileName || '';
-      
+
 //       return (
 //         <Button
 //           type="link"
@@ -7255,12 +7255,12 @@
 //         </Button>
 //       );
 //     }
-    
+
 //     // Multiple files - VERTICAL layout
 //     const firstFile = attachments[0];
 //     const remainingFiles = attachments.slice(1);
 //     const fileName = firstFile.fileName || '';
-    
+
 //     return (
 //       <div className="flex flex-col gap-1">
 //         {/* First file always visible */}
@@ -7273,7 +7273,7 @@
 //         >
 //           {fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}
 //         </Button>
-        
+
 //         {/* Expand/Collapse button */}
 //         {remainingFiles.length > 0 && (
 //           <Button
@@ -7286,7 +7286,7 @@
 //             {isExpanded ? 'Show less' : `+${remainingFiles.length} more`}
 //           </Button>
 //         )}
-        
+
 //         {/* Expanded files list - VERTICAL layout (oru file kela oru file) */}
 //         {isExpanded && (
 //           <div className="flex flex-col gap-1 pl-2 mt-1 border-l-2 border-gray-200">
@@ -7322,7 +7322,7 @@
 //         const isPending = record.itemStatus === 'PENDING';
 //         const isApproved = record.itemStatus === 'APPROVED';
 //         const isRejected = record.itemStatus === 'REJECTED';
-        
+
 //         if (isApproved || isRejected) {
 //           return (
 //             <Space size={4}>
@@ -7335,7 +7335,7 @@
 //               >
 //                 Approve
 //               </Button>
-              
+
 //               <Button
 //                 type="text"
 //                 size="small"
@@ -7348,7 +7348,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -7361,7 +7361,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -7553,14 +7553,14 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   // NEW STATE for approve confirmation modal
 //   const [approveModalVisible, setApproveModalVisible] = useState(false);
 //   const [itemToApprove, setItemToApprove] = useState<any>(null);
-  
+
 //   // NEW STATE for expanded items (for multiple files)
 //   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -7575,11 +7575,11 @@
 //   // Debug - log reimbursements
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     if (!reimbursements || !Array.isArray(reimbursements)) {
 //       return rows;
 //     }
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -7587,12 +7587,12 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
-          
+
 //           const status = item.approverStatus || item.status || 'PENDING';
-          
+
 //           rows.push({
 //             key: `${reimbursement.id}-${item.id || index}`,
 //             reimbursementId: reimbursement.id,
@@ -7610,7 +7610,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -7630,7 +7630,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setItemToApprove(record);
 //     setApproveModalVisible(true);
 //   };
@@ -7641,13 +7641,13 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(itemToApprove.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
 //         setApproveModalVisible(false);
 //         setItemToApprove(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -7667,7 +7667,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -7678,7 +7678,7 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -7688,7 +7688,7 @@
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -7732,23 +7732,23 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
 
@@ -7756,7 +7756,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -7767,7 +7767,7 @@
 //       return <FileOutlined className="text-orange-500" />;
 //     if (fileType?.startsWith('image/')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -7822,16 +7822,16 @@
 //         const attachments = record.attachments || [];
 //         const itemKey = record.key;
 //         const isExpanded = expandedItems[itemKey];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Single file - show file name only
 //         if (attachments.length === 1) {
 //           const file = attachments[0];
 //           const fileName = file.fileName || '';
-          
+
 //           return (
 //             <Button
 //               type="link"
@@ -7844,12 +7844,12 @@
 //             </Button>
 //           );
 //         }
-        
+
 //         // Multiple files - show first file + count in one line
 //         const firstFile = attachments[0];
 //         const remainingFiles = attachments.slice(1);
 //         const fileName = firstFile.fileName || '';
-        
+
 //         return (
 //           <div className="flex flex-col">
 //             {/* First file + count in one line */}
@@ -7863,7 +7863,7 @@
 //               >
 //                 {fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}
 //               </Button>
-              
+
 //               {/* Count tag - click to expand/collapse */}
 //               <Tag 
 //                 color="blue" 
@@ -7873,7 +7873,7 @@
 //                 +{remainingFiles.length} more
 //               </Tag>
 //             </div>
-            
+
 //             {/* Expanded files list - shown when clicked */}
 //             {isExpanded && (
 //               <div className="flex flex-col gap-1 pl-6 mt-2 border-l-2 border-gray-200">
@@ -7909,7 +7909,7 @@
 //         const isPending = record.itemStatus === 'PENDING';
 //         const isApproved = record.itemStatus === 'APPROVED';
 //         const isRejected = record.itemStatus === 'REJECTED';
-        
+
 //         if (isApproved || isRejected) {
 //           return (
 //             <Space size={4}>
@@ -7922,7 +7922,7 @@
 //               >
 //                 Approve
 //               </Button>
-              
+
 //               <Button
 //                 type="text"
 //                 size="small"
@@ -7935,7 +7935,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -7948,7 +7948,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -8133,14 +8133,14 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   // NEW STATE for approve confirmation modal
 //   const [approveModalVisible, setApproveModalVisible] = useState(false);
 //   const [itemToApprove, setItemToApprove] = useState<any>(null);
-  
+
 //   // NEW STATE for expanded items (for multiple files)
 //   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -8155,11 +8155,11 @@
 //   // Debug - log reimbursements
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     if (!reimbursements || !Array.isArray(reimbursements)) {
 //       return rows;
 //     }
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -8167,12 +8167,12 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
-          
+
 //           const status = item.approverStatus || item.status || 'PENDING';
-          
+
 //           rows.push({
 //             key: `${reimbursement.id}-${item.id || index}`,
 //             reimbursementId: reimbursement.id,
@@ -8190,7 +8190,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -8210,7 +8210,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setItemToApprove(record);
 //     setApproveModalVisible(true);
 //   };
@@ -8221,13 +8221,13 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(itemToApprove.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
 //         setApproveModalVisible(false);
 //         setItemToApprove(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -8247,7 +8247,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -8258,7 +8258,7 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -8268,7 +8268,7 @@
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -8312,23 +8312,23 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
 
@@ -8336,7 +8336,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -8347,7 +8347,7 @@
 //       return <FileOutlined className="text-orange-500" />;
 //     if (fileType?.startsWith('image/')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -8402,16 +8402,16 @@
 //         const attachments = record.attachments || [];
 //         const itemKey = record.key;
 //         const isExpanded = expandedItems[itemKey];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Single file - show file name only
 //         if (attachments.length === 1) {
 //           const file = attachments[0];
 //           const fileName = file.fileName || '';
-          
+
 //           return (
 //             <Button
 //               type="link"
@@ -8424,12 +8424,12 @@
 //             </Button>
 //           );
 //         }
-        
+
 //         // Multiple files - show first file + count in one line
 //         const firstFile = attachments[0];
 //         const remainingFiles = attachments.slice(1);
 //         const fileName = firstFile.fileName || '';
-        
+
 //         return (
 //           <div className="flex flex-col">
 //             {/* First file + count in one line */}
@@ -8443,7 +8443,7 @@
 //               >
 //                 {fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}
 //               </Button>
-              
+
 //               {/* Count tag - click to expand/collapse */}
 //               <Tag 
 //                 color="blue" 
@@ -8453,7 +8453,7 @@
 //                 +{remainingFiles.length} more
 //               </Tag>
 //             </div>
-            
+
 //             {/* Expanded files list - shown when clicked */}
 //             {isExpanded && (
 //               <div className="flex flex-col gap-1 pl-6 mt-2 border-l-2 border-gray-200">
@@ -8489,7 +8489,7 @@
 //         const isPending = record.itemStatus === 'PENDING';
 //         const isApproved = record.itemStatus === 'APPROVED';
 //         const isRejected = record.itemStatus === 'REJECTED';
-        
+
 //         if (isApproved || isRejected) {
 //           return (
 //             <Space size={4}>
@@ -8502,7 +8502,7 @@
 //               >
 //                 Approve
 //               </Button>
-              
+
 //               <Button
 //                 type="text"
 //                 size="small"
@@ -8515,7 +8515,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -8528,7 +8528,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -8716,14 +8716,14 @@
 //   const [rejectModalVisible, setRejectModalVisible] = useState(false);
 //   const [selectedItem, setSelectedItem] = useState<any>(null);
 //   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
 //   // NEW STATE for approve confirmation modal
 //   const [approveModalVisible, setApproveModalVisible] = useState(false);
 //   const [itemToApprove, setItemToApprove] = useState<any>(null);
-  
+
 //   // NEW STATE for expanded items (for multiple files)
 //   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -8738,11 +8738,11 @@
 //   // Debug - log reimbursements
 //   const transformedData = useMemo(() => {
 //     const rows: any[] = [];
-    
+
 //     if (!reimbursements || !Array.isArray(reimbursements)) {
 //       return rows;
 //     }
-    
+
 //     reimbursements.forEach((reimbursement: any) => {
 //       const employeeName = reimbursement.employeeName || 
 //                           reimbursement.createdBy?.name || 
@@ -8750,12 +8750,12 @@
 //       const employeeCode = reimbursement.employeeCode || 
 //                           reimbursement.createdBy?.employee?.employee_code || 
 //                           'N/A';
-      
+
 //       if (reimbursement.items && reimbursement.items.length > 0) {
 //         reimbursement.items.forEach((item: any, index: number) => {
-          
+
 //           const status = item.approverStatus || item.status || 'PENDING';
-          
+
 //           rows.push({
 //             key: `${reimbursement.id}-${item.id || index}`,
 //             reimbursementId: reimbursement.id,
@@ -8773,7 +8773,7 @@
 //         });
 //       }
 //     });
-    
+
 //     return rows;
 //   }, [reimbursements]);
 
@@ -8793,7 +8793,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setItemToApprove(record);
 //     setApproveModalVisible(true);
 //   };
@@ -8804,13 +8804,13 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     approveMutation.mutate(itemToApprove.reimbursementItemId, {
 //       onSuccess: () => {
 //         message.success("Item approved successfully");
 //         setApproveModalVisible(false);
 //         setItemToApprove(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -8830,7 +8830,7 @@
 //       message.error("Invalid item ID");
 //       return;
 //     }
-    
+
 //     setSelectedItem(record);
 //     setRejectModalVisible(true);
 //   };
@@ -8841,7 +8841,7 @@
 //       message.error("No item selected");
 //       return;
 //     }
-    
+
 //     rejectMutation.mutate({
 //       id: selectedItem.reimbursementItemId,
 //       remarks: rejectRemarks || "Rejected by manager"
@@ -8851,7 +8851,7 @@
 //         setRejectModalVisible(false);
 //         setRejectRemarks("");
 //         setSelectedItem(null);
-        
+
 //         setTimeout(() => {
 //           refetch();
 //           queryClient.invalidateQueries({ queryKey: ["manager-approvals"] });
@@ -8895,23 +8895,23 @@
 //   const getIframeUrl = (file: any): string => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
 //       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //     }
-    
+
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
 //         fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
 //         fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
 //       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
 //     }
-    
+
 //     if (fileType?.startsWith('image/') || 
 //         fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
 //         fileName.endsWith('.png') || fileName.endsWith('.gif')) {
 //       return file.fileUrl;
 //     }
-    
+
 //     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
 //   };
 
@@ -8919,7 +8919,7 @@
 //   const getFileIcon = (file: any) => {
 //     const fileName = file.fileName?.toLowerCase() || '';
 //     const fileType = file.fileType || '';
-    
+
 //     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
 //       return <FileOutlined className="text-red-500" />;
 //     if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
@@ -8930,7 +8930,7 @@
 //       return <FileOutlined className="text-orange-500" />;
 //     if (fileType?.startsWith('image/')) 
 //       return <FileOutlined className="text-purple-500" />;
-    
+
 //     return <FileOutlined className="text-gray-500" />;
 //   };
 
@@ -8985,16 +8985,16 @@
 //         const attachments = record.attachments || [];
 //         const itemKey = record.key;
 //         const isExpanded = expandedItems[itemKey];
-        
+
 //         if (attachments.length === 0) {
 //           return <span className="text-gray-400">—</span>;
 //         }
-        
+
 //         // Single file - show file name only
 //         if (attachments.length === 1) {
 //           const file = attachments[0];
 //           const fileName = file.fileName || '';
-          
+
 //           return (
 //             <Button
 //               type="link"
@@ -9007,12 +9007,12 @@
 //             </Button>
 //           );
 //         }
-        
+
 //         // Multiple files - show first file + count in one line
 //         const firstFile = attachments[0];
 //         const remainingFiles = attachments.slice(1);
 //         const fileName = firstFile.fileName || '';
-        
+
 //         return (
 //           <div className="flex flex-col">
 //             {/* First file + count in one line */}
@@ -9026,7 +9026,7 @@
 //               >
 //                 {fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}
 //               </Button>
-              
+
 //               {/* Count tag - click to expand/collapse */}
 //               <Tag 
 //                 color="blue" 
@@ -9036,7 +9036,7 @@
 //                 +{remainingFiles.length} more
 //               </Tag>
 //             </div>
-            
+
 //             {/* Expanded files list - shown when clicked */}
 //             {isExpanded && (
 //               <div className="flex flex-col gap-1 pl-6 mt-2 border-l-2 border-gray-200">
@@ -9072,7 +9072,7 @@
 //         const isPending = record.itemStatus === 'PENDING';
 //         const isApproved = record.itemStatus === 'APPROVED';
 //         const isRejected = record.itemStatus === 'REJECTED';
-        
+
 //         if (isApproved || isRejected) {
 //           return (
 //             <Space size={4}>
@@ -9085,7 +9085,7 @@
 //               >
 //                 Approve
 //               </Button>
-              
+
 //               <Button
 //                 type="text"
 //                 size="small"
@@ -9098,7 +9098,7 @@
 //             </Space>
 //           );
 //         }
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button
@@ -9111,7 +9111,7 @@
 //             >
 //               Approve
 //             </Button>
-            
+
 //             <Button
 //               type="text"
 //               size="small"
@@ -9273,10 +9273,10 @@
 
 "use client";
 import { Button, Table, Tag, Input, Space, Modal, message, Drawer } from "antd";
-import { 
-  ReloadOutlined, 
-  CheckOutlined, 
-  CloseOutlined, 
+import {
+  ReloadOutlined,
+  CheckOutlined,
+  CloseOutlined,
   DownloadOutlined,
   FileOutlined,
   EyeOutlined,
@@ -9297,19 +9297,19 @@ export default function ManagerReimbursementsPage() {
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [rejectRemarks, setRejectRemarks] = useState("");
-  
+
   // Approve confirmation modal
   const [approveModalVisible, setApproveModalVisible] = useState(false);
   const [itemToApprove, setItemToApprove] = useState<any>(null);
-  
+
   // Expanded rows for parent-child (like employee table)
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
-  
-  const { 
-    data: reimbursements = [], 
+
+  const {
+    data: reimbursements = [],
     isLoading: loading,
     refetch,
-    isRefetching 
+    isRefetching
   } = useManagerApprovals();
 
   const approveMutation = useApproveItem();
@@ -9320,22 +9320,22 @@ export default function ManagerReimbursementsPage() {
   // Filter data based on search
   const filteredData = useMemo(() => {
     if (!searchText) return reimbursements;
-    
+
     return reimbursements.filter((record: any) => {
-      const employeeName = record.employeeName || 
-                          record.createdBy?.name || 
-                          'N/A';
-      
+      const employeeName = record.employeeName ||
+        record.createdBy?.name ||
+        'N/A';
+
       const parentMatch = record.status?.toLowerCase().includes(searchText.toLowerCase()) ||
-                         record.totalAmount?.toString().includes(searchText) ||
-                         employeeName?.toLowerCase().includes(searchText.toLowerCase());
-      
-      const childMatch = record.items?.some((item: any) => 
+        record.totalAmount?.toString().includes(searchText) ||
+        employeeName?.toLowerCase().includes(searchText.toLowerCase());
+
+      const childMatch = record.items?.some((item: any) =>
         item.category?.toLowerCase().includes(searchText.toLowerCase()) ||
         item.billNo?.toLowerCase().includes(searchText.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchText.toLowerCase())
       );
-      
+
       return parentMatch || childMatch;
     });
   }, [reimbursements, searchText]);
@@ -9346,7 +9346,7 @@ export default function ManagerReimbursementsPage() {
       message.error("Invalid item ID");
       return;
     }
-    
+
     setItemToApprove({
       ...item,
       reimbursementId: record.id,
@@ -9362,7 +9362,7 @@ export default function ManagerReimbursementsPage() {
       message.error("No item selected");
       return;
     }
-    
+
     approveMutation.mutate(itemToApprove.id, {
       onSuccess: () => {
         message.success("Item approved successfully");
@@ -9384,7 +9384,7 @@ export default function ManagerReimbursementsPage() {
       message.error("Invalid item ID");
       return;
     }
-    
+
     setSelectedItem({
       ...item,
       reimbursementId: record.id,
@@ -9399,7 +9399,7 @@ export default function ManagerReimbursementsPage() {
       message.error("No item selected");
       return;
     }
-    
+
     rejectMutation.mutate({
       id: selectedItem.id,
       remarks: rejectRemarks || "Rejected by manager"
@@ -9441,23 +9441,23 @@ export default function ManagerReimbursementsPage() {
   const getIframeUrl = (file: any): string => {
     const fileName = file.fileName?.toLowerCase() || '';
     const fileType = file.fileType || '';
-    
+
     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
       return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
     }
-    
+
     if (fileName.endsWith('.doc') || fileName.endsWith('.docx') ||
-        fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
-        fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
+      fileName.endsWith('.xls') || fileName.endsWith('.xlsx') ||
+      fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
       return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(file.fileUrl)}`;
     }
-    
-    if (fileType?.startsWith('image/') || 
-        fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
-        fileName.endsWith('.png') || fileName.endsWith('.gif')) {
+
+    if (fileType?.startsWith('image/') ||
+      fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
+      fileName.endsWith('.png') || fileName.endsWith('.gif')) {
       return file.fileUrl;
     }
-    
+
     return `https://docs.google.com/viewer?url=${encodeURIComponent(file.fileUrl)}&embedded=true`;
   };
 
@@ -9465,24 +9465,24 @@ export default function ManagerReimbursementsPage() {
   const getFileIcon = (file: any) => {
     const fileName = file.fileName?.toLowerCase() || '';
     const fileType = file.fileType || '';
-    
-    if (fileName.endsWith('.pdf') || fileType === 'application/pdf') 
+
+    if (fileName.endsWith('.pdf') || fileType === 'application/pdf')
       return <FileOutlined className="text-red-500" />;
-    if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) 
+    if (fileName.endsWith('.doc') || fileName.endsWith('.docx'))
       return <FileOutlined className="text-blue-500" />;
-    if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) 
+    if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx'))
       return <FileOutlined className="text-green-500" />;
-    if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) 
+    if (fileName.endsWith('.ppt') || fileName.endsWith('.pptx'))
       return <FileOutlined className="text-orange-500" />;
-    if (fileType?.startsWith('image/')) 
+    if (fileType?.startsWith('image/'))
       return <FileOutlined className="text-purple-500" />;
-    
+
     return <FileOutlined className="text-gray-500" />;
   };
 
   // Get status tag
   const getStatusTag = (status: string) => {
-    switch(status?.toUpperCase()) {
+    switch (status?.toUpperCase()) {
       case 'APPROVED':
         return <Tag color="green">Approved</Tag>;
       case 'REJECTED':
@@ -9498,11 +9498,11 @@ export default function ManagerReimbursementsPage() {
   // 🔴 NEW: Expanded row renderer for child items
   const expandedRowRender = (record: any) => {
     const items = record.items || [];
-    
+
     if (items.length === 0) {
       return <div className="text-gray-400 py-4 text-center">No items found</div>;
     }
-    
+
     // Child table columns
     const childColumns = [
       {
@@ -9548,11 +9548,11 @@ export default function ManagerReimbursementsPage() {
         width: 200,
         render: (_: any, item: any) => {
           const attachments = item.attachments || [];
-          
+
           if (attachments.length === 0) {
             return <span className="text-gray-400">—</span>;
           }
-          
+
           if (attachments.length === 1) {
             const file = attachments[0];
             return (
@@ -9567,7 +9567,7 @@ export default function ManagerReimbursementsPage() {
               </Button>
             );
           }
-          
+
           return (
             <div className="flex flex-col gap-1">
               {attachments.map((file: any, idx: number) => (
@@ -9595,7 +9595,7 @@ export default function ManagerReimbursementsPage() {
           const isPending = itemStatus === 'PENDING' || itemStatus === 'SUBMITTED';
           const isApproved = itemStatus === 'APPROVED';
           const isRejected = itemStatus === 'REJECTED';
-          
+
           if (isApproved || isRejected) {
             return (
               <Space size={4}>
@@ -9620,7 +9620,7 @@ export default function ManagerReimbursementsPage() {
               </Space>
             );
           }
-          
+
           return (
             <Space size={4}>
               <Button
@@ -9648,7 +9648,7 @@ export default function ManagerReimbursementsPage() {
         },
       },
     ];
-    
+
     return (
       <div className="pl-8 pr-4 py-2 bg-gray-50">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Reimbursement Items:</h4>
@@ -9722,7 +9722,7 @@ export default function ManagerReimbursementsPage() {
       render: (_: any, record: any) => {
         const firstItem = record.items?.[0];
         const itemCount = record.items?.length || 0;
-        
+
         return (
           <div>
             <div>{firstItem?.description || '—'}</div>
@@ -9765,7 +9765,7 @@ export default function ManagerReimbursementsPage() {
 
   const pendingCount = useMemo(() => {
     return reimbursements.reduce((count, r) => {
-      const pendingItems = r.items?.filter((item: any) => 
+      const pendingItems = r.items?.filter((item: any) =>
         (item.status === 'PENDING' || item.status === 'SUBMITTED' || item.approverStatus === 'PENDING')
       ).length || 0;
       return count + pendingItems;
@@ -9780,8 +9780,8 @@ export default function ManagerReimbursementsPage() {
           <h2 className="text-xl font-semibold text-gray-900">
             Team Reimbursements
           </h2>
-          <Button 
-            icon={<ReloadOutlined />} 
+          <Button
+            icon={<ReloadOutlined />}
             onClick={() => refetch()}
             loading={isRefetching}
             size="small"

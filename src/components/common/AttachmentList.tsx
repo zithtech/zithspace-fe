@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { List, Button, Tag, Space, Typography, Avatar } from "antd";
+import { Button, Tag, Space, Typography, Tooltip, Row, Col } from "antd";
 import {
   DeleteOutlined,
   DownloadOutlined,
@@ -51,41 +51,33 @@ export default function AttachmentList({
 
   const getFileIcon = (fileType: string) => {
     const type = fileType.toLowerCase();
+    const iconStyle = { fontSize: "20px" };
 
-    // Images
     if (type.includes("image")) {
-      return <FileImageOutlined style={{ fontSize: "24px", color: "#52c41a" }} />;
+      return { icon: <FileImageOutlined style={iconStyle} />, color: "#52c41a", bg: "#f6ffed" };
     }
-    // PDFs
     if (type.includes("pdf")) {
-      return <FilePdfOutlined style={{ fontSize: "24px", color: "#ff4d4f" }} />;
+      return { icon: <FilePdfOutlined style={iconStyle} />, color: "#ff4d4f", bg: "#fff1f0" };
     }
-    // Word documents
     if (type.includes("word") || type.includes("msword") || type.includes("document")) {
-      return <FileWordOutlined style={{ fontSize: "24px", color: "#1890ff" }} />;
+      return { icon: <FileWordOutlined style={iconStyle} />, color: "#1890ff", bg: "#e6f7ff" };
     }
-    // Excel spreadsheets
     if (type.includes("excel") || type.includes("spreadsheet") || type.includes("sheet")) {
-      return <FileExcelOutlined style={{ fontSize: "24px", color: "#52c41a" }} />;
+      return { icon: <FileExcelOutlined style={iconStyle} />, color: "#52c41a", bg: "#f6ffed" };
     }
-    // Text files
     if (type.includes("text") || type.includes("plain")) {
-      return <FileTextOutlined style={{ fontSize: "24px", color: "#8c8c8c" }} />;
+      return { icon: <FileTextOutlined style={iconStyle} />, color: "#8c8c8c", bg: "#f5f5f5" };
     }
-    // Archives
     if (type.includes("zip") || type.includes("rar") || type.includes("7z") || type.includes("tar") || type.includes("gz")) {
-      return <FileZipOutlined style={{ fontSize: "24px", color: "#fa8c16" }} />;
+      return { icon: <FileZipOutlined style={iconStyle} />, color: "#fa8c16", bg: "#fff7e6" };
     }
-    // Videos
     if (type.includes("video")) {
-      return <VideoCameraOutlined style={{ fontSize: "24px", color: "#722ed1" }} />;
+      return { icon: <VideoCameraOutlined style={iconStyle} />, color: "#722ed1", bg: "#f9f0ff" };
     }
-    // Audio
     if (type.includes("audio")) {
-      return <AudioOutlined style={{ fontSize: "24px", color: "#eb2f96" }} />;
+      return { icon: <AudioOutlined style={iconStyle} />, color: "#eb2f96", bg: "#fff0f6" };
     }
-    // Default
-    return <FileOutlined style={{ fontSize: "24px", color: "#8c8c8c" }} />;
+    return { icon: <FileOutlined style={iconStyle} />, color: "#8c8c8c", bg: "#f5f5f5" };
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -108,7 +100,6 @@ export default function AttachmentList({
   };
 
   const handleDownload = (fileUrl: string, fileName: string) => {
-    // Open in new tab for download
     const link = document.createElement("a");
     link.href = fileUrl;
     link.download = fileName;
@@ -120,73 +111,125 @@ export default function AttachmentList({
 
   if (attachments.length === 0) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          color: "#999",
-          padding: "40px 20px",
-          background: "#fafafa",
-          borderRadius: "8px",
-        }}
-      >
-        <FileOutlined style={{ fontSize: "48px", marginBottom: "16px", color: "#d9d9d9" }} />
-        <div>No attachments yet</div>
+      <div style={{
+        textAlign: "center",
+        padding: "48px 20px",
+        background: "#fafafa",
+        borderRadius: "12px",
+        border: "1px dashed #d9d9d9"
+      }}>
+        <FileOutlined style={{ fontSize: "40px", marginBottom: "12px", color: "#bfbfbf" }} />
+        <div style={{ color: "#8c8c8c", fontSize: "14px" }}>No attachments attached to this ticket</div>
       </div>
     );
   }
 
   return (
-    <List
-      loading={loading}
-      dataSource={attachments}
-      renderItem={(attachment) => (
-        <List.Item
-          actions={[
-            <Button
-              key="download"
-              type="link"
-              size="small"
-              icon={<DownloadOutlined />}
-              onClick={() => handleDownload(attachment.fileUrl, attachment.fileName)}
-            >
-              Download
-            </Button>,
-            <Button
-              key="delete"
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              loading={deletingId === attachment.id}
-              onClick={() => handleDelete(attachment.id)}
-            >
-              Delete
-            </Button>,
-          ]}
-        >
-          <List.Item.Meta
-            avatar={getFileIcon(attachment.fileType)}
-            title={
-              <Space>
-                <Text strong style={{ fontSize: "14px" }}>
-                  {attachment.fileName}
-                </Text>
-                <Tag color="blue">{formatFileSize(attachment.fileSize)}</Tag>
-              </Space>
-            }
-            description={
-              <Space direction="vertical" size={0}>
-                <Text type="secondary" style={{ fontSize: "12px" }}>
-                  Uploaded by {attachment.uploadedBy.name} ({attachment.uploadedBy.position})
-                </Text>
-                <Text type="secondary" style={{ fontSize: "12px" }}>
-                  {dayjs(attachment.uploadedAt).format("MMMM DD, YYYY HH:mm")}
-                </Text>
-              </Space>
-            }
-          />
-        </List.Item>
-      )}
-    />
+    <div style={{ padding: "4px 0" }}>
+      <Row gutter={[12, 12]}>
+        {attachments.map((attachment) => {
+          const { icon, color, bg } = getFileIcon(attachment.fileType);
+          
+          return (
+            <Col xs={24} sm={12} key={attachment.id}>
+              <div
+                className="attachment-card"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px",
+                  background: "#fff",
+                  border: "1px solid #f0f0f0",
+                  borderRadius: "12px",
+                  transition: "all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1)",
+                  position: "relative",
+                  overflow: "hidden",
+                  cursor: "default"
+                }}
+              >
+                {/* File Icon Block */}
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "10px",
+                  background: bg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: color,
+                  flexShrink: 0
+                }}>
+                  {icon}
+                </div>
+
+                {/* File Info Block */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Tooltip title={attachment.fileName}>
+                    <Text strong style={{ 
+                      fontSize: "13px", 
+                      display: "block", 
+                      marginBottom: 2,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      color: "#262626"
+                    }}>
+                      {attachment.fileName}
+                    </Text>
+                  </Tooltip>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <Text type="secondary" style={{ fontSize: "11px" }}>
+                      {formatFileSize(attachment.fileSize)}
+                    </Text>
+                    <span style={{ color: "#d9d9d9" }}>•</span>
+                    <Text type="secondary" style={{ fontSize: "11px" }}>
+                      {dayjs(attachment.uploadedAt).format("MMM DD")}
+                    </Text>
+                  </div>
+                </div>
+
+                {/* Hover Actions Overlay */}
+                <div className="attachment-actions" style={{
+                  display: "flex",
+                  gap: 4,
+                  opacity: 0,
+                  transition: "opacity 0.2s",
+                  marginLeft: 8
+                }}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<DownloadOutlined style={{ fontSize: 13, color: "#1890ff" }} />}
+                    onClick={() => handleDownload(attachment.fileUrl, attachment.fileName)}
+                    style={{ background: "#e6f7ff", borderRadius: 6 }}
+                  />
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined style={{ fontSize: 13 }} />}
+                    loading={deletingId === attachment.id}
+                    onClick={() => handleDelete(attachment.id)}
+                    style={{ background: "#fff1f0", borderRadius: 6 }}
+                  />
+                </div>
+              </div>
+            </Col>
+          );
+        })}
+      </Row>
+
+      <style jsx global>{`
+        .attachment-card:hover {
+          border-color: #1890ff40 !important;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+          transform: translateY(-2px);
+        }
+        .attachment-card:hover .attachment-actions {
+          opacity: 1 !important;
+        }
+      `}</style>
+    </div>
   );
 }

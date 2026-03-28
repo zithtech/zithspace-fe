@@ -1,4 +1,5 @@
 import React from "react";
+export const NAV_MOBILE_BREAKPOINT = 700;
 import { Permissions } from "@/types/permissions";
 import {
   DashboardOutlined,

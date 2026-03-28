@@ -189,29 +189,29 @@ function DashboardContent() {
       {
         title: "Total Members",
         value: dashboardData.stats.totalMembers,
-        icon: <TeamOutlined style={{ color: "#1677ff" }} />,
+        icon: <TeamOutlined style={{ color: "#8c8c8c" }} />,
         color: "#1677ff",
         change: dashboardData.trends.memberGrowth,
       },
       {
         title: "Active Projects",
         value: dashboardData.stats.activeProjects,
-        icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
-        color: "#52c41a",
+        icon: <ProjectOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: dashboardData.trends.projectGrowth,
       },
       {
-        title: "Assigned Tickets / Closed Tickets",
+        title: "Assigned / Closed Tickets",
         value: dashboardData.stats.tickets.display,
-        icon: <UserOutlined style={{ color: "#faad14" }} />,
-        color: "#faad14",
+        icon: <UserOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: dashboardData.trends.ticketCompletionRate,
       },
       {
         title: "Today's Attendance",
         value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-        icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
-        color: "#722ed1",
+        icon: <ClockCircleOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
         isAttendance: true,
         stats: dashboardData.stats.attendance,
@@ -248,9 +248,9 @@ function DashboardContent() {
     const completedDeg = (completedTickets / totalTickets) * 360;
 
     const gradient = `conic-gradient(
-      #d9d9d9 0deg ${notStartedDeg}deg,
+      #f0f0f0 0deg ${notStartedDeg}deg,
       #1677ff ${notStartedDeg}deg ${notStartedDeg + inProgressDeg}deg,
-      #52c41a ${notStartedDeg + inProgressDeg}deg 360deg
+      #1677ff ${notStartedDeg + inProgressDeg}deg 360deg
     )`;
 
     return (
@@ -312,7 +312,7 @@ function DashboardContent() {
               style={{
                 width: 8,
                 height: 8,
-                background: "#d9d9d9",
+                background: "#f0f0f0",
                 borderRadius: "50%",
                 margin: "0 auto 2px",
               }}
@@ -342,7 +342,7 @@ function DashboardContent() {
               style={{
                 width: 8,
                 height: 8,
-                background: "#52c41a",
+                background: "#1677ff",
                 borderRadius: "50%",
                 margin: "0 auto 4px",
               }}
@@ -427,8 +427,10 @@ function DashboardContent() {
                 <Card
                   size="small"
                   style={{
-                    borderLeft: `4px solid ${stat.color}`,
                     height: "100%",
+                    borderRadius: "16px",
+                    border: "1px solid #f0f0f0",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
                   }}
                   styles={{ body: { padding: 16 } }}
                 >
@@ -490,8 +492,8 @@ function DashboardContent() {
                     <Card
                       title={
                         <Space>
-                          <TrophyOutlined style={{ color: "#1677ff" }} />
-                          <span>Work & Attendance</span>
+                          <TrophyOutlined style={{ color: "#8c8c8c" }} />
+                          <span style={{ fontSize: 15, fontWeight: 600 }}>Work & Attendance</span>
                         </Space>
                       }
                       size="small"
@@ -505,7 +507,14 @@ function DashboardContent() {
                         </Button>
                       }
                       styles={{ body: { padding: 12, flex: 1 } }}
-                      style={{ width: "100%", display: "flex", flexDirection: "column" }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        borderRadius: "16px",
+                        border: "1px solid #f0f0f0",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                      }}
                     >
                       {/* Project Status inside Work & Attendance card */}
                       <div style={{ height: "100%" }}>
@@ -565,13 +574,20 @@ function DashboardContent() {
                     <Card
                       title={
                         <Space>
-                          <GiftOutlined style={{ color: "#eb2f96" }} />
-                          <span>Colleagues Birthdays</span>
+                          <GiftOutlined style={{ color: "#8c8c8c" }} />
+                          <span style={{ fontSize: 15, fontWeight: 600 }}>Colleagues Birthdays</span>
                         </Space>
                       }
                       size="small"
                       styles={{ body: { padding: 0, flex: 1, overflowY: "auto" } }}
-                      style={{ width: "100%", display: "flex", flexDirection: "column" }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        borderRadius: "16px",
+                        border: "1px solid #f0f0f0",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                      }}
                     >
                       <div style={{ overflowY: "auto", height: "100%" }}>
                         {birthdays.length > 0 ? (
@@ -631,8 +647,8 @@ function DashboardContent() {
                     <Card
                       title={
                         <Space>
-                          <ClockCircleOutlined style={{ color: "#52c41a" }} />
-                          <span>Recent Activities</span>
+                          <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
+                          <span style={{ fontSize: 15, fontWeight: 600 }}>Recent Activities</span>
                         </Space>
                       }
                       size="small"
@@ -642,7 +658,14 @@ function DashboardContent() {
                         </Button>
                       }
                       styles={{ body: { padding: 0 } }}
-                      style={{ width: "100%", display: "flex", flexDirection: "column" }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        borderRadius: "16px",
+                        border: "1px solid #f0f0f0",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                      }}
                     >
                       <div style={{ overflowY: "auto", height: "300px" }}>
                         {dashboardData.recentActivities.length > 0 ? (
@@ -721,8 +744,8 @@ function DashboardContent() {
                   <Card
                     title={
                       <Space>
-                        <CalendarOutlined style={{ color: "#faad14" }} />
-                        <span>People on Leave & Permission Today</span>
+                        <CalendarOutlined style={{ color: "#8c8c8c" }} />
+                        <span style={{ fontSize: 15, fontWeight: 600 }}>People on Leave Today</span>
                       </Space>
                     }
                     size="small"
@@ -736,7 +759,14 @@ function DashboardContent() {
                       </Button>
                     }
                     styles={{ body: { padding: 16, flex: 1, overflowY: "auto" } }}
-                    style={{ width: "100%", display: "flex", flexDirection: "column" }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      borderRadius: "16px",
+                      border: "1px solid #f0f0f0",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                    }}
                   >
                     <Space
                       direction="vertical"

@@ -19,6 +19,8 @@ import {
   Button,
   message,
   Spin,
+
+
   Drawer,
   Checkbox,
   Card,
@@ -27,30 +29,64 @@ import {
   Upload,
   Switch,
   TimePicker,
+  Avatar,
+  Tooltip,
 } from "antd";
 import {
-  SearchOutlined,
-  PlusOutlined,
-  CheckCircleOutlined,
+  Users,
+  Search,
+  Plus,
+  Eye,
+  Edit2,
+  Trash2,
+  User,
+  Briefcase,
+  Mail,
+  Phone,
+  Calendar,
+  MapPin,
+  CheckCircle2,
+  XCircle,
+  Zap,
+  Info,
+  Clock,
+  ShieldCheck,
+  CheckCircle,
+  Building2,
+  CreditCard,
+  FileText,
+  Banknote,
+  Laptop,
+  Lock,
+  UserCheck,
+  Trophy,
+  Layers,
+  IdCard,
+
+
+  Award,
+  Box,
+  FileBadge,
+} from "lucide-react";
+import {
+  EyeOutlined,
   EditOutlined,
-  DeleteOutlined,
-  LaptopOutlined,
-  HistoryOutlined,
-  TeamOutlined,
-  UserOutlined,
-  BankOutlined,
-  HomeOutlined,
+  CheckCircleTwoTone,
+  CloseCircleTwoTone,
   MailOutlined,
-  PhoneOutlined,
+  IdcardOutlined,
+  HomeOutlined,
+  LaptopOutlined,
   CalendarOutlined,
-  ApartmentOutlined,
+  FieldTimeOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  TeamOutlined,
+  BankOutlined,
   ProjectOutlined,
   TrophyOutlined,
-  IdcardOutlined,
-  EyeOutlined,
-  CloseCircleTwoTone,
-  CheckCircleTwoTone,
-  FieldTimeOutlined,
+  PlusOutlined,
+  BookOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
@@ -59,9 +95,11 @@ import { EmployeeOnboardingService } from "@/services/onboardingService";
 import { ProjectService } from "@/services/projectService";
 import EmployeeHistoryEditForm from "./Employeehistoryeditform";
 import EmployeeHistoryView from "./EmployeeHistoryViews";
-import router from "next/dist/shared/lib/router/router";
-import { useRouter } from "next/dist/client/components/navigation";
+import { useRouter } from "next/navigation";
 import { PositionService } from "@/services/positionService";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
+
+const { Text, Title, Paragraph } = Typography;
 
 const { Option } = Select;
 
@@ -70,26 +108,56 @@ const labelize = (key: string) =>
   key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 
 // Enhanced RowItem component for better view display
-const RowItem = ({ label, value, icon }: any) => (
+const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
   <div
     style={{
       display: "flex",
-      alignItems: "flex-start",
-      marginBottom: "12px",
-      padding: "8px 0",
-      borderBottom: "1px solid #f0f0f0",
+      alignItems: "center",
+      marginBottom: "10px",
+      padding: "8px 12px",
+      background: "#ffffff",
+      borderRadius: "10px",
+      border: "1px solid #f1f5f9",
+      transition: "all 0.2s ease",
     }}
   >
     {icon && (
-      <div style={{ marginRight: "8px", color: "#1890ff", marginTop: "2px" }}>
-        {icon}
+      <div
+        style={{
+          marginRight: "12px",
+          color: color,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "32px",
+          height: "32px",
+          background: `${color}10`,
+          borderRadius: "8px",
+        }}
+      >
+        {React.cloneElement(icon as React.ReactElement, { size: 16 })}
       </div>
     )}
     <div style={{ flex: 1 }}>
-      <div style={{ fontSize: "11px", color: "#8c8c8c", marginBottom: "4px" }}>
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 600,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          marginBottom: "2px",
+        }}
+      >
         {label}
       </div>
-      <div style={{ fontSize: "14px", color: "#262626", fontWeight: 500 }}>
+      <div
+        style={{
+          fontSize: "13px",
+          color: "#1e293b",
+          fontWeight: 500,
+        }}
+      >
         {value !== null && value !== undefined && value !== "" ? (
           typeof value === "object" ? (
             JSON.stringify(value)
@@ -97,7 +165,7 @@ const RowItem = ({ label, value, icon }: any) => (
             value
           )
         ) : (
-          <span style={{ color: "#1677ff" }}>--</span>
+          <span style={{ color: "#3b82f6" }}>--</span>
         )}
       </div>
     </div>
@@ -105,8 +173,36 @@ const RowItem = ({ label, value, icon }: any) => (
 );
 
 // Shared label and input styles for compact forms
-const labelStyle = { fontSize: "11px", fontWeight: 500 };
-const inputStyle = { height: 25, fontSize: 12 };
+const labelStyle = {
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "#475569",
+  marginBottom: "4px",
+  display: "inline-block"
+};
+const inputStyle = { borderRadius: "8px", border: "1px solid #e2e8f0" };
+
+const StatCard = ({ label, value, icon: Icon, color }: any) => (
+  <Card
+    bodyStyle={{ padding: "16px 20px" }}
+    style={{
+      borderRadius: 12,
+      border: "1px solid #ebedef",
+      boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      background: "#fff"
+    }}
+  >
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+      </div>
+      <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+        <Icon size={20} />
+      </div>
+    </div>
+  </Card>
+);
 
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -189,18 +285,19 @@ const PersonalDetailsEditForm = ({ form, initialData }: any) => {
       {/* Basic Information */}
       <div
         style={{
-          background: "#ffffff",
+          background: "white",
           borderRadius: "12px",
-          padding: "16px",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-          border: "1px solid rgba(0, 0, 0, 0.04)",
+          padding: "20px",
+          border: "1px solid #ebedef",
         }}
       >
         <div
-          style={{ display: "flex", alignItems: "center", marginBottom: 16 }}
+          style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}
         >
-          <UserOutlined style={{ color: "#1677ff", marginRight: 8 }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
+          <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
+            <User size={18} />
+          </div>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
             Basic Information
           </span>
         </div>
@@ -325,16 +422,17 @@ const PersonalDetailsEditForm = ({ form, initialData }: any) => {
         style={{
           background: "#ffffff",
           borderRadius: "12px",
-          padding: "16px",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-          border: "1px solid rgba(0, 0, 0, 0.04)",
+          padding: "20px",
+          border: "1px solid #ebedef",
         }}
       >
         <div
-          style={{ display: "flex", alignItems: "center", marginBottom: 16 }}
+          style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}
         >
-          <HomeOutlined style={{ color: "#1677ff", marginRight: 8 }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
+          <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
+            <MapPin size={18} />
+          </div>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
             Address Information
           </span>
         </div>
@@ -787,21 +885,21 @@ const EmploymentEditForm = ({ form, initialData, projects }: any) => {
       ),
     },
   ];
-
   return (
     <div
       style={{
         background: "#ffffff",
         borderRadius: "12px",
-        padding: "16px",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-        border: "1px solid rgba(0, 0, 0, 0.04)",
+        padding: "20px",
+        border: "1px solid #ebedef",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-        <TeamOutlined style={{ color: "#52c41a", marginRight: 8 }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#52c41a" }}>
-          Employment Details
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}>
+        <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
+          <Briefcase size={18} />
+        </div>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+          Employment Information
         </span>
       </div>
 
@@ -816,8 +914,6 @@ const EmploymentEditForm = ({ form, initialData, projects }: any) => {
               placeholder="Select Position"
               loading={loading}
               style={{ width: "100%", height: 30 }}
-              value={selectedPosition}
-              onChange={(value) => setSelectedPosition(value)}
               options={positions.map((pos) => ({
                 label: pos.name, // 🔥 this will show in dropdown
                 value: pos.id,
@@ -1272,14 +1368,15 @@ const BankPayrollEditForm = ({ form, initialData }: any) => {
       style={{
         background: "#ffffff",
         borderRadius: "12px",
-        padding: "16px",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-        border: "1px solid rgba(0, 0, 0, 0.04)",
+        padding: "20px",
+        border: "1px solid #ebedef",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-        <BankOutlined style={{ color: "#722ed1", marginRight: 8 }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#722ed1" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}>
+        <div style={{ background: "White", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
+          <Banknote size={18} />
+        </div>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
           Bank & Payroll Information
         </span>
       </div>
@@ -1356,6 +1453,7 @@ const BankPayrollEditForm = ({ form, initialData }: any) => {
   );
 };
 
+
 // Assets Edit Form
 const AssetsEditForm = ({ form, initialData }: any) => {
   useEffect(() => {
@@ -1373,13 +1471,13 @@ const AssetsEditForm = ({ form, initialData }: any) => {
             ? Array.isArray(item.image)
               ? item.image
               : [
-                  {
-                    uid: "-1",
-                    name: "image.png",
-                    status: "done",
-                    url: item.image,
-                  },
-                ]
+                {
+                  uid: "-1",
+                  name: "image.png",
+                  status: "done",
+                  url: item.image,
+                },
+              ]
             : [],
         })),
       });
@@ -1405,14 +1503,15 @@ const AssetsEditForm = ({ form, initialData }: any) => {
       style={{
         background: "#ffffff",
         borderRadius: "12px",
-        padding: "16px",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
-        border: "1px solid rgba(0, 0, 0, 0.04)",
+        padding: "20px",
+        border: "1px solid #ebedef",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-        <LaptopOutlined style={{ color: "#f5222d", marginRight: 8 }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#f5222d" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}>
+        <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
+          <Laptop size={18} />
+        </div>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
           Assigned Assets
         </span>
       </div>
@@ -1428,6 +1527,7 @@ const AssetsEditForm = ({ form, initialData }: any) => {
                   background: "#fafafa",
                   borderRadius: "8px",
                   position: "relative",
+                  border: "1px solid #f0f0f0",
                 }}
               >
                 <div
@@ -1435,7 +1535,7 @@ const AssetsEditForm = ({ form, initialData }: any) => {
                     fontSize: 12,
                     fontWeight: 600,
                     marginBottom: 12,
-                    color: "#f5222d",
+                    color: "#3b82f6",
                   }}
                 >
                   Asset {index + 1}
@@ -1582,142 +1682,117 @@ const PersonalDetailsView = ({ data }: any) => {
   );
 
   return (
-    <div>
-      <Card
-        title={
-          <span>
-            <UserOutlined style={{ marginRight: 8 }} />
-            Basic Information
-          </span>
-        }
-        style={{ marginBottom: 16 }}
-        size="small"
-      >
-        <Row gutter={[16, 16]}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* 👤 Bio Information */}
+      <div style={{
+        background: "linear-gradient(135deg, #ffffff 0%, #f8faff 100%)",
+        padding: 24,
+        borderRadius: 20,
+        border: "1px solid #e2e8f0",
+        position: "relative",
+        overflow: "hidden"
+      }}>
+        <div style={{
+          position: "absolute",
+          top: -20,
+          right: -20,
+          width: 100,
+          height: 100,
+          background: "#3b82f608",
+          borderRadius: "50%"
+        }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <div style={{ background: "#3b82f6", padding: 8, borderRadius: 10, color: "#fff" }}>
+            <User size={20} />
+          </div>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Basic Information</span>
+        </div>
+
+        <Row gutter={[16, 0]}>
           <Col span={12}>
             <RowItem
               label="First Name"
               value={data.firstName}
-              icon={<UserOutlined />}
+              icon={<User />}
             />
           </Col>
           <Col span={12}>
-            <RowItem label="Last Name" value={data.lastName} />
+            <RowItem label="Last Name" value={data.lastName} icon={<User />} />
           </Col>
           <Col span={12}>
-            <RowItem label="Gender" value={data.gender} />
+            <RowItem label="Gender" value={data.gender} icon={<User />} />
           </Col>
           <Col span={12}>
             <RowItem
               label="Date of Birth"
               value={data.dob ? dayjs(data.dob).format("DD MMM YYYY") : null}
-              icon={<CalendarOutlined />}
+              icon={<Calendar />}
             />
           </Col>
           <Col span={12}>
-            <RowItem label="Blood Group" value={data.bloodGroup} />
+            <RowItem label="Blood Group" value={data.bloodGroup} icon={<ShieldCheck />} color="#ef4444" />
           </Col>
           <Col span={12}>
             <RowItem
-              label="Mobile Number"
+              label="Mobile"
               value={data.mobile || data.phone}
-              icon={<PhoneOutlined />}
-            />
-          </Col>
-          <Col span={12}>
-            <RowItem
-              label="Personal Email"
-              value={data.personalEmail || data.email}
-              icon={<MailOutlined />}
-            />
-          </Col>
-          <Col span={12}>
-            <RowItem
-              label="Work Email"
-              value={data.workEmail}
-              icon={<MailOutlined />}
-            />
-          </Col>
-          <Col span={12}>
-            <RowItem
-              label="PAN Number"
-              value={data.pan}
-              icon={<IdcardOutlined />}
-            />
-          </Col>
-          <Col span={12}>
-            <RowItem
-              label="Aadhaar Number"
-              value={data.aadhaar}
-              icon={<IdcardOutlined />}
+              icon={<Phone />}
+              color="#10b981"
             />
           </Col>
         </Row>
-      </Card>
+      </div>
 
-      <Card
-        title={
-          <span>
-            <HomeOutlined style={{ marginRight: 8 }} />
-            Address Information
-          </span>
-        }
-        size="small"
-      >
-        <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#1890ff",
-              marginBottom: 8,
-            }}
-          >
-            Current Address
+      {/* 📧 Contact & Identity */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <Mail size={18} style={{ color: "#3b82f6" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Communication</span>
           </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "#262626",
-              padding: "12px",
-              background: "#f5f5f5",
-              borderRadius: "6px",
-              lineHeight: "1.6",
-            }}
-          >
-            {currentAddress || (
-              <span style={{ color: "red" }}>Not Verified</span>
-            )}
-          </div>
+          <RowItem label="Work Email" value={data.workEmail} icon={<Mail />} />
+          <RowItem label="Personal Email" value={data.personalEmail || data.email} icon={<Mail />} />
         </div>
 
-        <div>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#1890ff",
-              marginBottom: 8,
-            }}
-          >
-            Permanent Address
+        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <Lock size={18} style={{ color: "#f59e0b" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Identity Info</span>
           </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "#262626",
-              padding: "12px",
-              background: "#f5f5f5",
-              borderRadius: "6px",
-              lineHeight: "1.6",
-            }}
-          >
-            {permanentAddress || (
-              <span style={{ color: "red" }}>Not Verified</span>
-            )}
-          </div>
+          <RowItem label="PAN Number" value={data.pan} icon={<IdCard size={16} />} color="#f59e0b" />
+          <RowItem label="Aadhaar" value={data.aadhaar} icon={<IdCard size={16} />} color="#f59e0b" />
         </div>
-      </Card>
+      </div>
+
+      {/* 🏠 Address Section */}
+      <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <div style={{ background: "#8b5cf6", padding: 8, borderRadius: 10, color: "#fff" }}>
+            <MapPin size={20} />
+          </div>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Address Information</span>
+        </div>
+
+        <Row gutter={[20, 20]}>
+          <Col span={12}>
+            <div style={{ padding: 16, background: "#f8fafc", borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8b5cf6", marginBottom: 12, textTransform: "uppercase" }}>Current Address</div>
+              <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6, fontWeight: 500 }}>
+                {currentAddress || <span style={{ color: "#ef4444" }}>Not Verified</span>}
+              </div>
+            </div>
+          </Col>
+          <Col span={12}>
+            <div style={{ padding: 16, background: "#f8fafc", borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8b5cf6", marginBottom: 12, textTransform: "uppercase" }}>Permanent Address</div>
+              <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6, fontWeight: 500 }}>
+                {permanentAddress || <span style={{ color: "#ef4444" }}>Not Verified</span>}
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </div>
     </div>
   );
 };
@@ -1749,8 +1824,7 @@ const EmploymentView = ({ data, projects: allProjects }: any) => {
         const workDays = Object.entries(workShiftData.data)
           .map(
             ([day, times]: [string, any]) =>
-              `${day.charAt(0).toUpperCase() + day.slice(1)}: ${times.start} - ${
-                times.end
+              `${day.charAt(0).toUpperCase() + day.slice(1)}: ${times.start} - ${times.end
               }`,
           )
           .join(", ");
@@ -1787,7 +1861,7 @@ const EmploymentView = ({ data, projects: allProjects }: any) => {
           </>
         );
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // Fallback for unknown format or parsing error
     return (
@@ -1805,171 +1879,95 @@ const EmploymentView = ({ data, projects: allProjects }: any) => {
   const projectNames =
     data.projects && allProjects?.length > 0
       ? data.projects
-          .map((projectId: string) => {
-            const project = allProjects.find((p: any) => p.id === projectId);
-            return project ? project.name : projectId; // Fallback to ID if not found
-          })
-          .join(", ")
+        .map((projectId: string) => {
+          const project = allProjects.find((p: any) => p.id === projectId);
+          return project ? project.name : projectId; // Fallback to ID if not found
+        })
+        .join(", ")
       : data.projects?.length > 0
         ? data.projects.join(", ")
         : null;
 
   return (
-    <Card
-      title={
-        <span>
-          <TeamOutlined style={{ marginRight: 8 }} />
-          Employment Details
-        </span>
-      }
-      size="small"
-    >
-      <Row gutter={[16, 16]}>
-        <Col span={12}>
-          <RowItem
-            label="Department"
-            value={data.department.titleName}
-            icon={<BankOutlined />}
-          />
-        </Col>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* 🏢 Primary Role & Department */}
+      <div style={{
+        background: "white",
+        padding: 24,
+        borderRadius: 24,
+        border: "1px solid #bfdbfe",
+        boxShadow: "0 4px 12px rgba(59, 130, 246, 0.05)"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
+          <div style={{ background: "#3b82f6", padding: 10, borderRadius: 14, color: "#fff", boxShadow: "0 4px 8px rgba(59, 130, 246, 0.2)" }}>
+            <Briefcase size={22} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", lineHeight: 1.2 }}>Role & Assignment</div>
+            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Current position and organizational unit</div>
+          </div>
+        </div>
 
-        <Col span={12}>
-          <RowItem label="Team" value={data.team} />
-        </Col>
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <RowItem
+              label="Department"
+              value={data.department?.titleName || data.department}
+              icon={<Building2 />}
+            />
+          </Col>
+          <Col span={12}>
+            <RowItem label="Team" value={data.team} icon={<Users />} color="#8b5cf6" />
+          </Col>
+          <Col span={12}>
+            <RowItem label="Position Status" value={data.promotionStatus} icon={<Trophy />} color="#f59e0b" />
+          </Col>
+          <Col span={12}>
+            <RowItem label="Reporting To" value={data.reportingManager} icon={<UserCheck />} color="#10b981" />
+          </Col>
+        </Row>
+      </div>
 
-        <Col span={12}>
-          <RowItem label="Employee Type" value={data.employeeType} />
-        </Col>
+      {/* 📅 Tenure & Timing */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 20 }}>
+        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <Calendar size={18} style={{ color: "#3b82f6" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Tenure Details</span>
+          </div>
+          <RowItem label="Joining Date" value={data.joiningDate ? dayjs(data.joiningDate).format("DD MMM YYYY") : null} icon={<Calendar />} />
+          <RowItem label="Completion" value={data.trainingCompletion ? dayjs(data.trainingCompletion).format("DD MMM YYYY") : null} icon={<CheckCircle />} color="#10b981" />
+        </div>
 
-        <Col span={12}>
-          <RowItem label="Work Location" value={data.workLocation} />
-        </Col>
+        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <Clock size={18} style={{ color: "#f59e0b" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Working Schedule</span>
+          </div>
+          <Row gutter={[12, 0]}>
+            <Col span={12}><RowItem label="Work Type" value={data.workType} icon={<Laptop />} color="#f59e0b" /></Col>
+            <Col span={12}><RowItem label="Location" value={data.workLocation} icon={<MapPin />} color="#f59e0b" /></Col>
+          </Row>
+          {renderWorkShiftDetails()}
+        </div>
+      </div>
 
-        {renderWorkShiftDetails()}
-
-        <Col span={12}>
-          <RowItem
-            label="Work Joining Date"
-            value={
-              data.employeeJoiningDate
-                ? dayjs(data.employeeJoiningDate).format("DD MMM YYYY")
-                : null
-            }
-            icon={<CalendarOutlined />}
-          />
-        </Col>
-
-        {/* ✅ Work Type */}
-        <Col span={12}>
-          <RowItem
-            label="Work Type"
-            value={
-              data.workType === "wfh"
-                ? "Work From Home"
-                : data.workType === "wfo"
-                  ? "Work From Office"
-                  : data.workType === "hybrid" || data.workType === "Hybrid"
-                    ? "Hybrid"
-                    : data.workType
-            }
-          />
-        </Col>
-
-        {/* ✅ Hybrid Type (Only if Hybrid selected) */}
-        {(data.workType === "hybrid" || data.workType === "Hybrid") && (
-          <>
-            <Col span={12}>
-              <RowItem
-                label="Hybrid Type"
-                value={
-                  data.hybridMode === "general" || data.hybridMode === "General"
-                    ? "General"
-                    : data.hybridMode === "fixed" || data.hybridMode === "Fixed"
-                      ? "Fixed"
-                      : null
-                }
-              />
-            </Col>
-
-            {/* ✅ If Hybrid Type = General */}
-            {(data.hybridMode === "general" ||
-              data.hybridMode === "General") && (
-              <>
-                <Col span={12}>
-                  <RowItem label="Total Days" value={data.totalDays} />
-                </Col>
-
-                <Col span={12}>
-                  <RowItem label="Total Hours" value={data.totalHours} />
-                </Col>
-              </>
-            )}
-
-            {/* ✅ If Hybrid Type = Fixed */}
-            {(data.hybridMode === "Fixed" || data.hybridMode === "fixed") && (
-              <Col span={12}>
-                <RowItem
-                  label="Fixed Days"
-                  value={
-                    data.fixedDays && data.fixedDays.length > 0
-                      ? data.fixedDays.join(", ")
-                      : null
-                  }
-                />
-              </Col>
-            )}
-          </>
-        )}
-
-        <Col span={12}>
-          <RowItem
-            label="Joining Date"
-            value={
-              data.joiningDate
-                ? dayjs(data.joiningDate).format("DD MMM YYYY")
-                : null
-            }
-            icon={<CalendarOutlined />}
-          />
-        </Col>
-
-        <Col span={12}>
-          <RowItem
-            label="Training Completion"
-            value={
-              data.trainingCompletion
-                ? dayjs(data.trainingCompletion).format("DD MMM YYYY")
-                : null
-            }
-            icon={<CalendarOutlined />}
-          />
-        </Col>
-
-        <Col span={12}>
-          <RowItem
-            label="Projects"
-            value={projectNames}
-            icon={<ProjectOutlined />}
-          />
-        </Col>
-
-        <Col span={12}>
-          <RowItem label="Reporting Manager" value={data.reportingManager} />
-        </Col>
-
-        <Col span={12}>
-          <RowItem
-            label="Promotion Status"
-            value={data.promotionStatus}
-            icon={<TrophyOutlined />}
-          />
-        </Col>
-
-        <Col span={12}>
-          <RowItem label="Employee Grade" value={data.employeeGrade} />
-        </Col>
-      </Row>
-    </Card>
+      {/* 📊 Additional Assignments */}
+      <div style={{ padding: 20, background: "#f8fafc", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <Layers size={18} style={{ color: "#6366f1" }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Projects & Grade</span>
+        </div>
+        <Row gutter={[16, 0]}>
+          <Col span={14}>
+            <RowItem label="Active Projects" value={projectNames} icon={<Box />} color="#6366f1" />
+          </Col>
+          <Col span={10}>
+            <RowItem label="Employee Grade" value={data.employeeGrade} icon={<Award />} color="#6366f1" />
+          </Col>
+        </Row>
+      </div>
+    </div>
   );
 };
 
@@ -1977,45 +1975,32 @@ const BankPayrollView = ({ data }: any) => {
   if (!data) return <div>No data available</div>;
 
   return (
-    <Card
-      title={
-        <span>
-          <BankOutlined style={{ marginRight: 8 }} />
-          Bank & Payroll Information
-        </span>
-      }
-      size="small"
-    >
-      <Row gutter={[16, 16]}>
-        <Col span={12}>
-          <RowItem label="Bank Name" value={data.bankName} />
-        </Col>
-        <Col span={12}>
-          <RowItem label="Account Holder Name" value={data.accountHolderName} />
-        </Col>
-        <Col span={12}>
-          <RowItem label="Account Number" value={data.accountNumber} />
-        </Col>
-        <Col span={12}>
-          <RowItem label="IFSC Code" value={data.ifscCode} />
-        </Col>
-        <Col span={12}>
-          <RowItem
-            label="Bank Branch"
-            value={data.branchName || data.bankBranch}
-          />
-        </Col>
-        <Col span={12}>
-          <RowItem label="PF Number" value={data.pfNumber} />
-        </Col>
-        <Col span={12}>
-          <RowItem label="UAN Number" value={data.uanNumber} />
-        </Col>
-        <Col span={12}>
-          <RowItem label="ESI Number" value={data.esiNumber} />
-        </Col>
-      </Row>
-    </Card>
+    <div style={{ padding: 24, background: "White", borderRadius: 24, border: "1px solid #f5f5f5ff" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
+        <div style={{ background: "#ffffffff", padding: 10, borderRadius: 14, color: "#bfe3c7ff", boxShadow: "0 4px 8px rgba(16, 185, 129, 0.2)" }}>
+          <Banknote size={22} />
+        </div>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", lineHeight: 1.2 }}>Bank & Payroll</div>
+          <div style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Secure financial and settlement details</div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <RowItem label="Bank Name" value={data.bankName} icon={<Building2 />} color="#10b981" />
+          <RowItem label="Account Holder" value={data.accountHolderName} icon={<User />} color="#10b981" />
+          <RowItem label="Account Number" value={data.accountNumber} icon={<CreditCard />} color="#10b981" />
+          <RowItem label="IFSC Code" value={data.ifscCode} icon={<Zap />} color="#10b981" />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <RowItem label="Bank Branch" value={data.branchName || data.bankBranch} icon={<MapPin />} color="#10b981" />
+          <RowItem label="PF Number" value={data.pfNumber} icon={<FileText />} color="#10b981" />
+          <RowItem label="UAN Number" value={data.uanNumber} icon={<IdCard />} color="#10b981" />
+          <RowItem label="ESI Number" value={data.esiNumber} icon={<ShieldCheck />} color="#10b981" />
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -2030,64 +2015,43 @@ const AssetsView = ({ data }: any) => {
   }
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {data.map((item: any, idx: number) => (
-        <Card
-          key={idx}
-          title={`Asset ${idx + 1}: ${item.brand || "Unnamed Asset"}`}
-          style={{ marginBottom: 16 }}
-          size="small"
-        >
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <RowItem
-                label="Item Name"
-                value={item.item}
-                icon={<LaptopOutlined />}
-              />
-            </Col>
-            <Col span={12}>
-              <RowItem label="Brand Name" value={item.brand} />
-            </Col>
-            <Col span={12}>
-              <RowItem label="Model Name" value={item.model} />
-            </Col>
-            <Col span={12}>
-              <RowItem label="Model Number" value={item.modelNumber} />
-            </Col>
-            {item.image && (
-              <Col span={24}>
-                <div style={{ marginTop: 8 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "#8c8c8c",
-                      marginBottom: 8,
-                    }}
-                  >
-                    Asset Image
-                  </div>
-                  <Image
-                    src={item.image}
-                    alt="Asset"
-                    width={150}
-                    height={150}
-                    style={{
-                      objectFit: "cover",
-                      borderRadius: 8,
-                      border: "1px solid #f0f0f0",
-                    }}
-                  />
-                </div>
-              </Col>
-            )}
+        <div key={idx} style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{ background: "#6366f115", padding: 8, borderRadius: 10, color: "#6366f1" }}>
+              <Laptop size={20} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+              Asset {idx + 1}: {item.brand || "Unnamed Asset"}
+            </div>
+          </div>
+
+          <Row gutter={[16, 0]}>
+            <Col span={12}><RowItem label="Item Name" value={item.item} icon={<Box />} color="#6366f1" /></Col>
+            <Col span={12}><RowItem label="Brand Name" value={item.brand} icon={<Award />} color="#6366f1" /></Col>
+            <Col span={12}><RowItem label="Model Name" value={item.model} icon={<Layers />} color="#6366f1" /></Col>
+            <Col span={12}><RowItem label="Model Number" value={item.modelNumber} icon={<FileText />} color="#6366f1" /></Col>
           </Row>
-        </Card>
+
+          {item.image && (
+            <div style={{ marginTop: 12, padding: 12, background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Asset Image</div>
+              <Image
+                src={item.image}
+                alt="Asset"
+                width={120}
+                height={120}
+                style={{ objectFit: "cover", borderRadius: 10, border: "1px solid #e2e8f0" }}
+              />
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );
 };
+
 
 /* ---------------- MAIN COMPONENT ---------------- */
 const Onboarded = () => {
@@ -2463,6 +2427,7 @@ const Onboarded = () => {
           ),
         }));
         payload[backendKey] = processedData;
+
       } else {
         payload[backendKey] = Object.fromEntries(
           Object.entries(values).map(([k, v]: any) => [
@@ -2584,13 +2549,13 @@ const Onboarded = () => {
           <CheckCircleTwoTone
             twoToneColor="#52c41a"
             style={{ fontSize: 18, cursor: "pointer" }}
-            // onClick={() => handleLoginAccess(record.id)}
+          // onClick={() => handleLoginAccess(record.id)}
           />
         ) : (
           <CloseCircleTwoTone
             twoToneColor="#ff4d4f"
             style={{ fontSize: 18, cursor: "pointer" }}
-            // onClick={() => handleLoginAccess(record.id)}
+          // onClick={() => handleLoginAccess(record.id)}
           />
         ),
     },
@@ -2641,11 +2606,11 @@ const Onboarded = () => {
   ];
 
   const sectionIconMap: any = {
-    personalDetails: <UserOutlined style={{ marginRight: 8 }} />,
-    employment: <TeamOutlined style={{ marginRight: 8 }} />,
-    bankAndPayroll: <BankOutlined style={{ marginRight: 8 }} />,
-    previousCompanyDetails: <HistoryOutlined style={{ marginRight: 8 }} />,
-    assets: <LaptopOutlined style={{ marginRight: 8 }} />,
+    personalDetails: <User size={18} style={{ marginRight: 8 }} />,
+    employment: <Briefcase size={18} style={{ marginRight: 8 }} />,
+    bankAndPayroll: <CreditCard size={18} style={{ marginRight: 8 }} />,
+    previousCompanyDetails: <Clock size={18} style={{ marginRight: 8 }} />,
+    assets: <Building2 size={18} style={{ marginRight: 8 }} />,
   };
 
   const sectionSubTitleMap: Record<string, string> = {
@@ -2690,6 +2655,7 @@ const Onboarded = () => {
         );
       case "assets":
         return <AssetsEditForm form={currentForm} initialData={sectionData} />;
+
       default:
         return null;
     }
@@ -2710,6 +2676,7 @@ const Onboarded = () => {
         return <EmployeeHistoryView data={sectionData} />;
       case "assets":
         return <AssetsView data={sectionData} />;
+
       default:
         return <div>No data available</div>;
     }
@@ -2722,253 +2689,229 @@ const Onboarded = () => {
   };
 
   return (
-    <MainLayout>
-      <div
-        style={{
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          background: "white",
-          gap: "15px",
-        }}
-      >
-        {/* <Card
-          bordered={false}
-          style={{
-            borderRadius: 12,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-            padding: 24,
-          }}
-        > */}
-        {/* 🔹 Header Section */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: 20,
-            flexWrap: "wrap",
-            gap: 16,
-          }}
-        >
-          {/* Left Side - Title + Description */}
-          <div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 22,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <ApartmentOutlined style={{ color: "#1677ff" }} />
-              Employee Management
-            </h2>
-
-            <p
-              style={{
-                margin: "6px 0 0",
-                color: "#8c8c8c",
-                fontSize: 13,
-              }}
-            >
-              Managing employee records and activities.
-            </p>
-            <div
-              style={{
-                marginTop: 6,
-                display: "flex",
-                flexDirection: "row",
-                gap: 8,
-                alignItems: "center",
-              }}
-            >
-              <Tag
-                // size="small"
-                //  icon={<UserOutlined style={{ fontSize: 12 }} />}
-                style={{
-                  background: "#e6f4ff",
-                  color: "#1677ff",
-                  border: "1px solid #91caff",
-                  borderRadius: 16,
-                  fontSize: 12,
-                  padding: "0 8px",
-                  lineHeight: "20px",
-                }}
+    <ProtectedRoute>
+      <MainLayout>
+        <div style={{ padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Space size={12} align="center">
+                <div style={{
+                  background: "#eff6ff",
+                  padding: 10,
+                  borderRadius: 12,
+                  color: "#3b82f6",
+                  display: "flex"
+                }}>
+                  <Users size={24} />
+                </div>
+                <div>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Onboarded Members</Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Review and manage employees who have successfully completed the onboarding journey.</Text>
+                </div>
+              </Space>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Input
+                placeholder="Search employees..."
+                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                style={{ width: 280, borderRadius: 10, height: 44 }}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
+                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "#3b82f6", border: "none" }}
+                onClick={() => router.push("/onboarding/create")}
               >
-                Total Members : {totalMembers}
-              </Tag>
-
-              <Tag
-                //size="small"
-                style={{
-                  background: "#f6ffed",
-                  color: "#52c41a",
-                  border: "1px solid #b7eb8f",
-                  borderRadius: 20,
-                  fontSize: 12,
-                  padding: "0 10px",
-                }}
-              >
-                Active : {activeCount}
-              </Tag>
-
-              {/* Inactive */}
-              <Tag
-                // size="small"
-                style={{
-                  background: "#fff1f0",
-                  color: "#ff4d4f",
-                  border: "1px solid #ffa39e",
-                  borderRadius: 20,
-                  fontSize: 12,
-                  padding: "0 10px",
-                }}
-              >
-                Inactive : {inactiveCount}
-              </Tag>
+                Hire Employee
+              </Button>
             </div>
           </div>
 
-          {/* Right Side - Search + Count + Button */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              flexWrap: "wrap",
-            }}
+          {/* Metrics Grid */}
+          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={6}>
+              <StatCard
+                label="Total Employees"
+                value={totalMembers}
+                icon={Users}
+                color="#3b82f6"
+              />
+            </Col>
+            <Col xs={24} sm={6}>
+              <StatCard
+                label="Active Employees"
+                value={activeCount}
+                icon={CheckCircle2}
+                color="#10b981"
+              />
+            </Col>
+            <Col xs={24} sm={6}>
+              <StatCard
+                label="Inactive / Pending"
+                value={inactiveCount}
+                icon={Clock}
+                color="#f59e0b"
+              />
+            </Col>
+            <Col xs={24} sm={6}>
+              <StatCard
+                label="Verified Stats"
+                value="98.5%"
+                icon={ShieldCheck}
+                color="#8b5cf6"
+              />
+            </Col>
+          </Row>
+
+          {/* Table Card */}
+          <Card
+            bodyStyle={{ padding: 0 }}
+            style={{ borderRadius: 16, border: "1px solid #ebedef", overflow: "hidden", background: "#fff" }}
           >
-            {/* Search */}
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Search employees..."
-              style={{
-                borderRadius: 8,
-                width: 240,
-                height: 36,
-              }}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            {loading ? (
+              <div style={{ textAlign: "center", padding: 100 }}>
+                <Spin size="large" tip="Loading members..." />
+              </div>
+            ) : (
+              <Table
+                columns={columns}
+                dataSource={filtered}
+                rowKey="id"
+                pagination={{ pageSize: 12, position: ["bottomRight"] }}
+                size="middle"
+              />
+            )}
+          </Card>
+          {/* </Card> */}
 
-            {/* Add Button */}
-            <Button
-              type="primary"
-              style={{
-                height: 36,
-                borderRadius: 8,
-                padding: "0 18px",
-              }}
-              onClick={() => router.push("/onboarding/create")}
-            >
-              + Add Employee
-            </Button>
-          </div>
+          {/* VIEW DRAWER */}
+          <Drawer
+            //open={!!view && !edit}
+            open={isDrawerOpen}
+            onClose={() => {
+              setIsDrawerOpen(false);
+              setView(null);
+              setSection("");
+            }}
+            title={
+              <div style={{ display: "flex", gap: 16, alignItems: "center", paddingTop: 4, paddingBottom: 4 }}>
+                <div style={{
+                  minWidth: 48,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#3b82f6",
+                  fontSize: 20
+                }}>
+                  {sectionIconMap[section]}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>
+                    {labelize(section)}
+                  </span>
+                  {sectionSubTitleMap[section] && (
+                    <span style={{ fontSize: 13, color: "#64748b", fontWeight: 400, lineHeight: 1.4 }}>
+                      {sectionSubTitleMap[section]}
+                    </span>
+                  )}
+                </div>
+              </div>
+            }
+            width={800}
+            headerStyle={{ borderBottom: "1px solid #f8fafc", padding: "24px 32px" }}
+            bodyStyle={{ padding: "32px", background: "#ffffff" }}
+          >
+            <Spin spinning={viewLoading}>{renderView()}</Spin>
+          </Drawer>
+
+          {/* EDIT MODAL */}
+          <Modal
+            open={edit}
+            onCancel={() => {
+              setEdit(false);
+              sectionFormMap[section]?.resetFields();
+              setSection("");
+            }}
+            onOk={saveEdit}
+            title={
+              <div style={{ display: "flex", gap: 16, alignItems: "center", paddingTop: 4, paddingBottom: 4 }}>
+                <div style={{
+                  minWidth: 48,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#3b82f6",
+                  fontSize: 20
+                }}>
+                  {sectionIconMap[section]}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>
+                    Edit {labelize(section)}
+                  </span>
+                  {sectionSubTitleMap[section] && (
+                    <span style={{ fontSize: 13, color: "#64748b", fontWeight: 400, lineHeight: 1.4 }}>
+                      {sectionSubTitleMap[section]}
+                    </span>
+                  )}
+                </div>
+              </div>
+            }
+            width={section === "previousCompanyDetails" ? 1400 : 900}
+            okText="Save Changes"
+            confirmLoading={updateLoading}
+            cancelText="Cancel"
+            destroyOnClose
+          >
+            <Form layout="vertical" form={sectionFormMap[section]}>
+              {renderEditForm()}
+            </Form>
+          </Modal>
+
+          <Modal
+            title="Connect User"
+            open={isModalOpen}
+            onCancel={() => setIsModalOpen(false)}
+            footer={null}
+          >
+            <Form layout="vertical">
+              <Form.Item
+                label="Username"
+                name="username"
+                rules={[{ required: true, message: "Please enter username" }]}
+              >
+                <Input placeholder="Enter username" />
+              </Form.Item>
+
+              <Form.Item
+                label="Password"
+                name="password"
+                rules={[{ required: true, message: "Please enter password" }]}
+              >
+                <Input.Password placeholder="Enter password" />
+              </Form.Item>
+
+              <Button type="primary" htmlType="submit" block>
+                Submit
+              </Button>
+            </Form>
+          </Modal>
         </div>
-
-        {/* 🔹 Table Section */}
-        {loading ? (
-          <div style={{ textAlign: "center", padding: 40 }}>
-            <Spin size="large" />
-          </div>
-        ) : (
-          <Table
-            dataSource={filtered}
-            columns={columns}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-          />
-        )}
-        {/* </Card> */}
-
-        {/* VIEW DRAWER */}
-        <Drawer
-          //open={!!view && !edit}
-          open={isDrawerOpen}
-          onClose={() => {
-            setIsDrawerOpen(false);
-            setView(null);
-            setSection("");
-          }}
-          title={
-            <span>
-              {sectionIconMap[section]}
-              {labelize(section)}
-            </span>
-          }
-          width={700}
-        >
-          {sectionSubTitleMap[section] && (
-            <div
-              style={{
-                marginBottom: 16,
-                color: "#666",
-                fontSize: 13,
-                padding: "8px 12px",
-                background: "#f0f5ff",
-                borderRadius: "6px",
-                borderLeft: "3px solid #1890ff",
-              }}
-            >
-              {sectionSubTitleMap[section]}
-            </div>
-          )}
-          <Spin spinning={viewLoading}>{renderView()}</Spin>
-        </Drawer>
-
-        {/* EDIT MODAL */}
-        <Modal
-          open={edit}
-          onCancel={() => {
-            setEdit(false);
-            sectionFormMap[section]?.resetFields();
-            setSection("");
-          }}
-          onOk={saveEdit}
-          title={`Edit ${labelize(section)}`}
-          width={section === "previousCompanyDetails" ? 1400 : 900}
-          okText="Save Changes"
-          confirmLoading={updateLoading}
-          cancelText="Cancel"
-          destroyOnClose
-        >
-          <Form layout="vertical" form={sectionFormMap[section]}>
-            {renderEditForm()}
-          </Form>
-        </Modal>
-
-        <Modal
-          title="Connect User"
-          open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
-          footer={null}
-        >
-          <Form layout="vertical">
-            <Form.Item
-              label="Username"
-              name="username"
-              rules={[{ required: true, message: "Please enter username" }]}
-            >
-              <Input placeholder="Enter username" />
-            </Form.Item>
-
-            <Form.Item
-              label="Password"
-              name="password"
-              rules={[{ required: true, message: "Please enter password" }]}
-            >
-              <Input.Password placeholder="Enter password" />
-            </Form.Item>
-
-            <Button type="primary" htmlType="submit" block>
-              Submit
-            </Button>
-          </Form>
-        </Modal>
-      </div>
-    </MainLayout>
+      </MainLayout>
+    </ProtectedRoute>
   );
 };
 
@@ -2990,7 +2933,11 @@ export default function OnboardedPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: "center" }}>
-          <Spin size="large" tip="Loading..." />
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );

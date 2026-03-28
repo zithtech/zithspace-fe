@@ -17,8 +17,11 @@ import {
   PlusOutlined,
   SearchOutlined,
   FilterOutlined,
+  ProjectOutlined,
+  TagOutlined,
   DeleteOutlined,
   RestOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -257,7 +260,7 @@ const DocumentHubPage = (props: Props) => {
     <MainLayout>
       {contextHolder}
       {modalContextHolder}
-      <div className="h-[calc(100vh-64px)] flex flex-col p-6">
+      <div className="h-[calc(100vh-64px)] flex flex-col px-2 pt-4 pb-2">
         <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
@@ -286,9 +289,11 @@ const DocumentHubPage = (props: Props) => {
         </div>
 
         {/* Main Card - This will scroll as a whole */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-y-auto" style={{marginBottom:20}}>
+        <div
+        // className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-y-auto" style={{marginBottom:20}}
+        >
           {/* Dashboard Cards */}
-          <div className="p-4">
+          <div className="pt-4 pb-2">
             <DocumentHubDashboard
               documentHubs={documentHubs}
               isLoading={hubsLoading}
@@ -298,7 +303,7 @@ const DocumentHubPage = (props: Props) => {
 
           {/* Filters Section - Sticky inside the card */}
           <div className="sticky top-0  bg-white z-20">
-            <div className="p-4 flex items-center gap-2 justify-between">
+            <div className="px-4 py-2 flex items-center gap-2 justify-between">
               <div className="flex items-center gap-2 w-full">
                 <Input
                   placeholder="Search..."
@@ -344,7 +349,7 @@ const DocumentHubPage = (props: Props) => {
             </div>
           </div>
 
-         
+
           <div className="p-2">
             <Table
               columns={columns}
@@ -370,7 +375,17 @@ const DocumentHubPage = (props: Props) => {
       </div>
 
       <Modal
-        title="Create New Document"
+        title={
+          <div className="flex items-center gap-3 py-1">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <FileZipOutlined className="text-blue-500 text-lg" />
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-gray-900 leading-tight">Create New Hub</div>
+              <div className="text-sm font-normal text-gray-500">Organize your technical knowledge and project assets</div>
+            </div>
+          </div>
+        }
         open={modalVisible}
         onCancel={() => {
           setModalVisible(false);
@@ -378,27 +393,44 @@ const DocumentHubPage = (props: Props) => {
         }}
         footer={null}
         width={500}
+        centered
+        className="premium-modal"
+        styles={{
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(0, 0, 0, 0.4)' },
+          content: { borderRadius: '16px', padding: '24px' }
+        }}
       >
         <Form form={form} layout="vertical" onFinish={handleAddDocument}>
-          <Row gutter={16}>
+          <Row gutter={[16, 16]}>
             <Col span={24}>
               <Form.Item
                 name="name"
-                label="Document Name"
+                label={<span className="font-medium text-gray-700">Hub Name</span>}
                 rules={[
-                  { required: true, message: "Please enter document name" },
+                  { required: true, message: "Please enter hub name" },
                   { min: 2, message: "Name must be at least 2 characters" },
                 ]}
               >
-                <Input placeholder="Enter document name" />
+                <Input
+                  size="large"
+                  placeholder="e.g., API Documentation"
+                  prefix={<FileTextOutlined className="text-gray-400" />}
+                  className="rounded-lg border-gray-200 hover:border-blue-400 focus:border-blue-500"
+                />
               </Form.Item>
             </Col>
 
             <Col span={24}>
-              <Form.Item name="projectId" label="Project (optional)">
+              <Form.Item
+                name="projectId"
+                label={<span className="font-medium text-gray-700">Project <span className="text-gray-400 font-normal">(Optional)</span></span>}
+              >
                 <Select
+                  size="large"
                   placeholder="Select project"
                   loading={projectsLoading}
+                  className="rounded-lg"
+                  suffixIcon={<ProjectOutlined className="text-gray-400" />}
                   onChange={(value) => {
                     setSelectedProjectId(value);
                     form.setFieldsValue({ projectId: value });
@@ -414,10 +446,16 @@ const DocumentHubPage = (props: Props) => {
               </Form.Item>
             </Col>
             <Col span={24}>
-              <Form.Item name="ticketId" label="Ticket (optional)">
+              <Form.Item
+                name="ticketId"
+                label={<span className="font-medium text-gray-700">Ticket <span className="text-gray-400 font-normal">(Optional)</span></span>}
+              >
                 <Select
+                  size="large"
                   placeholder="Select ticket"
                   loading={ticketsLoading}
+                  className="rounded-lg"
+                  suffixIcon={<TagOutlined className="text-gray-400" />}
                   allowClear
                   disabled={!selectedProjectId}
                 >
@@ -430,8 +468,10 @@ const DocumentHubPage = (props: Props) => {
               </Form.Item>
             </Col>
           </Row>
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
             <Button
+              size="large"
+              className="px-6 rounded-lg font-medium text-gray-500 border-none hover:bg-gray-100"
               onClick={() => {
                 setModalVisible(false);
                 setSelectedProjectId(undefined);
@@ -440,8 +480,15 @@ const DocumentHubPage = (props: Props) => {
             >
               Cancel
             </Button>
-            <Button type="primary" htmlType="submit" loading={isCreating}>
-              Create Document
+            <Button
+              type="primary"
+              size="large"
+              htmlType="submit"
+              loading={isCreating}
+              className="px-8 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100 border-none outline-none"
+              style={{ display: 'flex', alignItems: 'center', height: '40px' }}
+            >
+              Create Hub
             </Button>
           </div>
         </Form>

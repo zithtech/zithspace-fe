@@ -39,6 +39,7 @@ import {
   Input,
   Modal,
   Table,
+  Empty,
 } from "antd";
 import {
   TeamOutlined,
@@ -58,6 +59,10 @@ import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   StarOutlined,
+  LoginOutlined,
+  LogoutOutlined,
+  FormOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import { redirect, useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -407,14 +412,14 @@ function DashboardContent() {
       case "low":
         return "#52c41a";
       default:
-        return "#d9d9d9";
+        return "#8c8c8c";
     }
   };
 
   const getProgressColor = (progress: number) => {
     if (progress >= 75) return "#52c41a";
     if (progress >= 40) return "#1677ff";
-    return "#faad14";
+    return "#8c8c8c";
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -468,32 +473,24 @@ function DashboardContent() {
   const stats = dashboardData
     ? [
       {
-        title: "Assigned Tickets / Closed Tickets",
+        title: "Assigned / Closed Tickets",
         value: `${myTicketsStats.total} / ${myTicketsStats.closed}`,
-        icon: <UserOutlined style={{ color: "#faad14" }} />,
-        color: "#faad14",
+        icon: <UserOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: dashboardData.trends.ticketCompletionRate,
       },
       {
-        title: "Average Working Hours ",
+        title: "Average Working Hours",
         value: averageWorkHours,
-        icon: <ProjectOutlined style={{ color: "#52c41a" }} />,
-        color: "#52c41a",
+        icon: <ProjectOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: "Last 5 days avg",
       },
-      // {
-      //   title: "Assigned Tickets / Closed Tickets",
-      //   value: dashboardData.stats.tickets.display,
-      //   icon: <UserOutlined style={{ color: "#faad14" }} />,
-      //   color: "#faad14",
-      //   change: dashboardData.trends.ticketCompletionRate,
-      // },
-
       {
         title: "Today's Attendance",
         value: `${dashboardData.stats.attendance.present} / ${dashboardData.stats.totalMembers}`,
-        icon: <ClockCircleOutlined style={{ color: "#722ed1" }} />,
-        color: "#722ed1",
+        icon: <ClockCircleOutlined style={{ color: "#8c8c8c" }} />,
+        color: "#1677ff",
         change: `${dashboardData.stats.attendance.attendanceRate}% Present`,
         isAttendance: true,
         stats: dashboardData.stats.attendance,
@@ -529,7 +526,7 @@ function DashboardContent() {
     </div>
   );
 
-  const renderPieChart = () => {
+  const renderTicketSummary = () => {
     if (!tickets || tickets.length === 0) {
       return (
         <div
@@ -540,102 +537,109 @@ function DashboardContent() {
             justifyContent: "center",
           }}
         >
-          <Text type="secondary">No tickets found</Text>
+          <Empty description="No tickets found" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       );
     }
 
     const totalTickets = tickets.length;
-    const notStartedTickets = tickets.filter(
-      (t) => t.status === "not_started" || t.status === "NOT_STARTED",
-    ).length;
     const completedTickets = tickets.filter((t) =>
-      ["completed", "COMPLETED", "live", "LIVE"].includes(t.status),
+      ["completed", "live", "done"].includes(t.status?.toLowerCase())
     ).length;
-    const inProgressTickets =
-      totalTickets - notStartedTickets - completedTickets;
+    const inProgressTickets = tickets.filter(
+      (t) => t.status?.toLowerCase() === "in_progress" || t.status?.toLowerCase() === "doing"
+    ).length;
+    const blockedTickets = tickets.filter(
+      (t) => t.status?.toLowerCase() === "blocked"
+    ).length;
 
-    const notStartedDeg = (notStartedTickets / totalTickets) * 360;
-    const inProgressDeg = (inProgressTickets / totalTickets) * 360;
-
-    const gradient = `conic-gradient(
-    #d9d9d9 0deg ${notStartedDeg}deg,
-    #1677ff ${notStartedDeg}deg ${notStartedDeg + inProgressDeg}deg,
-    #52c41a ${notStartedDeg + inProgressDeg}deg 360deg
-  )`;
-
-    const progress =
-      totalTickets > 0
-        ? Math.round((completedTickets / totalTickets) * 100)
-        : 0;
+    const completionRate = totalTickets > 0 ? Math.round((completedTickets / totalTickets) * 100) : 0;
 
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          padding: "4px 4px",
-          gap: "12px",
-        }}
-      >
-        {/* Pie Chart */}
-        <div
-          style={{
-            width: 140,
-            height: 140,
-            borderRadius: "50%",
-            background: gradient,
-            position: "relative",
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: 20,
-              left: 20,
-              width: 100,
-              height: 100,
-              borderRadius: "50%",
-              background: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-            }}
-          >
-            <div style={{ fontSize: 20, fontWeight: "bold" }}>{progress}%</div>
-          </div>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        justifyContent: 'center',
+        padding: '0 4px'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: 4,
+          position: 'relative',
+          paddingTop: 4
+        }}>
+          <Progress
+            type="dashboard"
+            percent={completionRate}
+            strokeColor="#1677ff"
+            strokeWidth={10}
+            width={115}
+            gapDegree={80}
+            format={(percent) => (
+              <div style={{ marginTop: -5 }}>
+                <div style={{ fontSize: 26, fontWeight: 700, color: '#262626', letterSpacing: '-0.5px' }}>{percent}%</div>
+                <div style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Success</div>
+              </div>
+            )}
+          />
         </div>
 
-        {/* Legend */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-around",
-            width: "100%",
-            gap: "8px",
-          }}
-        >
-          <LegendItem
-            color="#d9d9d9"
-            label="Not Started"
-            value={notStartedTickets}
-          />
-          <LegendItem
-            color="#1677ff"
-            label="In Progress"
-            value={inProgressTickets}
-          />
-          <LegendItem
-            color="#52c41a"
-            label="Completed"
-            value={completedTickets}
-          />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '8px',
+          marginTop: '0px'
+        }}>
+          {/* Active Pill */}
+          <div style={{
+            textAlign: 'center',
+            background: 'rgba(0, 0, 0, 0.02)',
+            padding: '8px 4px',
+            borderRadius: '12px',
+            border: '1px solid #f0f0f0',
+            transition: 'all 0.3s'
+          }} className="metric-pill">
+            <Space direction="vertical" size={0}>
+              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>{inProgressTickets}</Text>
+              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>Active</Text>
+            </Space>
+          </div>
+
+          {/* Done Pill */}
+          <div style={{
+            textAlign: 'center',
+            background: 'rgba(0, 0, 0, 0.02)',
+            padding: '8px 4px',
+            borderRadius: '12px',
+            border: '1px solid #f0f0f0',
+            transition: 'all 0.3s'
+          }} className="metric-pill">
+            <Space direction="vertical" size={0}>
+              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>{completedTickets}</Text>
+              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>Done</Text>
+            </Space>
+          </div>
+
+          {/* Blocked/Total Pill */}
+          <div style={{
+            textAlign: 'center',
+            background: 'rgba(0, 0, 0, 0.02)',
+            padding: '8px 4px',
+            borderRadius: '12px',
+            border: '1px solid #f0f0f0',
+            transition: 'all 0.3s'
+          }} className="metric-pill">
+            <Space direction="vertical" size={0}>
+              <Text strong style={{ fontSize: 16, color: '#262626', lineHeight: 1 }}>
+                {blockedTickets > 0 ? blockedTickets : totalTickets}
+              </Text>
+              <Text style={{ fontSize: 8, color: '#8c8c8c', textTransform: 'uppercase', fontWeight: 700 }}>
+                {blockedTickets > 0 ? 'Blocked' : 'Total'}
+              </Text>
+            </Space>
+          </div>
         </div>
       </div>
     );
@@ -669,30 +673,30 @@ function DashboardContent() {
 
   return (
     <MainLayout>
-      <div style={{ background: "white" }}>
+      <div style={{ background: "#ffffff", minHeight: "100vh" }}>
         <div style={{ padding: 20 }}>
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
           <div
             style={{
-              marginBottom: 16,
+              marginBottom: 20,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
             }}
           >
             <div>
-              <Title level={2} style={{ margin: 0, color: "#262626" }}>
+              <Title level={3} style={{ margin: 0, color: "#141414", fontWeight: 600 }}>
                 Welcome back, {user?.name}!
               </Title>
-              <Text type="secondary" style={{ fontSize: 14 }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>
                 Here&apos;s what&apos;s happening with your projects today.
               </Text>
             </div>
 
             <Segmented
               options={[
-                { label: "Me", value: "me" },
-                { label: "Organization", value: "organization" },
+                { label: "Me", value: "me", icon: <UserOutlined /> },
+                { label: "Organization", value: "organization", icon: <TeamOutlined /> },
               ]}
               value={activeSegment}
               onChange={(value) =>
@@ -741,23 +745,23 @@ function DashboardContent() {
               {/* Loading State */}
               {loading ? (
                 <>
-                  <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
                     {[1, 2, 3, 4].map((i) => (
                       <Col xs={24} sm={12} lg={6} key={i}>
-                        <Card size="small">
+                        <Card size="small" bordered style={{ boxShadow: "none" }}>
                           <Skeleton active paragraph={{ rows: 1 }} />
                         </Card>
                       </Col>
                     ))}
                   </Row>
-                  <Row gutter={[16, 16]}>
+                  <Row gutter={[12, 12]}>
                     <Col xs={24} lg={16}>
-                      <Card size="small">
+                      <Card size="small" bordered style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
                     <Col xs={24} lg={8}>
-                      <Card size="small">
+                      <Card size="small" bordered style={{ boxShadow: "none" }}>
                         <Skeleton active />
                       </Card>
                     </Col>
@@ -766,13 +770,18 @@ function DashboardContent() {
               ) : dashboardData ? (
                 <>
                   {/* Statistics Cards */}
-                  <Row gutter={[16, 16]} style={{ marginBottom: 12 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                     <Col xs={24} sm={12} lg={6}>
                       <Card
                         size="small"
-                        style={{ height: "100%", borderLeft: "4px solid #52c41a" }}
+                        style={{
+                          height: "100%",
+                          borderRadius: "16px",
+                          border: "1px solid #f0f0f0",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
+                        }}
                         styles={{
-                          body: { padding: "8px 16px", height: "100%" },
+                          body: { padding: "12px 16px", height: "100%" },
                         }}
                       >
                         <Row
@@ -872,9 +881,12 @@ function DashboardContent() {
                       <Col xs={24} sm={12} lg={6} key={index}>
                         <Card
                           size="small"
+                          bordered
                           style={{
-                            borderLeft: `4px solid ${stat.color}`,
                             height: "100%",
+                            borderRadius: "16px",
+                            border: "1px solid #f0f0f0",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
                           }}
                           styles={{ body: { padding: 16 } }}
                         >
@@ -927,28 +939,31 @@ function DashboardContent() {
                   </Row>
 
                   {/* Row 1: My Info */}
-                  <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
                     <Col xs={24} lg={8}>
                       {/* My Tickets */}
                       <Card
                         title={
                           <Space>
                             <TrophyOutlined style={{ color: "#1677ff" }} />
-                            <span>My Tickets</span>
+                            <span style={{ fontSize: 15, fontWeight: 600 }}>My Tickets</span>
+                            <span className="live-pulse" style={{ marginLeft: 8 }} />
                           </Space>
                         }
                         size="small"
+                        bordered
                         extra={
                           <Button
                             type="link"
                             size="small"
                             onClick={() => router.push("/tickets")}
+                            style={{ fontSize: 12 }}
                           >
-                            View Tickets
+                            View
                           </Button>
                         }
-                        styles={{ body: { padding: 8 } }}
-                        style={{ height: "260px" }}
+                        styles={{ body: { padding: 12 } }}
+                        style={{ height: "260px", boxShadow: "none" }}
                       >
                         <div style={{ height: "100%" }}>
                           <div
@@ -961,7 +976,7 @@ function DashboardContent() {
                           >
 
                           </div>
-                          {renderPieChart()}
+                          {renderTicketSummary()}
                         </div>
                       </Card>
                     </Col>
@@ -1016,7 +1031,7 @@ function DashboardContent() {
                             )
                           }
                           styles={{ body: { padding: 0 } }}
-                          style={{ height: "260px" }}
+                          style={{ height: "280px" }}
                         >
                           {calendarLoading ? (
                             <div style={{ padding: 16, textAlign: "center" }}>
@@ -1179,8 +1194,8 @@ function DashboardContent() {
                         <Card
                           title={
                             <Space size={4}>
-                              <VideoCameraOutlined style={{ color: "#1677ff", fontSize: 14 }} />
-                              <span style={{ fontSize: 13 }}>Today's Meetings</span>
+                              <VideoCameraOutlined style={{ color: "#8c8c8c", fontSize: 14 }} />
+                              <span style={{ fontSize: 15, fontWeight: 600 }}>Today's Meetings</span>
                               {!calendarStatus?.connected && (
                                 <Button
                                   type="link"
@@ -1195,13 +1210,14 @@ function DashboardContent() {
                             </Space>
                           }
                           size="small"
+                          bordered
                           extra={
                             calendarStatus?.connected && (
                               <Space size={2}>
                                 <Button
                                   type="text"
                                   size="small"
-                                  icon={<ClockCircleOutlined />}
+                                  icon={<ClockCircleOutlined style={{ fontSize: 11 }} />}
                                   onClick={syncCalendar}
                                   loading={calendarLoading}
                                   style={{ fontSize: 11 }}
@@ -1220,7 +1236,7 @@ function DashboardContent() {
                             )
                           }
                           styles={{ body: { padding: 0 } }}
-                          style={{ height: '280px' }}
+                          style={{ height: "260px", boxShadow: "none" }}
                         >
                           {calendarLoading ? (
                             <div style={{ padding: 16, textAlign: "center" }}>
@@ -1326,109 +1342,126 @@ function DashboardContent() {
                       <Card
                         title={
                           <Space>
-                            <ClockCircleOutlined style={{ color: "#722ed1" }} />
-                            <span>My Attendance</span>
+                            <ClockCircleOutlined style={{ color: "#8c8c8c" }} />
+                            <span style={{ fontSize: 15, fontWeight: 600 }}>My Attendance</span>
                           </Space>
                         }
+                        extra={
+                          todayAttendance && (
+                            <Tag
+                              color={todayAttendance.canClockIn ? "default" : todayAttendance.canClockOut ? "processing" : "success"}
+                              style={{ borderRadius: '6px', margin: 0 }}
+                            >
+                              {todayAttendance.canClockIn ? "Not Clocked In" : todayAttendance.canClockOut ? "Active Now" : "Shift Completed"}
+                            </Tag>
+                          )
+                        }
                         size="small"
-                        styles={{ body: { padding: 24 } }}
-                        style={{ height: "260px", justifyContent: "center", alignItems: "center" }}
+                        bordered
+                        styles={{ body: { padding: 20 } }}
+                        style={{ height: "260px", boxShadow: "none" }}
                       >
                         {todayAttendance ? (
-                          <div style={{ width: "100%" }}>
-                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
-                              {/* Top Left: Clock In/Out Button */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center" }}>
-                                {todayAttendance.canClockIn ? (
-                                  <Button
-                                    type="primary"
-                                    shape="round"
-                                    icon={<PlayCircleOutlined />}
-                                    onClick={handleClockIn}
-                                    loading={isClocking}
-                                    size="middle"
-                                  //style={{ padding: "0 16px" }}
-                                  >
-                                    Clock In
-                                  </Button>
-                                ) : todayAttendance.canClockOut ? (
-                                  <Button
-                                    danger
-                                    shape="round"
-                                    icon={<PauseCircleOutlined />}
-                                    onClick={handleClockOut}
-                                    loading={isClocking}
-                                    size="middle"
-                                    style={{ padding: "0 16px" }}
-                                  >
-                                    Clock Out
-                                  </Button>
-                                ) : (
-                                  <Tag
-                                    icon={<TrophyOutlined />}
-                                    color="success"
-                                    style={{ fontSize: 14, padding: "6px 12px" }}
-                                  >
-                                    Day Complete
-                                  </Tag>
-                                )}
-                              </Col>
+                          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>TOTAL WORK DURATION</Text>
+                              <div style={{
+                                fontSize: 32,
+                                fontWeight: 700,
+                                color: (todayAttendance.canClockOut) ? '#722ed1' : '#262626',
+                                letterSpacing: '-0.5px',
+                                lineHeight: 1
+                              }}>
+                                {workDuration || "00:00:00"}
+                              </div>
+                            </div>
 
-                              {/* Top Right: Work Duration */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
-                                <Statistic
-                                  title="Work Duration"
-                                  value={workDuration}
-                                  valueStyle={{
-                                    fontSize: 20,
-                                    color: "#262626",
-                                    fontWeight: 500,
+                            <div style={{
+                              background: '#ffffff',
+                              borderRadius: '12px',
+                              padding: '12px',
+                              display: 'flex',
+                              justifyContent: 'space-around',
+                              marginBottom: 16,
+                              border: '1px solid #f0f0f0'
+                            }}>
+                              <div style={{ textAlign: 'center' }}>
+                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK IN</Text>
+                                <Space size={4}>
+                                  <LoginOutlined style={{ fontSize: 12, color: '#52c41a' }} />
+                                  <Text strong style={{ fontSize: 13 }}>
+                                    {todayAttendance.clockInTime ? dayjs(todayAttendance.clockInTime).format("hh:mm A") : "--:--"}
+                                  </Text>
+                                </Space>
+                              </div>
+                              <Divider type="vertical" style={{ height: '32px', borderLeftColor: '#d6e4ff' }} />
+                              <div style={{ textAlign: 'center' }}>
+                                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginBottom: 2 }}>CLOCK OUT</Text>
+                                <Space size={4}>
+                                  <LogoutOutlined style={{ fontSize: 12, color: '#ff4d4f' }} />
+                                  <Text strong style={{ fontSize: 13 }}>
+                                    {todayAttendance.clockOutTime ? dayjs(todayAttendance.clockOutTime).format("hh:mm A") : "--:--"}
+                                  </Text>
+                                </Space>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "center" }}>
+                              {todayAttendance.canClockIn ? (
+                                <Button
+                                  type="primary"
+                                  block
+                                  icon={<PlayCircleOutlined />}
+                                  onClick={handleClockIn}
+                                  loading={isClocking}
+                                  size="large"
+                                  style={{
+                                    borderRadius: '10px',
+                                    height: 44,
+                                    background: '#1677ff',
+                                    borderColor: '#1677ff',
+                                    boxShadow: '0 2px 4px rgba(22, 119, 255, 0.1)',
+                                    fontWeight: 600
                                   }}
-                                />
-                              </Col>
-                            </Row>
-
-                            <Divider style={{ margin: "20px 0" }} />
-
-                            <Row gutter={[16, 16]} align="middle" style={{ width: "100%", margin: 0 }}>
-                              {/* Bottom Left: Clock In Time */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
-                                <Statistic
-                                  title="Clock In"
-                                  value={
-                                    todayAttendance.clockInTime
-                                      ? dayjs(todayAttendance.clockInTime).format(
-                                        "hh:mm A",
-                                      )
-                                      : "--:--"
-                                  }
-                                  valueStyle={{
-                                    fontSize: 16,
-                                    color: "#52c41a",
-                                    fontWeight: 500,
+                                >
+                                  Clock In Now
+                                </Button>
+                              ) : todayAttendance.canClockOut ? (
+                                <Button
+                                  danger
+                                  block
+                                  icon={<PauseCircleOutlined />}
+                                  onClick={handleClockOut}
+                                  loading={isClocking}
+                                  size="large"
+                                  style={{
+                                    borderRadius: '10px',
+                                    height: 44,
+                                    boxShadow: '0 4px 10px rgba(255, 77, 79, 0.2)',
+                                    fontWeight: 600
                                   }}
-                                />
-                              </Col>
-
-                              {/* Bottom Right: Clock Out Time */}
-                              <Col span={12} style={{ display: "flex", justifyContent: "center", textAlign: "center" }}>
-                                <Statistic
-                                  title="Clock Out"
-                                  value={
-                                    todayAttendance.clockOutTime
-                                      ? dayjs(
-                                        todayAttendance.clockOutTime,
-                                      ).format("hh:mm A")
-                                      : "--:--"
-                                  }
-                                  valueStyle={{
-                                    fontSize: 16,
-                                    color: "#eb2f96",
-                                    fontWeight: 500,
-                                  }}
-                                />
-                              </Col>
-                            </Row>
+                                >
+                                  Clock Out
+                                </Button>
+                              ) : (
+                                <div style={{
+                                  width: '100%',
+                                  padding: '10px',
+                                  // background: '#f6ffed',
+                                  border: '1px solid #b7eb8f',
+                                  borderRadius: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 8,
+                                  color: '#52c41a',
+                                  fontWeight: 500
+                                }}>
+                                  <TrophyOutlined />
+                                  <span>Shift Completed Successfully</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <Skeleton active paragraph={{ rows: 4 }} />
@@ -1438,184 +1471,172 @@ function DashboardContent() {
                   </Row>
 
                   {/* Row 2: Leave & Recent Tickets */}
-                  <Row gutter={[16, 16]}>
+                  <Row gutter={[12, 12]}>
                     <Col xs={24} lg={8}>
-                      {/* Leave Management */}
-                      {dashboardData.leaves && (
-                        <div
+                      {/* Action Cards Container */}
+                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                        {/* Apply Leave Card */}
+                        <Card
+                          hoverable
                           style={{
-                            height: "100%", // Ensure it fills the Col
+                            borderRadius: 14,
+                            border: '1px solid #f0f0f0',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            overflow: 'hidden'
                           }}
+                          styles={{ body: { padding: '12px 16px' } }}
+                          onClick={() => router.push("/apply-leave")}
                         >
-                          <Card
-                            title={
-                              <Space>
-                                <FileTextOutlined
-                                  style={{ color: "#1677ff" }}
-                                />
-                                <span>Leave Management</span>
-                              </Space>
-                            }
-                            size="small"
-                            style={{
-                              height: 250,
-                              borderRadius: 12,
-                            }}
-                            bodyStyle={{
-                              padding: 12,
-                              height: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 12,
-                            }}
-                          >
-                            {/* TOP CONTENT */}
-                            <div>
-                              {/* Pending Approval Button */}
-                              {dashboardData.leaves.pendingApprovals > 0 && (
-                                <Button
-                                  block
-                                  icon={<FileTextOutlined />}
-                                  onClick={() => router.push("/leaves")}
-                                  style={{
-                                    marginBottom: 14,
-                                    borderColor: "#faad14",
-                                    color: "#faad14",
-                                    fontWeight: 500,
-                                    height: 38,
-                                    borderRadius: 8,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      width: "100%",
-                                      alignItems: "center",
-                                    }}
-                                  >
-                                    <span>Pending Approvals</span>
-                                    <Badge
-                                      count={
-                                        dashboardData.leaves.pendingApprovals
-                                      }
-                                      style={{ backgroundColor: "#faad14" }}
-                                    />
-                                  </div>
-                                </Button>
-                              )}
-
-                              {/* Stats Card */}
-                              <div
-                                style={{
-                                  background: "#f0f5ff",
-                                  border: "1px solid #adc6ff",
-                                  borderRadius: 10,
-                                  padding: 12,
-                                }}
-                              >
-                                <Text strong style={{ fontSize: 13 }}>
-                                  My Leaves This Month
-                                </Text>
-
-                                <Row gutter={12} style={{ marginTop: 12 }}>
-                                  <Col span={8}>
-                                    <Statistic
-                                      title={
-                                        <Text style={{ fontSize: 11 }}>
-                                          Approved
-                                        </Text>
-                                      }
-                                      value={
-                                        dashboardData.leaves.myLeaves.approved
-                                      }
-                                      valueStyle={{
-                                        fontSize: 18,
-                                        color: "#52c41a",
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  </Col>
-
-                                  <Col span={8}>
-                                    <Statistic
-                                      title={
-                                        <Text style={{ fontSize: 11 }}>
-                                          Pending
-                                        </Text>
-                                      }
-                                      value={
-                                        dashboardData.leaves.myLeaves.pending
-                                      }
-                                      valueStyle={{
-                                        fontSize: 18,
-                                        color: "#faad14",
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  </Col>
-
-                                  <Col span={8}>
-                                    <Statistic
-                                      title={
-                                        <Text style={{ fontSize: 11 }}>
-                                          Days
-                                        </Text>
-                                      }
-                                      value={
-                                        dashboardData.leaves.myLeaves.totalDays
-                                      }
-                                      valueStyle={{
-                                        fontSize: 18,
-                                        color: "#1677ff",
-                                        fontWeight: 600,
-                                      }}
-                                    />
-                                  </Col>
-                                </Row>
-                              </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: '#f8f9fa',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid #f0f0f0'
+                            }}>
+                              <FormOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
                             </div>
-
-                            {/* BOTTOM ACTION BUTTON */}
-                            <div
+                            <div style={{ flex: 1 }}>
+                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Apply Leave</Title>
+                              <Text type="secondary" style={{ fontSize: 11 }}>Request time off easily</Text>
+                            </div>
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="small"
+                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
                               style={{
-                                paddingTop: 12,
-                                borderTop: "1px solid #f0f0f0",
+                                background: '#1677ff',
+                                border: 'none',
+                                width: 24,
+                                height: 24,
+                                minWidth: 24,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
-                            >
-                              <Button
-                                type="primary"
-                                block
-                                icon={<PlusOutlined />}
-                                onClick={() => router.push("/leaves")}
-                                style={{
-                                  borderRadius: 8,
-                                  height: 40,
-                                  fontWeight: 500,
-                                }}
-                              >
-                                Apply for Leave
-                              </Button>
+                            />
+                          </div>
+                        </Card>
+
+                        {/* Apply Reimbursement Card */}
+                        <Card
+                          hoverable
+                          style={{
+                            borderRadius: 14,
+                            border: '1px solid #f0f0f0',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            overflow: 'hidden'
+                          }}
+                          styles={{ body: { padding: '12px 16px' } }}
+                          onClick={() => router.push("/reimburseCreate")}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: '#f8f9fa',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid #f0f0f0'
+                            }}>
+                              <WalletOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
                             </div>
-                          </Card>
-                        </div>
-                      )}
+                            <div style={{ flex: 1 }}>
+                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Reimbursement</Title>
+                              <Text type="secondary" style={{ fontSize: 11 }}>Submit expense claims</Text>
+                            </div>
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="small"
+                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                              style={{
+                                background: '#1677ff',
+                                border: 'none',
+                                width: 24,
+                                height: 24,
+                                minWidth: 24,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            />
+                          </div>
+                        </Card>
+
+                        {/* Submit Timesheet Card */}
+                        <Card
+                          hoverable
+                          style={{
+                            borderRadius: 14,
+                            border: '1px solid #f0f0f0',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            overflow: 'hidden'
+                          }}
+                          styles={{ body: { padding: '12px 16px' } }}
+                          onClick={() => router.push("/timesheet/submit")}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: '#f8f9fa',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid #f0f0f0'
+                            }}>
+                              <ClockCircleOutlined style={{ fontSize: 18, color: '#8c8c8c' }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <Title level={5} style={{ margin: 0, color: '#262626', fontSize: 14, fontWeight: 700 }}>Submit Timesheet</Title>
+                              <Text type="secondary" style={{ fontSize: 11 }}>Log your daily hours</Text>
+                            </div>
+                            <Button
+                              type="primary"
+                              shape="circle"
+                              size="small"
+                              icon={<PlusOutlined style={{ fontSize: 12 }} />}
+                              style={{
+                                background: '#1677ff',
+                                border: 'none',
+                                width: 24,
+                                height: 24,
+                                minWidth: 24,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            />
+                          </div>
+                        </Card>
+                      </Space>
                     </Col>
                     <Col xs={24} lg={16}>
                       {/* Recent Tickets */}
                       <Card
                         title={
                           <Space>
-                            <FileTextOutlined style={{ color: "#722ed1" }} />
-                            <span>Recent Tickets</span>
+                            <FileTextOutlined style={{ color: "#8c8c8c" }} />
+                            <span style={{ fontSize: 15, fontWeight: 600 }}>Recent Tickets</span>
                           </Space>
                         }
                         size="small"
+                        bordered
                         extra={
                           <Button
                             type="link"
                             size="small"
                             onClick={() => router.push("/tickets")}
+                            style={{ fontSize: 12 }}
                           >
                             View All
                           </Button>
@@ -1624,80 +1645,149 @@ function DashboardContent() {
                           height: "230px",
                           display: "flex",
                           flexDirection: "column",
+                          boxShadow: "none",
                         }}
-                        bodyStyle={{
-                          padding: 0,
-                          flex: 1,
-                          overflowY: "auto",
+                        styles={{
+                          body: {
+                            padding: 0,
+                            flex: 1,
+                            overflowY: "auto",
+                          }
                         }}
                       >
-                        <Table
+                        <List
                           dataSource={recentTickets}
-                          columns={[
-                            {
-                              title: "Ticket",
-                              dataIndex: "ticketNumber",
-                              key: "ticketNumber",
-                              width: 120,
-                              render: (text: string) => (
-                                <Text style={{ fontSize: 12 }}>{text}</Text>
-                              ),
-                            },
+                          className="no-scrollbar"
+                          style={{ padding: '0 4px' }}
+                          renderItem={(item: any) => (
+                            <List.Item
+                              onClick={() => router.push(`/tickets/${item.id}`)}
+                              style={{
+                                padding: "12px 14px",
+                                cursor: "pointer",
+                                borderBottom: "1px solid #f0f0f0",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "12px",
+                                borderRadius: '12px',
+                                margin: '4px 0'
+                              }}
+                              className="ticket-list-item"
+                            >
+                              {/* Priority Bar Indicator */}
+                              <div
+                                style={{
+                                  width: "4px",
+                                  height: "36px",
+                                  borderRadius: "2px",
+                                  background: getPriorityColor(item.priority),
+                                  flexShrink: 0,
+                                }}
+                              />
 
-                            {
-                              title: "Create Time",
-                              dataIndex: "createdAt",
-                              key: "startTime",
-                              width: 100,
-                              render: (text: string) => (
-                                <Text style={{ fontSize: 12 }}>
-                                  {dayjs(text).format("DD/MM/YY")}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 3,
+                                  }}
+                                >
+                                  <Space size={8}>
+                                    <Text
+                                      type="secondary"
+                                      style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
+                                    >
+                                      {item.ticketNumber}
+                                    </Text>
+                                    <Tag
+                                      style={{
+                                        fontSize: 9,
+                                        margin: 0,
+                                        borderRadius: "4px",
+                                        background: "#f5f5f5",
+                                        border: "none",
+                                        color: '#8c8c8c'
+                                      }}
+                                    >
+                                      {typeof item.project === "string"
+                                        ? item.project
+                                        : item.project?.code ||
+                                        item.project?.name}
+                                    </Tag>
+                                  </Space>
+                                  <Text type="secondary" style={{ fontSize: 10, color: '#bfbfbf' }}>
+                                    {formatTimeAgo(item.createdAt)}
+                                  </Text>
+                                </div>
+
+                                <Text
+                                  strong
+                                  ellipsis={{ tooltip: item.title }}
+                                  style={{
+                                    fontSize: 13,
+                                    display: "block",
+                                    color: "#262626",
+                                    lineHeight: 1.3,
+                                    marginBottom: 6
+                                  }}
+                                >
+                                  {item.title}
                                 </Text>
-                              ),
-                            },
 
-                            {
-                              title: "Status",
-                              dataIndex: "status",
-                              key: "status",
-                              width: 120,
-                              render: (status: string) => {
-                                let color = "default";
-                                if (status === "completed") color = "success";
-                                if (status === "in_progress")
-                                  color = "processing";
-                                if (status === "not_started") color = "default";
-                                if (status === "blocked") color = "error";
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                  }}
+                                >
+                                  {(() => {
+                                    let color = "default";
+                                    const status = item.status?.toLowerCase();
+                                    if (status === "completed" || status === "live") color = "success";
+                                    if (status === "in_progress") color = "processing";
+                                    if (status === "not_started") color = "default";
+                                    if (status === "blocked") color = "error";
 
-                                return (
-                                  <Tag
-                                    color={color}
-                                    style={{ fontSize: 10, margin: 0 }}
-                                  >
-                                    {status?.replace(/_/g, " ").toUpperCase()}
-                                  </Tag>
-                                );
-                              },
-                            },
-                            {
-                              title: "Title",
-                              dataIndex: "title",
-                              key: "title",
-                              ellipsis: true,
-                              render: (text: string) => (
-                                <Text style={{ fontSize: 12 }}>{text}</Text>
-                              ),
-                            },
-                          ]}
-                          pagination={false}
-                          tableLayout="fixed"
-                          size="small"
-                          rowKey="id"
-                          onRow={(record) => ({
-                            onClick: () => {
-                              router.push(`/tickets/${record.id}`);
-                            },
-                          })}
+                                    return (
+                                      <Tag
+                                        color={color}
+                                        style={{
+                                          fontSize: 9,
+                                          margin: 0,
+                                          borderRadius: "5px",
+                                          padding: "0 8px",
+                                          border: 'none',
+                                          fontWeight: 600
+                                        }}
+                                      >
+                                        {item.status?.replace(/_/g, " ").toUpperCase()}
+                                      </Tag>
+                                    );
+                                  })()}
+
+                                  {item.assignee && (
+                                    <Tooltip title={`Assignee: ${item.assignee.name}`}>
+                                      <Avatar
+                                        size={20}
+                                        src={item.assignee.avatar}
+                                        style={{
+                                          backgroundColor: "#722ed1",
+                                          fontSize: 10,
+                                          border: '1.5px solid white',
+                                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                        }}
+                                      >
+                                        {item.assignee.name?.charAt(0).toUpperCase()}
+                                      </Avatar>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </div>
+                            </List.Item>
+                          )}
                         />
                       </Card>
                     </Col>

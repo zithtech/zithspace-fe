@@ -4,211 +4,70 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Settings2, Columns3Cog } from "lucide-react";
+import { 
+  Settings2, 
+  Briefcase, 
+  Plus, 
+  Search, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  ArrowRight,
+  ChevronRight,
+  Info,
+  Calendar,
+  Zap,
+  ShieldCheck,
+  AlertCircle
+} from "lucide-react";
 import {
   Card,
-  Tabs,
   Form,
   Input,
-  DatePicker,
   Select,
   Button,
   Table,
   Tag,
-  Modal,
-  message,
+  Drawer,
   notification,
   Space,
-  Statistic,
   Row,
   Col,
-  Badge,
   Typography,
   Tooltip,
   Popconfirm,
   Switch,
-  Checkbox,
-  List,
   InputNumber,
   Divider,
-  Segmented,
   ConfigProvider,
   AutoComplete,
+  Avatar
 } from "antd";
 import {
   PlusOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ClockCircleOutlined,
-  ScheduleOutlined,
-  EditOutlined,
   DeleteOutlined,
-  SettingOutlined,
   ApartmentOutlined,
-  AppstoreOutlined,
 } from "@ant-design/icons";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useLeaveTypes } from "@/hooks/useLeaveTypes";
+
 const { TextArea } = Input;
-const { RangePicker } = DatePicker;
-const { Paragraph, Text } = Typography;
-const { Option } = Select;
+const { Text, Title } = Typography;
 
 const leaveTypesData = [
-  {
-    name: "Sick Leave",
-    description:
-      "Leave granted when an employee is ill or needs medical attention.",
-  },
-  {
-    name: "Casual Leave",
-    description: "Short-term leave taken for personal reasons or emergencies.",
-  },
-  {
-    name: "Earned Leave",
-    description: "Leave accumulated over time based on work tenure.",
-  },
-  {
-    name: "Paid Leave",
-    description: "Leave where salary is fully paid during absence.",
-  },
-  {
-    name: "Unpaid Leave",
-    description: "Leave taken without salary payment.",
-  },
-  {
-    name: "Loss of Pay",
-    description:
-      "Leave resulting in salary deduction due to insufficient balance.",
-  },
-  {
-    name: "Comp-Off",
-    description: "Leave granted for working on holidays or weekends.",
-  },
-  {
-    name: "On Duty",
-    description:
-      "Marked when employee is working outside office for official work.",
-  },
-  {
-    name: "Emergency Leave",
-    description: "Leave taken due to urgent or unexpected situations.",
-  },
-  {
-    name: "Medical Leave",
-    description: "Extended leave taken for medical treatment or recovery.",
-  },
-  {
-    name: "Festival Holiday",
-    description: "Holiday granted for religious or cultural festivals.",
-  },
-  {
-    name: "Weekly Off",
-    description: "Regular weekly holiday such as Sunday or scheduled off day.",
-  },
-  {
-    name: "Marriage Leave",
-    description: "Leave granted for employee’s marriage.",
-  },
-  {
-    name: "Bereavement Leave",
-    description: "Leave taken due to death of a close family member.",
-  },
-
-  // Office / Corporate (IT + Non-IT)
-  {
-    name: "Work From Home",
-    description: "Employee works remotely instead of office.",
-  },
-  {
-    name: "Optional Holiday",
-    description: "Employee can choose to take this holiday optionally.",
-  },
-  {
-    name: "Floating Holiday",
-    description: "Flexible holiday chosen by the employee.",
-  },
-  {
-    name: "Privilege Leave",
-    description: "Long-term leave granted as per company policy.",
-  },
-  {
-    name: "Annual Leave",
-    description: "Yearly leave entitlement for employees.",
-  },
-  {
-    name: "Training Leave",
-    description: "Leave taken to attend training or skill programs.",
-  },
-  {
-    name: "Sabbatical Leave",
-    description: "Extended leave for personal or professional development.",
-  },
-
-  // Hospital / Healthcare
-  {
-    name: "Night Shift Off",
-    description: "Off granted after night shift duty.",
-  },
-  {
-    name: "Quarantine Leave",
-    description: "Leave during isolation due to contagious illness.",
-  },
-  {
-    name: "Accident Leave",
-    description: "Leave taken due to injury or accident.",
-  },
-  {
-    name: "Duty Roster Leave",
-    description: "Leave based on duty roster schedule.",
-  },
-  {
-    name: "Emergency Duty Off",
-    description: "Off given after emergency duty hours.",
-  },
-  {
-    name: "Maternity Leave",
-    description: "Leave granted to female employees during childbirth.",
-  },
-  {
-    name: "Paternity Leave",
-    description: "Leave granted to male employees after childbirth.",
-  },
-
-  // Factory / Manufacturing
-  {
-    name: "Shift Leave",
-    description: "Leave taken due to shift schedule changes.",
-  },
-  {
-    name: "Production Shutdown Leave",
-    description: "Leave during factory or production shutdown.",
-  },
-  {
-    name: "Compensatory Leave",
-    description: "Leave given in return for extra working hours.",
-  },
-  {
-    name: "Special Leave",
-    description: "Leave granted for special circumstances.",
-  },
-  {
-    name: "Layoff Leave",
-    description: "Leave during temporary workforce layoff.",
-  },
-  {
-    name: "Menstrual Leave",
-    description:
-      "Menstrual Leave is a paid leave granted to eligible female employees to address health and wellness needs during their menstrual cycle. This leave is provided in accordance with company policy and may require prior approval.",
-  },
-  {
-    name: "Sandwich Leave",
-    description:
-      "Sandwich Leave is applied when an employee takes leave before and after a holiday or weekend, causing the intervening non-working days to be counted as leave, as per company policy.",
-  },
+  { name: "Sick Leave", description: "Leave granted when an employee is ill or needs medical attention." },
+  { name: "Casual Leave", description: "Short-term leave taken for personal reasons or emergencies." },
+  { name: "Earned Leave", description: "Leave accumulated over time based on work tenure." },
+  { name: "Paid Leave", description: "Leave where salary is fully paid during absence." },
+  { name: "Unpaid Leave", description: "Leave taken without salary payment." },
+  { name: "Comp-Off", description: "Leave granted for working on holidays or weekends." },
+  { name: "Maternity Leave", description: "Leave granted to female employees during childbirth." },
+  { name: "Paternity Leave", description: "Leave granted to male employees after childbirth." },
+  { name: "Work From Home", description: "Employee works remotely instead of office." },
+  { name: "Sabbatical Leave", description: "Extended leave for personal or professional development." },
 ];
 
-interface LeaveType {
+interface LeaveTypeRecord {
   key: string;
   name: string;
   code: string;
@@ -221,19 +80,15 @@ interface LeaveType {
   hours?: number;
 }
 
-export default function leaveConfiguration() {
+export default function LeaveTypePage() {
   const { user } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const hasApprovalRights =
-    (user as any)?.role === "super_admin" || (user as any)?.role === "admin";
-
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<LeaveType[]>([]);
+  const [dataSource, setDataSource] = useState<LeaveTypeRecord[]>([]);
   const [searchText, setSearchText] = useState("");
   const [leaveUnit, setLeaveUnit] = useState("Days");
   const [isSaving, setIsSaving] = useState(false);
@@ -241,7 +96,6 @@ export default function leaveConfiguration() {
   const {
     leaveTypes: apiLeaveTypes,
     loading,
-    error,
     fetchLeaveTypes,
     createLeaveType,
     updateLeaveType,
@@ -250,7 +104,7 @@ export default function leaveConfiguration() {
 
   useEffect(() => {
     fetchLeaveTypes();
-  }, []);
+  }, [fetchLeaveTypes]);
 
   useEffect(() => {
     if (apiLeaveTypes) {
@@ -270,85 +124,67 @@ export default function leaveConfiguration() {
     }
   }, [apiLeaveTypes]);
 
-  const switchRow: React.CSSProperties = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-  };
-
-  const switchTitle: React.CSSProperties = {
-    fontWeight: 500,
-    color: "#333",
-  };
-
-  const switchDesc: React.CSSProperties = {
-    fontSize: 12,
-    color: "#888",
-  };
-
   const columns = [
     {
-      title: "Leave Name",
+      title: "Leave Policy",
       dataIndex: "name",
       key: "name",
-      sorter: (a: LeaveType, b: LeaveType) => a.name.localeCompare(b.name),
-      render: (text: string) => <Text strong>{text}</Text>,
-    },
-    {
-      title: "Code",
-      dataIndex: "code",
-      key: "code",
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-      render: (text: string) => (
-        <Tooltip title={text}>
-          <div
-            style={{
-              maxWidth: 400,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {text}
+      width: "30%",
+      render: (text: string, record: LeaveTypeRecord) => (
+        <Space size={12}>
+          <div style={{ 
+            width: 36, 
+            height: 36, 
+            borderRadius: 10, 
+            background: "#f0f9ff", 
+            color: "#0369a1",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: 14
+          }}>
+            {record.code}
           </div>
-        </Tooltip>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{text}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>{record.description.length > 50 ? record.description.substring(0, 50) + "..." : record.description}</Text>
+          </div>
+        </Space>
       ),
     },
     {
-      title: "Type",
-      key: "type",
-      render: (record: LeaveType) => (
-        <span>
-          {record.type === "Days"
-            ? (record.days || 1) === 1
-              ? "Day"
-              : `${record.days} Days`
-            : "Hours"}
-        </span>
+      title: "Category",
+      key: "category",
+      render: (record: LeaveTypeRecord) => (
+        <Space direction="vertical" size={0}>
+          <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>
+            {record.type}
+          </Tag>
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {record.type === "Days" ? `${record.days || 1} Day Unit` : "Hourly Basis"}
+          </Text>
+        </Space>
       ),
     },
     {
-      title: "Paid",
-      dataIndex: "paid",
-      key: "paid",
-      render: (paid: boolean) => (paid ? "Yes" : "No"),
-    },
-    {
-      title: "Approval",
-      dataIndex: "approval",
-      key: "approval",
-      render: (approval: string) => (
-        <Tag
-          style={{ borderRadius: 10 }}
-          color={approval === "Required" ? "orange" : "green"}
-        >
-          {approval}
-        </Tag>
+      title: "Structure",
+      key: "structure",
+      render: (record: LeaveTypeRecord) => (
+        <Space size={16}>
+          <Tooltip title={record.paid ? "Fully Paid" : "Unpaid"}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {record.paid ? <CheckCircle2 size={14} color="#22c55e" /> : <XCircle size={14} color="#ef4444" />}
+              <Text style={{ fontSize: 13, color: "#475569" }}>{record.paid ? "Paid" : "Unpaid"}</Text>
+            </div>
+          </Tooltip>
+          <Tooltip title={record.approval === "Required" ? "Approval Needed" : "Auto Approved"}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <ShieldCheck size={14} color={record.approval === "Required" ? "#f59e0b" : "#64748b"} />
+              <Text style={{ fontSize: 13, color: "#475569" }}>{record.approval}</Text>
+            </div>
+          </Tooltip>
+        </Space>
       ),
     },
     {
@@ -357,36 +193,43 @@ export default function leaveConfiguration() {
       key: "status",
       render: (status: string) => (
         <Tag
-          style={{ borderRadius: 10 }}
+          style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
           color={status === "Active" ? "success" : "default"}
         >
-          {status}
+          {status.toUpperCase()}
         </Tag>
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      render: (_: unknown, record: LeaveType) => (
-        <Space>
-          <Tooltip title="Edit Leave Type">
+      align: "right" as const,
+      render: (_: unknown, record: LeaveTypeRecord) => (
+        <Space size={4}>
+          <Tooltip title="Edit Rules">
             <Button
               type="text"
-              icon={<Settings2 size={16} />}
+              icon={<Settings2 size={18} style={{ color: "#64748b" }} />}
               onClick={() => handleEdit(record)}
+              className="action-btn"
             />
           </Tooltip>
-          <Tooltip title="Delete Leave Type">
+          <Tooltip title="Delete Policy">
             <Popconfirm
-              title="Delete this leave type?"
-              description="Are you sure you want to delete this leave type?"
+              title="Delete this leave policy?"
+              description="This will affect current balances and historical records."
               onConfirm={() => handleDelete(record.key)}
-              okButtonProps={{ loading: deletingKey === record.key }}
+              okButtonProps={{ loading: deletingKey === record.key, danger: true }}
               cancelButtonProps={{ disabled: deletingKey === record.key }}
-              okText="Yes"
-              cancelText="No"
+              okText="Delete"
+              cancelText="Cancel"
             >
-              <Button danger type="text" icon={<DeleteOutlined />} />
+              <Button 
+                danger 
+                type="text" 
+                icon={<DeleteOutlined style={{ fontSize: 18 }} />} 
+                className="action-btn-danger"
+              />
             </Popconfirm>
           </Tooltip>
         </Space>
@@ -394,7 +237,7 @@ export default function leaveConfiguration() {
     },
   ];
 
-  const handleEdit = (record: LeaveType) => {
+  const handleEdit = (record: LeaveTypeRecord) => {
     setEditingKey(record.key);
     form.setFieldsValue({
       name: record.name,
@@ -408,7 +251,7 @@ export default function leaveConfiguration() {
       hours: record.hours,
     });
     setLeaveUnit(record.type);
-    setIsModalVisible(true);
+    setIsDrawerVisible(true);
   };
 
   const handleDelete = async (key: string) => {
@@ -416,14 +259,14 @@ export default function leaveConfiguration() {
     try {
       await deleteLeaveType(key);
       api.success({
-        message: "Leave Type Deleted",
+        message: "Policy Removed",
+        description: "Leave type has been successfully deleted.",
         placement: "topRight",
-        duration: 2,
       });
     } catch (e: any) {
       api.error({
-        message: "Deletion Failed",
-        description: e.message || "Could not delete the leave type.",
+        message: "Action Failed",
+        description: e.message || "Could not delete policy.",
         placement: "topRight",
       });
     } finally {
@@ -431,19 +274,8 @@ export default function leaveConfiguration() {
     }
   };
 
-  const handleSaveLeaveType = async (values: {
-    name: string;
-    code: string;
-    description: string;
-    type: string;
-    paid: boolean;
-    approval: boolean;
-    status: boolean;
-    days: number;
-    hours: number;
-  }) => {
+  const handleSaveLeaveType = async (values: any) => {
     const payload = {
-      // ... (rest of the payload)
       name: values.name,
       code: values.code,
       description: values.description,
@@ -451,59 +283,34 @@ export default function leaveConfiguration() {
       isPaid: values.paid,
       requiresApproval: values.approval,
       isActive: values.status,
-      days: values.type === "Days" ? values.days : null,
-      hours: values.type === "Hours" ? values.hours : null,
+      days: values.type === "Days" ? (values.days || 1) : null,
+      hours: values.type === "Hours" ? (values.hours || 0.5) : null,
     };
-
-    // Check for duplicates locally before sending
-    const isDuplicateName = dataSource.some(
-      (item) =>
-        item.name.toLowerCase() === values.name.toLowerCase() &&
-        item.key !== editingKey,
-    );
-    const isDuplicateCode = dataSource.some(
-      (item) =>
-        item.code.toLowerCase() === values.code.toLowerCase() &&
-        item.key !== editingKey,
-    );
-
-    if (isDuplicateName || isDuplicateCode) {
-      api.error({
-        message: "Duplicate Entry",
-        description: `A leave type with this ${isDuplicateName ? "name" : "code"} already exists.`,
-        placement: "topRight",
-      });
-      return;
-    }
 
     setIsSaving(true);
     try {
       if (editingKey) {
         await updateLeaveType(editingKey, payload);
         api.success({
-          message: `${values.name} Updated Successfully`,
+          message: `${values.name} Updated`,
+          description: "Policy configuration saved successfully.",
           placement: "topRight",
-          duration: 2,
         });
       } else {
         await createLeaveType(payload);
         api.success({
-          message: `${values.name} Added Successfully`,
+          message: `${values.name} Created`,
+          description: "New leave policy added to the system.",
           placement: "topRight",
-          duration: 2,
         });
       }
-      setIsModalVisible(false);
+      setIsDrawerVisible(false);
       form.resetFields();
       setEditingKey(null);
     } catch (e: any) {
-      let errorMessage = e.message;
-      if (e.response?.status === 409) {
-        errorMessage = "Leave type with this name or code already exists.";
-      }
       api.error({
-        message: "Save Failed",
-        description: errorMessage,
+        message: "Sync Failed",
+        description: e.message || "An error occurred while saving.",
         placement: "topRight",
       });
     } finally {
@@ -511,163 +318,113 @@ export default function leaveConfiguration() {
     }
   };
 
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      bodyStyle={{ padding: "16px 20px" }} 
+      style={{ 
+        borderRadius: 12, 
+        border: "1px solid #f1f5f9", 
+        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
+
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: 24 }}>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "#ffffff", 
+          minHeight: "calc(100vh - 64px)" 
+        }}>
           {contextHolder}
-          <div>
-            <Tabs
-              activeKey="configuration"
-              onChange={(key) => {
-                const routes: any = {
-                  dashboard: "/leaves-dashboard",
-                  // leaves: "/leaves",
-                  holidays: "/government-holidays",
-                  adjustments: "/leave-adjustments",
-                  configuration: "/leave-type",
-                  positions: "/leave-policy",
-                  addLeaves: "/add-goverment-leaves",
-                  "apply-leave": "/apply-leave",
-                  approvals: "/leave-approvals",
-                };
-                if (routes[key]) router.push(routes[key]);
-              }}
-              items={[
-                {
-                  key: "dashboard",
-                  label: (
-                    <span>
-                      <AppstoreOutlined /> Dashboard
-                    </span>
-                  ),
-                },
-                // {
-                //   key: "leaves",
-                //   label: (
-                //     <span>
-                //       <ClockCircleOutlined /> Apply Leave
-                //     </span>
-                //   ),
-                // },
-                {
-                  key: "apply-leave",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Apply leave
-                    </span>
-                  ),
-                },
-                hasApprovalRights && {
-                  key: "approvals",
-                  label: (
-                    <span>
-                      <CheckCircleOutlined /> Approvals
-                    </span>
-                  ),
-                },
-                {
-                  key: "holidays",
-                  label: (
-                    <span>
-                      <ScheduleOutlined /> Government Holidays
-                    </span>
-                  ),
-                },
-                {
-                  key: "adjustments",
-                  label: (
-                    <span>
-                      <EditOutlined /> Leave Adjustment
-                    </span>
-                  ),
-                },
-                {
-                  key: "configuration",
-                  label: (
-                    <span>
-                      <SettingOutlined /> Leave Type
-                    </span>
-                  ),
-                },
-                {
-                  key: "positions",
-                  label: (
-                    <span>
-                      <ApartmentOutlined /> Leave Policy
-                    </span>
-                  ),
-                },
-                {
-                  key: "addLeaves",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Add Government Leaves
-                    </span>
-                  ),
-                },
-              ].filter(Boolean) as any}
-            />
-          </div>
-          <Card>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <Columns3Cog style={{ color: "#1a64c4ff", fontSize: 20 }} />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Leave Type
-                  </Typography.Title>
-                </Space>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Manage leave types and define allocation rules for each
-                    position.
-                  </Text>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 12, margin: "8px 0 0 28px" }}>
-                <Input.Search
-                  placeholder="Search Leave Types...."
-                  allowClear
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: 390, height: 36 }}
-                />
 
-                <Button
-                  type="primary"
-                  style={{ width: 150, height: 30 }}
-                  onClick={() => {
-                    setEditingKey(null);
-                    form.resetFields();
-                    setLeaveUnit("Days");
-                    setIsModalVisible(true);
-                  }}
-                >
-                  + Add Leave Type
-                </Button>
-              </div>
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Space size={12} align="center">
+                <div style={{ 
+                  background: "#eff6ff", 
+                  padding: 10, 
+                  borderRadius: 12, 
+                  color: "#2563eb",
+                  display: "flex"
+                }}>
+                  <Briefcase size={24} />
+                </div>
+                <div>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Leave Types</Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Define and manage leave types, accrual rules, and approval workflows.</Text>
+                </div>
+              </Space>
             </div>
-            {/* <Divider /> */}
-            <Space style={{ marginBottom: 8 }}>
-              <Tag color="blue" style={{ borderRadius: 10 }}>
-                Total Leave Types: {dataSource.length}
-              </Tag>
-              <Tag color="success" style={{ borderRadius: 10 }}>
-                Active:{" "}
-                {dataSource.filter((item) => item.status === "Active").length}
-              </Tag>
-              <Tag style={{ borderRadius: 10 }}>
-                Inactive:{" "}
-                {dataSource.filter((item) => item.status === "Inactive").length}
-              </Tag>
-            </Space>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Input 
+                placeholder="Search policies..." 
+                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                style={{ width: 280, borderRadius: 10, height: 44 }}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Plus size={18} />} 
+                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                onClick={() => {
+                  setEditingKey(null);
+                  form.resetFields();
+                  setIsDrawerVisible(true);
+                }}
+              >
+                New Leave Type
+              </Button>
+            </div>
+          </div>
+
+          {/* Metrics Grid */}
+          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}>
+              <StatCard 
+                label="Total Policy Types" 
+                value={dataSource.length} 
+                icon={Zap} 
+                color="#3b82f6" 
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard 
+                label="Active Policies" 
+                value={dataSource.filter(d => d.status === "Active").length} 
+                icon={CheckCircle2} 
+                color="#10b981" 
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard 
+                label="Requires Approval" 
+                value={dataSource.filter(d => d.approval === "Required").length} 
+                icon={AlertCircle} 
+                color="#f59e0b" 
+              />
+            </Col>
+          </Row>
+
+          {/* Table Card */}
+          <Card 
+            bodyStyle={{ padding: 0 }} 
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
+          >
             <Table
               columns={columns}
               dataSource={dataSource.filter(
@@ -676,139 +433,95 @@ export default function leaveConfiguration() {
                   item.code.toLowerCase().includes(searchText.toLowerCase()),
               )}
               loading={loading}
-              size="small"
-              style={{ marginTop: 5 }}
-              pagination={{ pageSize: 10 }}
+              size="middle"
+              pagination={{ pageSize: 12, position: ["bottomRight"] }}
             />
           </Card>
+        </div>
 
-          <Modal
-            title={
+        {/* Configuration Drawer */}
+        <Drawer
+          title={
+            <Space size={12}>
+              <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb", display: "flex" }}>
+                <Settings2 size={20} />
+              </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 600 }}>
-                  {editingKey ? "Edit Leave Type" : "Add Leave Type"}
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
+                  {editingKey ? "Edit Policy" : "Create New Policy"}
                 </div>
-                <div style={{ fontSize: 12, color: "#888" }}>
-                  Configure leave rules and availability
+                <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>
+                  Configure rules and accrual frequency
                 </div>
               </div>
-            }
-            open={isModalVisible}
-            onCancel={() => setIsModalVisible(false)}
-            footer={null}
-            width={440}
-            destroyOnClose
-          >
-            <Form form={form} layout="vertical" onFinish={handleSaveLeaveType}>
-              {/* Leave Name & Code */}
-              <Row gutter={12}>
-                <Col span={12}>
+            </Space>
+          }
+          width={480}
+          open={isDrawerVisible}
+          onClose={() => setIsDrawerVisible(false)}
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
+              <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+              <Button 
+                type="primary" 
+                loading={isSaving} 
+                onClick={() => form.submit()} 
+                style={{ borderRadius: 8, height: 40, padding: "0 24px" }}
+              >
+                Save Configuration
+              </Button>
+            </div>
+          }
+          className="config-drawer"
+        >
+          <Form form={form} layout="vertical" onFinish={handleSaveLeaveType} requiredMark={false}>
+            <div style={{ marginBottom: 24 }}>
+              <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Basic Information</Title>
+              <Row gutter={16}>
+                <Col span={16}>
                   <Form.Item
                     name="name"
-                    label="Leave Name"
-                    rules={[
-                      { required: true, message: "Please select leave name" },
-                    ]}
+                    label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
+                    rules={[{ required: true, message: "Required" }]}
                   >
                     <AutoComplete
-                      size="large"
-                      style={{ width: "100%" }}
-                      placeholder="Select or type to add a leave"
-                      options={leaveTypesData
-                        .filter(
-                          (l) =>
-                            !dataSource.some(
-                              (existing) =>
-                                existing.name.toLowerCase() ===
-                                l.name.toLowerCase(),
-                            ),
-                        )
-                        .map((l) => ({
-                          label: l.name,
-                          value: l.name,
-                        }))}
-                      filterOption={(inputValue, option) =>
-                        option!.value
-                          .toUpperCase()
-                          .indexOf(inputValue.toUpperCase()) !== -1
-                      }
+                      placeholder="e.g. Sick Leave"
+                      options={leaveTypesData.map(l => ({ label: l.name, value: l.name }))}
                       onChange={(value) => {
-                        const selectedLeave = leaveTypesData.find(
-                          (l) => l.name === value,
-                        );
-                        let code = "";
-                        if (value) {
-                          const words = value.trim().split(/\s+/);
-                          if (words.length === 1 && words[0].length > 0) {
-                            code = words[0].substring(0, 2).toUpperCase();
-                          } else if (words.length > 1) {
-                            code = words
-                              .map((x: string) => x[0])
-                              .join("")
-                              .toUpperCase();
-                          }
+                        const selected = leaveTypesData.find(l => l.name === value);
+                        if (selected) {
+                          form.setFieldsValue({ description: selected.description });
                         }
-
-                        if (code) {
-                          let finalCode = code;
-                          let counter = 1;
-                          while (
-                            dataSource.some(
-                              (item) =>
-                                item.code.toLowerCase() ===
-                                  finalCode.toLowerCase() &&
-                                item.key !== editingKey,
-                            )
-                          ) {
-                            finalCode = `${code}${counter}`;
-                            counter++;
-                          }
-                          code = finalCode;
-                        }
-
-                        form.setFieldsValue({
-                          code,
-                          description: selectedLeave?.description || "",
-                        });
                       }}
                     />
                   </Form.Item>
                 </Col>
-
-                <Col span={12}>
+                <Col span={8}>
                   <Form.Item
                     name="code"
-                    label="Leave Code"
-                    rules={[{ required: true, message: "Please enter code" }]}
+                    label={<Text strong style={{ fontSize: 13 }}>Code</Text>}
+                    rules={[{ required: true, message: "Required" }]}
                   >
-                    <Input size="large" placeholder="e.g. CL" />
+                    <Input placeholder="e.g. SL" />
                   </Form.Item>
                 </Col>
               </Row>
-
-              {/* Description */}
               <Form.Item
                 name="description"
-                label="Description"
-                rules={[{ required: true, message: "Please Description" }]}
+                label={<Text strong style={{ fontSize: 13 }}>Description</Text>}
               >
-                <TextArea rows={2} placeholder="Enter description" />
+                <TextArea rows={3} placeholder="Provide details about this leave type..." />
               </Form.Item>
+            </div>
 
-              {/* Unit */}
-              <Row gutter={12}>
+            <Divider />
+
+            <div style={{ marginBottom: 24 }}>
+              <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Accrual & Units</Title>
+              <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item name="type" label="Type" initialValue="Days">
-                    <Select
-                      onChange={(value) => {
-                        setLeaveUnit(value);
-                        if (value === "Days") {
-                          form.setFieldsValue({ days: 1, hours: undefined });
-                        } else {
-                          form.setFieldsValue({ hours: 0.5, days: undefined });
-                        }
-                      }}
-                    >
+                  <Form.Item name="type" label="Measurement Unit" initialValue="Days">
+                    <Select onChange={setLeaveUnit}>
                       <Select.Option value="Days">Days</Select.Option>
                       <Select.Option value="Hours">Hours</Select.Option>
                     </Select>
@@ -816,143 +529,92 @@ export default function leaveConfiguration() {
                 </Col>
                 <Col span={12}>
                   {leaveUnit === "Days" ? (
-                    <Form.Item name="days" label="Days" initialValue={1}>
-                      <InputNumber style={{ width: "100%" }} min={1} disabled />
+                    <Form.Item name="days" label="Default Increment" initialValue={1}>
+                      <InputNumber style={{ width: "100%" }} min={1} />
                     </Form.Item>
                   ) : (
-                    <Form.Item name="hours" label="Hours" initialValue={0.5}>
-                      <InputNumber
-                        style={{ width: "100%" }}
-                        min={0.5}
-                        max={2.5}
-                        step={0.5}
-                      />
+                    <Form.Item name="hours" label="Default Increment" initialValue={0.5}>
+                      <InputNumber style={{ width: "100%" }} min={0.5} step={0.5} />
                     </Form.Item>
                   )}
                 </Col>
               </Row>
-              {/* Settings Section */}
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: 12,
-                  borderRadius: 8,
-                  background: "#fafafa",
-                  border: "1px solid #f0f0f0",
-                }}
-              >
-                {/* Paid Leave */}
-                <div style={{ ...switchRow, marginBottom: 16 }}>
-                  <div>
-                    <div style={switchTitle}>Paid Leave</div>
-                    <div style={switchDesc}>
-                      Employee salary is not deducted
-                    </div>
-                  </div>
-                  <ConfigProvider
-                    theme={{
-                      components: {
-                        Switch: {
-                          colorPrimary: "#52c41a",
-                          colorPrimaryHover: "#73d13d",
-                        },
-                      },
-                    }}
-                  >
-                    <Form.Item
-                      name="paid"
-                      valuePropName="checked"
-                      initialValue={true}
-                      noStyle
-                    >
-                      <Switch />
-                    </Form.Item>
-                  </ConfigProvider>
-                </div>
+            </div>
 
-                {/* Requires Approval */}
-                <div style={{ ...switchRow, marginBottom: 16 }}>
-                  <div>
-                    <div style={switchTitle}>Requires Approval</div>
-                    <div style={switchDesc}>
-                      Manager must approve this leave
-                    </div>
-                  </div>
-                  <ConfigProvider
-                    theme={{
-                      components: {
-                        Switch: {
-                          colorPrimary: "#eeae0bff",
-                          colorPrimaryHover: "#eeae0bff",
-                        },
-                      },
-                    }}
-                  >
-                    <Form.Item
-                      name="approval"
-                      valuePropName="checked"
-                      initialValue={true}
-                      noStyle
-                    >
-                      <Switch />
-                    </Form.Item>
-                  </ConfigProvider>
-                </div>
+            <Divider />
 
-                {/* Status */}
-                <div style={switchRow}>
+            <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "#334155" }}>Policy Controls</Title>
+              
+              <Form.Item name="paid" valuePropName="checked" initialValue={true}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div style={switchTitle}>Status</div>
-                    <div style={switchDesc}>Leave type is active</div>
+                    <Text strong style={{ fontSize: 14, display: "block" }}>Paid Salary</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Employee salary is not deducted during this leave.</Text>
                   </div>
-                  <ConfigProvider
-                    theme={{
-                      components: {
-                        Switch: {
-                          colorPrimary: "#9f00fcff",
-                          colorPrimaryHover: "#9f00fcff",
-                        },
-                      },
-                    }}
-                  >
-                    <Form.Item
-                      name="status"
-                      valuePropName="checked"
-                      initialValue={true}
-                      noStyle
-                    >
-                      <Switch />
-                    </Form.Item>
-                  </ConfigProvider>
+                  <Switch />
                 </div>
-              </div>
+              </Form.Item>
 
-              {/* Footer */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: 10,
-                  marginTop: 20,
-                }}
-              >
-                <Button
-                  onClick={() => setIsModalVisible(false)}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="primary"
-                  loading={isSaving}
-                  onClick={() => form.submit()}
-                >
-                  {editingKey ? "Update Leave Type" : "Create Leave Type"}
-                </Button>
-              </div>
-            </Form>
-          </Modal>
-        </div>
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Form.Item name="approval" valuePropName="checked" initialValue={true}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, display: "block" }}>Requires Approval</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Manager or Admin review is mandatory.</Text>
+                  </div>
+                  <Switch />
+                </div>
+              </Form.Item>
+
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Form.Item name="status" valuePropName="checked" initialValue={true}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, display: "block" }}>Active Policy</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Allow employees to apply for this leave.</Text>
+                  </div>
+                  <Switch />
+                </div>
+              </Form.Item>
+            </div>
+          </Form>
+        </Drawer>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .action-btn:hover {
+            background: #f1f5f9 !important;
+            color: #2563eb !important;
+          }
+          .action-btn-danger:hover {
+            background: #fff1f2 !important;
+          }
+          .ant-table-thead > tr > th {
+            background: #f8fafc !important;
+            color: #64748b !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            font-size: 11px !important;
+            letter-spacing: 0.05em !important;
+          }
+          .ant-table-row:hover > td {
+            background: #f8fafc !important;
+          }
+          .ant-input:focus, .ant-input-focused {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+          }
+          .config-drawer .ant-drawer-header {
+            border-bottom: 1px solid #f1f5f9 !important;
+            padding: 24px !important;
+          }
+          .config-drawer .ant-drawer-footer {
+            border-top: 1px solid #f1f5f9 !important;
+            padding: 16px 24px !important;
+          }
+        `}} />
       </MainLayout>
     </ProtectedRoute>
   );

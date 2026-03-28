@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { Drawer, Tabs, List, Button, Tag, Space, message, Modal } from "antd";
+import { Drawer, Tabs, List, Button, Space, message, Typography, Empty, Tooltip } from "antd";
 import {
-    DeleteOutlined,
     UndoOutlined,
     FileTextOutlined,
     FolderOpenOutlined,
-    ExclamationCircleOutlined,
+    ClockCircleOutlined,
+    UserOutlined,
+    InboxOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import DocumentHubService, { DocumentHub } from "@/services/documentHub";
+import DocumentHubService from "@/services/documentHub";
 import { format } from "date-fns";
+
+const { Text, Title } = Typography;
 
 interface TrashDrawerProps {
     open: boolean;
@@ -49,8 +52,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
             await DocumentHubService.restoreDocument(id);
             messageApi.success("Document restored successfully");
             refetch();
-            // We might need to invalidate specific document hub queries if we knew which one
-            // For now, allow the user to refresh or simple invalidation
+            queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
         } catch (error) {
             console.error(error);
             messageApi.error("Failed to restore Document");
@@ -60,102 +62,181 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
     const hubs = trashItems?.hubs || [];
     const documents = trashItems?.documents || [];
 
+    const TrashItemCard = ({ 
+        title, 
+        icon, 
+        deletedBy, 
+        deletedAt, 
+        subtext, 
+        onRestore,
+        type 
+    }: any) => (
+        <div className="relative bg-white border border-gray-100 rounded-xl p-4 mb-3 overflow-hidden">
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex gap-4 flex-1">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${type === 'hub' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                        {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <Title level={5} className="!mb-1 truncate text-gray-800">
+                            {title}
+                        </Title>
+                        <Space direction="vertical" size={2} className="w-full">
+                            {subtext && (
+                                <Text type="secondary" className="text-xs block flex items-center gap-1.5 font-medium">
+                                    <FolderOpenOutlined className="text-[10px]" /> {subtext}
+                                </Text>
+                            )}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                <Text type="secondary" className="text-[11px] flex items-center gap-1.5">
+                                    <UserOutlined className="text-[10px]" /> {deletedBy || "Unknown"}
+                                </Text>
+                                <Text type="secondary" className="text-[11px] flex items-center gap-1.5">
+                                    <ClockCircleOutlined className="text-[10px]" /> {deletedAt ? format(new Date(deletedAt), "MMM d, h:mm a") : "Unknown"}
+                                </Text>
+                            </div>
+                        </Space>
+                    </div>
+                </div>
+                <Tooltip title="Restore">
+                    <Button 
+                        type="primary" 
+                        shape="circle" 
+                        icon={<UndoOutlined />} 
+                        onClick={onRestore}
+                        className="flex-shrink-0 shadow-sm"
+                        style={{ background: '#3b82f6' }}
+                    />
+                </Tooltip>
+            </div>
+        </div>
+    );
+
     return (
         <Drawer
-            title="Trash"
+            title={
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                        <InboxOutlined className="text-red-500" />
+                    </div>
+                    <div>
+                        <div className="text-base font-semibold text-gray-800">Trash Bin</div>
+                        <div className="text-[11px] font-normal text-gray-400">Manage and restore deleted items</div>
+                    </div>
+                </div>
+            }
             placement="right"
-            width={500}
+            width={480}
             onClose={onClose}
             open={open}
+            className="premium-drawer"
+            headerStyle={{ borderBottom: '1px solid #f0f0f0', padding: '16px 24px' }}
+            bodyStyle={{ padding: '20px' }}
         >
             {contextHolder}
-            <Tabs
-                activeKey={activeTab}
-                onChange={(key) => setActiveTab(key as "hubs" | "documents")}
-                items={[
-                    {
-                        key: "hubs",
-                        label: `Document Hubs (${hubs.length})`,
-                        children: (
-                            <List
-                                loading={isLoading}
-                                dataSource={hubs}
-                                renderItem={(item: any) => (
-                                    <List.Item
-                                        actions={[
-                                            <Button
-                                                key="restore"
-                                                type="link"
-                                                icon={<UndoOutlined />}
-                                                onClick={() => handleRestoreHub(item.id)}
-                                            >
-                                                Restore
-                                            </Button>,
-                                        ]}
-                                    >
-                                        <List.Item.Meta
-                                            avatar={<FolderOpenOutlined className="text-blue-500 text-xl" />}
-                                            title={item.name}
-                                            description={
-                                                <Space direction="vertical" size={0}>
-                                                    <span className="text-xs text-gray-400">
-                                                        Deleted by: {item.deletedBy?.name}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">
-                                                        Deleted at: {item.deletedAt && format(new Date(item.deletedAt), "PP p")}
-                                                    </span>
-                                                </Space>
-                                            }
-                                        />
-                                    </List.Item>
-                                )}
+            
+            <div className="mb-6">
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={(key) => setActiveTab(key as "hubs" | "documents")}
+                    className="premium-tabs"
+                    items={[
+                        {
+                            key: "hubs",
+                            label: (
+                                <span className="flex items-center gap-2 px-1">
+                                    Document Hubs
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'hubs' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        {hubs.length}
+                                    </span>
+                                </span>
+                            ),
+                        },
+                        {
+                            key: "documents",
+                            label: (
+                                <span className="flex items-center gap-2 px-1">
+                                    Documents
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'documents' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        {documents.length}
+                                    </span>
+                                </span>
+                            ),
+                        },
+                    ]}
+                />
+            </div>
+
+            <div className="trash-content">
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                        <Text type="secondary">Loading trash items...</Text>
+                    </div>
+                ) : activeTab === "hubs" ? (
+                    hubs.length > 0 ? (
+                        hubs.map((item: any) => (
+                            <TrashItemCard
+                                key={item.id}
+                                type="hub"
+                                title={item.name}
+                                icon={<FolderOpenOutlined className="text-xl" />}
+                                deletedBy={item.deletedBy?.name}
+                                deletedAt={item.deletedAt}
+                                onRestore={() => handleRestoreHub(item.id)}
                             />
-                        ),
-                    },
-                    {
-                        key: "documents",
-                        label: `Documents (${documents.length})`,
-                        children: (
-                            <List
-                                loading={isLoading}
-                                dataSource={documents}
-                                renderItem={(item: any) => (
-                                    <List.Item
-                                        actions={[
-                                            <Button
-                                                key="restore"
-                                                type="link"
-                                                icon={<UndoOutlined />}
-                                                onClick={() => handleRestoreDocument(item.id)}
-                                            >
-                                                Restore
-                                            </Button>,
-                                        ]}
-                                    >
-                                        <List.Item.Meta
-                                            avatar={<FileTextOutlined className="text-green-500 text-xl" />}
-                                            title={item.title}
-                                            description={
-                                                <Space direction="vertical" size={0}>
-                                                    <span className="text-xs text-gray-500">
-                                                        Hub: {item.documentHub?.name}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">
-                                                        Deleted by: {item.deletedBy?.name}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">
-                                                        Deleted at: {item.deletedAt && format(new Date(item.deletedAt), "PP p")}
-                                                    </span>
-                                                </Space>
-                                            }
-                                        />
-                                    </List.Item>
-                                )}
+                        ))
+                    ) : (
+                        <Empty 
+                            image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                            description={<span className="text-gray-400">No trashed document hubs found</span>}
+                            className="mt-20"
+                        />
+                    )
+                ) : (
+                    documents.length > 0 ? (
+                        documents.map((item: any) => (
+                            <TrashItemCard
+                                key={item.id}
+                                type="document"
+                                title={item.title}
+                                subtext={`Cloud: ${item.documentHub?.name}`}
+                                icon={<FileTextOutlined className="text-xl" />}
+                                deletedBy={item.deletedBy?.name}
+                                deletedAt={item.deletedAt}
+                                onRestore={() => handleRestoreDocument(item.id)}
                             />
-                        ),
-                    },
-                ]}
-            />
+                        ))
+                    ) : (
+                        <Empty 
+                            image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                            description={<span className="text-gray-400">No trashed documents found</span>}
+                            className="mt-20"
+                        />
+                    )
+                )}
+            </div>
+
+            <style jsx global>{`
+                .premium-tabs .ant-tabs-nav {
+                    margin-bottom: 0 !important;
+                }
+                .premium-tabs .ant-tabs-nav::before {
+                    border-bottom: none !important;
+                }
+                .premium-tabs .ant-tabs-tab {
+                    padding: 8px 0 12px 0 !important;
+                    margin: 0 24px 0 0 !important;
+                }
+                .premium-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+                    color: #1f2937 !important;
+                    font-weight: 600 !important;
+                }
+                .premium-tabs .ant-tabs-ink-bar {
+                    height: 3px !important;
+                    border-radius: 3px 3px 0 0 !important;
+                }
+            `}</style>
         </Drawer>
     );
 };

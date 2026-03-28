@@ -31,9 +31,8 @@ const API_URL = "/api/departments";
 
 export const DepartmentService = {
   getAll: async (): Promise<Department[]> => {
-    // The `api` object from `@/lib/axios` likely has an interceptor
-    // that unwraps the response, so we can directly return the result.
-    return await api.get<Department[]>(API_URL);
+    const response = await api.get<any>(API_URL);
+    return response.data?.data || response.data || response;
   },
 
   create: async (data: CreateDepartmentData): Promise<Department> => {

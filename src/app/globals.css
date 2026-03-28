@@ -92,16 +92,53 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
-  background-color: #f5f5f5;
+  background-color: #ffffff;
   color: #262626;
   line-height: 1.5;
   height: 100vh;
 }
 
+:root {
+  --premium-border: 1px solid #e8e8e8;
+  --premium-white: #ffffff;
+  --premium-bg: #f5f5f5;
+}
+
+.premium-card {
+  background: var(--premium-white) !important;
+  border: var(--premium-border) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+
+.premium-card:hover {
+  border-color: #d9d9d9 !important;
+  background: #fafafa !important;
+}
+
+.premium-modal .ant-modal-content {
+  background: var(--premium-white) !important;
+  border: var(--premium-border) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+/* Eliminate table row hover "flow" */
+.ant-table-tbody > tr.ant-table-row:hover > td,
+.ant-table-tbody > tr > td.ant-table-cell-row-hover {
+  background: #fafafa !important;
+}
+
+/* Premium Button Flat Style */
+.ant-btn-primary {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
 /* Ant Design customizations for modern, compact design */
 .ant-layout {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #ffffff;
 }
 
 .ant-layout-sider {
@@ -111,7 +148,7 @@ body {
 
 .ant-layout-content {
   padding: 0;
-  background: #f5f5f5;
+  background: #ffffff;
 }
 
 /* Compact table styles */
@@ -881,4 +918,79 @@ body {
 .ant-menu-submenu-popup {
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+/* Ticket List Item Hover Animation */
+.ticket-list-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ticket-list-item:hover {
+  background-color: #fafafa !important;
+  transform: translateX(4px);
+  box-shadow: -4px 0 12px rgba(114, 46, 209, 0.05);
+}
+/* Live Pulse Animation */
+@keyframes pulse-soft {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.live-pulse {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: #52c41a;
+  border-radius: 50%;
+  margin-right: 6px;
+  box-shadow: 0 0 8px rgba(82, 196, 26, 0.6);
+  animation: pulse-soft 2s infinite ease-in-out;
+}
+
+/* Custom Premium Table Styles */
+.custom-premium-table .ant-table {
+  background: transparent !important;
+}
+
+.custom-premium-table .ant-table-thead > tr > th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 12px 24px !important;
+}
+
+.custom-premium-table .ant-table-tbody > tr > td {
+  padding: 12px 24px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  transition: all 0.2s ease !important;
+  font-size: 13px !important;
+}
+
+.custom-premium-table .ant-table-tbody > tr:hover > td {
+  background: #f8fafc !important;
+}
+
+.custom-premium-table .ant-pagination {
+  padding: 12px 24px !important;
+  margin: 0 !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }

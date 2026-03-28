@@ -17,11 +17,13 @@ export interface ReasonForExitPayload {
 
 export const ReasonForExitService = {
   getAll: async (): Promise<ReasonForExit[]> => {
-    return await api.get<ReasonForExit[]>('/api/exit/reason-for-exit');
+    const response = await api.get<any>('/api/exit/reason-for-exit');
+    return response.data?.data || response.data || response;
   },
 
   getById: async (id: string): Promise<ReasonForExit> => {
-    return await api.get<ReasonForExit>(`/api/exit/reason-for-exit/${id}`);
+    const response = await api.get<any>(`/api/exit/reason-for-exit/${id}`);
+    return response.data?.data || response.data || response;
   },
 
   create: async (payload: ReasonForExitPayload): Promise<ReasonForExit> => {

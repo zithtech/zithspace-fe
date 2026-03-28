@@ -25,7 +25,7 @@
 //   const router = useRouter();
 //   const [searchText, setSearchText] = useState("");
 //   const [expandedRows, setExpandedRows] = useState<string[]>([]);
-  
+
 //   const { 
 //     data: reimbursements = [], 
 //     isLoading: loading,
@@ -33,7 +33,7 @@
 //   } = useAllReimbursements();
 
 //   const deleteMutation = useDeleteReimbursement();
-  
+
 //   // Keep approver type map
 //   const approverTypeMap = useApproverTypeMap();
 
@@ -43,23 +43,23 @@
 //   // Filter data based on search
 //   const filteredData = useMemo(() => {
 //     if (!searchText) return reimbursements;
-    
+
 //     return reimbursements.filter((record: ReimbursementResponse) => {
 //       // Get approver type for items for search
 //       const childMatch = record.items?.some(item => {
 //         const approverType = item.category ? 
 //           approverTypeMap.get(item.category.toLowerCase()) : '';
-        
+
 //         return item.category?.toLowerCase().includes(searchText.toLowerCase()) ||
 //                item.billNo?.toLowerCase().includes(searchText.toLowerCase()) ||
 //                item.description?.toLowerCase().includes(searchText.toLowerCase()) ||
 //                approverType?.toLowerCase().includes(searchText.toLowerCase());
 //       });
-      
+
 //       // Search in parent
 //       const parentMatch = record.status?.toLowerCase().includes(searchText.toLowerCase()) ||
 //                          record.totalAmount?.toString().includes(searchText);
-      
+
 //       return parentMatch || childMatch;
 //     });
 //   }, [reimbursements, searchText, approverTypeMap]);
@@ -93,11 +93,11 @@
 //   // Keep approver type tag function
 //   const getApproverTypeTag = (category: string) => {
 //     if (!category) return <Tag color="default">N/A</Tag>;
-    
+
 //     const approverType = approverTypeMap.get(category.toLowerCase());
-    
+
 //     if (!approverType) return <Tag color="default">Not Configured</Tag>;
-    
+
 //     switch(approverType?.toUpperCase()) {
 //       case 'MANAGER':
 //         return <Tag color="blue">Manager</Tag>;
@@ -113,7 +113,7 @@
 //   // Expanded row renderer for ALL child items - WITH APPROVER TYPE COLUMN
 //   const expandedRowRender = (record: ReimbursementResponse) => {
 //     const items = record.items || [];
-    
+
 //     // Child table columns - WITH APPROVER TYPE
 //     const childColumns = [
 //       {
@@ -171,9 +171,9 @@
 //     // Make sure we're counting correctly
 //     const attachments = item.attachments || [];
 //     const count = attachments.length;
-    
+
 //     console.log(`Item ${item.id} attachments:`, attachments); // Debug log
-    
+
 //     if (count === 0) {
 //       return <Tag color="default">0</Tag>;
 //     } else if (count === 1) {
@@ -184,7 +184,7 @@
 //   },
 // },
 //     ];
-    
+
 //     return (
 //       <div className="pl-8 pr-4 py-2 bg-gray-50">
 //         <Table
@@ -237,7 +237,7 @@
 //         if (status === "APPROVED") return <Tag color="green">Approved</Tag>;
 //         if (status === "REJECTED") return <Tag color="red">Rejected</Tag>;
 //         if (status === "PAID") return <Tag color="purple">Paid</Tag>;
-        
+
 //         return <Tag>{status}</Tag>;
 //       },
 //     },
@@ -247,7 +247,7 @@
 //       width: 120,
 //       render: (_: any, record: ReimbursementResponse) => {
 //         const enabled = isActionsEnabled(record.status);
-        
+
 //         return (
 //           <Space size={4}>
 //             <Button 
@@ -299,7 +299,7 @@
 //             Refresh
 //           </Button>
 //         </div>
-        
+
 //         <Space size={8}>
 //           <Input.Search
 //             placeholder="Search by category, bill no, status, approver..."
@@ -377,10 +377,10 @@
 
 "use client";
 import { Button, Table, Tag, Popconfirm, Space, Input, Modal } from "antd";
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   ReloadOutlined,
   DownOutlined,
   RightOutlined,
@@ -398,19 +398,19 @@ export default function EmployeeTab() {
   const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
-  
+
   // Approver modal state
   const [approverModalVisible, setApproverModalVisible] = useState(false);
   const [selectedApproverItem, setSelectedApproverItem] = useState<any>(null);
-  
-  const { 
-    data: reimbursements = [], 
+
+  const {
+    data: reimbursements = [],
     isLoading: loading,
     refetch
   } = useAllReimbursements();
 
   const deleteMutation = useDeleteReimbursement();
-  
+
   const approverTypeMap = useApproverTypeMap();
 
   console.log('📊 Raw reimbursements data:', reimbursements);
@@ -418,21 +418,21 @@ export default function EmployeeTab() {
 
   const filteredData = useMemo(() => {
     if (!searchText) return reimbursements;
-    
+
     return reimbursements.filter((record: ReimbursementResponse) => {
       const childMatch = record.items?.some(item => {
-        const approverType = item.category ? 
+        const approverType = item.category ?
           approverTypeMap.get(item.category.toLowerCase()) : '';
-        
+
         return item.category?.toLowerCase().includes(searchText.toLowerCase()) ||
-               item.billNo?.toLowerCase().includes(searchText.toLowerCase()) ||
-               item.description?.toLowerCase().includes(searchText.toLowerCase()) ||
-               approverType?.toLowerCase().includes(searchText.toLowerCase());
+          item.billNo?.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.description?.toLowerCase().includes(searchText.toLowerCase()) ||
+          approverType?.toLowerCase().includes(searchText.toLowerCase());
       });
-      
+
       const parentMatch = record.status?.toLowerCase().includes(searchText.toLowerCase()) ||
-                         record.totalAmount?.toString().includes(searchText);
-      
+        record.totalAmount?.toString().includes(searchText);
+
       return parentMatch || childMatch;
     });
   }, [reimbursements, searchText, approverTypeMap]);
@@ -450,24 +450,24 @@ export default function EmployeeTab() {
   };
 
   // Handle approver click - Manager page maari
-const handleApproverClick = (item: any, record: any) => {
-  console.log("Clicked Approver Item:", item);
-  console.log("Approver Details:", item.approverDetails);
-  
-  // Get approver name from column
-  const approverTag = getApproverTypeTag(item.category);
-  let columnApproverName = '';
-  if (approverTag && typeof approverTag === 'object') {
-    columnApproverName = approverTag.props?.children || '';
-  }
-  
-  setSelectedApproverItem({ 
-    ...item, 
-    employeeName: record.employeeName || 'N/A',
-    columnApproverName: columnApproverName // Store column name
-  });
-  setApproverModalVisible(true);
-};
+  const handleApproverClick = (item: any, record: any) => {
+    console.log("Clicked Approver Item:", item);
+    console.log("Approver Details:", item.approverDetails);
+
+    // Get approver name from column
+    const approverTag = getApproverTypeTag(item.category);
+    let columnApproverName = '';
+    if (approverTag && typeof approverTag === 'object') {
+      columnApproverName = approverTag.props?.children || '';
+    }
+
+    setSelectedApproverItem({
+      ...item,
+      employeeName: record.employeeName || 'N/A',
+      columnApproverName: columnApproverName // Store column name
+    });
+    setApproverModalVisible(true);
+  };
 
   const totalAmount = useMemo(() => {
     return reimbursements.reduce((sum, r) => sum + (Number(r.totalAmount) || 0), 0);
@@ -483,12 +483,12 @@ const handleApproverClick = (item: any, record: any) => {
 
   const getApproverTypeTag = (category: string) => {
     if (!category) return <Tag color="default">N/A</Tag>;
-    
+
     const approverType = approverTypeMap.get(category.toLowerCase());
-    
+
     if (!approverType) return <Tag color="default">Not Configured</Tag>;
-    
-    switch(approverType?.toUpperCase()) {
+
+    switch (approverType?.toUpperCase()) {
       case 'MANAGER':
         return <Tag color="blue">Manager</Tag>;
       case 'FINANCE':
@@ -502,7 +502,7 @@ const handleApproverClick = (item: any, record: any) => {
 
   const expandedRowRender = (record: ReimbursementResponse) => {
     const items = record.items || [];
-    
+
     const childColumns = [
       {
         title: "Category",
@@ -533,7 +533,7 @@ const handleApproverClick = (item: any, record: any) => {
         dataIndex: "description",
         key: "description",
         ellipsis: true,
-        width:150,
+        width: 150,
       },
       // View Button Column - Manager page maari
       {
@@ -542,7 +542,7 @@ const handleApproverClick = (item: any, record: any) => {
         width: 100,
         render: (_: any, item: any) => {
           return (
-            <Button 
+            <Button
               type="primary"
               size="small"
               icon={<EyeOutlined />}
@@ -561,7 +561,7 @@ const handleApproverClick = (item: any, record: any) => {
         render: (_: any, item: any) => {
           const attachments = item.attachments || [];
           const count = attachments.length;
-          
+
           if (count === 0) {
             return <Tag color="default">0</Tag>;
           } else if (count === 1) {
@@ -572,7 +572,7 @@ const handleApproverClick = (item: any, record: any) => {
         },
       },
     ];
-    
+
     return (
       <div className="pl-8 pr-4 py-2 bg-gray-50">
         <Table
@@ -593,7 +593,7 @@ const handleApproverClick = (item: any, record: any) => {
       title: "Created Date",
       key: "createdAt",
       width: 120,
-      render: (_: any, record: ReimbursementResponse) => 
+      render: (_: any, record: ReimbursementResponse) =>
         dayjs(record.createdAt).format('DD MMM YYYY'),
     },
     {
@@ -624,7 +624,7 @@ const handleApproverClick = (item: any, record: any) => {
         if (status === "APPROVED") return <Tag color="green">Approved</Tag>;
         if (status === "REJECTED") return <Tag color="red">Rejected</Tag>;
         if (status === "PAID") return <Tag color="purple">Paid</Tag>;
-        
+
         return <Tag>{status}</Tag>;
       },
     },
@@ -634,13 +634,13 @@ const handleApproverClick = (item: any, record: any) => {
       width: 120,
       render: (_: any, record: ReimbursementResponse) => {
         const enabled = isActionsEnabled(record.status);
-        
+
         return (
           <Space size={4}>
-            <Button 
-              type="text" 
-              size="small" 
-              icon={<EditOutlined />} 
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
               onClick={() => handleEdit(record.id)}
               disabled={deleteMutation.isPending || !enabled}
               title={!enabled ? "Cannot edit in current status" : ""}
@@ -654,10 +654,10 @@ const handleApproverClick = (item: any, record: any) => {
               okButtonProps={{ danger: true, loading: deleteMutation.isPending }}
               disabled={!enabled}
             >
-              <Button 
-                type="text" 
-                size="small" 
-                danger 
+              <Button
+                type="text"
+                size="small"
+                danger
                 icon={<DeleteOutlined />}
                 disabled={deleteMutation.isPending || !enabled}
                 title={!enabled ? "Cannot delete in current status" : ""}
@@ -676,8 +676,8 @@ const handleApproverClick = (item: any, record: any) => {
           <h2 className="text-xl font-semibold text-gray-900">
             My Reimbursements
           </h2>
-          <Button 
-            icon={<ReloadOutlined />} 
+          <Button
+            icon={<ReloadOutlined />}
             onClick={() => refetch()}
             loading={loading}
             size="small"
@@ -685,7 +685,7 @@ const handleApproverClick = (item: any, record: any) => {
             Refresh
           </Button>
         </div>
-        
+
         <Space size={8}>
           <Input.Search
             placeholder="Search by category, bill no, status..."
@@ -755,54 +755,54 @@ const handleApproverClick = (item: any, record: any) => {
       />
 
       {/* Approver Modal - Manager page maari */}
-   <Modal
-  title="Approver"
-  open={approverModalVisible}
-  onCancel={() => {
-    setApproverModalVisible(false);
-    setSelectedApproverItem(null);
-  }}
-  footer={[
-    <Button 
-      key="close" 
-      onClick={() => {
-        setApproverModalVisible(false);
-        setSelectedApproverItem(null);
-      }}
-    >
-      Close
-    </Button>
-  ]}
-  width={300}
->
-  {selectedApproverItem && (
-    <div className="py-6 text-center">
-      {selectedApproverItem.approverDetails?.name ? (
-        // Approver details irundha - name mattum
-        <div>
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <UserOutlined className="text-2xl text-blue-600" />
+      <Modal
+        title="Approver"
+        open={approverModalVisible}
+        onCancel={() => {
+          setApproverModalVisible(false);
+          setSelectedApproverItem(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setApproverModalVisible(false);
+              setSelectedApproverItem(null);
+            }}
+          >
+            Close
+          </Button>
+        ]}
+        width={300}
+      >
+        {selectedApproverItem && (
+          <div className="py-6 text-center">
+            {selectedApproverItem.approverDetails?.name ? (
+              // Approver details irundha - name mattum
+              <div>
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <UserOutlined className="text-2xl text-blue-600" />
+                </div>
+                <p className="text-gray-500 text-sm mb-1">Approver Name</p>
+                <p className="text-xl font-semibold text-blue-600">
+                  {selectedApproverItem.approverDetails.name}
+                </p>
+              </div>
+            ) : (
+              // Approver details illana - column name mattum
+              <div>
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <UserOutlined className="text-2xl text-gray-400" />
+                </div>
+                <p className="text-gray-500 text-sm mb-1">Approver Name</p>
+                <p className="text-xl font-semibold text-blue-600">
+                  {selectedApproverItem.columnApproverName || selectedApproverItem.category || 'N/A'}
+                </p>
+              </div>
+            )}
           </div>
-          <p className="text-gray-500 text-sm mb-1">Approver Name</p>
-          <p className="text-xl font-semibold text-blue-600">
-            {selectedApproverItem.approverDetails.name}
-          </p>
-        </div>
-      ) : (
-        // Approver details illana - column name mattum
-        <div>
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <UserOutlined className="text-2xl text-gray-400" />
-          </div>
-          <p className="text-gray-500 text-sm mb-1">Approver Name</p>
-          <p className="text-xl font-semibold text-blue-600">
-            {selectedApproverItem.columnApproverName || selectedApproverItem.category || 'N/A'}
-          </p>
-        </div>
-      )}
-    </div>
-  )}
-</Modal>
+        )}
+      </Modal>
     </div>
   );
 }

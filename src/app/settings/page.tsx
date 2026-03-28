@@ -22,6 +22,7 @@ import {
   Switch,
   Popconfirm,
   Spin,
+  Upload,
 } from 'antd';
 import {
   SettingOutlined,
@@ -33,11 +34,43 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
+import { TenantService, TenantProfile } from '@/services/tenantService';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
+import type { UploadFile, UploadProps } from 'antd';
 import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+
+// Premium UI Styles
+const styles = {
+  glassCard: {
+    background: "rgba(255, 255, 255, 0.7)",
+    backdropFilter: "blur(12px)",
+    borderRadius: "20px",
+    border: "1px solid rgba(255, 255, 255, 0.3)",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
+    marginBottom: "24px",
+    overflow: "hidden" as const
+  },
+  headerGradient: {
+    background: "transparent",
+    padding: "8px 0",
+    borderBottom: "1px solid #f0f0f0",
+    marginBottom: "16px",
+    borderRadius: "0"
+  },
+  sectionCard: {
+    borderRadius: "12px",
+    border: "1px solid #f0f0f0",
+    boxShadow: "none",
+    transition: "all 0.3s ease"
+  },
+  tabStyle: {
+    marginBottom: "16px",
+    padding: "0"
+  }
+};
 
 interface ShiftFormData {
   name: string;
@@ -51,7 +84,7 @@ interface ShiftFormData {
 }
 
 export default function SettingsPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, updateUser } = useAuth();
   const { canReadSettings, canUpdateSettings } = usePermission();
   const router = useRouter();
   const [form] = Form.useForm();
@@ -76,6 +109,11 @@ export default function SettingsPage() {
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [formLoading, setFormLoading] = useState(false);
 
+  // Tenant settings state
+  const [tenantProfile, setTenantProfile] = useState<TenantProfile | null>(null);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [systemForm] = Form.useForm();
+
   // Fetch shifts
   const fetchShifts = async () => {
     try {
@@ -94,27 +132,42 @@ export default function SettingsPage() {
     }
   };
 
+  // Fetch tenant profile
+  const fetchTenantProfile = async () => {
+    try {
+      setLoading(true);
+      const profile = await TenantService.getProfile();
+      setTenantProfile(profile);
+      systemForm.setFieldsValue({
+        name: profile.name,
+      });
+      if (profile.settings?.logoUrl) {
+        setFileList([
+          {
+            uid: '-1',
+            name: 'logo.png',
+            status: 'done',
+            url: profile.settings.logoUrl,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tenant profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load shifts when attendance tab is active
   useEffect(() => {
     if (user && activeTab === 'attendance') {
       fetchShifts();
     }
+    if (user && activeTab === 'system') {
+      fetchTenantProfile();
+    }
   }, [user, activeTab]);
 
-  // Loading & permission check
-  if (authLoading) {
-    return (
-      <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
-        </div>
-      </MainLayout>
-    );
-  }
-
-  if (!canReadSettings) {
-    return null;
-  }
 
   // Handle shift form submission
   const handleShiftSubmit = async (values: ShiftFormData) => {
@@ -172,6 +225,51 @@ export default function SettingsPage() {
         setError(error.message);
       } else {
         setError('Failed to delete shift');
+      }
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Handle system settings submission
+  const handleSystemSubmit = async (values: { name: string }) => {
+    try {
+      setFormLoading(true);
+      setError('');
+
+      const payload: any = {
+        name: values.name,
+      };
+
+      // Check for new logo
+      const newLogo = fileList.find(f => f.originFileObj);
+      if (newLogo) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(newLogo.originFileObj as File);
+        });
+        payload.logo = await base64Promise;
+      }
+
+      const updatedProfile = await TenantService.updateProfile(payload);
+
+      // Update global auth state to reflect changes in TopNav immediately
+      updateUser({
+        tenantName: updatedProfile.name,
+        tenantLogo: updatedProfile.settings?.logoUrl
+      });
+
+      setSuccess('System settings updated successfully!');
+      fetchTenantProfile();
+
+    } catch (error) {
+      console.error('Failed to update system settings:', error);
+      if (error instanceof ApiError) {
+        setError(error.message);
+      } else {
+        setError('Failed to update system settings');
       }
     } finally {
       setFormLoading(false);
@@ -314,122 +412,181 @@ export default function SettingsPage() {
     }
   }, [success, error]);
 
-  // Don't render if no user or insufficient permissions
-  if (!user || !['super_admin', 'admin'].includes(user.role)) {
-    return null;
+
+  // Loading & permission check
+  if (authLoading) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!canReadSettings || !user || !['super_admin', 'admin'].includes(user.role)) {
+    return (
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <Alert
+            message="Access Denied"
+            description="You do not have permission to access system settings."
+            type="error"
+            showIcon
+          />
+        </div>
+      </MainLayout>
+    );
   }
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Space align="center">
-            <SettingOutlined style={{ fontSize: 24, color: '#1677ff' }} />
-            <Title level={2} style={{ margin: 0 }}>
-              System Settings
-            </Title>
+      <div style={{
+        padding: "16px 24px",
+        minHeight: "100%",
+        background: "#ffffff"
+      }}>
+        {/* Glass Header */}
+        <div style={styles.headerGradient}>
+          <Space align="center" size="large">
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 8px 16px rgba(22, 119, 255, 0.2)"
+            }}>
+              <SettingOutlined style={{ fontSize: 28, color: '#fff' }} />
+            </div>
+            <div>
+              <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: "-0.5px" }}>
+                System Settings
+              </Title>
+              <Paragraph type="secondary" style={{ margin: 0, marginTop: 4 }}>
+                Configure your workspace, manage shifts, and customize branding.
+              </Paragraph>
+            </div>
           </Space>
         </div>
 
         {/* Alerts */}
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setError('')}
-          />
-        )}
-        {success && (
-          <Alert
-            message={success}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setSuccess('')}
-          />
-        )}
+        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13 }}
+              onClose={() => setError('')}
+            />
+          )}
+          {success && (
+            <Alert
+              message={success}
+              type="success"
+              showIcon
+              closable
+              style={{ marginBottom: 16, fontSize: 13 }}
+              onClose={() => setSuccess('')}
+            />
+          )}
 
-        {/* Settings Tabs */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          size="large"
-        >
-          <Tabs.TabPane
-            tab={
-              <Space>
-                <TeamOutlined />
-                Members Settings
-              </Space>
-            }
-            key="members"
+          {/* Settings Tabs */}
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            size="large"
+            type="line"
+            tabBarStyle={{
+              ...styles.tabStyle,
+              borderBottom: "1px solid rgba(0,0,0,0.05)"
+            }}
+            style={{ margin: "0 auto" }}
           >
-            <ComingSoon title="Members Settings" />
-          </Tabs.TabPane>
 
-          <Tabs.TabPane
-            tab={
-              <Space>
-                <ClockCircleOutlined />
-                Attendance Settings
-              </Space>
-            }
-            key="attendance"
-          >
-            <Card
-              title={
+
+            <Tabs.TabPane
+              tab={
                 <Space>
-                  <ClockCircleOutlined style={{ color: '#1677ff' }} />
-                  <span>Shift Management</span>
+                  <SettingOutlined />
+                  System Information
                 </Space>
               }
-              extra={
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={showAddShiftModal}
-                >
-                  Add Shift
-                </Button>
-              }
-              size="small"
+              key="system"
             >
-              <Table
-                columns={shiftColumns}
-                dataSource={shifts}
-                rowKey="id"
-                loading={loading}
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: false,
-                  showQuickJumper: false,
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} of ${total} shifts`,
-                  size: 'small',
-                }}
-                size="small"
-                scroll={{ x: 800 }}
-              />
-            </Card>
-          </Tabs.TabPane>
+              <Card
+                bordered={false}
+                style={{ ...styles.sectionCard, maxWidth: 800 }}
+                title={
+                  <Space>
+                    <SettingOutlined style={{ color: '#1677ff' }} />
+                    <span style={{ fontWeight: 700 }}>Company Branding</span>
+                  </Space>
+                }
+              >
+                <Form
+                  form={systemForm}
+                  layout="vertical"
+                  onFinish={handleSystemSubmit}
+                >
+                  <Form.Item
+                    name="name"
+                    label="Company Name"
+                    rules={[{ required: true, message: 'Please enter company name' }]}
+                  >
+                    <Input placeholder="Enter company name" />
+                  </Form.Item>
 
-          <Tabs.TabPane
-            tab={
-              <Space>
-                <DollarOutlined />
-                Accounts Settings
-              </Space>
-            }
-            key="accounts"
-          >
-            <ComingSoon title="Accounts Settings" />
-          </Tabs.TabPane>
-        </Tabs>
+                  <Form.Item label="Company Logo">
+                    <Upload
+                      listType="picture-card"
+                      fileList={fileList}
+                      onChange={({ fileList }) => setFileList(fileList)}
+                      beforeUpload={() => false} // Prevent auto upload
+                      maxCount={1}
+                    >
+                      {fileList.length < 1 && (
+                        <div>
+                          <PlusOutlined />
+                          <div style={{ marginTop: 8 }}>Upload</div>
+                        </div>
+                      )}
+                    </Upload>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Recommended size: 200x50px. Max size: 2MB.
+                    </Text>
+                  </Form.Item>
+
+                  <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={formLoading}
+                      size="large"
+                      style={{
+                        borderRadius: 10,
+                        height: 48,
+                        padding: "0 32px",
+                        fontWeight: 600,
+                        boxShadow: "0 4px 12px rgba(22, 119, 255, 0.2)"
+                      }}
+                    >
+                      Save Changes
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+            </Tabs.TabPane>
+          </Tabs>
+        </div>
 
         {/* Add/Edit Shift Modal */}
         <Modal

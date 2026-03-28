@@ -28,7 +28,35 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
+  SendOutlined,
+  WarningOutlined,
+  CalendarOutlined,
+  ClockCircleTwoTone,
+  EditOutlined,
+  SmileOutlined,
+  MehOutlined,
+  FrownOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
+import {
+  Clock,
+  Trash2,
+  Plus,
+  AlertCircle,
+  Save,
+  Send,
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  MessageSquare,
+  AlertTriangle,
+  Smile,
+  Meh,
+  Frown,
+  Activity,
+  Zap,
+  FileText
+} from "lucide-react";
 import MainLayout from "@/components/layout/MainLayout";
 import { ProjectService } from "@/services/projectService";
 import DailyUpdateService from "@/services/dailyUpdateService";
@@ -85,7 +113,11 @@ export default function SubmitDailyUpdatePage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );
@@ -554,9 +586,8 @@ function SubmitDailyUpdateContent() {
         if (task.type === "ticket" && !task.ticketId) {
           api.error({
             message: "Validation Error",
-            description: `Task #${j + 1} in ${
-              update.projectName
-            }: Please select a ticket`,
+            description: `Task #${j + 1} in ${update.projectName
+              }: Please select a ticket`,
             placement: "bottomRight",
             duration: 4,
           });
@@ -566,9 +597,8 @@ function SubmitDailyUpdateContent() {
         if (task.type === "manual" && !task.description?.trim()) {
           api.error({
             message: "Validation Error",
-            description: `Task #${j + 1} in ${
-              update.projectName
-            }: Please provide a description`,
+            description: `Task #${j + 1} in ${update.projectName
+              }: Please provide a description`,
             placement: "bottomRight",
             duration: 4,
           });
@@ -578,9 +608,8 @@ function SubmitDailyUpdateContent() {
         if (!task.status) {
           api.error({
             message: "Validation Error",
-            description: `Task #${j + 1} in ${
-              update.projectName
-            }: Please select a status`,
+            description: `Task #${j + 1} in ${update.projectName
+              }: Please select a status`,
             placement: "bottomRight",
             duration: 4,
           });
@@ -632,22 +661,20 @@ function SubmitDailyUpdateContent() {
       const hour = now.getHours();
       const finalUpdateType = hour < 14 ? "BOD" : "EOD";
 
-      const data = {
-        date:
-          alreadySubmitted && existingUpdate
-            ? existingUpdate.working_date
-            : isMissedUpdate
-              ? missedDate!.format("YYYY-MM-DD")
-              : dayjs().format("YYYY-MM-DD"),
+      const submissionDate = alreadySubmitted && existingUpdate
+        ? (existingUpdate.date || existingUpdate.working_date || existingUpdate.missed_updateAt || dayjs())
+        : (isMissedUpdate ? missedDate : dayjs());
 
+      const dateStr = dayjs(submissionDate).format("YYYY-MM-DD");
+
+      const data = {
+        date: dateStr,
         mood: values.mood,
-        updateType: finalUpdateType, // ✅ IMPORTANT
+        updateType: finalUpdateType,
         projectUpdates,
         generalNotes: values.generalNotes,
         is_missed: isMissedUpdate,
-        missed_updateAt: isMissedUpdate
-          ? missedDate?.format("YYYY-MM-DD")
-          : null,
+        missed_updateAt: isMissedUpdate ? dateStr : null,
       };
 
       if (alreadySubmitted && existingUpdate) {
@@ -708,625 +735,574 @@ function SubmitDailyUpdateContent() {
   return (
     <div
       style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "24px 16px",
-        minHeight: "calc(100vh - 64px)",
+        margin: "0 -24px",
+        height: "calc(100vh - 72px)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        backgroundColor: "#ffffff"
       }}
     >
       {contextHolder}
-      {/* Header */}
-      <div style={{ marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
-          {alreadySubmitted
-            ? "Edit Daily Status Update"
-            : "Submit Daily Status Update"}
-        </Title>
-        <Text type="secondary" style={{ fontSize: 13 }}>
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </Text>
-        {alreadySubmitted && (
-          <Tag
-            icon={<CheckCircleOutlined />}
-            color="success"
-            style={{ marginLeft: 12, fontSize: 12 }}
-          >
-            Already Submitted Today
-          </Tag>
-        )}
-      </div>
 
-      {/* Form Card */}
-      <Card
-        style={{
-          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-          borderRadius: 8,
-          border: "1px solid #e8e8e8",
-        }}
-        bodyStyle={{ padding: 24 }}
-      >
-        <Form form={form} layout="vertical">
-          {/* Mood Section */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .daily-update-scroll-area::-webkit-scrollbar {
+          display: none;
+        }
+        .daily-update-scroll-area {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .premium-form-item .ant-form-item-label > label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #475569;
+        }
+        .mood-btn {
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid #e2e8f0 !important;
+          height: 38px !important;
+          border-radius: 10px !important;
+        }
+        .mood-btn-active-happy { background: #f0fdf4 !important; border-color: #22c55e !important; color: #166534 !important; }
+        .mood-btn-active-neutral { background: #f8fafc !important; border-color: #64748b !important; color: #1e293b !important; }
+        .mood-btn-active-stressed { background: #fffbeb !important; border-color: #f59e0b !important; color: #92400e !important; }
+        .mood-btn-active-blocked { background: #fff1f2 !important; border-color: #f43f5e !important; color: #9f1239 !important; }
+        
+        .project-card {
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 16px !important;
+          overflow: hidden !important;
+          transition: all 0.3s ease !important;
+          background: #ffffff !important;
+        }
+        .project-card:hover {
+          border-color: #0ea5e9 !important;
+          box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+        }
+      `}} />
 
-          <Form.Item
-            label={
-              <span style={{ fontSize: 14, fontWeight: 500 }}>
-                How are you feeling today?
-              </span>
-            }
-            name="mood"
-            style={{ marginBottom: 20 }}
-          >
-            {/* ONE ROW */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                width: "100%",
-              }}
-            >
-              {/* LEFT SIDE – MOOD BUTTONS */}
-              <Space size="small" wrap>
-                <Button
-                  icon={<span style={{ fontSize: 16 }}>😊</span>}
-                  onClick={() => form.setFieldsValue({ mood: "happy" })}
-                  type={
-                    form.getFieldValue("mood") === "happy"
-                      ? "primary"
-                      : "default"
-                  }
-                >
-                  Happy
-                </Button>
-
-                <Button
-                  icon={<span style={{ fontSize: 16 }}>😐</span>}
-                  onClick={() => form.setFieldsValue({ mood: "neutral" })}
-                  type={
-                    form.getFieldValue("mood") === "neutral"
-                      ? "primary"
-                      : "default"
-                  }
-                >
-                  Neutral
-                </Button>
-
-                <Button
-                  icon={<span style={{ fontSize: 16 }}>😰</span>}
-                  onClick={() => form.setFieldsValue({ mood: "stressed" })}
-                  type={
-                    form.getFieldValue("mood") === "stressed"
-                      ? "primary"
-                      : "default"
-                  }
-                >
-                  Stressed
-                </Button>
-
-                <Button
-                  icon={<span style={{ fontSize: 16 }}>🚫</span>}
-                  onClick={() => form.setFieldsValue({ mood: "blocked" })}
-                  type={
-                    form.getFieldValue("mood") === "blocked"
-                      ? "primary"
-                      : "default"
-                  }
-                >
-                  Blocked
-                </Button>
-              </Space>
-
-              {/* RIGHT SIDE – DROPDOWN */}
-              <Form.Item name="updateType" noStyle>
-                <Select
-                  style={{ width: 120 }}
-                  options={[
-                    { label: "BOD", value: "BOD" },
-                    { label: "EOD", value: "EOD" },
-                  ]}
-                />
-              </Form.Item>
+      {/* Premium Header */}
+      <div style={{
+        padding: "16px 32px",
+        background: "#ffffff",
+        borderBottom: "1px solid #e2e8f0",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        zIndex: 50,
+        flexShrink: 0
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+            <FileText size={28} />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+              {alreadySubmitted ? "Edit Status Update" : "Submit Daily Update"}
+            </Title>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+                {dayjs().format("dddd, MMMM D, YYYY")}
+              </Text>
+              {alreadySubmitted && (
+                <Tag color="success" style={{
+                  margin: 0,
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  padding: "0 8px"
+                }}>
+                  Submitted
+                </Tag>
+              )}
             </div>
-          </Form.Item>
-          {/* Missed Update Toggle */}
-          <Card
+          </div>
+        </div>
+
+        <Space size="middle">
+          <div style={{ textAlign: "right", marginRight: 16 }}>
+            <Text style={{ fontSize: 11, color: "#64748b", display: "block" }}>Project Entries</Text>
+            <Text strong style={{ fontSize: 18, color: "#0f172a" }}>{projectUpdates.length}</Text>
+          </div>
+          <div style={{ textAlign: "right", marginRight: 16 }}>
+            <Text style={{ fontSize: 11, color: "#64748b", display: "block" }}>Total Hours</Text>
+            <Text strong style={{ fontSize: 18, color: "#0ea5e9" }}>{formatHours(totalHours)}</Text>
+          </div>
+          <Button
+            type="primary"
+            icon={alreadySubmitted ? <Save size={16} /> : <Send size={16} />}
+            onClick={handleSubmit}
+            loading={loading}
+            disabled={alreadySubmitted && !isEditAllowed}
             style={{
-              marginBottom: 16,
-              border: "1px dashed #d9d9d9",
-              background: "#fafafa",
+              height: 40,
+              padding: "0 20px",
+              borderRadius: 10,
+              fontWeight: 600,
+              // background: "#0ea5e9",
+              background: "#1677ff",
+              // borderColor: "#0ea5e9",
+              // boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8
             }}
           >
-            <Space direction="vertical" size={8} style={{ width: "100%" }}>
-              <Space
-                align="center"
-                size={6}
-                style={{ display: "flex", flexWrap: "wrap" }}
+            {alreadySubmitted ? "Update Status" : "Submit Update"}
+          </Button>
+        </Space>
+      </div>
+
+      {/* Internal Scroll Area */}
+      <div className="daily-update-scroll-area" style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "24px 32px"
+      }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          <Form form={form} layout="vertical" className="premium-form-item">
+
+            {/* Daily Context Section */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 340px",
+              gap: 20,
+              marginBottom: 24
+            }}>
+              {/* Mood Card */}
+              <Card
+                style={{ borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+                bodyStyle={{ padding: "16px 20px" }}
               >
-                <Text strong>Missed Update</Text>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 10, color: "#0ea5e9" }}>
+                      <Smile size={20} />
+                    </div>
+                    <Text strong style={{ fontSize: 14, color: "#1e293b" }}>How are you feeling?</Text>
+                  </div>
+                  <Form.Item name="mood" noStyle>
+                    <Space size={8}>
+                      {[
+                        { key: "happy", icon: "😊", label: "Happy" },
+                        { key: "neutral", icon: "😐", label: "Neutral" },
+                        { key: "stressed", icon: "😰", label: "Stressed" },
+                        { key: "blocked", icon: "🚫", label: "Blocked" }
+                      ].map((m) => (
+                        <Button
+                          key={m.key}
+                          className={`mood-btn ${form.getFieldValue("mood") === m.key ? `mood-btn-active-${m.key}` : ""}`}
+                          onClick={() => {
+                            form.setFieldsValue({ mood: m.key });
+                            setProjectUpdates([...projectUpdates]); // force re-render
+                          }}
+                          style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+                        >
+                          <span>{m.icon}</span>
+                          <span>{m.label}</span>
+                        </Button>
+                      ))}
+                    </Space>
+                  </Form.Item>
+                </div>
+              </Card>
 
-                <Switch
-                  size="small"
-                  checked={isMissedUpdate}
-                  onChange={(checked) => {
-                    setIsMissedUpdate(checked);
-                    console.log("checked", checked);
-                    if (!checked) {
-                      setMissedDate(null);
-                    }
-                  }}
-                />
-
-                {isMissedUpdate && (
-                  <Tag color="orange" style={{ margin: 0 }}>
-                    Missed
-                  </Tag>
-                )}
-
-                {isMissedUpdate && (
-                  <DatePicker
-                    placeholder="Select missed update date"
-                    style={{ width: 250 }}
-                    value={missedDate}
-                    onChange={(date) => setMissedDate(date)}
-                    disabledDate={(current) =>
-                      current &&
-                      (current.isAfter(dayjs(), "day") ||
-                        current.isBefore(dayjs().subtract(3, "day"), "day"))
-                    }
-                  />
-                )}
-              </Space>
-            </Space>
-          </Card>
-
-          {/* Project Updates Section */}
-          <div style={{ marginBottom: 24 }}>
-            <Text
-              strong
-              style={{ fontSize: 15, display: "block", marginBottom: 16 }}
-            >
-              Project Updates
-            </Text>
-
-            {projectUpdates.map((update, projectIndex) => (
-              <div
-                key={projectIndex}
-                style={{
-                  border: "1px solid #e8e8e8",
-                  borderRadius: 8,
-                  padding: 16,
-                  marginBottom: 16,
-                  backgroundColor: "#fafafa",
-                  position: "relative",
-                }}
+              {/* Update Type & Date Card */}
+              <Card
+                style={{ borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+                bodyStyle={{ padding: "16px 20px" }}
               >
-                {/* Project Header */}
-                <div
-                  style={{
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                  <Form.Item name="updateType" noStyle>
+                    <Radio.Group
+                      optionType="button"
+                      buttonStyle="solid"
+                      size="middle"
+                      style={{ borderRadius: 8, overflow: "hidden" }}
+                    >
+                      <Radio.Button value="BOD" style={{ width: 60, textAlign: "center" }}>BOD</Radio.Button>
+                      <Radio.Button value="EOD" style={{ width: 60, textAlign: "center" }}>EOD</Radio.Button>
+                    </Radio.Group>
+                  </Form.Item>
+                  <div style={{ height: 24, width: 1, background: "#e2e8f0" }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Switch
+                      size="small"
+                      checked={isMissedUpdate}
+                      onChange={(checked) => {
+                        setIsMissedUpdate(checked);
+                        if (!checked) setMissedDate(null);
+                      }}
+                    />
+                    <Text style={{ fontSize: 12, fontWeight: 500, color: isMissedUpdate ? "#f59e0b" : "#64748b" }}>
+                      Missed Update
+                    </Text>
+                  </div>
+                </div>
+                {isMissedUpdate && (
+                  <div style={{ marginTop: 12 }}>
+                    <DatePicker
+                      placeholder="Select missed date"
+                      style={{ width: "100%", borderRadius: 8 }}
+                      value={missedDate}
+                      onChange={(date) => setMissedDate(date)}
+                      disabledDate={(current) =>
+                        current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"))
+                      }
+                    />
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            {/* Project Updates Section Title */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+              padding: "0 4px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Activity size={18} color="#0ea5e9" />
+                <Text strong style={{ fontSize: 16, color: "#1e293b" }}>Work Details</Text>
+              </div>
+              <Button
+                type="link"
+                icon={<Plus size={16} />}
+                onClick={handleAddProject}
+                disabled={projectUpdates.length >= projects.length}
+                style={{ fontWeight: 600, fontSize: 14, color: "#0ea5e9" }}
+              >
+                Add Project
+              </Button>
+            </div>
+
+            {/* Project Cards */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {projectUpdates.map((update, projectIndex) => (
+                <Card
+                  key={projectIndex}
+                  className="project-card"
+                  bodyStyle={{ padding: 0 }}
+                >
+                  {/* Card Header Strip */}
+                  <div style={{
+                    padding: "12px 20px",
+                    background: "#f8fafc",
+                    borderBottom: "1px solid #e2e8f0",
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 16,
-                  }}
-                >
-                  <Text strong style={{ fontSize: 14 }}>
-                    Project Entry #{projectIndex + 1}
-                  </Text>
-                  {projectUpdates.length > 1 && (
-                    <Button
-                      type="text"
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleRemoveProject(projectIndex)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-
-                {/* Project Selection */}
-                <Form.Item
-                  label={
-                    <span style={{ fontSize: 13 }}>
-                      Project <span style={{ color: "#ff4d4f" }}>*</span>
-                    </span>
-                  }
-                  required={false}
-                  validateStatus={!update.projectId ? "error" : "success"}
-                  help={!update.projectId && "Please select a project"}
-                  style={{ marginBottom: 16 }}
-                >
-                  <Select
-                    placeholder="Select a project"
-                    value={update.projectId || undefined}
-                    onChange={(value) =>
-                      handleProjectChange(projectIndex, value)
-                    }
-                    options={getAvailableProjects(projectIndex).map(
-                      (project) => ({
-                        label: `${project.label} (${project.code})`,
-                        value: project.value,
-                      }),
-                    )}
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                  />
-                </Form.Item>
-      
-                {/* Time Tracking */}
-                <div style={{ marginBottom: 16 }}>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      display: "block",
-                      marginBottom: 8,
-                    }}
-                  >
-                    ⏰ Time Tracking <span style={{ color: "#ff4d4f" }}>*</span>
-                  </Text>
-                  <Row gutter={16}>
-                    <Col span={8}>
-                      <Form.Item
-                        label={<span style={{ fontSize: 12 }}>Start Time</span>}
-                        required={false}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <DatePicker
-                          showTime
-                          format="DD-MM-YYYY HH:mm"
-                          placeholder="dd-mm-yyyy --:--"
-                          value={
-                            update.startTime ? dayjs(update.startTime) : null
-                          }
-                          onChange={(value) =>
-                            handleTimeChange(projectIndex, "startTime", value)
-                          }
-                          style={{ width: "100%" }}
-                          disabledDate={(current) => {
-                            if (!isMissedUpdate) {
-                              // Toggle OFF → disable all past dates (yesterday, missed updates)
-                              return (
-                                current && current < dayjs().startOf("day")
-                              );
-                            }
-                            // Toggle ON → allow only last 3 days
-                            return (
-                              current &&
-                              (current <
-                                dayjs().subtract(3, "day").startOf("day") ||
-                                current > dayjs().endOf("day"))
-                            );
-                          }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item
-                        label={<span style={{ fontSize: 12 }}>End Time</span>}
-                        required={false}
-                        style={{ marginBottom: 0 }}
-                      >
-                        <DatePicker
-                          showTime
-                          format="DD-MM-YYYY HH:mm"
-                          placeholder="dd-mm-yyyy --:--"
-                          value={update.endTime ? dayjs(update.endTime) : null}
-                          onChange={(value) =>
-                            handleTimeChange(projectIndex, "endTime", value)
-                          }
-                          style={{ width: "100%" }}
-                          disabledDate={(current) => {
-                            if (!isMissedUpdate) {
-                              // Toggle OFF → disable all past dates (yesterday, missed updates)
-                              return (
-                                current && current < dayjs().startOf("day")
-                              );
-                            }
-                            // Toggle ON → allow only last 3 days
-                            return (
-                              current &&
-                              (current <
-                                dayjs().subtract(3, "day").startOf("day") ||
-                                current > dayjs().endOf("day"))
-                            );
-                          }}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item
-                        label={
-                          <span style={{ fontSize: 12 }}>Total Hours</span>
-                        }
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input
-                          value={
-                            update.hoursWorked > 0
-                              ? formatHours(update.hoursWorked)
-                              : "0h 0m"
-                          }
-                          disabled
-                          prefix={<ClockCircleOutlined />}
-                          style={{ backgroundColor: "#f5f5f5" }}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-
-                {/* Work Summary - Tasks */}
-                <div style={{ marginBottom: 16 }}>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      display: "block",
-                      marginBottom: 8,
-                    }}
-                  >
-                    📝 Work Summary <span style={{ color: "#ff4d4f" }}>*</span>
-                  </Text>
-
-                  {update.tasks.map((task, taskIndex) => (
-                    <div
-                      key={taskIndex}
-                      style={{
-                        border: "1px solid #d9d9d9",
+                    alignItems: "center"
+                  }}>
+                    <Space size="middle">
+                      <div style={{
+                        width: 24,
+                        height: 24,
                         borderRadius: 6,
-                        padding: 12,
-                        marginBottom: 12,
-                        backgroundColor: "#fff",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: 8,
-                        }}
+                        background: "#0ea5e9",
+                        color: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 12,
+                        fontWeight: 700
+                      }}>
+                        {projectIndex + 1}
+                      </div>
+                      <Text strong style={{ color: "#1e293b" }}>Project Entry</Text>
+                    </Space>
+                    {projectUpdates.length > 1 && (
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<Trash2 size={14} />}
+                        onClick={() => handleRemoveProject(projectIndex)}
+                        style={{ display: "flex", alignItems: "center", gap: 4 }}
                       >
-                        <Text style={{ fontSize: 12, fontWeight: 500 }}>
-                          Task #{taskIndex + 1}
-                        </Text>
-                        {update.tasks.length > 1 && (
-                          <Button
-                            type="text"
-                            danger
-                            size="small"
-                            icon={<DeleteOutlined />}
-                            onClick={() =>
-                              handleRemoveTask(projectIndex, taskIndex)
-                            }
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+
+                  <div style={{ padding: 20 }}>
+                    <Row gutter={24}>
+                      <Col span={10}>
+                        <Form.Item
+                          label="Project & Client"
+                          required
+                          style={{ marginBottom: 16 }}
+                        >
+                          <Select
+                            placeholder="Search and select project"
+                            value={update.projectId || undefined}
+                            onChange={(value) => handleProjectChange(projectIndex, value)}
+                            options={getAvailableProjects(projectIndex).map((p) => ({
+                              label: `${p.label} (${p.code})`,
+                              value: p.value,
+                            }))}
+                            showSearch
+                            size="middle"
+                            style={{ width: "100%" }}
+                            suffixIcon={<ChevronRight size={14} />}
                           />
-                        )}
+                        </Form.Item>
+                      </Col>
+                      <Col span={14}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 12 }}>
+                          <Form.Item label="Start Time" required style={{ marginBottom: 16 }}>
+                            <DatePicker
+                              showTime
+                              format="DD-MM-YYYY HH:mm"
+                              placeholder="00-00-00 00:00"
+                              value={update.startTime ? dayjs(update.startTime) : null}
+                              onChange={(value) => handleTimeChange(projectIndex, "startTime", value)}
+                              disabledDate={(current) => {
+                                if (isMissedUpdate) {
+                                  if (missedDate) return !current.isSame(missedDate, "day");
+                                  return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
+                                }
+                                return current && current.isBefore(dayjs(), "day");
+                              }}
+                              style={{ width: "100%" }}
+                              suffixIcon={<Clock size={14} />}
+                            />
+                          </Form.Item>
+                          <Form.Item label="End Time" required style={{ marginBottom: 16 }}>
+                            <DatePicker
+                              showTime
+                              format="DD-MM-YYYY HH:mm"
+                              placeholder="00-00-00 00:00"
+                              value={update.endTime ? dayjs(update.endTime) : null}
+                              onChange={(value) => handleTimeChange(projectIndex, "endTime", value)}
+                              disabledDate={(current) => {
+                                if (isMissedUpdate) {
+                                  if (missedDate) return !current.isSame(missedDate, "day");
+                                  return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
+                                }
+                                return current && current.isBefore(dayjs(), "day");
+                              }}
+                              style={{ width: "100%" }}
+                              suffixIcon={<Clock size={14} />}
+                            />
+                          </Form.Item>
+                          <Form.Item label="Total" style={{ marginBottom: 16 }}>
+                            <div style={{
+                              height: 32,
+                              background: "#f1f5f9",
+                              borderRadius: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              border: "1px solid #e2e8f0",
+                              fontWeight: 600,
+                              color: "#0f172a",
+                              fontSize: 13
+                            }}>
+                              {update.hoursWorked > 0 ? formatHours(update.hoursWorked) : "0h 0m"}
+                            </div>
+                          </Form.Item>
+                        </div>
+                      </Col>
+                    </Row>
+
+                    {/* Tasks Content Area */}
+                    <div style={{
+                      marginTop: 8,
+                      padding: 16,
+                      background: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+                      borderRadius: 12,
+                      border: "1px solid #e2e8f0",
+                      borderLeft: "4px solid #0ea5e9"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <CheckCircle2 size={14} color="#22c55e" />
+                          <Text strong style={{ fontSize: 13, color: "#475569" }}>Tasks & Deliverables</Text>
+                        </div>
+                        <Button
+                          type="link"
+                          size="small"
+                          icon={<Plus size={14} />}
+                          onClick={() => handleAddTask(projectIndex)}
+                          style={{ padding: 0, height: "auto", fontWeight: 600 }}
+                        >
+                          Add Task
+                        </Button>
                       </div>
 
-                      {/* Task Type Selector */}
-                      <Radio.Group
-                        value={task.type}
-                        onChange={(e) =>
-                          handleTaskTypeChange(
-                            projectIndex,
-                            taskIndex,
-                            e.target.value,
-                          )
-                        }
-                        style={{ marginBottom: 8 }}
-                        size="small"
-                      >
-                        <Radio value="ticket">Ticket</Radio>
-                        <Radio value="manual">Manual Description</Radio>
-                      </Radio.Group>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {update.tasks.map((task, taskIndex) => (
+                          <div
+                            key={taskIndex}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "140px 1fr 180px 32px",
+                              gap: 12,
+                              alignItems: "flex-start",
+                              background: "#ffffff",
+                              padding: 10,
+                              borderRadius: 10,
+                              border: "1px solid #e2e8f0"
+                            }}
+                          >
+                            <Select
+                              size="small"
+                              value={task.type}
+                              onChange={(val) => handleTaskTypeChange(projectIndex, taskIndex, val as any)}
+                              options={[
+                                { label: "Ticket", value: "ticket" },
+                                { label: "Manual", value: "manual" }
+                              ]}
+                              style={{ width: "100%" }}
+                            />
 
-                      {/* Conditional Input */}
-                      {task.type === "ticket" ? (
-                        <Select
-                          placeholder="Select ticket"
-                          value={task.ticketId || undefined}
-                          onChange={(value) =>
-                            handleTicketSelect(projectIndex, taskIndex, value)
-                          }
-                          options={
-                            projectTickets[update.projectId]?.map((ticket) => ({
-                              label: `${ticket.ticketNumber} - ${ticket.title}`,
-                              value: ticket.id,
-                            })) || []
-                          }
-                          showSearch
-                          filterOption={(input, option) =>
-                            (option?.label ?? "")
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
-                          style={{ width: "100%", marginBottom: 8 }}
-                          disabled={!update.projectId}
-                        />
-                      ) : (
-                        <TextArea
-                          placeholder="Describe what you worked on..."
-                          value={task.description || ""}
-                          onChange={(e) =>
-                            handleTaskDescriptionChange(
-                              projectIndex,
-                              taskIndex,
-                              e.target.value,
-                            )
-                          }
-                          rows={2}
-                          style={{ marginBottom: 8 }}
-                        />
-                      )}
+                            {task.type === "ticket" ? (
+                              <Select
+                                size="small"
+                                placeholder="Select ticket"
+                                value={task.ticketId || undefined}
+                                onChange={(value) => handleTicketSelect(projectIndex, taskIndex, value)}
+                                options={projectTickets[update.projectId]?.map((t) => ({
+                                  label: `${t.ticketNumber} - ${t.title}`,
+                                  value: t.id,
+                                })) || []}
+                                showSearch
+                                style={{ width: "100%" }}
+                                disabled={!update.projectId}
+                              />
+                            ) : (
+                              <TextArea
+                                size="small"
+                                placeholder="Task description..."
+                                autoSize={{ minRows: 1, maxRows: 3 }}
+                                value={task.description || ""}
+                                onChange={(e) => handleTaskDescriptionChange(projectIndex, taskIndex, e.target.value)}
+                                style={{ padding: "4px 11px" }}
+                              />
+                            )}
 
-                      {/* Status Selector */}
-                      <Select
-                        placeholder="Select status"
-                        value={task.status}
-                        onChange={(value) =>
-                          handleTaskStatusChange(
-                            projectIndex,
-                            taskIndex,
-                            value as WorkStatus,
-                          )
-                        }
-                        options={STATUS_OPTIONS}
-                        style={{ width: "100%" }}
-                      />
+                            <Select
+                              size="small"
+                              placeholder="Status"
+                              value={task.status}
+                              onChange={(value) => handleTaskStatusChange(projectIndex, taskIndex, value as WorkStatus)}
+                              options={STATUS_OPTIONS}
+                              style={{ width: "100%" }}
+                            />
+
+                            <Button
+                              type="text"
+                              danger
+                              size="small"
+                              icon={<Trash2 size={14} />}
+                              onClick={() => handleRemoveTask(projectIndex, taskIndex)}
+                              disabled={update.tasks.length === 1}
+                              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
 
-                  <Button
-                    type="link"
-                    icon={<PlusOutlined />}
-                    onClick={() => handleAddTask(projectIndex)}
-                    size="small"
-                    style={{ padding: 0, height: "auto", fontSize: 13 }}
-                  >
-                    Add Task
-                  </Button>
+                    {/* Blockers & Notes Grid */}
+                    <Row gutter={16} style={{ marginTop: 20 }}>
+                      <Col span={12}>
+                        <Form.Item
+                          label={<span style={{ display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} color="#f59e0b" /> Blockers</span>}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <TextArea
+                            rows={2}
+                            placeholder="Any blockers or dependencies..."
+                            value={update.blockers}
+                            onChange={(e) => handleBlockersChange(projectIndex, e.target.value)}
+                            style={{ borderRadius: 8 }}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          label={<span style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageSquare size={14} color="#64748b" />  Comments</span>}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <TextArea
+                            rows={2}
+                            placeholder="Project specific notes..."
+                            value={update.notes}
+                            onChange={(e) => handleNotesChange(projectIndex, e.target.value)}
+                            style={{ borderRadius: 8 }}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* General Section */}
+            <div style={{ marginTop: 32 }}>
+              <div style={{
+                padding: "24px 32px",
+                background: "#ffffff",
+                borderRadius: 20,
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <MessageSquare size={18} color="#64748b" />
+                  <Text strong style={{ fontSize: 16, color: "#1e293b", margin: 0 }}>
+                    General Comments
+                  </Text>
                 </div>
-
-                {/* Blockers */}
-                <Form.Item
-                  label={
-                    <span style={{ fontSize: 13 }}>
-                      🚫 Blockers{" "}
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        (Optional)
-                      </Text>
-                    </span>
-                  }
-                  style={{ marginBottom: 16 }}
-                >
+                <Form.Item name="generalNotes" style={{ marginBottom: 0 }}>
                   <TextArea
-                    rows={2}
-                    placeholder="Any blockers or dependencies..."
-                    value={update.blockers}
-                    onChange={(e) =>
-                      handleBlockersChange(projectIndex, e.target.value)
-                    }
-                  />
-                </Form.Item>
-
-                {/* Additional Notes */}
-                <Form.Item
-                  label={
-                    <span style={{ fontSize: 13 }}>
-                      💬 Comments / Notes{" "}
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        (Optional)
-                      </Text>
-                    </span>
-                  }
-                  style={{ marginBottom: 0 }}
-                >
-                  <TextArea
-                    rows={2}
-                    placeholder="Additional notes or clarifications..."
-                    value={update.notes}
-                    onChange={(e) =>
-                      handleNotesChange(projectIndex, e.target.value)
-                    }
+                    rows={4}
+                    placeholder="Provide any overall updates, wins, or concerns for the day..."
+                    style={{ borderRadius: 12, border: "1px solid #e2e8f0", padding: 16 }}
                   />
                 </Form.Item>
               </div>
-            ))}
+            </div>
 
-            <Button
-              type="link"
-              icon={<PlusOutlined />}
-              onClick={handleAddProject}
-              disabled={projectUpdates.length >= projects.length}
-              style={{ padding: 0, height: "auto", fontSize: 13 }}
-            >
-              Add Another Project Entry
-            </Button>
-          </div>
+            {/* Bottom Info Bar */}
+            <div style={{
+              marginTop: 24,
+              padding: "12px 20px",
+              background: "#eff6ff",
+              borderRadius: 12,
+              border: "1px solid #bfdbfe",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ background: "#3b82f6", padding: 6, borderRadius: 8, color: "white" }}>
+                  <Clock size={16} />
+                </div>
+                <div>
+                  <Text strong style={{ color: "#1e40af", fontSize: 13 }}>Final Review</Text>
+                  <Text type="secondary" style={{ display: "block", fontSize: 11, color: "#60a5fa" }}>
+                    Total logged time for all selected projects today
+                  </Text>
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <Text style={{ fontSize: 12, color: "#1e40af", fontWeight: 500 }}>Daily Total:</Text>
+                <Text strong style={{ fontSize: 20, color: "#2563eb", marginLeft: 8 }}>{formatHours(totalHours)}</Text>
+              </div>
+            </div>
 
-          {/* General Notes */}
-          <Form.Item
-            label={
-              <span style={{ fontSize: 14, fontWeight: 500 }}>
-                General Notes{" "}
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  (Optional)
-                </Text>
-              </span>
-            }
-            name="generalNotes"
-            style={{ marginBottom: 16 }}
-          >
-            <TextArea
-              rows={3}
-              placeholder="Any other updates not related to specific projects..."
-            />
-          </Form.Item>
-
-          {/* Total Hours Display */}
-          <div
-            style={{
-              padding: 16,
-              backgroundColor: "#f0f5ff",
-              borderRadius: 6,
-              marginBottom: 24,
-              border: "1px solid #adc6ff",
-            }}
-          >
-            <Text strong style={{ fontSize: 14 }}>
-              ⏱️ Total Hours Today:{" "}
-              <span style={{ color: "#1890ff", fontSize: 16 }}>
-                {formatHours(totalHours)}
-              </span>
-            </Text>
-            <Text
-              type="secondary"
-              style={{ fontSize: 12, display: "block", marginTop: 4 }}
-            >
-              Auto-calculated from all project entries
-            </Text>
-          </div>
-
-          {/* Submit Buttons */}
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Space>
-              <Button
-                type="primary"
-                htmlType="button"
-                onClick={handleSubmit}
-                loading={loading}
-                size="large"
-                disabled={alreadySubmitted && !isEditAllowed} // 🔥 IMPORTANT
-              >
-                {alreadySubmitted
-                  ? isEditAllowed
-                    ? "Update Daily Status"
-                    : "Edit Locked (24 hrs passed)"
-                  : "Submit Daily Status"}
-              </Button>
-
-              <Button
-                onClick={() => router.push("/daily-updates/view")}
-                size="large"
-              >
-                Cancel
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Card>
+            {/* Extra Spacing Bottom */}
+            <div style={{ height: 40 }} />
+          </Form>
+        </div>
+      </div>
     </div>
   );
 }

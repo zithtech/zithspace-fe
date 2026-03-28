@@ -14,8 +14,10 @@ import {
     Share2,
     History,
     MoreHorizontal,
-    Trash
+    Trash,
+    ArrowLeft
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
 import MainLayout from '@/components/layout/MainLayout'
 import { useDocumentHub, globalDataKeys } from '@/hooks/useGlobalData'
@@ -211,6 +213,7 @@ interface DocumentWorkspaceProps {
 }
 
 export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps) {
+    const router = useRouter()
     const [collapsed, setCollapsed] = useState(false)
     const [selectedDoc, setSelectedDoc] = useState('api-ref')
     const [searchValue, setSearchValue] = useState('')
@@ -221,6 +224,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [previewVersion, setPreviewVersion] = useState<any | null>(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
 
     // Add Node State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -270,6 +274,19 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         }
     }, [documentHub?.treeNodes]);
 
+    // Handle browser back/refresh
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isDirty]);
+
     // Update editor content when document changes or preview version changes
     useEffect(() => {
         if (!editor) return;
@@ -293,6 +310,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             editor.replaceBlocks(editor.document, [{ type: "paragraph", content: [] }]);
         }
 
+        setIsDirty(false); // Reset dirty state on new document load
     }, [documentContent, editor, previewVersion]);
 
     useEffect(() => {
@@ -325,6 +343,23 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
         return roots;
     }, [documentHub?.treeNodes]);
+
+    const confirmAction = (action: () => void) => {
+        if (isDirty) {
+            modal.confirm({
+                title: 'Unsaved Changes',
+                content: 'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.',
+                okText: 'Leave',
+                cancelText: 'Stay',
+                onOk: () => {
+                    setIsDirty(false);
+                    action();
+                }
+            });
+        } else {
+            action();
+        }
+    };
 
     const toggleExpand = (id: string) => {
         setExpandedIds(prev => {
@@ -385,6 +420,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             const content = editor.document;
             await DocumentHubService.updateDocument(selectedDoc, { content });
             messageApi.success('Document saved successfully');
+            setIsDirty(false);
             refetchDocument();
             // Refetch history if open
             if (isHistoryOpen) {
@@ -435,11 +471,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     };
 
     const handleNodeSelect = (treeNodeId: string) => {
-        const node = documentHub?.treeNodes?.find((n: DocumentTreeNode) => n.id === treeNodeId);
-        if (node && node.type === 'file' && node.documentId) {
-            setSelectedDoc(node.documentId);
-            setPreviewVersion(null); // Reset preview when switching docs
-        }
+        confirmAction(() => {
+            const node = documentHub?.treeNodes?.find((n: DocumentTreeNode) => n.id === treeNodeId);
+            if (node && node.type === 'file' && node.documentId) {
+                setSelectedDoc(node.documentId);
+                setPreviewVersion(null); // Reset preview when switching docs
+            }
+        });
     };
 
     const selectedTreeNodeId = useMemo(() => {
@@ -585,6 +623,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     <header className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200 bg-white">
                         <div className="flex items-center gap-4">
                             <button
+                                onClick={() => confirmAction(() => router.push('/documenthub'))}
+                                className="p-2 rounded-md hover:bg-gray-100 text-gray-600 mr-1"
+                                title="Back to Document Hub"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+                            <div className="h-6 w-px bg-gray-200 mx-1" />
+                            <button
                                 onClick={() => setCollapsed(!collapsed)}
                                 className="p-2 rounded-md hover:bg-gray-100 text-gray-600"
                             >
@@ -677,7 +723,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     </header>
 
                     {/* Editor Content */}
-                    <main className="flex-1 overflow-auto p-6 bg-white flex flex-col">
+                    <main className="flex-1 overflow-auto px-4 pt-4 pb-2 bg-white flex flex-col">
                         {previewVersion && (
                             <div className="bg-blue-50 border-b border-blue-100 p-3 flex items-center justify-between mb-4 rounded-lg">
                                 <div className="flex items-center gap-2 text-blue-700">
@@ -706,6 +752,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 <DocumentEditor
                                     editor={editor}
                                     viewMode={viewMode}
+                                    onChange={() => setIsDirty(true)}
                                 />
                             )
                         ) : (

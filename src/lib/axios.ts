@@ -208,7 +208,9 @@ const createApiClient = (): AxiosInstance => {
 
       // Log error in development
       if (process.env.NODE_ENV === 'development') {
-        console.error(`❌ API Error: ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`, {
+        const method = originalRequest?.method?.toUpperCase() || 'HTTP';
+        const url = originalRequest?.url || 'Request';
+        console.error(`❌ API Error: ${method} ${url}`, {
           status: error.response?.status,
           data: error.response?.data,
         });
@@ -299,7 +301,7 @@ export const api = {
     }
     throw new ApiError(response.data.error || 'Request failed', response.status);
   },
- 
+
 
 
   // PUT request

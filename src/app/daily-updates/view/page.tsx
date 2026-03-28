@@ -24,7 +24,24 @@ import {
   ReloadOutlined,
   AppstoreOutlined,
   UnorderedListOutlined,
+  FilterOutlined,
+  CalendarOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+import {
+  Plus,
+  RefreshCw,
+  LayoutGrid,
+  List as ListIcon,
+  Zap,
+  Clock,
+  Users,
+  Filter,
+  Calendar as CalendarIcon,
+  ChevronRight,
+  Activity,
+  FileText
+} from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import MainLayout from "@/components/layout/MainLayout";
 import UpdateCard from "@/components/daily-updates/UpdateCard";
@@ -55,7 +72,11 @@ export default function ViewDailyUpdatesPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+          <Spin size="large" tip="Loading">
+            <div style={{ padding: 100, textAlign: 'center' }}>
+              <div style={{ padding: 20 }} />
+            </div>
+          </Spin>
         </div>
       </MainLayout>
     );
@@ -221,86 +242,130 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   });
 
   return (
-    <>
+    <div
+      style={{
+        margin: "0 -24px",
+        height: "calc(100vh - 72px)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        backgroundColor: "#ffffff"
+      }}
+    >
       {contextHolder}
-      <div style={{ padding: "24px", maxWidth: "1400px", margin: "0 auto" }}>
-        {/* Header */}
-        <Row
-          justify="space-between"
-          align="middle"
-          style={{ marginBottom: 24 }}
-        >
-          <Col>
-            <Title
-              level={3}
-              style={{ margin: 0, fontSize: 24, fontWeight: 600 }}
-            >
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .daily-view-scroll-area::-webkit-scrollbar {
+          display: none;
+        }
+        .daily-view-scroll-area {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .premium-filter-card {
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 12px !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+          margin-bottom: 20px !important;
+        }
+        .updates-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 16px;
+        }
+      `}} />
+
+      {/* Premium Header */}
+      <div style={{
+        padding: "16px 32px",
+        background: "#ffffff",
+        borderBottom: "1px solid #e2e8f0",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        zIndex: 50,
+        flexShrink: 0
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+            <FileText size={28} />
+          </div>
+          <div>
+            <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
               Daily Status Updates
             </Title>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+                {canViewTeam ? "Team Overview" : "Personal Log"}
+              </Text>
+              <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1" }} />
+              <Text style={{ fontSize: 12, color: "#64748b" }}>
+                {updates.length} Updates found
+              </Text>
+            </div>
+          </div>
+        </div>
 
-            <Text type="secondary" style={{ fontSize: 14 }}>
-              {canViewTeam ? "Team Updates" : "My Updates"}
-            </Text>
-           
-          </Col>
-          <Col>
-            <Space>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={handleRefresh}
-                loading={loading}
-              >
-                Refresh
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusCircleOutlined />}
-                onClick={handleSubmitNew}
-              >
-                Submit Update
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-
-        <Card
-          style={{
-            marginBottom: 20,
-            boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-          }}
-          // bodyStyle={{
-          //   padding: "10px 12px", // 👈 left = right equal
-          // }}
-        >
-          <Row
-            gutter={[16, 16]}
-            align="top"
-            style={{ display: "flex", flexWrap: "wrap" }}
+        <Space size="middle">
+          <Button
+            icon={<RefreshCw size={16} />}
+            onClick={handleRefresh}
+            loading={loading}
+            style={{ borderRadius: 10, display: "flex", alignItems: "center", gap: 8 }}
           >
-            <Col flex="1 1 260px">
-              <Space direction="vertical" style={{ width: "100%" }} size={4}>
-                <Text strong style={{ fontSize: 13 }}>
+            Refresh
+          </Button>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={handleSubmitNew}
+            style={{
+              height: 40,
+              padding: "0 20px",
+              borderRadius: 10,
+              fontWeight: 600,
+              background: '#1677ff',
+              // borderColor: "#0ea5e9",
+              // boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8
+            }}
+          >
+            Submit Update
+          </Button>
+        </Space>
+      </div>
+
+      {/* Internal Scroll Area */}
+      <div className="daily-view-scroll-area" style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "24px 32px"
+      }}>
+        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+
+          {/* Compact Filters Card */}
+          <Card className="premium-filter-card" bodyStyle={{ padding: "12px 20px" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 240px" }}>
+                <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
                   Date Range
                 </Text>
                 <DatePicker.RangePicker
                   value={dateRange}
                   onChange={handleDateRangeChange}
-                  style={{ width: "100%" }}
+                  style={{ width: "100%", borderRadius: 8 }}
                   format="YYYY-MM-DD"
                   placeholder={["Start Date", "End Date"]}
                 />
-              </Space>
-            </Col>
+              </div>
 
-            {canViewTeam && (
-              <>
-                <Col flex="1 1 220px">
-                  <Space
-                    direction="vertical"
-                    style={{ width: "100%" }}
-                    size={4}
-                  >
-                    <Text strong style={{ fontSize: 13 }}>
+              {canViewTeam && (
+                <>
+                  <div style={{ flex: "1 1 200px" }}>
+                    <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
                       Project
                     </Text>
                     <Select
@@ -310,18 +375,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                       onChange={setSelectedProject}
                       allowClear
                       options={projects}
+                      size="middle"
                     />
-                  </Space>
-                </Col>
-
-                <Col flex="1 1 220px">
-                  <Space
-                    direction="vertical"
-                    style={{ width: "100%" }}
-                    size={4}
-                  >
-                    <Text strong style={{ fontSize: 13 }}>
-                      User
+                  </div>
+                  <div style={{ flex: "1 1 200px" }}>
+                    <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
+                      Team Member
                     </Text>
                     <Select
                       placeholder="All Users"
@@ -330,17 +389,12 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                       onChange={setSelectedUser}
                       allowClear
                       options={uniqueUsers}
+                      size="middle"
                     />
-                  </Space>
-                </Col>
-                <Col flex="1 1 160px">
-                  <Space
-                    direction="vertical"
-                    style={{ width: "100%" }}
-                    size={4}
-                  >
-                    <Text strong style={{ fontSize: 13 }}>
-                      Update Type
+                  </div>
+                  <div style={{ flex: "1 1 120px" }}>
+                    <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
+                      Type
                     </Text>
                     <Select
                       placeholder="All"
@@ -352,15 +406,14 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                         { label: "BOD", value: "BOD" },
                         { label: "EOD", value: "EOD" },
                       ]}
+                      size="middle"
                     />
-                  </Space>
-                </Col>
-              </>
-            )}
-            {/* <div style={{ display: "flex", justifyContent: "flex-end" }}> */}
-            <Col style={{ marginLeft: "auto", flex: "0 0 200px" }}>
-              <Space direction="vertical" size={4}>
-                <Text strong style={{ fontSize: 13 }}>
+                  </div>
+                </>
+              )}
+
+              <div style={{ borderLeft: "1px solid #e2e8f0", paddingLeft: 16, display: "flex", flexDirection: "column", gap: 4 }}>
+                <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", textTransform: "uppercase" }}>
                   View
                 </Text>
                 <Segmented
@@ -368,94 +421,83 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                   onChange={(value) => setViewMode(value as ViewMode)}
                   options={[
                     {
-                      label: "Cards",
-                      value: "card",
-                      icon: <AppstoreOutlined />,
+                      label: (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 4px" }}>
+                          <LayoutGrid size={14} />
+                          <span>Cards</span>
+                        </div>
+                      ),
+                      value: "card"
                     },
                     {
-                      label: "List",
-                      value: "list",
-                      icon: <UnorderedListOutlined />,
+                      label: (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 4px" }}>
+                          <ListIcon size={14} />
+                          <span>List</span>
+                        </div>
+                      ),
+                      value: "list"
                     },
                   ]}
-                  style={{ width: "100%" }}
+                  style={{ borderRadius: 8, padding: 3 }}
                 />
-              </Space>
-            </Col>
-            {/* </div> */}
-          </Row>
-        </Card>
-
-        {/* Content Area */}
-        {loading ? (
-          <Card>
-            <div style={{ textAlign: "center", padding: 60 }}>
-              <Spin size="large" />
-              <div style={{ marginTop: 16 }}>
-                <Text type="secondary">Loading updates...</Text>
               </div>
             </div>
           </Card>
-        ) : updates.length === 0 ? (
-          <Card>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <div>
-                  <Text type="secondary" style={{ fontSize: 14 }}>
-                    No updates found for this date
-                  </Text>
-                  <br />
-                  <Text type="secondary" style={{ fontSize: 13 }}>
-                    {canViewTeam
-                      ? "No team members have submitted updates yet"
-                      : "You haven't submitted an update for this date"}
-                  </Text>
-                </div>
-              }
-            >
-              <Button
-                type="primary"
-                onClick={handleSubmitNew}
-                style={{ marginTop: 16 }}
-              >
-                Submit Update
-              </Button>
-            </Empty>
-          </Card>
-        ) : viewMode === "card" ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: 16,
-            }}
-            className="updates-grid"
-          >
-            {updates.map((update) => (
-              <UpdateCard
-                key={update.id}
-                update={update}
-                onOpen={() => handleViewDetails(update)} // 🔓 drawer
-                onDelete={handleRefresh} // 🔹 delete handler
-              />
-            ))}
-          </div>
-        ) : (
-          <UpdateTable
-            updates={updates}
-            loading={false}
-            onViewDetails={handleViewDetails}
-          />
-        )}
 
-        {/* Details Drawer */}
-        <UpdateDetailsDrawer
-          update={selectedUpdate}
-          open={detailsModalOpen}
-          onClose={handleCloseDetails}
-        />
+          {/* Content Loading/Empty States */}
+          {loading ? (
+            <div style={{ padding: "100px 0", textAlign: "center" }}>
+              <Spin size="large" />
+              <div style={{ marginTop: 16, color: "#94a3b8", fontWeight: 500 }}>Fetching status updates...</div>
+            </div>
+          ) : updates.length === 0 ? (
+            <Card style={{ borderRadius: 16, border: "1px solid #e2e8f0", textAlign: "center", padding: "60px 0" }}>
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <Space direction="vertical" size={2}>
+                    <Text strong style={{ color: "#475569", fontSize: 15 }}>No updates found</Text>
+                    <Text style={{ color: "#94a3b8" }}>Try adjusting your filters or date range</Text>
+                  </Space>
+                }
+              >
+                <Button type="primary" onClick={handleSubmitNew} style={{ borderRadius: 8, marginTop: 8 }}>
+                  Submit First Update
+                </Button>
+              </Empty>
+            </Card>
+          ) : viewMode === "card" ? (
+            <div className="updates-grid">
+              {updates.map((update) => (
+                <UpdateCard
+                  key={update.id}
+                  update={update}
+                  onOpen={() => handleViewDetails(update)}
+                  onDelete={handleRefresh}
+                />
+              ))}
+            </div>
+          ) : (
+            <div style={{ background: "white", borderRadius: 16, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+              <UpdateTable
+                updates={updates}
+                loading={false}
+                onViewDetails={handleViewDetails}
+              />
+            </div>
+          )}
+
+          {/* Extra Spacing Bottom */}
+          <div style={{ height: 40 }} />
+        </div>
       </div>
-    </>
+
+      <UpdateDetailsDrawer
+        update={selectedUpdate}
+        open={detailsModalOpen}
+        onClose={handleCloseDetails}
+      />
+    </div>
   );
 }

@@ -316,8 +316,8 @@ export default function positionConfiguration() {
             leaveType: Array.isArray(item.leaveType)
               ? item.leaveType
               : item.leaveType
-              ? [item.leaveType]
-              : [],
+                ? [item.leaveType]
+                : [],
           };
         } else {
           const existingTypes = acc[key].leaveType as string[];
@@ -548,8 +548,12 @@ export default function positionConfiguration() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: "center" }}>
-          <Spin size="large" tip="Loading..." />
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );
@@ -569,14 +573,14 @@ export default function positionConfiguration() {
               pathname.includes("government-holidays")
                 ? "holidays"
                 : pathname.includes("leaves-dashboard")
-                ? "dashboard"
-                : pathname.includes("leave-adjustments")
-                ? "adjustments"
-                : pathname.includes("leave-configuration")
-                ? "configuration"
-                : pathname.includes("position-configuration")
-                ? "positions"
-                : "leaves"
+                  ? "dashboard"
+                  : pathname.includes("leave-adjustments")
+                    ? "adjustments"
+                    : pathname.includes("leave-configuration")
+                      ? "configuration"
+                      : pathname.includes("position-configuration")
+                        ? "positions"
+                        : "leaves"
             }
             onChange={(key) => {
               if (key === "dashboard") router.push("/leaves-dashboard");
@@ -664,8 +668,8 @@ export default function positionConfiguration() {
                 item.position?.toLowerCase().includes(searchText.toLowerCase()) ||
                 (Array.isArray(item.leaveType)
                   ? item.leaveType.some((t: string) =>
-                      t.toLowerCase().includes(searchText.toLowerCase())
-                    )
+                    t.toLowerCase().includes(searchText.toLowerCase())
+                  )
                   : item.leaveType?.toLowerCase().includes(searchText.toLowerCase()))
             )}
             size="small"
@@ -680,8 +684,8 @@ export default function positionConfiguration() {
                 item.position?.toLowerCase().includes(searchText.toLowerCase()) ||
                 (Array.isArray(item.leaveType)
                   ? item.leaveType.some((t: string) =>
-                      t.toLowerCase().includes(searchText.toLowerCase())
-                    )
+                    t.toLowerCase().includes(searchText.toLowerCase())
+                  )
                   : item.leaveType?.toLowerCase().includes(searchText.toLowerCase()))
             )}
             loading={loading}
@@ -800,28 +804,28 @@ export default function positionConfiguration() {
                       originType === "Grade"
                         ? gradesLoading
                         : originType === "Department"
-                        ? departmentsLoading
-                        : originType === "Sub-department"
-                        ? subDepartmentsLoading
-                        : originType === "Position"
-                        ? positionsLoading
-                        : false
+                          ? departmentsLoading
+                          : originType === "Sub-department"
+                            ? subDepartmentsLoading
+                            : originType === "Position"
+                              ? positionsLoading
+                              : false
                     }
                     options={
                       originType === "User"
                         ? members.map((m) => ({ label: m.label, value: m.value }))
                         : originType === "Grade"
-                        ? grades.map((g: any) => ({ label: g.name, value: g.id }))
-                        : originType === "Department"
-                        ? departments.map((d: any) => ({ label: d.name, value: d.id }))
-                        : originType === "Sub-department"
-                        ? subDepartments.map((sd: any) => ({ label: sd.name, value: sd.id }))
-                        : originType === "Position"
-                        ? positions.map((p: any) => ({ label: p.title, value: p.id }))
-                        : (subOriginData[originType] || []).map((opt) => ({
-                            label: opt,
-                            value: opt,
-                          }))
+                          ? grades.map((g: any) => ({ label: g.name, value: g.id }))
+                          : originType === "Department"
+                            ? departments.map((d: any) => ({ label: d.name, value: d.id }))
+                            : originType === "Sub-department"
+                              ? subDepartments.map((sd: any) => ({ label: sd.name, value: sd.id }))
+                              : originType === "Position"
+                                ? positions.map((p: any) => ({ label: p.title, value: p.id }))
+                                : (subOriginData[originType] || []).map((opt) => ({
+                                  label: opt,
+                                  value: opt,
+                                }))
                     }
                   />
                 </Form.Item>
@@ -845,19 +849,19 @@ export default function positionConfiguration() {
           title={
             currentRecord
               ? `${currentRecord.position} - ${(() => {
-                  const text = currentRecord.subOriginId;
-                  if (currentRecord.position === "User")
-                    return members.find((m) => m.value === text)?.label || text;
-                  if (currentRecord.position === "Grade")
-                    return grades.find((g: any) => g.id === text)?.name || text;
-                  if (currentRecord.position === "Department")
-                    return departments.find((d: any) => d.id === text)?.name || text;
-                  if (currentRecord.position === "Sub-department")
-                    return subDepartments.find((sd: any) => sd.id === text)?.name || text;
-                  if (currentRecord.position === "Position")
-                    return positions.find((p: any) => p.id === text)?.title || text;
-                  return text;
-                })()}`
+                const text = currentRecord.subOriginId;
+                if (currentRecord.position === "User")
+                  return members.find((m) => m.value === text)?.label || text;
+                if (currentRecord.position === "Grade")
+                  return grades.find((g: any) => g.id === text)?.name || text;
+                if (currentRecord.position === "Department")
+                  return departments.find((d: any) => d.id === text)?.name || text;
+                if (currentRecord.position === "Sub-department")
+                  return subDepartments.find((sd: any) => sd.id === text)?.name || text;
+                if (currentRecord.position === "Position")
+                  return positions.find((p: any) => p.id === text)?.title || text;
+                return text;
+              })()}`
               : "Details"
           }
           placement="right"

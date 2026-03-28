@@ -75,8 +75,7 @@ function CreateClientV2Content() {
     } catch (err) {
       console.error(err);
       message.error(
-        `An error occurred while ${
-          isEditMode ? "updating" : "creating"
+        `An error occurred while ${isEditMode ? "updating" : "creating"
         } the client`,
       );
     } finally {
@@ -139,8 +138,12 @@ function CreateClientV2Content() {
             paddingTop: 20,
             marginTop: -20,
             zIndex: 1000,
-            backgroundColor: "white",
+            backgroundColor: "var(--premium-white)",
             gap: 16,
+            boxShadow: "none",
+            margin: "0 -24px 24px -24px",
+            padding: "20px 24px",
+            borderBottom: "1px solid #e8e8e8",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -197,10 +200,10 @@ function CreateClientV2Content() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>
@@ -278,10 +281,10 @@ function CreateClientV2Content() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>
@@ -353,10 +356,10 @@ function CreateClientV2Content() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>
@@ -409,10 +412,10 @@ function CreateClientV2Content() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>

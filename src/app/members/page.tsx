@@ -18,6 +18,8 @@ import {
   Alert,
   Dropdown,
   Checkbox,
+  Row,
+  Col,
 } from "antd";
 import {
   PlusOutlined,
@@ -50,13 +52,13 @@ interface MemberFormData {
   workEmail: string;
   role: "super_admin" | "admin" | "user";
   position:
-    | "Developer"
-    | "CEO"
-    | "DevOps"
-    | "Project Manager"
-    | "Product Manager"
-    | "UI/UX"
-    | "Business Management";
+  | "Developer"
+  | "CEO"
+  | "DevOps"
+  | "Project Manager"
+  | "Product Manager"
+  | "UI/UX"
+  | "Business Management";
   reportsTo: string;
 }
 
@@ -103,24 +105,17 @@ export default function MembersPage() {
   // Available shifts for dropdown
   const [shifts, setShifts] = useState<Shift[]>([]);
 
-  // Protect route - requires user.read permission
-  useEffect(() => {
-    if (!isLoading && !canReadUser) {
-      router.push("/dashboard");
-    }
-  }, [isLoading, canReadUser, router]);
+  // Calculate member stats - MOVED ABOVE EARLY RETURNS
+  const memberStats = React.useMemo(() => {
+    return {
+      total: pagination.total,
+      superAdmin: members.filter(m => m.role === 'super_admin').length,
+      admin: members.filter(m => m.role === 'admin').length,
+      user: members.filter(m => m.role === 'user').length
+    };
+  }, [members, pagination.total]);
 
-  // Show loading spinner while authentication is being checked
-  if (isLoading) {
-    return <LoadingSpinner message="Loading members..." />;
-  }
-
-  // Don't render if no read permission
-  if (!canReadUser) {
-    return null;
-  }
-
-  // Fetch members
+  // Fetch functions
   const fetchMembers = async () => {
     try {
       setLoading(true);
@@ -179,6 +174,13 @@ export default function MembersPage() {
       setShifts([]); // Set empty array on error
     }
   };
+
+  // Protect route - requires user.read permission
+  useEffect(() => {
+    if (!isLoading && !canReadUser) {
+      router.push("/dashboard");
+    }
+  }, [isLoading, canReadUser, router]);
 
   useEffect(() => {
     if (user) {
@@ -469,38 +471,91 @@ export default function MembersPage() {
     }
   }, [success, error]);
 
+  // Show loading spinner while authentication is being checked
+  if (isLoading) {
+    return <LoadingSpinner message="Loading members..." />;
+  }
+
+  // Don't render if no read permission
+  if (!canReadUser) {
+    return null;
+  }
+
   // Don't render if no user
-  if (!user) {
+  if (!user || isLoading || !canReadUser) {
+    if (isLoading) return <LoadingSpinner message="Loading members..." />;
     return null;
   }
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
+      <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
         {/* Header */}
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 24 }}>
           <Space
             align="center"
             style={{ width: "100%", justifyContent: "space-between" }}
           >
-            <Space align="center">
-              <TeamOutlined style={{ fontSize: 24, color: "#1677ff" }} />
-              <Title level={3} style={{ margin: 0 }}>
-                Members Management
-              </Title>
+            <Space align="start" size={16}>
+              <TeamOutlined style={{ fontSize: 28, color: "#1677ff", marginTop: 4 }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px' }}>
+                  Members Management
+                </Title>
+                <Text type="secondary" style={{ fontSize: 13, marginTop: 2 }}>
+                  Directory and access control for all organization members
+                </Text>
+              </div>
             </Space>
             {(canCreateUser || canManageUsers) && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={showAddModal}
-                size="middle"
+                size="large"
+                style={{ borderRadius: 8 }}
               >
                 Add Member
               </Button>
             )}
           </Space>
         </div>
+
+        {/* Stats Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Members</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{memberStats.total}</Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Super Admins</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#ff4d4f' }}>{memberStats.superAdmin}</Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Team Admins</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#faad14' }}>{memberStats.admin}</Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Regular Users</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#52c41a' }}>{memberStats.user}</Title>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
 
         {/* Alerts */}
         {error && (
@@ -509,7 +564,7 @@ export default function MembersPage() {
             type="error"
             showIcon
             closable
-            style={{ marginBottom: 16, fontSize: 13 }}
+            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
             onClose={() => setError("")}
           />
         )}
@@ -519,63 +574,64 @@ export default function MembersPage() {
             type="success"
             showIcon
             closable
-            style={{ marginBottom: 16, fontSize: 13 }}
+            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
             onClose={() => setSuccess("")}
           />
         )}
 
-        {/* Filters Card */}
+        {/* Filters and Table Container */}
         <Card
-          size="small"
-          // className='flex items-center gap-8'
-          style={{ marginBottom: 16 }}
-          styles={{ body: { padding: 16 } }}
+          bordered={false}
+          style={{
+            marginBottom: 16,
+            borderRadius: 12,
+            border: '1px solid #f0f0f0',
+            boxShadow: 'none'
+          }}
+          styles={{ body: { padding: 0 } }}
         >
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Search members..."
-              prefix={<SearchOutlined />}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ width: 240 }}
-              allowClear
-            />
+          {/* Filters Bar */}
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              <Input
+                placeholder="Search members..."
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: 280, borderRadius: 8, height: 40 }}
+                allowClear
+              />
 
-            <Select
-              placeholder="Filter by role"
-              value={roleFilter}
-              onChange={setRoleFilter}
-              style={{ width: 200 }}
-              allowClear
-            >
-              <Option value="super_admin">Super Admin</Option>
-              <Option value="admin">Admin</Option>
-              <Option value="user">User</Option>
-            </Select>
+              <Select
+                placeholder="Filter by role"
+                value={roleFilter}
+                onChange={setRoleFilter}
+                style={{ width: 180, height: 40 }}
+                allowClear
+              >
+                <Option value="super_admin">Super Admin</Option>
+                <Option value="admin">Admin</Option>
+                <Option value="user">User</Option>
+              </Select>
 
-            <Select
-              placeholder="Filter by position"
-              value={positionFilter}
-              onChange={setPositionFilter}
-              style={{ width: 200 }}
-              allowClear
-              loading={positionsLoading}
-            >
-              {positions.map((position) => (
-                <Option key={position.id} value={position.title}>
-                  {position.title}
-                </Option>
-              ))}
-            </Select>
+              <Select
+                placeholder="Filter by position"
+                value={positionFilter}
+                onChange={setPositionFilter}
+                style={{ width: 220, height: 40 }}
+                allowClear
+                loading={positionsLoading}
+              >
+                {positions.map((position) => (
+                  <Option key={position.id} value={position.title}>
+                    {position.title}
+                  </Option>
+                ))}
+              </Select>
+            </div>
           </div>
-        </Card>
 
-        {/* Members Table */}
-        <Card
-          size="small"
-          // bodyStyle={{ padding: 0 }}
-          // className="compact-table"
-        >
+          {/* Members Table */}
           <Table
             columns={columns}
             dataSource={members}
@@ -588,7 +644,7 @@ export default function MembersPage() {
               showSizeChanger: true,
               showQuickJumper: true,
               showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total}`,
+                `${range[0]}-${range[1]} of ${total} members`,
               onChange: (page, pageSize) => {
                 setPagination((prev) => ({
                   ...prev,
@@ -596,10 +652,9 @@ export default function MembersPage() {
                   pageSize: pageSize || 10,
                 }));
               },
-              // size: 'small',
+              style: { padding: '16px 24px' }
             }}
-            // size="small"
-            scroll={{ x: 800 }}
+            scroll={{ x: 1000 }}
           />
         </Card>
 
@@ -753,9 +808,8 @@ export default function MembersPage() {
                   {managers
                     .filter((m) => m.id !== selectedMember?.id)
                     .map((manager) => (
-                      <Option key={manager.id} value={manager.id}>{`${
-                        manager.name
-                      } - ${manager.id.substring(0, 8)}`}</Option>
+                      <Option key={manager.id} value={manager.id}>{`${manager.name
+                        } - ${manager.id.substring(0, 8)}`}</Option>
                     ))}
                 </Select>
               </Form.Item>

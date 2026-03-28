@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import { api } from '@/lib/axios';
 
 interface LayoutContextType {
     collapsed: boolean;
@@ -31,9 +31,9 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         if (isAuthenticated && user) {
             const fetchPreferences = async () => {
                 try {
-                    const response = await axios.get('/api/user/preferences');
-                    if (response.data.success && response.data.data.sidebarCollapsed !== undefined) {
-                        const backendValue = response.data.data.sidebarCollapsed;
+                    const data = await api.get('/api/user/preferences');
+                    if (data && data.sidebarCollapsed !== undefined) {
+                        const backendValue = data.sidebarCollapsed;
                         setCollapsedState(backendValue);
                         localStorage.setItem('sidebar-collapsed', JSON.stringify(backendValue));
                     }
@@ -48,10 +48,10 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const setCollapsed = (value: boolean) => {
         setCollapsedState(value);
         localStorage.setItem('sidebar-collapsed', JSON.stringify(value));
-        
+
         // Async sync to backend
         if (isAuthenticated) {
-            axios.patch('/api/user/preferences', { sidebarCollapsed: value })
+            api.patch('/api/user/preferences', { sidebarCollapsed: value })
                 .catch(err => console.error('Failed to sync preference to backend:', err));
         }
     };

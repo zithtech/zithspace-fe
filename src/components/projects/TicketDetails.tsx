@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Form, Alert, Row, Col, message } from "antd";
+import { Card, Form, Alert, Row, Col, message, Space } from "antd";
 import { useUserProjects, useMembers, useTicketConfig } from "@/hooks/useGlobalData";
 import {
   useTicketDetails,
@@ -160,79 +160,69 @@ export default function TicketDetails({ ticketId }: TicketDetailsProps) {
 
   return (
     <div className="p-10">
-      {/* Header */}
       <TicketDetailsHeader />
 
       <Row gutter={24}>
         {/* Main Content */}
         <Col xs={24} lg={16}>
-          <Card>
-            {/* Hidden form to prevent useForm warning - always keeps form connected */}
-            {!editing && (
-              <Form form={form} style={{ display: 'none' }}>
-                <Form.Item name="title"><input /></Form.Item>
-              </Form>
-            )}
-
+          <Form form={form} layout="vertical" component={false}>
             {editing ? (
-              <TicketDetailsForm
-                ticket={ticket}
-                form={form}
-                onSave={handleSave}
-                onCancel={() => setEditing(false)}
-                isSaving={updateTicketMutation.isPending}
-                projects={projects}
-                members={members}
-                platforms={platforms}
-                stacks={stacks}
-                priorities={priorities}
-                taskLevels={taskLevels}
-                taskTypes={taskTypes}
-                dataLoading={dataLoading}
-              />
+              <Card>
+                <TicketDetailsForm
+                  ticket={ticket}
+                  form={form}
+                  projects={projects}
+                  members={members}
+                  platforms={platforms}
+                  stacks={stacks}
+                  priorities={priorities}
+                  taskLevels={taskLevels}
+                  taskTypes={taskTypes}
+                  onSave={handleSave}
+                  onCancel={() => setEditing(false)}
+                  isSaving={updateTicketMutation.isPending}
+                  dataLoading={dataLoading}
+                />
+              </Card>
             ) : (
-              <TicketInformation
-                ticket={ticket}
-                onEdit={() => setEditing(true)}
-              />
+              <TicketInformation ticket={ticket} onEdit={() => setEditing(true)} />
             )}
-          </Card>
+          </Form>
 
-          {/* Related Links Section */}
-          <RelatedLinksSection
-            relatedLinks={relatedLinks}
-            isEditing={editing}
-            onAddLink={handleAddLink}
-            onUpdateLink={handleUpdateLink}
-            onDeleteLink={handleDeleteLink}
-            isAddingLink={addLinkMutation.isPending}
-            isUpdatingLink={updateLinkMutation.isPending}
-            isDeletingLink={deleteLinkMutation.isPending}
-          />
-
-          {/* Attachments Section */}
-          <AttachmentsSection
-            attachments={attachments}
-            isLoading={attachmentsLoading}
-            isEditing={editing}
-            onUpload={handleUploadAttachment}
-            onDelete={handleDeleteAttachment}
-          />
-
-          {/* Comments Section */}
-          <CommentsSection
-            comments={comments}
-            isEditing={editing}
-            onAddComment={handleAddComment}
-            onDeleteComment={handleDeleteComment}
-            isAddingComment={addCommentMutation.isPending}
-            isDeletingComment={deleteCommentMutation.isPending}
-          />
+          <div style={{ marginTop: 24 }}>
+            <CommentsSection
+              comments={comments}
+              isEditing={editing}
+              onAddComment={handleAddComment}
+              onDeleteComment={handleDeleteComment}
+              isAddingComment={addCommentMutation.isPending}
+              isDeletingComment={deleteCommentMutation.isPending}
+            />
+          </div>
         </Col>
 
         {/* Sidebar */}
         <Col xs={24} lg={8}>
-          <WorkflowProgress ticket={ticket} />
+          <Space direction="vertical" size={24} style={{ width: "100%" }}>
+            <WorkflowProgress ticket={ticket} />
+            <RelatedLinksSection
+              relatedLinks={relatedLinks}
+              isEditing={editing}
+              onAddLink={handleAddLink}
+              onUpdateLink={handleUpdateLink}
+              onDeleteLink={handleDeleteLink}
+              isAddingLink={addLinkMutation.isPending}
+              isUpdatingLink={updateLinkMutation.isPending}
+              isDeletingLink={deleteLinkMutation.isPending}
+            />
+            <AttachmentsSection
+              attachments={attachments}
+              isLoading={attachmentsLoading}
+              isEditing={editing}
+              onUpload={handleUploadAttachment}
+              onDelete={handleDeleteAttachment}
+            />
+          </Space>
         </Col>
       </Row>
     </div>

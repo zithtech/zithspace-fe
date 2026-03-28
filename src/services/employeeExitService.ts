@@ -45,7 +45,8 @@ export class EmployeeExitService {
    */
   static async getExitRequests(): Promise<EmployeeExitRequest[]> {
     try {
-      return await api.get<EmployeeExitRequest[]>("/api/exit/request");
+      const response = await api.get<any>("/api/exit/request");
+      return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -59,7 +60,8 @@ export class EmployeeExitService {
    */
   static async getExitRequestById(id: string): Promise<EmployeeExitRequest> {
     try {
-      return await api.get<EmployeeExitRequest>(`/api/exit/request/${id}`);
+      const response = await api.get<any>(`/api/exit/request/${id}`);
+      return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -73,7 +75,8 @@ export class EmployeeExitService {
    */
   static async createExitRequest(data: any): Promise<EmployeeExitRequest> {
     try {
-      return await api.post<EmployeeExitRequest>("/api/exit/request", data);
+      const response = await api.post<any>("/api/exit/request", data);
+      return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);
@@ -101,8 +104,8 @@ export class EmployeeExitService {
    */
   static async getEmployeeAssets(employeeId: string): Promise<EmployeeAsset[]> {
     try {
-      const response = await api.get<EmployeeAsset[]>(`/api/employee-assets/${employeeId}`);
-      return response;
+      const response = await api.get<any>(`/api/employee-assets/${employeeId}`);
+      return response.data?.data || response.data || response;
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

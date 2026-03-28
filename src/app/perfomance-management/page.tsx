@@ -16,6 +16,7 @@ import {
   Avatar,
   Statistic,
   Progress,
+  Divider,
 } from "antd";
 import {
   UserOutlined,
@@ -141,9 +142,7 @@ export default function PerformanceManagePage() {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const membersData = await MembersService.getMembersForSelect({
-        role: "user",
-      });
+      const membersData = await MembersService.getMembersForSelect();
 
       // Enhance members data with position info if available
       // You may need to fetch additional details here
@@ -153,6 +152,32 @@ export default function PerformanceManagePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to calculate working days (excluding weekends) in a month
+  const getWorkingDaysCount = (year: number, month: number) => {
+    const startOfMonth = dayjs()
+      .year(year)
+      .month(month - 1)
+      .startOf("month");
+    const endOfMonth = dayjs()
+      .year(year)
+      .month(month - 1)
+      .endOf("month");
+
+    let workingDays = 0;
+    let currentDay = startOfMonth;
+
+    while (currentDay.isBefore(endOfMonth) || currentDay.isSame(endOfMonth, "day")) {
+      const dayOfWeek = currentDay.day();
+      // 0 = Sunday, 6 = Saturday
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDays++;
+      }
+      currentDay = currentDay.add(1, "day");
+    }
+
+    return workingDays;
   };
 
   // Fetch attendance summary from API
@@ -200,7 +225,10 @@ export default function PerformanceManagePage() {
       const attendanceRecords = response?.data || [];
 
       // Calculate summary from attendance records
-      const totalDays = daysInMonth;
+      // EXCLUDE WEEKENDS as per user request
+      const workingDaysCount = getWorkingDaysCount(selectedYearNum, selectedMonthNum);
+      const totalDays = workingDaysCount; // Use working days instead of calendar days
+
       const presentDays = attendanceRecords.filter(
         (r: any) =>
           r.status === "present" ||
@@ -364,14 +392,14 @@ export default function PerformanceManagePage() {
       : 0;
 
   const updateRate =
-    Math.round((dailyUpdatesSummary.total / daysInMonth) * 100) || 0;
+    Math.round((dailyUpdatesSummary.total / attendanceSummary.totalDays) * 100) || 0;
 
   // Calculate attendance rate (only if not future month and has data)
   const attendanceRate =
     !isFutureMonth && attendanceSummary.totalDays > 0
       ? Math.round(
-          (attendanceSummary.presentDays / attendanceSummary.totalDays) * 100,
-        )
+        (attendanceSummary.presentDays / attendanceSummary.totalDays) * 100,
+      )
       : 0;
 
   // Performance score - exclude attendance for future months
@@ -381,13 +409,13 @@ export default function PerformanceManagePage() {
       : Math.round((completionRate + updateRate) / 2);
 
   // BOD and EOD out of format
-  const bodOutOf = `${dailyUpdatesSummary.bod}/${daysInMonth}`;
-  const eodOutOf = `${dailyUpdatesSummary.eod}/${daysInMonth}`;
+  const bodOutOf = `${dailyUpdatesSummary.bod}/${attendanceSummary.totalDays}`;
+  const eodOutOf = `${dailyUpdatesSummary.eod}/${attendanceSummary.totalDays}`;
 
   // Attendance out of format
-  const presentOutOf = `${attendanceSummary.presentDays}/${daysInMonth}`;
-  const lateOutOf = `${attendanceSummary.lateDays}/${daysInMonth}`;
-  const absentOutOf = `${attendanceSummary.absentDays}/${daysInMonth}`;
+  const presentOutOf = `${attendanceSummary.presentDays}/${attendanceSummary.totalDays}`;
+  const lateOutOf = `${attendanceSummary.lateDays}/${attendanceSummary.totalDays}`;
+  const absentOutOf = `${attendanceSummary.absentDays}/${attendanceSummary.totalDays}`;
 
   // Get position tags for selected user
   const positionTags = useMemo(() => {
@@ -482,57 +510,46 @@ export default function PerformanceManagePage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: "16px", minHeight: "100vh" }}>
+      <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#ffffff" }}>
         {/* Sticky Header Section */}
         <div
           style={{
             position: "sticky",
             top: 0,
             zIndex: 100,
-            // backgroundColor: "#f5f5f5",
+            // backgroundColor: "#ffffff",
             paddingTop: "16px",
             paddingBottom: "8px",
             marginBottom: 16,
-            // borderBottom: "1px solid #e8e8e8",
+            // borderBottom: "1px solid #f1f5f9",
           }}
         >
           {/* Header Text */}
-          <div style={{ marginBottom: 12 }}>
-            <Title level={3} style={{ margin: 0 }}>
+          <div style={{ marginBottom: 16 }}>
+            <Title level={4} style={{ margin: 0, fontWeight: 600, color: "#0f172a", letterSpacing: "-0.02em" }}>
               Performance Management
             </Title>
-            <Text type="secondary">Track employee performance metrics</Text>
+            <Text style={{ color: "#64748b", fontSize: "13px" }}>
+              Comprehensive tracking of employee efficiency and engagement metrics
+            </Text>
           </div>
           <Card
             size="small"
             style={{
-              boxShadow:
-                "0 10px 30px -5px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.02)",
               borderRadius: "12px",
-              // background: "linear-gradient(135deg, #ffffff 0%, #fafafa 100%)",
-              border: "none",
+              border: "1px solid #e2e8f0",
               position: "relative",
               overflow: "hidden",
+              background: "#ffffff",
+              boxShadow: "none",
             }}
           >
-            {/* Subtle gradient overlay */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "3px",
-                background: "linear-gradient(90deg, #1890ff, #722ed1, #fa8c16)",
-                borderRadius: "12px 12px 0 0",
-              }}
-            />
+            {/* Removed gradient bar */}
 
-            <Space wrap style={{ padding: "4px 0" }}>
+            <Space wrap style={{ padding: "8px 4px" }} size={16}>
               <Select
                 placeholder="Select Employee"
-                style={{ width: 200 }}
-                size="middle" // Increased size
+                style={{ width: 220 }}
                 value={selectedMember}
                 onChange={setSelectedMember}
                 loading={loading}
@@ -548,8 +565,7 @@ export default function PerformanceManagePage() {
 
               <Select
                 placeholder="Month"
-                style={{ width: 100 }}
-                size="middle"
+                style={{ width: 130 }}
                 value={selectedMonth}
                 onChange={setSelectedMonth}
               >
@@ -562,8 +578,7 @@ export default function PerformanceManagePage() {
 
               <Select
                 placeholder="Year"
-                style={{ width: 80 }}
-                size="middle"
+                style={{ width: 100 }}
                 value={selectedYear}
                 onChange={setSelectedYear}
               >
@@ -576,30 +591,41 @@ export default function PerformanceManagePage() {
 
               <Button
                 type="primary"
-                size="middle"
+                size="large"
                 icon={<FilterOutlined />}
                 onClick={handleApply}
                 disabled={!selectedMember || !selectedMonth || !selectedYear}
                 loading={performanceLoading || attendanceLoading}
                 style={{
                   borderRadius: "8px",
-                  boxShadow: "0 4px 10px rgba(24,144,255,0.3)",
+                  background: "#0f172a",
+                  height: "40px",
+                  padding: "0 20px",
+                  fontWeight: 500,
+
                 }}
               >
-                Apply
+                Generate Report
               </Button>
 
-              {/* User Tags */}
               {selectedUserDetails && (
-                <Space wrap size={[4, 4]} style={{ marginLeft: 8 }}>
-                  <Tag
-                    color="blue"
-                    icon={<UserOutlined />}
-                    style={{ borderRadius: "20px", padding: "2px 12px" }}
-                  >
+                <div
+                  style={{
+                    marginLeft: 8,
+                    padding: "4px 12px",
+                    background: "#f0f9ff",
+                    borderRadius: "20px",
+                    border: "1px solid #bae6fd",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
+                  }}
+                >
+                  <Avatar size={24} icon={<UserOutlined />} style={{ backgroundColor: "#f1f5f9", color: "#64748b" }} />
+                  <Text strong style={{ color: "#334155", fontSize: "13px" }}>
                     {selectedUserDetails.label}
-                  </Tag>
-                </Space>
+                  </Text>
+                </div>
               )}
             </Space>
           </Card>
@@ -638,152 +664,158 @@ export default function PerformanceManagePage() {
               <div className="left-scrollable">
                 {/* Top 4 Cards Row */}
                 {selectedMember && (
-                  <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
                     <Col xs={24} sm={12} lg={6}>
-                      <Card size="small">
+                      <Card
+                        size="small"
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
+                        bodyStyle={{ padding: "16px" }}
+                      >
                         <Statistic
-                          title="Total Tickets"
+                          title={<Text style={{ color: "#64748b", fontSize: "12px", fontWeight: 500 }}>Total Tickets</Text>}
                           value={ticketSummary.total}
                           valueStyle={{
-                            fontSize: 20,
-                            fontWeight: "bold",
-                            color: "#1890ff",
+                            fontSize: 24,
+                            fontWeight: "700",
+                            color: "#0ea5e9",
                           }}
                         />
-                        <div style={{ marginTop: 8 }}>
-                          <Text type="secondary">
-                            Completed: {ticketSummary.completed}
-                          </Text>
-                          <Progress
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <Text style={{ fontSize: "11px", color: "#94a3b8" }}>
+                              Completed: {ticketSummary.completed}
+                            </Text>
+                            <Text style={{ fontSize: "11px", fontWeight: 600, color: "#10b981" }}>
+                              {completionRate}%
+                            </Text>
+                          </div>
+                          {/* <Progress
                             percent={completionRate}
                             size="small"
                             showInfo={false}
-                            strokeColor="#52c41a"
-                          />
+                            strokeColor="#10b981"
+                            strokeWidth={6}
+                          /> */}
                         </div>
                       </Card>
                     </Col>
 
                     <Col xs={24} sm={12} lg={6}>
-                      <Card size="small">
+                      <Card
+                        size="small"
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
+                        bodyStyle={{ padding: "16px" }}
+                      >
                         <Statistic
-                          title="Attendance"
+                          title={<Text style={{ color: "#64748b", fontSize: "12px", fontWeight: 500 }}>Attendance</Text>}
                           value={
                             !isFutureMonth && appliedFilters.userId
                               ? attendanceSummary.presentDays
                               : 0
                           }
-                          suffix={`/ ${daysInMonth}`}
+                          suffix={<span style={{ fontSize: "14px", color: "#94a3b8" }}>/ {attendanceSummary.totalDays}</span>}
                           valueStyle={{
-                            fontSize: 20,
-                            fontWeight: "bold",
-                            color: "#722ed1",
+                            fontSize: 24,
+                            fontWeight: "700",
+                            color: "#0ea5e9", // Standardize to Sky Blue
                           }}
                         />
-                        <div style={{ marginTop: 8 }}>
-                          <Text type="secondary">
-                            {!appliedFilters.userId
-                              ? "Select employee and apply filter"
-                              : isFutureMonth
-                                ? "No data for future month"
-                                : `Present: ${presentOutOf} | Late: ${lateOutOf}`}
-                          </Text>
-                          {appliedFilters.userId && !isFutureMonth ? (
-                            <Progress
-                              percent={attendanceRate}
-                              size="small"
-                              showInfo={false}
-                              strokeColor="#722ed1"
-                            />
-                          ) : (
-                            <Progress
-                              percent={0}
-                              size="small"
-                              showInfo={false}
-                              strokeColor="#722ed1"
-                            />
-                          )}
-                        </div>
-                      </Card>
-                    </Col>
-
-                    <Col xs={24} sm={12} lg={6}>
-                      <Card size="small">
-                        <Statistic
-                          title="Daily Updates"
-                          value={dailyUpdatesSummary.total}
-                          suffix={`/ ${daysInMonth}`}
-                          valueStyle={{
-                            fontSize: 20,
-                            fontWeight: "bold",
-                            color: "#fa8c16",
-                          }}
-                        />
-                        <div style={{ marginTop: 8 }}>
-                          <Space
-                            direction="vertical"
-                            size={4}
-                            style={{ width: "100%" }}
-                          >
-                            <Text type="secondary">
-                              BOD: {bodOutOf} EOD: {eodOutOf}{" "}
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <Text style={{ fontSize: "11px", color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {!appliedFilters.userId
+                                ? "Select employee"
+                                : isFutureMonth
+                                  ? "Future month"
+                                  : `Present: ${presentOutOf} | Late: ${lateOutOf}`}
                             </Text>
-                            <Progress
-                              percent={updateRate}
-                              size="small"
-                              showInfo={false}
-                              strokeColor="#fa8c16"
-                            />
-                          </Space>
+                            <Text style={{ fontSize: "11px", fontWeight: 600, color: "#0ea5e9" }}>
+                              {attendanceRate}%
+                            </Text>
+                          </div>
+                          {/* <Progress
+                            percent={attendanceRate}
+                            size="small"
+                            showInfo={false}
+                            strokeColor="#0ea5e9"
+                            strokeWidth={6}
+                          /> */}
                         </div>
                       </Card>
                     </Col>
 
                     <Col xs={24} sm={12} lg={6}>
-                      <Card size="small">
+                      <Card
+                        size="small"
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
+                        bodyStyle={{ padding: "16px" }}
+                      >
                         <Statistic
-                          title="Leaves/Permissions"
+                          title={<Text style={{ color: "#64748b", fontSize: "12px", fontWeight: 500 }}>Daily Updates</Text>}
+                          value={dailyUpdatesSummary.total}
+                          suffix={<span style={{ fontSize: "14px", color: "#94a3b8" }}>/ {attendanceSummary.totalDays}</span>}
+                          valueStyle={{
+                            fontSize: 24,
+                            fontWeight: "700",
+                            color: "#f59e0b",
+                          }}
+                        />
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <Text style={{ fontSize: "11px", color: "#94a3b8" }}>
+                              BOD: {dailyUpdatesSummary.bod} | EOD: {dailyUpdatesSummary.eod}
+                            </Text>
+                            <Text style={{ fontSize: "11px", fontWeight: 600, color: "#f59e0b" }}>
+                              {updateRate}%
+                            </Text>
+                          </div>
+                          {/* <Progress
+                            percent={updateRate}
+                            size="small"
+                            showInfo={false}
+                            strokeColor="#f59e0b"
+                            strokeWidth={6}
+                          /> */}
+                        </div>
+                      </Card>
+                    </Col>
+
+                    <Col xs={24} sm={12} lg={6}>
+                      <Card
+                        size="small"
+                        style={{ borderRadius: "12px", border: "1px solid #e2e8f0", height: "100%", boxShadow: "none" }}
+                        bodyStyle={{ padding: "16px" }}
+                      >
+                        <Statistic
+                          title={<Text style={{ color: "#64748b", fontSize: "12px", fontWeight: 500 }}>Leaves/Permissions</Text>}
                           value={
                             !isFutureMonth && appliedFilters.userId
                               ? attendanceSummary.absentDays
                               : 0
                           }
-                          suffix={`/ ${daysInMonth}`}
+                          suffix={<span style={{ fontSize: "14px", color: "#94a3b8" }}>/ {attendanceSummary.totalDays}</span>}
                           valueStyle={{
-                            fontSize: 20,
-                            fontWeight: "bold",
-                            color: "#f5222d",
+                            fontSize: 24,
+                            fontWeight: "700",
+                            color: "#ef4444", // Red instead of Rose
                           }}
                         />
-                        <div style={{ marginTop: 8 }}>
-                          <Text type="secondary">
-                            {!appliedFilters.userId
-                              ? ""
-                              : isFutureMonth
-                                ? "No data for future month"
-                                : `Absent: ${absentOutOf} | Half: ${attendanceSummary.halfDays}`}
-                          </Text>
-                          {appliedFilters.userId && !isFutureMonth ? (
-                            <Progress
-                              percent={
-                                Math.round(
-                                  (attendanceSummary.absentDays / daysInMonth) *
-                                    100,
-                                ) || 0
-                              }
-                              size="small"
-                              showInfo={false}
-                              // strokeColor="#f5222d"
-                              strokeColor="#faad14" // Gold/Yellow
-                            />
-                          ) : (
-                            <Progress
-                              percent={0}
-                              size="small"
-                              showInfo={false}
-                              strokeColor="#f5222d"
-                            />
-                          )}
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <Text style={{ fontSize: "11px", color: "#94a3b8" }}>
+                              {attendanceSummary.halfDays > 0 ? `Half: ${attendanceSummary.halfDays}` : "Full Month"}
+                            </Text>
+                            <Text style={{ fontSize: "11px", fontWeight: 600, color: "#ef4444" }}>
+                              {Math.round((attendanceSummary.absentDays / attendanceSummary.totalDays) * 100) || 0}%
+                            </Text>
+                          </div>
+                          {/* <Progress
+                            percent={Math.round((attendanceSummary.absentDays / attendanceSummary.totalDays) * 100) || 0}
+                            size="small"
+                            showInfo={false}
+                            strokeColor="#ef4444"
+                            strokeWidth={6}
+                          /> */}
                         </div>
                       </Card>
                     </Col>
@@ -793,14 +825,16 @@ export default function PerformanceManagePage() {
                 {/* Tickets Overview */}
                 <Card
                   size="small"
+                  style={{ borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: 20, boxShadow: "none" }}
                   title={
-                    <Space size={4}>
-                      <TagOutlined />
-                      <span style={{ fontSize: 14 }}>Tickets Overview</span>
+                    <Space size={8}>
+                      <div style={{ background: "#f1f5f9", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                        <TagOutlined style={{ color: "#64748b" }} />
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Tickets Overview</span>
                     </Space>
                   }
-                  extra={<Tag color="blue">Total: {ticketSummary.total}</Tag>}
-                  style={{ marginBottom: 16 }}
+                  extra={<Tag style={{ borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>Total: {ticketSummary.total}</Tag>}
                 >
                   <Row gutter={[16, 16]}>
                     <Col span={12}>
@@ -814,23 +848,24 @@ export default function PerformanceManagePage() {
                         {/* Completed */}
                         <div
                           style={{
-                            background: "#f6ffed",
-                            padding: "12px 16px",
-                            borderRadius: 8,
+                            background: "transparent",
+                            padding: "16px",
+                            borderRadius: 12,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
+                            border: "1px solid #e2e8f0"
                           }}
                         >
                           <div>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
+                            <Text style={{ fontSize: 13, color: "#166534", fontWeight: 500 }}>
                               Completed
                             </Text>
                             <div
                               style={{
-                                fontSize: 24,
-                                fontWeight: "bold",
-                                color: "#52c41a",
+                                fontSize: 28,
+                                fontWeight: "800",
+                                color: "#10b981",
                               }}
                             >
                               {ticketSummary.completed}
@@ -839,32 +874,34 @@ export default function PerformanceManagePage() {
                           <Progress
                             type="circle"
                             percent={completionRate}
-                            width={50}
-                            strokeColor="#52c41a"
-                            format={() => ""}
+                            width={54}
+                            strokeColor="#10b981"
+                            strokeWidth={10}
+                            format={(percent) => <span style={{ fontSize: 10, fontWeight: 700 }}>{percent}%</span>}
                           />
                         </div>
 
                         {/* In Progress */}
                         <div
                           style={{
-                            background: "#fff7e6",
-                            padding: "12px 16px",
-                            borderRadius: 8,
+                            background: "transparent",
+                            padding: "16px",
+                            borderRadius: 12,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
+                            border: "1px solid #e2e8f0"
                           }}
                         >
                           <div>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
+                            <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>
                               In Progress
                             </Text>
                             <div
                               style={{
-                                fontSize: 24,
-                                fontWeight: "bold",
-                                color: "#fa8c16",
+                                fontSize: 28,
+                                fontWeight: "800",
+                                color: "#f59e0b",
                               }}
                             >
                               {ticketSummary.inProgress}
@@ -875,38 +912,40 @@ export default function PerformanceManagePage() {
                             percent={
                               ticketSummary.total > 0
                                 ? Math.round(
-                                    (ticketSummary.inProgress /
-                                      ticketSummary.total) *
-                                      100,
-                                  )
+                                  (ticketSummary.inProgress /
+                                    ticketSummary.total) *
+                                  100,
+                                )
                                 : 0
                             }
-                            width={50}
-                            strokeColor="#fa8c16"
-                            format={() => ""}
+                            width={54}
+                            strokeColor="#f59e0b"
+                            strokeWidth={10}
+                            format={(percent) => <span style={{ fontSize: 10, fontWeight: 700 }}>{percent}%</span>}
                           />
                         </div>
 
                         {/* Pending */}
                         <div
                           style={{
-                            background: "#fff1f0",
-                            padding: "12px 16px",
-                            borderRadius: 8,
+                            background: "transparent",
+                            padding: "16px",
+                            borderRadius: 12,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
+                            border: "1px solid #e2e8f0"
                           }}
                         >
                           <div>
-                            <Text type="secondary" style={{ fontSize: 12 }}>
+                            <Text style={{ fontSize: 13, color: "#9f1239", fontWeight: 500 }}>
                               Pending
                             </Text>
                             <div
                               style={{
-                                fontSize: 24,
-                                fontWeight: "bold",
-                                color: "#f5222d",
+                                fontSize: 28,
+                                fontWeight: "800",
+                                color: "#ef4444",
                               }}
                             >
                               {ticketSummary.pending}
@@ -917,15 +956,16 @@ export default function PerformanceManagePage() {
                             percent={
                               ticketSummary.total > 0
                                 ? Math.round(
-                                    (ticketSummary.pending /
-                                      ticketSummary.total) *
-                                      100,
-                                  )
+                                  (ticketSummary.pending /
+                                    ticketSummary.total) *
+                                  100,
+                                )
                                 : 0
                             }
-                            width={50}
-                            strokeColor="#faad14" // Gold/Yellow
-                            format={() => ""}
+                            width={54}
+                            strokeColor="#ef4444"
+                            strokeWidth={10}
+                            format={(percent) => <span style={{ fontSize: 10, fontWeight: 700 }}>{percent}%</span>}
                           />
                         </div>
                       </div>
@@ -1061,19 +1101,22 @@ export default function PerformanceManagePage() {
                 </Card>
 
                 {/* Daily Updates Log */}
-                {existingUpdates.length > 0 && (
+                {selectedMember && (
                   <Card
                     size="small"
+                    style={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "none" }}
                     title={
-                      <Space size={4}>
-                        <FileTextOutlined />
-                        <span style={{ fontSize: 14 }}>Daily Updates Log</span>
+                      <Space size={8}>
+                        <div style={{ background: "#f1f5f9", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                          <FileTextOutlined style={{ color: "#64748b" }} />
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Daily Updates Log</span>
                       </Space>
                     }
                     extra={
-                      <Space size={4}>
-                        <Tag color="blue">BOD: {dailyUpdatesSummary.bod}</Tag>
-                        <Tag color="purple">EOD: {dailyUpdatesSummary.eod}</Tag>
+                      <Space size={8}>
+                        <Tag style={{ borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>BOD: {dailyUpdatesSummary.bod}</Tag>
+                        <Tag style={{ borderRadius: "4px", border: "none", background: "#fef3c7", color: "#92400e" }}>EOD: {dailyUpdatesSummary.eod}</Tag>
                       </Space>
                     }
                   >
@@ -1081,8 +1124,9 @@ export default function PerformanceManagePage() {
                       columns={dailyUpdateColumns}
                       dataSource={existingUpdates}
                       rowKey="key"
-                      pagination={{ pageSize: 5 }}
+                      pagination={{ pageSize: 5, size: "small" }}
                       size="small"
+                      locale={{ emptyText: "No update logs found for this period" }}
                     />
                   </Card>
                 )}
@@ -1093,261 +1137,122 @@ export default function PerformanceManagePage() {
             <Col xs={24} lg={7}>
               <div
                 style={{
-                  height: "calc(100vh - 200px)",
-                  overflowY: "visible",
+                  position: "sticky",
+                  top: "140px",
                   display: "flex",
                   flexDirection: "column",
                   gap: "6px",
-                  
                 }}
               >
-                {/* Profile Card - Properly Aligned */}
+                {/* Profile Card */}
                 {selectedUserDetails && (
-                  <Card size="small" bodyStyle={{ padding: "12px" }}>
-                    <Row gutter={12} align="middle">
-                      {/* Avatar Column */}
-                      <Col span={6}>
-                        <Avatar
-                          size={48}
-                          icon={<UserOutlined />}
-                          style={{ backgroundColor: "#87d068" }}
-                        />
-                      </Col>
-
-                      {/* User Info Column */}
-                      <Col span={18}>
-                        {/* Name */}
-                        <div>
-                          <Text strong style={{ fontSize: "14px" }}>
-                            {selectedUserDetails.label}
-                          </Text>
-                        </div>
-
-                        {/* Tags Row - Active and Position side by side */}
-                        <div style={{ marginTop: 4 }}>
-                          <Space size={4}>
-                            <Tag
-                              color="blue"
-                              style={{ fontSize: "10px", margin: 0 }}
-                            >
-                              Active
+                  <Card
+                    size="small"
+                    bodyStyle={{ padding: "12px" }}
+                    style={{ borderRadius: "12px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "none" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <Avatar
+                        size={36}
+                        icon={<UserOutlined />}
+                        style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Text strong style={{ fontSize: "14px", color: "#0f172a", display: "block", lineHeight: 1.1 }}>
+                          {selectedUserDetails.label}
+                        </Text>
+                        <Space size={4} style={{ marginTop: 4 }} wrap>
+                          <Tag style={{ fontSize: "10px", margin: 0, padding: "0 6px", borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>Active</Tag>
+                          {selectedUserDetails.position && (
+                            <Tag style={{ fontSize: "10px", margin: 0, padding: "0 6px", borderRadius: "4px", border: "none", background: "#e0f2fe", color: "#0369a1" }}>
+                              {selectedUserDetails.position}
                             </Tag>
-                            {selectedUserDetails.position && (
-                              <Tag
-                                color="cyan"
-                                // icon={<FlagOutlined />}
-                                style={{ fontSize: "10px", margin: 0 }}
-                              >
-                                {selectedUserDetails.position}
-                              </Tag>
-                            )}
-                            {selectedUserDetails?.subDepartmentName && (
-                              <Tag
-                                color="purple"
-                                style={{ fontSize: "10px", margin: 0 }}
-                              >
-                                {selectedUserDetails.subDepartmentName}
-                              </Tag>
-                            )}
-                          </Space>
-                        </div>
-                      </Col>
-                    </Row>
+                          )}
+                        </Space>
+                      </div>
+                    </div>
                   </Card>
                 )}
 
-                {/* Performance Summary Card */}
+                {/* Efficiency Metrics Card */}
                 <Card
                   size="small"
-                  title={
-                    <span style={{ fontSize: "13px" }}>
-                      Performance Summary
-                    </span>
-                  }
-                  headStyle={{ padding: "6px 10px", minHeight: "auto" }}
-                  bodyStyle={{ padding: "8px 10px" }}
+                  title={<span style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }}>Performance Summary</span>}
+                  style={{ borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "none" }}
+                  headStyle={{ padding: "4px 12px", minHeight: "32px", borderBottom: "1px solid #f1f5f9" }}
+                  bodyStyle={{ padding: "12px" }}
                 >
-                  <Space
-                    direction="vertical"
-                    size={4}
-                    style={{ width: "100%" }}
-                  >
-                    {/* Ticket Completion */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Text type="secondary" style={{ fontSize: "10px" }}>
-                          Ticket
-                        </Text>
-                        <Text style={{ fontSize: "10px", fontWeight: 600 }}>
-                          {completionRate}%
-                        </Text>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                        <Text style={{ fontSize: "10px", color: "#64748b" }}>Ticket</Text>
+                        <Text style={{ fontSize: "10px", fontWeight: 700 }}>{completionRate}%</Text>
                       </div>
-                      <Progress
-                        percent={completionRate}
-                        size="small"
-                        strokeColor="#52c41a"
-                        showInfo={false}
-                      />
+                      <Progress percent={completionRate} size="small" showInfo={false} strokeWidth={3} strokeColor="#10b981" />
                     </div>
 
-                    {/* Attendance Rate */}
-                    {!isFutureMonth && appliedFilters.userId && (
-                      <div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <Text type="secondary" style={{ fontSize: "10px" }}>
-                            Attendance
-                          </Text>
-                          <Text style={{ fontSize: "10px", fontWeight: 600 }}>
-                            {attendanceRate}%
-                          </Text>
-                        </div>
-                        <Progress
-                          percent={attendanceRate}
-                          size="small"
-                          strokeColor="#722ed1"
-                          showInfo={false}
-                        />
-                      </div>
-                    )}
-
-                    {/* Update Rate */}
                     <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Text type="secondary" style={{ fontSize: "10px" }}>
-                          Updates
-                        </Text>
-                        <Text style={{ fontSize: "10px", fontWeight: 600 }}>
-                          {updateRate}%
-                        </Text>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                        <Text style={{ fontSize: "10px", color: "#64748b" }}>Attendance</Text>
+                        <Text style={{ fontSize: "10px", fontWeight: 700 }}>{attendanceRate}%</Text>
                       </div>
-                      <Progress
-                        percent={updateRate}
-                        size="small"
-                        strokeColor="#1890ff"
-                        showInfo={false}
-                      />
+                      <Progress percent={attendanceRate} size="small" showInfo={false} strokeWidth={3} strokeColor="#0ea5e9" />
                     </div>
 
-                    {/* BOD/EOD */}
-                    <Row gutter={4}>
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                        <Text style={{ fontSize: "10px", color: "#64748b" }}>Updates</Text>
+                        <Text style={{ fontSize: "10px", fontWeight: 700 }}>{updateRate}%</Text>
+                      </div>
+                      <Progress percent={updateRate} size="small" showInfo={false} strokeWidth={3} strokeColor="#f59e0b" />
+                    </div>
+
+                    <Row gutter={4} style={{ marginTop: 2 }}>
                       <Col span={12}>
-                        <div
-                          style={{
-                            background: "#f9f0ff",
-                            padding: "2px 4px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          <Text type="secondary" style={{ fontSize: "9px" }}>
-                            BOD
-                          </Text>
-                          <div>
-                            <Text style={{ fontSize: "11px", fontWeight: 600 }}>
-                              {bodOutOf}
-                            </Text>
-                          </div>
+                        <div style={{ background: "#f0f9ff", padding: "4px 8px", borderRadius: "6px", textAlign: "center", border: "1px solid #e0f2fe" }}>
+                          <Text style={{ fontSize: "9px", color: "#0ea5e9", display: "block", opacity: 0.7 }}>BOD</Text>
+                          <Text style={{ fontSize: "12px", fontWeight: 700, color: "#5b21b6" }}>{dailyUpdatesSummary.bod}</Text>
                         </div>
                       </Col>
                       <Col span={12}>
-                        <div
-                          style={{
-                            background: "#fff2e8",
-                            padding: "2px 4px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          <Text type="secondary" style={{ fontSize: "9px" }}>
-                            EOD
-                          </Text>
-                          <div>
-                            <Text style={{ fontSize: "11px", fontWeight: 600 }}>
-                              {eodOutOf}
-                            </Text>
-                          </div>
+                        <div style={{ background: "#fff7ed", padding: "4px 8px", borderRadius: "6px", textAlign: "center", border: "1px solid #ffedd5" }}>
+                          <Text style={{ fontSize: "9px", color: "#ea580c", display: "block", opacity: 0.7 }}>EOD</Text>
+                          <Text style={{ fontSize: "12px", fontWeight: 700, color: "#9a3412" }}>{dailyUpdatesSummary.eod}</Text>
                         </div>
                       </Col>
                     </Row>
-                  </Space>
+                  </div>
                 </Card>
 
-                {/* Quick Stats Card */}
-                <Card size="small" bodyStyle={{ padding: "8px" }}>
-                  <Row gutter={4} align="middle">
-                    <Col span={10}>
-                      <Statistic
-                        title={
-                          <span style={{ fontSize: "10px" }}>Overall</span>
-                        }
-                        value={performanceScore}
-                        suffix="%"
-                        valueStyle={{
-                          fontSize: "20px",
-                          fontWeight: "bold",
-                          color: "#722ed1",
-                        }}
-                      />
-                    </Col>
-                    <Col span={14}>
-                      <Row gutter={4}>
-                        <Col span={24}>
-                          <Tag
-                            color="green"
-                            style={{
-                              width: "100%",
-                              textAlign: "center",
-                              fontSize: "9px",
-                              padding: "2px 0",
-                              marginBottom: 2,
-                            }}
-                          >
-                            ✅ {ticketSummary.completed} Done
-                          </Tag>
-                        </Col>
-                        <Col span={24}>
-                          <Tag
-                            color="purple"
-                            style={{
-                              width: "100%",
-                              textAlign: "center",
-                              fontSize: "9px",
-                              padding: "2px 0",
-                              marginBottom: 2,
-                            }}
-                          >
-                            📊 {attendanceSummary.presentDays} Present
-                          </Tag>
-                        </Col>
-                        <Col span={24}>
-                          <Tag
-                            color="blue"
-                            style={{
-                              width: "100%",
-                              textAlign: "center",
-                              fontSize: "9px",
-                              padding: "2px 0",
-                            }}
-                          >
-                            📅 {dailyUpdatesSummary.total} Updates
-                          </Tag>
-                        </Col>
-                      </Row>
-                    </Col>
-                  </Row>
+                {/* Compact Score Card */}
+                <Card
+                  size="small"
+                  bodyStyle={{ padding: "12px" }}
+                  style={{ borderRadius: "12px", border: "1px solid #e2e8f0", background: "#ffffff", boxShadow: "none" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <Text style={{ fontSize: "10px", color: "#64748b", fontWeight: 600, lineHeight: 1 }}>Overall</Text>
+                      <Text style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", margin: "4px 0", lineHeight: 1 }}>
+                        {performanceScore}%
+                      </Text>
+                    </div>
+
+                    <div style={{ borderLeft: "1px solid #e0f2fe", paddingLeft: 12, display: "flex", flexDirection: "column", gap: 2 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
+                        <Text style={{ fontSize: "10px", color: "#475569" }}>{ticketSummary.completed} Done</Text>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#0ea5e9" }} />
+                        <Text style={{ fontSize: "10px", color: "#475569" }}>{attendanceSummary.presentDays} Pres.</Text>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }} />
+                        <Text style={{ fontSize: "10px", color: "#475569" }}>{dailyUpdatesSummary.total} Upd.</Text>
+                      </div>
+                    </div>
+                  </div>
                 </Card>
               </div>
             </Col>

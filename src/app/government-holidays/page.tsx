@@ -5,46 +5,43 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { Settings2 } from "lucide-react";
+import { 
+  Settings2, 
+  Calendar, 
+  Plus, 
+  Search, 
+  CheckCircle2, 
+  AlertCircle, 
+  Trash2, 
+  Globe, 
+  Clock,
+  Check,
+  X,
+  ArrowRight
+} from "lucide-react";
 import {
   Card,
   Select,
   Button,
   Table,
   Tag,
-  Modal,
   message,
   notification,
   Space,
-  Statistic,
   Row,
   Col,
   Typography,
   Popconfirm,
   Switch,
   InputNumber,
-  Divider,
-  Segmented,
-  Tabs,
   Checkbox,
   Tooltip,
+  Drawer,
+  Input,
+  Divider,
 } from "antd";
-import {
-  ClockCircleOutlined,
-  ScheduleOutlined,
-  DeleteOutlined,
-  ArrowLeftOutlined,
-  EditOutlined,
-  SettingOutlined,
-  ApartmentOutlined,
-  AppstoreOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  PlusOutlined,
-  CheckCircleOutlined
-} from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Country, ICountry } from "country-state-city";
 import { FixedHolidayService, FixedHoliday } from "@/services/addHolidays";
 import { useCompanyGovernmentHolidays } from "@/hooks/useCompanyGovernmentHolidays";
@@ -54,67 +51,54 @@ import {
   UpdateHolidayPayload,
 } from "@/services/companyGovernmentHolidayService";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
+
+const StatCard = ({ label, value, icon: Icon, color }: any) => (
+  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+      </div>
+      <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}><Icon size={24} /></div>
+    </div>
+  </Card>
+);
 
 export default function GovernmentHolidaysPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading } = useAuth();
   const { canManageLeaves } = usePermission();
   const router = useRouter();
-  const pathname = usePathname();
   const [api, contextHolder] = notification.useNotification();
 
-  // Protect route - requires leave.manage permission
-  useEffect(() => {
-    if (!authLoading && !canManageLeaves) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canManageLeaves, router]);
-
-  // Show loading while auth is being checked
-  if (authLoading) {
-    return null;
-  }
-
-  // Don't render if no manage permission
-  if (!canManageLeaves) {
-    return null;
-  }
   const {
     holidays,
     loading: holidaysLoading,
-    error,
     fetchHolidays,
     createHoliday,
     updateHoliday,
     deleteHoliday,
   } = useCompanyGovernmentHolidays();
+
   const [dataSource, setDataSource] = useState<CompanyGovernmentHoliday[]>([]);
+  const [searchText, setSearchText] = useState("");
   const [modalLoading, setModalLoading] = useState(false);
-  const [apiHolidaysSource, setApiHolidaysSource] = useState<FixedHoliday[]>(
-    [],
-  );
-  // Holidays State
+  const [apiHolidaysSource, setApiHolidaysSource] = useState<FixedHoliday[]>([]);
   const [holidayModalVisible, setHolidayModalVisible] = useState(false);
   const [modalCountry, setModalCountry] = useState("IN");
-  const [selectedHolidayIds, setSelectedHolidayIds] = useState<
-    (number | string)[]
-  >([]);
-
+  const [selectedHolidayIds, setSelectedHolidayIds] = useState<(number | string)[]>([]);
   const [isAdding, setIsAdding] = useState(false);
-  // Edit Holiday State
   const [editHolidayModalVisible, setEditHolidayModalVisible] = useState(false);
-  const [editingHoliday, setEditingHoliday] =
-    useState<CompanyGovernmentHoliday | null>(null);
+  const [editingHoliday, setEditingHoliday] = useState<CompanyGovernmentHoliday | null>(null);
   const [editBaseDays, setEditBaseDays] = useState(1);
   const [editExtraDays, setEditExtraDays] = useState(0);
-  const [editExtraPosition, setEditExtraPosition] = useState<
-    "before" | "after"
-  >("after"); 
+  const [editExtraPosition, setEditExtraPosition] = useState<"before" | "after">("after");
 
-   const hasApprovalRights =
-    (user as any)?.role === "super_admin" ||
-    (user as any)?.role === "admin";
-  //   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
 
   useEffect(() => {
     const fetchSourceHolidays = async () => {
@@ -137,11 +121,19 @@ export default function GovernmentHolidaysPage() {
   }, [fetchHolidays]);
 
   useEffect(() => {
-    // Keep the local dataSource in sync with the data from the hook
-    setDataSource(holidays);
-  }, [holidays]);
+    if (searchText) {
+      const filtered = holidays.filter(h => 
+        h.holidayName.toLowerCase().includes(searchText.toLowerCase()) ||
+        (Country.getCountryByCode(h.country)?.name || "").toLowerCase().includes(searchText.toLowerCase())
+      );
+      setDataSource(filtered);
+    } else {
+      setDataSource(holidays);
+    }
+  }, [holidays, searchText]);
 
-  // Filter holidays for modal based on country
+  if (authLoading || !canManageLeaves) return null;
+
   const filteredModalHolidays = apiHolidaysSource.filter((h) => {
     const isCountryMatch = h.country === modalCountry;
     const isAlreadyAdded = holidays.some(
@@ -170,130 +162,74 @@ export default function GovernmentHolidaysPage() {
     const total = base + extra;
 
     const originalHoliday = apiHolidaysSource.find(
-      (h) =>
-        h.holidayName === editingHoliday.holidayName &&
-        h.country === editingHoliday.country,
+      (h) => h.holidayName === editingHoliday.holidayName && h.country === editingHoliday.country
     );
 
     if (!originalHoliday) {
-      api.error({
-        message: "Cannot Adjust Holiday",
-        description:
-          "Could not find the original holiday definition to calculate date adjustments. The holiday might have been removed from the source list.",
-        placement: "topRight",
-      });
+      api.error({ message: "Cannot Adjust Holiday", description: "Original holiday definition not found." });
       return;
     }
 
     const originalStart = originalHoliday.fromDate;
-
     let newFromDate = originalStart;
     let newToDate;
 
     if (position === "before") {
-      // If extra days are before, shift start date back. End date is determined by base days from original start.
-      newFromDate = dayjs(originalStart)
-        .subtract(extra, "day")
-        .format("YYYY-MM-DD");
-      newToDate = dayjs(originalStart)
-        .add(Math.max(0, base - 1), "day")
-        .format("YYYY-MM-DD");
+      newFromDate = dayjs(originalStart).subtract(extra, "day").format("YYYY-MM-DD");
+      newToDate = dayjs(originalStart).add(Math.max(0, base - 1), "day").format("YYYY-MM-DD");
     } else {
-      // If extra days are after, start date is original. End date extends by base + extra.
       newFromDate = originalStart;
-      newToDate = dayjs(originalStart)
-        .add(Math.max(0, base + extra - 1), "day")
-        .format("YYYY-MM-DD");
+      newToDate = dayjs(originalStart).add(Math.max(0, base + extra - 1), "day").format("YYYY-MM-DD");
     }
 
-    const payload: UpdateHolidayPayload = {
-      baseLeave: base,
-      extraLeave: extra,
-      totalLeave: total,
-      fromDate: newFromDate,
-      toDate: newToDate,
-      rule: position,
-    };
-
     try {
-      await updateHoliday(editingHoliday.id, payload);
-      api.success({
-        message: "Holiday duration adjusted",
-        placement: "topRight",
-        duration: 1,
+      await updateHoliday(editingHoliday.id, {
+        baseLeave: base,
+        extraLeave: extra,
+        totalLeave: total,
+        fromDate: newFromDate,
+        toDate: newToDate,
+        rule: position,
       });
+      api.success({ message: "Holiday adjusted successfully" });
       setEditHolidayModalVisible(false);
     } catch (error: any) {
-      api.error({
-        message: "Failed to save adjustment",
-        description: error.message || "An unexpected error occurred.",
-        placement: "topRight",
-      });
+      api.error({ message: "Adjustment failed", description: error.message });
     }
   };
 
   const handleDeleteHoliday = async (id: string) => {
     try {
       await deleteHoliday(id);
-      api.success({
-        message: "Holiday deleted successfully",
-        placement: "topRight",
-        duration: 1,
-      });
+      api.success({ message: "Holiday deleted successfully" });
     } catch (error: any) {
-      message.error(error.message || "Failed to delete holiday.");
+      message.error(error.message || "Failed to delete holiday");
     }
   };
 
-  const handleStatusChange = (checked: boolean, recordKey: number | string) => {
+  const handleStatusChange = (checked: boolean, recordKey: string) => {
     const holiday = holidays.find((h) => h.id === recordKey);
     const name = holiday ? holiday.holidayName : "Holiday";
 
-    updateHoliday(recordKey as string, {
-      status: checked ? "ACTIVE" : "INACTIVE",
-    }).catch((err) => {
-      message.error(err.message || "Failed to update status.");
-      // Re-fetch to revert UI state on error
+    updateHoliday(recordKey, { status: checked ? "ACTIVE" : "INACTIVE" }).catch(() => {
+      message.error("Status update failed");
       fetchHolidays();
     });
 
-    if (checked) {
-      api.success({
-        message: `${name} Activated Sucessfully`,
-        placement: "topRight",
-        duration: 1,
-      });
-    } else {
-      api.info({
-        message: `${name} Deactivated Sucessfully`,
-        placement: "topRight",
-        duration: 1,
-      });
-    }
+    if (checked) api.success({ message: `${name} Activated` });
+    else api.info({ message: `${name} Deactivated` });
   };
 
-  const handleFloaterChange = (
-    checked: boolean,
-    record: CompanyGovernmentHoliday,
-  ) => {
-    updateHoliday(record.id, { isFloater: checked }).catch((err) => {
-      message.error(err.message || "Failed to update floater status.");
-      fetchHolidays();
-    });
+  const handleFloaterChange = (checked: boolean, record: CompanyGovernmentHoliday) => {
+    updateHoliday(record.id, { isFloater: checked }).catch(() => message.error("Floater update failed"));
   };
 
   const handleAddHolidays = async () => {
     setIsAdding(true);
-
     const creationPromises = selectedHolidayIds.map((holidayId) => {
       const holidayData = apiHolidaysSource.find((h) => h.id === holidayId);
-      if (!holidayData) {
-        // This case should ideally not happen if UI is in sync
-        return Promise.reject(
-          new Error(`Holiday with id ${holidayId} not found.`),
-        );
-      }
-      const payload: CreateHolidayPayload = {
+      if (!holidayData) return Promise.reject(new Error("Holiday not found"));
+      return createHoliday({
         holidayName: holidayData.holidayName,
         country: holidayData.country,
         fromDate: holidayData.fromDate,
@@ -302,23 +238,18 @@ export default function GovernmentHolidaysPage() {
         extraLeave: 0,
         totalLeave: 1,
         type: holidayData.type,
-        isFloater: false, // Defaulting to false
+        isFloater: false,
         rule: holidayData.rule,
         status: "ACTIVE",
-      };
-      return createHoliday(payload);
+      });
     });
 
     try {
       await Promise.all(creationPromises);
-      api.success({ message: "Holidays added successfully!" });
-      // After successful creation, refetch the list of holidays to update the table.
-      await fetchHolidays();
+      api.success({ message: "Holidays added successfully" });
+      fetchHolidays();
     } catch (error: any) {
-      api.error({
-        message: "Failed to add holidays",
-        description: error.message,
-      });
+      api.error({ message: "Addition failed", description: error.message });
     } finally {
       setIsAdding(false);
       setHolidayModalVisible(false);
@@ -332,10 +263,10 @@ export default function GovernmentHolidaysPage() {
       dataIndex: "holidayName",
       key: "holidayName",
       render: (text: string, record: CompanyGovernmentHoliday) => (
-        <Space>
-          <Text strong>{text}</Text>
+        <Space size={8}>
+          <Text strong style={{ color: "#1e293b", fontSize: 14 }}>{text}</Text>
           {(record.baseLeave !== 1 || record.extraLeave !== 0) && (
-            <Tag color="orange">Adjusted</Tag>
+            <Tag style={{ borderRadius: 6, background: "#fef3c7", border: "1px solid #fcd34d", color: "#92400e", fontSize: 11 }}>Adjusted</Tag>
           )}
         </Space>
       ),
@@ -345,124 +276,92 @@ export default function GovernmentHolidaysPage() {
       dataIndex: "country",
       key: "country",
       render: (isoCode: string) => (
-        <Text>{Country.getCountryByCode(isoCode)?.name || isoCode}</Text>
+        <Space size={6}>
+          <Globe size={14} color="#64748b" />
+          <Text style={{ color: "#475569" }}>{Country.getCountryByCode(isoCode)?.name || isoCode}</Text>
+        </Space>
       ),
     },
     {
-      title: "From Date",
-      dataIndex: "fromDate",
-      key: "fromDate",
-      render: (date: string) => (
-        <Text>{date ? dayjs(date).format("MMM DD, YYYY") : "-"}</Text>
-      ),
+      title: "Duration",
+      key: "duration",
+      width: 260,
+      render: (_: any, record: CompanyGovernmentHoliday) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
+          </div>
+          <ArrowRight size={14} color="#94a3b8" />
+          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
+          </div>
+        </div>
+      )
     },
     {
-      title: "To Date",
-      dataIndex: "toDate",
-      key: "toDate",
-      render: (date: string) => (
-        <Text>{date ? dayjs(date).format("MMM DD, YYYY") : "-"}</Text>
-      ),
-    },
-    {
-      title: "Base",
-      dataIndex: "baseLeave",
-      key: "baseLeave",
-      align: "center" as const,
-      render: (val: number) => {
-        const diff = val - 1;
-        return (
-          <Space size={2}>
-            <Text>{val}</Text>
-            {diff !== 0 && (
-              <Text
-                type={diff > 0 ? "success" : "danger"}
-                style={{ fontSize: 11 }}
-              >
-                ({diff > 0 ? `+${diff}` : diff})
-              </Text>
-            )}
-          </Space>
-        );
-      },
-    },
-    {
-      title: "Extra",
-      dataIndex: "extraLeave",
-      key: "extraLeave",
-      align: "center" as const,
-      render: (val: number) => (
-        <Text type={val > 0 ? "success" : val < 0 ? "danger" : "secondary"}>
-          {val > 0 ? `+${val}` : val}
-        </Text>
-      ),
-    },
-    {
-      title: "Total",
+      title: "Total Days",
       dataIndex: "totalLeave",
       key: "totalLeave",
-      render: (val: any) => <Text>{val}</Text>,
+      align: "center" as const,
+      render: (val: number) => (
+        <Tag style={{ borderRadius: 20, background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontWeight: 600, padding: "0 12px" }}>
+          {val} {val === 1 ? 'Day' : 'Days'}
+        </Tag>
+      ),
     },
     {
       title: "Type",
       dataIndex: "type",
       key: "type",
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
+      render: (text: string) => <Tag style={{ borderRadius: 6, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>{text}</Tag>,
     },
     {
-      title: "Floater Leave",
+      title: "Floater",
       dataIndex: "isFloater",
       key: "isFloater",
       align: "center" as const,
       render: (isFloater: boolean, record: CompanyGovernmentHoliday) => (
         <Switch
           checked={isFloater}
-          checkedChildren={<CheckOutlined />}
-          unCheckedChildren={<CloseOutlined />}
-          style={{ backgroundColor: isFloater ? "#52c41a" : "#f5222d" }}
+          checkedChildren={<Check size={12} />}
+          unCheckedChildren={<X size={12} />}
+          style={{ backgroundColor: isFloater ? "#10b981" : "#cbd5e1" }}
           onChange={(checked) => handleFloaterChange(checked, record)}
         />
       ),
     },
     {
-      title: "Rule",
-      dataIndex: "rule",
-      key: "rule",
-      render: (text: string) => <Tag color="green">{text}</Tag>,
-    },
-    {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (
-        status: "ACTIVE" | "INACTIVE",
-        record: CompanyGovernmentHoliday,
-      ) => (
-        <Switch
-          checked={status === "ACTIVE"}
-          //  disabled={!isAdmin}
-          onChange={(checked) => handleStatusChange(checked, record.id)}
-        />
+      render: (status: string, record: CompanyGovernmentHoliday) => (
+        <Switch checked={status === "ACTIVE"} onChange={(checked) => handleStatusChange(checked, record.id)} />
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 180,
+      width: 100,
+      fixed: "right" as const,
       render: (_: any, record: CompanyGovernmentHoliday) => (
-        <Space style={{ gap: 20 }}>
-          <Tooltip title="Edit Leave Type">
+        <Space size={4}>
+          <Tooltip title="Adjust Duration">
             <Button
+              type="text"
               size="small"
-              icon={<Settings2 size={16} />}
+              icon={<Settings2 size={16} color="#64748b" />}
+              style={{ borderRadius: 6 }}
               onClick={() => handleEditHoliday(record)}
-            ></Button>
+            />
           </Tooltip>
           <Popconfirm
-            title="Delete this holiday?"
+            title="Delete Holiday?"
             onConfirm={() => handleDeleteHoliday(record.id)}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
           >
-            <Button size="small" danger icon={<DeleteOutlined />}></Button>
+            <Button type="text" size="small" danger icon={<Trash2 size={16} />} style={{ borderRadius: 6 }} />
           </Popconfirm>
         </Space>
       ),
@@ -472,19 +371,14 @@ export default function GovernmentHolidaysPage() {
   const modalTableColumns = [
     {
       title: "Select",
-      dataIndex: "select",
-      key: "Select",
+      key: "select",
       width: 50,
       render: (_: any, record: any) => (
         <Checkbox
           checked={selectedHolidayIds.includes(record.id)}
           onChange={(e) => {
             const checked = e.target.checked;
-            setSelectedHolidayIds((prev) =>
-              checked
-                ? [...prev, record.id]
-                : prev.filter((id) => id !== record.id),
-            );
+            setSelectedHolidayIds((prev) => checked ? [...prev, record.id] : prev.filter((id) => id !== record.id));
           }}
         />
       ),
@@ -493,401 +387,185 @@ export default function GovernmentHolidaysPage() {
       title: "Holiday Name",
       dataIndex: "holidayName",
       key: "holidayName",
-      render: (text: string) => <Text strong>{text}</Text>,
+      render: (text: string) => <Text strong style={{ color: "#334155" }}>{text}</Text>,
     },
     {
-      title: "From Date",
+      title: "Date",
       dataIndex: "fromDate",
-      key: "fromDate",
-      render: (date: string | Date) => (
-        <Text>
-          {date
-            ? dayjs(
-                typeof date === "string" ? date : date.toISOString(),
-              ).format("MMM DD, YYYY")
-            : "-"}
-        </Text>
-      ),
-    },
-    {
-      title: "To Date",
-      dataIndex: "toDate",
-      key: "toDate",
-      render: (date: string | Date) => (
-        <Text>
-          {date
-            ? dayjs(
-                typeof date === "string" ? date : date.toISOString(),
-              ).format("MMM DD, YYYY")
-            : "-"}
-        </Text>
-      ),
+      render: (date: any) => <Text style={{ color: "#64748b" }}>{dayjs(date).format("MMM DD, YYYY")}</Text>,
     },
     {
       title: "Type",
       dataIndex: "type",
-      key: "type",
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
-    },
-    {
-      title: "Rule",
-      dataIndex: "rule",
-      key: "rule",
-      render: (text: string) => <Tag color="green">{text}</Tag>,
+      render: (text: string) => <Tag style={{ borderRadius: 6 }}>{text}</Tag>,
     },
   ];
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
           {contextHolder}
 
-          <div style={{marginTop:20}}>
-            <Tabs
-              activeKey={
-                pathname.includes("leave-adjustments")
-                  ? "adjustments"
-                  : pathname.includes("leaves-dashboard")
-                    ? "dashboard"
-                    : pathname.includes("leaves")
-                      ? "leaves"
-                      : pathname.includes("leave-configuration")
-                        ? "configuration"
-                        : pathname.includes("position-configuration")
-                          ? "positions"
-                          : "holidays"
-              }
-              onChange={(key) => {
-                if (key === "dashboard") router.push("/leaves-dashboard");
-                // if (key === "leaves") router.push("/leaves");
-                if (key === "holidays") router.push("/government-holidays");
-                if (key === "adjustments") router.push("/leave-adjustments");
-                if (key === "configuration")
-                  router.push("/leave-type");
-                if (key === "positions") router.push("/leave-policy");
-                if (key === "addLeaves") router.push("/add-goverment-leaves");
-                if (key === "apply-leave") router.push("/apply-leave");
-                if (key === "approvals") router.push("/leave-approvals")
-              }}
-              items={[
-                {
-                  key: "dashboard",
-                  label: (
-                    <span>
-                      <AppstoreOutlined /> Dashboard
-                    </span>
-                  ),
-                },
-                // {
-                //   key: "leaves",
-                //   label: (
-                //     <span>
-                //       <ClockCircleOutlined /> Apply Leave
-                //     </span>
-                //   ),
-                // },
-                
-                {
-                  key: "apply-leave",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Apply leave
-                    </span>
-                  ),
-                },
-                 hasApprovalRights && {
-                  key: "approvals",
-                  label: (
-                    <span>
-                      <CheckCircleOutlined /> Approvals
-                    </span>
-                  ),
-                },
-                {
-                  key: "holidays",
-                  label: (
-                    <span>
-                      <ScheduleOutlined /> Government Holidays
-                    </span>
-                  ),
-                },
-                {
-                  key: "adjustments",
-                  label: (
-                    <span>
-                      <EditOutlined /> Leave Adjustment
-                    </span>
-                  ),
-                },
-                {
-                  key: "configuration",
-                  label: (
-                    <span>
-                      <SettingOutlined /> Leave Types
-                    </span>
-                  ),
-                },
-                {
-                  key: "positions",
-                  label: (
-                    <span>
-                      <ApartmentOutlined /> Leave Policy
-                    </span>
-                  ),
-                },
-                {
-                  key: "addLeaves",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Add Government Leaves
-                    </span>
-                  ),
-                },
-              ].filter(Boolean) as any}
-            />
-          </div>
-
-         
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                //flexWrap: "wrap",
-                //gap: 16,
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ScheduleOutlined
-                    style={{ color: "#1a64c4ff", fontSize: 20 }}
-                  />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Government Holidays
-                  </Typography.Title>
-                </Space>
-                <div style={{  marginTop: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Manage official government holidays for your organization
-                  </Text>
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+            <div style={{ flex: 1 }}>
+              <Space size={14} align="center">
+                <div style={{ background: "#f5f3ff", padding: 12, borderRadius: 14, color: "#7c3aed", display: "flex" }}>
+                  <Calendar size={28} />
                 </div>
-                <div style={{ marginTop: 8}}>
-                  <Space style={{ marginTop: 8}}>
-                    <Tag style={{borderRadius:12}} color="processing">
-                      Total: {holidays.length}
-                    </Tag>
-                    <Tag style={{borderRadius:12}} color="success">
-                      Active: {holidays.filter((h) => h.status === 'ACTIVE').length}
-                    </Tag>
-                    <Tag style={{borderRadius:12}} color="default">
-                      Inactive:{" "}
-                      {holidays.filter((h) => h.status === "INACTIVE").length}
-                    </Tag>
-                  </Space>
+                <div>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Government Holidays</Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Manage official government holidays for your organization.</Text>
                 </div>
-              </div>
-
-              <Button
-                type="primary"
-                style={{ height: 40 }}
+              </Space>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Input 
+                placeholder="Search holidays..." 
+                prefix={<Search size={16} color="#94a3b8" />}
+                style={{ width: 280, borderRadius: 12, height: 44 }}
+                onChange={e => setSearchText(e.target.value)}
+                allowClear
+              />
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Plus size={18} />} 
+                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
                 onClick={() => setHolidayModalVisible(true)}
               >
-                + Apply Government Holidays
+                Apply Holidays
               </Button>
             </div>
-            <Divider style={{marginTop:5}} />
-            <Table
-  loading={holidaysLoading}
-  columns={holidayColumns as any}
-  dataSource={dataSource}
-  rowKey="id"
-  pagination={{ pageSize: 10 }}
-  key={dataSource.length}  // Keep the re-render strategy, but based on the new dataSource
-/>
+          </div>
 
-x
+          {/* Metrics */}
+          <Row gutter={[24, 24]} style={{ marginBottom: 20 }}>
+            <Col xs={24} sm={8}>
+              <StatCard label="Total Holidays" value={holidays.length} icon={Calendar} color="#7c3aed" />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard label="Active Policies" value={holidays.filter(h => h.status === 'ACTIVE').length} icon={CheckCircle2} color="#10b981" />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard label="Inactive" value={holidays.filter(h => h.status === "INACTIVE").length} icon={AlertCircle} color="#ef4444" />
+            </Col>
+          </Row>
 
-          {/* Modals */}
-          <Modal
-            title="Apply Government Holidays"
-            open={holidayModalVisible}
-            onCancel={() => setHolidayModalVisible(false)}
-            width={760}
-            style={{ bottom: 20 }}
-            footer={[
-              <Button
-                key="cancel"
-                onClick={() => setHolidayModalVisible(false)}
-              >
-                Cancel
-              </Button>,
-              <Button
-                key="submit"
-                type="primary"
-                loading={isAdding}
-                disabled={selectedHolidayIds.length === 0}
-                onClick={handleAddHolidays}
-              >
-                Add Holidays
-              </Button>,
-            ]}
+          <Card
+            bordered={false}
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+            bodyStyle={{ padding: "0" }}
           >
-            <Card
-              size="small"
-              style={{
-                marginBottom: 12,
-                background: "#fafafa",
-                borderRadius: 8,
-              }}
-            >
-              <Row gutter={12} align="middle">
-                <Col span={6}>
-                  <Typography.Text strong>Country</Typography.Text>
-                  <Select
-                    style={{ width: "100%", marginTop: 4 }}
-                    value={modalCountry}
-                    onChange={setModalCountry}
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                    options={Country.getAllCountries().map((c: ICountry) => ({
-                      label: c.name,
-                      value: c.isoCode,
-                    }))}
-                  />
-                </Col>
-                {/* <Col span={6}>
-                  <Typography.Text strong>Year</Typography.Text>
-                  <Select
-                    style={{ width: "100%", marginTop: 4 }}
-                    value={modalYear}
-                    onChange={setModalYear}
-                    options={[
-                      { label: "2025", value: 2025 },
-                      { label: "2026", value: 2026 },
-                    ]}
-                  />
-                </Col> */}
-                <Col span={9} />
-                <Col span={9} style={{ textAlign: "right" }}>
-                  <Space>
-                    <Button
-                      size="small"
-                      onClick={() =>
-                        setSelectedHolidayIds(
-                          filteredModalHolidays.map((h) => h.id),
-                        )
-                      }
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      size="small"
-                      onClick={() => setSelectedHolidayIds([])}
-                    >
-                      Deselect
-                    </Button>
-                  </Space>
-                </Col>
-              </Row>
-            </Card>
+            <Table
+              loading={holidaysLoading}
+              columns={holidayColumns as any}
+              dataSource={dataSource}
+              rowKey="id"
+              size="middle"
+              pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+              rowClassName={() => "history-table-row"}
+            />
+          </Card>
+
+          {/* Apply Holidays Drawer */}
+          <Drawer
+            title={
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ background: "#f5f3ff", padding: 8, borderRadius: 10, color: "#7c3aed" }}>
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 18, color: "#1e293b", display: "block" }}>Apply Government Holidays</Text>
+                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>Choose from official regional holiday lists</Text>
+                </div>
+              </div>
+            }
+            open={holidayModalVisible}
+            onClose={() => setHolidayModalVisible(false)}
+            width={720}
+            footer={
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+                <Button onClick={() => setHolidayModalVisible(false)}>Cancel</Button>
+                <Button type="primary" loading={isAdding} disabled={selectedHolidayIds.length === 0} onClick={handleAddHolidays}>
+                  Add Selected Holidays ({selectedHolidayIds.length})
+                </Button>
+              </div>
+            }
+          >
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ display: "block", marginBottom: 8, color: "#475569" }}>Select Region</Text>
+              <Select
+                style={{ width: "100%" }}
+                size="large"
+                value={modalCountry}
+                onChange={setModalCountry}
+                showSearch
+                options={Country.getAllCountries().map(c => ({ label: c.name, value: c.isoCode }))}
+              />
+            </div>
+
             <Table
               loading={modalLoading}
               columns={modalTableColumns}
               dataSource={filteredModalHolidays}
               rowKey="id"
               pagination={false}
-              scroll={{ y: 300 }}
+              scroll={{ y: "calc(100vh - 400px)" }}
               size="middle"
-              bordered
-              style={{ borderRadius: 8 }}
+              style={{ border: "1px solid #f1f5f9", borderRadius: 12, overflow: "hidden" }}
             />
-          </Modal>
+          </Drawer>
 
-          <Modal
+          {/* Update Duration Drawer */}
+          <Drawer
             title={
-              <Space>
-                <ClockCircleOutlined />
-                <span>Update Holidays</span>
-              </Space>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ background: "#f8fafc", padding: 8, borderRadius: 10, color: "#64748b" }}>
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 18, color: "#1e293b", display: "block" }}>Update Holiday Duration</Text>
+                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>Adjust base leave and extra positioning</Text>
+                </div>
+              </div>
             }
             open={editHolidayModalVisible}
-            onCancel={() => setEditHolidayModalVisible(false)}
-            onOk={handleSaveHolidayAdjustment}
-            okText="Update Holidays"
-            width={500}
+            onClose={() => setEditHolidayModalVisible(false)}
+            width={480}
+            footer={
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+                <Button onClick={() => setEditHolidayModalVisible(false)}>Cancel</Button>
+                <Button type="primary" onClick={handleSaveHolidayAdjustment}>Update Holiday</Button>
+              </div>
+            }
           >
-            {/* Edit Modal Content */}
-            <p style={{ marginBottom: 16, color: "#666" }}>
-              Adjust base leave days and add extra leave for this holiday.
-            </p>
-
             {editingHoliday && (
-              <>
-                <Card
-                  style={{ background: "#f5f5f5", marginBottom: 24 }}
-                  size="small"
-                  bordered={false}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div>
-                      <Typography.Text strong style={{ fontSize: 16 }}>
-                        {editingHoliday.holidayName}
-                      </Typography.Text>
-                      <div style={{ fontSize: 12, color: "#888" }}>
-                        {dayjs(editingHoliday.fromDate).format("MMM DD, YYYY")}
-                      </div>
-                    </div>
-                    <Tag color="blue">{editingHoliday.type}</Tag>
-                  </div>
-                </Card>
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ padding: 16, background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+                  <Text strong style={{ fontSize: 16, color: "#1e293b", display: "block" }}>{editingHoliday.holidayName}</Text>
+                  <Text type="secondary">{dayjs(editingHoliday.fromDate).format("MMMM DD, YYYY")}</Text>
+                </div>
 
-                <Row gutter={16} style={{ marginBottom: 24 }}>
+                <Row gutter={16}>
                   <Col span={12}>
-                    <Typography.Text strong>Base Leave Days</Typography.Text>
-                    <div style={{ marginTop: 8 }}>
-                      <InputNumber
-                        min={1}
-                        max={365}
-                        value={editBaseDays}
-                        onChange={(val) => setEditBaseDays(val || 1)}
-                        style={{ width: "100%" }}
-                        addonBefore="Days"
-                        disabled
-                      />
-                    </div>
+                    <Text strong style={{ display: "block", marginBottom: 8 }}>Base Leave Days</Text>
+                    <InputNumber value={editBaseDays} disabled style={{ width: "100%" }} size="large" />
                   </Col>
                   <Col span={12}>
-                    <Typography.Text strong>Extra Leave</Typography.Text>
-                    <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-                      <InputNumber
-                        min={-10}
-                        max={10}
-                        value={editExtraDays}
-                        onChange={(val) => setEditExtraDays(val || 0)}
-                        style={{ flex: 1 }}
-                        addonBefore="Days"
-                      />
-                    </div>
+                    <Text strong style={{ display: "block", marginBottom: 8 }}>Extra Leave</Text>
+                    <InputNumber value={editExtraDays} onChange={val => setEditExtraDays(val || 0)} style={{ width: "100%" }} size="large" />
                   </Col>
                 </Row>
-                <div style={{ marginBottom: 24 }}>
-                  <Typography.Text strong>Extra Leave Position</Typography.Text>
+
+                <div>
+                  <Text strong style={{ display: "block", marginBottom: 8 }}>Extra Leave Position</Text>
                   <Select
                     value={editExtraPosition}
                     onChange={setEditExtraPosition}
-                    style={{ width: "100%", marginTop: 8 }}
+                    style={{ width: "100%" }}
+                    size="large"
                     options={[
                       { label: "Add After Holiday", value: "after" },
                       { label: "Add Before Holiday", value: "before" },
@@ -895,81 +573,39 @@ x
                   />
                 </div>
 
-                <Card size="small" title="New Duration Summary">
-                  <Row
-                    gutter={16}
-                    style={{ textAlign: "center", marginBottom: 12 }}
-                  >
-                    <Col span={8}>
-                      <Statistic title="Base" value={editBaseDays} />
-                    </Col>
-                    <Col span={8}>
-                      <Statistic
-                        title="Extra"
-                        value={editExtraDays}
-                        prefix={editExtraDays > 0 ? "+" : ""}
-                        valueStyle={{
-                          color: editExtraDays !== 0 ? "#faad14" : "inherit",
-                        }}
-                      />
-                    </Col>
-                    <Col span={8}>
-                      <Statistic
-                        title="Total Duration"
-                        value={editBaseDays + editExtraDays}
-                        suffix="Days"
-                        valueStyle={{ color: "#1677ff", fontWeight: "bold" }}
-                      />
-                    </Col>
-                  </Row>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      borderTop: "1px solid #f0f0f0",
-                      paddingTop: 12,
-                    }}
-                  >
-                    <Typography.Text type="secondary">
-                      Effective Dates
-                    </Typography.Text>
-                    <div
-                      style={{ fontSize: 16, fontWeight: 500, marginTop: 4 }}
-                    >
-                      {(() => {
-                        const base = Number(editBaseDays) || 1;
-                        const extra = Number(editExtraDays) || 0;
-                        if (!editingHoliday) return "";
-
-                        const originalHoliday = apiHolidaysSource.find(
-                          (h) =>
-                            h.holidayName === editingHoliday.holidayName &&
-                            h.country === editingHoliday.country,
-                        );
-
-                        const start = originalHoliday
-                          ? originalHoliday.fromDate
-                          : editingHoliday.fromDate;
-                        let from, to;
-                        if (editExtraPosition === "before") {
-                          from = dayjs(start).subtract(extra, "day");
-                          to = dayjs(start).add(Math.max(0, base - 1), "day");
-                        } else {
-                          from = dayjs(start);
-                          to = dayjs(start).add(
-                            Math.max(0, base + extra - 1),
-                            "day",
-                          );
-                        }
-                        return `${from.format("MMM DD")} - ${to.format(
-                          "MMM DD, YYYY",
-                        )}`;
-                      })()}
+                <div style={{ marginTop: "auto", padding: 20, background: "#f0f9ff", borderRadius: 12, border: "1px solid #bae6fd" }}>
+                  <Text strong style={{ color: "#0369a1", display: "block", marginBottom: 8 }}>New Duration Summary</Text>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <Text style={{ fontSize: 12, color: "#0ea5e9" }}>FROM</Text>
+                      <div style={{ fontWeight: 600, color: "#0c4a6e" }}>{dayjs(editingHoliday.fromDate).format("MMM DD")}</div>
+                    </div>
+                    <ArrowRight size={20} color="#0ea5e9" />
+                    <div style={{ textAlign: "right" }}>
+                      <Text style={{ fontSize: 12, color: "#0ea5e9" }}>TO</Text>
+                      <div style={{ fontWeight: 600, color: "#0c4a6e" }}>{dayjs(editingHoliday.toDate).format("MMM DD, YYYY")}</div>
                     </div>
                   </div>
-                </Card>
-              </>
+                  <Divider style={{ margin: "12px 0", borderColor: "#bae6fd" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#0c4a6e" }}>
+                    <span>Total Duration:</span>
+                    <span>{Number(editBaseDays) + Number(editExtraDays)} Days</span>
+                  </div>
+                </div>
+              </div>
             )}
-          </Modal>
+          </Drawer>
+
+          <style dangerouslySetInnerHTML={{ __html: `
+            .history-table-row:hover { background-color: #f8fafc !important; }
+            .ant-table-thead > tr > th {
+              background-color: #f1f5f9 !important;
+              color: #475569 !important;
+              font-weight: 600 !important;
+              padding: 12px 16px !important;
+            }
+            .ant-table-tbody > tr > td { padding: 14px 16px !important; border-bottom: 1px solid #f1f5f9 !important; }
+          `}} />
         </div>
       </MainLayout>
     </ProtectedRoute>

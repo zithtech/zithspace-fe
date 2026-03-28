@@ -33,46 +33,7 @@ const NewProfilePage = () => {
   const [image, setImage] = useState<string>(defaultImage);
   const [positions, setPositions] = useState<any>(null);
 
-  // useEffect(() => {
-  //   const fetchProfile = async () => {
-  //     try {
-  //       setLoading(true);
-
-  //       // ✅ 1. Get logged in user
-  //       const userRes = await AuthService.getProfile();
-  //       // const userData = userRes?.data?.data || userRes?.data || userRes;
-  //       const userData =
-  //         (userRes as any)?.data?.data || (userRes as any)?.data || userRes;
-
-  //       setCurrentUser(userData);
-
-  //       if (!userData?.employeeId) return;
-
-  //       // ✅ 2. Get employee by ID
-  //       const empRes = await EmployeeOnboardingService.getEmployeeById(
-  //         userData.employeeId,
-  //       );
-
-  //       const employeeData = empRes?.data?.data || empRes?.data || empRes;
-
-  //       if (!employeeData) return;
-
-  //       setProfile(employeeData);
-  //       // Set image from fetched profile
-  //       if (employeeData.personal?.profile_pic) {
-  //         setImage(employeeData.personal.profile_pic);
-  //       }
-  //     } catch (error) {
-  //       console.error(error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchProfile();
-  // }, []);
-
-  useEffect(() => {}, [user]);
+  useEffect(() => { }, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -361,7 +322,7 @@ const NewProfilePage = () => {
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              width: "75%",
+              width: "80%",
               height: "300px",
             }}
           >
@@ -425,7 +386,7 @@ const NewProfilePage = () => {
                     fontWeight: 500,
                   }}
                 >
-                  {personal?.employee_code}
+                  {personal?.employee_code || currentUser?.employee_code}
                 </p>
 
                 <div
@@ -447,7 +408,7 @@ const NewProfilePage = () => {
                       color: color.primary,
                     }}
                   >
-                    {currentUser?.positionTitle}{" "}
+                    {currentUser?.position?.title}{" "}
                     {positions?.subDepartment?.name}
                   </span>
                 </div>
@@ -457,62 +418,34 @@ const NewProfilePage = () => {
               <div
                 style={{
                   borderTop: `1px solid ${color.borderLight}`,
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
                   padding: "6px 0",
+                  textAlign: "center",
                 }}
               >
-                <div>
-                  <p
-                    style={{
-                      margin: "0 0 2px",
-                      fontSize: "9px",
-                      textTransform: "uppercase",
-                      color: color.textLight,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Department
-                  </p>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      color: color.textSecondary,
-                    }}
-                  >
-                    {employment?.department}
-                  </p>
-                </div>
-
-                <div
+                <p
                   style={{
-                    borderLeft: `1px solid ${color.borderLight}`,
+                    margin: "0 0 2px",
+                    fontSize: "9px",
+                    textTransform: "uppercase",
+                    color: color.textLight,
+                    fontWeight: 600,
                   }}
                 >
-                  <p
-                    style={{
-                      margin: "0 0 2px",
-                      fontSize: "9px",
-                      textTransform: "uppercase",
-                      color: color.textLight,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Location
-                  </p>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "11px",
-                      fontWeight: 500,
-                      color: color.textSecondary,
-                    }}
-                  >
-                    {employment?.workLocation}
-                  </p>
-                </div>
+                  Location
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    color: color.textSecondary,
+                  }}
+                >
+                  {employment?.workLocation || "-"}
+                </p>
               </div>
             </div>
           </div>
@@ -530,7 +463,7 @@ const NewProfilePage = () => {
             <InfoCard
               icon="🏢"
               label="Reports To"
-              value={`${profile?.employment?.reportingManager}`}
+              value={profile?.employment?.reportingManager || "-"}
             />
 
             <InfoCard
@@ -545,9 +478,9 @@ const NewProfilePage = () => {
               value={
                 employment?.employeeJoiningDate
                   ? new Date(employment.employeeJoiningDate).toLocaleDateString(
-                      "en-IN", // Indian format DD/MM/YYYY
-                      { day: "2-digit", month: "short", year: "numeric" },
-                    )
+                    "en-IN", // Indian format DD/MM/YYYY
+                    { day: "2-digit", month: "short", year: "numeric" },
+                  )
                   : "-"
               }
             />

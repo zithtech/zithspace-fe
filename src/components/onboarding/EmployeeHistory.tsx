@@ -47,12 +47,12 @@ import dayjs from "dayjs";
 
 const { Text } = Typography;
 
-const labelStyle = { 
-  fontSize: "12px", 
-  fontWeight: 600, 
-  color: "#475569", 
+const labelStyle = {
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "#475569",
   marginBottom: "4px",
-  display: "block" 
+  display: "block"
 };
 
 const cardStyle: React.CSSProperties = {
@@ -76,21 +76,24 @@ const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any; title: stri
   </div>
 );
 
-const CustomInputField = ({ label, name, placeholder, rules }: any) => (
+const CustomInputField = ({ label, name, placeholder, rules, onKeyDown, onKeyPress, maxLength }: any) => (
   <Form.Item
     label={<span style={labelStyle}>{label}</span>}
     name={name}
     rules={rules}
     style={{ marginBottom: "12px" }}
   >
-    <Input 
+    <Input
       placeholder={placeholder}
-      style={{ 
-        height: "38px", 
+      onKeyDown={onKeyDown}
+      onKeyPress={onKeyPress}
+      maxLength={maxLength}
+      style={{
+        height: "38px",
         borderRadius: "8px",
         border: "1px solid #cbd5e1",
         fontSize: "13px"
-      }} 
+      }}
     />
   </Form.Item>
 );
@@ -102,10 +105,10 @@ const CustomSelectField = ({ label, name, children, placeholder, rules }: any) =
     rules={rules}
     style={{ marginBottom: "12px" }}
   >
-    <Select 
+    <Select
       placeholder={placeholder}
-      style={{ 
-        height: "38px", 
+      style={{
+        height: "38px",
         borderRadius: "8px",
         fontSize: "13px"
       }}
@@ -175,12 +178,12 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
   };
 
   return (
-    <div 
-      style={{ 
-        background: "#ffffff", 
-        border: "1px solid #ebedef", 
-        borderRadius: "12px", 
-        padding: "20px", 
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #ebedef",
+        borderRadius: "12px",
+        padding: "20px",
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -194,8 +197,8 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         {!fileUrl ? (
           <div style={{ textAlign: "center" }}>
-            <Empty 
-              image={Empty.PRESENTED_IMAGE_SIMPLE} 
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={<span style={{ color: "#94a3b8", fontSize: "12px" }}>No file uploaded</span>}
               style={{ margin: "5px 0" }}
             />
@@ -204,11 +207,11 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
               beforeUpload={handleFileSelect}
               accept="image/*,.pdf,.doc,.docx"
             >
-              <Button 
-                icon={<UploadIcon size={14} />} 
-                style={{ 
-                  borderRadius: "8px", 
-                  fontSize: "12px", 
+              <Button
+                icon={<UploadIcon size={14} />}
+                style={{
+                  borderRadius: "8px",
+                  fontSize: "12px",
                   color: "#475569",
                   border: "1px dashed #cbd5e1",
                   height: "32px"
@@ -220,13 +223,13 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-            <div style={{ 
-              width: "32px", 
-              height: "40px", 
-              background: "#eff6ff", 
-              borderRadius: "4px", 
-              display: "flex", 
-              alignItems: "center", 
+            <div style={{
+              width: "32px",
+              height: "40px",
+              background: "#eff6ff",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
               justifyContent: "center",
               border: "1px solid #dbeafe"
             }}>
@@ -239,22 +242,22 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
               <div style={{ fontSize: "11px", color: "#94a3b8" }}>
                 {uploadDate}
               </div>
-              
+
               <div style={{ marginTop: "8px", display: "flex", gap: "10px" }}>
-                <Button 
-                  type="text" 
-                  size="small" 
-                  danger 
-                  icon={<Trash2 size={13} />} 
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<Trash2 size={13} />}
                   onClick={handleRemove}
                   style={{ padding: 0, height: "auto", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}
                 >
                   Delete
                 </Button>
-                <Button 
-                  type="text" 
+                <Button
+                  type="text"
                   size="small"
-                  icon={<Eye size={13} />} 
+                  icon={<Eye size={13} />}
                   onClick={() => window.open(fileUrl, "_blank")}
                   style={{ padding: 0, height: "auto", color: "#3b82f6", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}
                 >
@@ -271,14 +274,14 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
 
 const AdditionalDocItem = ({ field, companyIndex, adIdx, remove, form }: any) => {
   const docLabel = Form.useWatch(["previousCompanies", companyIndex, "additionalDocuments", field.name, "docLabel"], form);
-  
+
   return (
     <Col span={8} key={field.key}>
-      <div style={{ 
-        background: "#ffffff", 
-        border: "1px solid #ebedef", 
-        borderRadius: "10px", 
-        padding: "12px", 
+      <div style={{
+        background: "#ffffff",
+        border: "1px solid #ebedef",
+        borderRadius: "10px",
+        padding: "12px",
         height: "100%",
         display: "flex",
         flexDirection: "column"
@@ -286,16 +289,16 @@ const AdditionalDocItem = ({ field, companyIndex, adIdx, remove, form }: any) =>
         <Form.Item
           name={[field.name, "docLabel"]}
           label={<span style={{ ...labelStyle, fontSize: "11px", marginBottom: "2px" }}>Document Name</span>}
-          rules={[{ required: true, message: "Required" }]}
+          rules={[{ required: false }]}
           style={{ marginBottom: "8px" }}
         >
           <Input placeholder="e.g. Portfolio" size="small" style={{ borderRadius: "6px", height: "30px" }} />
         </Form.Item>
         <div style={{ flex: 1 }}>
-          <DocumentBox 
-            name={["previousCompanies", companyIndex, "additionalDocuments", field.name, "docFile"]} 
-            label={docLabel || "New Document"} 
-            onRemove={() => remove(adIdx)} 
+          <DocumentBox
+            name={["previousCompanies", companyIndex, "additionalDocuments", field.name, "docFile"]}
+            label={docLabel || "New Document"}
+            onRemove={() => remove(adIdx)}
           />
         </div>
       </div>
@@ -325,7 +328,7 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
           <CustomSelectField
             name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactRole"]}
             label="Contact Person Type"
-            rules={[{ required: true, message: "Select contact type" }]}
+            rules={[{ required: false }]}
             placeholder="Select role"
           >
             <Select.Option value="hr">HR</Select.Option>
@@ -339,6 +342,12 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
             label={`${label} Name`}
             name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactName"]}
             placeholder="Enter name"
+            onKeyDown={(e: any) => {
+              if (e.key.length > 1) return;
+              if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
           />
         </Col>
         <Col span={12}>
@@ -353,6 +362,12 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
             label={`${label} Contact Number`}
             name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactNumber"]}
             placeholder="Enter phone number"
+            maxLength={10}
+            onKeyPress={(e: any) => {
+              if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                e.preventDefault();
+              }
+            }}
           />
         </Col>
       </Row>
@@ -379,10 +394,10 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
           </div>
         </div>
         {length > 1 && (
-          <Button 
-            type="text" 
-            danger 
-            icon={<Trash2 size={18} />} 
+          <Button
+            type="text"
+            danger
+            icon={<Trash2 size={18} />}
             onClick={() => remove(field.name)}
             style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
           />
@@ -446,7 +461,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
         <Col span={24}>
           <div style={{ padding: "20px", background: "#ffffff", borderRadius: "12px", border: "1px solid #ebedef", marginBottom: "20px" }}>
             <SectionHeader icon={FileSearch} title="Supportive Documents" subtitle="Upload relevant certificates and proof" />
-            
+
             <Row gutter={[12, 12]}>
               <Col span={8}>
                 <DocumentBox name={["previousCompanies", index, "experienceLetter"]} label="Experience Letter" />
@@ -467,25 +482,25 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                   <>
                     {fields.map((field, f16Idx) => (
                       <Col span={8} key={field.key}>
-                        <DocumentBox 
-                          name={["previousCompanies", index, "form16", field.name]} 
-                          label={`Form 16 (${getLetter(f16Idx)})`} 
-                          onRemove={fields.length > 1 ? () => remove(f16Idx) : undefined} 
+                        <DocumentBox
+                          name={["previousCompanies", index, "form16", field.name]}
+                          label={`Form 16 (${getLetter(f16Idx)})`}
+                          onRemove={fields.length > 1 ? () => remove(f16Idx) : undefined}
                         />
                       </Col>
                     ))}
                     <Col span={8}>
-                      <div 
+                      <div
                         onClick={() => add(null)}
-                        style={{ 
-                          height: "100%", 
+                        style={{
+                          height: "100%",
                           minHeight: "130px",
-                          border: "1px dashed #cbd5e1", 
-                          borderRadius: "12px", 
+                          border: "1px dashed #cbd5e1",
+                          borderRadius: "12px",
                           padding: "16px",
-                          display: "flex", 
+                          display: "flex",
                           flexDirection: "column",
-                          alignItems: "center", 
+                          alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
                           background: "#ffffff",
@@ -507,25 +522,25 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                   <>
                     {fields.map((field, pIdx) => (
                       <Col span={8} key={field.key}>
-                        <DocumentBox 
-                          name={["previousCompanies", index, "payslips", field.name]} 
-                          label={`Payslip (${getLetter(pIdx)})`} 
-                          onRemove={fields.length > 1 ? () => remove(pIdx) : undefined} 
+                        <DocumentBox
+                          name={["previousCompanies", index, "payslips", field.name]}
+                          label={`Payslip (${getLetter(pIdx)})`}
+                          onRemove={fields.length > 1 ? () => remove(pIdx) : undefined}
                         />
                       </Col>
                     ))}
                     <Col span={8}>
-                      <div 
+                      <div
                         onClick={() => add(null)}
-                        style={{ 
-                          height: "100%", 
+                        style={{
+                          height: "100%",
                           minHeight: "130px",
-                          border: "1px dashed #cbd5e1", 
-                          borderRadius: "12px", 
+                          border: "1px dashed #cbd5e1",
+                          borderRadius: "12px",
                           padding: "16px",
-                          display: "flex", 
+                          display: "flex",
                           flexDirection: "column",
-                          alignItems: "center", 
+                          alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
                           background: "#ffffff",
@@ -546,27 +561,27 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                 {(fields, { add, remove }) => (
                   <>
                     {fields.map((field, adIdx) => (
-                      <AdditionalDocItem 
+                      <AdditionalDocItem
                         key={field.key}
-                        field={field} 
-                        companyIndex={index} 
-                        adIdx={adIdx} 
-                        remove={remove} 
-                        form={form} 
+                        field={field}
+                        companyIndex={index}
+                        adIdx={adIdx}
+                        remove={remove}
+                        form={form}
                       />
                     ))}
                     <Col span={8}>
-                      <div 
+                      <div
                         onClick={() => add({})}
-                        style={{ 
-                          height: "100%", 
+                        style={{
+                          height: "100%",
                           minHeight: "180px",
-                          border: "1px dashed #3b82f6", 
-                          borderRadius: "12px", 
+                          border: "1px dashed #3b82f6",
+                          borderRadius: "12px",
                           padding: "16px",
-                          display: "flex", 
+                          display: "flex",
                           flexDirection: "column",
-                          alignItems: "center", 
+                          alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
                           background: "#eff6ff",
@@ -597,11 +612,11 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                       <div style={{ position: "relative" }}>
                         <ContactDetails contactIndex={field.name} companyIndex={index} form={form} />
                         {fields.length > 1 && (
-                          <Button 
-                            type="text" 
-                            danger 
+                          <Button
+                            type="text"
+                            danger
                             size="small"
-                            icon={<X size={14} />} 
+                            icon={<X size={14} />}
                             onClick={() => remove(field.name)}
                             style={{ position: "absolute", top: "10px", right: "10px" }}
                           />
@@ -610,17 +625,17 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                     </Col>
                   ))}
                   <Col span={8}>
-                    <div 
+                    <div
                       onClick={() => add({})}
-                      style={{ 
-                        height: "100%", 
+                      style={{
+                        height: "100%",
                         minHeight: "180px",
-                        border: "1px dashed #cbd5e1", 
-                        borderRadius: "12px", 
+                        border: "1px dashed #cbd5e1",
+                        borderRadius: "12px",
                         padding: "20px",
-                        display: "flex", 
+                        display: "flex",
                         flexDirection: "column",
-                        alignItems: "center", 
+                        alignItems: "center",
                         justifyContent: "center",
                         cursor: "pointer",
                         background: "#ffffff",
@@ -667,6 +682,15 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
   }, [data, form]);
 
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      try {
+        await form.validateFields();
+        return true;
+      } catch (error) {
+        console.error("Validation failed:", error);
+        return false;
+      }
+    },
     getData: () => {
       const allFormValues = form.getFieldsValue(true);
       const previousCompanies = allFormValues.previousCompanies || [];
@@ -711,12 +735,12 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
           {(fields, { add, remove }) => (
             <>
               {fields.map((field) => (
-                <CompanyCard 
-                  key={field.key} 
-                  field={field} 
-                  index={field.name} 
-                  form={form} 
-                  remove={remove} 
+                <CompanyCard
+                  key={field.key}
+                  field={field}
+                  index={field.name}
+                  form={form}
+                  remove={remove}
                   length={fields.length}
                 />
               ))}

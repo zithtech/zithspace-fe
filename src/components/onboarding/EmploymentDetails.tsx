@@ -28,6 +28,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import moment from "moment";
+import { Clock, Settings, Info, CheckCircle2 } from "lucide-react";
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { MembersService } from "@/services/membersService";
@@ -115,6 +116,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
       empoyeeTimelineForm.setFieldsValue({
         ...data,
+        reportingManager: data.reportingManager || undefined,
         joiningDate: data.joiningDate ? dayjs(data.joiningDate) : null,
         trainingCompletion: data.trainingCompletion
           ? dayjs(data.trainingCompletion)
@@ -220,6 +222,19 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   }, []);
 
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      try {
+        await Promise.all([
+          workForm.validateFields(),
+          empoyeeTimelineForm.validateFields(),
+          additionalForm.validateFields(),
+        ]);
+        return true;
+      } catch (error) {
+        console.error("Validation failed:", error);
+        return false;
+      }
+    },
     getData: () => {
       if (workType === "Hybrid" && hybridMode === "Fixed") {
         return {
@@ -453,12 +468,12 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
   };
 
   return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", paddingBottom: "24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", paddingBottom: "24px" }}>
       {contextHolder}
-      
+
       {/* Work Details */}
-      <Card 
-        title={<Space><BankOutlined style={{ color: "#1677ff" }} /> <span>Work Details</span></Space>} 
+      <Card
+        title={<Space><BankOutlined style={{ color: "#1677ff" }} /> <span>Work Details</span></Space>}
         bordered={false}
         styles={{ body: { padding: "24px" } }}
       >
@@ -555,7 +570,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                 name="noticePeriod"
                 rules={[{ required: true, message: "Required" }]}
               >
-                <Input placeholder="Notice Period" />
+                <Input type="number" placeholder="Notice Period" />
               </Form.Item>
             </Col>
 
@@ -581,11 +596,11 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
                       }}
                     />
                   </div>
-                  
+
                   {hybridMode === "Fixed" ? (
                     selectedDays.length > 0 && (
                       <div style={{ fontSize: "13px", color: "#666" }}>
-                        Selected Days: <strong>{selectedDays.join(", ").toUpperCase()}</strong> | 
+                        Selected Days: <strong>{selectedDays.join(", ").toUpperCase()}</strong> |
                         Total: <strong>{selectedDays.length} days</strong> ({selectedDays.length * 8} hrs)
                       </div>
                     )
@@ -643,8 +658,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       <Row gutter={24}>
         <Col span={12}>
           {/* Employee Timeline */}
-          <Card 
-            title={<Space><CalendarOutlined style={{ color: "#1677ff" }} /> <span>Employee Timeline</span></Space>} 
+          <Card
+            title={<Space><CalendarOutlined style={{ color: "#1677ff" }} /> <span>Employee Timeline</span></Space>}
             bordered={false}
             styles={{ body: { padding: "24px" } }}
             style={{ height: "100%" }}
@@ -678,7 +693,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
               <Form.Item label="Reporting Manager" name="reportingManager" rules={[{ required: true }]}>
                 <Select showSearch placeholder="Select Manager" optionFilterProp="children">
                   {members?.map((member) => (
-                    <Select.Option key={member.id} value={member.id}>{member.label}</Select.Option>
+                    <Select.Option key={member.value} value={member.value}>{member.label}</Select.Option>
                   ))}
                 </Select>
               </Form.Item>
@@ -711,8 +726,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
         <Col span={12}>
           {/* Additional Details */}
-          <Card 
-            title={<Space><TrophyOutlined style={{ color: "#1677ff" }} /> <span>Additional Details</span></Space>} 
+          <Card
+            title={<Space><TrophyOutlined style={{ color: "#1677ff" }} /> <span>Additional Details</span></Space>}
             bordered={false}
             styles={{ body: { padding: "24px" } }}
             style={{ height: "100%" }}
@@ -812,19 +827,36 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
       <Modal
         title={
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <FieldTimeOutlined style={{ color: "black" }} />
-            <span>Set Work Shift</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0" }}>
+            <div style={{ padding: "8px", background: "#eff6ff", borderRadius: "8px", color: "#3b82f6" }}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>Work Shift Configuration</div>
+              <div style={{ fontSize: "13px", fontWeight: 400, color: "#64748b" }}>Define the daily working hours and weekly schedule.</div>
+            </div>
           </div>
         }
         open={open}
         onCancel={() => setOpen(false)}
         footer={[
-          <Button onClick={() => setOpen(false)}>Close</Button>,
-          <Button onClick={handleSave}>Save</Button>,
+          <Button key="close" onClick={() => setOpen(false)} style={{ borderRadius: "8px" }}>Cancel</Button>,
+          <Button key="save" type="primary" onClick={handleSave} style={{ borderRadius: "8px", background: "#3b82f6", border: "none" }}>Save Shift</Button>,
         ]}
         width={800}
+        styles={{
+          header: { borderBottom: "1px solid #f1f5f9", padding: "16px 24px" },
+          body: { padding: "24px" }
+        }}
       >
+        <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #f1f5f9", marginBottom: "20px" }}>
+          <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+            <Info size={16} style={{ color: "#3b82f6", marginTop: "2px" }} />
+            <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6" }}>
+              Configure individual shifts for each day of the week, or apply a common time for all selected days. This will be used to track attendance and calculate monthly working hours.
+            </div>
+          </div>
+        </div>
         {/* ✅ Select All + Common Time */}
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col>

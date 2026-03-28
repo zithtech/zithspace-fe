@@ -13,7 +13,7 @@ export interface LoginResponse {
     workEmail: string;
     personalEmail: string;
     role: string; // Flexible string instead of enum
-    position: string;
+    position: { id: string; title: string } | null;
     phone: string;
     reportsTo?: string | null;
     isActive: boolean;
@@ -31,14 +31,14 @@ export interface UserProfile {
   personalEmail: string;
   workEmail: string;
   role: string;
-  position: string;
+  position: { id: string; title: string } | null;
   tenantId: string;
   /** Effective permissions from RBAC system */
   permissions: string[];
   reportsTo?: {
     id: string;
     name: string;
-    position: string;
+    position: { title: string };
   };
   tenant?: {
     id: string;
@@ -51,6 +51,7 @@ export interface UserProfile {
   updatedAt: string;
   isActive: boolean;
   department?: string;
+  employee_code?: string | null;
   employeeId?: string | null;
   employee?: any;
 }

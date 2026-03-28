@@ -191,9 +191,9 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   };
 
   const columns = [
-    { 
-      title: "Project Identity", 
-      key: "name", 
+    {
+      title: "Project Identity",
+      key: "name",
       width: 280,
       render: (_: any, record: any) => (
         <Space size={12}>
@@ -207,15 +207,15 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         </Space>
       )
     },
-    { 
-        title: "Billing Details", 
-        key: "billing",
-        render: (_: any, record: any) => (
-            <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{record.billingType}</div>
-                <div style={{ fontSize: 12, color: "#94a3b8" }}>Model</div>
-            </div>
-        )
+    {
+      title: "Billing Details",
+      key: "billing",
+      render: (_: any, record: any) => (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{record.billingType}</div>
+          <div style={{ fontSize: 12, color: "#94a3b8" }}>Model</div>
+        </div>
+      )
     },
     {
       title: "Budget Status",
@@ -225,20 +225,20 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         const budget = Number(record.budget || 0);
         const invoiced = Number(record.invoicedAmount || 0);
         const percentage = budget > 0 ? Math.min(100, (invoiced / budget) * 100) : 0;
-        
+
         return (
           <div style={{ width: 140 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{symbol}{budget.toLocaleString()}</span>
-                <span style={{ fontSize: 11, color: "#64748b" }}>{Math.round(percentage)}%</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{symbol}{budget.toLocaleString()}</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{Math.round(percentage)}%</span>
             </div>
-            <Progress 
-                percent={percentage} 
-                size="small" 
-                showInfo={false} 
-                strokeColor="#3b82f6" 
-                trailColor="#f1f5f9"
-                strokeWidth={6}
+            <Progress
+              percent={percentage}
+              size="small"
+              showInfo={false}
+              strokeColor="#3b82f6"
+              trailColor="#f1f5f9"
+              strokeWidth={6}
             />
           </div>
         );
@@ -258,8 +258,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         };
         const item = config[status] || { color: "default", icon: null };
         return (
-          <Tag 
-            color={item.color} 
+          <Tag
+            color={item.color}
             icon={item.icon}
             style={{ borderRadius: 6, fontWeight: 600, border: 0, display: "flex", alignItems: "center", gap: 4, width: "fit-content" }}
           >
@@ -273,15 +273,15 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       key: "projectManager",
       render: (_: any, record: any) => (
         <Space size={8}>
-          <Avatar 
-            size="small" 
-            style={{ backgroundColor: "#f1f5f9", color: "#64748b" }} 
-            icon={<User size={12} />} 
+          <Avatar
+            size="small"
+            style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}
+            icon={<User size={12} />}
           />
           <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>
-            {record.projectManager?.first_name 
-                ? `${record.projectManager.first_name} ${record.projectManager.last_name}`
-                : record.projectManager?.name || "Unassigned"}
+            {record.projectManager?.first_name
+              ? `${record.projectManager.first_name} ${record.projectManager.last_name}`
+              : record.projectManager?.name || "Unassigned"}
           </span>
         </Space>
       ),
@@ -292,8 +292,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       key: "startDate",
       render: (date: string) => (
         <Space size={6} style={{ color: "#64748b", fontSize: 13 }}>
-            <Calendar size={14} style={{ color: "#94a3b8" }} />
-            {date ? dayjs(date).format("MMM DD, YYYY") : "N/A"}
+          <Calendar size={14} style={{ color: "#94a3b8" }} />
+          {date ? dayjs(date).format("MMM DD, YYYY") : "N/A"}
         </Space>
       )
     },
@@ -315,18 +315,18 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   ];
 
   const filteredProjects = projects.filter((project) =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card 
-        style={{ 
-            borderRadius: 16, 
-            border: "1px solid #f1f5f9",
-            background: "#fff"
+      <Card
+        style={{
+          borderRadius: 16,
+          border: "1px solid #f1f5f9",
+          background: "#fff"
         }}
         bodyStyle={{ padding: "0" }}
       >
@@ -370,7 +370,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
-                <Layers size={20} />
+              <Layers size={20} />
             </div>
             <span style={{ fontWeight: 700, fontSize: 18 }}>Initiate New Project</span>
           </div>
@@ -387,130 +387,131 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         className="premium-modal"
       >
         <div style={{ padding: "8px 0" }}>
-            <Form form={form} layout="vertical" onFinish={handleCreateProject}>
+          <Form form={form} layout="vertical" onFinish={handleCreateProject}>
             <Row gutter={20}>
-                <Col span={14}>
-                    <Form.Item
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>}
-                        name="name"
-                        rules={[{ required: true, message: "Required" }]}
-                    >
-                        <Input placeholder="e.g. Q3 Infrastructure Modernization" style={{ borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
-                <Col span={10}>
-                    <Form.Item
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>System Identification Code</span>}
-                        name="code"
-                        rules={[{ required: true, message: "Required" }]}
-                    >
-                        <Input placeholder="e.g. PRJ-2024-001" style={{ borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
+              <Col span={14}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>}
+                  name="name"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input placeholder="e.g. Q3 Infrastructure Modernization" style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={10}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>System Identification Code</span>}
+                  name="code"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input placeholder="e.g. PRJ-2024-001" style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={20}>
-                <Col span={12}>
-                    <Form.Item
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Leadership</span>}
-                        name="projectManagerId"
-                        rules={[{ required: true, message: "Assignment required" }]}
-                    >
-                        <Select
-                            placeholder="Assign a Project Manager"
-                            showSearch
-                            optionFilterProp="children"
-                            style={{ borderRadius: 8, height: 40 }}
-                        >
-                            {employees.map((emp) => (
-                            <Select.Option key={emp.id} value={emp.id}>
-                                {emp.first_name} {emp.last_name} ({emp.employee_code})
-                            </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Initial Lifecycle Status</span>}
-                        name="status"
-                        initialValue="Draft"
-                        rules={[{ required: true }]}
-                    >
-                        <Select style={{ borderRadius: 8, height: 40 }}>
-                            <Select.Option value="Draft">Drafting Phase</Select.Option>
-                            <Select.Option value="Active">Operational / Active</Select.Option>
-                            <Select.Option value="On Hold">Delayed / On Hold</Select.Option>
-                            <Select.Option value="Completed">Project Completed</Select.Option>
-                            <Select.Option value="Closed">System Closed</Select.Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Leadership</span>}
+                  name="projectManagerId"
+                  rules={[{ required: true, message: "Assignment required" }]}
+                >
+                  <Select
+                    placeholder="Assign a Project Manager"
+                    showSearch
+                    optionFilterProp="children"
+                    style={{ borderRadius: 8, height: 40 }}
+                  >
+                    {employees.map((emp) => (
+                      <Select.Option key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name} ({emp.employee_code})
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Initial Lifecycle Status</span>}
+                  name="status"
+                  initialValue="Draft"
+                  rules={[{ required: true }]}
+                >
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Draft">Drafting Phase</Select.Option>
+                    <Select.Option value="Active">Operational / Active</Select.Option>
+                    <Select.Option value="On Hold">Delayed / On Hold</Select.Option>
+                    <Select.Option value="Completed">Project Completed</Select.Option>
+                    <Select.Option value="Closed">System Closed</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={20}>
-                <Col span={12}>
-                    <Form.Item
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
-                        name="billingType"
-                        rules={[{ required: true }]}
-                    >
-                        <Select placeholder="Select Model" style={{ borderRadius: 8, height: 40 }}>
-                            <Select.Option value="Hourly">Hourly rate</Select.Option>
-                            <Select.Option value="Monthly">Monthly subscription</Select.Option>
-                            <Select.Option value="Daily">Daily allowance</Select.Option>
-                            <Select.Option value="Fixed">Fixed project cost</Select.Option>
-                            <Select.Option value="Non-Billable">Internal / Non-Billable</Select.Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocated Budget</span>} name="budget">
-                        <InputNumber
-                            addonBefore={currencySelector}
-                            style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
-                            placeholder="0.00"
-                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                            parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
-                        />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
+                  name="billingType"
+                  rules={[{ required: true }]}
+                >
+                  <Select placeholder="Select Model" style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Hourly">Hourly rate</Select.Option>
+                    <Select.Option value="Monthly">Monthly subscription</Select.Option>
+                    <Select.Option value="Daily">Daily allowance</Select.Option>
+                    <Select.Option value="Fixed">Fixed project cost</Select.Option>
+                    <Select.Option value="Non-Billable">Internal / Non-Billable</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocated Budget</span>} name="budget">
+                  <InputNumber
+                    type="number"
+                    addonBefore={currencySelector}
+                    style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
+                    placeholder="0.00"
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                  />
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={20}>
-                <Col span={12}>
-                    <Form.Item
-                        label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Commencement</span>}
-                        name="startDate"
-                        rules={[{ required: true, message: "Required" }]}
-                    >
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Estimated Completion</span>} name="endDate">
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Commencement</span>}
+                  name="startDate"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Estimated Completion</span>} name="endDate">
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
 
             <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-                <Button 
-                    onClick={() => setIsModalVisible(false)}
-                    style={{ borderRadius: 8, height: 40 }}
-                >
-                    Cancel
-                </Button>
-                <Button 
-                    type="primary" 
-                    htmlType="submit" 
-                    loading={submitting}
-                    style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
-                >
-                    Initialize Project
-                </Button>
+              <Button
+                onClick={() => setIsModalVisible(false)}
+                style={{ borderRadius: 8, height: 40 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={submitting}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+              >
+                Initialize Project
+              </Button>
             </div>
-            </Form>
+          </Form>
         </div>
       </Modal>
 
@@ -519,7 +520,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 8, color: "#0ea5e9", display: "flex" }}>
-                <Edit2 size={20} />
+              <Edit2 size={20} />
             </div>
             <span style={{ fontWeight: 700, fontSize: 18 }}>Update Project Configuration</span>
           </div>
@@ -536,93 +537,94 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         className="premium-modal"
       >
         <div style={{ padding: "8px 0" }}>
-            <Form form={editForm} layout="vertical" onFinish={handleEditProject}>
+          <Form form={editForm} layout="vertical" onFinish={handleEditProject}>
             <Row gutter={20}>
-                <Col span={14}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>} name="name" rules={[{ required: true }]}>
-                        <Input style={{ borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
-                <Col span={10}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Code</span>} name="code">
-                        <Input disabled style={{ borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
+              <Col span={14}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>} name="name" rules={[{ required: true }]}>
+                  <Input style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={10}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Code</span>} name="code">
+                  <Input disabled style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={20}>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
-                        <Select showSearch optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
-                            {employees.map((emp) => (
-                            <Select.Option key={emp.id} value={emp.id}>
-                                {emp.first_name} {emp.last_name}
-                            </Select.Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Status</span>} name="status" rules={[{ required: true }]}>
-                        <Select style={{ borderRadius: 8, height: 40 }}>
-                            <Select.Option value="Draft">Draft</Select.Option>
-                            <Select.Option value="Active">Active</Select.Option>
-                            <Select.Option value="On Hold">On Hold</Select.Option>
-                            <Select.Option value="Completed">Completed</Select.Option>
-                            <Select.Option value="Closed">Closed</Select.Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
+                  <Select showSearch optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
+                    {employees.map((emp) => (
+                      <Select.Option key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Status</span>} name="status" rules={[{ required: true }]}>
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Draft">Draft</Select.Option>
+                    <Select.Option value="Active">Active</Select.Option>
+                    <Select.Option value="On Hold">On Hold</Select.Option>
+                    <Select.Option value="Completed">Completed</Select.Option>
+                    <Select.Option value="Closed">Closed</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={20}>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Type</span>} name="billingType" rules={[{ required: true }]}>
-                        <Select style={{ borderRadius: 8, height: 40 }}>
-                            <Select.Option value="Hourly">Hourly</Select.Option>
-                            <Select.Option value="Monthly">Monthly</Select.Option>
-                            <Select.Option value="Daily">Daily</Select.Option>
-                            <Select.Option value="Fixed">Fixed</Select.Option>
-                            <Select.Option value="Non-Billable">Non-Billable</Select.Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Total Budget</span>} name="budget">
-                        <InputNumber
-                            addonBefore={currencySelector}
-                            style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
-                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                            parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
-                        />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Type</span>} name="billingType" rules={[{ required: true }]}>
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Hourly">Hourly</Select.Option>
+                    <Select.Option value="Monthly">Monthly</Select.Option>
+                    <Select.Option value="Daily">Daily</Select.Option>
+                    <Select.Option value="Fixed">Fixed</Select.Option>
+                    <Select.Option value="Non-Billable">Non-Billable</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Total Budget</span>} name="budget">
+                  <InputNumber
+                    addonBefore={currencySelector}
+                    style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                  />
+                </Form.Item>
+              </Col>
             </Row>
 
             <Row gutter={20}>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>} name="startDate" rules={[{ required: true }]}>
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>} name="endDate">
-                        <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
-                    </Form.Item>
-                </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>} name="startDate" rules={[{ required: true }]}>
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>} name="endDate">
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
 
             <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-                <Button onClick={() => setIsEditModalVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
-                <Button type="primary" htmlType="submit" loading={submitting} style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}>
-                    Save Configuration
-                </Button>
+              <Button onClick={() => setIsEditModalVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={submitting} style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}>
+                Save Configuration
+              </Button>
             </div>
-            </Form>
+          </Form>
         </div>
       </Modal>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .premium-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
           color: #64748b !important;

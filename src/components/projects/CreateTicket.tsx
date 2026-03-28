@@ -20,6 +20,11 @@ import {
   Badge,
   Avatar,
   Spin,
+  Tooltip,
+  Breadcrumb,
+  Steps,
+  Empty,
+  Progress,
 } from "antd";
 import type { NotificationArgsProps } from "antd";
 import {
@@ -32,6 +37,10 @@ import {
   CheckCircleOutlined,
   SaveOutlined,
   CloseOutlined,
+  PlusCircleFilled,
+  ArrowLeftOutlined,
+  ThunderboltOutlined,
+  ProjectOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { ProjectService } from "@/services/projectService";
@@ -88,9 +97,49 @@ export default function CreateTicket() {
     Array<{ value: string; label: string }>
   >([]);
   const [releasePlans, setReleasePlans] = useState<
-    Array<{ value: string; label: string }>
+    Array<{ 
+      value: string; 
+      label: string; 
+      status?: string; 
+      startDate?: string; 
+      endDate?: string;
+      releaseDate?: string;
+      totalTickets?: number;
+      completedTickets?: number;
+    }>
   >([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // Watch form values for dynamic step completion tracking
+  const formValues = Form.useWatch([], form);
+
+  // Step 1: Basic Information Completion
+  const isStep1Complete = !!(
+    formValues?.title &&
+    formValues?.platform &&
+    formValues?.project &&
+    formValues?.description &&
+    formValues?.description !== "<p></p>" &&
+    (formValues?.platform !== "Development" || formValues?.stack)
+  );
+
+  // Step 2: Task Configuration Completion
+  const isStep2Complete = !!(
+    formValues?.priority &&
+    formValues?.taskLevel &&
+    formValues?.taskType &&
+    formValues?.storyPoint !== undefined &&
+    formValues?.estimateHours !== undefined
+  );
+
+  // Step 3: Responsibility & Timeline Completion
+  const isStep3Complete = !!(
+    formValues?.reportTo &&
+    formValues?.assignee &&
+    formValues?.startDate &&
+    formValues?.endDate
+  );
 
   // Extract dropdown options from cached config
   const platforms = ticketConfig?.platforms || [];
@@ -137,18 +186,14 @@ export default function CreateTicket() {
           reportTo: undefined,
         });
 
-        // TODO: Load parent tickets and release plans for selected project
-        // const [parentTicketsData, releasePlansData] = await Promise.all([
-        //   TicketService.getParentTickets(selectedProject),
-        //   TicketService.getReleasePlansByProject(selectedProject)
-        // ]);
+        // Load parent tickets and release plans for selected project
+        const [parentTicketsData, releasePlansData] = await Promise.all([
+          TicketService.getParentTickets(selectedProject),
+          TicketService.getReleasePlansByProject(selectedProject)
+        ]);
 
-        // setParentTickets(parentTicketsData);
-        // setReleasePlans(releasePlansData);
-
-        // For now, clear the arrays until APIs are implemented
-        setParentTickets([]);
-        setReleasePlans([]);
+        setParentTickets(parentTicketsData || []);
+        setReleasePlans(releasePlansData || []);
       } catch (error) {
         console.error("Error loading project data:", error);
         api.error({
@@ -230,14 +275,101 @@ export default function CreateTicket() {
 
 
   return (
-    <div>
-      <Title level={3} style={{ marginBottom: 24 }}>
-        Create New Ticket
-      </Title>
+    <div style={{ 
+      maxWidth: 1600, 
+      margin: "0 auto", 
+      height: "100%", // Fit parent (MainLayout Content)
+      display: "flex", 
+      flexDirection: "column", 
+      overflow: "hidden",
+      padding: "16px 24px 0"
+    }}>
+      {/* Premium Sticky Header Card */}
+      <div style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+        background: "rgba(255, 255, 255, 0.8)",
+        backdropFilter: "blur(15px)",
+        padding: "16px 24px",
+        margin: "0 0 12px 0", // Reduced margin to bring content closer
+        borderRadius: "0 0 12px 12px",
+        borderBottom: "1px solid #f0f0f0",
+        borderLeft: "1px solid #f0f0f0",
+        borderRight: "1px solid #f0f0f0",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}>
+        <Space direction="vertical" size={0}>
+          <Breadcrumb 
+            items={[
+              { title: <a href="/projects" style={{ color: "#8c8c8c" }}><ProjectOutlined /> Projects</a> },
+              { title: <Text type="secondary">New Ticket</Text> }
+            ]} 
+            style={{ marginBottom: 4, fontSize: 12 }}
+          />
+          <Space size={16}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              color: "#fff",
+              fontSize: 20
+            }}>
+              <PlusCircleFilled />
+            </div>
+            <div>
+              <Title level={4} style={{ margin: 0, letterSpacing: -0.5, fontWeight: 700 }}>
+                Create New Ticket
+              </Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Configure and initialize a new project task
+              </Text>
+            </div>
+          </Space>
+        </Space>
 
-      <Row gutter={24}>
+        <Space size={12}>
+          <Button 
+            icon={<ArrowLeftOutlined />} 
+            onClick={() => window.history.back()}
+            style={{ 
+              borderRadius: 8, 
+              height: 40, 
+              border: "1px solid #d9d9d9",
+              fontWeight: 500
+            }}
+          >
+            Back
+          </Button>
+          <Button 
+            type="primary" 
+            icon={<CheckCircleOutlined />} 
+            onClick={() => form.submit()}
+            loading={loading}
+            style={{ 
+              borderRadius: 8, 
+              height: 40, 
+              fontWeight: 600,
+              background: "linear-gradient(135deg, #1677ff 0%, #0958d9 100%)",
+              border: "none",
+              display: "flex",
+              alignItems: "center"
+            }}
+          >
+            Create Ticket
+          </Button>
+        </Space>
+      </div>
+
+      <Row gutter={[24, 24]} style={{ flex: 1, overflow: "hidden", marginTop: 4 }}>
         {/* Left Side - Main Form (70%) */}
-        <Col xs={24} lg={17}>
+        <Col xs={24} lg={17} style={{ height: "100%", overflowY: "auto", paddingBottom: 60, scrollbarWidth: "none" }}>
           <Form
             form={form}
             layout="vertical"
@@ -246,514 +378,533 @@ export default function CreateTicket() {
               storyPoint: 2,
               estimateHours: 8,
             }}
+            requiredMark="optional"
           >
-            {/* Basic Information Section */}
-            <Card
-              style={{ marginBottom: 24 }}
-              title={
-                <Space>
-                  <FileTextOutlined />
-                  <Text strong>Basic Information</Text>
-                </Space>
-              }
-            >
-              <Form.Item
-                name="title"
-                label="Title *"
-                rules={[{ required: true, message: "Please enter a title" }]}
-              >
-                <Input placeholder="Enter ticket title..." size="large" />
-              </Form.Item>
+            {/* Form Progress Steps - Sticky behavior - Outside Space to ensure stickiness */}
+            <div style={{ 
+              position: "sticky",
+              top: 0, 
+              zIndex: 900,
+              padding: "20px 24px", 
+              background: "rgba(255, 255, 255, 0.95)", 
+              backdropFilter: "blur(10px)",
+              borderRadius: 12, 
+              border: "1px solid #f0f0f0",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
+              marginBottom: 16 // Add margin manually since it's out of Space
+            }}>
+              <Steps
+                size="small"
+                items={[
+                  {
+                    title: <Text strong style={{ fontSize: 13 }}>Basic Information</Text>,
+                    status: isStep1Complete ? "finish" : "wait",
+                  },
+                  {
+                    title: <Text strong style={{ fontSize: 13 }}>Task Configuration</Text>,
+                    status: isStep2Complete ? "finish" : "wait",
+                  },
+                  {
+                    title: <Text strong style={{ fontSize: 13 }}>Responsibility & Timeline</Text>,
+                    status: isStep3Complete ? "finish" : "wait",
+                  },
+                ]}
+              />
+            </div>
 
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="platform"
-                    label="Platform *"
-                    rules={[
-                      { required: true, message: "Please select a platform" },
-                    ]}
-                  >
-                    <Select placeholder="Select platform" size="large">
-                      {platforms.map((platform) => (
-                        <Option key={platform.value} value={platform.value}>
-                          {platform.label}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="project"
-                    label="Project *"
-                    rules={[
-                      { required: true, message: "Please select a project" },
-                    ]}
-                  >
-                    <Select
-                      placeholder="Select project"
-                      size="large"
-                      loading={dataLoading}
-                      onChange={(value) => setSelectedProject(value)}
-                    >
-                      {projects.map((project) => (
-                        <Option key={project.value} value={project.value}>
-                          {project.label} ({project.code})
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
 
-              {/* <Form.Item
-                name="parentTickets"
-                label="Parent Tickets"
-                tooltip="Link to parent tickets (optional)"
-              >
-                <Select
-                  mode="multiple"
-                  placeholder="Link to parent tickets (optional)"
-                  options={parentTickets}
-                  size="large"
-                />
-              </Form.Item> */}
-
-              <Form.Item
-                noStyle
-                shouldUpdate={(prevValues, currentValues) =>
-                  prevValues.platform !== currentValues.platform
+              {/* Basic Information Section */}
+              <Card
+                className="premium-card"
+                title={
+                  <Space>
+                    <FileTextOutlined style={{ color: "#1677ff" }} />
+                    <Text strong>Basic Information</Text>
+                  </Space>
                 }
+                styles={{ 
+                  header: { borderBottom: "1px solid #f0f0f0", padding: "0 24px" },
+                  body: { padding: 24 }
+                }}
+                style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
               >
-                {({ getFieldValue }) =>
-                  getFieldValue("platform") === "Development" ? (
+                <Form.Item
+                  name="title"
+                  label={<Text strong>Title</Text>}
+                  rules={[{ required: true, message: "Please enter a title" }]}
+                >
+                  <Input placeholder="What needs to be done?" size="large" style={{ borderRadius: 8 }} />
+                </Form.Item>
+
+                <Row gutter={20}>
+                  <Col xs={24} md={12}>
                     <Form.Item
-                      name="stack"
-                      label="Stack *"
-                      rules={[
-                        { required: true, message: "Please select a stack" },
-                      ]}
+                      name="platform"
+                      label={<Text strong>Platform</Text>}
+                      rules={[{ required: true, message: "Required" }]}
                     >
-                      <Select placeholder="Select stack" size="large">
-                        {stacks.map((stack) => (
-                          <Option key={stack.value} value={stack.value}>
-                            {stack.label}
+                      <Select placeholder="Select platform" size="large" style={{ borderRadius: 8 }}>
+                        {platforms.map((platform) => (
+                          <Option key={platform.value} value={platform.value}>
+                            {platform.label}
                           </Option>
                         ))}
                       </Select>
                     </Form.Item>
-                  ) : null
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="project"
+                      label={<Text strong>Target Project</Text>}
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Select
+                        placeholder="Assign to project"
+                        size="large"
+                        style={{ borderRadius: 8 }}
+                        loading={dataLoading}
+                        onChange={(value) => setSelectedProject(value)}
+                        suffixIcon={<ProjectOutlined />}
+                      >
+                        {projects.map((project) => (
+                          <Option key={project.value} value={project.value}>
+                            {project.label} ({project.code})
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Form.Item
+                  noStyle
+                  shouldUpdate={(prevValues, currentValues) =>
+                    prevValues.platform !== currentValues.platform
+                  }
+                >
+                  {({ getFieldValue }) =>
+                    getFieldValue("platform") === "Development" ? (
+                      <Form.Item
+                        name="stack"
+                        label={<Text strong>Technology Stack</Text>}
+                        rules={[{ required: true, message: "Required" }]}
+                      >
+                        <Select placeholder="Select tech stack" size="large" style={{ borderRadius: 8 }}>
+                          {stacks.map((stack) => (
+                            <Option key={stack.value} value={stack.value}>
+                              {stack.label}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    ) : null
+                  }
+                </Form.Item>
+
+                <Form.Item
+                  name="description"
+                  label={<Text strong>Description</Text>}
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <TiptapEditor
+                    placeholder="Provide detailed requirements, reproduction steps, or any relevant context..."
+                    minHeight={250}
+                    maxHeight={500}
+                    onChange={(html) => {
+                      const currentValue = form.getFieldValue("description");
+                      if (currentValue !== html) {
+                        form.setFieldValue("description", html);
+                      }
+                    }}
+                  />
+                </Form.Item>
+              </Card>
+
+              {/* Task Configuration Section */}
+              <Card
+                title={
+                  <Space>
+                    <SettingOutlined style={{ color: "#faad14" }} />
+                    <Text strong>Task Configuration</Text>
+                  </Space>
                 }
-              </Form.Item>
-
-              <Form.Item
-                name="description"
-                label="Description *"
-                rules={[
-                  { required: true, message: "Please provide a description" },
-                ]}
+                styles={{ 
+                  header: { borderBottom: "1px solid #f0f0f0", padding: "0 24px" },
+                  body: { padding: 24 }
+                }}
+                style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
               >
-                <TiptapEditor
-                  placeholder="Provide a detailed explanation of the task..."
-                  minHeight={200}
-                  maxHeight={400}
-                 onChange={(html) => {
-  const currentValue = form.getFieldValue("description");
-  if (currentValue !== html) {
-    form.setFieldValue("description", html);
-  }
-}}
-                />
-              </Form.Item>
-            </Card>
-
-            {/* Task Configuration Section */}
-            <Card
-              style={{ marginBottom: 24 }}
-              title={
-                <Space>
-                  <SettingOutlined />
-                  <Text strong>Task Configuration</Text>
-                </Space>
-              }
-            >
-              <Row gutter={16}>
-                <Col xs={24} md={8}>
-                  <Form.Item
-                    name="priority"
-                    label="Priority *"
-                    rules={[
-                      { required: true, message: "Please select priority" },
-                    ]}
-                  >
-                    <Select placeholder="Select priority" size="large">
-                      {priorities.map((priority) => (
-                        <Option key={priority.value} value={priority.value}>
-                          <Space>
-                            <Badge color={priority.color} />
-                            {priority.label}
-                          </Space>
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item
-                    name="taskLevel"
-                    label="Task Level *"
-                    rules={[
-                      { required: true, message: "Please select task level" },
-                    ]}
-                  >
-                    <Select placeholder="Select task level" size="large">
-                      {taskLevels.map((level) => (
-                        <Option key={level.value} value={level.value}>
-                          {level.label}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item
-                    name="taskType"
-                    label="Task Type *"
-                    rules={[
-                      { required: true, message: "Please select task type" },
-                    ]}
-                  >
-                    <Select placeholder="Select task type" size="large">
-                      {taskTypes.map((type) => (
-                        <Option key={type.value} value={type.value}>
-                          <Tag color={type.color}>{type.label}</Tag>
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="storyPoint"
-                    label="Story Points *"
-                    rules={[
-                      { required: true, message: "Please set story points" },
-                    ]}
-                  >
-                    <InputNumber
-                      min={1}
-                      max={5}
-                      placeholder="1-5"
-                      style={{ width: "100%" }}
-                      size="large"
-                    />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="estimateHours"
-                    label="Estimate Hours *"
-                    rules={[
-                      { required: true, message: "Please set estimate hours" },
-                    ]}
-                  >
-                    <InputNumber
-                      min={1}
-                      placeholder="Hours"
-                      style={{ width: "100%" }}
-                      size="large"
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Card>
-
-            {/* Assignment & Timeline Section */}
-            <Card
-              style={{ marginBottom: 24 }}
-              title={
-                <Space>
-                  <UserOutlined />
-                  <Text strong>Assignment & Timeline</Text>
-                </Space>
-              }
-            >
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="reportTo"
-                    label="Report To *"
-                    rules={[
-                      { required: true, message: "Please select report to" },
-                    ]}
-                    help={
-                      !selectedProject
-                        ? "Please select a project first"
-                        : "Only project members are shown"
-                    }
-                  >
-                    <Select
-                      placeholder={
-                        selectedProject
-                          ? "Select manager"
-                          : "Select a project first"
-                      }
-                      size="large"
-                      loading={dataLoading}
-                      disabled={!selectedProject}
-                      showSearch
-                      filterOption={(input, option) => {
-                        const member = projectMembers.find(
-                          (m) => m.value === option?.value
-                        );
-                        return member
-                          ? member.label
-                              .toLowerCase()
-                              .includes(input.toLowerCase()) ||
-                              member.position
-                                .toLowerCase()
-                                .includes(input.toLowerCase())
-                          : false;
-                      }}
+                <Row gutter={20}>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="priority"
+                      label={<Text strong>Priority</Text>}
+                      rules={[{ required: true, message: "Required" }]}
                     >
-                      {projectMembers.map((member) => (
-                        <Option key={member.value} value={member.value}>
-                          {member.label} - {member.position}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="assignee"
-                    label="Assignee *"
-                    rules={[
-                      { required: true, message: "Please select assignee" },
-                    ]}
-                    help={
-                      !selectedProject
-                        ? "Please select a project first"
-                        : "Only project members are shown"
-                    }
-                  >
-                    <Select
-                      placeholder={
-                        selectedProject
-                          ? "Select assignee"
-                          : "Select a project first"
-                      }
-                      size="large"
-                      loading={dataLoading}
-                      disabled={!selectedProject}
-                      showSearch
-                      filterOption={(input, option) => {
-                        const member = projectMembers.find(
-                          (m) => m.value === option?.value
-                        );
-                        return member
-                          ? member.label
-                              .toLowerCase()
-                              .includes(input.toLowerCase()) ||
-                              member.position
-                                .toLowerCase()
-                                .includes(input.toLowerCase())
-                          : false;
-                      }}
+                      <Select placeholder="Select" size="large" style={{ borderRadius: 8 }}>
+                        {priorities.map((priority) => (
+                          <Option key={priority.value} value={priority.value}>
+                            <Space>
+                              <Badge color={priority.color} />
+                              {priority.label}
+                            </Space>
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="taskLevel"
+                      label={<Text strong>Complexity</Text>}
+                      rules={[{ required: true, message: "Required" }]}
                     >
-                      {projectMembers.map((member) => (
-                        <Option key={member.value} value={member.value}>
-                          {member.label} - {member.position}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
+                      <Select placeholder="Select" size="large" style={{ borderRadius: 8 }}>
+                        {taskLevels.map((level) => (
+                          <Option key={level.value} value={level.value}>
+                            {level.label}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={8}>
+                    <Form.Item
+                      name="taskType"
+                      label={<Text strong>Category</Text>}
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <Select placeholder="Select" size="large" style={{ borderRadius: 8 }}>
+                        {taskTypes.map((type) => (
+                          <Option key={type.value} value={type.value}>
+                            <Tag color={type.color} style={{ borderRadius: 4, border: "none" }}>{type.label}</Tag>
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
 
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="startDate"
-                    label="Start Date *"
-                    rules={[
-                      { required: true, message: "Please select start date" },
-                    ]}
+                <Row gutter={20}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="storyPoint"
+                      label={<Text strong>Story Points</Text>}
+                      tooltip="Estimation based on Fibonacci sequence or points"
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <InputNumber
+                        min={1}
+                        max={13}
+                        placeholder="1-13"
+                        style={{ width: "100%", borderRadius: 8 }}
+                        size="large"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="estimateHours"
+                      label={<Text strong>Total Effort (Hrs)</Text>}
+                      tooltip="Calculated engineering hours"
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <InputNumber
+                        min={1}
+                        placeholder="Hours"
+                        style={{ width: "100%", borderRadius: 8 }}
+                        size="large"
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* Assignment & Timeline Section */}
+              <Card
+                title={
+                  <Space>
+                    <UserOutlined style={{ color: "#52c41a" }} />
+                    <Text strong>Responsibility & Timeline</Text>
+                  </Space>
+                }
+                styles={{ 
+                  header: { borderBottom: "1px solid #f0f0f0", padding: "0 24px" },
+                  body: { padding: 24 }
+                }}
+                style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+              >
+                <Row gutter={20}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="reportTo"
+                      label={<Text strong>Reports To</Text>}
+                      rules={[{ required: true, message: "Required" }]}
+                      help={!selectedProject && <Text type="warning" style={{ fontSize: 11 }}>Choose project first</Text>}
+                    >
+                      <Select
+                        placeholder={selectedProject ? "Select person" : "Project required"}
+                        size="large"
+                        style={{ borderRadius: 8 }}
+                        loading={dataLoading}
+                        disabled={!selectedProject}
+                        showSearch
+                        optionFilterProp="label"
+                        optionLabelProp="label" // Ensure only the 'label' prop of Option is shown in the field
+                      >
+                        {projectMembers.map((member) => (
+                          <Option key={member.value} value={member.value} label={member.label}>
+                            <Space align="center" size={12}>
+                              <Avatar size="small" style={{ backgroundColor: "#87d068", flexShrink: 0 }}>
+                                {member.label.charAt(0)}
+                              </Avatar>
+                              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
+                                <Text strong style={{ fontSize: 13, color: "#262626", display: "block" }}>{member.label}</Text>
+                                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
+                                  {typeof member.position === 'object' ? (member.position as any)?.title : member.position}
+                                </Text>
+                              </div>
+                            </Space>
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="assignee"
+                      label={<Text strong>Assigned To</Text>}
+                      rules={[{ required: true, message: "Required" }]}
+                      help={!selectedProject && <Text type="warning" style={{ fontSize: 11 }}>Choose project first</Text>}
+                    >
+                      <Select
+                        placeholder={selectedProject ? "Select assignee" : "Project required"}
+                        size="large"
+                        style={{ borderRadius: 8 }}
+                        loading={dataLoading}
+                        disabled={!selectedProject}
+                        showSearch
+                        optionFilterProp="label"
+                        optionLabelProp="label" // Ensure only the 'label' prop of Option is shown in the field
+                      >
+                        {projectMembers.map((member) => (
+                          <Option key={member.value} value={member.value} label={member.label}>
+                            <Space align="center" size={12}>
+                              <Avatar size="small" style={{ backgroundColor: "#1677ff", flexShrink: 0 }}>
+                                {member.label.charAt(0)}
+                              </Avatar>
+                              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.4 }}>
+                                <Text strong style={{ fontSize: 13, color: "#262626", display: "block" }}>{member.label}</Text>
+                                <Text type="secondary" style={{ fontSize: 11, display: "block" }}>
+                                  {typeof member.position === 'object' ? (member.position as any)?.title : member.position}
+                                </Text>
+                              </div>
+                            </Space>
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={20}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="startDate"
+                      label={<Text strong>Planned Start</Text>}
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <DatePicker
+                        style={{ width: "100%", borderRadius: 8 }}
+                        size="large"
+                        placeholder="Start date"
+                        suffixIcon={<CalendarOutlined />}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="endDate"
+                      label={<Text strong>Target Delivery</Text>}
+                      rules={[{ required: true, message: "Required" }]}
+                    >
+                      <DatePicker
+                        style={{ width: "100%", borderRadius: 8 }}
+                        size="large"
+                        placeholder="End date"
+                        suffixIcon={<CalendarOutlined />}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Form.Item name="releasePlan" label={<Text strong>Associated Plan</Text>}>
+                  <Select
+                    placeholder="Link to a release plan (Optional)"
+                    allowClear
+                    size="large"
+                    style={{ borderRadius: 8 }}
+                    loading={dataLoading}
+                    disabled={!selectedProject}
+                    suffixIcon={<ThunderboltOutlined />}
                   >
-                    <DatePicker
-                      style={{ width: "100%" }}
-                      size="large"
-                      placeholder="Pick a date"
-                    />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item
-                    name="endDate"
-                    label="End Date *"
-                    rules={[
-                      { required: true, message: "Please select end date" },
-                    ]}
-                  >
-                    <DatePicker
-                      style={{ width: "100%" }}
-                      size="large"
-                      placeholder="Pick a date"
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+                    {releasePlans.map((plan) => (
+                      <Option key={plan.value} value={plan.value}>
+                        {plan.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Card>
 
-              <Form.Item name="releasePlan" label="Plans (Optional)">
-                <Select
-                  placeholder="Select Plans"
-                  allowClear
-                  size="large"
-                  loading={dataLoading}
-                  disabled={!selectedProject}
-                >
-                  {releasePlans.map((plan) => (
-                    <Option key={plan.value} value={plan.value}>
-                      {plan.label}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Card>
-
-            {/* Action Buttons */}
-            <Card>
-              <Space size="middle">
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  size="large"
-                  loading={loading}
-                  icon={<CheckCircleOutlined />}
-                  style={{ minWidth: 140 }}
-                >
-                  Create Ticket
-                </Button>
-                <Button
-                  size="large"
-                  onClick={handleCancel}
-                  icon={<CloseOutlined />}
-                >
-                  Cancel
-                </Button>
-              </Space>
-            </Card>
+            </Space>
           </Form>
         </Col>
 
-        {/* Right Side - Information Panel (30%) */}
-        <Col xs={24} lg={7}>
-          {/* Quick Info Card */}
-          <Card
-            style={{ marginBottom: 16 }}
-            title={
-              <Space>
-                <InfoCircleOutlined style={{ color: "#1677ff" }} />
-                <Text strong>Quick Info</Text>
-              </Space>
-            }
-            size="small"
-          >
-            <Space direction="vertical" style={{ width: "100%" }}>
-              <div>
-                <Text type="secondary">Ticket ID</Text>
-                <br />
-                <Text strong style={{ color: "#1677ff" }}>
-                  {ticketId}
-                </Text>
-              </div>
-              <div>
-                <Text type="secondary">Created</Text>
-                <br />
-                <Text strong>Today</Text>
-              </div>
-              <div>
-                <Text type="secondary">Status</Text>
-                <br />
-                <Badge status="default" text="Draft" />
-              </div>
-            </Space>
-          </Card>
-
-          {/* Priority Guide Card */}
-          <Card
-            style={{ marginBottom: 16 }}
-            title={
-              <Space>
-                <CalendarOutlined style={{ color: "#faad14" }} />
-                <Text strong>Priority Guide</Text>
-              </Space>
-            }
-            size="small"
-          >
-            <Space direction="vertical" style={{ width: "100%" }} size="small">
-              {priorities.map((priority) => (
-                <div
-                  key={priority.value}
-                  style={{ display: "flex", alignItems: "center", gap: 8 }}
-                >
-                  <Badge color={priority.color} />
-                  <Text strong style={{ minWidth: 60 }}>
-                    {priority.value}
-                  </Text>
-                  {priority.description && (
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {priority.description}
-                    </Text>
-                  )}
+        {/* Right Side - Useful Information Panel (30%) */}
+        <Col xs={24} lg={7} style={{ height: "100%", overflowY: "auto", paddingBottom: 60, scrollbarWidth: "none" }}>
+          <Space direction="vertical" size={24} style={{ width: "100%" }}>
+            {/* Current Sprint Card */}
+            <Card
+              title={
+                <Space>
+                  <ThunderboltOutlined style={{ color: "#1677ff" }} />
+                  <Text strong>Active Sprint</Text>
+                </Space>
+              }
+              styles={{ 
+                header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
+                body: { padding: 20 }
+              }}
+              style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+            >
+              {!selectedProject ? (
+                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text type="secondary" style={{ fontSize: 12 }}>Select a project to view sprint details</Text>} />
                 </div>
-              ))}
-            </Space>
-          </Card>
+              ) : releasePlans.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>No release plans found for this project</Text>
+                </div>
+              ) : (
+                (() => {
+                  const activeSprint = releasePlans.find(p => p.status?.toUpperCase() === "ACTIVE") || releasePlans[0];
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      <div style={{ 
+                        padding: "12px", 
+                        background: activeSprint.status?.toUpperCase() === "ACTIVE" ? "#e6f4ff" : "#fffbe6", 
+                        borderRadius: 8, 
+                        border: activeSprint.status?.toUpperCase() === "ACTIVE" ? "1px solid #91caff" : "1px solid #ffe58f" 
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase" }}>Current Sprint</Text>
+                            <Title level={4} style={{ margin: "4px 0", color: "#262626", fontWeight: 700, fontSize: 16 }}>
+                              {activeSprint.label}
+                            </Title>
+                          </div>
+                          <Tag color={activeSprint.status?.toUpperCase() === "ACTIVE" ? "processing" : "warning"} style={{ borderRadius: 4, margin: 0 }}>
+                            {activeSprint.status?.toUpperCase() || "PLANNED"}
+                          </Tag>
+                        </div>
+                      </div>
+                      
+                      <Row gutter={0} style={{ border: "1px solid #f0f0f0", borderRadius: 8, overflow: "hidden" }}>
+                        <Col span={12} style={{ padding: "8px 12px", borderRight: "1px solid #f0f0f0", background: "#fafafa" }}>
+                          <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Start Date</Text>
+                          <Text strong style={{ fontSize: 12 }}>{activeSprint.startDate ? dayjs(activeSprint.startDate).format("MMM DD, YYYY") : "Pending"}</Text>
+                        </Col>
+                        <Col span={12} style={{ padding: "8px 12px", background: "#fafafa" }}>
+                          <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Deadline</Text>
+                          <Text strong style={{ fontSize: 12 }}>{activeSprint.releaseDate ? dayjs(activeSprint.releaseDate).format("MMM DD, YYYY") : "No Date"}</Text>
+                        </Col>
+                      </Row>
 
-          {/* Recent Activity Card */}
-          <Card
-            title={
-              <Space>
-                <ClockCircleOutlined style={{ color: "#52c41a" }} />
-                <Text strong>Recent Activity</Text>
-              </Space>
-            }
-            size="small"
-          >
-            <List
-              size="small"
-              dataSource={recentActivities}
-              renderItem={(item) => (
-                <List.Item style={{ padding: "8px 0", border: "none" }}>
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        size="small"
-                        style={{ backgroundColor: "#1677ff" }}
-                      >
-                        {item.user.charAt(0)}
-                      </Avatar>
-                    }
-                    title={
-                      <Text style={{ fontSize: 12 }}>
-                        <Text strong>{item.user}</Text> {item.action}
-                      </Text>
-                    }
-                    description={
-                      <Text type="secondary" style={{ fontSize: 11 }}>
-                        {item.time}
-                      </Text>
-                    }
-                  />
-                </List.Item>
+                      <Divider style={{ margin: "8px 0" }} />
+                      
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Text type="secondary" style={{ fontSize: 12 }}>Sprint Tickets</Text>
+                        <Badge count={activeSprint.totalTickets || 0} style={{ backgroundColor: "#1677ff" }} />
+                      </div>
+                      
+                      {activeSprint.totalTickets !== undefined && activeSprint.totalTickets > 0 && (
+                        <Progress 
+                          percent={Math.round(((activeSprint.completedTickets || 0) / activeSprint.totalTickets) * 100)} 
+                          size="small" 
+                          status={activeSprint.status?.toUpperCase() === "ACTIVE" ? "active" : "normal"}
+                        />
+                      )}
+                    </div>
+                  );
+                })()
               )}
-            />
-          </Card>
+            </Card>
+
+            {/* Writing Best Practices */}
+            <Card
+              title={
+                <Space>
+                  <FileTextOutlined style={{ color: "#52c41a" }} />
+                  <Text strong>Ticket Best Practices</Text>
+                </Space>
+              }
+              styles={{ 
+                header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
+                body: { padding: "16px 20px" }
+              }}
+              style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <Text strong style={{ fontSize: 13, display: "block", marginBottom: 4 }}>Clear & Concise Titles</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Use action-oriented verbs (e.g., "Implement", "Fix", "Research").</Text>
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 13, display: "block", marginBottom: 4 }}>Detailed Context</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Include business value, technical constraints, and acceptance criteria.</Text>
+                </div>
+                <div style={{ marginTop: 8, padding: "8px 12px", background: "#f6ffed", borderRadius: 6, border: "1px solid #b7eb8f" }}>
+                  <Text strong style={{ color: "#389e0d", fontSize: 12 }}>Pro-Tip:</Text>
+                  <Text style={{ fontSize: 12, color: "#389e0d", marginLeft: 4 }}>Break large tasks into sub-tasks using list points.</Text>
+                </div>
+              </div>
+            </Card>
+
+            {/* Priority Framework */}
+            <Card
+              title={
+                <Space>
+                  <CalendarOutlined style={{ color: "#faad14" }} />
+                  <Text strong>Priority Framework</Text>
+                </Space>
+              }
+              styles={{ 
+                header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
+                body: { padding: "12px 20px" }
+              }}
+              style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+            >
+              <List
+                size="small"
+                dataSource={priorities}
+                renderItem={(priority) => (
+                  <List.Item style={{ padding: "10px 0", borderBottom: "none" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <Badge color={priority.color} style={{ marginTop: 4 }} />
+                      <div>
+                        <Text strong style={{ display: "block", fontSize: 13 }}>{priority.label}</Text>
+                        <Text type="secondary" style={{ fontSize: 11 }}>
+                          {priority.description || `standard ${priority.value.toLowerCase()} tier mapping`}
+                        </Text>
+                      </div>
+                    </div>
+                  </List.Item>
+                )}
+              />
+            </Card>
+          </Space>
         </Col>
       </Row>
       {contextHolder}

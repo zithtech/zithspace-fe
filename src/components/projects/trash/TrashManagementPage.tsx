@@ -16,6 +16,9 @@ import {
   Input,
   Select,
   Divider,
+  Row,
+  Col,
+  Avatar,
 } from "antd";
 import {
   DeleteOutlined,
@@ -24,6 +27,8 @@ import {
   ClockCircleOutlined,
   WarningOutlined,
   ClearOutlined,
+  ProjectOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import {
   useTrashTickets,
@@ -33,6 +38,7 @@ import {
   useBulkPermanentlyDelete,
   useEmptyTrash,
 } from "@/hooks/useTrash";
+import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import duration from "dayjs/plugin/duration";
@@ -41,12 +47,13 @@ dayjs.extend(relativeTime);
 dayjs.extend(duration);
 
 const { Title, Text } = Typography;
-
-// Mock projects data - replace with actual useProjects hook when available
-const mockProjects = [
-  { label: "Project 1", value: "project-1" },
-  { label: "Project 2", value: "project-2" },
-];
+ 
+const calculateDaysRemaining = (deletedAt: string) => {
+  const deleteDate = dayjs(deletedAt);
+  const purgeDate = deleteDate.add(7, "days");
+  const daysRemaining = purgeDate.diff(dayjs(), "days");
+  return Math.max(0, daysRemaining);
+};
 
 export default function TrashManagementPage() {
   const [page, setPage] = useState(1);
@@ -67,11 +74,29 @@ export default function TrashManagementPage() {
     projectId: projectFilter,
     search: searchQuery,
   });
+
+  const { data: userProjectsData } = useUserProjects();
+  const projects = userProjectsData || [];
+
   const restoreTicket = useRestoreFromTrash();
   const permanentlyDelete = usePermanentlyDelete();
   const bulkRestore = useBulkRestoreFromTrash();
   const bulkDelete = useBulkPermanentlyDelete();
   const emptyTrash = useEmptyTrash();
+
+  // Stats calculation
+  const stats = React.useMemo(() => {
+    const tickets = trashData?.tickets || [];
+    const purgingSoon = tickets.filter(t => {
+      const days = calculateDaysRemaining(t.deletedAt || t.createdAt);
+      return days <= 2;
+    }).length;
+    
+    return {
+      total: trashData?.pagination.total || 0,
+      purgingSoon
+    };
+  }, [trashData]);
 
   const handleRestore = async (ticketId: string) => {
     try {
@@ -146,152 +171,121 @@ export default function TrashManagementPage() {
     }),
   };
 
-  const calculateDaysRemaining = (deletedAt: string) => {
-    const deleteDate = dayjs(deletedAt);
-    const purgeDate = deleteDate.add(7, "days");
-    const daysRemaining = purgeDate.diff(dayjs(), "days");
-    return Math.max(0, daysRemaining);
-  };
+
 
   const columns = [
     {
-      title: "Ticket",
+      title: "ID",
       dataIndex: "ticketNumber",
       key: "ticketNumber",
-      width: 130,
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
+      width: 100,
+      render: (text: string) => <Text strong style={{ color: "#1677ff", fontFamily: "monospace" }}>{text}</Text>,
     },
     {
-      title: "Title",
-      dataIndex: "title",
-      key: "title",
-      ellipsis: true,
-      filteredValue: searchQuery ? [searchQuery] : null,
-      onFilter: (value: any, record: any) =>
-        record.title.toLowerCase().includes(value.toLowerCase()) ||
-        record.ticketNumber.toLowerCase().includes(value.toLowerCase()),
-    },
-    {
-      title: "Project",
-      key: "project",
-      width: 150,
+      title: "Ticket Details",
+      key: "details",
       render: (_: any, record: any) => (
-        <Text>{record.project?.name || "N/A"}</Text>
+        <Space direction="vertical" size={2}>
+          <Text strong style={{ fontSize: 14 }}>{record.title}</Text>
+          <Space size={8}>
+            <Tag icon={<ProjectOutlined />} style={{ borderRadius: 4, fontSize: 11, background: "#f5f5f5", border: "none" }}>
+              {record.project?.name || "Global"}
+            </Tag>
+            <Tag color={record.status === 'completed' ? 'success' : 'processing'} style={{ borderRadius: 4, fontSize: 10, border: "none" }}>
+              {record.status?.replace("_", " ").toUpperCase()}
+            </Tag>
+          </Space>
+        </Space>
       ),
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 120,
-      render: (status: string) => {
-        const colorMap: Record<string, string> = {
-          completed: "success",
-          in_progress: "processing",
-          in_testing: "warning",
-          not_started: "default",
-        };
-        return (
-          <Tag color={colorMap[status] || "default"}>
-            {status.replace("_", " ").toUpperCase()}
-          </Tag>
-        );
-      },
+      title: "Deleted By",
+      key: "deletedBy",
+      width: 180,
+      render: (_: any, record: any) => (
+        <Space>
+          <Avatar 
+            size="small" 
+            style={{ backgroundColor: "#87d068" }}
+          >
+            {record.deletedBy?.name?.charAt(0) || "U"}
+          </Avatar>
+          <div>
+            <Text strong style={{ fontSize: 13, display: "block" }}>{record.deletedBy?.name || "System"}</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(record.deletedAt || record.createdAt).fromNow()}</Text>
+          </div>
+        </Space>
+      ),
     },
     {
-      title: "Deleted",
-      key: "deletedAt",
+      title: "Auto-Purge In",
+      key: "purge",
       width: 150,
       render: (_: any, record: any) => {
         const daysRemaining = calculateDaysRemaining(
           record.deletedAt || record.createdAt
         );
+        const isUrgent = daysRemaining <= 2;
         return (
-          <Space direction="vertical" size={0}>
-            <Tooltip
-              title={dayjs(record.deletedAt || record.createdAt).format(
-                "MMM DD, YYYY HH:mm"
-              )}
-            >
-              <Text type="secondary">
-                {dayjs(record.deletedAt || record.createdAt).fromNow()}
+          <Tooltip title={`Permanently purged in approx. ${daysRemaining} days`}>
+            <div style={{ 
+              padding: "4px 12px", 
+              borderRadius: 6, 
+              background: isUrgent ? "#fff2f0" : "#f6ffed",
+              border: `1px solid ${isUrgent ? "#ffccc7" : "#b7eb8f"}`,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8
+            }}>
+              <ClockCircleOutlined style={{ color: isUrgent ? "#ff4d4f" : "#52c41a" }} />
+              <Text strong style={{ color: isUrgent ? "#ff4d4f" : "#52c41a", fontSize: 13 }}>
+                {daysRemaining}d Left
               </Text>
-            </Tooltip>
-            <Tooltip title={`Auto-purge in ${daysRemaining} days`}>
-              <Space size={4}>
-                <ClockCircleOutlined
-                  style={{
-                    color: daysRemaining <= 2 ? "#ff4d4f" : "#faad14",
-                    fontSize: 12,
-                  }}
-                />
-                <Text
-                  type="secondary"
-                  style={{
-                    fontSize: 12,
-                    color: daysRemaining <= 2 ? "#ff4d4f" : undefined,
-                  }}
-                >
-                  {daysRemaining}d left
-                </Text>
-              </Space>
-            </Tooltip>
-          </Space>
+            </div>
+          </Tooltip>
         );
       },
     },
     {
-      title: "Deleted By",
-      key: "deletedBy",
-      width: 150,
-      render: (_: any, record: any) => (
-        <Text>{record.deletedBy?.name || "Unknown"}</Text>
-      ),
-    },
-    {
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 100,
+      align: "center" as const,
       fixed: "right" as const,
       render: (_: any, record: any) => (
-        <Space>
+        <Space size={4}>
           <Popconfirm
             title="Restore Ticket"
-            description="Restore this ticket from trash?"
+            description="Move this ticket back to active status?"
             onConfirm={() => handleRestore(record.id)}
             okText="Restore"
             cancelText="Cancel"
           >
-            <Tooltip title="Restore ticket">
+            <Tooltip title="Restore">
               <Button
                 type="text"
-                size="small"
+                shape="circle"
                 icon={<UndoOutlined />}
-                loading={
-                  restoreTicket.isPending &&
-                  restoreTicket.variables?.[0] === record.id
-                }
+                loading={restoreTicket.isPending && restoreTicket.variables?.[0] === record.id}
+                style={{ color: "#52c41a" }}
               />
             </Tooltip>
           </Popconfirm>
           <Popconfirm
-            title="Permanently Delete"
-            description="This action cannot be undone. Are you sure?"
+            title="Purge Permanently"
+            description="This action is irreversible. Continue?"
             onConfirm={() => handlePermanentDelete(record.id)}
-            okText="Delete"
+            okText="Purge"
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
           >
-            <Tooltip title="Permanently delete">
+            <Tooltip title="Purge Permanently">
               <Button
                 type="text"
-                size="small"
+                shape="circle"
                 danger
                 icon={<DeleteOutlined />}
-                loading={
-                  permanentlyDelete.isPending &&
-                  permanentlyDelete.variables?.[0] === record.id
-                }
+                loading={permanentlyDelete.isPending && permanentlyDelete.variables?.[0] === record.id}
               />
             </Tooltip>
           </Popconfirm>
@@ -301,138 +295,190 @@ export default function TrashManagementPage() {
   ];
 
   return (
-    <div style={{ padding: "24px" }}>
-      <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <Title level={2} style={{ margin: 0 }}>
-              <DeleteOutlined /> Trash
-            </Title>
-            <Text type="secondary">
-              Deleted tickets are permanently removed after 7 days
-            </Text>
+    <div style={{ padding: "0", background: "#ffffff", minHeight: "100%" }}>
+      <Space direction="vertical" size={24} style={{ width: "100%" }}>
+        {/* Premium Header - Reduced Height */}
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          background: "#fff",
+          padding: "16px 0",
+          borderRadius: 0,
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          borderBottom: "1px solid #f0f0f0"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Avatar 
+              size={40} 
+              icon={<DeleteOutlined />} 
+              style={{ backgroundColor: "#ff4d4f", boxShadow: "0 4px 12px rgba(255, 77, 79, 0.2)" }} 
+            />
+            <div>
+              <Title level={4} style={{ margin: 0 }}>Trash Repository</Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Recover deleted items or purge them permanently
+              </Text>
+            </div>
           </div>
-          <Popconfirm
-            title="Empty Trash"
-            description="This will permanently delete ALL tickets in trash. This action cannot be undone."
-            onConfirm={handleEmptyTrash}
-            okText="Empty Trash"
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              danger
-              icon={<ClearOutlined />}
-              loading={emptyTrash.isPending}
-              disabled={!trashData || !trashData.tickets || trashData.tickets.length === 0}
+          <Space size={12}>
+            <Popconfirm
+              title="Empty Trash"
+              description="This will permanently delete ALL tickets in trash. This action cannot be undone."
+              onConfirm={handleEmptyTrash}
+              okText="Confirm Purge"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true, size: "middle" }}
             >
-              Empty Trash
-            </Button>
-          </Popconfirm>
+              <Button
+                danger
+                size="middle"
+                icon={<ClearOutlined />}
+                loading={emptyTrash.isPending}
+                disabled={!trashData?.tickets?.length}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600 }}
+              >
+                Empty Trash
+              </Button>
+            </Popconfirm>
+          </Space>
         </div>
 
-        {/* Warning Alert */}
-        {trashData && trashData.tickets && trashData.tickets.length > 0 && (
-          <Alert
-            message="Auto-Purge Active"
-            description="Tickets in trash are automatically permanently deleted after 7 days. Restore them before the countdown expires."
-            type="warning"
-            icon={<WarningOutlined />}
-            showIcon
-          />
-        )}
+        {/* Summary Stats Row - Reduced Card Heights */}
+        <Row gutter={[16, 16]} style={{ display: 'flex' }}>
+          <Col xs={24} sm={12} md={6} style={{ display: 'flex' }}>
+            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
+              <Space direction="vertical" size={2}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Deleted</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{stats.total}</Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6} style={{ display: 'flex' }}>
+            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
+              <Space direction="vertical" size={2}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <WarningOutlined style={{ color: stats.purgingSoon > 0 ? "#faad14" : "#52c41a", fontSize: 12 }} />
+                  <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}>Purging Soon</Text>
+                </div>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: stats.purgingSoon > 0 ? "#faad14" : "inherit" }}>
+                  {stats.purgingSoon} <span style={{ fontSize: 13, fontWeight: 400, color: "#8c8c8c" }}>(&le; 48h)</span>
+                </Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={12} style={{ display: 'flex' }}>
+            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid #ffe58f", backgroundColor: "#fffbe6", boxShadow: "none", width: "100%", display: 'flex', alignItems: 'center' }}>
+              <Space size={12}>
+                <InfoCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
+                <div>
+                  <Text strong style={{ display: "block", color: "#856404", fontSize: 13 }}>Automatic Maintenance Active</Text>
+                  <Text type="secondary" style={{ fontSize: 12, color: "#856404" }}>
+                    Items in trash are automatically purged after 7 days to keep your workspace clean.
+                  </Text>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
 
-        {/* Filters */}
-        <Card>
-          <Space size="middle" style={{ width: "100%" }}>
-            <Input
-              placeholder="Search by ticket number or title..."
-              prefix={<SearchOutlined />}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: 300 }}
-              allowClear
-            />
-            <Select
-              placeholder="Filter by project"
-              style={{ width: 200 }}
-              value={projectFilter}
-              onChange={setProjectFilter}
-              allowClear
-              options={[
-                { label: "All Projects", value: undefined },
-                ...mockProjects.map((p: { label: string; value: string }) => ({
-                  label: p.label,
-                  value: p.value,
-                })),
-              ]}
-            />
-          </Space>
+        {/* Filters Row */}
+        <Card styles={{ body: { padding: "16px 24px" } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "none" }}>
+          <Row gutter={16} align="middle">
+            <Col flex="auto">
+              <Input
+                placeholder="Search by ticket number or title..."
+                prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+                size="large"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ borderRadius: 8, height: 45 }}
+                allowClear
+              />
+            </Col>
+            <Col span={6}>
+              <Select
+                placeholder="Filter by Project"
+                size="large"
+                style={{ width: "100%", height: 45 }}
+                value={projectFilter}
+                onChange={setProjectFilter}
+                allowClear
+                options={[
+                  { label: "All Projects", value: undefined },
+                  ...projects.map((p) => ({
+                    label: p.label,
+                    value: p.value,
+                  })),
+                ]}
+                suffixIcon={<ProjectOutlined />}
+              />
+            </Col>
+          </Row>
         </Card>
 
-        {/* Bulk Actions */}
+        {/* Bulk Actions Alert */}
         {selectedRowKeys.length > 0 && (
           <Alert
             message={
-              <Space split={<Divider type="vertical" />}>
-                <Text strong>{selectedRowKeys.length} ticket(s) selected</Text>
-                <Popconfirm
-                  title="Bulk Restore"
-                  description={`Restore ${selectedRowKeys.length} ticket(s) from trash?`}
-                  onConfirm={handleBulkRestore}
-                  okText="Restore"
-                  cancelText="Cancel"
-                >
-                  <Button
-                    type="link"
-                    size="small"
-                    icon={<UndoOutlined />}
-                    loading={bulkRestore.isPending}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Text strong>{selectedRowKeys.length} ticket(s) selected for processing</Text>
+                <Space size={16}>
+                  <Popconfirm
+                    title="Bulk Restore"
+                    description={`Restore ${selectedRowKeys.length} ticket(s) from trash?`}
+                    onConfirm={handleBulkRestore}
+                    okText="Restore"
+                    cancelText="Cancel"
                   >
-                    Bulk Restore
-                  </Button>
-                </Popconfirm>
-                <Popconfirm
-                  title="Bulk Delete"
-                  description={`Permanently delete ${selectedRowKeys.length} ticket(s)? This cannot be undone.`}
-                  onConfirm={handleBulkDelete}
-                  okText="Delete"
-                  cancelText="Cancel"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button
-                    type="link"
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    loading={bulkDelete.isPending}
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<UndoOutlined />}
+                      loading={bulkRestore.isPending}
+                      style={{ borderRadius: 6, backgroundColor: "#52c41a", border: "none" }}
+                    >
+                      Bulk Restore
+                    </Button>
+                  </Popconfirm>
+                  <Popconfirm
+                    title="Bulk Delete"
+                    description={`Permanently delete ${selectedRowKeys.length} ticket(s)? This cannot be undone.`}
+                    onConfirm={handleBulkDelete}
+                    okText="Delete Permanently"
+                    cancelText="Cancel"
+                    okButtonProps={{ danger: true }}
                   >
-                    Bulk Delete
+                    <Button
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      loading={bulkDelete.isPending}
+                      style={{ borderRadius: 6 }}
+                    >
+                      Bulk Purge
+                    </Button>
+                  </Popconfirm>
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={() => setSelectedRowKeys([])}
+                  >
+                    Clear
                   </Button>
-                </Popconfirm>
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => setSelectedRowKeys([])}
-                >
-                  Clear Selection
-                </Button>
-              </Space>
+                </Space>
+              </div>
             }
             type="info"
             showIcon
+            style={{ borderRadius: 8, padding: "12px 20px" }}
           />
         )}
 
-        {/* Trash Table */}
-        <Card>
+        {/* Results Table */}
+        <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
           <Table
             rowSelection={rowSelection}
             columns={columns}
@@ -444,8 +490,9 @@ export default function TrashManagementPage() {
               pageSize: limit,
               total: trashData?.pagination.total || 0,
               showSizeChanger: false,
-              showTotal: (total) => `Total ${total} deleted tickets`,
+              showTotal: (total) => <Text type="secondary">Total {total} removed items</Text>,
               onChange: (newPage) => setPage(newPage),
+              style: { padding: "16px 24px" }
             }}
             locale={{
               emptyText: (
@@ -453,12 +500,11 @@ export default function TrashManagementPage() {
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description={
                     <Space direction="vertical" size="small">
-                      <Text>No deleted tickets</Text>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        Deleted tickets will appear here for 7 days
-                      </Text>
+                      <Text style={{ fontSize: 16, fontWeight: 600 }}>Trash is clear</Text>
+                      <Text type="secondary">Deleted items will stay here for 7 days before being purged.</Text>
                     </Space>
                   }
+                  style={{ padding: "40px 0" }}
                 />
               ),
             }}

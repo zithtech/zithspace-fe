@@ -138,7 +138,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             trigger={null}
             collapsible
             collapsed={collapsed}
-            width={240}
+            width={200}
             collapsedWidth={65} // Icons only mode width
             theme="light"
             style={{

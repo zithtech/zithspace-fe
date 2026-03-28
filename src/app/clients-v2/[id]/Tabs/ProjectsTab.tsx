@@ -15,15 +15,27 @@ import {
   Popconfirm,
   notification,
   Card,
-  Divider,
+  Row,
+  Col,
+  Tooltip,
+  Avatar,
+  Progress,
 } from "antd";
 import {
-  PlusOutlined,
-  EditOutlined,
-  EyeOutlined,
-  SearchOutlined,
-  ProjectOutlined,
-} from "@ant-design/icons";
+  Plus,
+  Edit2,
+  Eye,
+  Search,
+  Layers,
+  Calendar,
+  DollarSign,
+  User,
+  Activity,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 import { api } from "@/lib/axios";
 import dayjs from "dayjs";
 
@@ -49,7 +61,6 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Modal state
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -67,8 +78,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     } catch (error) {
       console.error("Error fetching projects:", error);
       notify.error({
-        message: "Error",
-        description: "Failed to load projects",
+        message: "Load Error",
+        description: "Failed to load project database.",
         placement: "top",
       });
     } finally {
@@ -92,7 +103,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
 
   const currencySelector = (
     <Form.Item name="currency" noStyle initialValue="USD">
-      <Select style={{ width: 60 }}>
+      <Select style={{ width: 70, border: "none" }} dropdownMatchSelectWidth={false}>
         {currencyOptions.map((option) => (
           <Select.Option key={option.value} value={option.value}>
             {option.symbol}
@@ -107,19 +118,14 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     try {
       const payload = {
         ...values,
-        startDate: values.startDate
-          ? values.startDate.format("YYYY-MM-DD")
-          : undefined,
-        endDate: values.endDate
-          ? values.endDate.format("YYYY-MM-DD")
-          : undefined,
+        startDate: values.startDate ? values.startDate.format("YYYY-MM-DD") : undefined,
+        endDate: values.endDate ? values.endDate.format("YYYY-MM-DD") : undefined,
       };
 
       await api.post(`/api/clients-v2/${clientId}/projects`, payload);
-      console.log("data :", payload);
       notify.success({
-        message: "Success",
-        description: "Project created successfully",
+        message: "Project Created",
+        description: "New client project has been initialized successfully.",
         placement: "top",
       });
       setIsModalVisible(false);
@@ -127,10 +133,9 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       fetchProjects();
       onRefresh();
     } catch (error: any) {
-      const msg = error.response?.data?.error || "Failed to create project";
       notify.error({
-        message: "Error",
-        description: msg,
+        message: "Creation Failed",
+        description: error.response?.data?.error || "Failed to create project record.",
         placement: "top",
       });
     } finally {
@@ -147,7 +152,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       budget: project.budget,
       currency: project.currency || "USD",
       status: project.status,
-      projectManagerId: project.projectManager?.id || project.projectManagerId, // Depending on relation response
+      projectManagerId: project.projectManager?.id || project.projectManagerId,
       startDate: project.startDate ? dayjs(project.startDate) : undefined,
       endDate: project.endDate ? dayjs(project.endDate) : undefined,
     });
@@ -159,18 +164,14 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
     try {
       const payload = {
         ...values,
-        startDate: values.startDate
-          ? values.startDate.format("YYYY-MM-DD")
-          : undefined,
-        endDate: values.endDate
-          ? values.endDate.format("YYYY-MM-DD")
-          : undefined,
+        startDate: values.startDate ? values.startDate.format("YYYY-MM-DD") : undefined,
+        endDate: values.endDate ? values.endDate.format("YYYY-MM-DD") : undefined,
       };
 
       await api.put(`/api/clients-v2/projects/${editingProject.id}`, payload);
       notify.success({
-        message: "Success",
-        description: "Project updated successfully",
+        message: "Project Updated",
+        description: "Project configuration has been successfully modified.",
         placement: "top",
       });
       setIsEditModalVisible(false);
@@ -179,10 +180,9 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       fetchProjects();
       onRefresh();
     } catch (error: any) {
-      const msg = error.response?.data?.error || "Failed to update project";
       notify.error({
-        message: "Error",
-        description: msg,
+        message: "Update Failed",
+        description: error.response?.data?.error || "Failed to save project changes.",
         placement: "top",
       });
     } finally {
@@ -191,155 +191,189 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
   };
 
   const columns = [
-    { title: "Project Name", dataIndex: "name", key: "name", width: 200 },
-    { title: "Code", dataIndex: "code", key: "code" },
-    { title: "Billing Type", dataIndex: "billingType", key: "billingType" },
     {
-      title: "Budget",
+      title: "Project Identity",
+      key: "name",
+      width: 280,
+      render: (_: any, record: any) => (
+        <Space size={12}>
+          <div style={{ background: "#f8fafc", padding: 8, borderRadius: 8, color: "#64748b", display: "flex" }}>
+            <Layers size={18} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>{record.name}</div>
+            <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>CODE: {record.code}</div>
+          </div>
+        </Space>
+      )
+    },
+    {
+      title: "Billing Details",
+      key: "billing",
+      render: (_: any, record: any) => (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{record.billingType}</div>
+          <div style={{ fontSize: 12, color: "#94a3b8" }}>Model</div>
+        </div>
+      )
+    },
+    {
+      title: "Budget Status",
       key: "budget",
       render: (_: any, record: any) => {
-        const symbol =
-          currencyOptions.find((c) => c.value === record.currency)?.symbol ||
-          "";
-        return record.budget
-          ? `${symbol} ${Number(record.budget).toLocaleString()}`
-          : "N/A";
-      },
-    },
-    {
-      title: "Invoiced",
-      key: "invoicedAmount",
-      render: (_: any, record: any) => {
-        const symbol =
-          currencyOptions.find((c) => c.value === record.currency)?.symbol ||
-          "$";
-        return record.invoicedAmount
-          ? `${symbol} ${Number(record.invoicedAmount).toLocaleString()}`
-          : `${symbol} 0`;
-      },
-    },
-    {
-      title: "Outstanding",
-      key: "outstanding",
-      render: (_: any, record: any) => {
-        const symbol =
-          currencyOptions.find((c) => c.value === record.currency)?.symbol ||
-          "$";
+        const symbol = currencyOptions.find((c) => c.value === record.currency)?.symbol || "$";
         const budget = Number(record.budget || 0);
         const invoiced = Number(record.invoicedAmount || 0);
-        const outstanding = budget - invoiced;
-        return `${symbol} ${Math.max(0, outstanding).toLocaleString()}`;
+        const percentage = budget > 0 ? Math.min(100, (invoiced / budget) * 100) : 0;
+
+        return (
+          <div style={{ width: 140 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{symbol}{budget.toLocaleString()}</span>
+              <span style={{ fontSize: 11, color: "#64748b" }}>{Math.round(percentage)}%</span>
+            </div>
+            <Progress
+              percent={percentage}
+              size="small"
+              showInfo={false}
+              strokeColor="#3b82f6"
+              trailColor="#f1f5f9"
+              strokeWidth={6}
+            />
+          </div>
+        );
       },
     },
     {
-      title: "Status",
+      title: "Lifecycle",
       dataIndex: "status",
       key: "status",
       render: (status: string) => {
-        const color =
-          {
-            Active: "#87d068",
-            Draft: "geekblue",
-            "On Hold": "orange",
-            Completed: "#1677ff",
-            Closed: "default",
-          }[status] || "default";
-        return <Tag color={color}>{status}</Tag>;
+        const config: any = {
+          Active: { color: "success", icon: <Activity size={12} /> },
+          Draft: { color: "processing", icon: <FileText size={12} /> },
+          "On Hold": { color: "warning", icon: <Clock size={12} /> },
+          Completed: { color: "default", icon: <CheckCircle2 size={12} /> },
+          Closed: { color: "error", icon: <AlertCircle size={12} /> },
+        };
+        const item = config[status] || { color: "default", icon: null };
+        return (
+          <Tag
+            color={item.color}
+            icon={item.icon}
+            style={{ borderRadius: 6, fontWeight: 600, border: 0, display: "flex", alignItems: "center", gap: 4, width: "fit-content" }}
+          >
+            {status?.toUpperCase()}
+          </Tag>
+        );
       },
     },
     {
-      title: "Manager",
-      dataIndex: ["projectManager", "name"],
+      title: "Leadership",
       key: "projectManager",
-      render: (name: string, record: any) => {
-        // Handle fallback if legacy first_name / last_name structure is fetched
-        if (!name && record.projectManager) {
-          return (
-            `${record.projectManager.first_name || ""} ${record.projectManager.last_name || ""}`.trim() ||
-            "N/A"
-          );
-        }
-        return name || "N/A";
-      },
+      render: (_: any, record: any) => (
+        <Space size={8}>
+          <Avatar
+            size="small"
+            style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}
+            icon={<User size={12} />}
+          />
+          <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>
+            {record.projectManager?.first_name
+              ? `${record.projectManager.first_name} ${record.projectManager.last_name}`
+              : record.projectManager?.name || "Unassigned"}
+          </span>
+        </Space>
+      ),
     },
     {
-      title: "Start Date",
+      title: "Timeline",
       dataIndex: "startDate",
       key: "startDate",
-      render: (date: string) =>
-        date ? dayjs(date).format("MMM DD, YYYY") : "N/A",
+      render: (date: string) => (
+        <Space size={6} style={{ color: "#64748b", fontSize: 13 }}>
+          <Calendar size={14} style={{ color: "#94a3b8" }} />
+          {date ? dayjs(date).format("MMM DD, YYYY") : "N/A"}
+        </Space>
+      )
     },
     {
-      title: "Actions",
+      title: "",
       key: "actions",
+      align: "right" as const,
       render: (_: any, record: any) => (
         <Space>
-          <Button type="text" icon={<EyeOutlined />} size="small" />
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            size="small"
-            onClick={() => openEditModal(record)}
-          />
+          <Tooltip title="View Project Details">
+            <Button type="text" className="premium-action-btn" icon={<Eye size={16} />} style={{ color: "#64748b" }} />
+          </Tooltip>
+          <Tooltip title="Edit Configuration">
+            <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "#64748b" }} onClick={() => openEditModal(record)} />
+          </Tooltip>
         </Space>
       ),
     },
   ];
 
   const filteredProjects = projects.filter((project) =>
-    project.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <Card style={{ backgroundColor: "white", height: "60vh" }}>
+    <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <div
+      <Card
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
+          borderRadius: 16,
+          border: "1px solid #f1f5f9",
+          background: "#fff"
         }}
+        bodyStyle={{ padding: "0" }}
       >
-        <div>
-          <p
-            style={{ fontSize: 12, fontWeight: 600, margin: 0, color: "grey" }}
-          >
-            Track all client projects, their status, budget, and team
-            assignments.
-          </p>
+        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Internal Projects</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Monitor project lifecycles, budget utilization, and leadership assignments</div>
+          </div>
+          <Space size={12}>
+            <Input
+              placeholder="Search by name or project code..."
+              prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ borderRadius: 10, width: 300, height: 40 }}
+            />
+            <Button
+              type="primary"
+              size="large"
+              icon={<Plus size={18} />}
+              onClick={() => setIsModalVisible(true)}
+              style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+            >
+              Initiate Project
+            </Button>
+          </Space>
         </div>
-        <Space>
-          <Input
-            placeholder="Search by project name..."
-            prefix={<SearchOutlined />}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalVisible(true)}
-          >
-            Create Project
-          </Button>
-        </Space>
-      </div>
 
-      <Table
-        dataSource={filteredProjects}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        scroll={{ x: 1200 }}
-        pagination={{ pageSize: 10 }}
-      />
+        <Table
+          dataSource={filteredProjects}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          className="premium-table"
+          locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No project initiatives recorded</div> }}
+        />
+      </Card>
 
+      {/* Create Modal */}
       <Modal
         title={
-          <Space>
-            <ProjectOutlined style={{ color: "#1677ff" }} />
-            <span>Create Project</span>
-          </Space>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
+              <Layers size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 18 }}>Initiate New Project</span>
+          </div>
         }
         open={isModalVisible}
         onCancel={() => {
@@ -347,130 +381,149 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           form.resetFields();
         }}
         footer={null}
-        width={700}
+        width={680}
+        centered
         destroyOnClose
+        className="premium-modal"
       >
-        <div style={{ marginBottom: 16, color: "#666" }}>
-          Enter the details for the new project.
-        </div>
-        <Divider style={{ margin: "0 0 16px 0" }} />
-        <Form form={form} layout="vertical" onFinish={handleCreateProject}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "16px",
-            }}
-          >
-            <Form.Item
-              label="Project Name"
-              name="name"
-              rules={[{ required: true }]}
-            >
-              <Input placeholder="E.g. Website Redesign" />
-            </Form.Item>
-            <Form.Item
-              label="Project Code"
-              name="code"
-              rules={[{ required: true }]}
-            >
-              <Input placeholder="E.g. PRJ-001" />
-            </Form.Item>
+        <div style={{ padding: "8px 0" }}>
+          <Form form={form} layout="vertical" onFinish={handleCreateProject}>
+            <Row gutter={20}>
+              <Col span={14}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>}
+                  name="name"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input placeholder="e.g. Q3 Infrastructure Modernization" style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={10}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>System Identification Code</span>}
+                  name="code"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <Input placeholder="e.g. PRJ-2024-001" style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
 
-            <Form.Item
-              label="Billing Type"
-              name="billingType"
-              rules={[{ required: true }]}
-            >
-              <Select placeholder="Select Billing Type">
-                <Select.Option value="Hourly">Hourly</Select.Option>
-                <Select.Option value="Monthly">Monthly</Select.Option>
-                <Select.Option value="Daily">Daily</Select.Option>
-                <Select.Option value="Fixed">Fixed</Select.Option>
-                <Select.Option value="Non-Billable">Non-Billable</Select.Option>
-              </Select>
-            </Form.Item>
-            <Form.Item label="Budget" name="budget">
-              <InputNumber
-                addonBefore={currencySelector}
-                style={{ width: "100%" }}
-                formatter={(value) =>
-                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                }
-                parser={(value) =>
-                  value?.replace(/\$\s?|(,*)/g, "") as unknown as number
-                }
-              />
-            </Form.Item>
+            <Row gutter={20}>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Leadership</span>}
+                  name="projectManagerId"
+                  rules={[{ required: true, message: "Assignment required" }]}
+                >
+                  <Select
+                    placeholder="Assign a Project Manager"
+                    showSearch
+                    optionFilterProp="children"
+                    style={{ borderRadius: 8, height: 40 }}
+                  >
+                    {employees.map((emp) => (
+                      <Select.Option key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name} ({emp.employee_code})
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Initial Lifecycle Status</span>}
+                  name="status"
+                  initialValue="Draft"
+                  rules={[{ required: true }]}
+                >
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Draft">Drafting Phase</Select.Option>
+                    <Select.Option value="Active">Operational / Active</Select.Option>
+                    <Select.Option value="On Hold">Delayed / On Hold</Select.Option>
+                    <Select.Option value="Completed">Project Completed</Select.Option>
+                    <Select.Option value="Closed">System Closed</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-            <Form.Item
-              label="Status"
-              name="status"
-              initialValue="Draft"
-              rules={[{ required: true }]}
-            >
-              <Select>
-                <Select.Option value="Draft">Draft</Select.Option>
-                <Select.Option value="Active">Active</Select.Option>
-                <Select.Option value="On Hold">On Hold</Select.Option>
-                <Select.Option value="Completed">Completed</Select.Option>
-                <Select.Option value="Closed">Closed</Select.Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              label="Project Manager"
-              name="projectManagerId"
-              rules={[{ required: true }]}
-            >
-              <Select
-                placeholder="Select Manager"
-                showSearch
-                optionFilterProp="children"
-              >
-                {employees.map((emp) => (
-                  <Select.Option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} ({emp.employee_code})
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
+            <Row gutter={20}>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
+                  name="billingType"
+                  rules={[{ required: true }]}
+                >
+                  <Select placeholder="Select Model" style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Hourly">Hourly rate</Select.Option>
+                    <Select.Option value="Monthly">Monthly subscription</Select.Option>
+                    <Select.Option value="Daily">Daily allowance</Select.Option>
+                    <Select.Option value="Fixed">Fixed project cost</Select.Option>
+                    <Select.Option value="Non-Billable">Internal / Non-Billable</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocated Budget</span>} name="budget">
+                  <InputNumber
+                    type="number"
+                    addonBefore={currencySelector}
+                    style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
+                    placeholder="0.00"
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-            <Form.Item
-              label="Start Date"
-              name="startDate"
-              rules={[{ required: true }]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item label="End Date" name="endDate">
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </div>
+            <Row gutter={20}>
+              <Col span={12}>
+                <Form.Item
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Commencement</span>}
+                  name="startDate"
+                  rules={[{ required: true, message: "Required" }]}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Estimated Completion</span>} name="endDate">
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Form.Item
-            style={{ textAlign: "right", marginTop: 24, marginBottom: 0 }}
-          >
-            <Space>
+            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
               <Button
                 onClick={() => setIsModalVisible(false)}
-                disabled={submitting}
+                style={{ borderRadius: 8, height: 40 }}
               >
                 Cancel
               </Button>
-              <Button type="primary" htmlType="submit" loading={submitting}>
-                Create Project
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={submitting}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+              >
+                Initialize Project
               </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+            </div>
+          </Form>
+        </div>
       </Modal>
 
+      {/* Edit Modal */}
       <Modal
         title={
-          <Space>
-            <ProjectOutlined style={{ color: "#1677ff" }} />
-            <span>Edit Project</span>
-          </Space>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 8, color: "#0ea5e9", display: "flex" }}>
+              <Edit2 size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 18 }}>Update Project Configuration</span>
+          </div>
         }
         open={isEditModalVisible}
         onCancel={() => {
@@ -479,123 +532,118 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           setEditingProject(null);
         }}
         footer={null}
-        width={700}
-        destroyOnClose
+        width={680}
+        centered
+        className="premium-modal"
       >
-        <div style={{ marginBottom: 16, color: "#666" }}>
-          Update the project details below.
+        <div style={{ padding: "8px 0" }}>
+          <Form form={editForm} layout="vertical" onFinish={handleEditProject}>
+            <Row gutter={20}>
+              <Col span={14}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>} name="name" rules={[{ required: true }]}>
+                  <Input style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={10}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Code</span>} name="code">
+                  <Input disabled style={{ borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={20}>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
+                  <Select showSearch optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
+                    {employees.map((emp) => (
+                      <Select.Option key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Status</span>} name="status" rules={[{ required: true }]}>
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Draft">Draft</Select.Option>
+                    <Select.Option value="Active">Active</Select.Option>
+                    <Select.Option value="On Hold">On Hold</Select.Option>
+                    <Select.Option value="Completed">Completed</Select.Option>
+                    <Select.Option value="Closed">Closed</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={20}>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Type</span>} name="billingType" rules={[{ required: true }]}>
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Select.Option value="Hourly">Hourly</Select.Option>
+                    <Select.Option value="Monthly">Monthly</Select.Option>
+                    <Select.Option value="Daily">Daily</Select.Option>
+                    <Select.Option value="Fixed">Fixed</Select.Option>
+                    <Select.Option value="Non-Billable">Non-Billable</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Total Budget</span>} name="budget">
+                  <InputNumber
+                    addonBefore={currencySelector}
+                    style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
+                    formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                    parser={(value) => value?.replace(/\$\s?|(,*)/g, "") as unknown as number}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={20}>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>} name="startDate" rules={[{ required: true }]}>
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>} name="endDate">
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
+              <Button onClick={() => setIsEditModalVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+              <Button type="primary" htmlType="submit" loading={submitting} style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}>
+                Save Configuration
+              </Button>
+            </div>
+          </Form>
         </div>
-        <Divider style={{ margin: "0 0 16px 0" }} />
-        <Form form={editForm} layout="vertical" onFinish={handleEditProject}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "16px",
-            }}
-          >
-            <Form.Item
-              label="Project Name"
-              name="name"
-              rules={[{ required: true }]}
-            >
-              <Input placeholder="E.g. Website Redesign" />
-            </Form.Item>
-            <Form.Item
-              label="Project Code"
-              name="code"
-              rules={[{ required: true }]}
-            >
-              <Input placeholder="E.g. PRJ-001" disabled />
-            </Form.Item>
-
-            <Form.Item
-              label="Billing Type"
-              name="billingType"
-              rules={[{ required: true }]}
-            >
-              <Select placeholder="Select Billing Type">
-                <Select.Option value="Hourly">Hourly</Select.Option>
-                <Select.Option value="Monthly">Monthly</Select.Option>
-                <Select.Option value="Daily">Daily</Select.Option>
-                <Select.Option value="Fixed">Fixed</Select.Option>
-                <Select.Option value="Non-Billable">Non-Billable</Select.Option>
-              </Select>
-            </Form.Item>
-            <Form.Item label="Budget" name="budget">
-              <InputNumber
-                addonBefore={currencySelector}
-                style={{ width: "100%" }}
-                formatter={(value) =>
-                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                }
-                parser={(value) =>
-                  value?.replace(/\$\s?|(,*)/g, "") as unknown as number
-                }
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Status"
-              name="status"
-              initialValue="Draft"
-              rules={[{ required: true }]}
-            >
-              <Select>
-                <Select.Option value="Draft">Draft</Select.Option>
-                <Select.Option value="Active">Active</Select.Option>
-                <Select.Option value="On Hold">On Hold</Select.Option>
-                <Select.Option value="Completed">Completed</Select.Option>
-                <Select.Option value="Closed">Closed</Select.Option>
-              </Select>
-            </Form.Item>
-            <Form.Item
-              label="Project Manager"
-              name="projectManagerId"
-              rules={[{ required: true }]}
-            >
-              <Select
-                placeholder="Select Manager"
-                showSearch
-                optionFilterProp="children"
-              >
-                {employees.map((emp: any) => (
-                  <Select.Option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} ({emp.employee_code})
-                  </Select.Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              label="Start Date"
-              name="startDate"
-              rules={[{ required: true }]}
-            >
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item label="End Date" name="endDate">
-              <DatePicker style={{ width: "100%" }} />
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            style={{ textAlign: "right", marginTop: 24, marginBottom: 0 }}
-          >
-            <Space>
-              <Button
-                onClick={() => setIsEditModalVisible(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button type="primary" htmlType="submit" loading={submitting}>
-                Save Changes
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
       </Modal>
-    </Card>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .premium-table .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          padding: 16px 24px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          padding: 16px 24px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .premium-action-btn:hover {
+          background: #f1f5f9 !important;
+          color: #3b82f6 !important;
+        }
+      `}} />
+    </div>
   );
 }

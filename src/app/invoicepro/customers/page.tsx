@@ -125,6 +125,8 @@ const handleSave = async (
     city: values.city || "",
     country: values.country || "",
     taxId: values.taxId || "",
+    gstin: values.gstin || "",
+    pan: values.pan || "",
   };
 
   try {
@@ -176,6 +178,18 @@ const columns = [
     title: "Tax ID",
     dataIndex: "taxId",
     key: "taxId",
+    render: (value: string) => value || "-",
+  },
+  {
+    title: "GSTIN",
+    dataIndex: "gstin",
+    key: "gstin",
+    render: (value: string) => value || "-",
+  },
+  {
+    title: "PAN",
+    dataIndex: "pan",
+    key: "pan",
     render: (value: string) => value || "-",
   },
   {
@@ -500,6 +514,20 @@ const confirmDelete = async () => {
     Tax ID:{" "}
     <span className="font-medium">
       {customer.taxId || "--"}
+    </span>
+  </Typography.Text>
+  <br />
+  <Typography.Text className="text-xs text-gray-500">
+    GSTIN:{" "}
+    <span className="font-medium">
+      {customer.gstin || "--"}
+    </span>
+  </Typography.Text>
+  <br />
+  <Typography.Text className="text-xs text-gray-500">
+    PAN:{" "}
+    <span className="font-medium">
+      {customer.pan || "--"}
     </span>
   </Typography.Text>
 </>

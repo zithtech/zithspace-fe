@@ -28,6 +28,9 @@ export interface GeneralSetting {
   dateFormat: DateFormat;
   companyLogo?: string | null;
   signature?: string | null;
+  gstin?: string | null;
+  pan?: string | null;
+  taxId?: string | null;
 }
 
 export interface InvoiceSetting {

@@ -20,6 +20,9 @@ import {
   Avatar,
   Typography,
   message,
+  Drawer,
+  Progress,
+  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -70,7 +73,7 @@ const ProjectsManagePage: React.FC = () => {
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState("");
@@ -83,15 +86,24 @@ const ProjectsManagePage: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
-  // View Project Modal (READ-ONLY)
+  // View Project Drawer (READ-ONLY)
   const [viewProject, setViewProject] = useState<Project | null>(null);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState<ProjectsFilters>({
     page: 1,
     limit: 10,
   });
+
+  const renderPosition = (position: any) => {
+    if (!position) return "";
+    if (typeof position === 'string') return position;
+    if (typeof position === 'object') {
+      return position.title || position.name || "N/A";
+    }
+    return "";
+  };
 
   // Load data
   const loadProjects = async () => {
@@ -127,6 +139,21 @@ const ProjectsManagePage: React.FC = () => {
     loadProjects();
     loadMembers();
   }, [filters]);
+
+  const glassStyle = {
+    background: "#ffffff",
+    border: "1px solid rgba(0, 0, 0, 0.06)",
+    borderRadius: "12px",
+    transition: "all 0.3s ease",
+  };
+
+  // Stats calculation
+  const stats = {
+    total: projects.length,
+    active: projects.filter((p) => p.status === "active").length,
+    onHold: projects.filter((p) => p.status === "on-hold").length,
+    completed: projects.filter((p) => p.status === "completed").length,
+  };
 
   // Handle project manager change - automatically add to team members
   const handleProjectManagerChange = (projectManagerId: string) => {
@@ -231,7 +258,7 @@ const ProjectsManagePage: React.FC = () => {
         setSuccess("Project created successfully");
       }
 
-      setModalVisible(false);
+      setDrawerVisible(false);
       setEditingProject(null);
       form.resetFields();
       loadProjects();
@@ -262,7 +289,7 @@ const ProjectsManagePage: React.FC = () => {
       projectManagerId: project.projectManager.id,
       teamMemberIds: project.members.map((member) => member.user.id),
     });
-    setModalVisible(true);
+    setDrawerVisible(true);
   };
 
   // Handle add new
@@ -273,7 +300,7 @@ const ProjectsManagePage: React.FC = () => {
       status: "planning",
       defaultPriority: "medium",
     });
-    setModalVisible(true);
+    setDrawerVisible(true);
   };
 
   // Status color mapping
@@ -303,75 +330,114 @@ const ProjectsManagePage: React.FC = () => {
     {
       title: "Project",
       key: "project",
+      width: 250,
       render: (_, record) => (
-        <div>
-          <div className="font-medium">{record.name}</div>
-          <div className="text-sm text-gray-500">{record.code}</div>
-        </div>
-      ),
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-      ellipsis: true,
-      render: (text) => (
-        <Tooltip title={text}>
-          <span>{text}</span>
-        </Tooltip>
+        <Space size={12}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: "rgba(22, 119, 255, 0.05)",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            <ProjectOutlined style={{ color: "#1677ff", fontSize: 16 }} />
+          </div>
+          <div>
+            <Text strong style={{ fontSize: 14 }}>{record.name}</Text>
+            <div style={{ fontSize: 12, color: "#8c8c8c" }}>{record.code}</div>
+          </div>
+        </Space>
       ),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
+      width: 140,
       render: (status) => (
-        <Tag color={getStatusColor(status)}>
-          {status.toUpperCase().replace("-", " ")}
+        <Tag
+          color={getStatusColor(status)}
+          style={{
+            borderRadius: 6,
+            padding: "2px 10px",
+            fontWeight: 600,
+            fontSize: 11,
+            textTransform: "uppercase",
+            border: "none",
+            margin: 0
+          }}
+        >
+          {status.replace("-", " ")}
         </Tag>
       ),
     },
     {
       title: "Project Manager",
       key: "projectManager",
+      width: 200,
       render: (_, record) => (
-        <div className="flex items-center space-x-2">
-          <Avatar size="small">{record?.projectManager?.name.charAt(0)}</Avatar>
+        <Space size={8}>
+          <Avatar
+            size="small"
+            style={{ backgroundColor: "#f56a00", border: "1px solid #fff" }}
+          >
+            {record?.projectManager?.name.charAt(0)}
+          </Avatar>
           <div>
-            <div className="font-medium">{record?.projectManager?.name}</div>
-            <div className="text-sm text-gray-500">
-              {record.projectManager?.position}
+            <div style={{ fontWeight: 500, fontSize: 13 }}>{record?.projectManager?.name}</div>
+            <div style={{ fontSize: 11, color: "#8c8c8c" }}>
+              {renderPosition(record.projectManager?.position)}
             </div>
           </div>
-        </div>
+        </Space>
       ),
     },
     {
       title: "Team",
       key: "teamMembers",
+      width: 130,
       render: (_, record) => (
-        <div className="flex items-center space-x-1">
-          <TeamOutlined />
-          <span>{record?.members?.length || 0} members</span>
-        </div>
+        <Space size={4}>
+          <TeamOutlined style={{ color: "#8c8c8c" }} />
+          <Text style={{ fontSize: 13 }}>{record?.members?.length || 0} members</Text>
+        </Space>
       ),
     },
     {
       title: "Priority",
       dataIndex: "defaultPriority",
       key: "defaultPriority",
+      width: 120,
       render: (priority) => (
-        <Tag color={getPriorityColor(priority)}>{priority.toUpperCase()}</Tag>
+        <Tag
+          color={getPriorityColor(priority)}
+          style={{
+            borderRadius: 6,
+            padding: "2px 10px",
+            fontWeight: 600,
+            fontSize: 11,
+            textTransform: "uppercase",
+            border: "none",
+            margin: 0
+          }}
+        >
+          {priority}
+        </Tag>
       ),
     },
     {
       title: "Dates",
       key: "dates",
+      width: 180,
       render: (_, record) => (
-        <div className="text-sm">
-          <div>Start: {dayjs(record?.startDate).format("MMM DD, YYYY")}</div>
+        <div style={{ fontSize: 12 }}>
+          <div style={{ marginBottom: 2 }}>
+            <CalendarOutlined style={{ marginRight: 6, color: "#1677ff", fontSize: 11 }} />
+            <Text style={{ fontSize: 12 }}>{dayjs(record?.startDate).format("MMM DD, YYYY")}</Text>
+          </div>
           {record.endDate && (
-            <div>End: {dayjs(record?.endDate).format("MMM DD, YYYY")}</div>
+            <div>
+              <CalendarOutlined style={{ marginRight: 6, color: "#8c8c8c", fontSize: 11 }} />
+              <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(record?.endDate).format("MMM DD, YYYY")}</Text>
+            </div>
           )}
         </div>
       ),
@@ -379,13 +445,19 @@ const ProjectsManagePage: React.FC = () => {
     {
       title: "Actions",
       key: "actions",
+      width: 120,
+      fixed: "right",
       render: (_, record) => (
         <Space>
-          <Tooltip title="View Details">
+          <Tooltip title="View">
             <Button
               type="text"
-              icon={<EyeOutlined />}
-              onClick={() => openViewModal(record)}
+              size="small"
+              icon={<EyeOutlined style={{ fontSize: 15 }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                openViewDrawer(record);
+              }}
             />
           </Tooltip>
           {user?.role &&
@@ -393,22 +465,35 @@ const ProjectsManagePage: React.FC = () => {
               <Tooltip title="Edit">
                 <Button
                   type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(record)}
+                  size="small"
+                  icon={<EditOutlined style={{ fontSize: 15 }} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(record);
+                  }}
                 />
               </Tooltip>
             )}
           {user?.role &&
             RBAC.hasPermission(user.role as any, "projects", "delete") && (
               <Popconfirm
-                title="Are you sure you want to delete this project?"
-                description="This action cannot be undone and may affect related tickets."
-                onConfirm={() => handleDelete(record.id)}
+                title="Delete project?"
+                description="Are you sure you want to delete this project?"
+                onConfirm={(e) => {
+                  e?.stopPropagation();
+                  handleDelete(record.id);
+                }}
                 okText="Yes"
                 cancelText="No"
               >
                 <Tooltip title="Delete">
-                  <Button type="text" danger icon={<DeleteOutlined />} />
+                  <Button
+                    type="text"
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined style={{ fontSize: 15 }} />}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </Tooltip>
               </Popconfirm>
             )}
@@ -456,38 +541,54 @@ const ProjectsManagePage: React.FC = () => {
     );
   }
 
-  const openViewModal = (project: Project) => {
+  const openViewDrawer = (project: Project) => {
     setViewProject(project);
-    setViewModalOpen(true);
+    setViewDrawerOpen(true);
   };
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
+      <div style={{ padding: "16px", background: "#ffffff", minHeight: "100vh" }}>
         {/* Header */}
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 16 }}>
           <Space
             align="center"
             style={{ width: "100%", justifyContent: "space-between" }}
           >
             {/* Left title */}
-            <Space align="center">
-              <ProjectOutlined style={{ fontSize: 24, color: "#1677ff" }} />
-              <Title level={3} style={{ margin: 0 }}>
-                Projects Management
-              </Title>
+            <Space align="center" size={12}>
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "rgba(22, 119, 255, 0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ProjectOutlined style={{ fontSize: 22, color: "#1677ff" }} />
+              </div>
+              <div>
+                <Title level={3} style={{ margin: 0, fontWeight: 700 }}>
+                  Projects Management
+                </Title>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  Oversee and manage your organization's projects and teams
+                </Text>
+              </div>
             </Space>
 
             {/* Right controls */}
-            <Space>
+            <Space size={16}>
               {/* Card / List Toggle */}
               <div
                 style={{
                   display: "flex",
-                  background: "#f5f5f5",
+                  background: "rgba(0, 0, 0, 0.04)",
                   borderRadius: 10,
-                  padding: 2,
-                  boxShadow: "inset 0 0 0 1px #d9d9d9",
+                  padding: 3,
                 }}
               >
                 {/* Card View Button */}
@@ -497,10 +598,12 @@ const ProjectsManagePage: React.FC = () => {
                   onClick={() => setViewMode("card")}
                   style={{
                     borderRadius: 8,
-                    padding: "4px 14px",
-                    fontWeight: 500,
-                    background: viewMode === "card" ? "#1677ff" : "transparent",
-                    color: viewMode === "card" ? "#fff" : "#595959",
+                    padding: "4px 16px",
+                    fontWeight: 600,
+                    height: 36,
+                    background: viewMode === "card" ? "#ffffff" : "transparent",
+                    color: viewMode === "card" ? "#1677ff" : "#595959",
+                    boxShadow: viewMode === "card" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
                     transition: "all 0.25s ease",
                   }}
                 >
@@ -514,22 +617,107 @@ const ProjectsManagePage: React.FC = () => {
                   onClick={() => setViewMode("table")}
                   style={{
                     borderRadius: 8,
-                    padding: "4px 14px",
-                    fontWeight: 500,
-                    background:
-                      viewMode === "table" ? "#1677ff" : "transparent",
-                    color: viewMode === "table" ? "#fff" : "#595959",
+                    padding: "4px 16px",
+                    fontWeight: 600,
+                    height: 36,
+                    background: viewMode === "table" ? "#ffffff" : "transparent",
+                    color: viewMode === "table" ? "#1677ff" : "#595959",
+                    boxShadow: viewMode === "table" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
                     transition: "all 0.25s ease",
                   }}
                 >
                   List
                 </Button>
               </div>
-
-              {/* Add Project */}
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAdd}
+                style={{
+                  height: 42,
+                  padding: "0 20px",
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  boxShadow: "0 4px 12px rgba(22, 119, 255, 0.2)"
+                }}
+              >
+                Add Project
+              </Button>
             </Space>
           </Space>
         </div>
+
+        {/* Stats Row */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: "rgba(22, 119, 255, 0.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center"
+                }}>
+                  <ProjectOutlined style={{ fontSize: 24, color: "#1677ff" }} />
+                </div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 13, display: "block" }}>Total Projects</Text>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{stats.total}</Title>
+                </div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: "rgba(82, 196, 26, 0.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center"
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#52c41a" }} />
+                </div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 13, display: "block" }}>Active</Text>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{stats.active}</Title>
+                </div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: "rgba(250, 173, 20, 0.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center"
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#faad14" }} />
+                </div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 13, display: "block" }}>On Hold</Text>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{stats.onHold}</Title>
+                </div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: "rgba(114, 46, 209, 0.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center"
+                }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#722ed1" }} />
+                </div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 13, display: "block" }}>Completed</Text>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{stats.completed}</Title>
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
 
         {/* Alerts */}
         {error && (
@@ -553,294 +741,264 @@ const ProjectsManagePage: React.FC = () => {
           />
         )}
 
-        {/* Filters Card */}
-        <Card
-          size="small"
-          style={{ marginBottom: 16 }}
-          styles={{ body: { padding: 16 } }}
-        >
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Search projects..."
-              prefix={<SearchOutlined />}
-              value={filters.search || ""}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={{ width: 240 }}
-              allowClear
-            />
+        {/* Filters Section */}
+        <div style={{
+          marginBottom: 16,
+          padding: "16px 20px",
+          background: "rgba(0, 0, 0, 0.02)",
+          borderRadius: 16,
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12
+        }}>
+          <Input
+            placeholder="Search projects..."
+            prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
+            value={filters.search || ""}
+            onChange={(e) => handleSearch(e.target.value)}
+            style={{ width: 260, height: 40, borderRadius: 10 }}
+            allowClear
+          />
 
-            <Select
-              placeholder="Filter by status"
-              value={filters.status}
-              onChange={handleStatusFilter}
-              style={{ width: 200 }}
-              allowClear
+          <Select
+            placeholder="Status"
+            value={filters.status}
+            onChange={handleStatusFilter}
+            style={{ width: 160, height: 40 }}
+            allowClear
+            styles={{ popup: { root: { borderRadius: 12 } } }}
+          >
+            <Option value="planning">Planning</Option>
+            <Option value="active">Active</Option>
+            <Option value="on-hold">On Hold</Option>
+            <Option value="completed">Completed</Option>
+            <Option value="cancelled">Cancelled</Option>
+          </Select>
+
+          <Select
+            placeholder="Project Manager"
+            value={filters.projectManagerId}
+            onChange={handleProjectManagerFilter}
+            style={{ width: 220, height: 40 }}
+            allowClear
+            showSearch
+            styles={{ popup: { root: { borderRadius: 12 } } }}
+            filterOption={(input, option) => {
+              const member = members.find((m) => m.value === option?.value);
+              return member
+                ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                member.position
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+                : false;
+            }}
+          >
+            {members.map((member) => (
+              <Option key={member.value} value={member.value}>
+                {member.label}
+              </Option>
+            ))}
+          </Select>
+
+          <RangePicker
+            placeholder={["Start", "End"]}
+            onChange={handleDateRangeFilter}
+            style={{ width: 240, height: 40, borderRadius: 10 }}
+          />
+
+          {(filters.search || filters.status || filters.projectManagerId || filters.startDate) && (
+            <Button
+              type="text"
+              danger
+              onClick={() => setFilters({ page: 1, limit: 10 })}
+              style={{ fontWeight: 500 }}
             >
-              <Option value="planning">Planning</Option>
-              <Option value="active">Active</Option>
-              <Option value="on-hold">On Hold</Option>
-              <Option value="completed">Completed</Option>
-              <Option value="cancelled">Cancelled</Option>
-            </Select>
-
-            <Select
-              placeholder="Filter by project manager"
-              value={filters.projectManagerId}
-              onChange={handleProjectManagerFilter}
-              style={{ width: 250 }}
-              allowClear
-              showSearch
-              filterOption={(input, option) => {
-                const member = members.find((m) => m.value === option?.value);
-                return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                      member.position
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                  : false;
-              }}
-            >
-              {members.map((member) => (
-                <Option key={member.value} value={member.value}>
-                  {member.label} - {member.position}
-                </Option>
-              ))}
-            </Select>
-
-            <RangePicker
-              placeholder={["Start Date", "End Date"]}
-              onChange={handleDateRangeFilter}
-              style={{ width: 250 }}
-            />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-              Add Project
+              Clear Filters
             </Button>
-          </div>
-        </Card>
+          )}
+        </div>
 
-        {/* All Projects Section - DASHBOARD STYLE CARDS */}
-        <div style={{ marginBottom: 16 }}>
-          <Text strong style={{ fontSize: 15 }}>
-            <ProjectOutlined style={{ marginRight: 6 }} />
+        {/* All Projects Section */}
+        <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 4, height: 18, background: "#1677ff", borderRadius: 2 }} />
+          <Text strong style={{ fontSize: 16, color: "#1f1f1f" }}>
             All Projects
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+            ({projects.length})
           </Text>
         </div>
 
         {/* Projects Card View - DASHBOARD STYLE */}
-        {/* Projects Card View - DASHBOARD STYLE */}
         {viewMode === "card" ? (
           <Row gutter={[24, 24]}>
             {loading
-              ? [1, 2, 3, 4, 5].map((i) => (
-                  <Col xs={24} sm={12} lg={8} xl={8} key={i}>
-                    <Card
-                      loading
-                      style={{
-                        height: 180,
-                        borderRadius: 12,
-                      }}
-                    />
-                  </Col>
-                ))
+              ? [1, 2, 3, 4, 5, 6].map((i) => (
+                <Col xs={24} sm={12} lg={8} xl={8} key={i}>
+                  <Card
+                    loading
+                    style={{
+                      height: 240,
+                      ...glassStyle,
+                      borderRadius: 16,
+                    }}
+                  />
+                </Col>
+              ))
               : projects.map((project) => {
-                  const memberCount = project.members?.length || 0;
+                const memberCount = project.members?.length || 0;
 
-                  return (
-                    <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
-                      <Card
-                        hoverable
-                        onClick={() => openViewModal(project)}
-                        style={{
-                          borderRadius: 12,
-                          border: "1px solid #f0f0f0",
-                          transition: "all 0.2s",
-                          height: "100%",
-                        }}
-                        styles={{ body: { padding: "16px 18px" } }}
-                      >
-                        {/* ===== LINE 1: Project Icon + Name + Status Tag on Left, Arrow on Right ===== */}
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            marginBottom: 12,
-                          }}
-                        >
-                          {/* Left side: Project Icon + Name + Status Tag */}
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              flex: 1,
-                              minWidth: 0,
-                            }}
-                          >
-                            <ProjectOutlined
-                              style={{
-                                color: "#1677ff",
-                                fontSize: 18,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <Text strong ellipsis style={{ fontSize: 15 }}>
-                              {project.name}
-                            </Text>
-
-                            <Tag
-                              color={getStatusColor(project.status)}
-                              style={{
-                                margin: 0,
-                                fontSize: 10, // Reduced from 11 to 10
-                                borderRadius: 3, // Reduced from 4 to 3
-                                padding: "1px 5px", // Reduced padding
-                                flexShrink: 0,
-                                lineHeight: 1.2, // Added for smaller height
-                                height: "auto", // Auto height
-                              }}
-                            >
-                              {project.status.toUpperCase().replace("-", " ")}
-                            </Tag>
+                return (
+                  <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
+                    <Card
+                      hoverable
+                      onClick={() => openViewDrawer(project)}
+                      style={{
+                        ...glassStyle,
+                        height: "100%",
+                        overflow: "hidden",
+                        transition: "all 0.4s cubic-bezier(0.23, 1, 0.32, 1)",
+                        border: "1px solid rgba(0,0,0,0.06)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-6px)";
+                        e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                      styles={{ body: { padding: 0 } }}
+                    >
+                      <div style={{ padding: "16px 20px" }}>
+                        {/* Top Section: Status at top right */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                          <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 8,
+                              background: "#f0f5ff",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              flexShrink: 0
+                            }}>
+                              <ProjectOutlined style={{ color: "#1677ff", fontSize: 16 }} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                              <Text strong style={{ fontSize: 15, display: "block" }} ellipsis>
+                                {project.name}
+                              </Text>
+                              <Text type="secondary" style={{ fontSize: 11 }}>
+                                {project.code || "No code"}
+                              </Text>
+                            </div>
                           </div>
-
-                          {/* Right side: Arrow only */}
-                        </div>
-
-                        {/* ===== LINE 2: Project Manager Name ===== */}
-                        {project.projectManager && (
-                          <div
-                            style={{
-                              marginBottom: 12,
-                              fontSize: 13,
-                              color: "#595959",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <UserOutlined
-                              style={{ color: "#8c8c8c", fontSize: 12 }}
-                            />
-                            <Text style={{ fontSize: 13 }}>
-                              {project.projectManager.name}
-                            </Text>
-                          </div>
-                        )}
-
-                        {/* ===== LINE 3: Members + Start/End Date with Priority Tag on Right ===== */}
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginTop: 8,
-                            paddingTop: 8,
-                          }}
-                        >
-                          {/* Left side: Members + Dates */}
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: 16,
-                              fontSize: 12,
-                              color: "#8c8c8c",
-                            }}
-                          >
-                            <span>
-                              <TeamOutlined style={{ marginRight: 4 }} />
-                              {memberCount}{" "}
-                              {memberCount === 1 ? "member" : "members"}
-                            </span>
-                            <span>
-                              <CalendarOutlined style={{ marginRight: 4 }} />
-                              {dayjs(project.startDate).format("MMM DD")}
-                              {project.endDate &&
-                                ` - ${dayjs(project.endDate).format("MMM DD")}`}
-                            </span>
-                          </div>
-
-                          {/* Right side: Priority Tag */}
-
                           <Tag
-                            color={getPriorityColor(project.defaultPriority)}
+                            color={getStatusColor(project.status)}
                             style={{
                               margin: 0,
-                              fontSize: 10, // Same as status tag
-                              borderRadius: 3, // Same as status tag
-                              padding: "1px 5px", // Same as status tag
-                              fontWeight: 500,
-                              flexShrink: 0,
-                              lineHeight: 1.2, // Same as status tag
-                              height: "auto", // Same as status tag
+                              borderRadius: 4,
+                              padding: "1px 8px",
+                              fontWeight: 600,
+                              fontSize: 10,
+                              textTransform: "uppercase",
+                              border: "none",
+                              alignSelf: "flex-start"
                             }}
                           >
-                            {project.defaultPriority.toUpperCase()}
+                            {project.status.replace("-", " ")}
                           </Tag>
                         </div>
 
-                        {/* ===== OPTIONAL: Action Buttons (if needed) ===== */}
-                        {user?.role &&
-                          (RBAC.hasPermission(
-                            user.role as any,
-                            "projects",
-                            "update"
-                          ) ||
-                            RBAC.hasPermission(
-                              user.role as any,
-                              "projects",
-                              "delete"
-                            )) && (
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "flex-end",
-                                gap: 4,
-                                marginTop: 12,
-                                paddingTop: 8,
-                                borderTop: "1px dashed #f0f0f0",
-                              }}
-                            >
-                              {user?.role &&
-                                RBAC.hasPermission(
-                                  user.role as any,
-                                  "projects",
-                                  "update"
-                                ) && (
-                                  <Button
-                                    type="text"
-                                    size="small"
-                                    icon={<EditOutlined />}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEdit(project);
-                                    }}
-                                  />
-                                )}
+                        {/* Description - more compact */}
+                        <div style={{ marginBottom: 16 }}>
+                          <Typography.Paragraph
+                            type="secondary"
+                            style={{ fontSize: 12, marginBottom: 0, lineHeight: "1.4" }}
+                            ellipsis={{ rows: 2 }}
+                          >
+                            {project.description || "No description provided."}
+                          </Typography.Paragraph>
+                        </div>
 
-                              {user?.role &&
-                                RBAC.hasPermission(
-                                  user.role as any,
-                                  "projects",
-                                  "delete"
-                                ) && (
-                                  <Button
-                                    type="text"
-                                    size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDelete(project.id);
-                                    }}
-                                  />
-                                )}
-                            </div>
-                          )}
-                      </Card>
-                    </Col>
-                  );
-                })}
+                        {/* Priority and Date - Row style */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{
+                              width: 6, height: 6, borderRadius: "50%",
+                              background: getPriorityColor(project.defaultPriority) === 'red' ? '#ff4d4f' :
+                                getPriorityColor(project.defaultPriority) === 'orange' ? '#faad14' : '#52c41a',
+                            }} />
+                            <Text style={{ fontSize: 11, textTransform: "capitalize", color: "#595959" }}>
+                              {project.defaultPriority} Priority
+                            </Text>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <CalendarOutlined style={{ fontSize: 11, color: "#8c8c8c" }} />
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              {dayjs(project.startDate).format("MMM DD")}
+                            </Text>
+                          </div>
+                        </div>
+
+                        {/* Manager and Team - Thin Border Top */}
+                        <div style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          paddingTop: 12,
+                          borderTop: "1px solid #f0f0f0"
+                        }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <Avatar size={20} style={{ background: "#f56a00", fontSize: 10 }}>
+                              {project.projectManager?.name.charAt(0)}
+                            </Avatar>
+                            <Text style={{ fontSize: 12, fontWeight: 500 }}>
+                              {project.projectManager?.name.split(' ')[0]}
+                            </Text>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <TeamOutlined style={{ color: "#8c8c8c", fontSize: 11 }} />
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              {memberCount} members
+                            </Text>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Actions (Hover only or subtle) */}
+                      <div style={{
+                        padding: "10px 24px",
+                        background: "rgba(0,0,0,0.01)",
+                        borderTop: "1px solid rgba(0,0,0,0.04)",
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: 8
+                      }}>
+                        {user?.role && RBAC.hasPermission(user.role as any, "projects", "update") && (
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined style={{ fontSize: 14 }} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(project);
+                            }}
+                          />
+                        )}
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<ArrowRightOutlined style={{ fontSize: 14 }} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openViewDrawer(project);
+                          }}
+                        />
+                      </div>
+                    </Card>
+                  </Col>
+                );
+              })}
           </Row>
         ) : (
           /* ===== TABLE VIEW ===== */
@@ -863,363 +1021,577 @@ const ProjectsManagePage: React.FC = () => {
               onChange={handleTableChange}
               onRow={(record) => ({
                 onClick: () => {
-                  openViewModal(record);
+                  openViewDrawer(record);
                 },
               })}
             />
           </Card>
         )}
 
-        {/* Create/Edit Modal */}
-        <Modal
-          title={editingProject ? "Edit Project" : "Create New Project"}
-          open={modalVisible}
-          onCancel={() => {
-            setModalVisible(false);
+        {/* Create/Edit Project Drawer */}
+        <Drawer
+          title={null}
+          open={drawerVisible}
+          onClose={() => {
+            setDrawerVisible(false);
             setEditingProject(null);
             form.resetFields();
           }}
-          footer={null}
-          width={800}
+          width={650}
+          closable={false}
+          maskClosable={true}
+          styles={{
+            body: { padding: 0 },
+            header: { display: "none" }
+          }}
         >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSubmit}
-            initialValues={{
-              status: "planning",
-              defaultPriority: "medium",
-            }}
-          >
-            <Row gutter={16}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="name"
-                  label="Project Name"
-                  rules={[
-                    { required: true, message: "Please enter project name" },
-                    { min: 2, message: "Name must be at least 2 characters" },
-                  ]}
+          <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            {/* Drawer Header */}
+            <div style={{
+              padding: "24px 32px",
+              borderBottom: "1px solid #f0f0f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#fff",
+              position: "sticky",
+              top: 0,
+              zIndex: 10
+            }}>
+              <div>
+                <Title level={4} style={{ margin: 0 }}>
+                  {editingProject ? "Edit Project" : "Create New Project"}
+                </Title>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {editingProject ? `Update details for ${editingProject.name}` : "Set up a new workspace for your team"}
+                </Text>
+              </div>
+              <Space>
+                <Button
+                  onClick={() => {
+                    setDrawerVisible(false);
+                    setEditingProject(null);
+                    form.resetFields();
+                  }}
+                  style={{ borderRadius: 8 }}
                 >
-                  <Input placeholder="Enter project name" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="status"
-                  label="Status"
-                  rules={[{ required: true, message: "Please select status" }]}
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={() => form.submit()}
+                  style={{ borderRadius: 8 }}
                 >
-                  <Select placeholder="Select status">
-                    <Option value="planning">Planning</Option>
-                    <Option value="active">Active</Option>
-                    <Option value="on-hold">On Hold</Option>
-                    <Option value="completed">Completed</Option>
-                    <Option value="cancelled">Cancelled</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item
-              name="description"
-              label="Description"
-              rules={[{ required: true, message: "Please enter description" }]}
-            >
-              <Input.TextArea
-                rows={3}
-                placeholder="Enter project description"
-              />
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="projectManagerId"
-                  label="Project Manager"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please select project manager",
-                    },
-                  ]}
-                >
-                  <Select
-                    placeholder="Select project manager"
-                    onChange={handleProjectManagerChange}
-                    showSearch
-                    filterOption={(input, option) => {
-                      const member = members.find(
-                        (m) => m.value === option?.value
-                      );
-                      return member
-                        ? member.label
-                            .toLowerCase()
-                            .includes(input.toLowerCase()) ||
-                            member.position
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                        : false;
-                    }}
-                  >
-                    {members.map((member) => (
-                      <Option key={member.value} value={member.value}>
-                        {member.label} - {member.position}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="defaultPriority"
-                  label="Default Priority"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please select default priority",
-                    },
-                  ]}
-                >
-                  <Select placeholder="Select default priority">
-                    <Option value="high">High</Option>
-                    <Option value="medium">Medium</Option>
-                    <Option value="low">Low</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item
-              name="teamMemberIds"
-              label="Team Members"
-              help="Project Manager will be automatically included in the team"
-            >
-              <Select
-                mode="multiple"
-                placeholder="Select team members"
-                onChange={handleTeamMembersChange}
-                showSearch
-                filterOption={(input, option) => {
-                  const member = members.find((m) => m.value === option?.value);
-                  return member
-                    ? member.label
-                        .toLowerCase()
-                        .includes(input.toLowerCase()) ||
-                        member.position
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                    : false;
-                }}
-              >
-                {members.map((member) => (
-                  <Option key={member.value} value={member.value}>
-                    {member.label} - {member.position}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="startDate"
-                  label="Start Date"
-                  rules={[
-                    { required: true, message: "Please select start date" },
-                  ]}
-                >
-                  <DatePicker style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item name="endDate" label="End Date">
-                  <DatePicker style={{ width: "100%" }} />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <div className="flex justify-end space-x-2">
-              <Button
-                onClick={() => {
-                  setModalVisible(false);
-                  setEditingProject(null);
-                  form.resetFields();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="primary" htmlType="submit">
-                {editingProject ? "Update" : "Create"} Project
-              </Button>
+                  {editingProject ? "Save Changes" : "Create Project"}
+                </Button>
+              </Space>
             </div>
-          </Form>
-        </Modal>
 
-        {/* View Modal */}
-        <Modal
-          open={viewModalOpen}
-          onCancel={() => {
-            setViewModalOpen(false);
+            {/* Drawer Form Content */}
+            <div style={{ padding: "32px", flex: 1, overflowY: "auto" }}>
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                initialValues={{
+                  status: "planning",
+                  defaultPriority: "medium",
+                }}
+                requiredMark="optional"
+              >
+                {/* Section: Basic Information */}
+                <div style={{ marginBottom: 32 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                    <div style={{ width: 4, height: 18, background: '#1677ff', borderRadius: 2 }} />
+                    <Title level={5} style={{ margin: 0 }}>Basic Information</Title>
+                  </div>
+
+                  <Row gutter={24}>
+                    <Col span={24}>
+                      <Form.Item
+                        name="name"
+                        label="Project Name"
+                        rules={[
+                          { required: true, message: "Please enter project name" },
+                          { min: 2, message: "Name must be at least 2 characters" },
+                        ]}
+                      >
+                        <Input placeholder="e.g. Website Redesign" size="large" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="code"
+                        label="Project Code"
+                        rules={[{ required: true, message: "Please enter code" }]}
+                      >
+                        <Input placeholder="e.g. WEB" size="large" style={{ borderRadius: 8, textTransform: 'uppercase' }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="status"
+                        label="Project Status"
+                        rules={[{ required: true, message: "Please select status" }]}
+                      >
+                        <Select placeholder="Select status" size="large" style={{ borderRadius: 8 }}>
+                          <Option value="planning">Planning</Option>
+                          <Option value="active">Active</Option>
+                          <Option value="on-hold">On Hold</Option>
+                          <Option value="completed">Completed</Option>
+                          <Option value="cancelled">Cancelled</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="description"
+                        label="Project Description"
+                        rules={[{ required: true, message: "Please enter description" }]}
+                      >
+                        <Input.TextArea
+                          rows={4}
+                          placeholder="What is this project about?"
+                          style={{ borderRadius: 8 }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+
+                <Divider style={{ margin: "32px 0" }} />
+
+                {/* Section: Team & Responsibility */}
+                <div style={{ marginBottom: 32 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                    <div style={{ width: 4, height: 18, background: '#52c41a', borderRadius: 2 }} />
+                    <Title level={5} style={{ margin: 0 }}>Team & Responsibility</Title>
+                  </div>
+
+                  <Row gutter={24}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="projectManagerId"
+                        label="Project Manager"
+                        rules={[{ required: true, message: "Please select manager" }]}
+                      >
+                        <Select
+                          placeholder="Select lead"
+                          size="large"
+                          onChange={handleProjectManagerChange}
+                          showSearch
+                          style={{ borderRadius: 8 }}
+                          filterOption={(input, option) => {
+                            const member = members.find((m) => m.value === option?.value);
+                            return member ? member.label.toLowerCase().includes(input.toLowerCase()) : false;
+                          }}
+                        >
+                          {members.map((member) => (
+                            <Option key={member.value} value={member.value}>
+                              {member.label}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="defaultPriority"
+                        label="Default Priority"
+                        rules={[{ required: true, message: "Please select priority" }]}
+                      >
+                        <Select placeholder="Priority" size="large" style={{ borderRadius: 8 }}>
+                          <Option value="high">High</Option>
+                          <Option value="medium">Medium</Option>
+                          <Option value="low">Low</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="teamMemberIds"
+                        label="Team Members"
+                        help="Project Manager is automatically included"
+                      >
+                        <Select
+                          mode="multiple"
+                          placeholder="Add contributors"
+                          size="large"
+                          onChange={handleTeamMembersChange}
+                          showSearch
+                          style={{ borderRadius: 8 }}
+                          filterOption={(input, option) => {
+                            const member = members.find((m) => m.value === option?.value);
+                            return member ? member.label.toLowerCase().includes(input.toLowerCase()) : false;
+                          }}
+                        >
+                          {members.map((member) => (
+                            <Option key={member.value} value={member.value}>
+                              {member.label}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+
+                <Divider style={{ margin: "32px 0" }} />
+
+                {/* Section: Timeline & Resources */}
+                <div style={{ marginBottom: 32 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                    <div style={{ width: 4, height: 18, background: '#faad14', borderRadius: 2 }} />
+                    <Title level={5} style={{ margin: 0 }}>Timeline & Resources</Title>
+                  </div>
+
+                  <Row gutter={24}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="startDate"
+                        label="Estimated Start"
+                        rules={[{ required: true, message: "Required" }]}
+                      >
+                        <DatePicker size="large" style={{ width: "100%", borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="endDate" label="Estimated Completion">
+                        <DatePicker size="large" style={{ width: "100%", borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item name="repositories" label="Repository URL (Optional)">
+                        <Input placeholder="e.g. https://github.com/org/repo" size="large" style={{ borderRadius: 8 }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Form>
+            </div>
+          </div>
+        </Drawer>
+
+        {/* View Drawer (Slider) */}
+        <Drawer
+          open={viewDrawerOpen}
+          onClose={() => {
+            setViewDrawerOpen(false);
             setViewProject(null);
           }}
-          footer={null}
-          width={760}
-          centered
-          destroyOnClose
+          width={580}
+          closable={false}
           styles={{
-            content: {
-              borderRadius: 20,
-              padding: 0,
-              overflow: "hidden",
-            },
+            body: { padding: 0 },
+            header: { display: "none" }
           }}
         >
           {viewProject && (
-            <>
-              {/* ===== HEADER ===== */}
-              <div
-                className="view-modal-header"
-                style={{
-                  padding: "22px 24px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                }}
-              >
-                <Avatar
-                  size={52}
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #1677ff 0%, #69b1ff 100%)",
-                    fontWeight: 700,
-                    fontSize: 20,
-                  }}
-                >
-                  {viewProject.name?.[0]?.toUpperCase()}
-                </Avatar>
-
-                {/* Text block */}
-                <div style={{ flex: 1 }}>
-                  {/* Name + Tag in same row */}
-                  <div
-                    style={{
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fdfdfd" }}>
+              {/* Drawer Header - Compact & Premium */}
+              <div style={{
+                padding: "24px 24px",
+                background: "linear-gradient(135deg, rgba(22, 119, 255, 0.04) 0%, rgba(255, 255, 255, 1) 100%)",
+                borderBottom: "1px solid rgba(0,0,0,0.05)",
+                position: "relative",
+                zIndex: 5
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Space size={16} align="center">
+                    <div style={{
+                      width: 50,
+                      height: 50,
+                      borderRadius: 12,
+                      background: "linear-gradient(135deg, #1677ff 0%, #0958d9 100%)",
                       display: "flex",
-                      alignItems: "baseline",
-                      gap: 8,
-                    }}
-                  >
-                    <Title level={4} style={{ margin: 0, color: "black" }}>
-                      {viewProject.name}
-                    </Title>
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: 20,
+                      fontWeight: 700,
+                      boxShadow: "0 4px 10px rgba(22, 119, 255, 0.25)"
+                    }}>
+                      {viewProject.name?.[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                      <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: "-0.4px" }}>{viewProject.name}</Title>
+                      <Space size={6} style={{ marginTop: 2 }}>
+                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>{viewProject.code}</Text>
+                        <Tag
+                          color={getStatusColor(viewProject.status)}
+                          style={{
+                            borderRadius: 6,
+                            padding: "0px 8px",
+                            fontWeight: 700,
+                            fontSize: 9,
+                            textTransform: "uppercase",
+                            border: "none",
+                            margin: 0,
+                            height: 18,
+                            lineHeight: "18px"
+                          }}
+                        >
+                          {viewProject.status.replace("-", " ")}
+                        </Tag>
+                      </Space>
+                    </div>
+                  </Space>
+                  <Button
+                    type="text"
+                    shape="circle"
+                    size="small"
+                    icon={<PlusOutlined style={{ transform: "rotate(45deg)", fontSize: 16 }} />}
+                    onClick={() => setViewDrawerOpen(false)}
+                    style={{ color: "#bfbfbf", background: "rgba(0,0,0,0.02)" }}
+                  />
+                </div>
 
-                    <Tag
-                      color={getStatusColor(viewProject.status)}
-                      style={{
-                        fontWeight: 600,
-                        fontSize: 11,
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                        width: "fit-content",
-                        display: "inline-block",
-                      }}
-                    >
-                      {viewProject.status.toUpperCase()}
-                    </Tag>
+                {/* Compact Progress Line */}
+                {viewProject.totalTickets > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <Text style={{ fontSize: 10, color: "#8c8c8c", textTransform: "uppercase", fontWeight: 600 }}>Project Velocity</Text>
+                      <Text strong style={{ fontSize: 11, color: "#1677ff" }}>
+                        {Math.round((viewProject.completedTickets / viewProject.totalTickets) * 100)}%
+                      </Text>
+                    </div>
+                    <Progress
+                      percent={Math.round((viewProject.completedTickets / viewProject.totalTickets) * 100)}
+                      showInfo={false}
+                      strokeColor="#1677ff"
+                      strokeWidth={4}
+                      style={{ margin: 0 }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Content - High Density */}
+              <div style={{ padding: "20px 24px", flex: 1, overflowY: "auto" }}>
+                {/* Information Grid - Tighter */}
+                <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
+                  <Col span={12}>
+                    <div style={{
+                      padding: "12px",
+                      background: "#fff",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.03)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.01)"
+                    }}>
+                      <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 4, textTransform: "uppercase", fontWeight: 600, color: "#bfbfbf" }}>
+                        Priority
+                      </Text>
+                      <Space size={6}>
+                        <div style={{
+                          width: 6, height: 6, borderRadius: "50%",
+                          background: getPriorityColor(viewProject.defaultPriority) === 'red' ? '#ff4d4f' :
+                            getPriorityColor(viewProject.defaultPriority) === 'orange' ? '#faad14' : '#52c41a',
+                        }} />
+                        <Text strong style={{ fontSize: 13, textTransform: "capitalize" }}>{viewProject.defaultPriority}</Text>
+                      </Space>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{
+                      padding: "12px",
+                      background: "#fff",
+                      borderRadius: 10,
+                      border: "1px solid rgba(0,0,0,0.03)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.01)"
+                    }}>
+                      <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 4, textTransform: "uppercase", fontWeight: 600, color: "#bfbfbf" }}>
+                        Team
+                      </Text>
+                      <Space size={6}>
+                        <TeamOutlined style={{ color: "#1677ff", fontSize: 13 }} />
+                        <Text strong style={{ fontSize: 13 }}>{viewProject.members?.length || 0} Members</Text>
+                      </Space>
+                    </div>
+                  </Col>
+                </Row>
+
+                {/* Section: Overview - More compact */}
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                    <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Description</Title>
+                  </div>
+                  <div style={{
+                    padding: "0 2px",
+                    lineHeight: 1.6
+                  }}>
+                    <Typography.Paragraph type="secondary" style={{ fontSize: 13, margin: 0, color: "#595959" }}>
+                      {viewProject.description || "No description provided."}
+                    </Typography.Paragraph>
+                  </div>
+                </div>
+
+                <Divider style={{ margin: "20px 0", opacity: 0.6 }} />
+
+                {/* Section: Timeline - Row layout */}
+                <div style={{ marginBottom: 24 }}>
+                  <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Timeline</Title>
+                  <div style={{
+                    display: "flex",
+                    background: "#f9f9f9",
+                    padding: "12px",
+                    borderRadius: 12,
+                    gap: 12
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase", marginBottom: 2 }}>Started</Text>
+                      <Text strong style={{ fontSize: 12 }}>{dayjs(viewProject.startDate).format("MMM DD, YYYY")}</Text>
+                    </div>
+                    <div style={{ width: 1, background: "#e8e8e8" }} />
+                    <div style={{ flex: 1 }}>
+                      <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase", marginBottom: 2 }}>Target</Text>
+                      <Text strong style={{ fontSize: 12 }}>
+                        {viewProject.endDate ? dayjs(viewProject.endDate).format("MMM DD, YYYY") : "No limit"}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section: Team */}
+                <div style={{ marginBottom: 24 }}>
+                  <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Leadership & Collaboration</Title>
+
+                  {/* Manager - More modern/refined */}
+                  <div style={{
+                    padding: "12px 16px",
+                    background: "#fff",
+                    borderRadius: 14,
+                    border: "1px solid #f0f0f0",
+                    marginBottom: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.01)"
+                  }}>
+                    <Avatar size={40} style={{ backgroundColor: "#fa8c16", marginRight: 12, fontSize: 14 }}>
+                      {viewProject.projectManager?.name.charAt(0)}
+                    </Avatar>
+                    <div style={{ flex: 1 }}>
+                      <Text strong style={{ display: "block", fontSize: 13 }}>{viewProject.projectManager?.name}</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>Project Manager</Text>
+                    </div>
+                    <Tag color="orange" style={{ border: "none", fontWeight: 700, borderRadius: 5, fontSize: 9, margin: 0 }}>LEAD</Tag>
                   </div>
 
-                  {/* ID below */}
-                  <Text style={{ color: "black", fontSize: 13 }}>
-                    {viewProject.code || "—"}
-                  </Text>
+                  {/* Members - Compact Grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {viewProject.members?.map((member: any) => (
+                      <div
+                        key={member.id || member.user?.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "8px 12px",
+                          background: "#fff",
+                          borderRadius: 10,
+                          border: "1px solid rgba(0,0,0,0.02)"
+                        }}
+                      >
+                        <Avatar size={28} style={{ backgroundColor: "#52c41a", fontSize: 10 }}>
+                          {(member.user?.name || member.name || "U").charAt(0)}
+                        </Avatar>
+                        <div style={{ minWidth: 0 }}>
+                          <Text strong style={{ fontSize: 12, display: "block" }} ellipsis>{member.user?.name || member.name}</Text>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section: Repositories */}
+                {viewProject.repositories && viewProject.repositories.length > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Resources</Title>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {viewProject.repositories.map((repo: any, idx: number) => (
+                        <div key={idx} style={{
+                          padding: "8px 12px",
+                          background: "#f0f5ff",
+                          borderRadius: 10,
+                          border: "1px solid #d6e4ff",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8
+                        }}>
+                          <ProjectOutlined style={{ color: "#1677ff", fontSize: 12 }} />
+                          <Text strong style={{ fontSize: 11, color: "#0958d9" }}>{repo.name}</Text>
+                          <ArrowRightOutlined style={{ fontSize: 10, color: "#1677ff", cursor: "pointer" }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Compact Metadata Footer */}
+                <div style={{
+                  marginTop: 32,
+                  padding: "12px 16px",
+                  background: "#f5f5f5",
+                  borderRadius: 12,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 12
+                }}>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase" }}>Created</Text>
+                    <Text style={{ fontSize: 11 }}>{dayjs(viewProject.createdAt).format("MMM DD, YYYY")}</Text>
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase" }}>Last Activity</Text>
+                    <Text style={{ fontSize: 11 }}>{dayjs(viewProject.updatedAt).fromNow()}</Text>
+                  </div>
+                  {viewProject.createdBy && (
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase" }}>Author</Text>
+                      <Text style={{ fontSize: 11 }}>{viewProject.createdBy.name}</Text>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ===== BODY ===== */}
-              <div style={{ padding: 24, background: "#fafcff" }}>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Card size="small" bordered={false} className="view-card">
-                      <Space>
-                        <UserOutlined style={{ color: "#1677ff" }} />
-                        <Text strong>Project Manager</Text>
-                      </Space>
-                      <div style={{ marginTop: 6 }}>
-                        {viewProject.projectManager?.name || "—"}
-                      </div>
-                    </Card>
-                  </Col>
-
-                  <Col span={12}>
-                    <Card size="small" bordered={false} className="view-card">
-                      <Space>
-                        <TeamOutlined style={{ color: "#1677ff" }} />
-                        <Text strong>Team Members</Text>
-                      </Space>
-                      <div style={{ marginTop: 6 }}>
-                        {viewProject.members?.length || 0} members
-                      </div>
-                    </Card>
-                  </Col>
-
-                  <Col span={12}>
-                    <Card size="small" bordered={false} className="view-card">
-                      <Space>
-                        <CalendarOutlined style={{ color: "#1677ff" }} />
-                        <Text strong>Start Date</Text>
-                      </Space>
-                      <div style={{ marginTop: 6 }}>
-                        {dayjs(viewProject.startDate).format("MMM DD, YYYY")}
-                      </div>
-                    </Card>
-                  </Col>
-
-                  <Col span={12}>
-                    <Card size="small" bordered={false} className="view-card">
-                      <Space>
-                        <CalendarOutlined style={{ color: "#1677ff" }} />
-                        <Text strong>End Date</Text>
-                      </Space>
-                      <div style={{ marginTop: 6 }}>
-                        {viewProject.endDate
-                          ? dayjs(viewProject.endDate).format("MMM DD, YYYY")
-                          : "—"}
-                      </div>
-                    </Card>
-                  </Col>
-
-                  <Col span={24}>
-                    <Card size="small" bordered={false} className="view-card">
-                      <Text strong>Description</Text>
-                      <div style={{ marginTop: 8, color: "#595959" }}>
-                        {viewProject.description || "No description provided."}
-                      </div>
-                    </Card>
-                  </Col>
-                </Row>
-              </div>
-
-              {/* ===== FOOTER ===== */}
-              <div
-                style={{
-                  padding: "14px 20px",
-                  borderTop: "1px solid #f0f0f0",
-                  background: "#fff",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  alignItems: "center",
-                }}
-              >
+              {/* Drawer Action Bar - Compact */}
+              <div style={{
+                padding: "20px 24px",
+                borderTop: "1px solid rgba(0,0,0,0.05)",
+                background: "#fff",
+                display: "flex",
+                gap: 12
+              }}>
+                {user?.role && RBAC.hasPermission(user.role as any, "projects", "update") && (
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    block
+                    style={{
+                      height: 44,
+                      borderRadius: 10,
+                      fontWeight: 600,
+                      background: "#1677ff",
+                    }}
+                    onClick={() => {
+                      setViewDrawerOpen(false);
+                      handleEdit(viewProject);
+                    }}
+                  >
+                    Edit Details
+                  </Button>
+                )}
                 <Button
-                  onClick={() => setViewModalOpen(false)}
-                  className="view-close-btn"
+                  block
+                  style={{ height: 44, borderRadius: 10, fontWeight: 600 }}
+                  onClick={() => setViewDrawerOpen(false)}
                 >
                   Close
                 </Button>
               </div>
-            </>
+            </div>
           )}
-        </Modal>
+        </Drawer>
       </div>
     </MainLayout>
   );

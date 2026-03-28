@@ -145,7 +145,12 @@ const createApiClient = (): AxiosInstance => {
         }
       }
 
-      if (token && config.headers) {
+      // Only add Authorization header to internal requests
+      const isInternalRequest = !config.url?.startsWith('http') || 
+                                 config.url?.startsWith(window.location.origin) ||
+                                 (process.env.NEXT_PUBLIC_API_URL && config.url?.startsWith(process.env.NEXT_PUBLIC_API_URL));
+
+      if (token && config.headers && isInternalRequest) {
         config.headers.Authorization = `Bearer ${token}`;
       }
 
@@ -208,7 +213,9 @@ const createApiClient = (): AxiosInstance => {
 
       // Log error in development
       if (process.env.NODE_ENV === 'development') {
-        console.error(`❌ API Error: ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`, {
+        const method = originalRequest?.method?.toUpperCase() || 'HTTP';
+        const url = originalRequest?.url || 'Request';
+        console.error(`❌ API Error: ${method} ${url}`, {
           status: error.response?.status,
           data: error.response?.data,
         });
@@ -299,7 +306,7 @@ export const api = {
     }
     throw new ApiError(response.data.error || 'Request failed', response.status);
   },
- 
+
 
 
   // PUT request

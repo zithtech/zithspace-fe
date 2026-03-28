@@ -69,6 +69,8 @@ const DEFAULT_DRAFT: Draft = {
     currency: Currency.USD,
     dateFormat: DateFormat.MM_DD_YYYY,
     signature: null,
+    gstin: null,
+    pan: null,
   },
   invoice: {
     format: "INV-{YYYY}-{###}",
@@ -141,6 +143,8 @@ const [draft, setDraft] = useState<Draft>({
     currency: Currency.USD,           
     dateFormat: DateFormat.MM_DD_YYYY, 
     signature: null,
+    gstin: null,
+    pan: null,
   },
   invoice: {
     format: "INV-{YYYY}-{###}",      
@@ -191,6 +195,8 @@ const handleEdit = (id: string) => {
       dateFormat: s.general.dateFormat,
       companyLogo: s.general.companyLogo,
       signature: s.general.signature,
+      gstin: s.general.gstin,
+      pan: s.general.pan,
     },
     invoice: {
       format: s.invoice.format,

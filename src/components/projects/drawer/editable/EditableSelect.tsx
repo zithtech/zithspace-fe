@@ -20,6 +20,8 @@ interface EditableSelectProps {
     label?: string;
     mode?: 'tag' | 'user' | 'text'; // Display mode
     emptyText?: string;
+    plain?: boolean; // If true, removes default hover background and padding
+    textStyle?: React.CSSProperties;
 }
 
 export const EditableSelect: React.FC<EditableSelectProps> = ({
@@ -30,6 +32,8 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
     label,
     mode = 'text',
     emptyText = 'Select...',
+    plain = false,
+    textStyle,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -111,12 +115,12 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
                     >
                         {selectedOption.label.charAt(0)}
                     </Avatar>
-                    <Text>{selectedOption.label}</Text>
+                    <Text style={textStyle}>{selectedOption.label}</Text>
                 </Space>
             );
         }
 
-        return <Text>{selectedOption.label}</Text>;
+        return <Text style={textStyle}>{selectedOption.label}</Text>;
     };
 
     return (
@@ -124,15 +128,15 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
             onClick={() => !loading && setIsEditing(true)}
             style={{
                 cursor: 'pointer',
-                padding: '4px 8px',
-                margin: '-4px -8px',
+                padding: plain ? '0' : '4px 8px',
+                margin: plain ? '0' : '-4px -8px',
                 borderRadius: '4px',
-                minHeight: '28px',
+                minHeight: plain ? 'auto' : '28px',
                 display: 'flex',
                 alignItems: 'center',
                 transition: 'background 0.2s',
             }}
-            className="editable-field-hover"
+            className={plain ? "" : "editable-field-hover"}
             title={label || placeholder}
         >
             <div style={{ flex: 1 }}>{renderValue()}</div>

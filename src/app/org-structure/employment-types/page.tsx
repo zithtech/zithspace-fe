@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, Typography, Button, Space, Input, Tabs, Table, Tag, Modal, Form, Switch, Popconfirm, notification, Spin ,Divider} from "antd";
-import { ScheduleOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useRouter, usePathname } from "next/navigation";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { Card, Typography, Button, Space, Input, Table, Tag, Form, Switch, notification, Spin, Divider, Tooltip, Drawer, Row, Col } from "antd";
+import { Briefcase, Edit, Plus, Search, Layers, ShieldCheck, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEmploymentTypes } from "@/hooks/useEmploymentTypes";
 import { EmploymentType } from "@/services/employmentTypeService";
 import { useAuth } from "@/context/AuthContext";
@@ -13,7 +14,6 @@ const { Text } = Typography;
 
 export default function EmploymentTypesPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const { isLoading: authLoading } = useAuth();
   const { canReadOrg, canManageOrg } = usePermission();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,8 +27,7 @@ export default function EmploymentTypesPage() {
     employmentTypes,
     loading,
     createEmploymentType,
-    updateEmploymentType,
-    deleteEmploymentType
+    updateEmploymentType
   } = useEmploymentTypes();
 
   // Route guard
@@ -43,14 +42,8 @@ export default function EmploymentTypesPage() {
   const inactiveTypes = totalTypes - activeTypes;
 
   const generateCodeFromName = (name: string): string => {
-    if (!name || typeof name !== 'string') {
-      return '';
-    }
+    if (!name || typeof name !== 'string') return '';
     return name.trim().toUpperCase().replace(/\s+/g, '_');
-  };
-
-  const handleTabChange = (key: string) => {
-    router.push(key);
   };
 
   const handleAdd = () => {
@@ -64,9 +57,7 @@ export default function EmploymentTypesPage() {
     setEditingKey(record.id);
     form.setFieldsValue({
       ...record,
-      code: record.code,
       typeName: record.name,
-      isActive: record.isActive,
     });
     setIsModalOpen(true);
   };
@@ -82,7 +73,6 @@ export default function EmploymentTypesPage() {
       };
 
       setSubmitting(true);
-
       let success = false;
       if (editingKey) {
         success = await updateEmploymentType(editingKey, payload);
@@ -94,23 +84,18 @@ export default function EmploymentTypesPage() {
         setIsModalOpen(false);
         api.success({
           message: `Employment Type ${editingKey ? "Updated" : "Added"}`,
-          description: `Employment type "${formValues.typeName}" was successfully ${editingKey ? "updated" : "added"}.`,
+          description: `Employment type "${formValues.typeName}" was successfully saved.`,
           placement: "topRight",
-          duration: 1,
-        });
-      } else {
-        api.error({
-          message: "Error",
-          description: `Failed to ${editingKey ? "update" : "add"} employment type.`,
-          placement: "topRight",
+          duration: 2,
         });
       }
     } catch (error) {
-      console.error("Validation failed:", error);
+      console.error("Save failed:", error);
     } finally {
       setSubmitting(false);
     }
   };
+
   const filteredData = useMemo(() => {
     if (!searchText.trim()) return employmentTypes;
     const q = searchText.toLowerCase();
@@ -120,38 +105,59 @@ export default function EmploymentTypesPage() {
     );
   }, [employmentTypes, searchText]);
 
-  // Loading & permission check
-  if (authLoading) {
-    return (
-      <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      bodyStyle={{ padding: "16px 20px" }} 
+      style={{ borderRadius: 12, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
         </div>
-      </MainLayout>
-    );
-  }
-
-  if (!canReadOrg) {
-    return null;
-  }
+        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+          <Icon size={20} />
+        </div>
+      </div>
+    </Card>
+  );
 
   const columns = [
     {
-      title: "Code",
-      dataIndex: "code",
-      key: "code",
-    },
-    {
-      title: "Type Name",
-      dataIndex: "name",
-      key: "name",
-      sorter: (a: EmploymentType, b: EmploymentType) =>
-        a.name.localeCompare(b.name),
+      title: "Type Identity",
+      key: "identity",
+      width: "30%",
+      onHeaderCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      onCell: () => ({
+        style: { paddingLeft: 24 }
+      }),
+      render: (_: any, record: EmploymentType) => (
+        <Space size={12}>
+          <div style={{ 
+            width: 36, height: 36, borderRadius: 10, background: "rgba(22, 119, 255, 0.08)", color: "#1677ff",
+            display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14
+          }}>
+            {record.code?.substring(0, 2) || "ET"}
+          </div>
+          <div>
+            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{record.name}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>CODE: {record.code}</Text>
+          </div>
+        </Space>
+      ),
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      ellipsis: true,
+      render: (description: string) => (
+        <Tooltip placement="topLeft" title={description}>
+          <Text type="secondary" style={{ fontSize: 13 }}>{description || "No description provided"}</Text>
+        </Tooltip>
+      ),
     },
     {
       title: "Status",
@@ -159,147 +165,184 @@ export default function EmploymentTypesPage() {
       key: "isActive",
       width: 120,
       render: (isActive: boolean) => (
-        <Tag color={isActive ? "green" : "red"}>{isActive ? "Active" : "Inactive"}</Tag>
+        <Tag style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }} color={isActive ? "success" : "default"}>
+          {isActive ? "ACTIVE" : "INACTIVE"}
+        </Tag>
       ),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 120,
+      align: "right" as const,
+      width: 100,
       render: (_: any, record: EmploymentType) => {
         if (!canManageOrg) return null;
         return (
-          <Space >
-            <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          </Space>
+          <Tooltip title="Edit Type">
+            <Button
+              type="text"
+              icon={<Edit size={18} style={{ color: "#64748b" }} />}
+              onClick={() => handleEdit(record)}
+              className="action-btn"
+            />
+          </Tooltip>
         );
       },
     },
   ];
 
-  return (
-    <MainLayout>
-        {contextHolder}
-        <div style={{marginTop:20}} >
-          <Tabs activeKey={pathname} onChange={handleTabChange} items={[
-            { key: "/org-structure/overview", label: "Overview" },
-            { key: "/org-structure/grades", label: "Grades" },
-            { key: "/org-structure/employment-types", label: "Employment Types" },
-             { key: "/org-structure/departments", label: "Departments" },
-             { key: "/org-structure/sub-departments", label: "Sub-Departments" },
-             { key: "/org-structure/positions", label: "Positions" },
-             
-          ]} />
-         
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ScheduleOutlined style={{ color: "#1a64c4ff", fontSize: 20 }} />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Employment Types Management
-                  </Typography.Title>
-                </Space>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Define and manage employment types.
-                  </Text>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <Input.Search
-                  placeholder="Search types..."
-                  allowClear
-                  style={{ width: 320 }}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
-                {canManageOrg && (
-                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Employment Types </Button>
-                )}
-              </div>
-            </div>
+  if (authLoading) {
+    return (
+      <ProtectedRoute>
+        <MainLayout>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#ffffff' }}>
+            <Spin size="large" tip="Loading Employment Data..." />
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
+    );
+  }
 
-            <Space >
-              <Tag style={{ borderRadius: 12 }}>Total Types: {totalTypes}</Tag>
-              <Tag style={{ borderRadius: 12 }} color="green">Active: {activeTypes}</Tag>
-              <Tag style={{ borderRadius: 12 }} color="red">Inactive: {inactiveTypes}</Tag>
-            </Space>
-              <Divider style={{marginTop:20}} />
+  if (!canReadOrg) return null;
+
+  return (
+    <ProtectedRoute>
+      <MainLayout>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+          {contextHolder}
+
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Space size={12} align="center">
+                <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 10, borderRadius: 12, color: "#1677ff", display: "flex" }}>
+                  <Briefcase size={24} />
+                </div>
+                <div>
+                  <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Employment Types</Typography.Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Define and manage workforce contract types and employment structures.</Text>
+                </div>
+              </Space>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Input 
+                placeholder="Search types..." 
+                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                style={{ width: 280, borderRadius: 10, height: 44 }}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+              {canManageOrg && (
+                <Button 
+                  type="primary" size="large" icon={<Plus size={18} />} 
+                  style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                  onClick={handleAdd}
+                >
+                  New Type
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Metrics Grid */}
+          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}><StatCard label="Total Categories" value={totalTypes} icon={Layers} color="#3b82f6" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Active Status" value={activeTypes} icon={ShieldCheck} color="#10b981" /></Col>
+            <Col xs={24} sm={8}><StatCard label="Inactive Types" value={inactiveTypes} icon={User} color="#f59e0b" /></Col>
+          </Row>
+
+          {/* Table Card */}
+          <Card 
+            bodyStyle={{ padding: 0 }} 
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+          >
             <Table
               rowKey="id"
-              size="small"
               columns={columns}
               dataSource={filteredData}
               loading={loading}
-              pagination={{ pageSize: 10 }}
+              size="middle"
+              pagination={{ pageSize: 12, position: ["bottomRight"] }}
             />
-            <Modal
-              title={editingKey ? "Edit Employment Type" : "Add Employment Type"}
-              open={isModalOpen}
-              onOk={handleSave}
-              okText={editingKey ? "Update Employment Type" : "Add Employment Type"}
-              onCancel={() => setIsModalOpen(false)}
-              confirmLoading={submitting}
-              cancelButtonProps={{ disabled: submitting }}
-              maskClosable={!submitting}
-              destroyOnClose
-              width={450}
-            >
-              <Form form={form} layout="vertical">
-                <Form.Item
-                  name="code"
-                  label="Code"
-                  rules={[{ required: true, message: "Please enter a code" }]}
-                
-                >
-                  <Input placeholder="Enter code" disabled />
-                </Form.Item>
-                <Form.Item
-                  name="typeName"
-                  label="Type Name"
-                  normalize={(value) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : value)}
-                  rules={[{ required: true, message: "Please enter an employment type" }]}
-                >
-                  <Input
-                    placeholder="Enter an employment type"
-                    onChange={(e) => {
-                      if (!editingKey) {
-                        const code = generateCodeFromName(e.target.value);
-                        form.setFieldsValue({ code });
-                      }
-                    }}
-                  />
-                </Form.Item>
-                <Form.Item name="description" label="Description">
-                  <Input.TextArea rows={3} placeholder="Enter a description for the employment type." />
-                </Form.Item>
-               <Form.Item >
-    
-  <div style={{ display: "flex", justifyContent: "space-between" }}>
-    
-    <div>
-      <div style={{ fontWeight: 600 }}>Status</div>
-      <div style={{ fontSize: 12, color: "#888" }}>
-        Enable or disable this employment type
-      </div>
-    </div>
-
-      <Form.Item name="isActive" valuePropName="checked" noStyle>
-        <Switch style={{top:10}}  />
-      </Form.Item>
-
-  </div>
-</Form.Item>
-              </Form>
-            </Modal>
-  
+          </Card>
         </div>
+
+        {/* Configuration Drawer */}
+        <Drawer
+          title={
+            <Space size={12}>
+              <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
+                <Edit size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>{editingKey ? "Edit Employment Type" : "Create New Type"}</div>
+                <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>Configure workforce contract and status rules</div>
+              </div>
+            </Space>
+          }
+          width={480}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          footer={
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
+              <Button onClick={() => setIsModalOpen(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
+              <Button 
+                type="primary" loading={submitting} onClick={handleSave} 
+                style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600 }}
+              >
+                {editingKey ? "Update Type" : "Create Type"}
+              </Button>
+            </div>
+          }
+          className="config-drawer"
+        >
+          <Form form={form} layout="vertical" requiredMark={false}>
+            <div style={{ marginBottom: 24 }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 16 }}>Identity & Label</Text>
+              <Form.Item
+                name="typeName"
+                label={<Text strong style={{ fontSize: 13 }}>Employment Type Name</Text>}
+                rules={[{ required: true, message: "Please enter type name" }]}
+              >
+                <Input placeholder="e.g. Full-Time Regular" onChange={(e) => { if (!editingKey) { form.setFieldsValue({ code: generateCodeFromName(e.target.value) }); } }} />
+              </Form.Item>
+              <Form.Item name="code" label={<Text strong style={{ fontSize: 13 }}>Identity Code</Text>} rules={[{ required: true, message: "Required" }]}>
+                <Input placeholder="e.g. FULL_TIME" />
+              </Form.Item>
+            </div>
+
+            <Divider />
+
+            <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
+              <Text strong style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 20 }}>Contract Controls</Text>
+              <Form.Item name="isActive" valuePropName="checked" initialValue={true}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, display: "block" }}>Active Status</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Allow using this type for new employee contracts.</Text>
+                  </div>
+                  <Switch />
+                </div>
+              </Form.Item>
+              <Divider style={{ margin: "16px 0" }} />
+              <Form.Item name="description" label={<Text strong style={{ fontSize: 13 }}>Internal Description</Text>}>
+                <Input.TextArea rows={4} placeholder="Define requirements or details for this employment category..." />
+              </Form.Item>
+            </div>
+          </Form>
+        </Drawer>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+          .action-btn:hover { background: #f1f5f9 !important; color: #1677ff !important; }
+          .ant-table-thead > tr > th {
+            background: #f8fafc !important; color: #64748b !important; font-weight: 600 !important;
+            text-transform: uppercase !important; font-size: 11px !important; letter-spacing: 0.05em !important;
+          }
+          .ant-table-row:hover > td { background: #f8fafc !important; }
+          .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
+          .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
+          .ant-input:focus, .ant-input-focused { border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; }
+        `}} />
       </MainLayout>
+    </ProtectedRoute>
   );
 }

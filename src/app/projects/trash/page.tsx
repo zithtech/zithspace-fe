@@ -24,8 +24,12 @@ export default function TrashPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading trash..." />
+        <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 64px)', padding: 24, textAlign: 'center' }}>
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading trash">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     );
@@ -38,7 +42,9 @@ export default function TrashPage() {
 
   return (
     <MainLayout>
-      <TrashManagementPage />
+      <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 64px)', padding: '20px' }}>
+        <TrashManagementPage />
+      </div>
     </MainLayout>
   );
 }

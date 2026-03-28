@@ -1,9 +1,7 @@
 "use client";
 import React, {
   useState,
-  useRef,
   forwardRef,
-  use,
   useImperativeHandle,
   useEffect,
 } from "react";
@@ -16,64 +14,108 @@ import {
   Upload,
   Button,
   Checkbox,
-  Collapse,
-  Badge,
-  Tag,
-  Divider as Divder,
   message,
+  Row,
+  Col,
+  Tooltip,
+  Empty,
+  Typography,
 } from "antd";
 
 import {
-  UploadOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-  CloseOutlined,
-  EyeOutlined,
-  EditOutlined,
-} from "@ant-design/icons";
+  Plus,
+  Trash2,
+  FileText,
+  Upload as UploadIcon,
+  Eye,
+  Pencil,
+  X,
+  Briefcase,
+  MapPin,
+  Calendar,
+  User,
+  ShieldCheck,
+  Building2,
+  FileCheck,
+  FileOutput,
+  LogOut,
+  ShieldAlert,
+  CreditCard,
+  FileSearch,
+} from "lucide-react";
 import dayjs from "dayjs";
 
-const { Panel } = Collapse;
+const { Text } = Typography;
 
-const labelStyle = { fontSize: 12, fontWeight: 500 };
-const inputStyle = { height: 25, fontSize: 12 };
-const cardStyle = {
-  background: "#fff",
-  border: "1px solid #e5e7eb",
-  borderRadius: 12,
-  padding: 12,
+const labelStyle = {
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "#475569",
+  marginBottom: "4px",
+  display: "block"
 };
 
-const Section = ({ title }: { title: string }) => (
-  <div
-    style={{
-      margin: "6px 0 4px",
-      fontWeight: 600,
-      color: "#1677ff",
-      fontSize: 13,
-    }}
-  >
-    {title}
+const cardStyle: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #ebedef",
+  borderRadius: "12px",
+  padding: "20px",
+  marginBottom: "16px",
+  transition: "all 0.2s ease",
+};
+
+const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+    <div style={{ padding: "6px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
+      <Icon size={16} style={{ color: "#3b82f6" }} />
+    </div>
+    <div>
+      <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "14px" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: "11px", color: "#64748b" }}>{subtitle}</div>}
+    </div>
   </div>
 );
 
-const InputField = ({ label, name }: any) => (
+const CustomInputField = ({ label, name, placeholder, rules, onKeyDown, onKeyPress, maxLength }: any) => (
   <Form.Item
     label={<span style={labelStyle}>{label}</span>}
     name={name}
-    style={{ marginBottom: 6 }}
+    rules={rules}
+    style={{ marginBottom: "12px" }}
   >
-    <Input style={inputStyle} />
+    <Input
+      placeholder={placeholder}
+      onKeyDown={onKeyDown}
+      onKeyPress={onKeyPress}
+      maxLength={maxLength}
+      style={{
+        height: "38px",
+        borderRadius: "8px",
+        border: "1px solid #cbd5e1",
+        fontSize: "13px"
+      }}
+    />
   </Form.Item>
 );
 
-const SelectField = ({ label, name, children }: any) => (
+const CustomSelectField = ({ label, name, children, placeholder, rules }: any) => (
   <Form.Item
     label={<span style={labelStyle}>{label}</span>}
     name={name}
-    style={{ marginBottom: 6 }}
+    rules={rules}
+    style={{ marginBottom: "12px" }}
   >
-    <Select style={inputStyle}>{children}</Select>
+    <Select
+      placeholder={placeholder}
+      style={{
+        height: "38px",
+        borderRadius: "8px",
+        fontSize: "13px"
+      }}
+      dropdownStyle={{ borderRadius: "8px" }}
+    >
+      {children}
+    </Select>
   </Form.Item>
 );
 
@@ -87,29 +129,24 @@ const getBase64 = (file: File): Promise<string> => {
 };
 const MAX_SIZE = 5 * 1024 * 1024;
 
-const UploadField = ({ label, name }: any) => {
+const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRemove }: any) => {
   const form = Form.useFormInstance();
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
+  const [uploadDate, setUploadDate] = useState<string>("");
 
-  // ✅ Load existing file data on mount and when form values change
   useEffect(() => {
     const currentValue = form.getFieldValue(name);
-    console.log(
-      "📂 UploadField useEffect - name:",
-      name,
-      "currentValue:",
-      currentValue,
-    );
     if (currentValue && currentValue.base64) {
       setFileUrl(currentValue.base64);
       setFileName(currentValue.fileName || "");
+      setUploadDate(dayjs().format("MMM DD, YYYY"));
     }
   }, [form, name]);
 
   const handleFileSelect = async (file: File) => {
     if (file.size > MAX_SIZE) {
-      alert("File size should be less than 5MB");
+      message.error("File size should be less than 5MB");
       return Upload.LIST_IGNORE;
     }
 
@@ -117,6 +154,7 @@ const UploadField = ({ label, name }: any) => {
       const previewUrl = URL.createObjectURL(file);
       setFileUrl(previewUrl);
       setFileName(file.name);
+      setUploadDate(dayjs().format("MMM DD, YYYY"));
 
       const base64 = await getBase64(file);
       const fileData = {
@@ -125,32 +163,10 @@ const UploadField = ({ label, name }: any) => {
         fileType: file.type,
       };
 
-      // ✅ CRITICAL: Log BEFORE setting
-      console.log(
-        "🔥 BEFORE setFieldValue - name:",
-        name,
-        "fileData:",
-        fileData,
-      );
-
       form.setFieldValue(name, fileData);
-
-      // ✅ CRITICAL: Log AFTER setting to verify it was stored
-      const verifyValue = form.getFieldValue(name);
-      console.log(
-        "✅ AFTER setFieldValue - name:",
-        name,
-        "stored value:",
-        verifyValue,
-      );
-
-      // ✅ Also log ALL form values to see the complete structure
-      const allValues = form.getFieldsValue(true);
-      console.log("📦 ALL FORM VALUES after upload:", allValues);
     } catch (error) {
       console.error("Error processing file:", error);
     }
-
     return false;
   };
 
@@ -158,68 +174,142 @@ const UploadField = ({ label, name }: any) => {
     setFileUrl(null);
     setFileName("");
     form.setFieldValue(name, null);
+    if (onRemove) onRemove();
   };
 
   return (
     <div
       style={{
+        background: "#ffffff",
+        border: "1px solid #ebedef",
+        borderRadius: "12px",
+        padding: "20px",
+        height: "100%",
         display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 6,
+        flexDirection: "column",
+        minHeight: "130px"
       }}
     >
-      {label && <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {fileName && (
-          <span style={{ fontSize: 11, color: "#52c41a", marginRight: 4 }}>
-            ✓
-          </span>
-        )}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+        <span style={{ fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>{label}</span>
+      </div>
+
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         {!fileUrl ? (
-          <Upload
-            showUploadList={false}
-            beforeUpload={handleFileSelect}
-            accept="image/*,.pdf,.doc,.docx"
-          >
-            <UploadOutlined style={{ fontSize: 18, cursor: "pointer" }} />
-          </Upload>
-        ) : (
-          <>
-            <Button
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => window.open(fileUrl, "_blank")}
+          <div style={{ textAlign: "center" }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={<span style={{ color: "#94a3b8", fontSize: "12px" }}>No file uploaded</span>}
+              style={{ margin: "5px 0" }}
             />
-            <Upload showUploadList={false} beforeUpload={handleFileSelect}>
-              <Button size="small" icon={<EditOutlined />} />
+            <Upload
+              showUploadList={false}
+              beforeUpload={handleFileSelect}
+              accept="image/*,.pdf,.doc,.docx"
+            >
+              <Button
+                icon={<UploadIcon size={14} />}
+                style={{
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  color: "#475569",
+                  border: "1px dashed #cbd5e1",
+                  height: "32px"
+                }}
+              >
+                Attach or drag
+              </Button>
             </Upload>
-            <Button
-              size="small"
-              danger
-              icon={<CloseOutlined />}
-              onClick={handleRemove}
-            />
-          </>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+            <div style={{
+              width: "32px",
+              height: "40px",
+              background: "#eff6ff",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #dbeafe"
+            }}>
+              <FileText size={18} style={{ color: "#3b82f6" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: "13px", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {fileName}
+              </div>
+              <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                {uploadDate}
+              </div>
+
+              <div style={{ marginTop: "8px", display: "flex", gap: "10px" }}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<Trash2 size={13} />}
+                  onClick={handleRemove}
+                  style={{ padding: 0, height: "auto", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}
+                >
+                  Delete
+                </Button>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Eye size={13} />}
+                  onClick={() => window.open(fileUrl, "_blank")}
+                  style={{ padding: 0, height: "auto", color: "#3b82f6", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}
+                >
+                  View
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-/* ================= CONTACT DETAILS BLOCK ================= */
-/* ================= CONTACT DETAILS BLOCK ================= */
+const AdditionalDocItem = ({ field, companyIndex, adIdx, remove, form }: any) => {
+  const docLabel = Form.useWatch(["previousCompanies", companyIndex, "additionalDocuments", field.name, "docLabel"], form);
+
+  return (
+    <Col span={8} key={field.key}>
+      <div style={{
+        background: "#ffffff",
+        border: "1px solid #ebedef",
+        borderRadius: "10px",
+        padding: "12px",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column"
+      }}>
+        <Form.Item
+          name={[field.name, "docLabel"]}
+          label={<span style={{ ...labelStyle, fontSize: "11px", marginBottom: "2px" }}>Document Name</span>}
+          rules={[{ required: false }]}
+          style={{ marginBottom: "8px" }}
+        >
+          <Input placeholder="e.g. Portfolio" size="small" style={{ borderRadius: "6px", height: "30px" }} />
+        </Form.Item>
+        <div style={{ flex: 1 }}>
+          <DocumentBox
+            name={["previousCompanies", companyIndex, "additionalDocuments", field.name, "docFile"]}
+            label={docLabel || "New Document"}
+            onRemove={() => remove(adIdx)}
+          />
+        </div>
+      </div>
+    </Col>
+  );
+};
 
 const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
   const role = Form.useWatch(
-    [
-      "previousCompanies",
-      companyIndex,
-      "contacts",
-      contactIndex,
-      "contactRole",
-    ],
-    form,
+    ["previousCompanies", companyIndex, "contacts", contactIndex, "contactRole"],
+    form
   );
 
   const roleLabelMap: any = {
@@ -229,428 +319,355 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
     reportingManager: "Reporting Manager",
   };
 
-  const label = roleLabelMap[role] || "Contact Person";
+  const label = roleLabelMap[role] || "Contact";
 
   return (
-    <>
-      {/* CONTACT ROLE */}
-      <Form.Item
-        name={[contactIndex, "contactRole"]}
-        label={<span style={labelStyle}>Contact Person Type</span>}
-        rules={[{ required: true, message: "Select contact type" }]}
-        style={{ marginBottom: 6 }}
-      >
-        <Select placeholder="Select role">
-          <Select.Option value="hr">HR</Select.Option>
-          <Select.Option value="manager">Manager</Select.Option>
-          <Select.Option value="teamLead">Team Leader</Select.Option>
-          <Select.Option value="reportingManager">
-            Reporting Manager
-          </Select.Option>
-        </Select>
-      </Form.Item>
-
-      {/* CONTACT NAME */}
-      <InputField
-        label={`${label} Name`}
-        name={[contactIndex, "contactName"]}
-      />
-
-      {/* CONTACT NUMBER */}
-      <InputField
-        label={`${label} Contact Number`}
-        name={[contactIndex, "contactNumber"]}
-      />
-      <InputField
-        label={`${label} Email`}
-        name={[contactIndex, "contactEmail"]}
-      />
-    </>
+    <div style={{ background: "#ffffff", padding: "16px", borderRadius: "10px", border: "1px solid #f1f5f9", marginBottom: "12px" }}>
+      <Row gutter={16}>
+        <Col span={24}>
+          <CustomSelectField
+            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactRole"]}
+            label="Contact Person Type"
+            rules={[{ required: false }]}
+            placeholder="Select role"
+          >
+            <Select.Option value="hr">HR</Select.Option>
+            <Select.Option value="manager">Manager</Select.Option>
+            <Select.Option value="teamLead">Team Leader</Select.Option>
+            <Select.Option value="reportingManager">Reporting Manager</Select.Option>
+          </CustomSelectField>
+        </Col>
+        <Col span={12}>
+          <CustomInputField
+            label={`${label} Name`}
+            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactName"]}
+            placeholder="Enter name"
+            onKeyDown={(e: any) => {
+              if (e.key.length > 1) return;
+              if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+          />
+        </Col>
+        <Col span={12}>
+          <CustomInputField
+            label={`${label} Email`}
+            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactEmail"]}
+            placeholder="Enter email"
+          />
+        </Col>
+        <Col span={24}>
+          <CustomInputField
+            label={`${label} Contact Number`}
+            name={["previousCompanies", companyIndex, "contacts", contactIndex, "contactNumber"]}
+            placeholder="Enter phone number"
+            maxLength={10}
+            onKeyPress={(e: any) => {
+              if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                e.preventDefault();
+              }
+            }}
+          />
+        </Col>
+      </Row>
+    </div>
   );
 };
 
-/* ================= COMPANY FORM BLOCK ================= */
-
-const CompanyFormBlock = ({ index, form }: any) => {
-  const [activeKey, setActiveKey] = useState<string | string[]>(["0"]);
+const CompanyCard = ({ field, index, form, remove, length }: any) => {
+  const companyName = Form.useWatch(["previousCompanies", index, "companyName"], form);
   const getLetter = (idx: number) => String.fromCharCode(65 + idx);
 
-  // ✅ Debug: Log the index being used
-  console.log("🏢 CompanyFormBlock rendered with index:", index);
-
   return (
-    <div style={{ display: "flex", gap: 10 }}>
-      {/* LEFT */}
-      <div style={{ width: "25%", ...cardStyle }}>
-        <Section title="🏢 Company Details" />
-        <InputField name={[index, "companyName"]} label="Previous Company" />
-        <InputField name={[index, "location"]} label="Location" />
-        <InputField name={[index, "industry"]} label="Industry / Domain" />
-        <InputField name={[index, "address"]} label="Company Address" />
-      </div>
-
-      {/* MIDDLE */}
-      <div style={{ width: "25%", ...cardStyle }}>
-        <Section title="📅 Tenure Details" />
-        <Form.Item
-          name={[index, "doj"]}
-          label={<span style={labelStyle}>Date of Joining</span>}
-        >
-          <DatePicker style={{ width: "100%", height: 25 }} />
-        </Form.Item>
-        <Form.Item
-          name={[index, "lwd"]}
-          label={<span style={labelStyle}>Last Working Day</span>}
-        >
-          <DatePicker style={{ width: "100%", height: 25 }} />
-        </Form.Item>
-        <InputField name={[index, "designation"]} label="Designation" />
-        <SelectField name={[index, "employmentType"]} label="Employment Type">
-          <Select.Option value="Full Time">Full Time</Select.Option>
-          <Select.Option value="Contract">Contract</Select.Option>
-          <Select.Option value="Internship">Intern</Select.Option>
-        </SelectField>
-      </div>
-
-      {/* RIGHT - DOCUMENTS */}
-      <div style={{ width: "25%", ...cardStyle, overflow: "auto" }}>
-        <Section title="📎 Documents" />
-
-        {/* ✅ These should now work */}
-        <UploadField
-          name={["previousCompanies", index, "experienceLetter"]}
-          label="Experience Letter"
-        />
-        <UploadField
-          name={["previousCompanies", index, "offerLetter"]}
-          label="Offer Letter"
-        />
-        <UploadField
-          name={["previousCompanies", index, "serviceLetter"]}
-          label="Service Letter"
-        />
-        <UploadField
-          name={["previousCompanies", index, "relievingLetter"]}
-          label="Relieving Letter"
-        />
-
-        <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
-          {/* FORM 16 */}
-          <Collapse
-            bordered={false}
-            style={{
-              background: "#f9fafb",
-              border: "1px solid #adc6ff",
-              borderRadius: 8,
-              marginTop: 10,
-            }}
-          >
-            <Panel
-              key="form16"
-              header={
-                <span style={{ fontWeight: 600, fontSize: 14, color: "black" }}>
-                  Form 16
-                </span>
-              }
-            >
-              <Form.List name={[index, "form16"]}>
-                {(fields, { add, remove }) => (
-                  <>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 500 }}>
-                        Uploaded Form 16
-                      </span>
-                      <Button
-                        type="dashed"
-                        icon={<PlusOutlined />}
-                        onClick={() => add(null)}
-                        size="small"
-                      >
-                        Add
-                      </Button>
-                    </div>
-
-                    {fields.map((field, form16Index) => (
-                      <div
-                        key={field.key}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 8,
-                          padding: "6px 8px",
-                          border: "1px solid #d6e4ff",
-                          borderRadius: 6,
-                          background: "#ffffff",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          {fields.length > 1 && (
-                            <Button
-                              type="text"
-                              danger
-                              icon={<CloseOutlined />}
-                              size="small"
-                              style={{ padding: 0, minWidth: 18 }}
-                              onClick={() => remove(form16Index)}
-                            />
-                          )}
-                          <span
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 600,
-                              color: "black",
-                            }}
-                          >
-                            Form 16 {getLetter(form16Index)}
-                          </span>
-                        </div>
-
-                        <UploadField
-                          name={[
-                            "previousCompanies",
-                            index,
-                            "form16",
-                            field.name,
-                          ]}
-                          label={null}
-                        />
-                      </div>
-                    ))}
-                  </>
-                )}
-              </Form.List>
-            </Panel>
-          </Collapse>
-
-          {/* PAYSLIPS */}
-          <Collapse
-            bordered={false}
-            style={{
-              background: "#f9fafb",
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-            }}
-          >
-            <Panel
-              key="payslips"
-              header={
-                <span style={{ fontWeight: 500, fontSize: 14 }}>Payslips</span>
-              }
-            >
-              <Form.List name={[index, "payslips"]}>
-                {(fields, { add, remove }) => (
-                  <>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 500 }}>
-                        Uploaded Payslips
-                      </span>
-                      <Button
-                        type="dashed"
-                        icon={<PlusOutlined />}
-                        onClick={() => add(null)}
-                        size="small"
-                      >
-                        Add
-                      </Button>
-                    </div>
-
-                    {fields.map((field, payslipIndex) => (
-                      <div
-                        key={field.key}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 8,
-                          padding: "6px 8px",
-                          border: "1px solid #d6e4ff",
-                          borderRadius: 6,
-                          background: "#ffffff",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          {fields.length > 1 && (
-                            <Button
-                              type="text"
-                              danger
-                              icon={<CloseOutlined />}
-                              size="small"
-                              style={{ padding: 0, minWidth: 18 }}
-                              onClick={() => remove(payslipIndex)}
-                            />
-                          )}
-                          <span style={{ fontSize: 14, fontWeight: 500 }}>
-                            Payslip {payslipIndex + 1}
-                          </span>
-                        </div>
-
-                        <UploadField
-                          name={[
-                            "previousCompanies",
-                            index,
-                            "payslips",
-                            field.name,
-                          ]}
-                          label={null}
-                        />
-                      </div>
-                    ))}
-                  </>
-                )}
-              </Form.List>
-            </Panel>
-          </Collapse>
+    <div style={cardStyle}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ width: "40px", height: "40px", background: "#eff6ff", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
+            <Building2 size={24} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#1e293b" }}>
+              {companyName || `Previous Company #${index + 1}`}
+            </h3>
+            <span style={{ fontSize: "12px", color: "#64748b" }}>Experience Details</span>
+          </div>
         </div>
+        {length > 1 && (
+          <Button
+            type="text"
+            danger
+            icon={<Trash2 size={18} />}
+            onClick={() => remove(field.name)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+          />
+        )}
       </div>
 
-      {/* CONTACTS */}
-      <div style={{ width: "25%", ...cardStyle }}>
-        <div
-          style={{
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            padding: 8,
-          }}
-        >
-          <Form.List name={[index, "contacts"]}>
-            {(fields, { add, remove }) => (
-              <>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 8,
-                  }}
-                >
-                  <span style={{ fontWeight: 500 }}>Contact Details</span>
-                  <Button
-                    type="dashed"
-                    icon={<PlusOutlined />}
-                    size="small"
-                    onClick={() => {
-                      add({});
-                      setActiveKey([fields.length.toString()]);
-                    }}
-                  >
-                    Add
-                  </Button>
-                </div>
+      <Row gutter={24}>
+        <Col span={24}>
+          <div style={{ marginBottom: "24px" }}>
+            <SectionHeader icon={Building2} title="Company Details" subtitle="Information about your previous employer" />
+            <Row gutter={16}>
+              <Col span={6}>
+                <CustomInputField name={["previousCompanies", index, "companyName"]} label="Previous Company" placeholder="e.g. Google India" />
+              </Col>
+              <Col span={6}>
+                <CustomInputField name={["previousCompanies", index, "location"]} label="Location" placeholder="e.g. Bangalore, India" />
+              </Col>
+              <Col span={6}>
+                <CustomInputField name={["previousCompanies", index, "industry"]} label="Industry / Domain" placeholder="e.g. Fintech" />
+              </Col>
+              <Col span={6}>
+                <CustomInputField name={["previousCompanies", index, "address"]} label="Company Address" placeholder="Full address" />
+              </Col>
+            </Row>
+          </div>
 
-                <Collapse
-                  accordion
-                  bordered={false}
-                  activeKey={activeKey}
-                  onChange={setActiveKey}
+          <div style={{ marginBottom: "24px" }}>
+            <SectionHeader icon={Calendar} title="Tenure Details" subtitle="Duration and role at the company" />
+            <Row gutter={16}>
+              <Col span={6}>
+                <Form.Item
+                  name={["previousCompanies", index, "doj"]}
+                  label={<span style={labelStyle}>Date of Joining</span>}
                 >
-                  {fields.map((field, contactIndex) => (
-                    <Panel
-                      key={contactIndex.toString()}
-                      header={`Contact ${contactIndex + 1}`}
-                      extra={
-                        contactIndex !== 0 && (
-                          <DeleteOutlined
-                            style={{ color: "red" }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              remove(contactIndex);
-                            }}
-                          />
-                        )
-                      }
-                    >
-                      <ContactDetails
-                        contactIndex={field.name}
+                  <DatePicker style={{ width: "100%", height: "38px", borderRadius: "8px" }} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item
+                  name={["previousCompanies", index, "lwd"]}
+                  label={<span style={labelStyle}>Last Working Day</span>}
+                >
+                  <DatePicker style={{ width: "100%", height: "38px", borderRadius: "8px" }} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <CustomInputField name={["previousCompanies", index, "designation"]} label="Designation" placeholder="e.g. SDE II" />
+              </Col>
+              <Col span={6}>
+                <CustomSelectField name={["previousCompanies", index, "employmentType"]} label="Employment Type" placeholder="Select">
+                  <Select.Option value="Full Time">Full Time</Select.Option>
+                  <Select.Option value="Contract">Contract</Select.Option>
+                  <Select.Option value="Internship">Intern</Select.Option>
+                </CustomSelectField>
+              </Col>
+            </Row>
+          </div>
+        </Col>
+
+        {/* Documents Section - Moved Below */}
+        <Col span={24}>
+          <div style={{ padding: "20px", background: "#ffffff", borderRadius: "12px", border: "1px solid #ebedef", marginBottom: "20px" }}>
+            <SectionHeader icon={FileSearch} title="Supportive Documents" subtitle="Upload relevant certificates and proof" />
+
+            <Row gutter={[12, 12]}>
+              <Col span={8}>
+                <DocumentBox name={["previousCompanies", index, "experienceLetter"]} label="Experience Letter" />
+              </Col>
+              <Col span={8}>
+                <DocumentBox name={["previousCompanies", index, "offerLetter"]} label="Offer Letter" />
+              </Col>
+              <Col span={8}>
+                <DocumentBox name={["previousCompanies", index, "serviceLetter"]} label="Service Letter" />
+              </Col>
+              <Col span={8}>
+                <DocumentBox name={["previousCompanies", index, "relievingLetter"]} label="Relieving Letter" />
+              </Col>
+
+              {/* Form 16 List */}
+              <Form.List name={["previousCompanies", index, "form16"]}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map((field, f16Idx) => (
+                      <Col span={8} key={field.key}>
+                        <DocumentBox
+                          name={["previousCompanies", index, "form16", field.name]}
+                          label={`Form 16 (${getLetter(f16Idx)})`}
+                          onRemove={fields.length > 1 ? () => remove(f16Idx) : undefined}
+                        />
+                      </Col>
+                    ))}
+                    <Col span={8}>
+                      <div
+                        onClick={() => add(null)}
+                        style={{
+                          height: "100%",
+                          minHeight: "130px",
+                          border: "1px dashed #cbd5e1",
+                          borderRadius: "12px",
+                          padding: "16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          background: "#ffffff",
+                          color: "#64748b",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
+                        <Plus size={18} style={{ color: "#94a3b8" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: "#64748b" }}>Add Form 16</span>
+                      </div>
+                    </Col>
+                  </>
+                )}
+              </Form.List>
+
+              {/* Payslips List */}
+              <Form.List name={["previousCompanies", index, "payslips"]}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map((field, pIdx) => (
+                      <Col span={8} key={field.key}>
+                        <DocumentBox
+                          name={["previousCompanies", index, "payslips", field.name]}
+                          label={`Payslip (${getLetter(pIdx)})`}
+                          onRemove={fields.length > 1 ? () => remove(pIdx) : undefined}
+                        />
+                      </Col>
+                    ))}
+                    <Col span={8}>
+                      <div
+                        onClick={() => add(null)}
+                        style={{
+                          height: "100%",
+                          minHeight: "130px",
+                          border: "1px dashed #cbd5e1",
+                          borderRadius: "12px",
+                          padding: "16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          background: "#ffffff",
+                          color: "#64748b",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
+                        <Plus size={18} style={{ color: "#94a3b8" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: "#64748b" }}>Add Payslip</span>
+                      </div>
+                    </Col>
+                  </>
+                )}
+              </Form.List>
+
+              {/* Additional Documents List - NEW FEATURE */}
+              <Form.List name={["previousCompanies", index, "additionalDocuments"]}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map((field, adIdx) => (
+                      <AdditionalDocItem
+                        key={field.key}
+                        field={field}
                         companyIndex={index}
+                        adIdx={adIdx}
+                        remove={remove}
                         form={form}
                       />
+                    ))}
+                    <Col span={8}>
+                      <div
+                        onClick={() => add({})}
+                        style={{
+                          height: "100%",
+                          minHeight: "180px",
+                          border: "1px dashed #3b82f6",
+                          borderRadius: "12px",
+                          padding: "16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          background: "#eff6ff",
+                          color: "#3b82f6",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
+                        <Plus size={18} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px" }}>Add Other Document</span>
+                      </div>
+                    </Col>
+                  </>
+                )}
+              </Form.List>
+            </Row>
+          </div>
+        </Col>
 
-                      <Checkbox style={{ fontSize: 12, marginTop: 8 }}>
-                        I declare the above information is correct
-                      </Checkbox>
-                    </Panel>
+        {/* Contact Details Section */}
+        <Col span={24}>
+          <div style={{ padding: "24px", borderTop: "1px solid #f1f5f9" }}>
+            <SectionHeader icon={User} title="Verification Contacts" subtitle="Professional references from this tenure" />
+            <Form.List name={["previousCompanies", index, "contacts"]}>
+              {(fields, { add, remove }) => (
+                <Row gutter={[16, 16]}>
+                  {fields.map((field, contactIndex) => (
+                    <Col span={8} key={field.key}>
+                      <div style={{ position: "relative" }}>
+                        <ContactDetails contactIndex={field.name} companyIndex={index} form={form} />
+                        {fields.length > 1 && (
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<X size={14} />}
+                            onClick={() => remove(field.name)}
+                            style={{ position: "absolute", top: "10px", right: "10px" }}
+                          />
+                        )}
+                      </div>
+                    </Col>
                   ))}
-                </Collapse>
-              </>
-            )}
-          </Form.List>
-        </div>
-      </div>
+                  <Col span={8}>
+                    <div
+                      onClick={() => add({})}
+                      style={{
+                        height: "100%",
+                        minHeight: "180px",
+                        border: "1px dashed #cbd5e1",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        background: "#ffffff",
+                        color: "#64748b",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <Plus size={20} style={{ color: "#94a3b8" }} />
+                      <span style={{ fontSize: "13px", fontWeight: 600, marginTop: "8px" }}>Add Reference Contact</span>
+                    </div>
+                  </Col>
+                </Row>
+              )}
+            </Form.List>
+          </div>
+        </Col>
+        {/* Declaration */}
+        <Col span={24}>
+          <div style={{ marginTop: "16px", padding: "16px", borderTop: "1px solid #f1f5f9" }}>
+            <Checkbox style={{ fontSize: "13px", color: "#64748b" }}>
+              I declare that the information provided above for this company is correct and verifiable.
+            </Checkbox>
+          </div>
+        </Col>
+      </Row>
     </div>
   );
 };
-
-const CompanyPanelHeader = ({ index, form }: { index: number; form: any }) => {
-  const companyName = Form.useWatch(
-    ["previousCompanies", index, "companyName"],
-    form,
-  );
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",
-      }}
-    >
-      <span>Previous Company #{index + 1}</span>
-
-      <Tag
-        color="blue"
-        style={{
-          fontSize: 15,
-          fontWeight: 400,
-          color: "white",
-          background: "#1677ff",
-          border: "1px solid #1677ff",
-          maxWidth: 200,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {companyName || ""}
-      </Tag>
-    </div>
-  );
-};
-
-/* ================= MAIN COMPONENT ================= */
 
 const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
   const [form] = Form.useForm();
-  const [activeKey, setActiveKey] = useState("0");
 
-  // ✅ Load initial data into form
   useEffect(() => {
     if (data && Array.isArray(data) && data.length > 0) {
       const formattedData = data.map((company: any) => ({
@@ -664,12 +681,18 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
     }
   }, [data, form]);
 
-  // ✅ Get data from form
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      try {
+        await form.validateFields();
+        return true;
+      } catch (error) {
+        console.error("Validation failed:", error);
+        return false;
+      }
+    },
     getData: () => {
       const allFormValues = form.getFieldsValue(true);
-      console.log("🔍 RAW FORM VALUES:", allFormValues);
-
       const previousCompanies = allFormValues.previousCompanies || [];
 
       const processedData = previousCompanies.map((company: any) => ({
@@ -678,119 +701,83 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
         lwd: company?.lwd ? company.lwd.format("YYYY-MM-DD") : null,
       }));
 
-      console.log("📦 FINAL PROCESSED DATA:", processedData);
       return processedData;
     },
   }));
-  // useImperativeHandle(ref, () => ({
-  //   async validateAndGetData() {
-  //     // ✅ First validate form
-  //     const allFormValues = await form.validateFields();
-
-  //     console.log("🔍 VALIDATED FORM VALUES:", allFormValues);
-
-  //     const previousCompanies = allFormValues.previousCompanies || [];
-
-  //     const processedData = previousCompanies.map((company: any) => ({
-  //       ...company,
-  //       doj: company?.doj ? company.doj.format("YYYY-MM-DD") : null,
-  //       lwd: company?.lwd ? company.lwd.format("YYYY-MM-DD") : null,
-  //     }));
-
-  //     console.log("📦 FINAL PROCESSED DATA:", processedData);
-
-  //     return processedData;
-  //   },
-  // }));
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      style={{ padding: 15 }}
-      onFinish={(values) => {
-        console.log("FINAL SUBMIT 👉", values.previousCompanies);
-      }}
-    >
-      <Form.List
-        name="previousCompanies"
-        initialValue={[
-          {
-            contacts: [{}],
-            form16: [null],
-            payslips: [null],
-          },
-        ]}
-      >
-        {(fields, { add, remove }) => (
-          <>
-            <div
-              style={{
-                marginBottom: 15,
-                justifyContent: "space-between",
-                display: "flex",
-              }}
-            >
-              <p>.</p>
-              <Badge
-                style={{ background: "#1677ff", color: "white" }}
-                count={fields.length}
-                showZero
-              >
-                <Button
-                  type="dashed"
-                  icon={<PlusOutlined />}
-                  onClick={() => {
-                    add({
-                      contacts: [{}],
-                      form16: [null],
-                      payslips: [null],
-                    });
-                    setTimeout(() => {
-                      const nextIndex = fields.length;
-                      setActiveKey(nextIndex.toString());
-                    }, 0);
-                  }}
-                >
-                  Add New Company
-                </Button>
-              </Badge>
-            </div>
+    <div style={{ padding: "0 24px 24px", background: "#ffffff" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", padding: "16px 0", borderBottom: "1px solid #f1f5f9" }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#1e293b" }}>Employee History</h2>
+          <p style={{ margin: "2px 0 0", fontSize: "14px", color: "#64748b" }}>Add your previous work experiences and relevant documents.</p>
+        </div>
+      </div>
 
-            <Collapse
-              accordion
-              activeKey={activeKey}
-              onChange={(key) =>
-                setActiveKey(Array.isArray(key) ? (key[0] ?? "") : key)
-              }
-            >
-              {fields.map((field, arrayIndex) => (
-                <Panel
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={(values) => {
+          console.log("FINAL SUBMIT 👉", values.previousCompanies);
+        }}
+      >
+        <Form.List
+          name="previousCompanies"
+          initialValue={[
+            {
+              contacts: [{}],
+              form16: [null],
+              payslips: [null],
+              additionalDocuments: [],
+            },
+          ]}
+        >
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map((field) => (
+                <CompanyCard
                   key={field.key}
-                  header={<CompanyPanelHeader index={field.name} form={form} />}
-                  extra={
-                    arrayIndex !== 0 && (
-                      <DeleteOutlined
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          remove(field.name);
-                          setActiveKey("0");
-                        }}
-                        style={{ color: "red" }}
-                      />
-                    )
-                  }
-                >
-                  {/* ✅ Use field.name consistently */}
-                  <CompanyFormBlock index={field.name} form={form} />
-                </Panel>
+                  field={field}
+                  index={field.name}
+                  form={form}
+                  remove={remove}
+                  length={fields.length}
+                />
               ))}
-            </Collapse>
-          </>
-        )}
-      </Form.List>
-    </Form>
+
+              <Button
+                type="dashed"
+                block
+                className="flex items-center justify-center gap-2"
+                style={{
+                  height: "56px",
+                  borderRadius: "12px",
+                  border: "2px dashed #cbd5e1",
+                  background: "#f8fafc",
+                  color: "#3b82f6",
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  transition: "all 0.2s ease"
+                }}
+                onClick={() => {
+                  add({
+                    contacts: [{}],
+                    form16: [null],
+                    payslips: [null],
+                  });
+                }}
+              >
+                <Plus size={20} />
+                Add Another Company Experience
+              </Button>
+            </>
+          )}
+        </Form.List>
+      </Form>
+    </div>
   );
 });
+
+EmployeHistory.displayName = "EmployeHistory";
 
 export default EmployeHistory;

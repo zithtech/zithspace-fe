@@ -7,19 +7,80 @@ import React, {
 } from "react";
 import {
   Button,
-  Modal,
+  Drawer,
   Form,
   Input,
   Upload,
-  Card,
+  Divider,
   Row,
   Col,
   Select,
+  Typography,
   message,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import { model } from "mongoose";
-import form from "antd/es/form";
+import { 
+  Plus, 
+  Monitor, 
+  Smartphone, 
+  Laptop, 
+  Tablet, 
+  Keyboard, 
+  MousePointer2, 
+  Briefcase, 
+  Headphones, 
+  Trash2, 
+  Edit2, 
+  Image as ImageIcon,
+  CheckCircle2,
+  Info
+} from "lucide-react";
+
+const { Text, Title, Paragraph } = Typography;
+
+const labelStyle: React.CSSProperties = {
+  fontSize: "12px",
+  fontWeight: 600,
+  color: "#475569",
+  marginBottom: "4px",
+  display: "inline-block",
+};
+
+const cardStyle: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #ebedef",
+  borderRadius: "12px",
+  padding: "10px",
+  height: "280px",
+  transition: "all 0.2s ease",
+  display: "flex",
+  flexDirection: "column",
+  position: "relative",
+};
+
+const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+    <div style={{ padding: "6px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
+      <Icon size={16} style={{ color: "#3b82f6" }} />
+    </div>
+    <div>
+      <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "14px" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: "11px", color: "#64748b" }}>{subtitle}</div>}
+    </div>
+  </div>
+);
+
+const getAssetIcon = (itemName: string) => {
+  const lower = (itemName || "").toLowerCase();
+  if (lower.includes("laptop")) return Laptop;
+  if (lower.includes("mobile") || lower.includes("phone")) return Smartphone;
+  if (lower.includes("monitor") || lower.includes("screen")) return Monitor;
+  if (lower.includes("tab")) return Tablet;
+  if (lower.includes("keyboard")) return Keyboard;
+  if (lower.includes("mouse")) return MousePointer2;
+  if (lower.includes("headphone")) return Headphones;
+  if (lower.includes("bag")) return Briefcase;
+  return Monitor;
+};
 
 const Assets = forwardRef(({ data }: any, ref: any) => {
   const [open, setOpen] = useState(false);
@@ -36,6 +97,9 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
   }, [data]);
 
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      return true; // Assets are managed via drawer, so no main form to validate here
+    },
     getData: () => assets,
   }));
 
@@ -49,7 +113,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
   const handleBeforeUpload = (file: File) => {
     if (file.size > MAX_SIZE) {
-      window.alert("File size must be less than 5MB");
+      message.error("File size must be less than 5MB");
       return Upload.LIST_IGNORE; // ❌ stop file from adding to list
     }
 
@@ -128,7 +192,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
         ? [
             {
               uid: "-1",
-              name: "asset.png",
+              name: asset.imageName || "asset.png",
               status: "done",
               url: asset.image,
             },
@@ -138,214 +202,285 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      {/* ADD BUTTON */}{" "}
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={() => setOpen(true)}
-        style={{ marginBottom: 20 }}
-      >
-        {" "}
-        Add New Asset{" "}
-      </Button>
-      <Row gutter={[16, 16]}>
-        {/* ASSET CARDS */}
-        {assets.map((asset, index) => (
-          <Col span={6} key={index}>
-            <div
-              style={{ position: "relative" }}
-              onMouseEnter={() => setHoverIndex(index)}
-              onMouseLeave={() => setHoverIndex(null)}
-            >
-              {/* HOVER ICONS */}
-              {hoverIndex === index && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    display: "flex",
-                    gap: 8,
-                    zIndex: 2,
-                  }}
-                >
-                  <EditOutlined
-                    onClick={() => handleEdit(asset, index)}
-                    style={{
-                      background: "#fff",
-                      padding: 6,
-                      borderRadius: "50%",
-                      cursor: "pointer",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    }}
-                  />
-                  <DeleteOutlined
-                    onClick={() => handleDelete(index)}
-                    style={{
-                      background: "#fff",
-                      padding: 6,
-                      borderRadius: "50%",
-                      cursor: "pointer",
-                      color: "red",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    }}
-                  />
-                </div>
-              )}
+    <div style={{ padding: "0 24px 20px", background: "#ffffff", borderRadius: "12px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "12px 0", borderBottom: "1px solid #f1f5f9" }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>Assets Information</h2>
+          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>Manage assignment hardware.</p>
+        </div>
+      </div>
 
-              <Card
-                hoverable
-                cover={
-                  asset.image && (
+      <Row gutter={[16, 16]}>
+        {/* ADD BUTTON AS DASHED BOX */}
+        <Col span={6}>
+          <div 
+            onClick={() => {
+              setEditIndex(null);
+              assetsform.resetFields();
+              setOpen(true);
+            }}
+            style={{ 
+              height: "280px", 
+              border: "2px dashed #cbd5e1", 
+              borderRadius: "12px", 
+              padding: "12px",
+              display: "flex", 
+              flexDirection: "column",
+              alignItems: "center", 
+              justifyContent: "center",
+              cursor: "pointer",
+              background: "#f8fafc",
+              color: "#3b82f6",
+              transition: "all 0.2s ease"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#3b82f6";
+              e.currentTarget.style.background = "#eff6ff";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "#cbd5e1";
+              e.currentTarget.style.background = "#f8fafc";
+            }}
+          >
+            <div style={{ 
+              padding: "8px", 
+              background: "#fff", 
+              borderRadius: "50%", 
+              boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+              marginBottom: "8px"
+            }}>
+              <Plus size={20} />
+            </div>
+            <span style={{ fontSize: "14px", fontWeight: 600, color: "#475569" }}>Add New Asset</span>
+          </div>
+        </Col>
+
+        {/* ASSET CARDS */}
+        {assets.map((asset, index) => {
+          const AssetIcon = getAssetIcon(asset.item);
+          return (
+            <Col span={6} key={index}>
+              <div
+                style={cardStyle}
+                onMouseEnter={() => setHoverIndex(index)}
+                onMouseLeave={() => setHoverIndex(null)}
+              >
+                {/* HOVER ICONS */}
+                {hoverIndex === index && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 12,
+                      right: 12,
+                      display: "flex",
+                      gap: 8,
+                      zIndex: 10,
+                    }}
+                  >
+                    <div
+                      onClick={() => handleEdit(asset, index)}
+                      style={{
+                        background: "#fff",
+                        padding: "6px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        border: "1px solid #ebedef",
+                        color: "#3b82f6",
+                        display: "flex",
+                        alignItems: "center",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                      }}
+                    >
+                      <Edit2 size={14} />
+                    </div>
+                    <div
+                      onClick={() => handleDelete(index)}
+                      style={{
+                        background: "#fff",
+                        padding: "6px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        border: "1px solid #ebedef",
+                        color: "#ef4444",
+                        display: "flex",
+                        alignItems: "center",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ 
+                  height: "168px", 
+                  background: "#f8fafc", 
+                  borderRadius: "8px", 
+                  marginBottom: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  border: "1px solid #f1f5f9"
+                }}>
+                  {asset.image ? (
                     <img
                       src={asset.image}
                       alt="asset"
-                      style={{ height: 160, objectFit: "cover" }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
-                  )
-                }
-              >
-                <p>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#6b7280",
-                      marginRight: 6,
-                    }}
-                  >
-                    Item :
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "#111827",
-                    }}
-                  >
-                    {asset.item}
-                  </span>
-                </p>
-                <p>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#6b7280",
-                      marginRight: 6,
-                    }}
-                  >
-                    Model :
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "#111827",
-                    }}
-                  >
-                    {asset.model}
-                  </span>
-                </p>
-                <p>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#6b7280",
-                      marginRight: 6,
-                    }}
-                  >
-                    Modal Number :
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "#111827",
-                    }}
-                  >
-                    {asset.modelNumber}
-                  </span>
-                </p>
-                <p>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#6b7280",
-                      marginRight: 6,
-                    }}
-                  >
-                    Brand :
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "#111827",
-                    }}
-                  >
-                    {asset.brand}
-                  </span>
-                </p>
-              </Card>
-            </div>
-          </Col>
-        ))}
+                  ) : (
+                    <AssetIcon size={52} style={{ color: "#cbd5e1" }} />
+                  )}
+                </div>
+
+                <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: "6px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ 
+                      padding: "4px", 
+                      background: "#eff6ff", 
+                      borderRadius: "6px",
+                      color: "#3b82f6",
+                      display: "flex"
+                    }}>
+                      <AssetIcon size={12} />
+                    </div>
+                    <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {asset.item}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                    <div>
+                      <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 500 }}>Brand</div>
+                      <div style={{ fontSize: "12px", color: "#334155", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.brand}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 500 }}>Model</div>
+                      <div style={{ fontSize: "12px", color: "#334155", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.model}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: "auto", paddingTop: "6px", borderTop: "1px dashed #ebedef" }}>
+                    <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 500 }}>SN / Model Number</div>
+                    <div style={{ fontSize: "12px", color: "#334155", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.modelNumber}</div>
+                  </div>
+                </div>
+              </div>
+            </Col>
+          );
+        })}
       </Row>
-      {/* MODAL */}
-      <Modal
-        title={editIndex !== null ? "Edit Asset" : "Add New Asset"}
-        open={open}
-        onCancel={() => {
+
+      {/* DRAWER REPLACING MODAL */}
+      <Drawer
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ 
+              padding: "8px", 
+              background: "#eff6ff", 
+              borderRadius: "8px",
+              color: "#3b82f6"
+            }}>
+              {editIndex !== null ? <Edit2 size={20} /> : <Plus size={20} />}
+            </div>
+            <div>
+              <div style={{ fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>
+                {editIndex !== null ? "Update Asset Details" : "Register New Asset"}
+              </div>
+              <div style={{ fontSize: "13px", fontWeight: 400, color: "#64748b" }}>
+                {editIndex !== null ? "Modify the existing asset information below." : "Enter the details to register a new assignment."}
+              </div>
+            </div>
+          </div>
+        }
+        width={480}
+        onClose={() => {
           setOpen(false);
           setEditIndex(null);
         }}
-        onOk={handleAddOrUpdateAsset}
-        okText={editIndex !== null ? "Update Asset" : "Add Asset"}
+        open={open}
+        footer={
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", padding: "16px 24px" }}>
+            <Button onClick={() => setOpen(false)} style={{ borderRadius: "8px" }}>Cancel</Button>
+            <Button 
+              type="primary" 
+              onClick={handleAddOrUpdateAsset}
+              style={{ 
+                borderRadius: "8px",
+                background: "#3b82f6", 
+                border: "none",
+                padding: "0 24px"
+              }}
+            >
+              {editIndex !== null ? "Update Asset" : "Add Asset"}
+            </Button>
+          </div>
+        }
+        styles={{
+          header: { borderBottom: "1px solid #f1f5f9", padding: "24px" },
+          footer: { borderTop: "1px solid #f1f5f9" }
+        }}
       >
         <Form form={assetsform} layout="vertical">
+          <SectionHeader icon={Briefcase} title="Asset Category" subtitle="Select the type of hardware assigned" />
           <Form.Item
-            label="Item Name"
+            label={<span style={labelStyle}>Item Type</span>}
             name="item"
             rules={[{ required: true, message: "Please select an item" }]}
           >
-            <Select placeholder="Select item">
-              <Select.Option value="Mobile">Mobile</Select.Option>
-              <Select.Option value="Laptop">Laptop</Select.Option>
-              <Select.Option value="Tab">Tab</Select.Option>
-              <Select.Option value="Monitor">Monitor</Select.Option>
-              <Select.Option value="Keyboard">Keyboard</Select.Option>
-              <Select.Option value="Mouse">Mouse</Select.Option>
-              <Select.Option value="Bag">Bag</Select.Option>
-              <Select.Option value="Headphone">Head phone</Select.Option>
+            <Select 
+              placeholder="Select asset type"
+              style={{ height: "40px", borderRadius: "8px" }}
+              dropdownStyle={{ borderRadius: "8px" }}
+            >
+              <Select.Option value="Mobile">Smartphone</Select.Option>
+              <Select.Option value="Laptop">Laptop / Notebook</Select.Option>
+              <Select.Option value="Tab">Tablet Device</Select.Option>
+              <Select.Option value="Monitor">External Monitor</Select.Option>
+              <Select.Option value="Keyboard">Mechanical Keyboard</Select.Option>
+              <Select.Option value="Mouse">Wireless Mouse</Select.Option>
+              <Select.Option value="Bag">Office Bag</Select.Option>
+              <Select.Option value="Headphone">Headphones / Mic</Select.Option>
             </Select>
           </Form.Item>
 
-          <Form.Item
-            label="Brand Name"
-            name="brand"
-            rules={[{ required: true }]}
-          >
-            <Input />
-          </Form.Item>
+          <Divider style={{ margin: "24px 0" }} />
+          <SectionHeader icon={Info} title="Device Information" subtitle="Brand and technical specifications" />
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label={<span style={labelStyle}>Brand Name</span>}
+                name="brand"
+                rules={[{ required: true, message: "Required" }]}
+              >
+                <Input placeholder="e.g. Apple, Dell" style={{ height: "40px", borderRadius: "8px" }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label={<span style={labelStyle}>Model Name</span>}
+                name="model"
+                rules={[{ required: true, message: "Required" }]}
+              >
+                <Input placeholder="e.g. MacBook Pro M2" style={{ height: "40px", borderRadius: "8px" }} />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Form.Item
-            label="Model Name"
-            name="model"
-            rules={[{ required: true }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            label="Model Number"
+            label={<span style={labelStyle}>Serial / Model Number</span>}
             name="modelNumber"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: "Required" }]}
           >
-            <Input />
+            <Input placeholder="e.g. SN-123456789" style={{ height: "40px", borderRadius: "8px" }} />
           </Form.Item>
 
+          <Divider style={{ margin: "24px 0" }} />
+          <SectionHeader icon={ImageIcon} title="Visual Proof" subtitle="Upload a photograph of the physical asset" />
+          
           <Form.Item
-            label="Upload Image"
             name="image"
             valuePropName="fileList"
             getValueFromEvent={(e) => e?.fileList}
@@ -354,15 +489,26 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
               listType="picture-card"
               beforeUpload={handleBeforeUpload}
               maxCount={1}
+              style={{ width: "100%" }}
             >
-              <div>
-                <PlusOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
+              <div style={{ textAlign: "center" }}>
+                <Plus size={20} style={{ color: "#3b82f6", marginBottom: "8px" }} />
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "#64748b" }}>Upload Photo</div>
+                <div style={{ fontSize: "11px", color: "#94a3b8" }}>Max 5MB</div>
               </div>
             </Upload>
           </Form.Item>
+
+          <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #f1f5f9", marginTop: "24px" }}>
+            <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+              <CheckCircle2 size={16} style={{ color: "#10b981", marginTop: "2px" }} />
+              <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6" }}>
+                By registering this asset, you acknowledge responsibility for its maintenance and periodic verification.
+              </div>
+            </div>
+          </div>
         </Form>
-      </Modal>
+      </Drawer>
     </div>
   );
 });

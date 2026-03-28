@@ -18,14 +18,21 @@ import {
   Space,
   Row,
   Col,
-  Divider,
+  Avatar,
+  Tooltip,
 } from "antd";
 import {
-  PlusOutlined,
-  EditOutlined,
-  SearchOutlined,
-  SolutionOutlined,
-} from "@ant-design/icons";
+  Plus,
+  Edit2,
+  Search,
+  User,
+  Calendar,
+  DollarSign,
+  Briefcase,
+  ExternalLink,
+  ChevronRight,
+  TrendingUp,
+} from "lucide-react";
 import { useTenant } from "@/context/TenantContext";
 import { api } from "@/lib/axios";
 import dayjs from "dayjs";
@@ -63,7 +70,6 @@ export default function AllocationsTab({
         const response = await api.get<
           { id: string; first_name: string; last_name: string }[]
         >("/api/clients-v2/employees/select");
-        // The API structure might vary, adapting standard assumption
         const employeeOptions = (
           Array.isArray(response) ? response : (response as any).data || []
         ).map((emp: any) => ({
@@ -94,25 +100,19 @@ export default function AllocationsTab({
       );
       if (data) {
         notify.success({
-          message: "Success",
-          description: "Allocation added successfully",
+          message: "Allocation Successful",
+          description: "Resource has been successfully allocated to the client.",
           placement: "top",
         });
         setIsModalOpen(false);
         form.resetFields();
         onRefresh();
-      } else {
-        notify.error({
-          message: "Error",
-          description: "Failed to add allocation",
-          placement: "top",
-        });
       }
     } catch (err) {
       console.error(err);
       notify.error({
-        message: "Error",
-        description: "Error adding allocation",
+        message: "Allocation Failed",
+        description: "An error occurred while creating the allocation.",
         placement: "top",
       });
     } finally {
@@ -147,26 +147,20 @@ export default function AllocationsTab({
       );
       if (data) {
         notify.success({
-          message: "Success",
-          description: "Allocation updated successfully",
+          message: "Allocation Updated",
+          description: "Resource allocation details have been modified.",
           placement: "top",
         });
         setIsEditModalOpen(false);
         editForm.resetFields();
         setEditingAllocation(null);
         onRefresh();
-      } else {
-        notify.error({
-          message: "Error",
-          description: "Failed to update allocation",
-          placement: "top",
-        });
       }
     } catch (err) {
       console.error(err);
       notify.error({
-        message: "Error",
-        description: "Error updating allocation",
+        message: "Update Failed",
+        description: "Failed to update allocation details.",
         placement: "top",
       });
     } finally {
@@ -182,23 +176,17 @@ export default function AllocationsTab({
       });
       if (data) {
         notify.success({
-          message: "Success",
-          description: "Status updated successfully",
+          message: "Status Updated",
+          description: `Allocation is now ${newStatus}.`,
           placement: "top",
         });
         onRefresh();
-      } else {
-        notify.error({
-          message: "Error",
-          description: "Failed to update status",
-          placement: "top",
-        });
       }
     } catch (err) {
       console.error(err);
       notify.error({
-        message: "Error",
-        description: "Error updating status",
+        message: "Update Failed",
+        description: "Failed to change allocation status.",
         placement: "top",
       });
     }
@@ -206,28 +194,67 @@ export default function AllocationsTab({
 
   const columns = [
     {
-      title: "Employee",
+      title: "Allocated Resource",
       key: "employee",
-      render: (_: any, record: any) =>
-        record.employee
-          ? `${record.employee.first_name} ${record.employee.last_name}`
-          : record.employeeId,
+      render: (_: any, record: any) => (
+        <Space size={12}>
+          <Avatar
+            shape="square"
+            style={{ backgroundColor: "#f8fafc", color: "#64748b", borderRadius: 8 }}
+            icon={<User size={16} />}
+          >
+            {record.employee?.first_name?.[0]}{record.employee?.last_name?.[0]}
+          </Avatar>
+          <div>
+            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>
+              {record.employee
+                ? `${record.employee.first_name} ${record.employee.last_name}`
+                : record.employeeId}
+            </div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>ID: {record.employeeId?.substring(0, 8)}...</div>
+          </div>
+        </Space>
+      ),
     },
     {
-      title: "Billing Type",
+      title: "Billing Model",
       dataIndex: "billingType",
       key: "billingType",
+      render: (type: string) => (
+        <Space size={6}>
+          <div style={{ padding: 4, background: "#f1f5f9", borderRadius: 6, color: "#64748b" }}>
+            <TrendingUp size={14} />
+          </div>
+          <span style={{ fontWeight: 500, color: "#475569" }}>{type}</span>
+        </Space>
+      )
     },
     {
-      title: "Bill Rate / Amount",
+      title: "Bill Rate",
       dataIndex: "billAmount",
       key: "billAmount",
+      render: (amount: number) => (
+        <span style={{ fontWeight: 600, color: "#0f172a" }}>
+          ${Number(amount || 0).toLocaleString()} <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 400 }}>/ month</span>
+        </span>
+      )
     },
     {
-      title: "Start Date",
-      dataIndex: "startDate",
-      key: "startDate",
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      title: "Duration",
+      key: "duration",
+      render: (_: any, record: any) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Space size={6} style={{ fontSize: 13, color: "#475569" }}>
+            <Calendar size={14} style={{ color: "#94a3b8" }} />
+            <span>{dayjs(record.startDate).format("MMM DD, YYYY")}</span>
+          </Space>
+          {record.endDate && (
+            <div style={{ fontSize: 11, color: "#94a3b8", marginLeft: 20 }}>
+              to {dayjs(record.endDate).format("MMM DD, YYYY")}
+            </div>
+          )}
+        </div>
+      )
     },
     {
       title: "Status",
@@ -236,33 +263,34 @@ export default function AllocationsTab({
       render: (status: string, record: any) => {
         const isActive = status === "Active";
         return (
-          <Popconfirm
-            title={`Make allocation ${isActive ? "Inactive" : "Active"}?`}
-            description={`Are you sure you want to change the status to ${isActive ? "Inactive" : "Active"}?`}
-            onConfirm={() => handleStatusChange(record.id, !isActive)}
-            okText="Yes"
-            cancelText="No"
-          >
+          <Space size={12}>
             <Switch
+              size="small"
               checked={isActive}
-              checkedChildren="Active"
-              unCheckedChildren="Inactive"
-              style={{
-                backgroundColor: isActive ? "#95de64" : "#ff7875",
-              }}
+              onChange={(checked) => handleStatusChange(record.id, checked)}
+              style={{ backgroundColor: isActive ? "#10b981" : "#cbd5e1" }}
             />
-          </Popconfirm>
+            <Tag
+              style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
+              color={isActive ? "success" : "default"}
+            >
+              {status?.toUpperCase()}
+            </Tag>
+          </Space>
         );
       },
     },
     {
-      title: "Actions",
+      title: "",
       key: "actions",
+      align: "right" as const,
       render: (_: any, record: any) => (
         <Button
           type="text"
-          icon={<EditOutlined />}
+          className="premium-action-btn"
+          icon={<Edit2 size={16} />}
           onClick={() => openEditModal(record)}
+          style={{ color: "#64748b" }}
         />
       ),
     },
@@ -276,140 +304,165 @@ export default function AllocationsTab({
   });
 
   return (
-    <Card style={{ backgroundColor: "white", height: "60vh" }}>
+    <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <div
+      <Card
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
+          borderRadius: 16,
+          border: "1px solid #f1f5f9",
+          background: "#fff"
         }}
+        bodyStyle={{ padding: "0" }}
       >
-        <div>
-          <p
-            style={{ fontSize: 12, fontWeight: 600, margin: 0, color: "grey" }}
-          >
-            Manage employee allocations, bill rates, and statuses for this
-            client.
-          </p>
+        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Resource Allocations</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Monitor and manage expert resources assigned to this client account</div>
+          </div>
+          <Space size={12}>
+            <Input
+              placeholder="Search by resource name..."
+              prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ borderRadius: 10, width: 280, height: 40 }}
+            />
+            <Button
+              type="primary"
+              size="large"
+              icon={<Plus size={18} />}
+              onClick={() => setIsModalOpen(true)}
+              style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+            >
+              Add Allocation
+            </Button>
+          </Space>
         </div>
-        <Space>
-          <Input
-            placeholder="Search allocations..."
-            prefix={<SearchOutlined />}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Add Allocation
-          </Button>
-        </Space>
-      </div>
-      <Table
-        dataSource={filteredAllocations}
-        columns={columns}
-        rowKey="id"
-        pagination={false}
-      />
 
+        <Table
+          dataSource={filteredAllocations}
+          columns={columns}
+          rowKey="id"
+          pagination={false}
+          className="premium-table"
+          locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No resource allocations found</div> }}
+        />
+      </Card>
+
+      {/* Add Modal */}
       <Modal
         title={
-          <Space>
-            <SolutionOutlined style={{ color: "#1677ff" }} />
-            <span>Add Employee Client Allocation</span>
-          </Space>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
+              <Briefcase size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 18 }}>New Resource Allocation</span>
+          </div>
         }
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
-        width={700}
+        width={600}
+        centered
         destroyOnClose
+        className="premium-modal"
       >
-        <div style={{ marginBottom: 16, color: "#666" }}>
-          Allocate a new employee to this client with their billing details.
-        </div>
-        <Divider style={{ margin: "0 0 16px 0" }} />
-        <Form form={form} layout="vertical" onFinish={handleAdd}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="employeeId"
-                label="Employee"
-                rules={[
-                  { required: true, message: "Please select an employee" },
-                ]}
+        <div style={{ padding: "8px 0" }}>
+          <Form form={form} layout="vertical" onFinish={handleAdd}>
+            <Form.Item
+              name="employeeId"
+              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Select Expert Resource</span>}
+              rules={[{ required: true, message: "Resource selection is required" }]}
+            >
+              <Select
+                showSearch
+                placeholder="Search by name..."
+                loading={employees.length === 0}
+                filterOption={(input, option) =>
+                  (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+                options={employees}
+                style={{ borderRadius: 8, height: 44 }}
+              />
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="billingType"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
+                  rules={[{ required: true }]}
+                >
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Option value="T&M">Time & Material (T&M)</Option>
+                    <Option value="Fixed Price">Fixed Price</Option>
+                    <Option value="Retainer">Retainer</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="billAmount"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Monthly Bill Rate</span>}
+                >
+                  <InputNumber
+                    type="number"
+                    prefix={<DollarSign size={14} style={{ color: "#94a3b8" }} />}
+                    style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }}
+                    placeholder="0.00"
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="startDate"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocation Start</span>}
+                  rules={[{ required: true }]}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="endDate"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date (Optional)</span>}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
+              <Button
+                onClick={() => setIsModalOpen(false)}
+                style={{ borderRadius: 8, height: 40, fontWeight: 500 }}
               >
-                <Select
-                  showSearch
-                  placeholder="Select Employee"
-                  loading={employees.length === 0}
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={employees}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="billingType"
-                label="Billing Type"
-                rules={[{ required: true }]}
-              >
-                <Select>
-                  <Option value="T&M">Time & Material (T&M)</Option>
-                  <Option value="Fixed Price">Fixed Price</Option>
-                  <Option value="Retainer">Retainer</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="billAmount" label="Bill Amount / Rate">
-                <InputNumber style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="startDate"
-                label="Start Date"
-                rules={[{ required: true }]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="endDate" label="End Date">
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item style={{ marginTop: 16, textAlign: "right" }}>
-            <Space>
-              <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                Save Allocation
+                Cancel
               </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+              >
+                Create Allocation
+              </Button>
+            </div>
+          </Form>
+        </div>
       </Modal>
 
+      {/* Edit Modal */}
       <Modal
         title={
-          <Space>
-            <SolutionOutlined style={{ color: "#1677ff" }} />
-            <span>Edit Employee Client Allocation</span>
-          </Space>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 8, color: "#0ea5e9", display: "flex" }}>
+              <Edit2 size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: 18 }}>Modify Allocation</span>
+          </div>
         }
         open={isEditModalOpen}
         onCancel={() => {
@@ -417,90 +470,104 @@ export default function AllocationsTab({
           setEditingAllocation(null);
         }}
         footer={null}
-        width={700}
+        width={600}
+        centered
+        className="premium-modal"
       >
-        <div style={{ marginBottom: 16, color: "#666" }}>
-          Update the allocation details for the employee.
-        </div>
-        <Divider style={{ margin: "0 0 16px 0" }} />
-        <Form form={editForm} layout="vertical" onFinish={handleEdit}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="employeeId"
-                label="Employee"
-                rules={[
-                  { required: true, message: "Please select an employee" },
-                ]}
-              >
-                <Select
-                  showSearch
-                  placeholder="Select Employee"
-                  loading={employees.length === 0}
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={employees}
-                  disabled // Usually you don't change the employee after allocation
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="billingType"
-                label="Billing Type"
-                rules={[{ required: true }]}
-              >
-                <Select>
-                  <Option value="T&M">Time & Material (T&M)</Option>
-                  <Option value="Fixed Price">Fixed Price</Option>
-                  <Option value="Retainer">Retainer</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="billAmount" label="Bill Amount / Rate">
-                <InputNumber style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="startDate"
-                label="Start Date"
-                rules={[{ required: true }]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="endDate" label="End Date">
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item style={{ marginTop: 16, textAlign: "right" }}>
-            <Space>
+        <div style={{ padding: "8px 0" }}>
+          <Form form={editForm} layout="vertical" onFinish={handleEdit}>
+            <Form.Item
+              name="employeeId"
+              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Expert Resource</span>}
+            >
+              <Select disabled options={employees} style={{ borderRadius: 8, height: 44 }} />
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="billingType"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
+                  rules={[{ required: true }]}
+                >
+                  <Select style={{ borderRadius: 8, height: 40 }}>
+                    <Option value="T&M">Time & Material (T&M)</Option>
+                    <Option value="Fixed Price">Fixed Price</Option>
+                    <Option value="Retainer">Retainer</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="billAmount"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Bill Rate</span>}
+                >
+                  <InputNumber prefix={<DollarSign size={14} />} style={{ width: "100%", borderRadius: 8, height: 40, display: "flex", alignItems: "center" }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="startDate"
+                  label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>}
+                  rules={[{ required: true }]}
+                >
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="endDate" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>}>
+                  <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
               <Button
                 onClick={() => {
                   setIsEditModalOpen(false);
                   setEditingAllocation(null);
                 }}
+                style={{ borderRadius: 8, height: 40 }}
               >
                 Cancel
               </Button>
-              <Button type="primary" htmlType="submit" loading={loading}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+              >
                 Save Changes
               </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+            </div>
+          </Form>
+        </div>
       </Modal>
-    </Card>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .premium-table .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          padding: 16px 24px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          padding: 16px 24px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .premium-action-btn:hover {
+          background: #f1f5f9 !important;
+          color: #3b82f6 !important;
+        }
+      `}} />
+    </div>
   );
 }

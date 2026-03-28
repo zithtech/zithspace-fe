@@ -10,11 +10,9 @@ import {
   Button,
   Typography,
   Space,
-  Tabs,
   Divider,
   Table,
   Tag,
-  Modal,
   Form,
   Input,
   Select,
@@ -25,33 +23,52 @@ import {
   Popconfirm,
   Tooltip,
   Collapse,
+  Drawer,
 } from "antd";
-import {
-  AppstoreOutlined,
-  ClockCircleOutlined,
-  ScheduleOutlined,
-  EditOutlined,
-  SettingOutlined,
-  ApartmentOutlined,
-  PlusOutlined,
-  DownloadOutlined,
-  DeleteOutlined,
-  CheckCircleOutlined
-} from "@ant-design/icons";
+import { 
+  Globe, 
+  MapPin, 
+  Calendar, 
+  Plus, 
+  Search, 
+  Settings2, 
+  Trash2, 
+  Edit3, 
+  ChevronRight, 
+  ArrowRight,
+  ClipboardList,
+  Info,
+  CheckCircle2,
+  Filter
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import { Country, State } from "country-state-city";
 import { FixedHolidayService, FixedHoliday } from "@/services/addHolidays";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 const OPTIONS = [
-  { label: "All", value: "ALL" },
   { label: "Public", value: "Public" },
   { label: "National", value: "National" },
   { label: "State", value: "State" },
+  { label: "Company", value: "Company" },
 ];
+
+const StatCard = ({ label, value, icon: Icon, color }: any) => (
+  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+      </div>
+      <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}>
+        <Icon size={24} />
+      </div>
+    </div>
+  </Card>
+);
 
 const HolidayCollapse = ({ fields, add, remove, form }: any) => {
   const [activeKey, setActiveKey] = useState<string | string[]>([]);
@@ -71,235 +88,149 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
     }
   }, []);
 
-  const items = fields.map(
-    ({ key, name, ...restField }: any, index: number) => ({
-      key: key.toString(),
-      label: `Holiday ${index + 1}`,
-      extra:
-        fields.length > 1 ? (
-          <DeleteOutlined
-            onClick={(e) => {
-              e.stopPropagation();
-              remove(name);
-            }}
-            style={{ color: "red" }}
-          />
-        ) : null,
-      children: (
-        <>
-          <Form.Item
-            {...restField}
-            name={[name, "holidayName"]}
-            label="Holiday Name"
-            rules={[{ required: true, message: "Please input holiday name!" }]}
-          >
-            <Input placeholder="Enter holiday name" />
-          </Form.Item>
+  const items = fields.map(({ key, name, ...restField }: any, index: number) => ({
+    key: key.toString(),
+    label: (
+      <Space>
+        <div style={{ background: "#f1f5f9", width: 24, height: 24, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+          {index + 1}
+        </div>
+        <Text strong>{form.getFieldValue(["holidays", name, "holidayName"]) || `New Holiday`}</Text>
+      </Space>
+    ),
+    extra: fields.length > 1 ? (
+      <Button 
+        type="text" 
+        danger 
+        icon={<Trash2 size={16} />} 
+        onClick={(e) => { e.stopPropagation(); remove(name); }} 
+      />
+    ) : null,
+    children: (
+      <div style={{ padding: "0 4px" }}>
+        <Form.Item
+          {...restField}
+          name={[name, "holidayName"]}
+          label="Holiday Name"
+          rules={[{ required: true, message: "Please input holiday name!" }]}
+        >
+          <Input placeholder="Enter holiday name" style={{ borderRadius: 8 }} />
+        </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                {...restField}
-                name={[name, "country"]}
-                label="Country"
-                rules={[{ required: true, message: "Please select country!" }]}
-              >
-                <Select
-                  placeholder="Select Country"
-                  showSearch
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "country"]}
+              label="Country"
+              rules={[{ required: true, message: "Please select country!" }]}
+            >
+              <Select
+                placeholder="Select Country"
+                showSearch
+                style={{ borderRadius: 8 }}
+                filterOption={(input, option) => (option?.label ?? "").toLowerCase().includes(input.toLowerCase())}
+                options={Country.getAllCountries().map((c) => ({ label: c.name, value: c.isoCode }))}
+                onChange={() => {
+                  const holidays = form.getFieldValue("holidays");
+                  if (holidays && holidays[name]) {
+                    holidays[name].state = undefined;
+                    form.setFieldsValue({ holidays });
                   }
-                  options={Country.getAllCountries().map((c) => ({
-                    label: c.name,
-                    value: c.isoCode,
-                  }))}
-                  onChange={() => {
-                    const holidays = form.getFieldValue("holidays");
-                    if (holidays && holidays[name]) {
-                      holidays[name].state = undefined;
-                      form.setFieldsValue({ holidays });
-                    }
-                  }}
-                />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                noStyle
-                shouldUpdate={(prevValues, currentValues) =>
-                  prevValues.holidays?.[name]?.country !==
-                    currentValues.holidays?.[name]?.country ||
-                  prevValues.holidays?.[name]?.state !==
-                    currentValues.holidays?.[name]?.state
-                }
-              >
-                {() => {
-                  const countryCode = form.getFieldValue([
-                    "holidays",
-                    name,
-                    "country",
-                  ]);
-                  const states = countryCode
-                    ? State.getStatesOfCountry(countryCode)
-                    : [];
-                  const stateOptions = states.map((s) => ({
-                    label: s.name,
-                    value: s.isoCode,
-                  }));
-
-                  if (stateOptions.length > 0) {
-                    stateOptions.unshift({ label: "All States", value: "ALL" });
-                  } else if (countryCode) {
-                    stateOptions.push({ label: "No State", value: "NO_STATE" });
-                  }
-
-                  const currentStateValue =
-                    form.getFieldValue(["holidays", name, "state"]) || [];
-                  const isAllSelected = currentStateValue.includes("ALL");
-
-                  const handleStateChange = (selectedValues: string[]) => {
-                    const allStateCodes = states.map((s) => s.isoCode);
-                    const prevValues =
-                      form.getFieldValue(["holidays", name, "state"]) || [];
-
-                    if (selectedValues.includes("ALL")) {
-                      if (!prevValues.includes("ALL")) {
-                        return ["ALL", ...allStateCodes];
-                      } else {
-                        const realStates = selectedValues.filter(
-                          (v) => v !== "ALL",
-                        );
-                        if (realStates.length < allStateCodes.length) {
-                          return realStates;
-                        } else {
-                          return selectedValues;
-                        }
-                      }
-                    } else {
-                      if (prevValues.includes("ALL")) {
-                        return [];
-                      } else {
-                        if (
-                          selectedValues.length === allStateCodes.length &&
-                          allStateCodes.length > 0
-                        ) {
-                          return ["ALL", ...selectedValues];
-                        } else {
-                          return selectedValues;
-                        }
-                      }
-                    }
-                  };
-
-                  return (
-                    <Form.Item
-                      {...restField}
-                      name={[name, "state"]}
-                      label="State"
-                      rules={[
-                        { required: true, message: "Please select state!" },
-                      ]}
-                      getValueFromEvent={handleStateChange}
-                    >
-                      <Select
-                        mode="multiple"
-                        placeholder="Select State"
-                        showSearch
-                        optionFilterProp="children"
-                        filterOption={(input, option) =>
-                          (option?.label ?? "")
-                            .toLowerCase()
-                            .includes(input.toLowerCase())
-                        }
-                        options={stateOptions}
-                        disabled={!countryCode}
-                        maxTagCount={2}
-                        listHeight={200}
-                        dropdownRender={(menu) => (
-                          <div>
-                            {menu}
-                            {isAllSelected && (
-                              <div
-                                style={{
-                                  padding: "8px",
-                                  fontSize: 12,
-                                  color: "#666",
-                                }}
-                              >
-                                ✓ All states selected
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      />
-                    </Form.Item>
-                  );
                 }}
-              </Form.Item>
-            </Col>
-          </Row>
+              />
+            </Form.Item>
+          </Col>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                {...restField}
-                name={[name, "fromDate"]}
-                label="From Date"
-                rules={[
-                  { required: true, message: "Please select from date!" },
-                ]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
+          <Col span={12}>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prevValues, currentValues) =>
+                prevValues.holidays?.[name]?.country !== currentValues.holidays?.[name]?.country
+              }
+            >
+              {() => {
+                const countryCode = form.getFieldValue(["holidays", name, "country"]);
+                const states = countryCode ? State.getStatesOfCountry(countryCode) : [];
+                const stateOptions = states.map((s) => ({ label: s.name, value: s.isoCode }));
 
-            <Col span={12}>
-              <Form.Item
-                {...restField}
-                name={[name, "toDate"]}
-                label="To Date"
-                rules={[{ required: true, message: "Please select to date!" }]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
+                if (stateOptions.length > 0) {
+                  stateOptions.unshift({ label: "All States", value: "ALL" });
+                } else if (countryCode) {
+                  stateOptions.push({ label: "No State", value: "NO_STATE" });
+                }
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                {...restField}
-                name={[name, "type"]}
-                label="Type"
-                rules={[{ required: true, message: "Please select type!" }]}
-              >
-                <Select
-                  size="small"
-                  placeholder="Select Type"
-                  options={OPTIONS}
-                />
-              </Form.Item>
-            </Col>
+                return (
+                  <Form.Item
+                    {...restField}
+                    name={[name, "state"]}
+                    label="State"
+                    rules={[{ required: true, message: "Please select state!" }]}
+                  >
+                    <Select
+                      mode="multiple"
+                      placeholder="Select State"
+                      showSearch
+                      style={{ borderRadius: 8 }}
+                      options={stateOptions}
+                      disabled={!countryCode}
+                      maxTagCount="responsive"
+                    />
+                  </Form.Item>
+                );
+              }}
+            </Form.Item>
+          </Col>
+        </Row>
 
-            <Col span={12}>
-              <Form.Item
-                {...restField}
-                name={[name, "rule"]}
-                label="Rule"
-                rules={[{ required: true, message: "Please input rule!" }]}
-              >
-                <Input size="small" placeholder="Rule code / note" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </>
-      ),
-    }),
-  );
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "fromDate"]}
+              label="From Date"
+              rules={[{ required: true, message: "Please select from date!" }]}
+            >
+              <DatePicker style={{ width: "100%", borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "toDate"]}
+              label="To Date"
+              rules={[{ required: true, message: "Please select to date!" }]}
+            >
+              <DatePicker style={{ width: "100%", borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "type"]}
+              label="Type"
+              rules={[{ required: true, message: "Please select type!" }]}
+            >
+              <Select placeholder="Select Type" options={OPTIONS} style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              {...restField}
+              name={[name, "rule"]}
+              label="Rule / Note"
+              rules={[{ required: true, message: "Please input rule!" }]}
+            >
+              <Input placeholder="Rule code or note" style={{ borderRadius: 8 }} />
+            </Form.Item>
+          </Col>
+        </Row>
+      </div>
+    ),
+  }));
 
   return (
     <>
@@ -308,13 +239,15 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
         activeKey={activeKey}
         onChange={setActiveKey}
         items={items}
+        expandIcon={({ isActive }) => <ChevronRight size={16} style={{ transform: isActive ? 'rotate(90deg)' : 'none', transition: 'transform 0.3s' }} />}
+        style={{ background: "transparent", border: "none" }}
       />
       <Button
         type="dashed"
         block
         onClick={() => add()}
-        icon={<PlusOutlined />}
-        style={{ marginTop: 16 }}
+        icon={<Plus size={16} />}
+        style={{ marginTop: 16, height: 44, borderRadius: 12, borderColor: "#e2e8f0", color: "#64748b" }}
       >
         Add Another Holiday
       </Button>
@@ -322,36 +255,19 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
   );
 };
 
-export default function governmentLeaves() {
+export default function GovernmentLeavesPage() {
   const { user, isLoading: authLoading } = useAuth();
   const { canManageLeaves } = usePermission();
   const router = useRouter();
 
-  // Protect route - requires leave.manage permission
-  useEffect(() => {
-    if (!authLoading && !canManageLeaves) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canManageLeaves, router]);
-
-  // Show loading while auth is being checked
-  if (authLoading) {
-    return null;
-  }
-
-  // Don't render if no manage permission
-  if (!canManageLeaves) {
-    return null;
-  }
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [dataSource, setDataSource] = useState<FixedHoliday[]>([]);
   const [editingKey, setEditingKey] = useState<number | string | null>(null);
   const [loading, setLoading] = useState(false);
   const [allHolidays, setAllHolidays] = useState<FixedHoliday[]>([]);
-  const [filterCountry, setFilterCountry] = useState<string | null>("IN"); // Default to India
+  const [filterCountry, setFilterCountry] = useState<string | null>("IN");
   const [filterState, setFilterState] = useState<string | null>(null);
-  const [filterMonth, setFilterMonth] = useState<dayjs.Dayjs | null>(dayjs()); // Default to current month
+  const [filterMonth, setFilterMonth] = useState<dayjs.Dayjs | null>(dayjs());
   const [form] = Form.useForm();
 
   const fetchHolidays = async () => {
@@ -366,28 +282,17 @@ export default function governmentLeaves() {
     }
   };
 
-  useEffect(() => {
-    fetchHolidays();
-  }, []);
+  useEffect(() => { fetchHolidays(); }, []);
 
   useEffect(() => {
     let filtered = [...allHolidays];
-
-    if (filterCountry) {
-      filtered = filtered.filter((h) => h.country === filterCountry);
-    }
-
+    if (filterCountry) filtered = filtered.filter((h) => h.country === filterCountry);
     if (filterState) {
       filtered = filtered.filter((h) => {
-        const states = Array.isArray(h.state)
-          ? h.state
-          : h.state
-            ? [h.state]
-            : [];
+        const states = Array.isArray(h.state) ? h.state : h.state ? [h.state] : [];
         return states.includes("ALL") || states.includes(filterState);
       });
     }
-
     if (filterMonth) {
       const targetMonth = filterMonth.month();
       const targetYear = filterMonth.year();
@@ -397,27 +302,26 @@ export default function governmentLeaves() {
         return date.month() === targetMonth && date.year() === targetYear;
       });
     }
-
     setDataSource(filtered);
   }, [allHolidays, filterCountry, filterState, filterMonth]);
 
-  const showModal = () => {
-    setIsModalOpen(true);
+  const showDrawer = () => {
+    setIsDrawerOpen(true);
     setEditingKey(null);
+    form.resetFields();
+    form.setFieldsValue({ holidays: [{ country: "IN", type: "Public" }] });
   };
 
   const handleEdit = (record: FixedHoliday) => {
     setEditingKey(record.id);
     form.setFieldsValue({
-      holidays: [
-        {
-          ...record,
-          fromDate: record.fromDate ? dayjs(record.fromDate) : null,
-          toDate: record.toDate ? dayjs(record.toDate) : null,
-        },
-      ],
+      holidays: [{
+        ...record,
+        fromDate: record.fromDate ? dayjs(record.fromDate) : null,
+        toDate: record.toDate ? dayjs(record.toDate) : null,
+      }],
     });
-    setIsModalOpen(true);
+    setIsDrawerOpen(true);
   };
 
   const handleDelete = async (id: number | string) => {
@@ -433,77 +337,39 @@ export default function governmentLeaves() {
     }
   };
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then(async (values) => {
-        setLoading(true);
-        const holidays = values.holidays || [];
-        try {
-          if (editingKey) {
-            const editedItem = holidays[0];
-            const payload = {
-              ...editedItem,
-              fromDate: editedItem.fromDate
-                ? editedItem.fromDate.format("YYYY-MM-DD")
-                : null,
-              toDate: editedItem.toDate
-                ? editedItem.toDate.format("YYYY-MM-DD")
-                : null,
-            };
-            const updatedHoliday = await FixedHolidayService.updateFixedHoliday(
-              editingKey as string,
-              payload,
-            );
-            setAllHolidays((prev) =>
-              prev.map((h) => (h.id === editingKey ? updatedHoliday : h)),
-            );
-            message.success("Government leave updated successfully");
-          } else {
-            const promises = holidays.map((holiday: any) => {
-              const payload = {
-                ...holiday,
-                fromDate: holiday.fromDate
-                  ? holiday.fromDate.format("YYYY-MM-DD")
-                  : null,
-                toDate: holiday.toDate
-                  ? holiday.toDate.format("YYYY-MM-DD")
-                  : null,
-              };
-              return FixedHolidayService.createFixedHoliday(payload);
-            });
-            const newHolidays = await Promise.all(promises);
-            setAllHolidays((prev) => [...prev, ...newHolidays]);
-            message.success("Government leaves added successfully");
-            // If new holidays were added, adjust filters to show them
-            if (newHolidays.length > 0) {
-              const firstNewHoliday = newHolidays[0];
-              setFilterCountry(firstNewHoliday.country);
-              // Clear state filter to ensure visibility, as it might not match the new country
-              setFilterState(null);
-              if (firstNewHoliday.fromDate)
-                setFilterMonth(dayjs(firstNewHoliday.fromDate));
-            }
-          }
-          setIsModalOpen(false);
-          form.resetFields();
-          setEditingKey(null);
-        } catch (error) {
-          message.error("Operation failed");
-          console.error(error);
-        } finally {
-          setLoading(false);
-        }
-      })
-      .catch((info) => {
-        console.log("Validate Failed:", info);
-      });
-  };
-
-  const handleCancel = () => {
-    setIsModalOpen(false);
-    form.resetFields();
-    setEditingKey(null);
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+      const holidays = values.holidays || [];
+      
+      if (editingKey) {
+        const editedItem = holidays[0];
+        const payload = {
+          ...editedItem,
+          fromDate: editedItem.fromDate?.format("YYYY-MM-DD"),
+          toDate: editedItem.toDate?.format("YYYY-MM-DD"),
+        };
+        const updated = await FixedHolidayService.updateFixedHoliday(editingKey as string, payload);
+        setAllHolidays(prev => prev.map(h => (h.id === editingKey ? updated : h)));
+        message.success("Update successful");
+      } else {
+        const promises = holidays.map((h: any) => FixedHolidayService.createFixedHoliday({
+          ...h,
+          fromDate: h.fromDate?.format("YYYY-MM-DD"),
+          toDate: h.toDate?.format("YYYY-MM-DD"),
+        }));
+        const newHolidays = await Promise.all(promises);
+        setAllHolidays(prev => [...prev, ...newHolidays]);
+        message.success(`${newHolidays.length} holidays added`);
+      }
+      setIsDrawerOpen(false);
+      form.resetFields();
+    } catch (error) {
+      message.error("Operation failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const columns: ColumnsType<FixedHoliday> = [
@@ -511,95 +377,87 @@ export default function governmentLeaves() {
       title: "Holiday Name",
       dataIndex: "holidayName",
       key: "holidayName",
+      render: (text) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, paddingLeft: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: "#f1f7ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
+            <Calendar size={14} />
+          </div>
+          <Text strong style={{ color: "#1e293b" }}>{text}</Text>
+        </div>
+      ),
     },
     {
-      title: "Country",
-      dataIndex: "country",
-      key: "country",
-      render: (code: string) => {
-        const countryName = Country.getCountryByCode(code)?.name || code;
-        return <Tag color="geekblue">{countryName}</Tag>;
-      },
-    },
-    {
-      title: "State",
-      dataIndex: "state",
-      key: "state",
-      render: (stateCodes: string | string[], record: FixedHoliday) => {
-        const codes = Array.isArray(stateCodes)
-          ? stateCodes
-          : stateCodes
-            ? [stateCodes]
-            : [];
-        if (codes.includes("ALL")) {
-          return <Tag color="blue">All States</Tag>;
-        }
-        const stateNames = codes.map((code) => {
-          if (code === "NO_STATE") return "No State";
-          return (
-            State.getStateByCodeAndCountry(code, record.country)?.name || code
-          );
-        });
-        const visibleTags = stateNames.slice(0, 2);
-        const hiddenTags = stateNames.slice(2);
+      title: "Location",
+      key: "location",
+      render: (_, record) => {
+        const countryName = Country.getCountryByCode(record.country)?.name || record.country;
         return (
-          <Space size={[0, 4]} wrap>
-            {visibleTags.map((name) => (
-              <Tag key={name} color="blue">
-                {name}
-              </Tag>
-            ))}
-            {hiddenTags.length > 0 && (
-              <Tooltip title={hiddenTags.join(", ")}>
-                <Tag color="blue">+{hiddenTags.length} More</Tag>
-              </Tooltip>
-            )}
+          <Space direction="vertical" size={2}>
+            <Tag color="blue" style={{ borderRadius: 6, margin: 0 }}>{countryName}</Tag>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {Array.isArray(record.state) ? record.state.join(", ") : record.state || "All Regions"}
+            </Text>
           </Space>
         );
-      },
+      }
     },
     {
-      title: "From Date",
-      dataIndex: "fromDate",
-      key: "fromDate",
-      render: (date) => (date ? dayjs(date).format("YYYY-MM-DD") : "-"),
-    },
-    {
-      title: "To Date",
-      dataIndex: "toDate",
-      key: "toDate",
-      render: (date) => (date ? dayjs(date).format("YYYY-MM-DD") : "-"),
+      title: "Duration",
+      key: "duration",
+      render: (_, record) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
+          </div>
+          <ArrowRight size={14} color="#94a3b8" />
+          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
+          </div>
+        </div>
+      )
     },
     {
       title: "Type",
       dataIndex: "type",
       key: "type",
+      render: (type) => (
+        <Tag style={{ borderRadius: 20, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontWeight: 500 }}>
+          {type}
+        </Tag>
+      )
     },
     {
-      title: "Rule",
+      title: "Rule / Note",
       dataIndex: "rule",
       key: "rule",
+      render: (text) => <Text type="secondary" style={{ fontSize: 13 }}>{text || "—"}</Text>
     },
     {
-      title: "Action",
+      title: "Actions",
       key: "action",
+      width: 120,
       render: (_, record) => (
-        <Space size="middle">
+        <Space size={8}>
           <Button
             type="text"
-            icon={<EditOutlined style={{ color: "blue" }} />}
+            size="small"
+            icon={<Edit3 size={16} />}
             onClick={() => handleEdit(record)}
+            style={{ color: "#2563eb", background: "#eff6ff", borderRadius: 6 }}
           />
           <Popconfirm
-            title="Delete the holiday"
-            description="Are you sure to delete this holiday?"
+            title="Delete holiday?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
+            okButtonProps={{ danger: true }}
           >
             <Button
               type="text"
-              icon={<DeleteOutlined style={{ color: "red" }} />}
+              size="small"
+              danger
+              icon={<Trash2 size={16} />}
+              style={{ background: "#fef2f2", borderRadius: 6 }}
             />
           </Popconfirm>
         </Space>
@@ -607,240 +465,155 @@ export default function governmentLeaves() {
     },
   ];
 
+  if (authLoading) return null;
+  if (!canManageLeaves) {
+    router.push('/dashboard');
+    return null;
+  }
+
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div>
-          {/* Tabs Navigation */}
-          <div style={{marginTop:20}} >
-            <Tabs
-              activeKey="addLeaves"
-              onChange={(key) => {
-                const routes: any = {
-                  dashboard: "/leaves-dashboard",
-                  // leaves: "/leaves",
-                  holidays: "/government-holidays",
-                  adjustments: "/leave-adjustments",
-                  configuration: "/leave-type",
-                  positions: "/leave-policy",
-                  addLeaves: "/add-goverment-leaves",
-                  "apply-leave": "/apply-leave",
-                  approvals: "/leave-approvals",
-                };
-                if (routes[key]) router.push(routes[key]);
-              }}
-              items={[
-                {
-                  key: "dashboard",
-                  label: (
-                    <span>
-                      <AppstoreOutlined /> Dashboard
-                    </span>
-                  ),
-                },
-                // {
-                //   key: "leaves",
-                //   label: (
-                //     <span>
-                //       <ClockCircleOutlined /> Apply Leave
-                //     </span>
-                //   ),
-                // },
-                {
-                  key: "apply-leave",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Apply leave
-                    </span>
-                  ),
-                },
-                hasApprovalRights && {
-                  key: "approvals",
-                  label: (
-                    <span>
-                      <CheckCircleOutlined /> Approvals
-                    </span>
-                  ),
-                },
-                {
-                  key: "holidays",
-                  label: (
-                    <span>
-                      <ScheduleOutlined /> Government Holidays
-                    </span>
-                  ),
-                },
-                {
-                  key: "adjustments",
-                  label: (
-                    <span>
-                      <EditOutlined /> Leave Adjustment
-                    </span>
-                  ),
-                },
-                {
-                  key: "configuration",
-                  label: (
-                    <span>
-                      <SettingOutlined /> Leave Types
-                    </span>
-                  ),
-                },
-                {
-                  key: "positions",
-                  label: (
-                    <span>
-                      <ApartmentOutlined /> Leave Policy
-                    </span>
-                  ),
-                },
-                {
-                  key: "addLeaves",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Add Government Leaves
-                    </span>
-                  ),
-                },
-              ].filter(Boolean)}
-            />
-          </div>
-       
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ScheduleOutlined
-                    style={{ color: "#1a64c4ff", fontSize: 20 }}
-                  />
-                  <Typography.Title level={4} style={{ margin: 0 }}>
-                    Added the Goverment Holidays
-                  </Typography.Title>
-                </Space>
-                <div style={{ marginTop: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Handle special employee-specific leave cases, comp-offs, and
-                    manual corrections.
-                  </Text>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+          
+          {/* Header */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+            <div style={{ flex: 1 }}>
+              <Space size={14} align="center">
+                <div style={{ background: "#eff6ff", padding: 12, borderRadius: 14, color: "#2563eb", display: "flex" }}>
+                  <Settings2 size={28} />
                 </div>
-                
-                                <Space style={{ marginTop:12 }}>
-                                  <Tag color="processing" style={{borderRadius:10}}>
-                                    Total leave: {allHolidays.length}
-                                  </Tag>
-                                  <Tag color="success" style={{borderRadius:10}}>
-                                    Total Month: {dataSource.length}
-                                    
-                                  </Tag>
-                                 
-                                </Space>
-                             
-              </div>
-
-              <Space>
-                <Select
-                  placeholder="Select Country"
-                  style={{ width: 150 }}
-                  showSearch
-                  allowClear
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={Country.getAllCountries().map((c) => ({
-                    label: c.name,
-                    value: c.isoCode,
-                  }))}
-                  onChange={(val) => {
-                    setFilterCountry(val);
-                    setFilterState(null);
-                  }}
-                  value={filterCountry}
-                />
-                <Select
-                  placeholder="Select State"
-                  style={{ width: 150 }}
-                  showSearch
-                  allowClear
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  options={
-                    filterCountry
-                      ? State.getStatesOfCountry(filterCountry).map((s) => ({
-                          label: s.name,
-                          value: s.isoCode,
-                        }))
-                      : []
-                  }
-                  onChange={setFilterState}
-                  value={filterState}
-                  disabled={!filterCountry}
-                />
-                <DatePicker
-                  picker="month"
-                  placeholder="Select Month"
-                  style={{ width: 150 }}
-                  onChange={setFilterMonth}
-                  value={filterMonth}
-                  format="MMMM"
-                />
-                <Button
-                  icon={<PlusOutlined />}
-                  style={{ height: 35 }}
-                  type="primary"
-                  onClick={showModal}
-                >
-                  Add goverment leaves
-                </Button>
+                <div>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Holiday Configuration</Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Manage global government holiday data sources and regional settings.</Text>
+                </div>
               </Space>
             </div>
-            <Divider style={{marginTop:5}}/>
-            <Table columns={columns} 
-             dataSource={dataSource} 
-             rowKey="id" loading={loading}  
-             size="small"
-             pagination={{ pageSize: 10 }}/>
-          
-        </div>
-        <Modal
-          title={
-            editingKey ? "Edit Government Leaves" : "Add Government Leaves"
-          }
-          open={isModalOpen}
-          onOk={handleOk}
-          onCancel={handleCancel}
-          width={600}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            name="add_leave_form"
-            initialValues={{ holidays: [{}] }}
+            <Button
+              icon={<Plus size={18} />}
+              type="primary"
+              onClick={showDrawer}
+              style={{ height: 44, borderRadius: 12, fontWeight: 600, padding: "0 24px" }}
+            >
+              Add Holiday Source
+            </Button>
+          </div>
+
+          <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={8}>
+              <StatCard label="Global Holiday Base" value={allHolidays.length} icon={Globe} color="#2563eb" />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard label="Regional Context" value={dataSource.length} icon={MapPin} color="#7c3aed" />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard label="Monthly Focus" value={filterMonth?.format("MMMM") || "All Time"} icon={Calendar} color="#10b981" />
+            </Col>
+          </Row>
+
+          <Divider style={{ margin: "12px 0 24px 0" }} />
+
+          {/* Filters */}
+          <div style={{ marginBottom: 24, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#64748b", fontSize: 14, fontWeight: 500, marginRight: 8 }}>
+              <Filter size={18} /> Filters:
+            </div>
+            <Select
+              placeholder="Country"
+              style={{ width: 180 }}
+              showSearch
+              allowClear
+              options={Country.getAllCountries().map(c => ({ label: c.name, value: c.isoCode }))}
+              onChange={val => { setFilterCountry(val); setFilterState(null); }}
+              value={filterCountry}
+              className="premium-select"
+            />
+            <Select
+              placeholder="State / Region"
+              style={{ width: 220 }}
+              showSearch
+              allowClear
+              disabled={!filterCountry}
+              options={filterCountry ? State.getStatesOfCountry(filterCountry).map(s => ({ label: s.name, value: s.isoCode })) : []}
+              onChange={setFilterState}
+              value={filterState}
+              className="premium-select"
+            />
+            <DatePicker
+              picker="month"
+              placeholder="Target Month"
+              style={{ width: 180 }}
+              onChange={setFilterMonth}
+              value={filterMonth}
+              format="MMMM YYYY"
+              className="premium-select"
+            />
+          </div>
+
+          <Card
+            bordered={false}
+            style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+            bodyStyle={{ padding: "0" }}
           >
-            <Form.List name="holidays">
-              {(fields, { add, remove }) => (
-                <HolidayCollapse
-                  fields={fields}
-                  add={add}
-                  remove={remove}
-                  form={form}
-                />
-              )}
-            </Form.List>
-          </Form>
-        </Modal>
+            <Table
+              loading={loading}
+              columns={columns as any}
+              dataSource={dataSource}
+              rowKey="id"
+              size="middle"
+              pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+              rowClassName={() => "history-table-row"}
+              scroll={{ x: 1000 }}
+            />
+          </Card>
+
+          <Drawer
+            title={
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb" }}>
+                  {editingKey ? <Edit3 size={20} /> : <Plus size={20} />}
+                </div>
+                <Text strong style={{ fontSize: 18 }}>{editingKey ? "Edit Holiday Source" : "Add Holiday Sources"}</Text>
+              </div>
+            }
+            width={520}
+            onClose={() => setIsDrawerOpen(false)}
+            open={isDrawerOpen}
+            footer={
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "16px 8px" }}>
+                <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8 }}>Cancel</Button>
+                <Button type="primary" onClick={handleSubmit} loading={loading} style={{ borderRadius: 8, padding: "0 24px" }}>
+                  {editingKey ? "Update Holiday" : "Create Holidays"}
+                </Button>
+              </div>
+            }
+            bodyStyle={{ padding: "24px" }}
+          >
+            <Form form={form} layout="vertical" initialValues={{ holidays: [{}] }}>
+              <Form.List name="holidays">
+                {(fields, { add, remove }) => (
+                  <HolidayCollapse fields={fields} add={add} remove={remove} form={form} />
+                )}
+              </Form.List>
+            </Form>
+          </Drawer>
+
+          <style dangerouslySetInnerHTML={{ __html: `
+            .history-table-row:hover { background-color: #f8fafc !important; }
+            .ant-table-thead > tr > th {
+              background-color: #f1f5f9 !important;
+              color: #475569 !important;
+              font-weight: 600 !important;
+              border-bottom: 2px solid #e2e8f0 !important;
+              padding: 12px 20px !important;
+            }
+            .ant-table-tbody > tr > td { border-bottom: 1px solid #f1f5f9 !important; padding: 16px 20px !important; }
+            .premium-select { height: 44px !important; border-radius: 12px !important; }
+            .premium-select .ant-select-selector { border-radius: 12px !important; height: 44px !important; display: flex !important; alignItems: center !important; }
+            .ant-collapse > .ant-collapse-item { border: 1px solid #f1f5f9; border-radius: 12px !important; margin-bottom: 12px; overflow: hidden; }
+            .ant-collapse > .ant-collapse-item > .ant-collapse-header { background: #f8fafc; padding: 12px 16px; }
+          `}} />
+        </div>
       </MainLayout>
     </ProtectedRoute>
   );

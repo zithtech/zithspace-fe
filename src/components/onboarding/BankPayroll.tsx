@@ -1,4 +1,4 @@
-import { Form, Input, Row, Col, Select } from "antd";
+import { Form, Input, Row, Col, Select, Card } from "antd";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 
 const BankPayroll = forwardRef(({ data }: any, ref: any) => {
@@ -46,6 +46,18 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
     format as before).
   ====================================================== */
   useImperativeHandle(ref, () => ({
+    validate: async () => {
+      try {
+        await Promise.all([
+          bankform.validateFields(),
+          payrollform.validateFields(),
+        ]);
+        return true;
+      } catch (error) {
+        console.error("Validation failed:", error);
+        return false;
+      }
+    },
     getData: () => {
       return {
         ...bankform.getFieldsValue(),
@@ -55,43 +67,13 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
   }));
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        background: "white",
-        display: "flex",
-        flexDirection: "row",
-        padding: "16px",
-        boxSizing: "border-box",
-        gap: "10px",
-        justifyContent: "space-evenly",
-      }}
-    >
-      {/* ── Bank Details ─────────────────────────────────── */}
-      <div
-        style={{
-          width: "45%",
-          background: "#ffffff",
-          borderRadius: "12px",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
-          border: "1px solid #e5e7eb",
-          padding: "12px",
-        }}
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", padding: "24px", background: "#fff" }}>
+      {/* Bank Details */}
+      <Card
+        title={<span style={{ fontWeight: 600, color: "#1677ff" }}>🏦 Bank Details</span>}
+        bordered={false}
+        styles={{ body: { padding: "24px" } }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            color: "#1677ff",
-            fontWeight: 600,
-            marginBottom: 16,
-          }}
-        >
-          🏦 Bank Details
-        </div>
-
         <Form
           form={bankform}
           layout="vertical"
@@ -99,94 +81,89 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
             setBankDetailes((prev) => ({ ...prev, ...allValues }))
           }
         >
-          <Row gutter={[10, 6]}>
-            <Col span={12}>
+          <Row gutter={24}>
+            <Col span={8}>
               <Form.Item
                 name="bankName"
-                label={<span style={{ fontSize: "12px" }}>Bank Name</span>}
+                label={<span style={{ fontWeight: 500 }}>Bank Name</span>}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Input
-                  placeholder="Enter Bank Name"
-                  style={{ height: "37px", fontSize: 12 }}
-                />
+                <Input placeholder="Enter Bank Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="accountHolderName"
-                label={
-                  <span style={{ fontSize: "12px" }}>Account Holder Name</span>
-                }
+                label={<span style={{ fontWeight: 500 }}>Account Holder Name</span>}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Input
-                  placeholder="Account Holder Name"
-                  style={{ height: "37px", fontSize: 12 }}
-                />
+                <Input placeholder="Account Holder Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="accountNumber"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    Account Number <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>Account Number</span>}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
                 <Input
                   placeholder="Account Number"
-                  style={{ height: "37px", fontSize: 12 }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="ifscCode"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    IFSC Code <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>IFSC Code</span>}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Input
-                  placeholder="IFSC Code"
-                  style={{ height: "37px", fontSize: 12 }}
-                />
+                <Input placeholder="IFSC Code" />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="branchName"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    Branch Name <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>Branch Name</span>}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Input
-                  placeholder="Branch Name"
-                  style={{ height: "37px", fontSize: 12 }}
-                />
+                <Input placeholder="Branch Name" onKeyDown={(e) => {
+                  if (e.key.length > 1) return;
+                  if (!/^[A-Za-z\s-]$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }} />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="accountType"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    Account Type <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>Account Type</span>}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Select
-                  placeholder="Select Type"
-                  style={{ height: "37px", fontSize: 12 }}
-                >
+                <Select placeholder="Select Type">
                   <Select.Option value="savings">Savings</Select.Option>
                   <Select.Option value="current">Current</Select.Option>
                 </Select>
@@ -194,32 +171,14 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
             </Col>
           </Row>
         </Form>
-      </div>
+      </Card>
 
-      {/* ── Payroll Identifiers ───────────────────────────── */}
-      <div
-        style={{
-          width: "45%",
-          background: "#ffffff",
-          borderRadius: "12px",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
-          border: "1px solid #e5e7eb",
-          padding: "12px",
-        }}
+      {/* Payroll Identifiers */}
+      <Card
+        title={<span style={{ fontWeight: 600, color: "#1677ff" }}>💰 Payroll Identifiers</span>}
+        bordered={false}
+        styles={{ body: { padding: "24px" } }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            color: "#1677ff",
-            fontWeight: 600,
-            marginBottom: 16,
-          }}
-        >
-          💰 Payroll Identifiers
-        </div>
-
         <Form
           form={payrollform}
           onValuesChange={(_, allValues) =>
@@ -227,87 +186,87 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
           }
           layout="vertical"
         >
-          <Row gutter={[16, 12]}>
-            <Col span={12}>
+          <Row gutter={24}>
+            <Col span={8}>
               <Form.Item
                 name="uanNumber"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    UAN Number <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>UAN Number</span>}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
                 <Input
                   placeholder="UAN Number"
-                  style={{ height: "37px", fontSize: 12 }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="pfNumber"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    PF Number <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>PF Number</span>}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
                 <Input
                   placeholder="PF Number"
-                  style={{ height: "37px", fontSize: 12 }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="esiNumber"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    ESI Number <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>ESI Number</span>}
+                rules={[
+                  { required: true, message: "Required" },
+                  { pattern: /^[0-9]+$/, message: "Only numeric values allowed" }
+                ]}
               >
                 <Input
                   placeholder="ESI Number"
-                  style={{ height: "37px", fontSize: 12 }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key.length === 1) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="taxRegime"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    Tax Regime <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>Tax Regime</span>}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Select
-                  placeholder="Select Regime"
-                  style={{ height: "37px", fontSize: 12 }}
-                >
+                <Select placeholder="Select Regime">
                   <Select.Option value="Old">Old Regime</Select.Option>
                   <Select.Option value="new">New Regime</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={8}>
               <Form.Item
                 name="paymentType"
-                label={
-                  <span style={{ fontSize: "12px" }}>
-                    Payment Type <span style={{ color: "red" }}>*</span>
-                  </span>
-                }
+                label={<span style={{ fontWeight: 500 }}>Payment Type</span>}
+                rules={[{ required: true, message: "Required" }]}
               >
-                <Select
-                  placeholder="Select Type"
-                  style={{ height: "37px", fontSize: 12 }}
-                >
+                <Select placeholder="Select Type">
                   <Select.Option value="bank">Bank Transfer</Select.Option>
                   <Select.Option value="cash">Cash</Select.Option>
                 </Select>
@@ -315,7 +274,7 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
             </Col>
           </Row>
         </Form>
-      </div>
+      </Card>
     </div>
   );
 });

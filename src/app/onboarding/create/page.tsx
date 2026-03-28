@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import { Steps, Button, Form, Spin } from "antd";
+import { Steps, Button, Form, Spin, message } from "antd";
 import PersonalDetails from "@/components/onboarding/PersonalDetails";
 import EmploymentDetails from "@/components/onboarding/EmploymentDetails";
 import BankPayroll from "@/components/onboarding/BankPayroll";
@@ -61,7 +61,11 @@ const Onboarding = () => {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     );
@@ -78,6 +82,15 @@ const Onboarding = () => {
     try {
       const currentRef = refs[current];
 
+      // Perform validation if current step has a validate method
+      if (currentRef?.current?.validate) {
+        const isValid = await currentRef.current.validate();
+        if (!isValid) {
+          console.log("Validation Failed for current step");
+          return;
+        }
+      }
+
       if (currentRef?.current?.getData) {
         const stepData = currentRef.current.getData();
         setAllData((prev: any) => ({
@@ -92,7 +105,7 @@ const Onboarding = () => {
       }
       setCurrent((prev) => prev + 1);
     } catch (error) {
-      console.log("Validation Failed:", error);
+      console.log("Next Step Error:", error);
     }
   };
 
@@ -194,7 +207,7 @@ const Onboarding = () => {
       console.log("🔥 FINAL SUBMIT PAYLOAD 👉", finalData);
 
       await createOnboarding(finalData);
-      window.alert("Onboarding Process Completed");
+      message.success("Onboarding Process Completed");
       setAllData({
         personal: {},
         employment: {},
@@ -211,24 +224,32 @@ const Onboarding = () => {
 
   return (
     <MainLayout>
-      <div style={{ width: "100%", height: "100%", background: "white" }}>
-        <p style={{ fontSize: "20px", fontWeight: "bold", padding: "8px" }}>
-          Onboarding...
-        </p>
+      <div style={{ width: "100%", minHeight: "100vh", background: "white", paddingBottom: "80px" }}>
+        <div style={{ 
+          padding: "16px 24px", 
+          borderBottom: "1px solid #f0f0f0",
+          background: "white",
+        }}>
+          <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0 }}>
+            Employee Onboarding
+          </h1>
+        </div>
 
-        <div style={{ padding: "10px" }}>
-          <Steps current={current} size="small">
-            <Step icon={<BsPersonHeart size={18} />} title="Personal Details" />
-            <Step
-              icon={<BsFillPersonLinesFill size={18} />}
-              title="Employment"
-            />
-            <Step icon={<BiSolidBank size={18} />} title="Bank & Payroll" />
-            <Step
-              icon={<MdOutlineDocumentScanner size={18} />}
-              title="Employee History"
-            />
-            <Step icon={<BiSolidBank size={18} />} title="Assets" />
+        <div style={{ 
+          padding: "20px 24px",
+          background: "white",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          borderBottom: "1px solid #f1f5f9",
+          boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+        }}>
+          <Steps current={current} size="small" style={{ marginBottom: 0 }}>
+            <Step title="Personal Details" />
+            <Step title="Employment" />
+            <Step title="Bank & Payroll" />
+            <Step title="Employee History" />
+            <Step title="Assets" />
           </Steps>
         </div>
 
@@ -260,57 +281,60 @@ const Onboarding = () => {
           <Assets ref={assetsRef} data={allData.assets} />
         </div> */}
 
-        <div style={{ display: current === 0 ? "block" : "none" }}>
-          <PersonalDetails
-            key={`personal-${resetKey}`} // ← ADD THIS
-            ref={personalRef}
-            data={allData.personal}
-          />
-        </div>
+        <div style={{ padding: "0 24px" }}>
+          <div style={{ display: current === 0 ? "block" : "none" }}>
+            <PersonalDetails
+              key={`personal-${resetKey}`}
+              ref={personalRef}
+              data={allData.personal}
+            />
+          </div>
 
-        <div style={{ display: current === 1 ? "block" : "none" }}>
-          <EmploymentDetails
-            key={`employment-${resetKey}`} // ← ADD THIS
-            ref={employmentRef}
-            data={allData.employment}
-          />
-        </div>
+          <div style={{ display: current === 1 ? "block" : "none" }}>
+            <EmploymentDetails
+              key={`employment-${resetKey}`}
+              ref={employmentRef}
+              data={allData.employment}
+            />
+          </div>
 
-        <div style={{ display: current === 2 ? "block" : "none" }}>
-          <BankPayroll
-            key={`bank-${resetKey}`} // ← ADD THIS
-            ref={bankRef}
-            data={allData.bank}
-          />
-        </div>
+          <div style={{ display: current === 2 ? "block" : "none" }}>
+            <BankPayroll
+              key={`bank-${resetKey}`}
+              ref={bankRef}
+              data={allData.bank}
+            />
+          </div>
 
-        <div style={{ display: current === 3 ? "block" : "none" }}>
-          <EmployeHistory
-            key={`history-${resetKey}`} // ← ADD THIS
-            ref={historyRef}
-            data={allData.history}
-          />
-        </div>
+          <div style={{ display: current === 3 ? "block" : "none" }}>
+            <EmployeHistory
+              key={`history-${resetKey}`}
+              ref={historyRef}
+              data={allData.history}
+            />
+          </div>
 
-        <div style={{ display: current === 4 ? "block" : "none" }}>
-          <Assets
-            key={`assets-${resetKey}`} // ← ADD THIS
-            ref={assetsRef}
-            data={allData.assets}
-          />
+          <div style={{ display: current === 4 ? "block" : "none" }}>
+            <Assets
+              key={`assets-${resetKey}`}
+              ref={assetsRef}
+              data={allData.assets}
+            />
+          </div>
         </div>
 
         {/* Buttons */}
         <div
           style={{
-            position: "fixed",
+            position: "sticky",
             bottom: 0,
-            width: "95%",
             display: "flex",
             justifyContent: "space-between",
-            padding: 10,
+            padding: "16px 24px",
             background: "#fff",
-            boxShadow: "0 -4px 12px rgba(0,0,0,0.08)",
+            borderTop: "1px solid #f0f0f0",
+            zIndex: 1000,
+            marginTop: "20px",
           }}
         >
           <div>{current > 0 && <Button onClick={prev}>Previous</Button>}</div>

@@ -6,9 +6,9 @@ import { usePermission } from '@/hooks/usePermission';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/MainLayout';
 import { Spin } from 'antd';
-import ReleasePlan from '@/components/projects/ReleasePlan';
+import SprintPlan from '@/components/projects/SprintPlan';
 
-export default function ProjectsReleasePlanPage() {
+export default function ProjectsSprintPlanPage() {
   const { isLoading: authLoading } = useAuth();
   const { canReadProject } = usePermission();
   const router = useRouter();
@@ -25,7 +25,11 @@ export default function ProjectsReleasePlanPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading plans..." />
+        <div style={{ padding: 100, textAlign: 'center' }}>
+          <Spin size="large" tip="Loading sprint plans">
+            <div style={{ padding: 20 }} />
+          </Spin>
+        </div>
         </div>
       </MainLayout>
     );
@@ -38,8 +42,8 @@ export default function ProjectsReleasePlanPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
-        <ReleasePlan />
+      <div style={{ padding: 0 }}>
+        <SprintPlan />
       </div>
     </MainLayout>
   );

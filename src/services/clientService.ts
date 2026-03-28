@@ -146,7 +146,7 @@ export class ClientService {
    */
   static async getClientsForSelect(): Promise<ClientSelectOption[]> {
     try {
-      return await api.get<ClientSelectOption[]>('/api/clients/select');
+      return await api.get<ClientSelectOption[]>('/api/clients-v2/select');
     } catch (error) {
       if (error instanceof ApiError) {
         throw new Error(error.message);

@@ -467,9 +467,10 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
 
         .panel-card {
           background: #ffffff;
-          border: 1px solid #d9d9d9;
+          border: 1px solid #f0f0f0;
           border-radius: 8px;
           padding: 16px;
+          box-shadow: none;
         }
 
         /* Documents card uses flex column so scroll area fills remaining height */
@@ -631,9 +632,10 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
         /* Nested contact section inside company panel */
         .contact-section {
           background: #ffffff;
-          border: 1px solid #d9d9d9;
+          border: 1px solid #f0f0f0;
           border-radius: 8px;
           padding: 16px;
+          box-shadow: none;
         }
 
         .contact-section-label {

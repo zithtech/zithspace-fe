@@ -34,11 +34,20 @@ export default function ProjectTicketsPage({ params }: PageProps) {
     enabled: !!projectId && !!user,
   });
 
+  // Clear invalid lastProjectId if it fails
+  useEffect(() => {
+    if (error || (!projectLoading && !project && projectId)) {
+      localStorage.removeItem('lastProjectId');
+    }
+  }, [error, project, projectLoading, projectId]);
+
   if (authLoading || projectLoading) {
     return (
       <MainLayout>
         <div style={{ padding: 20, textAlign: 'center', paddingTop: 100 }}>
-          <Spin size="large" tip="Loading project..." />
+          <Spin size="large" tip="Loading project">
+            <div style={{ padding: 50 }} />
+          </Spin>
         </div>
       </MainLayout>
     );
@@ -56,7 +65,7 @@ export default function ProjectTicketsPage({ params }: PageProps) {
             action={
               <Button 
                 type="primary" 
-                onClick={() => router.push('/projects/select')}
+                onClick={() => router.push('/projects/select?select=true')}
               >
                 Back to Projects
               </Button>
@@ -79,7 +88,7 @@ export default function ProjectTicketsPage({ params }: PageProps) {
   return (
     <MainLayout>
       <TicketList 
-        projectId={projectId} 
+        projectId={project.id} 
         projectName={project.name}
         projectCode={project.code}
       />

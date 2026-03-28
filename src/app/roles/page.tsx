@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
@@ -109,6 +110,27 @@ export default function RolesPage() {
   const [drawerLoadingPerms, setDrawerLoadingPerms] = useState(false);
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
 
+  // ── Auto-clear messages ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (success || error) {
+      const t = setTimeout(() => {
+        setSuccess("");
+        setError("");
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [success, error]);
+
+  // Calculate role stats
+  const roleStats = React.useMemo(() => {
+    return {
+      total: roles.length,
+      system: roles.filter(r => r.isSystem).length,
+      custom: roles.filter(r => !r.isSystem).length,
+      permissions: Object.values(allPermissions).flat().length
+    };
+  }, [roles, allPermissions]);
+
   // ── Route guard ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isLoading && user && !canReadRole) {
@@ -195,16 +217,6 @@ export default function RolesPage() {
     }
   };
 
-  // ── Auto-clear messages ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (success || error) {
-      const t = setTimeout(() => {
-        setSuccess("");
-        setError("");
-      }, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [success, error]);
 
   // ── Create role ────────────────────────────────────────────────────────────
   const handleCreateRole = async (values: { name: string; description?: string }) => {
@@ -312,28 +324,42 @@ export default function RolesPage() {
   // ── Columns ────────────────────────────────────────────────────────────────
   const columns: ColumnsType<RBACRole> = [
     {
-      title: "Role",
+      title: "Role Name",
       key: "name",
+      width: 250,
       render: (_, record) => (
-        <Space>
-          <SafetyOutlined
-            style={{ color: record.isSystem ? "#1677ff" : "#52c41a", fontSize: 16 }}
-          />
+        <Space size={12}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: record.isSystem ? "#e6f4ff" : "#f6ffed",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: record.isSystem ? "#1677ff" : "#52c41a",
+              fontSize: 18,
+            }}
+          >
+            <SafetyOutlined />
+          </div>
           <div>
-            <Space size={4}>
-              <Text strong style={{ fontSize: 13 }}>
+            <Space size={4} align="center">
+              <Text strong style={{ fontSize: 14, letterSpacing: '-0.2px' }}>
                 {record.name}
               </Text>
               {record.isSystem && (
-                <Tag color="blue" style={{ fontSize: 10, lineHeight: "16px" }}>
+                <Tag bordered={false} color="blue" style={{ fontSize: 10, borderRadius: 4 }}>
                   SYSTEM
                 </Tag>
               )}
             </Space>
-            <br />
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              {record.slug}
-            </Text>
+            <div style={{ marginTop: -2 }}>
+              <Text type="secondary" style={{ fontSize: 11, fontFamily: 'monospace' }}>
+                {record.slug}
+              </Text>
+            </div>
           </div>
         </Space>
       ),
@@ -445,20 +471,30 @@ export default function RolesPage() {
     },
   ];
 
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  if (!user || isLoading || !canReadRole) {
+    if (isLoading) return <LoadingSpinner message="Loading roles..." />;
+    return null;
+  }
+
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
-        {/* ── Header ── */}
-        <div style={{ marginBottom: 20 }}>
-          <Space align="center" style={{ width: "100%", justifyContent: "space-between" }}>
-            <Space align="center">
-              <SafetyOutlined style={{ fontSize: 24, color: "#1677ff" }} />
-              <div>
-                <Title level={3} style={{ margin: 0 }}>
+      <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <Space
+            align="start"
+            style={{ width: "100%", justifyContent: "space-between" }}
+          >
+            <Space align="start" size={16}>
+              <SafetyOutlined style={{ fontSize: 28, color: "#1677ff", marginTop: 4 }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px' }}>
                   Roles & Permissions
                 </Title>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Manage roles and their permission sets
+                <Text type="secondary" style={{ fontSize: 13, marginTop: 2 }}>
+                  Manage and oversee system-wide access control and role assignments
                 </Text>
               </div>
             </Space>
@@ -467,6 +503,8 @@ export default function RolesPage() {
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={() => setCreateModalOpen(true)}
+                size="large"
+                style={{ borderRadius: 8 }}
               >
                 Create Role
               </Button>
@@ -474,14 +512,50 @@ export default function RolesPage() {
           </Space>
         </div>
 
-        {/* ── Alerts ── */}
+        {/* Stats Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Roles</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{roleStats.total}</Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>System Roles</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#1677ff' }}>{roleStats.system}</Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Roles</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#52c41a' }}>{roleStats.custom}</Title>
+              </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+              <Space direction="vertical" size={4}>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Permissions</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#faad14' }}>{roleStats.permissions}</Title>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Alerts */}
         {error && (
           <Alert
             message={error}
             type="error"
             showIcon
             closable
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
             onClose={() => setError("")}
           />
         )}
@@ -491,20 +565,29 @@ export default function RolesPage() {
             type="success"
             showIcon
             closable
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 16, fontSize: 13, borderRadius: 8 }}
             onClose={() => setSuccess("")}
           />
         )}
 
-        {/* ── Roles Table ── */}
-        <Card size="small">
+        {/* Roles Table Container */}
+        <Card
+          bordered={false}
+          style={{ 
+            marginBottom: 16, 
+            borderRadius: 12, 
+            border: '1px solid #f0f0f0',
+            boxShadow: 'none'
+          }}
+          styles={{ body: { padding: 0 } }}
+        >
           <Table
             columns={columns}
             dataSource={roles}
             rowKey="id"
             loading={loading}
             pagination={false}
-            size="small"
+            scroll={{ x: 1000 }}
           />
         </Card>
 
@@ -586,123 +669,159 @@ export default function RolesPage() {
         {/* ── Permissions Drawer ── */}
         <Drawer
           title={
-            <Space>
-              <SafetyOutlined />
-              <span>Permissions — {drawerRole?.name}</span>
-              {drawerRole?.isSystem && <Tag color="blue">SYSTEM</Tag>}
-            </Space>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <Space size={8}>
+                <SafetyOutlined style={{ color: '#1677ff' }} />
+                <Text strong style={{ fontSize: 16 }}>Edit Permissions</Text>
+                {drawerRole?.isSystem && <Tag bordered={false} color="blue" style={{ fontSize: 10 }}>SYSTEM</Tag>}
+              </Space>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 400, marginTop: 4 }}>
+                Configure access rights for the <strong>{drawerRole?.name}</strong> role
+              </Text>
+            </div>
           }
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          width={540}
+          width={560}
+          styles={{
+            header: { borderBottom: '1px solid #f0f0f0', padding: '16px 24px' },
+            body: { padding: '0 0 24px 0' }
+          }}
           extra={
             canUpdateRole && (
-              <Button type="primary" loading={drawerSaving} onClick={handleSavePermissions}>
-                Save Permissions
+              <Button 
+                type="primary" 
+                loading={drawerSaving} 
+                onClick={handleSavePermissions}
+                style={{ borderRadius: 6 }}
+              >
+                Save Changes
               </Button>
             )
           }
         >
           {drawerLoadingPerms ? (
             <div style={{ textAlign: "center", paddingTop: 80 }}>
-              <Spin tip="Loading permissions..." />
+              <Spin tip="Loading permissions">
+                <div style={{ height: 40 }} />
+              </Spin>
             </div>
           ) : (
             <div>
-              {/* Selected count + select-all controls */}
+              {/* Selection Toolbar */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginBottom: 16,
-                  padding: "8px 12px",
-                  background: "#f5f5f5",
-                  borderRadius: 6,
+                  padding: "12px 24px",
+                  background: "#fafafa",
+                  borderBottom: "1px solid #f0f0f0",
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1,
+                  marginBottom: 16
                 }}
               >
-                <Text style={{ fontSize: 12 }}>
-                  <strong>{selectedPermIds.length}</strong> permission
-                  {selectedPermIds.length !== 1 ? "s" : ""} selected
+                <Text style={{ fontSize: 13, fontWeight: 500 }}>
+                  <Badge 
+                    count={selectedPermIds.length} 
+                    style={{ backgroundColor: '#1677ff', marginRight: 8 }} 
+                  />
+                  Permissions Selected
                 </Text>
                 {canUpdateRole && (
-                  <Space size={4}>
+                  <Space size={16}>
                     <Button
                       type="link"
                       size="small"
                       icon={<CheckSquareOutlined />}
                       onClick={selectAll}
-                      style={{ fontSize: 12 }}
+                      style={{ fontSize: 12, padding: 0 }}
                     >
-                      Select all
+                      Select All
                     </Button>
                     <Button
                       type="link"
                       size="small"
                       icon={<BorderOutlined />}
                       onClick={clearAll}
-                      style={{ fontSize: 12 }}
+                      style={{ fontSize: 12, padding: 0, color: '#ff4d4f' }}
                     >
-                      Clear all
+                      Clear All
                     </Button>
                   </Space>
                 )}
               </div>
 
-              {/* Permission groups */}
-              {Object.entries(allPermissions).map(([resource, perms]) => {
-                const label = RESOURCE_LABELS[resource] || resource;
-                const selectedCount = perms.filter((p) => selectedPermIds.includes(p.id)).length;
-                const allInGroup = selectedCount === perms.length;
-                const someInGroup = selectedCount > 0 && !allInGroup;
+              {/* Permission Groups */}
+              <div style={{ padding: '0 24px' }}>
+                {Object.entries(allPermissions).map(([resource, perms]) => {
+                  const label = RESOURCE_LABELS[resource] || resource;
+                  const selectedCount = perms.filter((p) => selectedPermIds.includes(p.id)).length;
+                  const allInGroup = selectedCount === perms.length;
+                  const someInGroup = selectedCount > 0 && !allInGroup;
 
-                return (
-                  <div key={resource} style={{ marginBottom: 20 }}>
-                    {/* Group header with select-all checkbox */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 10,
+                  return (
+                    <div 
+                      key={resource} 
+                      style={{ 
+                        marginBottom: 16, 
+                        border: '1px solid #f0f0f0', 
+                        borderRadius: 10,
+                        overflow: 'hidden'
                       }}
                     >
-                      <Checkbox
-                        checked={allInGroup}
-                        indeterminate={someInGroup}
-                        onChange={() => toggleResource(perms)}
-                        disabled={!canUpdateRole}
-                      />
-                      <Text strong style={{ fontSize: 13 }}>
-                        {label}
-                      </Text>
-                      <Tag style={{ fontSize: 10, marginLeft: 4 }}>
-                        {selectedCount}/{perms.length}
-                      </Tag>
-                    </div>
-
-                    {/* Individual permission checkboxes */}
-                    <Row gutter={[8, 8]} style={{ paddingLeft: 24 }}>
-                      {perms.map((perm) => (
-                        <Col key={perm.id} xs={12} sm={8}>
+                      {/* Group Header */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: 'space-between',
+                          padding: "10px 16px",
+                          background: '#fafafa',
+                          borderBottom: '1px solid #f0f0f0'
+                        }}
+                      >
+                        <Space size={12}>
                           <Checkbox
-                            checked={selectedPermIds.includes(perm.id)}
-                            onChange={() => togglePermission(perm.id)}
+                            checked={allInGroup}
+                            indeterminate={someInGroup}
+                            onChange={() => toggleResource(perms)}
                             disabled={!canUpdateRole}
-                            style={{ fontSize: 12 }}
-                          >
-                            <Tooltip title={perm.description || perm.name}>
-                              <span>{perm.action}</span>
-                            </Tooltip>
-                          </Checkbox>
-                        </Col>
-                      ))}
-                    </Row>
+                          />
+                          <Text strong style={{ fontSize: 13, color: '#262626' }}>
+                            {label}
+                          </Text>
+                        </Space>
+                        <Tag bordered={false} style={{ fontSize: 11, borderRadius: 4, margin: 0 }}>
+                          {selectedCount} / {perms.length}
+                        </Tag>
+                      </div>
 
-                    <Divider style={{ margin: "14px 0" }} />
-                  </div>
-                );
-              })}
+                      {/* Individual permission checkboxes */}
+                      <div style={{ padding: '12px 16px' }}>
+                        <Row gutter={[12, 12]}>
+                          {perms.map((perm) => (
+                            <Col key={perm.id} xs={12} sm={8}>
+                              <Checkbox
+                                checked={selectedPermIds.includes(perm.id)}
+                                onChange={() => togglePermission(perm.id)}
+                                disabled={!canUpdateRole}
+                                style={{ fontSize: 12, display: 'flex', alignItems: 'center' }}
+                              >
+                                <Tooltip title={perm.description || perm.name}>
+                                  <span style={{ marginLeft: 4 }}>{perm.action}</span>
+                                </Tooltip>
+                              </Checkbox>
+                            </Col>
+                          ))}
+                        </Row>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </Drawer>
@@ -710,32 +829,49 @@ export default function RolesPage() {
         {/* ── Members Drawer ── */}
         <Drawer
           title={
-            <Space>
-              <TeamOutlined />
-              <span>Members — {membersDrawerRole?.name}</span>
-            </Space>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <Space size={8}>
+                <TeamOutlined style={{ color: '#1677ff' }} />
+                <Text strong style={{ fontSize: 16 }}>Manage Members</Text>
+              </Space>
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 400, marginTop: 4 }}>
+                Assign or remove users from the <strong>{membersDrawerRole?.name}</strong> role
+              </Text>
+            </div>
           }
           open={membersDrawerOpen}
           onClose={() => setMembersDrawerOpen(false)}
-          width={440}
+          width={480}
+          styles={{
+            header: { borderBottom: '1px solid #f0f0f0', padding: '16px 24px' },
+            body: { padding: '24px' }
+          }}
         >
           {membersDrawerLoading ? (
             <div style={{ textAlign: "center", paddingTop: 80 }}>
-              <Spin tip="Loading members..." />
+              <Spin tip="Loading members">
+                <div style={{ height: 40 }} />
+              </Spin>
             </div>
           ) : (
             <div>
-              {/* Add member */}
+              {/* Add member section */}
               {canAssignRole && (
-                <div style={{ marginBottom: 20 }}>
-                  <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>
-                    Assign member to this role
+                <div style={{ 
+                  marginBottom: 24, 
+                  padding: 16, 
+                  background: '#fafafa', 
+                  borderRadius: 10,
+                  border: '1px solid #f0f0f0'
+                }}>
+                  <Text strong style={{ fontSize: 13, display: "block", marginBottom: 12, color: '#262626' }}>
+                    Assign New Member
                   </Text>
                   <Space.Compact style={{ width: "100%" }}>
                     <Select
-                      placeholder="Search and select a member..."
+                      placeholder="Search and select member..."
                       showSearch
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, height: 40 }}
                       value={assigningMemberId}
                       onChange={setAssigningMemberId}
                       filterOption={(input, option) =>
@@ -751,6 +887,7 @@ export default function RolesPage() {
                       loading={assignLoading}
                       disabled={!assigningMemberId}
                       onClick={handleAssignMember}
+                      style={{ height: 40, borderRadius: '0 6px 6px 0' }}
                     >
                       Assign
                     </Button>
@@ -758,63 +895,87 @@ export default function RolesPage() {
                 </div>
               )}
 
-              <Divider style={{ margin: "12px 0" }} />
+              {/* Current members list */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text strong style={{ fontSize: 14 }}>
+                  Current Members
+                </Text>
+                <Badge 
+                  count={roleMembers.length} 
+                  showZero 
+                  overflowCount={999}
+                  style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', boxShadow: 'none' }}
+                />
+              </div>
 
-              {/* Current members */}
-              <Text strong style={{ fontSize: 13, display: "block", marginBottom: 10 }}>
-                Current members ({roleMembers.length})
-              </Text>
               {roleMembers.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "40px 0", color: "#8c8c8c" }}>
-                  <TeamOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                <div style={{ 
+                  textAlign: "center", 
+                  padding: "48px 0", 
+                  background: '#fafafa', 
+                  borderRadius: 10,
+                  border: '1px dashed #d9d9d9'
+                }}>
+                  <TeamOutlined style={{ fontSize: 32, marginBottom: 12, color: '#bfbfbf' }} />
                   <br />
-                  <Text type="secondary">No members assigned yet</Text>
+                  <Text type="secondary" style={{ fontSize: 13 }}>No members assigned to this role</Text>
                 </div>
               ) : (
-                <List
-                  size="small"
-                  dataSource={roleMembers}
-                  renderItem={(entry) => (
-                    <List.Item
-                      actions={
-                        canAssignRole
-                          ? [
-                              <Popconfirm
-                                key="remove"
-                                title="Remove from role?"
-                                onConfirm={() => handleRemoveMember(entry.user.id)}
-                                okText="Remove"
-                                okButtonProps={{ danger: true }}
-                              >
-                                <Button
-                                  type="text"
-                                  icon={<MinusCircleOutlined />}
-                                  size="small"
-                                  danger
-                                />
-                              </Popconfirm>,
-                            ]
-                          : []
-                      }
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <Avatar size={32} style={{ backgroundColor: "#1677ff", fontSize: 12 }}>
-                            {entry.user.name.charAt(0).toUpperCase()}
-                          </Avatar>
+                <div style={{ border: '1px solid #f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <List
+                    size="large"
+                    dataSource={roleMembers}
+                    renderItem={(entry) => (
+                      <List.Item
+                        style={{ padding: '12px 16px' }}
+                        actions={
+                          canAssignRole
+                            ? [
+                                <Popconfirm
+                                  key="remove"
+                                  title="Remove from role?"
+                                  description={`Are you sure you want to remove ${entry.user.name} from this role?`}
+                                  onConfirm={() => handleRemoveMember(entry.user.id)}
+                                  okText="Remove"
+                                  okButtonProps={{ danger: true }}
+                                >
+                                  <Button
+                                    type="text"
+                                    icon={<MinusCircleOutlined />}
+                                    size="small"
+                                    danger
+                                    className="hover-danger-bg"
+                                  />
+                                </Popconfirm>,
+                              ]
+                            : []
                         }
-                        title={
-                          <Text style={{ fontSize: 13 }}>{entry.user.name}</Text>
-                        }
-                        description={
-                          <Text type="secondary" style={{ fontSize: 11 }}>
-                            {entry.user.workEmail}
-                          </Text>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
+                      >
+                        <List.Item.Meta
+                          avatar={
+                            <Avatar 
+                              style={{ backgroundColor: '#1677ff' }} 
+                              icon={<UserOutlined />} 
+                              size={40}
+                            />
+                          }
+                          title={
+                            <Text strong style={{ fontSize: 13 }}>
+                              {entry.user.name}
+                            </Text>
+                          }
+                          description={
+                            <div style={{ marginTop: -2 }}>
+                              <Text type="secondary" style={{ fontSize: 11 }}>
+                                {entry.user.workEmail || 'No email provided'}
+                              </Text>
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                </div>
               )}
             </div>
           )}

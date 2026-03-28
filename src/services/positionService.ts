@@ -34,37 +34,22 @@ const API_URL = "/api/positions";
 
 export const PositionService = {
   getAll: async (): Promise<Position[]> => {
-    const response = await api.get(API_URL);
-    
-    // Handle Axios response where data is in response.data
-    const body = response.data ? response.data : response;
-
-    // Handle { success: true, data: [...] } structure
-    if (body && body.data && Array.isArray(body.data)) {
-        return body.data;
-    }
-    
-    // Handle direct array response
-    if (Array.isArray(body)) {
-        return body;
-    }
-
-    return [];
+    const response = await api.get<any>(API_URL);
+    return response.data?.data || response.data || response;
   },
 
   getById: async (id: string): Promise<Position> => {
-    const response = await api.get(`${API_URL}/${id}`);
-    const body = response.data ? response.data : response;
-    return body.data || body;
+    const response = await api.get<any>(`${API_URL}/${id}`);
+    return response.data?.data || response.data || response;
   },
 
   create: async (data: CreatePositionData): Promise<Position> => {
-    const response = await api.post(API_URL, data);
+    const response = await api.post<any>(API_URL, data);
     return response.data?.data || response.data || response;
   },
 
   update: async (id: string, data: UpdatePositionData): Promise<Position> => {
-    const response = await api.put(`${API_URL}/${id}`, data);
+    const response = await api.put<any>(`${API_URL}/${id}`, data);
     return response.data?.data || response.data || response;
   },
 

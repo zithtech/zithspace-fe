@@ -20,7 +20,7 @@ interface User {
   name: string;
   email: string;
   role: string;
-  position: string;
+  position: { id: string; title: string };
   personalEmail: string;
   workEmail: string;
   phone: string;
@@ -28,7 +28,10 @@ interface User {
   isActive: boolean;
   tenantId: string;
   tenantName?: string;
+  tenantLogo?: string | null;
   department?: string;
+  employeeId?: string | null;
+  employee_code?: string | null;
   /** Effective permissions returned by /api/auth/me — source of truth for UI */
   permissions: string[];
 }
@@ -99,7 +102,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         name: response.user.name,
         email: response.user.workEmail || response.user.personalEmail,
         role: response.user.role,
-        position: response.user.position,
+        position: response.user.position || { id: "", title: "" },
         personalEmail: response.user.personalEmail,
         workEmail: response.user.workEmail,
         phone: response.user.phone,
@@ -107,7 +110,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         isActive: response.user.isActive,
         tenantId: response.user.tenantId,
         tenantName: response.user.tenantName,
+        tenantLogo: (response.user as any).tenantLogo,
         department: (response.user as any).department,
+        employeeId: (response.user as any).employeeId,
+        employee_code: (response.user as any).employee?.employee_code || (response.user as any).employee_code,
         // Login response doesn't include permissions yet — will be loaded by checkAuth
         permissions: (response.user as any).permissions ?? [],
       };
@@ -201,7 +207,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         name: userProfile.name,
         email: userProfile.workEmail || userProfile.personalEmail,
         role: userProfile.role,
-        position: userProfile.position,
+        position: userProfile.position || { id: "", title: "" },
         personalEmail: userProfile.personalEmail,
         workEmail: userProfile.workEmail,
         phone: userProfile.phone,
@@ -209,7 +215,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         isActive: userProfile.isActive,
         tenantId: userProfile.tenantId,
         tenantName: userProfile.tenant?.name,
+        tenantLogo: userProfile.tenant?.logoUrl,
         department: userProfile.department,
+        employeeId: (userProfile as any).employeeId || userProfile.employee?.id,
+        employee_code: userProfile.employee?.employee_code || userProfile.employee_code,
         permissions: (userProfile as any).permissions ?? [],
       };
 

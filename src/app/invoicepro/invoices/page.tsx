@@ -64,8 +64,15 @@ import { useRouter } from "next/navigation";
 import moment from "moment";
 import isBetween from "dayjs/plugin/isBetween";
 
-import { useInvoices, useDeleteInvoice, useDownloadInvoice, useUpdateInvoiceStatus, useSendInvoiceEmail } from "@/hooks/useInvoices";
-import { useInvoicePaymentHistory } from "@/hooks/useInvoices";
+import { 
+  useInvoices, 
+  useDeleteInvoice, 
+  useBulkDeleteInvoice,
+  useDownloadInvoice, 
+  useUpdateInvoiceStatus, 
+  useSendInvoiceEmail,
+  useInvoicePaymentHistory
+} from "@/hooks/useInvoices";
 
 // In your component file (InvoiceproInvoicesPage)
 import type { 
@@ -101,7 +108,7 @@ const getAvailableTransitions = (currentStatus: InvoiceStatus): InvoiceStatus[] 
     'APPROVED': ['SENT', 'CANCELLED'],
     'SENT': ['PAID', 'PARTIALLY_PAID', 'OVERDUE', 'CANCELLED'],
     'OVERDUE': ['PAID', 'PARTIALLY_PAID', 'CANCELLED'],
-    'PARTIALLY_PAID': ['PAID', 'OVERDUE', 'CANCELLED'],
+    'PARTIALLY_PAID': ['PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED'],
     'PAID': [],
     'CANCELLED': []
   };
@@ -170,6 +177,7 @@ export default function InvoiceproInvoicesPage() {
   const { data, isLoading, isError, refetch } = useInvoices();
   const invoices = data?.data ?? [];
   const deleteMutation = useDeleteInvoice();
+  const bulkDeleteMutation = useBulkDeleteInvoice();
 
   const { mutate: downloadInvoice, isPending: isDownloading, variables: downloadingId } = useDownloadInvoice();
   const { mutateAsync: downloadAsync } = useDownloadInvoice();
@@ -289,9 +297,9 @@ const handleQuickSend = (record: any) => {
 
 
 
-  /* ================= DELETE SINGLE ================= */
+  /* ================= TRASH SINGLE ================= */
   const openDeleteModal = (record: any) => {
-    //console.log("Opening delete modal for:", record.invoiceNumber);
+    //console.log("Opening trash modal for:", record.invoiceNumber);
     setInvoiceToDelete(record);
     setDeleteModalVisible(true);
   };
@@ -303,27 +311,27 @@ const handleQuickSend = (record: any) => {
       setDeletingId(invoiceToDelete.id);
       await deleteMutation.mutateAsync(invoiceToDelete.id, {
         onSuccess: () => {
-          messageApi.success(`Invoice ${invoiceToDelete.invoiceNumber} deleted successfully`);
+          messageApi.success(`Invoice ${invoiceToDelete.invoiceNumber} moved to trash successfully`);
           refetch(); // Refresh the invoice list
           setDeleteModalVisible(false);
           setInvoiceToDelete(null);
           setDeletingId(null);
         },
         onError: (error: any) => {
-          messageApi.error(error.message || 'Failed to delete invoice');
+          messageApi.error(error.message || 'Failed to move invoice to trash');
           setDeletingId(null);
         }
       });
     } catch (error) {
-      console.error('Delete failed:', error);
+      console.error('Moving to trash failed:', error);
       setDeletingId(null);
     }
   };
 
-  /* ================= BULK DELETE ================= */
+  /* ================= BULK TRASH ================= */
   const openBulkDeleteModal = () => {
     if (selectedInvoices.length === 0) {
-      messageApi.warning('Please select invoices to delete');
+      messageApi.warning('Please select invoices to move to trash');
       return;
     }
     setBulkDeleteModalVisible(true);
@@ -499,54 +507,43 @@ const startBulkDelete = async () => {
   
   setBulkDeleteModalVisible(false);
   
+  const ids = selectedInvoices.map(inv => inv.id);
+  const invoiceNumbers = selectedInvoices.map(inv => inv.invoiceNumber);
+
   setBulkDeleteProgress({
     visible: true,
     total: selectedInvoices.length,
     completed: 0,
     failed: 0,
-    currentInvoice: null,
+    currentInvoice: 'Processing bulk request...',
     isDeleting: true
   });
 
-  const deletedInvoices: string[] = [];
-  const failedInvoices: Array<{ invoiceNumber: string; error: string }> = [];
-  
-  for (let i = 0; i < selectedInvoices.length; i++) {
-    const inv = selectedInvoices[i];
+  try {
+    const result = await bulkDeleteMutation.mutateAsync(ids);
     
     setBulkDeleteProgress(prev => ({
       ...prev,
-      currentInvoice: inv.invoiceNumber
+      completed: selectedInvoices.length,
+      currentInvoice: 'Finished'
     }));
+
+    // Clear selection
+    setSelectedRowKeys([]);
+    setSelectedInvoices([]);
+
+  } catch (error: any) {
+    console.error(`Bulk trash failed:`, error);
     
-    try {
-      // THIS IS THE FIX - Use mutateAsync instead of fetch
-      await deleteMutation.mutateAsync(inv.id);
-      
-      deletedInvoices.push(inv.invoiceNumber);
-      
-      setBulkDeleteProgress(prev => ({
-        ...prev,
-        completed: prev.completed + 1
-      }));
-      
-    } catch (error: any) {
-      console.error(`Failed to delete invoice ${inv.invoiceNumber}:`, error);
-      
-      failedInvoices.push({
-        invoiceNumber: inv.invoiceNumber,
-        error: error?.message || 'Unknown error'
-      });
-      
-      setBulkDeleteProgress(prev => ({
-        ...prev,
-        failed: prev.failed + 1,
-        completed: prev.completed + 1
-      }));
-    }
+    setBulkDeleteProgress(prev => ({
+      ...prev,
+      failed: selectedInvoices.length,
+      isDeleting: false
+    }));
+
+    // In case of error, the hook already shows a message, but we might want to handle it here too
   }
   
-  // Wait a moment before closing progress modal
   setTimeout(() => {
     setBulkDeleteProgress({
       visible: false,
@@ -557,50 +554,9 @@ const startBulkDelete = async () => {
       isDeleting: false
     });
     
-    // Show results
-    if (deletedInvoices.length > 0) {
-      messageApi.success(`Deleted ${deletedInvoices.length} invoice(s) successfully`);
-    }
-    
-    if (failedInvoices.length > 0) {
-      messageApi.warning(`Failed to delete ${failedInvoices.length} invoice(s)`);
-      
-      // Show detailed error modal
-      Modal.warning({
-        title: 'Failed to Delete Some Invoices',
-        content: (
-          <div>
-            <Alert
-              message={`${failedInvoices.length} invoice(s) could not be deleted`}
-              description="The following invoices failed to delete:"
-              type="warning"
-              showIcon
-              className="mb-4"
-            />
-            <div className="max-h-60 overflow-y-auto border rounded p-2">
-              <ul className="list-disc pl-4">
-                {failedInvoices.map((failed, idx) => (
-                  <li key={idx} className="mb-1 text-sm">
-                    <Text strong>{failed.invoiceNumber}</Text>
-                    <Text type="secondary" className="ml-2">
-                      - {failed.error}
-                    </Text>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ),
-        width: 500,
-        okText: 'OK'
-      });
-    }
-    
-    // Clear selection and refresh data
+    // Clear selection
     setSelectedRowKeys([]);
     setSelectedInvoices([]);
-    // No need to call refetch() here because your useDeleteInvoice hook already invalidates queries
-    
   }, 1000);
 };
 
@@ -670,11 +626,11 @@ const startBulkDelete = async () => {
     canDeleteInvoice && {
       key: "delete",
       icon: <DeleteOutlined />,
-      label: deletingId === record.id && deleteMutation.isPending ? "Deleting..." : "Delete",
+      label: deletingId === record.id && deleteMutation.isPending ? "Moving to Trash..." : "Move to Trash",
       danger: true,
       disabled: deletingId === record.id && deleteMutation.isPending,
       onClick: () => {
-        console.log("Delete clicked for:", record.invoiceNumber);
+        console.log("Move to trash clicked for:", record.invoiceNumber);
         openDeleteModal(record);
       },
     },
@@ -845,11 +801,11 @@ const startBulkDelete = async () => {
     },
     {
       title: "AMOUNT",
-      dataIndex: "total",
+      dataIndex: "grandTotal",
       width: 120,
-      render: (v) => (
+      render: (v, record) => (
         <div className="font-semibold text-gray-900">
-          ${Number(v).toFixed(2)}
+          ${Number(v || record.total || 0).toFixed(2)}
         </div>
       ),
     },
@@ -1080,7 +1036,7 @@ const startBulkDelete = async () => {
 
 
 
-  if (authLoading) return <MainLayout><Spin tip="Loading..." /></MainLayout>;
+  if (authLoading) return <MainLayout><div style={{ padding: 100, textAlign: 'center' }}><Spin tip="Loading"><div style={{ padding: 20 }} /></Spin></div></MainLayout>;
   if (!canReadInvoice) return null;
 
   return (
@@ -1105,7 +1061,7 @@ const startBulkDelete = async () => {
 
               <div className="flex flex-wrap gap-2  mt-2">
                 <Tag color="pink">
-                  Total Invoice: <strong>{totalCount}</strong>
+                  Total Amount: <strong>${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toFixed(2)}</strong>
                 </Tag>
 
                 <Tag color="green" icon={<CheckCircleOutlined />}>
@@ -1185,7 +1141,7 @@ const startBulkDelete = async () => {
                           onClick={openBulkDeleteModal}
                           loading={bulkDeleteProgress.isDeleting}
                         >
-                          Delete Selected
+                          Move to Trash
                         </Button>
                       )}
                     </Space>
@@ -1250,31 +1206,30 @@ const startBulkDelete = async () => {
         </Card>
       </div>
 
-      {/* Bulk Delete Confirmation Modal */}
+      {/* Bulk Trash Confirmation Modal */}
       <Modal
-        title="Delete Selected Invoices"
+        title="Move Selected Invoices to Trash"
         open={bulkDeleteModalVisible}
         onCancel={closeBulkDeleteModal}
         onOk={startBulkDelete}
-        okText={`Delete ${selectedInvoices.length} Invoices`}
+        okText={`Move to Trash (${selectedInvoices.length})`}
         okType="danger"
         cancelText="Cancel"
         width={500}
       >
         <div className="py-4">
           <div className="flex items-center mb-3">
-            <ExclamationCircleOutlined className="text-xl text-red-500 mr-2" />
-            <Text strong>Are you sure you want to delete {selectedInvoices.length} selected invoice(s)?</Text>
+            <ExclamationCircleOutlined className="text-xl text-yellow-500 mr-2" />
+            <Text strong>Are you sure you want to move {selectedInvoices.length} selected invoice(s) to trash?</Text>
           </div>
           
           <div className="mb-4 max-h-60 overflow-y-auto border rounded p-2">
-            <Text type="secondary" className="block mb-2">Selected Invoices:</Text>
             <ul className="list-disc pl-4">
               {selectedInvoices.slice(0, 10).map((inv, index) => (
                 <li key={inv.id} className="text-sm mb-1">
                   <Text strong>{inv.invoiceNumber}</Text>
                   <Text type="secondary" className="ml-2">
-                    - ${Number(inv.total || 0).toFixed(2)}
+                    - ${Number(inv.grandTotal || inv.total || 0).toFixed(2)}
                     {inv.customerSnapshot && ` - ${(inv.customerSnapshot as any)?.companyName}`}
                   </Text>
                 </li>
@@ -1288,17 +1243,17 @@ const startBulkDelete = async () => {
           </div>
           
           <Alert
-            message="Warning: This action cannot be undone"
-            description="All selected invoices and their associated data will be permanently deleted."
+            message="Note: Invoices will be moved to Trash"
+            description="You can restore these invoices later from the Trash folder if needed."
             type="warning"
             showIcon
           />
         </div>
       </Modal>
 
-      {/* Bulk Delete Progress Modal */}
+      {/* Bulk Trash Progress Modal */}
       <Modal
-        title="Deleting Invoices..."
+        title="Moving Invoices to Trash..."
         open={bulkDeleteProgress.visible}
         closable={false}
         maskClosable={false}
@@ -1328,7 +1283,7 @@ const startBulkDelete = async () => {
             <div className="text-center mb-4">
               <LoadingOutlined className="text-blue-500 mr-2" spin={bulkDeleteProgress.isDeleting} />
               <Text type="secondary">
-                Deleting invoice: <Text strong>{bulkDeleteProgress.currentInvoice}</Text>
+                Moving invoice: <Text strong>{bulkDeleteProgress.currentInvoice}</Text>
               </Text>
             </div>
           )}
@@ -1336,7 +1291,7 @@ const startBulkDelete = async () => {
           {!bulkDeleteProgress.isDeleting && (
             <div className="text-center">
               <Text type="success" strong>
-                {bulkDeleteProgress.failed === 0 ? 'All invoices deleted successfully!' : 'Deletion completed!'}
+                {bulkDeleteProgress.failed === 0 ? 'All invoices moved to trash successfully!' : 'Process completed!'}
               </Text>
               <div className="mt-3">
                 <Button type="primary" onClick={cancelBulkDelete} block>
@@ -1349,16 +1304,16 @@ const startBulkDelete = async () => {
           {bulkDeleteProgress.isDeleting && (
             <div className="text-center">
               <Text type="secondary" className="text-sm">
-                Please wait while invoices are being deleted...
+                Please wait while invoices are being moved to trash...
               </Text>
             </div>
           )}
         </div>
       </Modal>
 
-      {/* Single Delete Confirmation Modal */}
+      {/* Single Trash Confirmation Modal */}
       <Modal
-        title="Delete Invoice"
+        title="Move to Trash"
         open={deleteModalVisible}
         onCancel={() => {
           setDeleteModalVisible(false);
@@ -1366,7 +1321,7 @@ const startBulkDelete = async () => {
         }}
         onOk={handleDeleteInvoice}
         confirmLoading={deletingId === invoiceToDelete?.id}
-        okText="Delete"
+        okText="Move to Trash"
         okType="danger"
         cancelText="Cancel"
         width={500}
@@ -1374,8 +1329,8 @@ const startBulkDelete = async () => {
         {invoiceToDelete && (
           <div className="py-4">
             <div className="flex items-center mb-3">
-              <ExclamationCircleOutlined className="text-xl text-red-500 mr-2" />
-              <Text strong>Are you sure you want to delete this invoice?</Text>
+              <ExclamationCircleOutlined className="text-xl text-yellow-500 mr-2" />
+              <Text strong>Are you sure you want to move this invoice to trash?</Text>
             </div>
             <div className="mb-4 p-3 bg-gray-50 rounded">
               <div className="grid grid-cols-2 gap-3">
@@ -1385,7 +1340,7 @@ const startBulkDelete = async () => {
                 </div>
                 <div>
                   <Text type="secondary" className="block text-sm">Amount</Text>
-                  <Text strong className="text-lg">${Number(invoiceToDelete.total || 0).toFixed(2)}</Text>
+                  <Text strong className="text-lg">${Number(invoiceToDelete.grandTotal || invoiceToDelete.total || 0).toFixed(2)}</Text>
                 </div>
                 <div className="col-span-2">
                   <Text type="secondary" className="block text-sm">Customer</Text>
@@ -1396,8 +1351,8 @@ const startBulkDelete = async () => {
               </div>
             </div>
             <Alert
-              message="Warning: This action cannot be undone"
-              description="All invoice data, including PDF files and transaction history, will be permanently deleted."
+              message="Note: Invoice will be moved to Trash"
+              description="You can restore this invoice later from the Trash folder if needed."
               type="warning"
               showIcon
             />
@@ -1429,7 +1384,7 @@ const startBulkDelete = async () => {
             <div>
               <div className="text-sm text-gray-600">Total Amount</div>
               <div className="text-2xl font-bold">
-                ${Number(statusInvoice?.total || 0).toFixed(2)}
+                ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toFixed(2)}
               </div>
             </div>
             <div>
@@ -1576,6 +1531,7 @@ const startBulkDelete = async () => {
             style={{ width: '100%' }}
             placeholder="Select new status"
             size="large"
+            value={selectedNewStatus}
             onChange={(value) => setSelectedNewStatus(value)}
             options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
               label: (
@@ -1675,7 +1631,7 @@ const startBulkDelete = async () => {
                 Total
               </span>
               <div className="font-semibold text-gray-900">
-                ${Number(paymentHistory?.summary?.totalAmount || transactionInvoice?.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                ${Number(paymentHistory?.summary?.totalAmount || transactionInvoice?.grandTotal || transactionInvoice?.total || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </div>
             </div>
             

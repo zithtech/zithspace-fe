@@ -5,22 +5,86 @@ import MainLayout from "@/components/layout/MainLayout";
 import { Typography, Button, Space } from "antd";
 import { TeamTimeTracker } from "@/components/time-tracking/TeamTimeTracker";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
+import { ManageTimeModal } from "@/components/time-tracking/ManageTimeModal";
 
-const { Title } = Typography;
+import { ClockCircleOutlined, TeamOutlined, PlusOutlined } from "@ant-design/icons";
+const { Title, Text } = Typography;
+
+import dayjs from "dayjs";
 
 export default function TeamTimePage() {
   const { setPopoverOpen } = useTimeTrackerStore();
+  const [isManageModalOpen, setIsManageModalOpen] = React.useState(false);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
+  const handleSuccess = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
     <MainLayout>
-      <div style={{ padding: "24px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <Title level={2} style={{ margin: 0 }}>Team View</Title>
-          <Space>
-            <Button type="primary" onClick={() => setPopoverOpen(true)}>Add Time</Button>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "#ffffff", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
+        {/* Header Section */}
+        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: 'wrap', gap: 20 }}>
+          <div style={{ flex: 1 }}>
+            <Space size={12} align="center">
+              <div style={{ 
+                background: "#eff6ff", 
+                padding: 10, 
+                borderRadius: 12, 
+                color: "#2563eb",
+                display: "flex"
+              }}>
+                <TeamOutlined style={{ fontSize: 24 }} />
+              </div>
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Team View</Title>
+                <Text style={{ color: "#64748b", fontSize: 15 }}>Monitor team productivity, work sessions, and daily capacity in real-time.</Text>
+              </div>
+            </Space>
+          </div>
+          
+          <Space size={12} style={{ alignItems: 'center' }}>
+            <Button 
+              size="large" 
+              onClick={() => setIsManageModalOpen(true)} 
+              style={{ height: 44, borderRadius: 10, fontWeight: 500, padding: '0 20px' }}
+            >
+              Manage Time
+            </Button>
+            <Button 
+              size="large" 
+              type="primary" 
+              onClick={() => setPopoverOpen(true)} 
+              style={{ 
+                height: 44, 
+                borderRadius: 10, 
+                fontWeight: 600, 
+                padding: '0 24px', 
+                background: '#1677ff', 
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              icon={<PlusOutlined />}
+            >
+              Add Time
+            </Button>
           </Space>
         </div>
-        <TeamTimeTracker />
+
+        <TeamTimeTracker refreshKey={refreshKey} />
+        <ManageTimeModal
+          open={isManageModalOpen}
+          onClose={() => setIsManageModalOpen(false)}
+          onSuccess={handleSuccess}
+          selectedDate={dayjs()}
+        />
       </div>
     </MainLayout>
   );

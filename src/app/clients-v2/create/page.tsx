@@ -28,15 +28,7 @@ import MainLayout from "@/components/layout/MainLayout";
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-export default function CreateClientV2Page() {
-  return (
-    <Suspense fallback={<Spin />}>
-      <CreateClientV2PageInner />
-    </Suspense>
-  );
-}
-
-function CreateClientV2PageInner() {
+function CreateClientV2Content() {
   const [form] = Form.useForm();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -83,8 +75,7 @@ function CreateClientV2PageInner() {
     } catch (err) {
       console.error(err);
       message.error(
-        `An error occurred while ${
-          isEditMode ? "updating" : "creating"
+        `An error occurred while ${isEditMode ? "updating" : "creating"
         } the client`,
       );
     } finally {
@@ -147,8 +138,12 @@ function CreateClientV2PageInner() {
             paddingTop: 20,
             marginTop: -20,
             zIndex: 1000,
-            backgroundColor: "white",
+            backgroundColor: "var(--premium-white)",
             gap: 16,
+            boxShadow: "none",
+            margin: "0 -24px 24px -24px",
+            padding: "20px 24px",
+            borderBottom: "1px solid #e8e8e8",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -205,10 +200,10 @@ function CreateClientV2PageInner() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>
@@ -260,12 +255,25 @@ function CreateClientV2PageInner() {
                       name="yearOfIncorporation"
                       label="Year of Incorporation"
                     >
-                      <Input placeholder="YYYY" />
+                      <Input placeholder="YYYY" type="number" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item name="country" label="Country">
-                      <Input placeholder="Country" />
+                      <Input
+                        placeholder="Country"
+                        onKeyDown={(e) => {
+                          if (
+                            !/^[A-Za-z\s-]$/.test(e.key) &&
+                            e.key !== "Backspace" &&
+                            e.key !== "ArrowLeft" &&
+                            e.key !== "ArrowRight" &&
+                            e.key !== "Tab"
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -286,10 +294,10 @@ function CreateClientV2PageInner() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>
@@ -328,7 +336,7 @@ function CreateClientV2PageInner() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="contractValue" label="Contract Value">
-                      <InputNumber style={{ width: "100%" }} />
+                      <InputNumber type="number" style={{ width: "100%" }} />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -343,7 +351,7 @@ function CreateClientV2PageInner() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="creditLimit" label="Credit Limit">
-                      <InputNumber style={{ width: "100%" }} />
+                      <InputNumber type="number" style={{ width: "100%" }} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -361,10 +369,10 @@ function CreateClientV2PageInner() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>
@@ -417,21 +425,31 @@ function CreateClientV2PageInner() {
                     </Text> */}
                   </div>
                 }
+                className="premium-card"
                 bordered={false}
                 style={{
                   height: "100%",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.09)",
                 }}
               >
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item name="bankName" label="Bank Name">
-                      <Input />
+                      <Input onKeyDown={(e) => {
+                        if (
+                          !/^[A-Za-z\s-]$/.test(e.key) &&
+                          e.key !== "Backspace" &&
+                          e.key !== "ArrowLeft" &&
+                          e.key !== "ArrowRight" &&
+                          e.key !== "Tab"
+                        ) {
+                          e.preventDefault();
+                        }
+                      }} />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
                     <Form.Item name="bankAccountNumber" label="Account Number">
-                      <Input />
+                      <Input type="number" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -483,5 +501,17 @@ function CreateClientV2PageInner() {
         </Form>
       </div>
     </MainLayout>
+  );
+}
+
+export default function CreateClientV2Page() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} tip="Loading..." />
+      </div>
+    }>
+      <CreateClientV2Content />
+    </Suspense>
   );
 }

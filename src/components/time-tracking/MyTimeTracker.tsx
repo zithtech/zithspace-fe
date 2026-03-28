@@ -8,19 +8,25 @@ import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { PlayCircleOutlined as RunningIcon } from "@ant-design/icons";
+import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 
 const { Text } = Typography;
 
-export function MyTimeTracker() {
+export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { selectedDate?: dayjs.Dayjs, refreshKey?: number, onTotalChange?: (total: number) => void }) {
   const { notification } = App.useApp();
   const [entries, setEntries] = useState<TimeTrackingEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const { stopTimer, activeEntry } = useTimeTrackerStore();
+  const { stopAllTimers, pauseAllTimers, resumeAllTimers, activeEntry, refreshTrigger } = useTimeTrackerStore();
 
   const fetchEntries = async () => {
     try {
       setLoading(true);
-      const data = await TimeTrackingService.getEntries();
+      const filters: any = {};
+      if (selectedDate) {
+        filters.startDate = selectedDate.startOf('day').toISOString();
+        filters.endDate = selectedDate.endOf('day').toISOString();
+      }
+      const data = await TimeTrackingService.getEntries(filters);
       setEntries(data || []);
     } catch (error: any) {
       notification.error({ message: "Error fetching time entries", description: error.message });
@@ -31,7 +37,17 @@ export function MyTimeTracker() {
 
   useEffect(() => {
     fetchEntries();
-  }, [activeEntry?.id, activeEntry?.status]);
+  }, [refreshTrigger, selectedDate?.toISOString(), refreshKey]);
+
+  // Total time calculation (Completed Only)
+  useEffect(() => {
+    const calculateTotal = () => {
+      const totalSeconds = calculateNetDuration(entries);
+      onTotalChange?.(totalSeconds);
+    };
+
+    calculateTotal();
+  }, [entries, onTotalChange]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -43,14 +59,36 @@ export function MyTimeTracker() {
     }
   };
 
-  const handleStopTimer = async (e?: React.MouseEvent) => {
+  const handleStopAll = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     try {
-      await stopTimer();
-      notification.success({ message: "Timer stopped successfully" });
+      await stopAllTimers();
+      notification.success({ message: "All timers stopped successfully" });
       fetchEntries();
     } catch (error: any) {
-      notification.error({ message: "Error stopping timer", description: error.message });
+      notification.error({ message: "Error stopping timers", description: error.message });
+    }
+  };
+
+  const handlePauseAll = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      await pauseAllTimers();
+      notification.success({ message: "All timers paused" });
+      fetchEntries();
+    } catch (error: any) {
+      notification.error({ message: "Error pausing timers", description: error.message });
+    }
+  };
+
+  const handleResumeAll = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      await resumeAllTimers();
+      notification.success({ message: "All timers resumed" });
+      fetchEntries();
+    } catch (error: any) {
+      notification.error({ message: "Error resuming timers", description: error.message });
     }
   };
 
@@ -72,7 +110,11 @@ export function MyTimeTracker() {
       title: "Project",
       dataIndex: ["project", "name"],
       key: "project",
-      render: (text: string) => text || <Text type="secondary">No project</Text>,
+      render: (text: string, record: TimeTrackingEntry) => {
+        if (text) return text;
+        if (record.projectId) return `Project ${record.projectId}`;
+        return <Text type="secondary">No project</Text>;
+      },
     },
     {
       title: "Task",
@@ -86,7 +128,7 @@ export function MyTimeTracker() {
                 {record.ticket.title}
               </Link>
             ) : (
-              text || <Text type="secondary">No task</Text>
+              text || (record.ticketId ? `Ticket ${record.ticketId}` : <Text type="secondary">No task</Text>)
             )}
           </div>
           {record.description && record.ticket?.title && (
@@ -103,23 +145,43 @@ export function MyTimeTracker() {
         if (record.status === "RUNNING") {
           return (
             <Popconfirm
-              title="Stop Active Timer"
-              description="Are you sure you want to stop the running timer?"
-              onConfirm={handleStopTimer}
+              title="Stop All Active Timers"
+              description="Are you sure you want to stop all running timers?"
+              onConfirm={(e) => handleStopAll(e as any)}
               onCancel={(e) => e?.stopPropagation()}
             >
-              <Tag 
-                color="processing" 
-                icon={<RunningIcon />} 
-                style={{ cursor: "pointer" }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                Running (Click to Stop)
-              </Tag>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="pulse-indicator" />
+                <Tag
+                  color="processing"
+                  icon={<RunningIcon />}
+                  style={{
+                    cursor: "pointer",
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    padding: '2px 10px',
+                    border: '1px solid #bae6fd'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Running
+                </Tag>
+              </div>
             </Popconfirm>
           );
         }
-        if (record.status === "PAUSED") return <Tag color="warning" icon={<PauseCircleOutlined />}>Paused ({formatDuration(val)})</Tag>;
+        if (record.status === "PAUSED") {
+          return (
+            <Tag
+              color="warning"
+              icon={<PauseCircleOutlined />}
+              style={{ cursor: "pointer" }}
+              onClick={(e) => handleResumeAll(e)}
+            >
+              Paused ({formatDuration(val)})
+            </Tag>
+          );
+        }
         return <span style={{ fontWeight: 600 }}>{formatDuration(val)}</span>;
       },
     },
@@ -129,6 +191,22 @@ export function MyTimeTracker() {
       align: "right" as const,
       render: (_: any, record: TimeTrackingEntry) => (
         <Space>
+          {record.status === "RUNNING" && (
+            <Button
+              type="text"
+              icon={<PauseCircleOutlined />}
+              onClick={(e) => handlePauseAll(e)}
+              title="Pause All Timers"
+            />
+          )}
+          {record.status === "PAUSED" && (
+            <Button
+              type="text"
+              icon={<PlayCircleOutlined style={{ color: '#1677ff' }} />}
+              onClick={(e) => handleResumeAll(e)}
+              title="Resume All Timers"
+            />
+          )}
           <Popconfirm title="Delete this entry?" onConfirm={() => handleDelete(record.id)}>
             <Button type="text" danger icon={<DeleteOutlined />} disabled={record.status === 'RUNNING'} />
           </Popconfirm>
@@ -138,20 +216,30 @@ export function MyTimeTracker() {
   ];
 
   return (
-    <Card style={{ background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)" }}>
-      <Table 
-        columns={columns} 
-        dataSource={entries} 
-        rowKey="id" 
+    <Card style={{
+      height: '100%',
+      background: "#fff",
+      borderRadius: 16,
+      border: "1px solid #f1f5f9",
+      overflow: "hidden"
+    }}
+      styles={{ body: { padding: 0 } }}
+    >
+      <Table
+        columns={columns}
+        dataSource={entries}
+        rowKey="id"
         loading={loading}
         pagination={{ pageSize: 20 }}
+        rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
         expandable={{
           expandedRowRender: (record) => {
+            // ... (rest of the expandable code remains exactly same as user's version)
             if (!record.logs || record.logs.length === 0) {
               return <Text type="secondary" style={{ padding: '8px 16px', display: 'block' }}>No activity logs recorded.</Text>;
             }
             const sortedLogs = [...record.logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-            
+
             const activityChunks = [];
             let currentChunk: any = null;
 
@@ -169,14 +257,15 @@ export function MyTimeTracker() {
                 const start = new Date(currentChunk.startTime).getTime();
                 const end = new Date(currentChunk.endTime).getTime();
                 currentChunk.duration = Math.floor((end - start) / 1000);
-                
+
                 activityChunks.push(currentChunk);
                 currentChunk = null;
               }
             }
             if (currentChunk) {
-               activityChunks.push(currentChunk);
+              activityChunks.push(currentChunk);
             }
+
             activityChunks.reverse();
 
             const logColumns = [
@@ -185,21 +274,21 @@ export function MyTimeTracker() {
                 dataIndex: "action",
                 key: "action",
                 render: (text: string) => {
-                   let color = text === 'Initial Session' ? 'blue' : 'cyan';
-                   return <Tag color={color}>{text}</Tag>;
+                  let color = text === 'Initial Session' ? 'blue' : 'cyan';
+                  return <Tag color={color} style={{ borderRadius: 4 }}>{text}</Tag>;
                 }
               },
               {
                 title: "Start Time",
                 dataIndex: "startTime",
                 key: "startTime",
-                render: (text: string) => <Text type="secondary">{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text>
+                render: (text: string) => <Text type="secondary" style={{ fontSize: 13 }}>{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text>
               },
               {
                 title: "End Time",
                 dataIndex: "endTime",
                 key: "endTime",
-                render: (text: string) => text ? <Text type="secondary">{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text> : <Tag color="processing" icon={<PlayCircleOutlined />}>Running</Tag>
+                render: (text: string) => text ? <Text type="secondary" style={{ fontSize: 13 }}>{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text> : <Tag color="processing" icon={<PlayCircleOutlined />} style={{ borderRadius: 4 }}>Running</Tag>
               },
               {
                 title: "Duration",
@@ -209,20 +298,67 @@ export function MyTimeTracker() {
               }
             ];
             return (
-              <div style={{ padding: '8px 24px', backgroundColor: '#fafafa' }}>
-                <Text strong style={{ marginBottom: 8, display: 'block' }}>Detailed Activity</Text>
-                <Table 
-                  columns={logColumns} 
-                  dataSource={activityChunks} 
-                  rowKey="id" 
-                  pagination={false} 
+              <div style={{ padding: '24px 32px', background: '#ffffff' }}>
+                <Text strong style={{ marginBottom: 16, display: 'block', color: '#64748b', fontSize: 11, letterSpacing: '0.05em' }}>DETAILED ACTIVITY HISTORY</Text>
+                <Table
+                  columns={logColumns}
+                  dataSource={activityChunks}
+                  rowKey="id"
+                  pagination={false}
                   size="small"
+                  style={{ background: 'transparent' }}
                 />
               </div>
             );
           }
         }}
       />
+      <style jsx global>{`
+        .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          border-bottom: 1px solid #e2e8f0 !important;
+          padding: 12px 16px !important;
+        }
+        .ant-table-tbody > tr > td {
+          padding: 14px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+          font-size: 14px !important;
+          color: #1e293b !important;
+        }
+        .ant-table-row:hover > td {
+          background-color: #f8fafc !important;
+        }
+        .running-row {
+          background-color: #f0f7ff !important;
+        }
+        .nested-history-table .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          font-size: 10px !important;
+          padding: 8px 12px !important;
+        }
+        .nested-history-table .ant-table-tbody > tr > td {
+          padding: 10px 12px !important;
+          font-size: 13px !important;
+        }
+        .pulse-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #1677ff;
+          box-shadow: 0 0 0 rgba(22, 119, 255, 0.4);
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7); }
+          70% { box-shadow: 0 0 0 8px rgba(22, 119, 255, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(22, 119, 255, 0); }
+        }
+      `}</style>
     </Card>
   );
 }

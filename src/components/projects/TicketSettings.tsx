@@ -1,130 +1,130 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, Typography, Button, Space, Row, Col, List, Tabs } from 'antd';
-import { ControlOutlined, SettingOutlined, PlusCircleOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { Card, Typography, Button, Space, Row, Col, List, Tabs, Divider, Tag, Badge } from 'antd';
+import { 
+  ControlOutlined, 
+  SettingOutlined, 
+  DatabaseOutlined,
+  ThunderboltOutlined,
+  GithubOutlined,
+  TeamOutlined,
+  BellOutlined,
+  BlockOutlined,
+  RobotOutlined,
+  ExportOutlined,
+  ArrowRightOutlined,
+  HeartOutlined,
+  PlusOutlined,
+  SafetyCertificateOutlined,
+  DeploymentUnitOutlined
+} from '@ant-design/icons';
 import DropdownManager from './DropdownManager';
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function TicketSettings() {
   const [activeTab, setActiveTab] = useState('overview');
+  
   const settingsFeatures = [
-    {
-      title: 'Task Types Management',
-      description: 'Add, edit, and remove custom task types (Bug, Task, Feat, Overwrite)',
-      icon: '🏷️'
-    },
-    {
-      title: 'Task Levels Configuration',
-      description: 'Configure difficulty levels (Easy, Lite, Medium, Hard)',
-      icon: '📊'
-    },
-    {
-      title: 'Priority Settings',
-      description: 'Customize priority levels and their colors (P1, P2, P3)',
-      icon: '🚨'
-    },
-    {
-      title: 'Workflow Customization',
-      description: 'Modify the 11-step workflow process to match your team needs',
-      icon: '⚙️'
-    },
-    {
-      title: 'GitHub Integration',
-      description: 'Connect with GitHub repositories, enable issue sync, and branch linking',
-      icon: '🔗'
-    },
-    {
-      title: 'Team Roles & Permissions',
-      description: 'Configure user roles and access permissions for ticket management',
-      icon: '👥'
-    },
-    {
-      title: 'Notification Settings',
-      description: 'Set up email and in-app notifications for ticket updates',
-      icon: '🔔'
-    },
-    {
-      title: 'Custom Fields',
-      description: 'Add custom fields to tickets for project-specific requirements',
-      icon: '📝'
-    },
-    {
-      title: 'Automation Rules',
-      description: 'Create automated workflows and triggers for ticket management',
-      icon: '🤖'
-    },
-    {
-      title: 'Export & Import',
-      description: 'Bulk import/export tickets and configuration settings',
-      icon: '📤'
-    }
+    { title: 'Lookup Mapping', icon: <DatabaseOutlined />, color: '#1677ff' },
+    { title: 'Priority & Severity', icon: <ThunderboltOutlined />, color: '#faad14' },
+    { title: 'Workflow Engine', icon: <ControlOutlined />, color: '#52c41a' },
+    { title: 'GitHub Sync', icon: <GithubOutlined />, color: '#000' },
+    { title: 'RBAC Controls', icon: <TeamOutlined />, color: '#722ed1' },
+    { title: 'Smart Notifications', icon: <BellOutlined />, color: '#eb2f96' },
+    { title: 'Dynamic Fields', icon: <BlockOutlined />, color: '#13c2c2' },
+    { title: 'AI Automation', icon: <RobotOutlined />, color: '#2f54eb' }
   ];
 
   const renderOverviewTab = () => (
-    <div>
-      <Row gutter={[24, 24]}>
-        <Col xs={24} lg={16}>
-          <Card style={{ textAlign: 'center', padding: 32, marginBottom: 24 }}>
-            <SettingOutlined style={{ fontSize: 64, color: '#1677ff', marginBottom: 24 }} />
-            
-            <Title level={4} style={{ marginBottom: 16 }}>
-              Dynamic Configuration Management
-            </Title>
-            
-            <Paragraph style={{ fontSize: 16, color: '#666', marginBottom: 32 }}>
-              Comprehensive settings panel for customizing your ticket management system to match your team's workflow and requirements.
-            </Paragraph>
-
-            <Space size="large">
-              <Button 
-                type="primary" 
-                size="large"
-                icon={<DatabaseOutlined />}
-                onClick={() => setActiveTab('dropdown-management')}
-              >
-                Manage Dropdown Options
-              </Button>
-            </Space>
-          </Card>
-
-          <Card title="GitHub Integration Preview" style={{ marginBottom: 24 }}>
-            <div style={{ padding: 16, backgroundColor: '#f8f9fa', borderRadius: 8, marginBottom: 16 }}>
-              <Text strong>🔗 Repository Connection</Text>
-              <br />
-              <Text type="secondary">Connect your GitHub repositories to enable:</Text>
-              <ul style={{ marginTop: 8, marginBottom: 0 }}>
-                <li>Automatic issue synchronization</li>
-                <li>Branch linking with tickets</li>
-                <li>Pull request integration</li>
-                <li>Commit tracking</li>
-              </ul>
-            </div>
-            
-            <div style={{ padding: 16, backgroundColor: '#f0f9ff', borderRadius: 8, border: '1px solid #e0f2fe' }}>
-              <Text strong style={{ color: '#0369a1' }}>🚀 Coming Soon</Text>
-              <br />
-              <Text type="secondary">OAuth integration with GitHub API for seamless repository management</Text>
+    <div className="no-scrollbar" style={{ padding: '0', height: '100%', overflow: 'hidden' }}>
+      <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
+        <Col xs={24} lg={16} style={{ display: 'flex' }}>
+          {/* Main Hero Card */}
+          <Card 
+            bordered={false} 
+            style={{ 
+              borderRadius: 20, 
+              background: 'linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%)',
+              boxShadow: '0 10px 30px rgba(22, 119, 255, 0.05)',
+              overflow: 'hidden',
+              flex: 1
+            }}
+            bodyStyle={{ padding: '24px', height: '100%', display: 'flex', alignItems: 'center' }}
+          >
+            <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>
+              <Space align="start" size={24}>
+                <div style={{ 
+                  width: 64, 
+                  height: 64, 
+                  background: '#1677ff', 
+                  borderRadius: 18, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 20px rgba(22, 119, 255, 0.25)'
+                }}>
+                  <SettingOutlined style={{ fontSize: 32, color: 'white' }} />
+                </div>
+                <div>
+                  <Title level={2} style={{ marginBottom: 8, fontWeight: 800 }}>
+                    System Orchestration
+                  </Title>
+                  <Paragraph style={{ fontSize: 15, color: '#4b5563', maxWidth: 550, marginBottom: 24 }}>
+                    Master your workspace architecture. Configure global taxonomies, optimize workflow lifecycles, and synchronize with external dev ecosystems from a single pane of glass.
+                  </Paragraph>
+                  <Space size="middle">
+                    <Button 
+                      type="primary" 
+                      onClick={() => setActiveTab('dropdown-management')}
+                      style={{ borderRadius: 10, height: 40, padding: '0 20px', fontWeight: 600 }}
+                    >
+                      Lookup Management
+                    </Button>
+                    <Button 
+                      icon={<GithubOutlined />}
+                      style={{ borderRadius: 10, height: 40, padding: '0 20px', fontWeight: 600 }}
+                    >
+                      Connect Repository
+                    </Button>
+                  </Space>
+                </div>
+              </Space>
             </div>
           </Card>
         </Col>
 
-        <Col xs={24} lg={8}>
-          <Card title="Configuration Features" style={{ height: 'fit-content' }}>
+        <Col xs={24} lg={8} style={{ display: 'flex' }}>
+          <Card 
+            title={<Text strong style={{ fontSize: 16 }}>Core Infrastructure</Text>} 
+            bordered={false} 
+            style={{ borderRadius: 20, flex: 1, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}
+            bodyStyle={{ padding: '0 20px' }}
+          >
             <List
               dataSource={settingsFeatures}
               renderItem={(item) => (
-                <List.Item style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <List.Item style={{ padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
                   <List.Item.Meta
-                    avatar={<span style={{ fontSize: 20 }}>{item.icon}</span>}
-                    title={<Text strong style={{ fontSize: 14 }}>{item.title}</Text>}
-                    description={
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {item.description}
-                      </Text>
+                    avatar={
+                      <div style={{ 
+                        width: 30, 
+                        height: 30, 
+                        background: `${item.color}12`, 
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: item.color,
+                        fontSize: 14
+                      }}>
+                        {item.icon}
+                      </div>
                     }
+                    title={<Text strong style={{ fontSize: 13 }}>{item.title}</Text>}
                   />
+                  <Tag color="success" style={{ borderRadius: 10, fontSize: 10, margin: 0 }}>Active</Tag>
                 </List.Item>
               )}
             />
@@ -132,76 +132,171 @@ export default function TicketSettings() {
         </Col>
       </Row>
 
-      <Card style={{ marginTop: 24 }}>
-        <div style={{ textAlign: 'center', padding: 16 }}>
-          <Title level={4} style={{ marginBottom: 8 }}>
-            Advanced Configuration Panel
-          </Title>
-          <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-            The settings panel will provide intuitive interfaces for:
-          </Paragraph>
-          
-          <Row gutter={16} style={{ textAlign: 'left' }}>
-            <Col xs={24} md={12}>
-              <ul style={{ fontSize: 14, lineHeight: 1.8 }}>
-                <li><strong>Drag & Drop:</strong> Reorder workflow steps</li>
-                <li><strong>Color Coding:</strong> Customize status and priority colors</li>
-                <li><strong>Field Validation:</strong> Set required fields and formats</li>
-                <li><strong>Template Management:</strong> Create ticket templates</li>
-              </ul>
-            </Col>
-            <Col xs={24} md={12}>
-              <ul style={{ fontSize: 14, lineHeight: 1.8 }}>
-                <li><strong>Time Tracking:</strong> Configure estimation methods</li>
-                <li><strong>Approval Workflows:</strong> Set multi-level approvals</li>
-                <li><strong>Integration APIs:</strong> Connect external tools</li>
-                <li><strong>Backup & Restore:</strong> Configuration management</li>
-              </ul>
-            </Col>
-          </Row>
+      <Row gutter={[20, 20]}>
+        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+            <Space direction="vertical" size={16}>
+              <div style={{ width: 44, height: 44, backgroundColor: '#f6ffed', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <HeartOutlined style={{ color: '#52c41a', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0 }}>System Health</Title>
+                <Text type="secondary" style={{ fontSize: 12 }}>Configurations are optimized and synchronized.</Text>
+              </div>
+              <Divider style={{ margin: 0 }} />
+              <Space>
+                <Badge status="processing" color="#52c41a" />
+                <Text strong style={{ fontSize: 12 }}>All Services Online</Text>
+              </Space>
+            </Space>
+          </Card>
+        </Col>
+        
+        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+            <Space direction="vertical" size={16}>
+              <div style={{ width: 44, height: 44, backgroundColor: '#e6f4ff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <SafetyCertificateOutlined style={{ color: '#1677ff', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0 }}>RBAC Status</Title>
+                <Text type="secondary" style={{ fontSize: 12 }}>Role-based access controls are strictly enforced.</Text>
+              </div>
+              <Divider style={{ margin: 0 }} />
+              <Button size="small" type="link" style={{ padding: 0 }}>Manage Permissions</Button>
+            </Space>
+          </Card>
+        </Col>
 
-          <div style={{ marginTop: 24, padding: 16, backgroundColor: '#f8f9fa', borderRadius: 8 }}>
-            <Paragraph type="secondary" style={{ margin: 0, fontSize: 12 }}>
-              <strong>Development Status:</strong> Settings functionality will be implemented in the next development phase with full administrative controls and real-time configuration updates.
-            </Paragraph>
-          </div>
-        </div>
-      </Card>
+        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+            <Space direction="vertical" size={16}>
+              <div style={{ width: 44, height: 44, backgroundColor: '#fff7e6', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <DeploymentUnitOutlined style={{ color: '#faad14', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0 }}>Workflow Stage</Title>
+                <Text type="secondary" style={{ fontSize: 12 }}>11-step project lifecycle defined for all tickets.</Text>
+              </div>
+              <Divider style={{ margin: 0 }} />
+              <Tag color="orange" style={{ borderRadius: 10 }}>Standard Default</Tag>
+            </Space>
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+            <Space direction="vertical" size={16}>
+              <div style={{ width: 44, height: 44, backgroundColor: '#fff1f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ExportOutlined style={{ color: '#ff4d4f', fontSize: 20 }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0 }}>Data IO</Title>
+                <Text type="secondary" style={{ fontSize: 12 }}>Bulk sync and mapping export available.</Text>
+              </div>
+              <Divider style={{ margin: 0 }} />
+              <Space>
+                <Button size="small" icon={<PlusOutlined style={{ fontSize: 10 }} />}>Import</Button>
+                <Button size="small">Export</Button>
+              </Space>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 
   return (
-    <div>
-      <Title level={3} style={{ marginBottom: 24 }}>
-        Ticket Settings
-      </Title>
+    <div className="no-scrollbar" style={{ 
+      margin: '0', 
+      height: 'calc(100vh - 104px)',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#ffffff'
+    }}>
+      {/* Sticky Header and Tabs Container */}
+      <div style={{ 
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 100, 
+        paddingTop: 0,
+        paddingBottom: 0,
+        margin: '0 -20px 20px -20px',
+        paddingLeft: 20,
+        paddingRight: 20,
+        backdropFilter: 'blur(12px)',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        borderBottom: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        <div style={{ padding: '12px 0' }}>
+          <Space align="center" size={12}>
+            <ControlOutlined style={{ fontSize: 20, color: '#1677ff' }} />
+            <Title level={3} style={{ margin: 0, fontWeight: 700 }}>Ticket Settings</Title>
+          </Space>
+        </div>
 
-      <Tabs 
-        activeKey={activeTab} 
-        onChange={setActiveTab}
-        items={[
-          {
-            key: 'overview',
-            label: (
-              <span>
-                <SettingOutlined />
-                Overview
-              </span>
-            ),
-            children: renderOverviewTab()
-          },
-          {
-            key: 'dropdown-management',
-            label: (
-              <span>
-                <DatabaseOutlined />
-                Dropdown Management
-              </span>
-            ),
-            children: <DropdownManager />
-          }
-        ]}
-      />
+        <Tabs 
+          activeKey={activeTab} 
+          onChange={setActiveTab}
+          type="card"
+          className="settings-tabs"
+          style={{ marginBottom: 0 }}
+          items={[
+            {
+              key: 'overview',
+              label: (
+                <Space>
+                  <SettingOutlined />
+                  Overview
+                </Space>
+              ),
+            },
+            {
+              key: 'dropdown-management',
+              label: (
+                <Space>
+                  <DatabaseOutlined />
+                  Lookup Values
+                </Space>
+              ),
+            }
+          ]}
+        />
+      </div>
+
+      {/* Content Area */}
+      <div className="no-scrollbar" style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {activeTab === 'overview' ? renderOverviewTab() : <DropdownManager />}
+      </div>
+
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .settings-tabs .ant-tabs-nav {
+          margin-bottom: 0 !important;
+        }
+        .settings-tabs .ant-tabs-nav-list {
+          gap: 8px;
+        }
+        .settings-tabs .ant-tabs-tab {
+          border-radius: 12px 12px 0 0 !important;
+          background: transparent !important;
+          border: none !important;
+          transition: all 0.3s;
+        }
+        .settings-tabs .ant-tabs-tab-active {
+          background: #fff !important;
+          box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+        }
+        .settings-tabs .ant-tabs-tab:hover {
+          color: #1677ff !important;
+        }
+      `}</style>
     </div>
   );
 }

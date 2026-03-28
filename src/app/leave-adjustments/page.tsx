@@ -28,20 +28,24 @@ import {
   Tabs,
   Popconfirm,
   Switch,
+  Checkbox,
+  Drawer,
 } from "antd";
-import {
-  ClockCircleOutlined,
-  ScheduleOutlined,
-  EditOutlined,
-  UserOutlined,
-  DeleteOutlined,
-  SettingOutlined,
-  ApartmentOutlined,
-  AppstoreOutlined,
-  PlusOutlined,
-  CheckCircleOutlined
-} from "@ant-design/icons";
-import { Settings2 } from "lucide-react";
+import { 
+  Settings2, 
+  Plus, 
+  Search, 
+  User, 
+  Trash2, 
+  Maximize2, 
+  Edit2, 
+  History, 
+  ArrowUpCircle, 
+  ArrowDownCircle,
+  Calendar,
+  AlertCircle,
+  Clock
+} from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
 import { MembersService } from "@/services/membersService";
@@ -53,37 +57,31 @@ import {
   LeaveAdjustmentViewData,
 } from "@/hooks/useLeaveAdjustments";
 import { LeaveAdjustmentPayload } from "@/services/leaveAdjustmentService";
-import { useAuth } from "@/context/AuthContext";
 import {
   LeaveBalanceService,
   LeaveBalance,
 } from "@/services/leaveBalanceService";
-const { Text } = Typography;
-const { Title } = Typography;
+const { Text, Title } = Typography;
+
+const StatCard = ({ label, value, icon: Icon, color }: any) => (
+  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+      </div>
+      <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}><Icon size={24} /></div>
+    </div>
+  </Card>
+);
 
 export default function LeaveAdjustmentPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const { isLoading: authLoading } = useAuth();
+  const { isLoading: authLoading, user } = useAuth();
   const { canManageLeaves } = usePermission();
   const [form] = Form.useForm();
 
-  // Protect route - requires leave.manage permission
-  useEffect(() => {
-    if (!authLoading && !canManageLeaves) {
-      router.push('/dashboard');
-    }
-  }, [authLoading, canManageLeaves, router]);
-
-  // Show loading while auth is being checked
-  if (authLoading) {
-    return null;
-  }
-
-  // Don't render if no manage permission
-  if (!canManageLeaves) {
-    return null;
-  }
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [api, contextHolder] = notification.useNotification();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -101,8 +99,7 @@ export default function LeaveAdjustmentPage() {
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
-    const { user } = useAuth();
-   const hasApprovalRights =
+  const hasApprovalRights =
     (user as any)?.role === "super_admin" ||
     (user as any)?.role === "admin";
 
@@ -148,6 +145,13 @@ export default function LeaveAdjustmentPage() {
     fetchLeaveTypes();
   }, [fetchLeaveTypes]);
 
+  // Handle protected routing
+  useEffect(() => {
+    if (!authLoading && !canManageLeaves) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, canManageLeaves, router]);
+
   useEffect(() => {
     if (employeeId) {
       const fetchEmployeeBalances = async () => {
@@ -177,55 +181,65 @@ export default function LeaveAdjustmentPage() {
     }
   }, [leaveTypeId, leaveBalances]);
 
- const handleSaveAdjustment = async (values: any) => {
-  setConfirmLoading(true);
-
-  try {
-    const payload: LeaveAdjustmentPayload = {
-      employeeId: values.employee,
-      leaveTypeId: values.leaveTypeId,
-      adjustmentType: values.type,
-      amount: values.amount,
-      unit: values.unit,
-      reason: values.reason,
-      approvedById: values.approvedBy,
-      compOffWorkDate: values.compOffWorkDate
-        ? values.compOffWorkDate.toISOString()
-        : null,
-      expiryDate: values.expiryDate
-        ? values.expiryDate.toISOString()
-        : null,
-    };
-
-    let success = false;
-
-    if (editingKey) {
-      success = await updateAdjustment(editingKey, payload);
-    } else {
-      success = await addAdjustment(payload);
-    }
-
-    if (success) {
-      api.success({
-        message: "Leave adjustment saved successfully",
-      });
-
-      setIsModalVisible(false);
-      form.resetFields();
-      setSelectedLeaveType(null);
-      setEditingKey(null);
-    }
-  } catch (error: any) {
-    api.error({
-      message: "Adjustment Failed",
-      description:
-        error?.response?.data?.error ||
-        "This leave is already debited.",
-    });
-  } finally {
-    setConfirmLoading(false);
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return null;
   }
-};
+
+  // Don't render if no manage permission
+  if (!canManageLeaves) {
+    return null;
+  }
+
+  const handleSaveAdjustment = async (values: any) => {
+    setConfirmLoading(true);
+
+    try {
+      const payload: LeaveAdjustmentPayload = {
+        employeeId: values.employee,
+        leaveTypeId: values.leaveTypeId,
+        adjustmentType: values.type,
+        amount: values.amount,
+        unit: values.unit,
+        reason: values.reason,
+        approvedById: values.approvedBy,
+        compOffWorkDate: values.compOffWorkDate
+          ? values.compOffWorkDate.toISOString()
+          : null,
+        expiryDate: values.expiryDate
+          ? values.expiryDate.toISOString()
+          : null,
+      };
+
+      let success = false;
+
+      if (editingKey) {
+        success = await updateAdjustment(editingKey, payload);
+      } else {
+        success = await addAdjustment(payload);
+      }
+
+      if (success) {
+        api.success({
+          message: "Leave adjustment saved successfully",
+        });
+
+        setIsModalVisible(false);
+        form.resetFields();
+        setSelectedLeaveType(null);
+        setEditingKey(null);
+      }
+    } catch (error: any) {
+      api.error({
+        message: "Adjustment Failed",
+        description:
+          error?.response?.data?.error ||
+          "This leave is already debited.",
+      });
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
 
   const handleEdit = (record: LeaveAdjustmentViewData) => {
     setEditingKey(record.id);
@@ -261,16 +275,26 @@ export default function LeaveAdjustmentPage() {
       title: "Employee",
       dataIndex: "employee",
       key: "employee",
-      width:300,
+      width: 280,
       sorter: (a: LeaveAdjustmentViewData, b: LeaveAdjustmentViewData) =>
         a.employee.localeCompare(b.employee),
       render: (text: string) => (
-        <Space style={{gap:15}}>
-          <Avatar
-            icon={<UserOutlined />}
-            style={{ backgroundColor: "#e6f0f7ff", color: "#0769b5ff" }}
-          />
-          <Text strong>{text}</Text>
+        <Space size={12}>
+          <div style={{ 
+            width: 36, 
+            height: 36, 
+            borderRadius: "50%", 
+            background: "#f1f5f9", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            color: "#64748b",
+            fontSize: 14,
+            fontWeight: 600
+          }}>
+            {text.charAt(0)}
+          </div>
+          <Text strong style={{ color: "#1e293b" }}>{text}</Text>
         </Space>
       ),
     },
@@ -278,15 +302,17 @@ export default function LeaveAdjustmentPage() {
       title: "Leave Type",
       dataIndex: "leaveType",
       key: "leaveType",
-       width:150,
+      width: 140,
+      render: (text: string) => <Tag style={{ borderRadius: 6, background: "#f8fafc", border: "1px solid #f1f5f9", color: "#64748b" }}>{text}</Tag>
     },
     {
-      title: " Type",
+      title: "Type",
       dataIndex: "type",
       key: "type",
+      width: 120,
       render: (type: string) => (
         <Tag
-          style={{ borderRadius: 12 }}
+          style={{ borderRadius: 8, margin: 0, fontWeight: 600, padding: "2px 10px" }}
           color={type === "Credit" ? "success" : "error"}
         >
           {type.toUpperCase()}
@@ -297,14 +323,21 @@ export default function LeaveAdjustmentPage() {
       title: "Amount",
       dataIndex: "amount",
       key: "amount",
+      width: 160,
       render: (amount: number, record: LeaveAdjustmentViewData) => {
         const unit = record.unit || "Days";
         const displayUnit = amount === 1 ? unit.slice(0, -1) : unit;
         return (
-          <Text type={record.type === "Credit" ? "success" : "danger"}>
-            {record.type === "Credit" ? "+" : "-"}
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 8,
+            fontWeight: 600,
+            color: record.type === "Credit" ? "#10b981" : "#ef4444" 
+          }}>
+            {record.type === "Credit" ? <ArrowUpCircle size={14} /> : <ArrowDownCircle size={14} />}
             {amount} {displayUnit}
-          </Text>
+          </div>
         );
       },
     },
@@ -327,364 +360,281 @@ export default function LeaveAdjustmentPage() {
       title: "Approved By",
       dataIndex: "approvedBy",
       key: "approvedBy",
-     width: 150,
+      width: 180,
       render: (text: string) => (
-        <Space>
-          <Avatar size="small" style={{ backgroundColor: "#1890ff" }}>
+        <Space size={10}>
+          <div style={{ 
+            width: 28, 
+            height: 28, 
+            borderRadius: "50%", 
+            background: "#eff6ff", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center",
+            color: "#3b82f6",
+            fontSize: 12,
+            fontWeight: 600,
+            border: "1px solid #dbeafe"
+          }}>
             {text[0]}
-          </Avatar>
-          <Text>{text}</Text>
+          </div>
+          <Text style={{ color: "#475569", fontSize: 13 }}>{text}</Text>
         </Space>
       ),
     },
-    // {
-    //   title: "Actions",
-    //   key: "actions",
-    //   render: (_: any, record: LeaveAdjustmentViewData) => (
-    //     <Space>
-    //       <Tooltip title="Edit Leave Adjustment">
-    //         <Button
-    //           type="text"
-    //           icon={<Settings2 size={16} />}
-    //           onClick={() => handleEdit(record)}
-    //         />
-    //       </Tooltip>
-    //       <Tooltip title="Delete Leave Adjustment">
-    //         <Popconfirm
-    //           title="Are you sure you want to delete this leave  Adjustments ?"
-    //           onConfirm={() => deleteAdjustment(record.id)}
-    //           okText="Yes"
-    //           cancelText="No"
-    //         >
-    //           <Button danger> Cancel</Button>
-    //         </Popconfirm>
-    //       </Tooltip>
-    //     </Space>
-    //   ),
-    // },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 100,
+      fixed: "right" as const,
+      render: (_: any, record: LeaveAdjustmentViewData) => (
+        <Space>
+          <Tooltip title="Edit Adjustment">
+            <Button
+              type="text"
+              size="small"
+              icon={<Edit2 size={16} color="#64748b" />}
+              style={{ borderRadius: 6 }}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete Adjustment?"
+              description="Are you sure you want to delete this correction?"
+              onConfirm={() => deleteAdjustment(record.id)}
+              okText="Delete"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+            >
+              <Button 
+                type="text" 
+                size="small" 
+                danger 
+                icon={<Trash2 size={16} />} 
+                style={{ borderRadius: 6 }}
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
   ];
 
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div >
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "#ffffff",
+          minHeight: "calc(100vh - 64px)"
+        }}>
           {contextHolder}
           {modalContextHolder}
-          <div>
-            <Tabs
-              activeKey={
-                pathname.includes("leave-adjustments")
-                  ? "adjustments"
-                  : pathname.includes("leaves-dashboard")
-                    ? "dashboard"
-                    : pathname.includes("government-holidays")
-                      ? "holidays"
-                      : pathname.includes("leave-configuration")
-                        ? "configuration"
-                        : pathname.includes("leave-policy")
-                          ? "positions"
-                          : "leaves"
-              }
-              onChange={(key) => {
-                if (key === "dashboard") router.push("/leaves-dashboard");
-                // if (key === "leaves") router.push("/leaves");
-                if (key === "holidays") router.push("/government-holidays");
-                if (key === "adjustments") router.push("/leave-adjustments");
-                if (key === "configuration")
-                  router.push("/leave-type");
-                if (key === "positions") router.push("/leave-policy");
-                if (key === "addLeaves") router.push("/add-goverment-leaves");
-                if (key === "apply-leave") router.push("/apply-leave");
-                if (key === "approvals") router.push("/leave-approvals")
-              }}
-              items={[
-                {
-                  key: "dashboard",
-                  label: (
-                    <span>
-                      <AppstoreOutlined /> Dashboard
-                    </span>
-                  ),
-                },
-                // {
-                //   key: "leaves",
-                //   label: (
-                //     <span>
-                //       <ClockCircleOutlined /> Apply Leave
-                //     </span>
-                //   ),
-                // },
-                {
-                  key: "apply-leave",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Apply leave
-                    </span>
-                  ),
-                },
-                 hasApprovalRights && {
-                                  key: "approvals",
-                                  label: (
-                                    <span>
-                                      <CheckCircleOutlined /> Approvals
-                                    </span>
-                                  ),
-                                },
-                {
-                  key: "holidays",
-                  label: (
-                    <span>
-                      <ScheduleOutlined /> Government Holidays
-                    </span>
-                  ),
-                },
-                {
-                  key: "adjustments",
-                  label: (
-                    <span>
-                      <EditOutlined /> Leave Adjustment
-                    </span>
-                  ),
-                },
-                {
-                  key: "configuration",
-                  label: (
-                    <span>
-                      <SettingOutlined /> Leave Type
-                    </span>
-                  ),
-                },
-                {
-                  key: "positions",
-                  label: (
-                    <span>
-                      <ApartmentOutlined /> Leave Policy
-                    </span>
-                  ),
-                },
-                {
-                  key: "addLeaves",
-                  label: (
-                    <span>
-                      <PlusOutlined /> Add Government Leaves
-                    </span>
-                  ),
-                },
-              ].filter(Boolean) as any}
-            />
-          </div>
-          
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <Space align="center" size={8}>
-                  <ScheduleOutlined
-                     style={{ color: "#1a64c4ff", fontSize: 20 }}
-                  />
-                  <Typography.Title  level={4} >
-                    Leave Adjustments
-                  </Typography.Title>
-                </Space>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Handle special employee-specific leave cases, comp-offs, and
-                    manual corrections.
-                  </Text>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <Input.Search
-                  placeholder="Search adjustments...."
-                  allowClear
-                  style={{ width: 390 }}
-                  onChange={(e) => setSearchText(e.target.value)}
-                />
 
-                <Button
-                  type="primary"
-                  style={{ width: 180, height: 30 }}
-                  onClick={() => setIsModalVisible(true)}
-                >
-                  + Add New Adjustment
-                </Button>
-              </div>
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+            <div style={{ flex: 1 }}>
+              <Space size={14} align="center">
+                <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+                  <History size={28} />
+                </div>
+                <div>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Leave Adjustments</Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Handle special cases, comp-offs, and manual leave corrections.</Text>
+                </div>
+              </Space>
             </div>
-            <Space wrap>
-              <Tag style={{ borderRadius: 12 }}>
-                Total Adjustments: {dataSource.length}
-              </Tag>
-              <Tag color="success" style={{ borderRadius: 12 }}>
-                Credits:{" "}
-                {dataSource.filter((item) => item.type === "Credit").length}
-              </Tag>
-              <Tag color="error" style={{ borderRadius: 12 }}>
-                Debits:{" "}
-                {dataSource.filter((item) => item.type === "Debit").length}
-              </Tag>
-            </Space>
-            <Divider style={{marginTop:20}} />
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Input 
+                placeholder="Search adjustments..." 
+                prefix={<Search size={16} color="#94a3b8" />}
+                style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid #e2e8f0" }}
+                onChange={e => setSearchText(e.target.value)}
+              />
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Plus size={18} />} 
+                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
+                onClick={() => {
+                  setEditingKey(null);
+                  form.resetFields();
+                  setIsModalVisible(true);
+                }}
+              >
+                New Adjustment
+              </Button>
+            </div>
+          </div>
+
+          {/* Metrics */}
+          <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={8}>
+              <StatCard label="Total Adjustments" value={dataSource.length} icon={History} color="#3b82f6" />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard label="Monthly Credits" value={dataSource.filter(i => i.type === "Credit").length} icon={ArrowUpCircle} color="#10b981" />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard label="Monthly Debits" value={dataSource.filter(i => i.type === "Debit").length} icon={ArrowDownCircle} color="#ef4444" />
+            </Col>
+          </Row>
+
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 16,
+              border: "1px solid #f1f5f9",
+              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+              overflow: "hidden"
+            }}
+            bodyStyle={{ padding: "0" }}
+          >
             <Table
               columns={columns}
               dataSource={dataSource.filter((item) =>
                 item.employee.toLowerCase().includes(searchText.toLowerCase()),
               )}
               loading={loading}
-              size="small"
-              pagination={{ pageSize: 10 }}
+              size="middle"
+              pagination={{
+                pageSize: 10,
+                position: ["bottomRight"],
+                style: { padding: "12px 24px", margin: 0 }
+              }}
+              rowClassName={() => "history-table-row"}
             />
-        
+          </Card>
 
-          <Modal
+
+          <Drawer
             title={
-              <div>
-                <Typography.Title level={4} style={{ marginBottom: 0 }}>
-                  {editingKey
-                    ? "Edit Leave Adjustment"
-                    : "New Leave Adjustment"}
-                </Typography.Title>
-                <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                  Record a leave credit, debit, or comp-off for an employee.
-                </Typography.Text>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 10, color: "#0ea5e9" }}>
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <Text strong style={{ fontSize: 18, color: "#1e293b", display: "block" }}>
+                    {editingKey ? "Edit Adjustment" : "New Leave Adjustment"}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
+                    {editingKey ? "Modify existing leave correction" : "Create a manual leave credit or debit"}
+                  </Text>
+                </div>
               </div>
             }
             open={isModalVisible}
-            onCancel={() => {
+            onClose={() => {
               setIsModalVisible(false);
               setSelectedLeaveType(null);
               setEditingKey(null);
               form.resetFields();
             }}
-            footer={null}
-            width={420}
-            // height={100}
+            width={480}
             destroyOnClose
+            footer={
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "10px 0" }}>
+                {editingKey && (
+                  <Button
+                    danger
+                    onClick={() => handleDelete(editingKey)}
+                    loading={confirmLoading}
+                    style={{ marginRight: "auto" }}
+                  >
+                    Delete
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    setIsModalVisible(false);
+                    setSelectedLeaveType(null);
+                    setEditingKey(null);
+                    form.resetFields();
+                  }}
+                  disabled={confirmLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={() => form.submit()}
+                  loading={confirmLoading}
+                >
+                  {editingKey ? "Update Adjustment" : "Save Adjustment"}
+                </Button>
+              </div>
+            }
           >
-            <Form form={form} layout="vertical" onFinish={handleSaveAdjustment}>
-              <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                {/* Employee */}
+            <Form form={form} layout="vertical" onFinish={handleSaveAdjustment} requiredMark="optional">
+              <Row gutter={[16, 0]}>
                 <Col span={24}>
                   <Form.Item
                     name="employee"
                     label="Employee"
-                    rules={[
-                      { required: true, message: "Employee is required" },
-                    ]}
+                    rules={[{ required: true, message: "Employee is required" }]}
                   >
                     <Select
                       placeholder="Select Employee"
                       showSearch
+                      size="large"
                       options={employeeList}
                       filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
+                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                       }
                     />
                   </Form.Item>
                 </Col>
 
-                {/* Leave Type & Adjustment Type */}
                 <Col span={12}>
-                  <Form.Item
-                    name="leaveTypeId"
-                    label="Leave Type"
-                    rules={[{ required: true }]}
-                  >
+                  <Form.Item name="leaveTypeId" label="Leave Type" rules={[{ required: true }]}>
                     <Select
                       placeholder="Select leave type"
                       loading={leaveTypesLoading}
                       showSearch
-                      filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
+                      size="large"
                       onChange={(value) => {
-                        const selected = apiLeaveTypes?.find(
-                          (lt) => lt.id === value,
-                        );
+                        const selected = apiLeaveTypes?.find(lt => lt.id === value);
                         setSelectedLeaveType(selected?.name || null);
-                        if (selected?.name === "Permission") {
-                          form.setFieldsValue({ unit: "Hours" });
-                        } else {
-                          form.setFieldsValue({ unit: "Days" });
-                        }
+                        form.setFieldsValue({ unit: selected?.name === "Permission" ? "Hours" : "Days" });
                       }}
-                      options={apiLeaveTypes?.map((l) => ({
-                        label: l.name,
-                        value: l.id,
-                      }))}
+                      options={apiLeaveTypes?.map(l => ({ label: l.name, value: l.id }))}
                     />
                   </Form.Item>
                 </Col>
 
                 <Col span={12}>
-                  <Form.Item
-                    name="type"
-                    label="Adjustment Type"
-                    rules={[{ required: true }]}
-                  >
-                    <Select placeholder="Select Type">
+                  <Form.Item name="type" label="Adjustment Type" rules={[{ required: true }]}>
+                    <Select placeholder="Select Type" size="large">
                       <Select.Option value="Credit">Credit</Select.Option>
-                      <Select.Option
-                        value="Debit"
-                        disabled={balance === null || balance <= 0}
-                      >
-                        Debit
-                      </Select.Option>
+                      <Select.Option value="Debit" disabled={balance === null || balance <= 0}>Debit</Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>
 
-                {/* Amount & Approved By */}
-                <Col span={12}>
-                  <Form.Item label="Amount" required>
+                <Col span={24}>
+                  <Form.Item label="Amount & Unit" required>
                     <Space.Compact style={{ width: "100%" }}>
-                      <Form.Item
-                        name="amount"
-                        noStyle
-                        rules={[{ required: true }]}
-                      >
-                        <InputNumber
-                          min={0}
-                          style={{ width: "60%" }}
-                          placeholder="Value"
-                        />
+                      <Form.Item name="amount" noStyle rules={[{ required: true }]}>
+                        <InputNumber min={0.5} step={0.5} style={{ width: "65%" }} size="large" placeholder="Value" />
                       </Form.Item>
-
                       <Form.Item name="unit" noStyle initialValue="Days">
-                        <Select
-                          style={{ width: "50%" }}
-                          options={[
-                            { label: "Day", value: "Days" },
-                            { label: "Hours", value: "Hours" },
-                          ]}
-                        />
+                        <Select size="large" style={{ width: "35%" }} options={[{ label: "Days", value: "Days" }, { label: "Hours", value: "Hours" }]} />
                       </Form.Item>
                     </Space.Compact>
                   </Form.Item>
                 </Col>
 
-                <Col span={12}>
-                  <Form.Item
-                    name="approvedBy"
-                    label="Approved By"
-                    rules={[{ required: true }]}
-                  >
+                <Col span={24}>
+                  <Form.Item name="approvedBy" label="Approved By" rules={[{ required: true }]}>
                     <Select
                       placeholder="Select Approver"
                       showSearch
+                      size="large"
                       options={approvers}
                       filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
+                        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                       }
                     />
                   </Form.Item>
@@ -692,117 +642,64 @@ export default function LeaveAdjustmentPage() {
 
                 {selectedLeaveType === "Comp-Off" && (
                   <Col span={24}>
-                    <Form.Item
-                      name="compOffWorkDate"
-                      label="Work Date for Comp-Off"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please select the work date",
-                        },
-                      ]}
-                    >
-                      <DatePicker
-                        style={{ width: "100%" }}
-                        placeholder="Select date worked"
-                      />
+                    <Form.Item name="compOffWorkDate" label="Work Date for Comp-Off" rules={[{ required: true }]}>
+                      <DatePicker size="large" style={{ width: "100%" }} placeholder="Select date worked" />
                     </Form.Item>
                   </Col>
                 )}
 
-                {/* Reason */}
                 <Col span={24}>
-                  <Form.Item
-                    name="reason"
-                    label="Reason"
-                    rules={[{ required: true }]}
-                  >
-                    <Input.TextArea
-                      rows={3}
-                      placeholder="Enter reason for adjustment"
-                    />
+                  <Form.Item name="reason" label="Reason" rules={[{ required: true }]}>
+                    <Input.TextArea rows={3} placeholder="Enter reason for adjustment" />
                   </Form.Item>
                 </Col>
 
-               <Col span={12}>
-  <Form.Item
-    name="isTaken"
-    valuePropName="checked"
-    initialValue={false}
-    style={{ marginBottom: 0 }}
-  >
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",   // 👈 important
-      }}
-    >
-      <span style={{ fontWeight: 500 }}>
-        Is Leave Taken?
-      </span>
+                <Col span={24}>
+                  <Form.Item name="isTaken" valuePropName="checked" initialValue={false}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "#f8fafc", borderRadius: 8 }}>
+                      <span style={{ fontWeight: 500, color: "#475569" }}>Is Leave Already Taken?</span>
+                      <Switch />
+                    </div>
+                  </Form.Item>
+                </Col>
 
-      <Switch style={{left:200}}/>
-    </div>
-  </Form.Item>
-</Col>
-
-                {/* Expiry Date */}
                 {selectedLeaveType === "Comp-Off" && (
-                  <Col span={12}>
+                  <Col span={24}>
                     <Form.Item name="expiryDate" label="Expiry Date">
-                      <DatePicker
-                        style={{ width: "210%" }}
-                        placeholder="Select expiry date"
-                      />
+                      <DatePicker size="large" style={{ width: "100%" }} placeholder="Select expiry date" />
                     </Form.Item>
                   </Col>
                 )}
               </Row>
-
-              {/* Footer */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  marginTop: 24,
-                }}
-              >
-                {editingKey && (
-                  <Button
-                    danger
-                    onClick={() => handleDelete(editingKey)}
-                    loading={confirmLoading}
-                  >
-                    Delete
-                  </Button>
-                )}
-                <div style={{ display: "flex", gap: 12, marginLeft: "auto" }}>
-                  <Button
-                    onClick={() => {
-                      setIsModalVisible(false);
-                      setSelectedLeaveType(null);
-                      setEditingKey(null);
-                      form.resetFields();
-                    }}
-                    disabled={confirmLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={confirmLoading}
-                  >
-                    {editingKey ? "Update Adjustment" : "Save Adjustment"}
-                  </Button>
-                </div>
-              </div>
             </Form>
-          </Modal>
+          </Drawer>
         </div>
+        <style dangerouslySetInnerHTML={{ __html: `
+          .history-table-row:hover {
+            background-color: #f8fafc !important;
+          }
+          .ant-table-thead > tr > th {
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
+            font-weight: 600 !important;
+            padding: 12px 16px !important;
+          }
+          .ant-table-tbody > tr > td {
+            padding: 12px 16px !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+          }
+          .ant-drawer-header {
+            padding: 24px !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+          }
+          .ant-drawer-body {
+            padding: 24px !important;
+          }
+          .ant-drawer-footer {
+            padding: 16px 24px !important;
+            border-top: 1px solid #f1f5f9 !important;
+          }
+        `}} />
       </MainLayout>
     </ProtectedRoute>
   );

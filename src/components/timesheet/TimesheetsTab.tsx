@@ -46,6 +46,7 @@ import {
   useDeleteTimesheet,
   useTimesheetById,
 } from "@/hooks/useTimesheet";
+import { useAuth } from "@/context/AuthContext";
 import utc from "dayjs/plugin/utc";
 
 dayjs.extend(utc);
@@ -107,7 +108,9 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
     previewId || undefined,
   );
 
-  const { data: allTimesheets, isLoading } = useTimesheets();
+  const { user } = useAuth();
+
+  const { data: allTimesheets, isLoading } = useTimesheets({ userId: user?.id });
 
   useEffect(() => {
     if (previewId) {

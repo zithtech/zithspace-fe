@@ -17,6 +17,7 @@ import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.
 import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import Link from "next/link";
+import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 
 const { Title, Text } = Typography;
 
@@ -274,48 +275,25 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       }
     });
 
-    // Calculate total duration for each user by summing entry durations
+    // Calculate total duration for each user using net duration utility
     Object.values(userMap).forEach(userData => {
-      let totalSeconds = 0;
+      userData.totalSeconds = calculateNetDuration(userData.entries, 5000, currentTime.getTime());
 
-      userData.entries.forEach(entry => {
-        // Add recorded duration
-        totalSeconds += (entry.duration || 0);
-
-        // If running, add current live session time
-        if (entry.status === 'RUNNING' && entry.logs) {
-          const lastLog = [...entry.logs].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
-          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
-            const now = currentTime.getTime();
-            const start = new Date(lastLog.createdAt).getTime();
-            totalSeconds += Math.floor((now - start) / 1000);
-          }
-        }
-      });
-
-      userData.totalSeconds = totalSeconds;
-
-      // Advanced View: Calculate project breakdown for tooltips (already fairly accurate, but let's keep it consistent)
-      const projBreakdown: Record<string, { seconds: number; name: string }> = {};
+      // Calculate project breakdown for tooltips
+      const projBreakdown: Record<string, { seconds: number; name: string; entries: TimeTrackingEntry[] }> = {};
       userData.entries.forEach(e => {
         const pId = (e.project && typeof e.project === 'object') ? e.project.id : (e.project || 'unknown');
         const pName = (e.project && typeof e.project === 'object') ? e.project.name : (e.project || 'No Project');
 
-        if (!projBreakdown[pId]) projBreakdown[pId] = { seconds: 0, name: pName };
-
-        // Add entry's duration
-        projBreakdown[pId].seconds += (e.duration || 0);
-
-        // Add live time if running
-        if (e.status === 'RUNNING' && e.logs) {
-          const lastLog = [...e.logs].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
-          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
-            const now = currentTime.getTime();
-            const start = new Date(lastLog.createdAt).getTime();
-            projBreakdown[pId].seconds += Math.floor((now - start) / 1000);
-          }
-        }
+        if (!projBreakdown[pId]) projBreakdown[pId] = { seconds: 0, name: pName, entries: [] };
+        projBreakdown[pId].entries.push(e);
       });
+
+      // Recalculate each project's net duration
+      Object.keys(projBreakdown).forEach(pId => {
+        projBreakdown[pId].seconds = calculateNetDuration(projBreakdown[pId].entries, 5000, currentTime.getTime());
+      });
+
       (userData as any).projectBreakdown = Object.values(projBreakdown).sort((a, b) => b.seconds - a.seconds);
     });
 

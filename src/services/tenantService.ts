@@ -9,6 +9,7 @@ export interface TenantProfile {
   isActive: boolean;
   settings: {
     logoUrl?: string;
+    logoVersions?: string[];
     [key: string]: any;
   };
 }
@@ -16,6 +17,8 @@ export interface TenantProfile {
 export interface UpdateTenantData {
   name?: string;
   logo?: string; // base64
+  croppedLogo?: string; // base64
+  finalLogoUrl?: string; // existing URL
   [key: string]: any;
 }
 
@@ -33,6 +36,14 @@ export class TenantService {
    */
   static async updateProfile(data: UpdateTenantData): Promise<TenantProfile> {
     const response = await api.put<TenantProfile>('/api/tenants/profile', data);
+    return response;
+  }
+
+  /**
+   * Delete a specific logo version
+   */
+  static async deleteLogoVersion(url: string): Promise<{ logoUrl: string, logoVersions: string[] }> {
+    const response = await api.delete<{ logoUrl: string, logoVersions: string[] }>('/api/tenants/logo-version', { data: { url } });
     return response;
   }
 }

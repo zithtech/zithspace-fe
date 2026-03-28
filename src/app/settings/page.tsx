@@ -23,6 +23,9 @@ import {
   Popconfirm,
   Spin,
   Upload,
+  Row,
+  Col,
+  message,
 } from 'antd';
 import {
   SettingOutlined,
@@ -32,7 +35,9 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  CheckCircleFilled,
 } from '@ant-design/icons';
+import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
 import { ApiError } from '@/lib/axios';
@@ -44,30 +49,41 @@ const { Title, Text, Paragraph } = Typography;
 
 // Premium UI Styles
 const styles = {
-  glassCard: {
-    background: "rgba(255, 255, 255, 0.7)",
-    backdropFilter: "blur(12px)",
-    borderRadius: "20px",
-    border: "1px solid rgba(255, 255, 255, 0.3)",
-    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
-    marginBottom: "24px",
-    overflow: "hidden" as const
-  },
-  headerGradient: {
-    background: "transparent",
-    padding: "8px 0",
-    borderBottom: "1px solid #f0f0f0",
+  headerSection: {
+    position: "sticky" as const,
+    top: 0,
+    zIndex: 110,
     marginBottom: "16px",
-    borderRadius: "0"
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 4px",
+    background: "#ffffff",
+    borderBottom: "1px solid #f1f5f9",
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: "14px",
+    background: "#eff6ff",
+    color: "#2563eb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 0 0 1px rgba(37, 99, 235, 0.05)"
   },
   sectionCard: {
-    borderRadius: "12px",
-    border: "1px solid #f0f0f0",
-    boxShadow: "none",
-    transition: "all 0.3s ease"
+    borderRadius: "16px",
+    border: "1px solid #f1f5f9",
+    boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02)",
+    background: "#ffffff"
   },
   tabStyle: {
-    marginBottom: "16px",
+    position: "sticky" as const,
+    top: "84px", // height of headerSection
+    zIndex: 100,
+    background: "#ffffff",
+    marginBottom: "24px",
     padding: "0"
   }
 };
@@ -83,11 +99,12 @@ interface ShiftFormData {
   isFlexible: boolean;
 }
 
-export default function SettingsPage() {
+function SettingsPage() {
   const { user, isLoading: authLoading, updateUser } = useAuth();
   const { canReadSettings, canUpdateSettings } = usePermission();
   const router = useRouter();
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Route guard
   useEffect(() => {
@@ -97,10 +114,8 @@ export default function SettingsPage() {
   }, [authLoading, canReadSettings, router]);
 
   // State management
-  const [activeTab, setActiveTab] = useState('attendance');
+  const [activeTab, setActiveTab] = useState('system');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   // Shift management state
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -114,6 +129,12 @@ export default function SettingsPage() {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [systemForm] = Form.useForm();
 
+  // Cropping and versioning state
+  const [isCropperVisible, setIsCropperVisible] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string>('');
+  const [cropLoading, setCropLoading] = useState(false);
+  const [logoVersions, setLogoVersions] = useState<string[]>([]);
+
   // Fetch shifts
   const fetchShifts = async () => {
     try {
@@ -123,9 +144,9 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Failed to fetch shifts:', error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError('Failed to fetch shifts');
+        messageApi.error('Failed to fetch shifts');
       }
     } finally {
       setLoading(false);
@@ -151,6 +172,9 @@ export default function SettingsPage() {
           },
         ]);
       }
+      if (profile.settings?.logoVersions) {
+        setLogoVersions(profile.settings.logoVersions);
+      }
     } catch (error) {
       console.error('Failed to fetch tenant profile:', error);
     } finally {
@@ -173,7 +197,6 @@ export default function SettingsPage() {
   const handleShiftSubmit = async (values: ShiftFormData) => {
     try {
       setFormLoading(true);
-      setError('');
 
       const payload: CreateShiftData | UpdateShiftData = {
         name: values.name,
@@ -190,10 +213,10 @@ export default function SettingsPage() {
 
       if (modalType === 'edit' && editingShift) {
         await SettingsService.updateShift(editingShift.id, payload as UpdateShiftData);
-        setSuccess('Shift updated successfully!');
+        messageApi.success('Shift updated successfully!');
       } else {
         await SettingsService.createShift(payload as CreateShiftData);
-        setSuccess('Shift created successfully!');
+        messageApi.success('Shift created successfully!');
       }
 
       setIsShiftModalVisible(false);
@@ -203,9 +226,9 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Failed to submit shift form:', error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError('Operation failed');
+        messageApi.error('Operation failed');
       }
     } finally {
       setFormLoading(false);
@@ -217,14 +240,14 @@ export default function SettingsPage() {
     try {
       setFormLoading(true);
       await SettingsService.deleteShift(shiftId);
-      setSuccess('Shift deleted successfully!');
+      messageApi.success('Shift deleted successfully!');
       fetchShifts();
     } catch (error) {
       console.error('Failed to delete shift:', error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError('Failed to delete shift');
+        messageApi.error('Failed to delete shift');
       }
     } finally {
       setFormLoading(false);
@@ -235,7 +258,6 @@ export default function SettingsPage() {
   const handleSystemSubmit = async (values: { name: string }) => {
     try {
       setFormLoading(true);
-      setError('');
 
       const payload: any = {
         name: values.name,
@@ -260,19 +282,81 @@ export default function SettingsPage() {
         tenantName: updatedProfile.name,
         tenantLogo: updatedProfile.settings?.logoUrl
       });
-
-      setSuccess('System settings updated successfully!');
+      
+      messageApi.success('System settings updated successfully!');
       fetchTenantProfile();
 
     } catch (error) {
       console.error('Failed to update system settings:', error);
       if (error instanceof ApiError) {
-        setError(error.message);
+        messageApi.error(error.message);
       } else {
-        setError('Failed to update system settings');
+        messageApi.error('Failed to update system settings');
       }
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handleSetAsFinal = async (url: string) => {
+    try {
+      setLoading(true);
+      const updatedProfile = await TenantService.updateProfile({
+        finalLogoUrl: url
+      });
+
+      updateUser({
+        tenantLogo: updatedProfile.settings?.logoUrl
+      });
+
+      messageApi.success('Logo updated successfully!');
+      fetchTenantProfile();
+    } catch (error) {
+      console.error('Failed to set final logo:', error);
+      messageApi.error('Failed to update logo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteVersion = async (url: string) => {
+    try {
+      setLoading(true);
+      const response = await TenantService.deleteLogoVersion(url);
+
+      updateUser({
+        tenantLogo: response.logoUrl
+      });
+
+      messageApi.success('Logo version deleted successfully!');
+      fetchTenantProfile();
+    } catch (error) {
+      console.error('Failed to delete logo version:', error);
+      messageApi.error('Failed to delete logo version');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCropComplete = async (base64: string) => {
+    try {
+      setCropLoading(true);
+      const updatedProfile = await TenantService.updateProfile({
+        croppedLogo: base64
+      });
+
+      updateUser({
+        tenantLogo: updatedProfile.settings?.logoUrl
+      });
+
+      setIsCropperVisible(false);
+      messageApi.success('Cropped logo saved successfully!');
+      fetchTenantProfile();
+    } catch (error) {
+      console.error('Failed to save cropped logo:', error);
+      messageApi.error('Failed to save cropped logo');
+    } finally {
+      setCropLoading(false);
     }
   };
 
@@ -401,18 +485,6 @@ export default function SettingsPage() {
     },
   ];
 
-  // Clear messages
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess('');
-        setError('');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
-
-
   // Loading & permission check
   if (authLoading) {
     return (
@@ -445,59 +517,28 @@ export default function SettingsPage() {
 
   return (
     <MainLayout>
+      {contextHolder}
       <div style={{
-        padding: "16px 24px",
+        padding: "0 24px 24px 24px",
         minHeight: "100%",
         background: "#ffffff"
       }}>
-        {/* Glass Header */}
-        <div style={styles.headerGradient}>
-          <Space align="center" size="large">
-            <div style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 8px 16px rgba(22, 119, 255, 0.2)"
-            }}>
-              <SettingOutlined style={{ fontSize: 28, color: '#fff' }} />
+        {/* Premium Header */}
+        <div style={styles.headerSection}>
+          <Space align="center" size="middle">
+            <div style={styles.iconContainer}>
+              <SettingOutlined style={{ fontSize: 24 }} />
             </div>
             <div>
-              <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: "-0.5px" }}>
+              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
                 System Settings
               </Title>
-              <Paragraph type="secondary" style={{ margin: 0, marginTop: 4 }}>
+              <Text style={{ color: "#64748b", fontSize: 15 }}>
                 Configure your workspace, manage shifts, and customize branding.
-              </Paragraph>
+              </Text>
             </div>
           </Space>
         </div>
-
-        {/* Alerts */}
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          {error && (
-            <Alert
-              message={error}
-              type="error"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13 }}
-              onClose={() => setError('')}
-            />
-          )}
-          {success && (
-            <Alert
-              message={success}
-              type="success"
-              showIcon
-              closable
-              style={{ marginBottom: 16, fontSize: 13 }}
-              onClose={() => setSuccess('')}
-            />
-          )}
 
           {/* Settings Tabs */}
           <Tabs
@@ -507,28 +548,80 @@ export default function SettingsPage() {
             type="line"
             tabBarStyle={{
               ...styles.tabStyle,
-              borderBottom: "1px solid rgba(0,0,0,0.05)"
+              background: '#fff',
+              borderBottom: "1px solid rgba(0,0,0,0.05)",
+              padding: "0 4px"
             }}
             style={{ margin: "0 auto" }}
           >
 
 
+            {/* 
             <Tabs.TabPane
               tab={
-                <Space>
-                  <SettingOutlined />
-                  System Information
+                <Space size={8} style={{ padding: "4px 8px" }}>
+                  <ClockCircleOutlined style={{ fontSize: 16 }} />
+                  <span style={{ fontWeight: 600 }}>Attendance Shifts</span>
+                </Space>
+              }
+              key="shifts"
+            >
+              <Card
+                bordered={false}
+                style={{ ...styles.sectionCard, marginTop: 8 }}
+                bodyStyle={{ padding: "32px" }}
+              >
+                <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#334155" }}>Shift Management</Title>
+                    <Text type="secondary" style={{ fontSize: 13 }}>Configure working hours, grace periods, and flexibility rules.</Text>
+                  </div>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={showAddShiftModal}
+                    style={{ borderRadius: 8, height: 40, fontWeight: 600 }}
+                  >
+                    Add New Shift
+                  </Button>
+                </div>
+
+                <div style={{
+                  border: "1px solid #f1f5f9",
+                  borderRadius: "12px",
+                  overflow: "hidden"
+                }}>
+                  <Table
+                    columns={shiftColumns}
+                    dataSource={shifts}
+                    loading={loading}
+                    rowKey="id"
+                    pagination={{ pageSize: 5 }}
+                  />
+                </div>
+              </Card>
+            </Tabs.TabPane>
+            */}
+
+            <Tabs.TabPane
+              tab={
+                <Space size={8} style={{ padding: "4px 8px" }}>
+                  <SettingOutlined style={{ fontSize: 16 }} />
+                  <span style={{ fontWeight: 600 }}>System Information</span>
                 </Space>
               }
               key="system"
             >
               <Card
                 bordered={false}
-                style={{ ...styles.sectionCard, maxWidth: 800 }}
+                style={{ ...styles.sectionCard, maxWidth: 850, marginTop: 8 }}
+                bodyStyle={{ padding: "32px" }}
                 title={
-                  <Space>
-                    <SettingOutlined style={{ color: '#1677ff' }} />
-                    <span style={{ fontWeight: 700 }}>Company Branding</span>
+                  <Space size={10} style={{ padding: "12px 0" }}>
+                    <div style={{ ...styles.iconContainer, width: 32, height: 32, borderRadius: 8 }}>
+                      <SettingOutlined style={{ fontSize: 16 }} />
+                    </div>
+                    <span style={{ fontWeight: 700, color: "#334155" }}>Company Branding</span>
                   </Space>
                 }
               >
@@ -560,9 +653,34 @@ export default function SettingsPage() {
                         </div>
                       )}
                     </Upload>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      Recommended size: 200x50px. Max size: 2MB.
-                    </Text>
+                    <Space direction="vertical" style={{ width: '100%', marginTop: 8 }}>
+                      {fileList.length > 0 && fileList[0].status === 'done' && (
+                        <div style={{ width: 'fit-content', marginTop: 8 }}>
+                          <EditOutlined
+                            style={{
+                              cursor: 'pointer',
+                              color: '#2563eb',
+                              fontSize: 18,
+                              padding: '6px',
+                              borderRadius: '8px',
+                              transition: 'all 0.2s',
+                              background: '#eff6ff',
+                              border: '1px dashed #bfdbfe'
+                            }}
+                            onClick={() => {
+                              if (fileList[0].url) {
+                                setImageToCrop(fileList[0].url);
+                                setIsCropperVisible(true);
+                              }
+                            }}
+                            title="Edit / Crop Logo"
+                          />
+                        </div>
+                      )}
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                        Recommended size: 200x50px. Max size: 2MB.
+                      </Text>
+                    </Space>
                   </Form.Item>
 
                   <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
@@ -583,10 +701,121 @@ export default function SettingsPage() {
                     </Button>
                   </Form.Item>
                 </Form>
+
+                {/* Logo Versions Gallery */}
+                {logoVersions.length > 0 && (
+                  <div style={{ marginTop: 48, borderTop: '1px solid #f1f5f9', paddingTop: 32 }}>
+                    <div style={{ marginBottom: 24 }}>
+                      <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#334155" }}>Logo Versions</Title>
+                      <Text type="secondary" style={{ fontSize: 13 }}>Previously uploaded and cropped versions for branding.</Text>
+                    </div>
+                    <Row gutter={[16, 16]}>
+                      {logoVersions.map((url, index) => (
+                        <Col key={index} style={{ flex: '0 0 20%', maxWidth: '20%' }}>
+                          <Card
+                            hoverable
+                            bodyStyle={{ padding: 0 }}
+                            style={{
+                              borderRadius: "14px",
+                              overflow: 'hidden',
+                              borderColor: tenantProfile?.settings?.logoUrl === url ? '#2563eb' : '#f1f5f9',
+                              borderWidth: tenantProfile?.settings?.logoUrl === url ? 2 : 1,
+                              transition: "all 0.3s ease",
+                              position: 'relative',
+                            }}
+                          >
+                            {tenantProfile?.settings?.logoUrl === url && (
+                              <CheckCircleFilled style={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                color: '#1677ff',
+                                fontSize: 18,
+                                zIndex: 1,
+                                background: '#fff',
+                                borderRadius: '50%'
+                              }} />
+                            )}
+                            <div style={{
+                              height: 100,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#f9f9f9',
+                              padding: 12
+                            }}>
+                              <img src={url} alt={`Version ${index}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            </div>
+                            <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <EditOutlined
+                                  style={{
+                                    cursor: 'pointer',
+                                    color: '#2563eb',
+                                    fontSize: 15,
+                                    padding: '4px',
+                                    borderRadius: '6px',
+                                    transition: 'all 0.2s',
+                                    background: '#eff6ff'
+                                  }}
+                                  onClick={() => {
+                                    setImageToCrop(url);
+                                    setIsCropperVisible(true);
+                                  }}
+                                  title="Edit / Crop"
+                                />
+                                {tenantProfile?.settings?.logoUrl !== url && (
+                                  <Button
+                                    size="small"
+                                    type="primary"
+                                    ghost
+                                    style={{ fontSize: 11, borderRadius: 6 }}
+                                    onClick={() => handleSetAsFinal(url)}
+                                  >
+                                    Set Final
+                                  </Button>
+                                )}
+                              </div>
+
+                              <div style={{ padding: '0 4px' }}>
+                                <Popconfirm
+                                  title="Delete logo version?"
+                                  description="Are you sure?"
+                                  onConfirm={() => handleDeleteVersion(url)}
+                                  okText="Yes"
+                                  cancelText="No"
+                                  okButtonProps={{ danger: true }}
+                                >
+                                  <DeleteOutlined
+                                    style={{
+                                      cursor: 'pointer',
+                                      color: '#ef4444',
+                                      fontSize: 15,
+                                      transition: 'all 0.2s'
+                                    }}
+                                    title="Delete Version"
+                                  />
+                                </Popconfirm>
+                              </div>
+                            </div>
+                          </Card>
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                )}
               </Card>
+
+              {/* Cropper Modal */}
+              <LogoCropper
+                image={imageToCrop}
+                open={isCropperVisible}
+                onClose={() => setIsCropperVisible(false)}
+                onCropComplete={handleCropComplete}
+                loading={cropLoading}
+              />
             </Tabs.TabPane>
           </Tabs>
-        </div>
 
         {/* Add/Edit Shift Modal */}
         <Modal
@@ -702,5 +931,98 @@ export default function SettingsPage() {
         </Modal>
       </div>
     </MainLayout>
+  );
+}
+
+// ==========================================
+// PREMIUM GLOBAL STYLES (SaaS UI OVERRIDES)
+// ==========================================
+const GlobalStyles = () => (
+  <style dangerouslySetInnerHTML={{
+    __html: `
+    /* Table Header Styling */
+    .ant-table-thead > tr > th {
+      background: #f8fafc !important;
+      color: #64748b !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      font-size: 11px !important;
+      letter-spacing: 0.05em !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+    }
+    
+    .ant-table-row:hover > td {
+      background: #f8fafc !important;
+    }
+    
+    .ant-table {
+      border-radius: 12px !important;
+    }
+
+    /* Tabs Styling */
+    .ant-tabs-nav::before {
+      border-bottom: 1px solid #f1f5f9 !important;
+    }
+    
+    .ant-tabs-tab {
+      transition: all 0.3s ease !important;
+      margin: 0 16px 0 0 !important;
+      padding: 12px 0 !important;
+    }
+    
+    .ant-tabs-tab:hover {
+      color: #2563eb !important;
+    }
+    
+    .ant-tabs-tab-active .ant-tabs-tab-btn {
+      color: #2563eb !important;
+    }
+    
+    .ant-tabs-ink-bar {
+      background: #2563eb !important;
+      height: 3px !important;
+      border-radius: 3px 3px 0 0 !important;
+    }
+
+    /* Form Elements */
+    .ant-input, .ant-input-number, .ant-select-selector, .ant-picker {
+      border-radius: 8px !important;
+      border-color: #e2e8f0 !important;
+      height: 40px !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    
+    .ant-input:hover, .ant-input:focus, .ant-input-focused {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+    }
+
+    /* Card Styling */
+    .ant-card {
+      transition: all 0.3s ease;
+    }
+    
+    /* Custom Scrollbar for Gallery */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #e2e8f0;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  `}} />
+);
+
+export default function WrappedSettingsPage() {
+  return (
+    <>
+      <GlobalStyles />
+      <SettingsPage />
+    </>
   );
 }

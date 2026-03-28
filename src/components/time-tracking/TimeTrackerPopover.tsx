@@ -8,7 +8,12 @@ import { ProjectService } from "@/services/projectService";
 import TicketService from "@/services/ticketService";
 import { useRouter } from "next/navigation";
 
-export const TimeTrackerPopover: React.FC = () => {
+interface TimeTrackerPopoverProps {
+  isMenuItem?: boolean;
+  showContentOnly?: boolean;
+}
+
+export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuItem, showContentOnly }) => {
   const { notification } = App.useApp();
   const {
     activeEntry,
@@ -284,6 +289,20 @@ export const TimeTrackerPopover: React.FC = () => {
       </div>
     </div>
   );
+
+  if (showContentOnly) {
+    return renderContent();
+  }
+
+  if (isMenuItem) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {activeEntry ? (activeEntry.status === 'RUNNING' ? <div style={{ width: 12, height: 12, backgroundColor: '#15803d', borderRadius: 2 }} /> : <PauseCircleFilled style={{ color: '#f59e0b' }} />) : <PlayCircleFilled style={{ color: '#1890ff' }} />}
+        <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatTime(elapsedTime)}</span>
+        <span style={{ marginLeft: 8, color: '#8c8c8c' }}>{activeEntry ? (activeEntry.status === 'RUNNING' ? 'Running' : 'Paused') : 'Start Timer'}</span>
+      </div>
+    );
+  }
 
   return (
     <Popover

@@ -1,4 +1,5 @@
 import React from "react";
+export const NAV_MOBILE_BREAKPOINT = 700;
 import { Permissions } from "@/types/permissions";
 import {
   DashboardOutlined,
@@ -491,11 +492,31 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/new-profile",
       },
       {
-        key: "/attendance",
+        key: "attendance-group",
         label: "Attendance",
         icon: <ClockCircleOutlined />,
-        path: "/attendance",
         requiredPermission: Permissions.ATTENDANCE_READ,
+        children: [
+          {
+            key: "/attendance/dashboard",
+            label: "Dashboard",
+            icon: <DashboardOutlined />,
+            path: "/attendance/dashboard",
+          },
+          {
+            key: "/attendance/clock-in-out",
+            label: "Clock In/Out",
+            icon: <ClockCircleOutlined />,
+            path: "/attendance/clock-in-out",
+          },
+          {
+            key: "/attendance/manage",
+            label: "Manage Attendance",
+            icon: <TeamOutlined />,
+            path: "/attendance/manage",
+            requiredPermission: Permissions.ATTENDANCE_MANAGE,
+          },
+        ],
       },
       {
         key: "leave-management-group",

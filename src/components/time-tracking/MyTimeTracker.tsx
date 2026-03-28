@@ -8,6 +8,7 @@ import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { PlayCircleOutlined as RunningIcon } from "@ant-design/icons";
+import { calculateNetDuration } from "@/utils/timeTrackingUtils";
 
 const { Text } = Typography;
 
@@ -41,23 +42,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   // Total time calculation (Completed Only)
   useEffect(() => {
     const calculateTotal = () => {
-      let totalSeconds = 0;
-
-      entries.forEach(entry => {
-        // Add recorded duration
-        totalSeconds += (entry.duration || 0);
-
-        // If running, add current live session time
-        if (entry.status === 'RUNNING' && entry.logs) {
-          const lastLog = [...entry.logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-          if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
-            const now = new Date().getTime();
-            const start = new Date(lastLog.createdAt).getTime();
-            totalSeconds += Math.floor((now - start) / 1000);
-          }
-        }
-      });
-
+      const totalSeconds = calculateNetDuration(entries);
       onTotalChange?.(totalSeconds);
     };
 

@@ -145,7 +145,12 @@ const createApiClient = (): AxiosInstance => {
         }
       }
 
-      if (token && config.headers) {
+      // Only add Authorization header to internal requests
+      const isInternalRequest = !config.url?.startsWith('http') || 
+                                 config.url?.startsWith(window.location.origin) ||
+                                 (process.env.NEXT_PUBLIC_API_URL && config.url?.startsWith(process.env.NEXT_PUBLIC_API_URL));
+
+      if (token && config.headers && isInternalRequest) {
         config.headers.Authorization = `Bearer ${token}`;
       }
 

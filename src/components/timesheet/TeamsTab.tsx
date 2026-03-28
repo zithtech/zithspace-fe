@@ -391,6 +391,12 @@ export default function TeamsTab({
             size="middle"
             loading={isLoading}
             pagination={{ pageSize: 10, position: ["bottomRight"], style: { padding: "12px 24px", margin: 0 } }}
+            onRow={(record) => ({
+              onClick: () => {
+                setSelectedTimesheet(record);
+                setIsModalOpen(true);
+              },
+            })}
             rowClassName={() => "history-table-row"}
             scroll={{ x: 1000 }}
           />
@@ -418,7 +424,7 @@ export default function TeamsTab({
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button danger size="middle" onClick={() => { setRejectOpen(true); setIsModalOpen(false); }} style={{ borderRadius: 8, fontWeight: 500 }} disabled={selectedTimesheet?.status === "REJECTED"}>Reject</Button>
-                <Button type="primary" size="middle" onClick={() => { setApproveOpen(true); setIsModalOpen(false); }} style={{ borderRadius: 8, background: "#0ea5e9", borderColor: "#0ea5e9", fontWeight: 500 }} disabled={selectedTimesheet?.status === "APPROVED"}>Approve</Button>
+                <Button type="primary" size="middle" onClick={() => { setApproveOpen(true); setIsModalOpen(false); }} style={{ borderRadius: 8, background: "#10b981", borderColor: "#10b981", fontWeight: 500 }} disabled={selectedTimesheet?.status === "APPROVED"}>Approve</Button>
                 <Button key="export" icon={<ExportOutlined />} onClick={() => handleExport(timesheetRows)} style={{ borderRadius: 8 }}>Export CSV</Button>,
               </div>
             </div>
@@ -463,50 +469,243 @@ export default function TeamsTab({
         </div>
       </Modal>
 
-      {/* Reject Drawer */}
+      {/* Enhanced Reject Drawer */}
       <Drawer
-        title={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><AlertCircle size={20} color="#ef4444" /> Reject Timesheet</div>}
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: 8, background: "#fef2f2", borderRadius: 8, display: "flex", color: "#ef4444" }}>
+              <AlertCircle size={18} />
+            </div>
+            <Text strong style={{ fontSize: 16 }}>Reject Timesheet Entry</Text>
+          </div>
+        }
         placement="right"
-        width={400}
+        width={420}
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
+        styles={{
+          header: { borderBottom: "1px solid #f1f5f9" },
+          body: { padding: 0 },
+          footer: { borderTop: "1px solid #f1f5f9", padding: "16px 24px" },
+        }}
         footer={
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
-            <Button onClick={() => setRejectOpen(false)} style={{ borderRadius: 8 }}>Cancel</Button>
-            <Button danger type="primary" loading={loading} disabled={!rejectReason} onClick={async () => {
-              if (!selectedTimesheet?.id) return;
-              try {
-                setLoading(true);
-                await reviewTimesheet(selectedTimesheet.id, "REJECTED", rejectReason);
-                message.success("Timesheet rejected successfully");
-                setRejectOpen(false);
-                setRejectReason("");
-                queryClient.invalidateQueries({ queryKey: ["timesheets"] });
-                onActionCompleted?.();
-              } catch (err) {
-                message.error("Action failed");
-              } finally {
-                setLoading(false);
-              }
-            }} style={{ borderRadius: 8 }}>Confirm Rejection</Button>
+            <Button onClick={() => setRejectOpen(false)} style={{ borderRadius: 8 }}>
+              Keep as is
+            </Button>
+            <Button
+              danger
+              type="primary"
+              loading={loading}
+              disabled={!rejectReason.trim()}
+              onClick={async () => {
+                if (!selectedTimesheet?.id) return;
+                try {
+                  setLoading(true);
+                  await reviewTimesheet(selectedTimesheet.id, "REJECTED", rejectReason);
+                  message.success("Timesheet rejected successfully");
+                  setRejectOpen(false);
+                  setRejectReason("");
+                  queryClient.invalidateQueries({ queryKey: ["timesheets"] });
+                  onActionCompleted?.();
+                } catch (err) {
+                  message.error("Action failed");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              style={{
+                borderRadius: 8,
+                height: 40,
+                padding: "0 24px",
+                fontWeight: 500,
+              }}
+            >
+              Confirm Rejection
+            </Button>
           </div>
         }
       >
-        <Text type="secondary" style={{ display: "block", marginBottom: 20 }}>Please provide a reason for rejecting this timesheet submission.</Text>
-        <Input.TextArea
-          rows={6}
-          value={rejectReason}
-          onChange={(e) => setRejectReason(e.target.value)}
-          placeholder="Explain what needs to be corrected..."
-          style={{ borderRadius: 10, resize: "none" }}
-        />
-        <div style={{ marginTop: 24 }}>
-          <Text strong style={{ display: "block", marginBottom: 12 }}>Common Reasons:</Text>
-          <Space wrap>
-            {["Incorrect project", "Missing description", "Hours mismatch"].map(r => (
-              <Button key={r} size="small" style={{ borderRadius: 6 }} onClick={() => setRejectReason(prev => prev ? `${prev}\n- ${r}` : `- ${r}`)}>{r}</Button>
-            ))}
-          </Space>
+        {selectedTimesheet && (
+          <div
+            style={{
+              padding: 24,
+              background: "#f8fafc",
+              borderBottom: "1px solid #f1f5f9",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Avatar
+                size={48}
+                style={{ backgroundColor: "#0ea5e9", fontWeight: 700 }}
+              >
+                {selectedTimesheet.user?.name?.charAt(0).toUpperCase()}
+              </Avatar>
+              <div style={{ flex: 1 }}>
+                <Text
+                  strong
+                  style={{ display: "block", fontSize: 16, color: "#1e293b" }}
+                >
+                  {selectedTimesheet.user?.name}
+                </Text>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}
+                >
+                  <Calendar size={12} color="#64748b" />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Week of{" "}
+                    {dayjs(selectedTimesheet.weekStart).format("MMM DD, YYYY")}
+                  </Text>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
+                marginTop: 20,
+              }}
+            >
+              <div
+                style={{
+                  padding: 12,
+                  background: "#ffffff",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                  Total Hours
+                </Text>
+                <Text strong style={{ fontSize: 16, color: "#1e293b" }}>
+                  {selectedTimesheet.totalHours}h
+                </Text>
+              </div>
+              <div
+                style={{
+                  padding: 12,
+                  background: "#ffffff",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <Text type="secondary" style={{ fontSize: 12, display: "block" }}>
+                  Submissions
+                </Text>
+                <Text strong style={{ fontSize: 16, color: "#1e293b" }}>
+                  {selectedTimesheet.rows?.length || 0} items
+                </Text>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ padding: 24 }}>
+          <div
+            style={{
+              marginBottom: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text strong style={{ color: "#334155" }}>
+              Rejection Reason <span style={{ color: "#ef4444" }}>*</span>
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {rejectReason.length} characters
+            </Text>
+          </div>
+
+          <Input.TextArea
+            rows={6}
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Please specify why this timesheet is being rejected and what needs to be fixed..."
+            style={{
+              borderRadius: 12,
+              resize: "none",
+              padding: 16,
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+            }}
+          />
+
+          <div style={{ marginTop: 24 }}>
+            <Text
+              strong
+              style={{
+                display: "block",
+                marginBottom: 12,
+                color: "#475569",
+                fontSize: 13,
+              }}
+            >
+              Quick Selection:
+            </Text>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {[
+                "Incorrect project",
+                "Missing description",
+                "Hours mismatch",
+                "Documentation required",
+                "Update task names",
+              ].map((r) => (
+                <Tag
+                  key={r}
+                  style={{
+                    cursor: "pointer",
+                    padding: "6px 12px",
+                    borderRadius: 20,
+                    margin: 0,
+                    userSelect: "none",
+                    background: rejectReason.includes(r) ? "#ebf5ff" : "#f1f5f9",
+                    color: rejectReason.includes(r) ? "#0ea5e9" : "#475569",
+                    border: rejectReason.includes(r)
+                      ? "1px solid #0ea5e9"
+                      : "1px solid #e2e8f0",
+                    fontWeight: 500,
+                  }}
+                  onClick={() => {
+                    const prefix = rejectReason
+                      ? rejectReason.endsWith("\n")
+                        ? ""
+                        : "\n"
+                      : "";
+                    if (!rejectReason.includes(r)) {
+                      setRejectReason((prev) => `${prev}${prefix}- ${r}`);
+                    }
+                  }}
+                >
+                  {r}
+                </Tag>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 32,
+              padding: 16,
+              background: "#fffbeb",
+              borderRadius: 12,
+              border: "1px solid #fde68a",
+              display: "flex",
+              gap: 12,
+            }}
+          >
+            <AlertCircle
+              size={18}
+              color="#d97706"
+              style={{ flexShrink: 0, marginTop: 2 }}
+            />
+            <Text style={{ fontSize: 13, color: "#92400e", lineHeight: 1.5 }}>
+              The employee will be notified and will need to revise and resubmit
+              their timesheet based on your feedback.
+            </Text>
+          </div>
         </div>
       </Drawer>
 

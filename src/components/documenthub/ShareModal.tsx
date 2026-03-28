@@ -9,10 +9,13 @@ import {
     CopyOutlined,
     CheckOutlined,
     LinkOutlined,
+    ShareAltOutlined,
+    ArrowRightOutlined
 } from '@ant-design/icons';
 import { documentHubService as DocumentHubService } from '@/services/documentHub';
+import { format } from 'date-fns';
 
-const { Text, Paragraph } = Typography;
+const { Text, Title, Paragraph } = Typography;
 
 interface ShareModalProps {
     open: boolean;
@@ -29,21 +32,27 @@ const visibilityOptions = [
         icon: <LockOutlined />,
         label: 'Private',
         description: 'Only you can access this document',
-        color: '#595959',
+        bgColor: '#f9fafb',
+        activeColor: '#6b7280',
+        borderColor: '#e5e7eb',
     },
     {
         value: 'internal',
         icon: <TeamOutlined />,
         label: 'Internal',
-        description: 'All members in your workspace can view',
-        color: '#1677ff',
+        description: 'All workspace members can view',
+        bgColor: '#eff6ff',
+        activeColor: '#3b82f6',
+        borderColor: '#bfdbfe',
     },
     {
         value: 'public',
         icon: <GlobalOutlined />,
         label: 'Public',
         description: 'Anyone with the link can view',
-        color: '#52c41a',
+        bgColor: '#f0fdf4',
+        activeColor: '#22c55e',
+        borderColor: '#bbf7d0',
     },
 ];
 
@@ -62,11 +71,15 @@ const ShareModal: React.FC<ShareModalProps> = ({
     const [messageApi, contextHolder] = message.useMessage();
 
     useEffect(() => {
-        setVisibility(currentVisibility);
-        setShareToken(currentShareToken);
+        if (open) {
+            setVisibility(currentVisibility);
+            setShareToken(currentShareToken);
+        }
     }, [currentVisibility, currentShareToken, open]);
 
     const handleVisibilityChange = async (newVisibility: string) => {
+        if (newVisibility === visibility) return;
+        
         setIsUpdating(true);
         try {
             const result = await DocumentHubService.shareDocument(
@@ -75,7 +88,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             );
             setVisibility(newVisibility);
             setShareToken(result.shareToken || null);
-            messageApi.success(`Document visibility set to ${newVisibility}`);
+            messageApi.success(`Visibility updated to ${newVisibility}`);
         } catch (error) {
             console.error(error);
             messageApi.error('Failed to update sharing settings');
@@ -90,7 +103,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             await DocumentHubService.revokeShare(documentId);
             setVisibility('private');
             setShareToken(null);
-            messageApi.success('Sharing revoked');
+            messageApi.success('Sharing access revoked');
         } catch (error) {
             console.error(error);
             messageApi.error('Failed to revoke sharing');
@@ -117,156 +130,194 @@ const ShareModal: React.FC<ShareModalProps> = ({
         }
     };
 
-    const currentOption = visibilityOptions.find((o) => o.value === visibility);
-
     return (
         <Modal
             title={
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <LinkOutlined />
-                    <span>Share Document</span>
+                <div className="flex items-center gap-2.5 py-1">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                        <ShareAltOutlined className="text-lg" />
+                    </div>
+                    <div>
+                        <Title level={5} className="!mb-0 text-gray-800">Share Document</Title>
+                        <Text type="secondary" className="text-[11px] font-normal uppercase tracking-wider">Configure Access Settings</Text>
+                    </div>
                 </div>
             }
             open={open}
             onCancel={onClose}
             footer={
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    {visibility !== 'private' && (
-                        <Button danger onClick={handleRevokeShare} loading={isUpdating}>
-                            Revoke Access
+                <div className="flex justify-between items-center py-2">
+                    {visibility !== 'private' ? (
+                        <Button 
+                            danger 
+                            type="text" 
+                            size="small"
+                            onClick={handleRevokeShare} 
+                            loading={isUpdating}
+                            className="font-medium hover:!bg-red-50"
+                        >
+                            Revoke All Access
                         </Button>
-                    )}
-                    <div style={{ marginLeft: 'auto' }}>
-                        <Button onClick={onClose}>Close</Button>
-                    </div>
+                    ) : <div />}
+                    <Button 
+                        onClick={onClose}
+                        className="rounded-lg px-6 font-medium border-gray-200 hover:border-blue-400 hover:text-blue-500"
+                    >
+                        Done
+                    </Button>
                 </div>
             }
-            width={480}
+            width={520}
             destroyOnClose
+            className="premium-share-modal"
+            centered
         >
             {contextHolder}
-            <div style={{ marginBottom: 16 }}>
-                <Text type="secondary">Sharing: </Text>
-                <Text strong>{documentTitle}</Text>
-            </div>
+            <div className="mt-2 mb-4 px-1">
+                <div className="bg-gray-50 rounded-xl p-2.5 border border-gray-100 flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm flex-shrink-0">
+                            <LinkOutlined className="text-base" />
+                        </div>
+                        <div className="min-w-0">
+                            <Text type="secondary" className="text-[10px] block leading-none mb-1">Editing Document</Text>
+                            <Text strong className="text-[13px] block truncate text-gray-800 leading-tight">{documentTitle}</Text>
+                        </div>
+                    </div>
+                </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <Text strong style={{ display: 'block', marginBottom: 12 }}>
-                    Visibility
-                </Text>
-                <Radio.Group
-                    value={visibility}
-                    onChange={(e) => handleVisibilityChange(e.target.value)}
-                    disabled={isUpdating}
-                    style={{ width: '100%' }}
-                >
-                    <Space direction="vertical" style={{ width: '100%' }} size={8}>
-                        {visibilityOptions.map((option) => (
-                            <Radio
-                                key={option.value}
-                                value={option.value}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    border: '1px solid',
-                                    borderColor:
-                                        visibility === option.value ? option.color : '#f0f0f0',
-                                    borderRadius: 8,
-                                    backgroundColor:
-                                        visibility === option.value ? `${option.color}08` : '#fff',
-                                    transition: 'all 0.2s',
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ color: option.color, fontSize: 16 }}>
-                                        {option.icon}
-                                    </span>
-                                    <div>
-                                        <div style={{ fontWeight: 500 }}>{option.label}</div>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            {option.description}
-                                        </Text>
+                <div className="mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <Text strong className="text-[12px] text-gray-700">Select Visibility</Text>
+                        <Tooltip title="Visibility controls who can see this document">
+                            <Text type="secondary" className="text-[10px] cursor-help font-medium">Settings Guide</Text>
+                        </Tooltip>
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                        {visibilityOptions.map((option) => {
+                            const isActive = visibility === option.value;
+                            return (
+                                <div
+                                    key={option.value}
+                                    onClick={() => !isUpdating && handleVisibilityChange(option.value)}
+                                    className={`
+                                        relative group cursor-pointer rounded-xl p-3 border transition-all duration-200
+                                        ${isActive 
+                                            ? `bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] ring-1 ring-opacity-10` 
+                                            : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}
+                                    `}
+                                    style={{
+                                        borderColor: isActive ? option.activeColor : undefined,
+                                        boxShadow: isActive ? `0 2px 8px ${option.activeColor}10` : undefined,
+                                        ringColor: isActive ? option.activeColor : undefined
+                                    } as any}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div 
+                                                className="w-9 h-9 rounded-lg flex items-center justify-center text-base transition-colors border"
+                                                style={{ 
+                                                    backgroundColor: isActive ? 'white' : option.bgColor,
+                                                    color: isActive ? option.activeColor : '#6b7280',
+                                                    borderColor: isActive ? `${option.activeColor}40` : 'transparent'
+                                                }}
+                                            >
+                                                {option.icon}
+                                            </div>
+                                            <div>
+                                                <Text className={`font-semibold block text-sm ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
+                                                    {option.label}
+                                                </Text>
+                                                <Text className="text-[10px] text-gray-400 block mt-0.5 leading-tight">
+                                                    {option.description}
+                                                </Text>
+                                            </div>
+                                        </div>
+                                        <div className={`
+                                            w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all
+                                            ${isActive ? 'bg-white' : 'border-gray-200'}
+                                        `}
+                                        style={{ borderColor: isActive ? option.activeColor : undefined }}>
+                                            {isActive && (
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: option.activeColor }} />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </Radio>
-                        ))}
-                    </Space>
-                </Radio.Group>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {visibility === 'public' && shareToken && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Divider className="!my-4" />
+                        <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                            <div className="flex items-center justify-between mb-2">
+                                <Text strong className="text-[12px] text-blue-900 flex items-center gap-1.5">
+                                    <GlobalOutlined /> Public Share Link
+                                </Text>
+                                <Tag color="blue" className="!mr-0 border-blue-200 text-[9px] px-1.5 leading-tight py-0 rounded-full uppercase font-bold tracking-tight">Active</Tag>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                                <div className="flex-1 bg-white border border-blue-100 rounded-lg px-2.5 py-2 flex items-center min-w-0">
+                                    <Text
+                                        ellipsis
+                                        className="text-[11px] font-mono text-gray-500 flex-1"
+                                    >
+                                        {getShareUrl()}
+                                    </Text>
+                                </div>
+                                <Tooltip title={copied ? 'Copied' : 'Copy link'}>
+                                    <Button
+                                        type="primary"
+                                        icon={copied ? <CheckOutlined /> : <CopyOutlined />}
+                                        onClick={handleCopyLink}
+                                        className={`rounded-lg border-none flex items-center justify-center transition-all duration-300 ${copied ? 'bg-green-500 hover:!bg-green-600' : 'bg-blue-600 hover:!bg-blue-700'}`}
+                                        style={{ width: 36, height: 36 }}
+                                    />
+                                </Tooltip>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {visibility === 'internal' && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Divider className="!my-4" />
+                        <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100/60 flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-blue-500 flex-shrink-0 shadow-sm border border-blue-50">
+                                <TeamOutlined className="text-xs" />
+                            </div>
+                            <Text className="text-[11px] text-blue-700 font-medium">
+                                Internal access is active. Workspace members can view this document.
+                            </Text>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {visibility === 'public' && shareToken && (
-                <>
-                    <Divider style={{ margin: '16px 0' }} />
-                    <div>
-                        <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                            Share Link
-                        </Text>
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '8px 12px',
-                                background: '#f5f5f5',
-                                borderRadius: 8,
-                                border: '1px solid #e8e8e8',
-                            }}
-                        >
-                            <LinkOutlined style={{ color: '#8c8c8c', flexShrink: 0 }} />
-                            <Text
-                                ellipsis
-                                style={{
-                                    flex: 1,
-                                    fontSize: 13,
-                                    fontFamily: 'monospace',
-                                    color: '#595959',
-                                }}
-                            >
-                                {getShareUrl()}
-                            </Text>
-                            <Tooltip title={copied ? 'Copied!' : 'Copy link'}>
-                                <Button
-                                    type="text"
-                                    size="small"
-                                    icon={
-                                        copied ? (
-                                            <CheckOutlined style={{ color: '#52c41a' }} />
-                                        ) : (
-                                            <CopyOutlined />
-                                        )
-                                    }
-                                    onClick={handleCopyLink}
-                                />
-                            </Tooltip>
-                        </div>
-                        <Text
-                            type="secondary"
-                            style={{ fontSize: 12, display: 'block', marginTop: 8 }}
-                        >
-                            Anyone with this link can view the document without logging in.
-                        </Text>
-                    </div>
-                </>
-            )}
-
-            {visibility === 'internal' && (
-                <>
-                    <Divider style={{ margin: '16px 0' }} />
-                    <div
-                        style={{
-                            padding: '12px 16px',
-                            background: '#e6f4ff',
-                            borderRadius: 8,
-                            border: '1px solid #91caff',
-                        }}
-                    >
-                        <Text style={{ fontSize: 13, color: '#0958d9' }}>
-                            <TeamOutlined style={{ marginRight: 6 }} />
-                            All members in your workspace can view this document.
-                        </Text>
-                    </div>
-                </>
-            )}
+            <style jsx global>{`
+                .premium-share-modal .ant-modal-content {
+                    border-radius: 16px;
+                    padding: 16px 20px !important;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                }
+                .premium-share-modal .ant-modal-header {
+                    margin-bottom: 16px;
+                    padding-bottom: 12px;
+                    border-bottom: 1px solid #f3f4f6;
+                }
+                .premium-share-modal .ant-modal-close {
+                    top: 16px;
+                    right: 16px;
+                }
+                @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slide-in-from-top-2 { from { transform: translateY(-0.5rem); } to { transform: translateY(0); } }
+                .animate-in { animation: fade-in 0.3s ease-out, slide-in-from-top-2 0.3s ease-out; }
+            `}</style>
         </Modal>
     );
 };

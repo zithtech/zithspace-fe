@@ -34,7 +34,7 @@ import {
 } from "@ant-design/icons";
 import { useMail, useMailThreads, useThreadMessages, useMailStatus, useMailContacts } from "@/hooks/useMail";
 import { MailService, MailMessage } from "@/services/mailService";
-import { userService, User } from "@/services/userService";
+
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import TiptapEditor from "@/components/common/TiptapEditor";

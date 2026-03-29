@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { Suspense } from "react";
 import { useState, useEffect, useCallback } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import {
@@ -91,7 +91,7 @@ const StatCard = ({ title, value, icon, color, bgColor, tooltip }: { title: stri
   </Card>
 );
 
-export default function SalaryPreviewPage() {
+function SalaryPreviewPage() {
   const searchParams = useSearchParams();
   const [selectedMonth, setSelectedMonth] = useState<string>();
   const [selectedEmployee, setSelectedEmployee] = useState<string>();
@@ -1041,5 +1041,13 @@ export default function SalaryPreviewPage() {
         </div>
       </Modal>
     </MainLayout>
+  );
+}
+
+export default function SalaryPreviewPageWrapper() {
+  return (
+    <Suspense>
+      <SalaryPreviewPage />
+    </Suspense>
   );
 }

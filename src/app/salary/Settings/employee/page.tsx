@@ -118,7 +118,7 @@ export default function EmployeeSettings() {
     // setEmployeeFields(prev => prev.filter(field => field.systemKey !== systemKey));
   };
   return (
-    <Card style={{ marginTop: -16, marginLeft: 5 }}>
+    <Card>
       {/* HEADER */}
       <Space style={{ width: "100%", justifyContent: "space-between" }}>
         <div>

@@ -214,7 +214,7 @@ export default function CompanyPage() {
 
   return (
     <div>
-      <Card style={{ marginLeft: 5, marginTop: -16 }} size="small">
+      <Card size="small">
         {/* Header */}
         <div
           style={{

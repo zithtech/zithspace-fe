@@ -231,23 +231,18 @@ export default function UpdateDetailsDrawer({
                   </div>
                   <Text strong style={{ fontSize: 14, color: "#0f172a" }}>{project.projectName}</Text>
                 </div>
-                <Tag style={{ borderRadius: 6, margin: 0, border: "none", background: "#dcfce7", color: "#166534", fontWeight: 600 }}>
-                  {formatHours(project.hoursWorked)}
-                </Tag>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+                    {formatTime(project.startTime)} - {formatTime(project.endTime)}
+                  </Text>
+                  <Tag style={{ borderRadius: 6, margin: 0, border: "none", background: "#dcfce7", color: "#166534", fontWeight: 600 }}>
+                    {formatHours(project.hoursWorked)}
+                  </Tag>
+                </div>
               </div>
 
               <div style={{ padding: 20 }}>
-                {/* Time range */}
-                <div style={{ display: "flex", gap: 24, marginBottom: 20 }}>
-                  <div>
-                    <Text style={{ display: "block", fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>START TIME</Text>
-                    <Text strong style={{ fontSize: 13, color: "#334155" }}>{formatTime(project.startTime)}</Text>
-                  </div>
-                  <div>
-                    <Text style={{ display: "block", fontSize: 11, color: "#94a3b8", fontWeight: 600 }}>END TIME</Text>
-                    <Text strong style={{ fontSize: 13, color: "#334155" }}>{formatTime(project.endTime)}</Text>
-                  </div>
-                </div>
+
 
                 {/* Tasks */}
                 <Text strong style={{ display: "block", fontSize: 12, color: "#64748b", marginBottom: 12, textTransform: "uppercase" }}>

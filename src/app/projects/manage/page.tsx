@@ -741,94 +741,98 @@ const ProjectsManagePage: React.FC = () => {
           />
         )}
 
-        {/* Filters Section */}
+        {/* Filters & All Projects Section */}
         <div style={{
           marginBottom: 16,
-          padding: "16px 20px",
-          background: "rgba(0, 0, 0, 0.02)",
+          padding: "16px 0px",
           borderRadius: 16,
           display: "flex",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: 12
+          gap: 12,
+          justifyContent: "space-between"
         }}>
-          <Input
-            placeholder="Search projects..."
-            prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
-            value={filters.search || ""}
-            onChange={(e) => handleSearch(e.target.value)}
-            style={{ width: 260, height: 40, borderRadius: 10 }}
-            allowClear
-          />
+          {/* All Projects Text - Left Aligned */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 4, height: 18, background: "#1677ff", borderRadius: 2 }} />
+            <Text strong style={{ fontSize: 16, color: "#1f1f1f", whiteSpace: "nowrap" }}>
+              All Projects
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+              ({projects.length})
+            </Text>
+          </div>
 
-          <Select
-            placeholder="Status"
-            value={filters.status}
-            onChange={handleStatusFilter}
-            style={{ width: 160, height: 40 }}
-            allowClear
-            styles={{ popup: { root: { borderRadius: 12 } } }}
-          >
-            <Option value="planning">Planning</Option>
-            <Option value="active">Active</Option>
-            <Option value="on-hold">On Hold</Option>
-            <Option value="completed">Completed</Option>
-            <Option value="cancelled">Cancelled</Option>
-          </Select>
+          {/* Filters Group - Right Aligned */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <Input
+              placeholder="Search projects..."
+              prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
+              value={filters.search || ""}
+              onChange={(e) => handleSearch(e.target.value)}
+              style={{ width: 260, height: 40, borderRadius: 10 }}
+              allowClear
+            />
 
-          <Select
-            placeholder="Project Manager"
-            value={filters.projectManagerId}
-            onChange={handleProjectManagerFilter}
-            style={{ width: 220, height: 40 }}
-            allowClear
-            showSearch
-            styles={{ popup: { root: { borderRadius: 12 } } }}
-            filterOption={(input, option) => {
-              const member = members.find((m) => m.value === option?.value);
-              return member
-                ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                member.position
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-                : false;
-            }}
-          >
-            {members.map((member) => (
-              <Option key={member.value} value={member.value}>
-                {member.label}
-              </Option>
-            ))}
-          </Select>
-
-          <RangePicker
-            placeholder={["Start", "End"]}
-            onChange={handleDateRangeFilter}
-            style={{ width: 240, height: 40, borderRadius: 10 }}
-          />
-
-          {(filters.search || filters.status || filters.projectManagerId || filters.startDate) && (
-            <Button
-              type="text"
-              danger
-              onClick={() => setFilters({ page: 1, limit: 10 })}
-              style={{ fontWeight: 500 }}
+            <Select
+              placeholder="Status"
+              value={filters.status}
+              onChange={handleStatusFilter}
+              style={{ width: 160, height: 40 }}
+              allowClear
+              styles={{ popup: { root: { borderRadius: 12 } } }}
             >
-              Clear Filters
-            </Button>
-          )}
+              <Option value="planning">Planning</Option>
+              <Option value="active">Active</Option>
+              <Option value="on-hold">On Hold</Option>
+              <Option value="completed">Completed</Option>
+              <Option value="cancelled">Cancelled</Option>
+            </Select>
+
+            <Select
+              placeholder="Project Manager"
+              value={filters.projectManagerId}
+              onChange={handleProjectManagerFilter}
+              style={{ width: 220, height: 40 }}
+              allowClear
+              showSearch
+              styles={{ popup: { root: { borderRadius: 12 } } }}
+              filterOption={(input, option) => {
+                const member = members.find((m) => m.value === option?.value);
+                return member
+                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
+                  member.position
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                  : false;
+              }}
+            >
+              {members.map((member) => (
+                <Option key={member.value} value={member.value}>
+                  {member.label}
+                </Option>
+              ))}
+            </Select>
+
+            <RangePicker
+              placeholder={["Start", "End"]}
+              onChange={handleDateRangeFilter}
+              style={{ width: 240, height: 40, borderRadius: 10 }}
+            />
+
+            {(filters.search || filters.status || filters.projectManagerId || filters.startDate) && (
+              <Button
+                type="text"
+                danger
+                onClick={() => setFilters({ page: 1, limit: 10 })}
+                style={{ fontWeight: 500 }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* All Projects Section */}
-        <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 4, height: 18, background: "#1677ff", borderRadius: 2 }} />
-          <Text strong style={{ fontSize: 16, color: "#1f1f1f" }}>
-            All Projects
-          </Text>
-          <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
-            ({projects.length})
-          </Text>
-        </div>
 
         {/* Projects Card View - DASHBOARD STYLE */}
         {viewMode === "card" ? (

@@ -9,6 +9,7 @@ import TicketList from '@/components/projects/TicketList';
 import { ProjectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
 import { usePermission } from '@/hooks/usePermission';
+import TicketSkeleton from '@/components/projects/TicketSkeleton';
 
 interface PageProps {
   params: Promise<{ projectId: string }>;
@@ -42,15 +43,7 @@ export default function ProjectTicketsPage({ params }: PageProps) {
   }, [error, project, projectLoading, projectId]);
 
   if (authLoading || projectLoading) {
-    return (
-      <MainLayout>
-        <div style={{ padding: 20, textAlign: 'center', paddingTop: 100 }}>
-          <Spin size="large" tip="Loading project">
-            <div style={{ padding: 50 }} />
-          </Spin>
-        </div>
-      </MainLayout>
-    );
+    return <TicketSkeleton fullPage={true} />;
   }
 
   if (error || !project) {

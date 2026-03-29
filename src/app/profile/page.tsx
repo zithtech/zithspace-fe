@@ -274,7 +274,7 @@ export default function ProfilePage() {
                       <Title level={4} style={{ margin: 0 }}>
                         {userProfile.name}
                       </Title>
-                      <Text type="secondary">{userProfile.position}</Text>
+                      <Text type="secondary">{userProfile.position?.title || 'No Position'}</Text>
                     </div>
                   </div>
 
@@ -315,7 +315,7 @@ export default function ProfilePage() {
                         {userProfile.reportsTo.name}
                         <br />
                         <Text type="secondary" style={{ fontSize: 11 }}>
-                          {userProfile.reportsTo?.position}
+                          {userProfile.reportsTo?.position?.title || 'No Position'}
                         </Text>
                       </Descriptions.Item>
                     )}

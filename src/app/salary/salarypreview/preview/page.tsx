@@ -91,7 +91,7 @@ const StatCard = ({ title, value, icon, color, bgColor, tooltip }: { title: stri
   </Card>
 );
 
-function SalaryPreviewContent() {
+function SalaryPreviewPage() {
   const searchParams = useSearchParams();
   const [selectedMonth, setSelectedMonth] = useState<string>();
   const [selectedEmployee, setSelectedEmployee] = useState<string>();
@@ -1044,11 +1044,10 @@ function SalaryPreviewContent() {
   );
 }
 
-export default function SalaryPreviewPage() {
+export default function SalaryPreviewPageWrapper() {
   return (
-    <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}><Spin size="large" /></div>}>
-      <SalaryPreviewContent />
+    <Suspense>
+      <SalaryPreviewPage />
     </Suspense>
   );
 }
-

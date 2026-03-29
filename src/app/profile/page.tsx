@@ -70,9 +70,9 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         const userProfile = await AuthService.getProfile();
-        
+
         setUserProfile(userProfile);
-        
+
         // Pre-fill the form with current data
         profileForm.setFieldsValue({
           name: userProfile.name || '',
@@ -112,10 +112,10 @@ export default function ProfilePage() {
       };
 
       const updatedProfile = await AuthService.updateProfile(updateData);
-      
+
       setSuccess('Profile updated successfully!');
       setUserProfile(updatedProfile);
-      
+
       // Update the form with the latest data
       profileForm.setFieldsValue({
         name: updatedProfile.name || '',
@@ -160,7 +160,7 @@ export default function ProfilePage() {
       };
 
       await AuthService.changePassword(passwordData);
-      
+
       setSuccess('Password changed successfully!');
       passwordForm.resetFields();
     } catch (error) {
@@ -282,34 +282,34 @@ export default function ProfilePage() {
 
                   {/* Detailed Information */}
                   <Descriptions column={1} size="small">
-                    <Descriptions.Item 
+                    <Descriptions.Item
                       label={<><TeamOutlined /> Role</>}
                     >
                       <Tag color={getRoleColor(userProfile.role)} style={{ fontSize: 11 }}>
                         {userProfile.role.toUpperCase()}
                       </Tag>
                     </Descriptions.Item>
-                    
-                    <Descriptions.Item 
+
+                    <Descriptions.Item
                       label={<><PhoneOutlined /> Phone</>}
                     >
                       {userProfile.phone}
                     </Descriptions.Item>
-                    
-                    <Descriptions.Item 
+
+                    <Descriptions.Item
                       label={<><MailOutlined /> Work Email</>}
                     >
                       {userProfile.workEmail}
                     </Descriptions.Item>
-                    
-                    <Descriptions.Item 
+
+                    <Descriptions.Item
                       label={<><MailOutlined /> Personal Email</>}
                     >
                       {userProfile.personalEmail}
                     </Descriptions.Item>
-                    
+
                     {userProfile.reportsTo && (
-                      <Descriptions.Item 
+                      <Descriptions.Item
                         label={<><UserOutlined /> Reports To</>}
                       >
                         {userProfile.reportsTo.name}
@@ -319,21 +319,21 @@ export default function ProfilePage() {
                         </Text>
                       </Descriptions.Item>
                     )}
-                    
+
                     {userProfile.dateOfBirth && (
-                      <Descriptions.Item 
+                      <Descriptions.Item
                         label={<><CalendarOutlined /> Date of Birth</>}
                       >
                         {dayjs(userProfile.dateOfBirth).format('MMM DD, YYYY')}
                       </Descriptions.Item>
                     )}
-                    
-                    <Descriptions.Item 
+
+                    <Descriptions.Item
                       label={<><CalendarOutlined /> Joined</>}
                     >
                       {dayjs(userProfile.createdAt).format('MMM DD, YYYY')}
                     </Descriptions.Item>
-                    
+
                     <Descriptions.Item label="Status">
                       <Tag color={userProfile.isActive ? 'green' : 'red'} style={{ fontSize: 11 }}>
                         {userProfile.isActive ? 'ACTIVE' : 'INACTIVE'}
@@ -381,7 +381,7 @@ export default function ProfilePage() {
                         <Input placeholder="Enter your full name" />
                       </Form.Item>
                     </Col>
-                    
+
                     <Col xs={24} sm={12}>
                       <Form.Item
                         name="phone"
@@ -408,7 +408,7 @@ export default function ProfilePage() {
                         <Input placeholder="Enter your personal email" />
                       </Form.Item>
                     </Col>
-                    
+
                     <Col xs={24} sm={12}>
                       <Form.Item
                         name="workEmail"
@@ -487,7 +487,7 @@ export default function ProfilePage() {
                         <Input.Password placeholder="Enter your new password" />
                       </Form.Item>
                     </Col>
-                    
+
                     <Col xs={24} sm={12}>
                       <Form.Item
                         name="confirmPassword"

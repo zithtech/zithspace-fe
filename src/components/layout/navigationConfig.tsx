@@ -49,6 +49,8 @@ import {
   AppstoreOutlined,
   CheckCircleOutlined,
   ScheduleOutlined,
+  AliyunOutlined,
+  AlertOutlined
 } from "@ant-design/icons";
 import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
@@ -106,7 +108,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/integrations",
         label: "Integrations",
-        icon: <DashboardOutlined />,
+        icon: <AliyunOutlined />,
         path: "/integrations",
       },
     ],
@@ -727,7 +729,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "FINANCE",
     label: "FINANCE",
     icon: <WalletOutlined />,
-    pathPrefixes: ["/accounts", "/invoicepro", "/reimbursement", "/salary"],
+    pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/salary"],
     defaultPath: "/accounts",
     requiredAnyPermission: [
       Permissions.TRANSACTION_READ,
@@ -748,59 +750,59 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       //   path: "/clients-v2",
       // },
       {
-        key: "invoicepro",
+        key: "invoice",
         label: "Invoice",
         icon: <AccountBookOutlined />,
         requiredPermission: Permissions.INVOICE_READ,
         children: [
           {
-            key: "/invoicepro/dashboard",
+            key: "/invoice/",
             label: "Dashboard",
             icon: <BarChartOutlined />,
-            path: "/invoicepro/dashboard",
+            path: "/invoice/dashboard",
             requiredPermission: Permissions.INVOICE_READ,
           },
           {
-            key: "/invoicepro/invoices",
+            key: "/invoice/invoices",
             label: "Invoices",
             icon: <FileSyncOutlined />,
-            path: "/invoicepro/invoices",
+            path: "/invoice/invoices",
             requiredPermission: Permissions.INVOICE_READ,
           },
           {
-            key: "/invoicepro/newinvoice",
+            key: "/invoice/newinvoice",
             label: "New Invoice",
             icon: <FileAddOutlined />,
-            path: "/invoicepro/newinvoice",
+            path: "/invoice/newinvoice",
             requiredPermission: Permissions.INVOICE_CREATE,
           },
           {
-            key: "/invoicepro/templates",
+            key: "/invoice/templates",
             label: "Template",
-            icon: <FileAddOutlined />,
-            path: "/invoicepro/templates",
+            icon: <AlertOutlined />,
+            path: "/invoice/templates",
             requiredPermission: Permissions.INVOICE_CREATE,
           },
 
           {
-            key: "/invoicepro/customers",
+            key: "/invoice/customers",
             label: "Customers",
             icon: <UserAddOutlined />,
-            path: "/invoicepro/customers",
+            path: "/invoice/customers",
             requiredPermission: Permissions.INVOICE_READ,
           },
           {
-            key: "/invoicepro/settings",
+            key: "/invoice/settings",
             label: "Settings",
             icon: <SettingOutlined />,
-            path: "/invoicepro/settings",
+            path: "/invoice/settings",
             requiredPermission: Permissions.SETTINGS_UPDATE,
           },
           {
-            key: "/invoicepro/trash",
+            key: "/invoice/trash",
             label: "Trash",
             icon: <DeleteOutlined />,
-            path: "/invoicepro/trash",
+            path: "/invoice/trash",
             requiredPermission: Permissions.INVOICE_READ,
           },
         ],
@@ -865,7 +867,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/salary/Generate-payslip",
             requiredPermission: Permissions.SALARY_MANAGE,
           },
-            {
+          {
             key: "/salary/approved-payouts",
             label: "Approved Payrolls",
             icon: <SolutionOutlined />,

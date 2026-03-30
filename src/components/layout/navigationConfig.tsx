@@ -61,7 +61,7 @@ import { TiGroup } from "react-icons/ti";
 import { BsGridFill } from "react-icons/bs";
 import { TiGroupOutline } from "react-icons/ti";
 import { BsPersonFillCheck } from "react-icons/bs";
-export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN";
+export type ModuleType = "HOME" | "WORK" | "HRMS" | "FINANCE" | "ADMIN" | "REC_SUITE";
 
 export interface NavItem {
   key: string;
@@ -300,16 +300,9 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
       {
         key: "squadManagement",
-        label: "Squad Management",
+        label: "Squads",
         icon: <TiGroup />,
         path: "/squad",
-        requiredPermission: Permissions.DOCUMENT_READ,
-      },
-      {
-        key: "candidateForm",
-        label: "Candidate Form",
-        icon: <BsPersonWorkspace />,
-        path: "/candidateForm",
         requiredPermission: Permissions.DOCUMENT_READ,
       },
       {
@@ -353,9 +346,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/settings",
       "/admin",
       "/roles",
-      "/recruitment-client",
-      "/implementation-partner",
-      "/vendor",
     ],
     defaultPath: "/clients-v2",
     requiredAnyPermission: [
@@ -364,12 +354,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       Permissions.ROLE_READ,
     ],
     items: [
-      {
-        key: "/clients",
-        label: "Clients (Legacy)",
-        icon: <UserAddOutlined />,
-        path: "/clients",
-      },
+      // {
+      //   key: "/clients",
+      //   label: "Clients (Legacy)",
+      //   icon: <UserAddOutlined />,
+      //   path: "/clients",
+      // },
       {
         key: "/clients-v2",
         label: "Clients V2",
@@ -381,27 +371,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "General Settings",
         icon: <ControlOutlined />,
         path: "/settings",
-        requiredPermission: Permissions.SETTINGS_READ,
-      },
-      {
-        key: "/implementation-partner",
-        label: "Implementations",
-        icon: <BsGridFill />,
-        path: "/implementation-partner",
-        requiredPermission: Permissions.SETTINGS_READ,
-      },
-      {
-        key: "/recruitment-client",
-        label: "Recruitment Client",
-        icon: <TiGroupOutline />,
-        path: "/recruitment-client",
-        requiredPermission: Permissions.SETTINGS_READ,
-      },
-      {
-        key: "/vendor",
-        label: "Vendor",
-        icon: <BsPersonFillCheck />,
-        path: "/vendor",
         requiredPermission: Permissions.SETTINGS_READ,
       },
       {
@@ -467,7 +436,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/add-goverment-leaves",
       "/org-structure",
       "/onboarding",
-      "/recruitment",
       "/employee-exit",
       "/performance",
     ],
@@ -685,43 +653,12 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
-      // {
-      //   key: "/recruitment-settings",
-      //   label: "Status & Actions",
-      //   icon: <SolutionOutlined />,
-      //   path: "/recruitment-settings",
-      // },
       {
         key: "/performance",
         label: "Performance View",
         icon: <BarChartOutlined />,
         path: "/perfomance-management",
         requiredPermission: Permissions.USER_READ,
-      },
-      {
-        key: "recruitment-group",
-        icon: <TeamOutlined />,
-        label: "Recruitment",
-        children: [
-          {
-            key: "/recruitment/job-requisitions",
-            label: "Job Requisitions",
-            icon: <ProjectOutlined />,
-            path: "/recruitment/job-requisitions",
-          },
-          {
-            key: "/recruitment/candidate-management",
-            label: "Candidate Management",
-            icon: <UserAddOutlined />,
-            path: "/recruitment/candidate-management",
-          },
-          {
-            key: "/recruitment-settings",
-            label: "Status & Actions",
-            icon: <SolutionOutlined />,
-            path: "/recruitment-settings",
-          },
-        ],
       },
     ],
   },
@@ -743,12 +680,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <WalletOutlined />,
         path: "/accounts",
       },
-      // {
-      //   key: "/clients-v2",
-      //   label: "Client Management",
-      //   icon: <TeamOutlined />,
-      //   path: "/clients-v2",
-      // },
       {
         key: "invoice",
         label: "Invoice",
@@ -783,7 +714,6 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
             path: "/invoice/templates",
             requiredPermission: Permissions.INVOICE_CREATE,
           },
-
           {
             key: "/invoice/customers",
             label: "Customers",
@@ -935,4 +865,71 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       },
     ],
   },
+  // {
+  //   key: "REC_SUITE",
+  //   label: "REC SUITE",
+  //   icon: <AppstoreOutlined />,
+  //   pathPrefixes: [
+  //     "/implementation-partner",
+  //     "/recruitment-client",
+  //     "/vendor",
+  //     "/candidateForm",
+  //     "/recruitment",
+  //     "/recruitment-settings",
+  //   ],
+  //   defaultPath: "/implementation-partner",
+  //   requiredAnyPermission: [
+  //     Permissions.SETTINGS_READ,
+  //     Permissions.DOCUMENT_READ,
+  //     Permissions.USER_READ,
+  //   ],
+  //   items: [
+  //     {
+  //       key: "/implementation-partner",
+  //       label: "Implementations",
+  //       icon: <BsGridFill />,
+  //       path: "/implementation-partner",
+  //       requiredPermission: Permissions.SETTINGS_READ,
+  //     },
+  //     {
+  //       key: "/recruitment-client",
+  //       label: "Recruitment Clients",
+  //       icon: <TiGroupOutline />,
+  //       path: "/recruitment-client",
+  //       requiredPermission: Permissions.SETTINGS_READ,
+  //     },
+  //     {
+  //       key: "/vendor",
+  //       label: "Vendor",
+  //       icon: <BsPersonFillCheck />,
+  //       path: "/vendor",
+  //       requiredPermission: Permissions.SETTINGS_READ,
+  //     },
+  //     {
+  //       key: "candidateForm",
+  //       label: "Candidate Form",
+  //       icon: <BsPersonWorkspace />,
+  //       path: "/candidateForm",
+  //       requiredPermission: Permissions.DOCUMENT_READ,
+  //     },
+  //     {
+  //       key: "/recruitment/job-requisitions",
+  //       label: "Job Requisitions",
+  //       icon: <ProjectOutlined />,
+  //       path: "/recruitment/job-requisitions",
+  //     },
+  //     {
+  //       key: "/recruitment/candidate-management",
+  //       label: "Candidate Management",
+  //       icon: <UserAddOutlined />,
+  //       path: "/recruitment/candidate-management",
+  //     },
+  //     {
+  //       key: "/recruitment-settings",
+  //       label: "Status & Actions",
+  //       icon: <SolutionOutlined />,
+  //       path: "/recruitment-settings",
+  //     },
+  //   ],
+  // },
 ];

@@ -1,6 +1,6 @@
 "use client";
-import React, { Suspense } from "react";
-import { useState, useEffect, useCallback } from "react";
+import React from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   Typography,

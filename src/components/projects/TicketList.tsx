@@ -65,6 +65,7 @@ import ReleasePlanService from "@/services/releasePlanService";
 import { TicketDetailDrawer } from "./drawer/TicketDetailDrawer";
 import { SprintCompletionModal } from "./sprint-completion";
 import { SprintCreationForm, type SprintFormData } from "./sprint-completion/SprintCreationForm";
+import TicketSkeleton from "./TicketSkeleton";
 
 const { Title, Text } = Typography;
 
@@ -799,7 +800,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 const member = members.find((m) => m.value === option?.value);
                 return member
                   ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                    (member.position?.toLowerCase() ?? "").includes(input.toLowerCase())
+                  (member.position?.toLowerCase() ?? "").includes(input.toLowerCase())
                   : false;
               }}
               options={members.map((member) => ({
@@ -1375,12 +1376,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       ) : (
         <>
           {isKanbanLoading ? (
-            <Card style={{ textAlign: 'center', padding: '40px' }}>
-              <Space direction="vertical" size="large">
-                <div style={{ fontSize: '48px' }}>⏳</div>
-                <Text type="secondary">Loading Kanban board...</Text>
-              </Space>
-            </Card>
+            <TicketSkeleton viewMode="board" />
           ) : kanbanData ? (
             <>
               {isKanbanFetching && (

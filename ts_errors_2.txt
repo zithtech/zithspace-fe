@@ -1,1 +1,0 @@
-src/app/admin/pipeline-settings/page.tsx(46,8): error TS2307: Cannot find module '@dnd-kit/modifiers' or its corresponding type declarations.

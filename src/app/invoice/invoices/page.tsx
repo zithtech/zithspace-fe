@@ -29,37 +29,39 @@ import {
   Empty,
   message,
   Menu,
-  Progress
+  Progress,
+  Row,
+  Col
 } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import type { MenuProps } from "antd";
 import {
-  SettingOutlined,
-  MoreOutlined,
-  EyeOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  MailOutlined,
-  DownloadOutlined,
-  PlusOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  ExclamationCircleOutlined,
-  CloseCircleOutlined,
-  DollarOutlined,
-  LoadingOutlined,
-  FormOutlined,
-  FunnelPlotOutlined,
-  ReloadOutlined,
-  UserOutlined,
-  FileTextOutlined,
-  ArrowUpOutlined,
-  RetweetOutlined,
-  ArrowRightOutlined,
-  CreditCardOutlined
-
-} from "@ant-design/icons";
+  FileText,
+  DollarSign,
+  AlertCircle,
+  Clock,
+  Plus,
+  Search,
+  Filter,
+  MoreVertical,
+  Eye,
+  Edit2,
+  Trash2,
+  Mail,
+  Download,
+  CheckCircle,
+  XCircle,
+  LayoutDashboard,
+  TrendingUp,
+  User,
+  History,
+  RotateCcw,
+  CreditCard,
+  Loader2,
+  ChevronRight,
+  RefreshCw
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import moment from "moment";
 import isBetween from "dayjs/plugin/isBetween";
@@ -74,7 +76,7 @@ import {
   useInvoicePaymentHistory
 } from "@/hooks/useInvoices";
 
-// In your component file (InvoiceproInvoicesPage)
+// In your component file (InvoiceInvoicesPage)
 import type { 
   PaymentTransaction, 
   PaymentHistoryData,
@@ -145,23 +147,54 @@ const getStatusColor = (status: InvoiceStatus) => {
 // Status icon mapping
 const getStatusIcon = (status: InvoiceStatus) => {
   const icons: Record<InvoiceStatus, React.ReactNode> = {
-    'DRAFT': <ClockCircleOutlined />,
-    'PENDING': <ClockCircleOutlined />,
-    'APPROVED': <CheckCircleOutlined />,
-    'SENT': <MailOutlined />,
-    'PAID': <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-    'PARTIALLY_PAID': <DollarOutlined style={{ color: '#faad14' }} />,
-    'OVERDUE': <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />,
-    'CANCELLED': <CloseCircleOutlined style={{ color: '#bfbfbf' }} />
+    'DRAFT': <Clock size={16} />,
+    'PENDING': <Clock size={16} />,
+    'APPROVED': <CheckCircle size={16} />,
+    'SENT': <Mail size={16} />,
+    'PAID': <CheckCircle size={16} style={{ color: '#52c41a' }} />,
+    'PARTIALLY_PAID': <DollarSign size={16} style={{ color: '#faad14' }} />,
+    'OVERDUE': <AlertCircle size={16} style={{ color: '#ff4d4f' }} />,
+    'CANCELLED': <XCircle size={16} style={{ color: '#bfbfbf' }} />
   };
-  return icons[status] || <ClockCircleOutlined />;
+  return icons[status] || <Clock size={16} />;
 };
 
-export default function InvoiceproInvoicesPage() {
+export default function InvoiceInvoicesPage() {
   const router = useRouter();
   const [messageApi, contextHolder] = message.useMessage();
   const { canReadInvoice, canCreateInvoice, canUpdateInvoice, canDeleteInvoice } = usePermission();
   const { isLoading: authLoading } = useAuth();
+
+  /* ================= ATTRACTIVE METRIC CARDS ================= */
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      styles={{ body: { padding: "12px 16px" } }} 
+      style={{ 
+        borderRadius: 16, 
+        border: "1px solid #f1f5f9", 
+        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        height: "100%"
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ 
+          color, 
+          background: `${color}12`, 
+          padding: 12, 
+          borderRadius: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <Icon size={24} />
+        </div>
+      </div>
+    </Card>
+  );
 
   // Route guard
   useEffect(() => {
@@ -575,23 +608,23 @@ const startBulkDelete = async () => {
   const getMenuItems = (record: any): MenuProps["items"] => [
     {
       key: "view",
-      icon: <EyeOutlined />,
+      icon: <Eye size={16} />,
       label: "View Details",
       onClick: () => {
-        router.push(`/invoicepro/invoices/view/${record.invoiceNumber}`);
+        router.push(`/invoice/invoices/view/${record.invoiceNumber}`);
       },
     },
-    canUpdateInvoice && {
+    canUpdateInvoice && ["DRAFT", "PENDING", "APPROVED", "APPROVAL"].includes(record.status) && {
       key: "edit",
-      icon: <EditOutlined />,
+      icon: <Edit2 size={16} />,
       label: "Edit Invoice",
       onClick: () => {
-        router.push(`/invoicepro/newinvoice?edit=${record.id}`);
+        router.push(`/invoice/newinvoice?edit=${record.id}`);
       },
     },
     {
       key: "download",
-      icon: <DownloadOutlined />,
+      icon: <Download size={16} />,
       label: record.id === downloadingId && isDownloading ? "Downloading..." : "Download PDF",
       disabled: isDownloading,
       onClick: () => {
@@ -600,13 +633,13 @@ const startBulkDelete = async () => {
     },
     {
     key: "send_quick",
-    icon: <MailOutlined />,
+    icon: <Mail size={16} />,
     label: "Quick Send Email",
     onClick: () => handleQuickSend(record),
   },
   {
     key: "compose_email",
-    icon: <FormOutlined />,
+    icon: <Edit2 size={16} />,
     label: "Compose & Send",
     onClick: () => {
       setSelectedInvoiceForEmail(record);
@@ -615,7 +648,7 @@ const startBulkDelete = async () => {
   },
     {
       key: "transactions",
-      icon: <DollarOutlined />,
+      icon: <DollarSign size={16} />,
       label: "Transaction History",
       onClick: () => {
         setTransactionInvoice(record);
@@ -625,7 +658,7 @@ const startBulkDelete = async () => {
     (canUpdateInvoice || canDeleteInvoice) && { type: "divider" },
     canDeleteInvoice && {
       key: "delete",
-      icon: <DeleteOutlined />,
+      icon: <Trash2 size={16} />,
       label: deletingId === record.id && deleteMutation.isPending ? "Moving to Trash..." : "Move to Trash",
       danger: true,
       disabled: deletingId === record.id && deleteMutation.isPending,
@@ -753,7 +786,7 @@ const startBulkDelete = async () => {
       key: "invoice_number",
       width: 140,
       render: (text) => (
-        <Text strong style={{ color: '#1890ff' }}>
+        <Text strong style={{ color: '#2563eb', fontWeight: 700 }}>
           {text}
         </Text>
       ),
@@ -764,13 +797,19 @@ const startBulkDelete = async () => {
       width: 200,
       render: (_, record) => {
         const snapshot = record.customerSnapshot as any;
+        const companyName = snapshot?.companyName || record.customer?.companyName || "Unknown";
         return (
-          <div className="truncate">
-            <div className="font-medium text-gray-900 truncate">
-              {snapshot?.companyName || record.customer?.companyName || "Unknown"}
+          <div className="flex items-center gap-3 truncate">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 text-xs font-bold shrink-0">
+              {companyName.charAt(0)}
             </div>
-            <div className="text-xs text-gray-500 truncate">
-              {snapshot?.email || record.customer?.email || ""}
+            <div className="truncate">
+              <div className="font-bold text-gray-900 truncate">
+                {companyName}
+              </div>
+              <div className="text-[10px] text-gray-500 truncate">
+                {snapshot?.email || record.customer?.email || ""}
+              </div>
             </div>
           </div>
         );
@@ -804,8 +843,8 @@ const startBulkDelete = async () => {
       dataIndex: "grandTotal",
       width: 120,
       render: (v, record) => (
-        <div className="font-semibold text-gray-900">
-          ${Number(v || record.total || 0).toFixed(2)}
+        <div className="font-bold text-slate-900">
+          ${Number(v || record.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       ),
     },
@@ -829,17 +868,25 @@ const startBulkDelete = async () => {
                 count={
                   <Tag
                     color={getStatusColor(frontendStatus)}
-                    icon={getStatusIcon(frontendStatus)}
-                    className="hover:opacity-80 transition-opacity"
+                    className="hover:opacity-80 transition-opacity m-0"
                     style={{
-                      padding: "2px 6px",
-                      borderRadius: 10,
+                      padding: "4px 10px",
+                      borderRadius: 12,
                       fontSize: 11,
-                      fontWeight: 500,
-                      lineHeight: "14px",
+                      fontWeight: 600,
+                      lineHeight: "1",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      border: "none",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.02em"
                     }}
                   >
-                    {frontendStatus.replace('_', ' ')}
+                    <div className="flex items-center gap-1.5 w-full">
+                      {getStatusIcon(frontendStatus)}
+                      <span>{frontendStatus}</span>
+                    </div>
                   </Tag>
                 }
               />
@@ -857,7 +904,7 @@ const startBulkDelete = async () => {
         return (
           <div className={isFullyPaid ? "text-green-600 font-medium" : "text-gray-900 font-semibold"}>
             ${Number(v).toFixed(2)}
-            {isFullyPaid && <CheckCircleOutlined className="ml-1 text-green-500" />}
+            {isFullyPaid && <CheckCircle size={14} className="ml-1 text-green-500 inline" />}
           </div>
         );
       },
@@ -888,12 +935,8 @@ const startBulkDelete = async () => {
           >
             <Button
               type="text"
-              icon={<MoreOutlined className="text-gray-500 hover:text-gray-700" />}
+              icon={<MoreVertical size={18} className="text-gray-500 hover:text-gray-700" />}
               className="hover:bg-gray-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
             />
           </Dropdown>
         );
@@ -1042,72 +1085,82 @@ const startBulkDelete = async () => {
   return (
     <MainLayout>
       {contextHolder}
-      <div className="p-3">
-        {/* Invoices Table */}
-        <Card className="shadow-sm border-gray-200">
-          {/* Header */}
-          <div className="flex flex-row items-center justify-between gap-4 mb-3 flex-nowrap">
-            <div className="flex flex-col shrink-0">
-              <div className="flex items-center space-x-3">
-                <FormOutlined style={{ fontSize: 24, color: "#1677ff" }} />
-                <Title level={2} className="!mb-0 !text-gray-900">
-                  Invoices
-                </Title>
+      <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "#ffffff",
+          minHeight: "calc(100vh - 64px)"
+      }}>
+        {/* ================= HEADER ================= */}
+        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+          <div style={{ flex: 1 }}>
+            <Space size={14} align="center">
+              <div style={{ background: "#f1f5f9", padding: 12, borderRadius: 14, color: "#334155", display: "flex" }}>
+                <FileText size={28} />
               </div>
-
-              <Text type="secondary" className=" mt-1">
-                Manage, track payments, and monitor invoice statuses across customers.
-              </Text>
-
-              <div className="flex flex-wrap gap-2  mt-2">
-                <Tag color="pink">
-                  Total Amount: <strong>${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toFixed(2)}</strong>
-                </Tag>
-
-                <Tag color="green" icon={<CheckCircleOutlined />}>
-                  Paid: <strong>{paidCount}</strong>
-                </Tag>
-
-                <Tag color="blue" icon={<ClockCircleOutlined />}>
-                  Pending: <strong>{pendingCount}</strong>
-                </Tag>
-
-                <Tag color="purple">
-                  Customers: <strong>{customerCount}</strong>
-                </Tag>
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Invoices</Title>
+                <Text style={{ color: "#64748b", fontSize: 15 }}>Manage, track payments, and monitor invoice statuses across customers.</Text>
               </div>
-            </div>
-
-            {/* RIGHT */}
-            <div className="flex flex-row items-center gap-3 flex-nowrap">
-              <Input.Search
-                placeholder="Search invoices..."
-                allowClear
-                size="middle"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="w-64"
-              />
-
-              <Popover content={filterContent} trigger="click" placement="bottomRight">
-                <Button size="middle" icon={<FunnelPlotOutlined />}>
-                  Filter
-                </Button>
-              </Popover>
-
-              {canCreateInvoice && (
-                <Button
-                  type="primary"
-                  size="middle"
-                  icon={<PlusOutlined />}
-                  onClick={() => router.push("/invoicepro/newinvoice")}
-                  className="h-11 shrink-0"
-                >
-                  New Invoice
-                </Button>
-              )}
-            </div>
+            </Space>
           </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <Input
+              placeholder="Search invoices..."
+              allowClear
+              size="large"
+              prefix={<Search size={18} className="text-slate-400 mr-2" />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{ 
+                width: 320, 
+                borderRadius: 12,
+                height: 44,
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                fontSize: "14px"
+              }}
+              className="search-input-modern"
+            />
+            <Popover content={filterContent} trigger="click" placement="bottomRight">
+              <Button size="large" icon={<Filter size={18} />} style={{ borderRadius: 12, height: 44 }}>
+                Filter
+              </Button>
+            </Popover>
+            {canCreateInvoice && (
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Plus size={18} />} 
+                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "#2563eb", border: "none" }}
+                onClick={() => router.push("/invoice/newinvoice")}
+              >
+                New Invoice
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ================= METRIC STATS ================= */}
+        <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12} md={6}>
+            <StatCard 
+              label="Total Revenue" 
+              value={`$${invoices.reduce((sum, inv) => sum + Number(inv.grandTotal || (inv as any).total || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              icon={TrendingUp} 
+              color="#3b82f6" 
+            />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <StatCard label="Paid Invoices" value={paidCount} icon={CheckCircle} color="#10b981" />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <StatCard label="Pending Invoices" value={pendingCount} icon={Clock} color="#f59e0b" />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <StatCard label="Total Customers" value={customerCount} icon={User} color="#8b5cf6" />
+          </Col>
+        </Row>
 
           <Divider style={{marginTop:"0"}} />
 
@@ -1122,13 +1175,13 @@ const startBulkDelete = async () => {
                     </span>
                     <Space size="middle">
                       <Button
-                        icon={<MailOutlined />}
+                        icon={<Mail size={16} />}
                         onClick={() => messageApi.info('Send email feature coming soon')}
                       >
                         Send Email
                       </Button>
                       <Button
-                        icon={<DownloadOutlined />}
+                        icon={<Download size={16} />}
                         loading={isDownloading}
                         onClick={handleBulkDownload}
                       >
@@ -1137,7 +1190,7 @@ const startBulkDelete = async () => {
                       {canDeleteInvoice && (
                         <Button
                           danger
-                          icon={<DeleteOutlined />}
+                          icon={<Trash2 size={16} />}
                           onClick={openBulkDeleteModal}
                           loading={bulkDeleteProgress.isDeleting}
                         >
@@ -1158,36 +1211,50 @@ const startBulkDelete = async () => {
             </div>
           )}
 
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <LoadingOutlined className="text-3xl text-blue-500" spin />
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64 bg-slate-50 rounded-2xl border border-slate-100">
+            <Spin indicator={<TrendingUp size={32} className="animate-pulse text-blue-500" />} />
+          </div>
+        ) : isError ? (
+          <div className="text-center py-20 bg-red-50 rounded-2xl border border-red-100">
+            <AlertCircle className="size-12 text-red-500 mb-4 mx-auto" />
+            <Title level={4} style={{ color: "#991b1b" }}>Failed to load invoices</Title>
+            <Text style={{ color: "#ef4444" }}>Please try again later</Text>
+          </div>
+        ) : filteredInvoices.length === 0 ? (
+          <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="size-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6">
+              <FileText size={32} className="text-slate-300" />
             </div>
-          ) : isError ? (
-            <div className="text-center py-12">
-              <ExclamationCircleOutlined className="text-4xl text-red-500 mb-4" />
-              <Title level={4} className="!text-gray-700">Failed to load invoices</Title>
-              <Text type="secondary">Please try again later</Text>
-            </div>
-          ) : filteredInvoices.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-4xl text-gray-300 mb-4">📄</div>
-              <Title level={4} className="!text-gray-500">No invoices found</Title>
-              <Text type="secondary" className="mb-6 block">
-                {searchText ? 'Try a different search term' : 'Create your first invoice to get started'}
-              </Text>
-              {!searchText && canCreateInvoice && (
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => router.push("/invoicepro/newinvoice")}
-                >
-                  Create First Invoice
-                </Button>
-              )}
-            </div>
-          ) : (
+            <Title level={4} style={{ color: "#64748b" }}>No invoices found</Title>
+            <Text style={{ color: "#94a3b8" }} className="mb-6 block">
+              {searchText ? 'Try a different search term' : 'Create your first invoice to get started'}
+            </Text>
+            {!searchText && canCreateInvoice && (
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
+                onClick={() => router.push("/invoice/newinvoice")}
+                style={{ borderRadius: 12, height: 48, padding: "0 24px" }}
+              >
+                Create First Invoice
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 16,
+              border: "1px solid #f1f5f9",
+              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+              overflow: "hidden"
+            }}
+            styles={{ body: { padding: 0 } }}
+          >
             <Table
-              size="small"
+              size="middle"
               rowSelection={rowSelection}
               columns={columns}
               dataSource={filteredInvoices.map((inv) => ({
@@ -1198,13 +1265,42 @@ const startBulkDelete = async () => {
                 pageSize: 10,
                 showSizeChanger: true,
                 showQuickJumper: true,
+                style: { padding: "16px 24px" },
                 showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} invoices`,
               }}
               scroll={{ x: 1000 }}
+              rowClassName={() => "invoice-table-row"}
             />
-          )}
-        </Card>
+          </Card>
+        )}
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .invoice-table-row:hover {
+          background-color: #f8fafc !important;
+        }
+        .ant-table-thead > tr > th {
+          background-color: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 700 !important;
+          font-size: 11px !important;
+          padding: 8px 16px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          border-bottom: 2px solid #f1f5f9 !important;
+        }
+        .ant-table-tbody > tr > td {
+          padding: 8px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+        .ant-input-search-button {
+          height: 100% !important;
+          border-radius: 0 12px 12px 0 !important;
+        }
+        .ant-input-affix-wrapper {
+          border-radius: 12px !important;
+        }
+      `}} />
 
       {/* Bulk Trash Confirmation Modal */}
       <Modal
@@ -1219,7 +1315,7 @@ const startBulkDelete = async () => {
       >
         <div className="py-4">
           <div className="flex items-center mb-3">
-            <ExclamationCircleOutlined className="text-xl text-yellow-500 mr-2" />
+            <AlertCircle size={20} className="text-yellow-500 mr-2" />
             <Text strong>Are you sure you want to move {selectedInvoices.length} selected invoice(s) to trash?</Text>
           </div>
           
@@ -1281,7 +1377,7 @@ const startBulkDelete = async () => {
           
           {bulkDeleteProgress.currentInvoice && (
             <div className="text-center mb-4">
-              <LoadingOutlined className="text-blue-500 mr-2" spin={bulkDeleteProgress.isDeleting} />
+              <Loader2 className="text-blue-500 mr-2 animate-spin" size={16} />
               <Text type="secondary">
                 Moving invoice: <Text strong>{bulkDeleteProgress.currentInvoice}</Text>
               </Text>
@@ -1329,7 +1425,7 @@ const startBulkDelete = async () => {
         {invoiceToDelete && (
           <div className="py-4">
             <div className="flex items-center mb-3">
-              <ExclamationCircleOutlined className="text-xl text-yellow-500 mr-2" />
+              <AlertCircle size={20} className="text-yellow-500 mr-2" />
               <Text strong>Are you sure you want to move this invoice to trash?</Text>
             </div>
             <div className="mb-4 p-3 bg-gray-50 rounded">
@@ -1364,7 +1460,7 @@ const startBulkDelete = async () => {
       <Modal
         title={
           <div className="flex items-center">
-            <DollarOutlined className="text-green-500 mr-2" />
+            <DollarSign size={20} className="text-green-500 mr-2" />
             Update Payment for Invoice {statusInvoice?.invoiceNumber}
           </div>
         }
@@ -1463,7 +1559,7 @@ const startBulkDelete = async () => {
               format="YYYY-MM-DD HH:mm"
               style={{ width: '100%' }}
               size="large"
-              defaultValue={moment()}
+              defaultValue={dayjs()}
             />
           </Form.Item>
         </Form>
@@ -1473,7 +1569,7 @@ const startBulkDelete = async () => {
       <Modal
         title={
           <div className="flex items-center">
-            <CheckCircleOutlined className="text-green-500 mr-2" />
+            <CheckCircle size={20} className="text-green-500 mr-2" />
             Approve Invoice {approvalInvoice?.invoiceNumber}
           </div>
         }
@@ -1562,8 +1658,8 @@ const startBulkDelete = async () => {
 <Drawer
   title={
     <div className="flex items-center gap-2">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
-        <DollarOutlined className="text-white text-sm" />
+      <div className="flex items-center justify-center size-8 rounded-lg bg-blue-500">
+        <DollarSign size={16} className="text-white" />
       </div>
       <div>
         <div className="font-semibold text-base text-gray-900">Payment Transaction History</div>
@@ -1627,7 +1723,7 @@ const startBulkDelete = async () => {
           <div className="flex items-center gap-6">
             <div className="text-right">
               <span className="text-xs text-gray-500 flex items-center gap-1">
-                <FileTextOutlined className="text-blue-500 text-xs" />
+                <FileText size={12} className="text-blue-500" />
                 Total
               </span>
               <div className="font-semibold text-gray-900">
@@ -1637,7 +1733,7 @@ const startBulkDelete = async () => {
             
             <div className="text-right">
               <span className="text-xs text-gray-500 flex items-center gap-1">
-                <CheckCircleOutlined className="text-green-600 text-xs" />
+                <CheckCircle size={12} className="text-green-600" />
                 Paid
               </span>
               <div className="font-semibold text-green-700">
@@ -1647,7 +1743,7 @@ const startBulkDelete = async () => {
             
             <div className="text-right">
               <span className="text-xs text-gray-500 flex items-center gap-1">
-                <RetweetOutlined className="text-orange-600 text-xs" />
+                <RotateCcw size={12} className="text-orange-600" />
                 Refund
               </span>
               <div className="font-semibold text-orange-700">
@@ -1657,7 +1753,7 @@ const startBulkDelete = async () => {
             
             <div className="text-right">
               <span className="text-xs text-gray-500 flex items-center gap-1">
-                <DollarOutlined className="text-blue-600 text-xs" />
+                <DollarSign size={12} className="text-blue-600" />
                 Balance
               </span>
               <div className="font-semibold text-blue-700">
@@ -1690,17 +1786,17 @@ const startBulkDelete = async () => {
       <div className="grid grid-cols-5 gap-2">
         <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
           <div className="text-xs text-gray-500">Total</div>
-          <div className="text-lg font-semibold text-gray-800">
+          <div className="font-semibold text-gray-800">
             {String(paymentHistory?.summary?.paymentCount || paymentHistory.payments.length).padStart(2, '0')}
           </div>
         </div>
         
         <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <CheckCircleOutlined className="text-green-600 text-xs" />
+            <CheckCircle size={12} className="text-green-600" />
             Completed
           </div>
-          <div className="text-lg font-semibold text-gray-800">
+          <div className="font-semibold text-gray-800">
             {String(paymentHistory?.summary?.completedPayments || 
              paymentHistory.payments.filter((p: any) => p.status === 'COMPLETED').length).padStart(2, '0')}
           </div>
@@ -1708,10 +1804,10 @@ const startBulkDelete = async () => {
         
         <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <RetweetOutlined className="text-orange-600 text-xs" />
+            <RotateCcw size={12} className="text-orange-600" />
             Refunded
           </div>
-          <div className="text-lg font-semibold text-gray-800">
+          <div className="font-semibold text-gray-800">
             {String(paymentHistory?.summary?.refundedPayments || 
              paymentHistory.payments.filter((p: any) => p.status === 'REFUNDED').length).padStart(2, '0')}
           </div>
@@ -1719,10 +1815,10 @@ const startBulkDelete = async () => {
         
         <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <CloseCircleOutlined className="text-red-600 text-xs" />
+            <XCircle size={12} className="text-red-600" />
             Failed
           </div>
-          <div className="text-lg font-semibold text-gray-800">
+          <div className="font-semibold text-gray-800">
             {String(paymentHistory?.summary?.failedPayments || 
              paymentHistory.payments.filter((p: any) => p.status === 'FAILED').length).padStart(2, '0')}
           </div>
@@ -1730,10 +1826,10 @@ const startBulkDelete = async () => {
         
         <div className="bg-white px-3 py-2 rounded-md border border-gray-200">
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <ClockCircleOutlined className="text-blue-600 text-xs" />
+            <Clock size={12} className="text-blue-600" />
             Pending
           </div>
-          <div className="text-lg font-semibold text-gray-800">
+          <div className="font-semibold text-gray-800">
             {String(paymentHistory?.summary?.pendingPayments || 
              paymentHistory.payments.filter((p: any) => p.status === 'PENDING').length).padStart(2, '0')}
           </div>
@@ -1745,7 +1841,7 @@ const startBulkDelete = async () => {
         <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center">
-              <FileTextOutlined className="text-blue-600 text-xs" />
+              <FileText size={12} className="text-blue-600" />
             </div>
             <span className="font-medium text-gray-800 text-sm">Payment Transactions</span>
             <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
@@ -1754,7 +1850,7 @@ const startBulkDelete = async () => {
           </div>
           <Button 
             size="small" 
-            icon={<ReloadOutlined />}
+            icon={<RotateCcw size={16} />}
             onClick={() => refetchPaymentHistory()}
             loading={isPaymentLoading}
             className="text-xs border-gray-300"
@@ -1850,7 +1946,7 @@ const startBulkDelete = async () => {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-              <ClockCircleOutlined className="text-blue-600 text-xs" />
+              <Clock size={12} className="text-blue-600" />
             </div>
             <span className="font-medium text-gray-800 text-sm">Payment Timeline</span>
             <span className="text-xs text-gray-500 ml-auto">Recent transactions</span>
@@ -1870,10 +1966,10 @@ const startBulkDelete = async () => {
                   ${payment.status === 'PENDING' ? 'bg-blue-500' : ''}
                   ${!['COMPLETED','REFUNDED','FAILED','PENDING'].includes(payment.status) ? 'bg-gray-400' : ''}
                 `}>
-                  {payment.status === 'COMPLETED' && <CheckCircleOutlined className="text-white text-[8px]" />}
-                  {payment.status === 'REFUNDED' && <RetweetOutlined className="text-white text-[8px]" />}
-                  {payment.status === 'FAILED' && <CloseCircleOutlined className="text-white text-[8px]" />}
-                  {payment.status === 'PENDING' && <ClockCircleOutlined className="text-white text-[8px]" />}
+                  {payment.status === 'COMPLETED' && <CheckCircle size={10} className="text-white" />}
+                  {payment.status === 'REFUNDED' && <RotateCcw size={10} className="text-white" />}
+                  {payment.status === 'FAILED' && <XCircle size={10} className="text-white" />}
+                  {payment.status === 'PENDING' && <Clock size={10} className="text-white" />}
                 </div>
                 <div className="flex-1 pb-2">
                   <div className="flex justify-between items-start">
@@ -1908,7 +2004,7 @@ const startBulkDelete = async () => {
             <div className="text-center mt-3 pt-2 border-t border-gray-100">
               <button className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 mx-auto">
                 View all {paymentHistory.payments.length} transactions
-                <ArrowRightOutlined className="text-[10px]" />
+                <ChevronRight size={10} />
               </button>
             </div>
           )}

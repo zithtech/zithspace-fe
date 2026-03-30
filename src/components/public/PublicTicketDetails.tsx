@@ -20,6 +20,8 @@ import dayjs from "dayjs";
 import { Tabs, List, Timeline, Button, Tooltip, Empty } from "antd";
 import { format } from "date-fns";
 
+import PublicTicketSkeleton from "./PublicTicketSkeleton";
+
 const { Title, Text, Paragraph } = Typography;
 const { Content, Footer } = Layout;
 
@@ -31,17 +33,7 @@ export default function PublicTicketDetails({ ticketId }: PublicTicketDetailsPro
     const { data: ticket, isLoading: loading, error } = usePublicTicket(ticketId);
 
     if (loading) {
-        return (
-            <Layout style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div style={{ padding: 100, textAlign: 'center' }}>
-                    <Spin size="large" tip="Loading ticket details">
-                        <div style={{ height: 100 }} />
-                    </Spin>
-                </div>
-                </div>
-            </Layout>
-        );
+        return <PublicTicketSkeleton />;
     }
 
     if (error || !ticket) {

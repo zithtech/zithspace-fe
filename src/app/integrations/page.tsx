@@ -456,13 +456,11 @@ export default function IntegrationPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-        {/* Full-width white container starting from left */}
+      <div style={{ padding: '24px', backgroundColor: '#ffffff', minHeight: '100vh' }}>
+        {/* Main content container */}
         <div style={{ 
-          backgroundColor: '#fff', 
-          padding: '32px', 
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+          backgroundColor: '#ffffff', 
+          padding: '16px 0', 
           width: '100%'
         }}>
           

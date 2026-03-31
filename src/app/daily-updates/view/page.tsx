@@ -47,6 +47,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import UpdateCard from "@/components/daily-updates/UpdateCard";
 import UpdateTable from "@/components/daily-updates/UpdateTable";
 import UpdateDetailsDrawer from "@/components/daily-updates/UpdateDetailsDrawer";
+import ManageTimeDrawer from "@/components/daily-updates/ManageTimeDrawer";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { ProjectService } from "@/services/projectService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
@@ -149,6 +150,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const [selectedUpdate, setSelectedUpdate] =
     useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [manageTimeOpen, setManageTimeOpen] = useState(false);
 
   const canViewTeam = canManageDailyUpdates || user?.position === "Project Manager";
 
@@ -308,6 +310,23 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         </div>
 
         <Space size="middle">
+          {canViewTeam && (
+            <Button
+              icon={<Clock size={16} />}
+              onClick={() => setManageTimeOpen(true)}
+              style={{ 
+                borderRadius: 10, 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 8,
+                background: "#f0f9ff",
+                color: "#0369a1",
+                border: "1px solid #bae6fd"
+              }}
+            >
+              Manage Time
+            </Button>
+          )}
           <Button
             icon={<RefreshCw size={16} />}
             onClick={handleRefresh}
@@ -497,6 +516,11 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         update={selectedUpdate}
         open={detailsModalOpen}
         onClose={handleCloseDetails}
+      />
+      <ManageTimeDrawer 
+        open={manageTimeOpen}
+        onClose={() => setManageTimeOpen(false)}
+        onSuccess={handleRefresh}
       />
     </div>
   );

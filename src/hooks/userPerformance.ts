@@ -762,6 +762,8 @@
 import { useQuery } from "@tanstack/react-query";
 import TicketService from "@/services/ticketService";
 import DailyUpdateService from "@/services/dailyUpdateService";
+import { TimeTrackingService } from "@/services/timeTracking.service";
+import { ProjectService } from "@/services/projectService";
 import dayjs from "dayjs";
 
 interface PerformanceFilters {
@@ -780,12 +782,14 @@ interface Ticket {
   createdAt?: string;
   closedAt?: string;
   updatedAt?: string;
+  estimateHours?: number;
 }
 
-interface DailyUpdate {
+interface DailyStatusUpdate {
   id?: string;
   date: string;
   projectUpdates?: any[];
+  workEntries?: any[];
   updateType?: string;
   totalHoursWorked?: number;
 }
@@ -821,9 +825,12 @@ export const usePerformance = (filters: PerformanceFilters) => {
       .endOf("month")
       .format("YYYY-MM-DD");
 
+    const monthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
+    const monthEnd = dayjs().year(selectedYear).month(selectedMonth).endOf('month');
+
     console.log("Fetching data for:", { startDate, endDate });
 
-    const [ticketsRes, updatesRes] = await Promise.all([
+    const [ticketsRes, updatesRes, timeTrackingRes, projectsRes] = await Promise.all([
       TicketService.getTickets({
         assigneeId: userId,
         limit: 1000
@@ -831,96 +838,130 @@ export const usePerformance = (filters: PerformanceFilters) => {
 
       DailyUpdateService.getTeamUpdates({
         userId: userId,
-        startDate,
-        endDate,
-        limit: 1000
-      }).catch(err => {
+        startDate: "2020-01-01", 
+        endDate: dayjs().year(selectedYear).month(selectedMonth).endOf("month").format("YYYY-MM-DD"), 
+        limit: 2000 
+      }).catch((err: any) => {
         console.error("Error fetching updates:", err);
         return [];
+      }),
+
+      TimeTrackingService.getEntries({
+        userId: userId,
+        startDate: "2020-01-01", 
+        endDate: dayjs().year(selectedYear).month(selectedMonth).endOf("month").format("YYYY-MM-DD"),
+      }).catch((err: any) => {
+        console.error("Error fetching time tracking:", err);
+        return [];
+      }),
+
+      ProjectService.getProjects({
+        userId: userId,
+        limit: 100,
+        status: "active"
+      }).catch((err: any) => {
+        console.error("Error fetching assigned projects:", err);
+        return { data: [] };
       })
     ]);
 
     // AFTER getting tickets from API
     const allTickets = (ticketsRes?.data || []) as Ticket[];
-    console.log("🔴🔴🔴 DEBUG START 🔴🔴🔴");
-    console.log("1️⃣ Total tickets from API:", allTickets.length);
 
-    // Print ALL tickets with their details
-    console.log("2️⃣ ALL TICKETS (with dates):");
-    allTickets.forEach((ticket: Ticket, index: number) => {
-      console.log(`   Ticket ${index + 1}:`, {
-        id: ticket.ticketNumber || ticket.id,
-        title: ticket.title,
-        createdAt: ticket.createdAt,
-        createdDate: ticket.createdAt ? dayjs(ticket.createdAt).format("YYYY-MM-DD") : "No date",
-        month: ticket.createdAt ? dayjs(ticket.createdAt).month() + 1 : "N/A",
-        year: ticket.createdAt ? dayjs(ticket.createdAt).year() : "N/A",
-        status: ticket.status
-      });
+    // 1. Process Daily Updates (BUILD THE MAPS FIRST)
+    const updates = (updatesRes || []) as DailyStatusUpdate[];
+    let bodCount = 0;
+    let eodCount = 0;
+    const dailyMap = new Map<string, UpdatesListItem>();
+    const ticketTimeMap = new Map<string, number>(); // ALL time
+    const ticketsWorkedThisMonth = new Set<string>(); // ONLY this month
+
+    updates.forEach((update: DailyStatusUpdate) => {
+      const updateDate = dayjs(update.date).format("YYYY-MM-DD");
+      const updateDay = dayjs(update.date);
+      const isInSelectedMonth = updateDay.month() === selectedMonth && updateDay.year() === selectedYear;
+
+      const isBOD = update.updateType === 'BOD';
+      const isEOD = update.updateType === 'EOD';
+
+      // 📅 Only process counts and logs for SELECTED MONTH
+      if (isInSelectedMonth) {
+        if (isBOD) bodCount++;
+        if (isEOD) eodCount++;
+
+        if (!dailyMap.has(updateDate)) {
+          dailyMap.set(updateDate, {
+            key: update.id || updateDate,
+            date: updateDate,
+            bod: isBOD,
+            eod: isEOD,
+            type: update.updateType || 'Update',
+          });
+        } else {
+          const existing = dailyMap.get(updateDate)!;
+          if (isBOD) existing.bod = true;
+          if (isEOD) existing.eod = true;
+        }
+      }
     });
 
-    console.log("3️⃣ Selected Month/Year:", {
-      selectedMonth: selectedMonth + 1,
-      selectedYear
+    const updatesList = Array.from(dailyMap.values());
+    updatesList.sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix());
+
+    // 1.5 Process Time Tracking Module Data
+    const timeTrackingEntries = (timeTrackingRes || []) as any[];
+    timeTrackingEntries.forEach(entry => {
+      const entryDay = dayjs(entry.startTime);
+      const isInSelectedMonth = entryDay.month() === selectedMonth && entryDay.year() === selectedYear;
+      
+      const tId = entry.ticketId || entry.ticket?.id;
+      const tNum = entry.ticket?.ticketNumber;
+      
+      // duration is in seconds based on backend implementation
+      let durationSec = entry.duration || 0;
+      if (entry.status === 'RUNNING') {
+        const lastLog = entry.logs?.find((l: any) => l.action === 'STARTED' || l.action === 'RESUMED');
+        const startTime = lastLog ? new Date(lastLog.createdAt).getTime() : new Date(entry.startTime).getTime();
+        durationSec += Math.floor((new Date().getTime() - startTime) / 1000);
+      }
+      const hWorked = durationSec / 3600;
+
+      if (hWorked > 0) {
+        if (tId) {
+          const current = ticketTimeMap.get(tId) || 0;
+          ticketTimeMap.set(tId, current + hWorked);
+          if (isInSelectedMonth) ticketsWorkedThisMonth.add(tId);
+        }
+        if (tNum) {
+          const current = ticketTimeMap.get(tNum) || 0;
+          ticketTimeMap.set(tNum, current + hWorked);
+          if (isInSelectedMonth) ticketsWorkedThisMonth.add(tNum);
+        }
+      }
     });
 
-    // Filter tickets
-    // const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
-    //   const ticketDate = ticket.createdAt ? dayjs(ticket.createdAt) : null;
-    //   if (!ticketDate) return false;
-
-    //   const ticketMonth = ticketDate.month();
-    //   const ticketYear = ticketDate.year();
-
-    //   const isMatch = ticketMonth === selectedMonth && ticketYear === selectedYear;
-
-    //   console.log(`   Checking ${ticket.ticketNumber || ticket.id}:`, {
-    //     ticketMonth: ticketMonth + 1,
-    //     ticketYear,
-    //     selectedMonth: selectedMonth + 1,
-    //     selectedYear,
-    //     isMatch,
-    //     date: ticketDate.format("YYYY-MM-DD")
-    //   });
-
-    //   return isMatch;
-    // });
-
-    // console.log("4️⃣ Tickets IN selected month:", ticketsInMonth.length);
-    // console.log("5️⃣ Tickets NOT in selected month:", allTickets.length - ticketsInMonth.length);
-    // console.log("🔴🔴🔴 DEBUG END 🔴🔴🔴");
-    // Filter tickets by date range (more reliable than month/year comparison)
+    // 2. Filter tickets
     const ticketsInMonth = allTickets.filter((ticket: Ticket) => {
+      const tId = ticket.id || (ticket as any)._id;
+      const tNum = ticket.ticketNumber;
+      
+      // If ticket has time logged this month, ALWAYS include it
+      if ((tId && ticketsWorkedThisMonth.has(tId)) || (tNum && ticketsWorkedThisMonth.has(tNum))) {
+        return true;
+      }
+
       // Get the date from various possible fields
       const dateString = ticket.createdAt ||
         (ticket as any).created_date ||
         (ticket as any).date;
 
-      if (!dateString) {
-        console.log("❌ Ticket has no date:", ticket.id);
-        return false;
-      }
+      if (!dateString) return false;
 
       const ticketDate = dayjs(dateString);
-
-      if (!ticketDate.isValid()) {
-        console.log("❌ Invalid date for ticket:", ticket.id, dateString);
-        return false;
-      }
-
-      // Create start and end of selected month
-      const monthStart = dayjs().year(selectedYear).month(selectedMonth).startOf('month');
-      const monthEnd = dayjs().year(selectedYear).month(selectedMonth).endOf('month');
+      if (!ticketDate.isValid()) return false;
 
       // Check if ticket date is within the month
       const isInMonth = ticketDate.isAfter(monthStart) && ticketDate.isBefore(monthEnd);
-
-      console.log(`📊 Ticket ${ticket.ticketNumber || ticket.id}:`, {
-        date: ticketDate.format("YYYY-MM-DD"),
-        inMonth: isInMonth,
-        monthStart: monthStart.format("YYYY-MM-DD"),
-        monthEnd: monthEnd.format("YYYY-MM-DD")
-      });
 
       return isInMonth;
     });
@@ -939,39 +980,55 @@ export const usePerformance = (filters: PerformanceFilters) => {
 
     const total = ticketsInMonth.length;
 
-    // Process Daily Updates
-    const updates = (updatesRes || []) as DailyUpdate[];
+    const details = ticketsInMonth.map((t: Ticket) => ({
+      key: t.id,
+      ticketId: t.ticketNumber || `TKT-${t.id?.slice(0, 4)}`,
+      title: t.title,
+      status: t.status,
+      priority: t.priority,
+      estimatedHours: parseFloat(String(t.estimateHours || (t as any).estimate_hours || (t as any).metadata?.estimateHours || (t as any).metadata?.estimate_hours || 0)),
+      timeSpent: ticketTimeMap.get(t.id) || ticketTimeMap.get((t as any)._id) || ticketTimeMap.get(t.ticketNumber || "") || 0,
+      projectName: (t as any).project?.name || "No Project",
+      projectCode: (t as any).project?.code || "",
+      created: t.createdAt ? dayjs(t.createdAt).format("YYYY-MM-DD") : "-",
+      closed: t.closedAt ? dayjs(t.closedAt).format("YYYY-MM-DD") : "-",
+    }));
 
-    let bodCount = 0;
-    let eodCount = 0;
-    const dailyMap = new Map<string, UpdatesListItem>();
+    const onTime = details.filter(t => 
+      t.estimatedHours > 0 && t.timeSpent > 0 && t.timeSpent <= t.estimatedHours
+    ).length;
 
-    updates.forEach((update: DailyUpdate) => {
-      const updateDate = dayjs(update.date).format("YYYY-MM-DD");
+    const late = details.filter(t => 
+      t.estimatedHours > 0 && t.timeSpent > t.estimatedHours
+    ).length;
 
-      const isBOD = update.updateType === 'BOD';
-      const isEOD = update.updateType === 'EOD';
+    const untracked = details.filter(t => 
+      !t.timeSpent || t.timeSpent < 0.001 || !t.estimatedHours || t.estimatedHours < 0.001
+    ).length;
 
-      if (isBOD) bodCount++;
-      if (isEOD) eodCount++;
-
-      if (!dailyMap.has(updateDate)) {
-        dailyMap.set(updateDate, {
-          key: update.id || updateDate,
-          date: updateDate,
-          bod: isBOD,
-          eod: isEOD,
-          type: update.updateType || 'Update',
-        });
-      } else {
-        const existing = dailyMap.get(updateDate)!;
-        if (isBOD) existing.bod = true;
-        if (isEOD) existing.eod = true;
+    // 3. Calculate Working Days and Missed Updates
+    const workingDays: string[] = [];
+    let currentDay = monthStart.clone();
+    const today = dayjs().startOf('day');
+    
+    while (currentDay.isBefore(monthEnd) || currentDay.isSame(monthEnd, 'day')) {
+      const isWeekend = currentDay.day() === 0 || currentDay.day() === 6;
+      // Only count working days up to today (if in current month) or full month (if past)
+      const isPastOrToday = currentDay.isBefore(today) || currentDay.isSame(today, 'day');
+      
+      if (!isWeekend && isPastOrToday) {
+        workingDays.push(currentDay.format("YYYY-MM-DD"));
       }
-    });
+      currentDay = currentDay.add(1, 'day');
+    }
 
-    const updatesList = Array.from(dailyMap.values());
-    updatesList.sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix());
+    const missedBOD = workingDays
+      .filter(date => !dailyMap.has(date) || !dailyMap.get(date)?.bod)
+      .map(date => ({ key: `bod-${date}`, date, type: 'BOD', status: 'Missed' }));
+    
+    const missedEOD = workingDays
+      .filter(date => !dailyMap.has(date) || !dailyMap.get(date)?.eod)
+      .map(date => ({ key: `eod-${date}`, date, type: 'EOD', status: 'Missed' }));
 
     // Return the data
     return {
@@ -981,16 +1038,11 @@ export const usePerformance = (filters: PerformanceFilters) => {
           completed,
           inProgress,
           pending,
+          onTime,
+          late,
+          untracked,
         },
-        details: ticketsInMonth.slice(0, 10).map((t: Ticket) => ({
-          key: t.id,
-          ticketId: t.ticketNumber || `TKT-${t.id?.slice(0, 4)}`,
-          title: t.title,
-          status: t.status,
-          priority: t.priority,
-          created: t.createdAt ? dayjs(t.createdAt).format("YYYY-MM-DD") : "-",
-          closed: t.closedAt ? dayjs(t.closedAt).format("YYYY-MM-DD") : "-",
-        })),
+        details,
         distribution: [
           { name: "Completed", value: completed, color: "#10b981" },
           { name: "In Progress", value: inProgress, color: "#f59e0b" },
@@ -1001,10 +1053,18 @@ export const usePerformance = (filters: PerformanceFilters) => {
         summary: {
           bod: bodCount,
           eod: eodCount,
-          total: dailyMap.size,
+          total: workingDays.length,
         },
         logs: updatesList,
+        missedBOD,
+        missedEOD,
+        workingDays: workingDays.length,
       },
+      assignedProjects: projectsRes?.data?.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        code: p.code,
+      })) || [],
     };
   };
 

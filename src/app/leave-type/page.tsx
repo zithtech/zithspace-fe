@@ -55,16 +55,17 @@ const { TextArea } = Input;
 const { Text, Title } = Typography;
 
 const leaveTypesData = [
-  { name: "Sick Leave", description: "Leave granted when an employee is ill or needs medical attention." },
-  { name: "Casual Leave", description: "Short-term leave taken for personal reasons or emergencies." },
-  { name: "Earned Leave", description: "Leave accumulated over time based on work tenure." },
-  { name: "Paid Leave", description: "Leave where salary is fully paid during absence." },
-  { name: "Unpaid Leave", description: "Leave taken without salary payment." },
-  { name: "Comp-Off", description: "Leave granted for working on holidays or weekends." },
-  { name: "Maternity Leave", description: "Leave granted to female employees during childbirth." },
-  { name: "Paternity Leave", description: "Leave granted to male employees after childbirth." },
-  { name: "Work From Home", description: "Employee works remotely instead of office." },
-  { name: "Sabbatical Leave", description: "Extended leave for personal or professional development." },
+  { name: "Sick Leave", code: "SL", description: "Leave granted when an employee is ill or needs medical attention." },
+  { name: "Casual Leave", code: "CL", description: "Short-term leave taken for personal reasons or emergencies." },
+  { name: "Earned Leave", code: "EL", description: "Leave accumulated over time based on work tenure." },
+  { name: "Paid Leave", code: "PL", description: "Leave where salary is fully paid during absence." },
+  { name: "Unpaid Leave", code: "UL", description: "Leave taken without salary payment." },
+  { name: "Comp-Off", code: "CO", description: "Leave granted for working on holidays or weekends." },
+  { name: "Maternity Leave", code: "ML", description: "Leave granted to female employees during childbirth." },
+  { name: "Paternity Leave", code: "PTL", description: "Leave granted to male employees after childbirth." },
+  { name: "Work From Home", code: "WFH", description: "Employee works remotely instead of office." },
+  { name: "Sabbatical Leave", code: "SBL", description: "Extended leave for personal or professional development." },
+  { name: "Emergency Leave", code: "EGL", description: "Leave for urgent, unforeseen circumstances." },
 ];
 
 interface LeaveTypeRecord {
@@ -483,14 +484,34 @@ export default function LeaveTypePage() {
                     name="name"
                     label={<Text strong style={{ fontSize: 13 }}>Policy Name</Text>}
                     rules={[{ required: true, message: "Required" }]}
+                    getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z\s]/g, "")}
                   >
                     <AutoComplete
                       placeholder="e.g. Sick Leave"
-                      options={leaveTypesData.map(l => ({ label: l.name, value: l.name }))}
+                      options={leaveTypesData.map(l => ({ 
+                        label: (
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <Text>{l.name}</Text>
+                            <Tag style={{ margin: 0, fontSize: 10 }}>{l.code}</Tag>
+                          </div>
+                        ), 
+                        value: l.name 
+                      }))}
                       onChange={(value) => {
                         const selected = leaveTypesData.find(l => l.name === value);
+                        const initials = value
+                          .split(/\s+/)
+                          .map((word: string) => word.charAt(0))
+                          .join("")
+                          .toUpperCase();
+                        
                         if (selected) {
-                          form.setFieldsValue({ description: selected.description });
+                          form.setFieldsValue({ 
+                            description: selected.description,
+                            code: selected.code || initials
+                          });
+                        } else {
+                          form.setFieldsValue({ code: initials });
                         }
                       }}
                     />
@@ -501,6 +522,7 @@ export default function LeaveTypePage() {
                     name="code"
                     label={<Text strong style={{ fontSize: 13 }}>Code</Text>}
                     rules={[{ required: true, message: "Required" }]}
+                    getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase()}
                   >
                     <Input placeholder="e.g. SL" />
                   </Form.Item>

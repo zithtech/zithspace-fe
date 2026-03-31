@@ -222,6 +222,7 @@ export default function LeaveAdjustmentPage() {
       if (success) {
         api.success({
           message: "Leave adjustment saved successfully",
+          placement: "topRight",
         });
 
         setIsModalVisible(false);
@@ -234,7 +235,8 @@ export default function LeaveAdjustmentPage() {
         message: "Adjustment Failed",
         description:
           error?.response?.data?.error ||
-          "This leave is already debited.",
+          "An unexpected error occurred while saving the adjustment.",
+        placement: "topRight",
       });
     } finally {
       setConfirmLoading(false);
@@ -265,9 +267,41 @@ export default function LeaveAdjustmentPage() {
       okText: "Delete",
       okType: "danger",
       onOk: async () => {
-        await deleteAdjustment(id);
+        const success = await deleteAdjustment(id);
+        if (success) {
+          api.success({
+            message: "Deleted successfully",
+            placement: "topRight",
+          });
+          setIsModalVisible(false);
+          form.resetFields();
+          setSelectedLeaveType(null);
+          setEditingKey(null);
+        } else {
+          api.error({
+            message: "Delete Failed",
+            description: "Failed to delete adjustment.",
+            placement: "topRight",
+          });
+        }
       },
     });
+  };
+
+  const confirmDelete = async (id: string) => {
+    const success = await deleteAdjustment(id);
+    if (success) {
+      api.success({
+        message: "Deleted successfully",
+        placement: "topRight",
+      });
+    } else {
+      api.error({
+        message: "Delete Failed",
+        description: "Failed to delete adjustment.",
+        placement: "topRight",
+      });
+    }
   };
 
   const columns = [
@@ -277,7 +311,7 @@ export default function LeaveAdjustmentPage() {
       key: "employee",
       width: 280,
       sorter: (a: LeaveAdjustmentViewData, b: LeaveAdjustmentViewData) =>
-        a.employee.localeCompare(b.employee),
+        (a.employee || "").localeCompare(b.employee || ""),
       render: (text: string) => (
         <Space size={12}>
           <div style={{ 
@@ -292,9 +326,9 @@ export default function LeaveAdjustmentPage() {
             fontSize: 14,
             fontWeight: 600
           }}>
-            {text.charAt(0)}
+            {text ? text.charAt(0).toUpperCase() : "-"}
           </div>
-          <Text strong style={{ color: "#1e293b" }}>{text}</Text>
+          <Text strong style={{ color: "#1e293b" }}>{text || "Unknown"}</Text>
         </Space>
       ),
     },
@@ -376,9 +410,9 @@ export default function LeaveAdjustmentPage() {
             fontWeight: 600,
             border: "1px solid #dbeafe"
           }}>
-            {text[0]}
+            {text ? text[0].toUpperCase() : "-"}
           </div>
-          <Text style={{ color: "#475569", fontSize: 13 }}>{text}</Text>
+          <Text style={{ color: "#475569", fontSize: 13 }}>{text || "Unknown"}</Text>
         </Space>
       ),
     },
@@ -402,7 +436,7 @@ export default function LeaveAdjustmentPage() {
             <Popconfirm
               title="Delete Adjustment?"
               description="Are you sure you want to delete this correction?"
-              onConfirm={() => deleteAdjustment(record.id)}
+              onConfirm={() => confirmDelete(record.id)}
               okText="Delete"
               cancelText="No"
               okButtonProps={{ danger: true }}
@@ -493,9 +527,10 @@ export default function LeaveAdjustmentPage() {
             bodyStyle={{ padding: "0" }}
           >
             <Table
+              rowKey="id"
               columns={columns}
               dataSource={dataSource.filter((item) =>
-                item.employee.toLowerCase().includes(searchText.toLowerCase()),
+                (item.employee || "").toLowerCase().includes((searchText || "").toLowerCase()),
               )}
               loading={loading}
               size="middle"
@@ -649,7 +684,12 @@ export default function LeaveAdjustmentPage() {
                 )}
 
                 <Col span={24}>
-                  <Form.Item name="reason" label="Reason" rules={[{ required: true }]}>
+                  <Form.Item 
+                    name="reason" 
+                    label="Reason" 
+                    rules={[{ required: true }]}
+                    getValueFromEvent={(e) => e.target.value.replace(/[0-9]/g, "")}
+                  >
                     <Input.TextArea rows={3} placeholder="Enter reason for adjustment" />
                   </Form.Item>
                 </Col>

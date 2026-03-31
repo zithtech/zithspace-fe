@@ -104,10 +104,15 @@ export default function LeavePage() {
     });
 
     if (success) {
+      const leaveType = leaveTypeId === LOP_LEAVE_TYPE_ID 
+        ? "Loss of Pay" 
+        : currentLeaveBalances.find(b => b.leaveTypeId === leaveTypeId)?.leaveTypeName || "Leave";
+
       api.success({
-        message: "Leave Applied Successfully",
+        message: `${leaveType} Added Successfully`,
         description: `Leave from ${dates[0].format("YYYY-MM-DD")} to ${dates[1].format("YYYY-MM-DD")}`,
-        duration: 2,
+        placement: "topRight",
+        duration: 3,
       });
       setDates(null);
       setLeaveTypeId("");
@@ -343,7 +348,7 @@ export default function LeavePage() {
                       rows={4}
                       placeholder="Give a brief reason for your leave request..."
                       value={reason}
-                      onChange={(e) => setReason(e.target.value)}
+                      onChange={(e) => setReason(e.target.value.replace(/[0-9]/g, ""))}
                       style={{ resize: "none", borderRadius: 12, border: "1px solid #e2e8f0" }}
                     />
                   </div>

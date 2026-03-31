@@ -113,6 +113,7 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
           name={[name, "holidayName"]}
           label="Holiday Name"
           rules={[{ required: true, message: "Please input holiday name!" }]}
+          getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z\s]/g, "")}
         >
           <Input placeholder="Enter holiday name" style={{ borderRadius: 8 }} />
         </Form.Item>

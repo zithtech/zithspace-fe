@@ -71,6 +71,7 @@ const { Text, Title } = Typography;
 interface PositionRecord {
   key: string;
   position: string;
+  label?: string;
   status: string;
   leaveType?: string | string[];
   leaveTypeId?: string;
@@ -303,8 +304,20 @@ export default function LeavePolicyPage() {
     const acc: Record<string, PositionRecord> = {};
     dataSource.forEach(item => {
       const key = `${item.position}-${item.subOriginId}`;
+      
+      let label = item.subOriginId || "";
+      if (item.position === "User") label = members.find(m => m.value === item.subOriginId)?.label || label;
+      else if (item.position === "Grade") label = grades.find(g => g.id === item.subOriginId)?.name || label;
+      else if (item.position === "Department") label = departments.find(d => d.id === item.subOriginId)?.name || label;
+      else if (item.position === "Sub-department") label = subDepartments.find(sd => sd.id === item.subOriginId)?.name || label;
+      else if (item.position === "Position") label = positions.find(p => p.id === item.subOriginId)?.title || label;
+
       if (!acc[key]) {
-        acc[key] = { ...item, leaveType: item.leaveType ? [item.leaveType as string] : [] };
+        acc[key] = { 
+          ...item, 
+          label,
+          leaveType: item.leaveType ? [item.leaveType as string] : [] 
+        };
       } else {
         const existingTypes = acc[key].leaveType as string[];
         if (item.leaveType && !existingTypes.includes(item.leaveType as string)) {
@@ -313,7 +326,7 @@ export default function LeavePolicyPage() {
       }
     });
     return Object.values(acc);
-  }, [dataSource]);
+  }, [dataSource, members, grades, departments, subDepartments, positions]);
 
   const columns: ColumnsType<PositionRecord> = [
     {
@@ -546,34 +559,44 @@ export default function LeavePolicyPage() {
               <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)" }}>
                 <Table 
                   columns={columns} 
-                  dataSource={uniqueDataSource.filter(i => i.position.toLowerCase().includes(searchText.toLowerCase()))} 
+                  dataSource={uniqueDataSource.filter(i => 
+                    i.position.toLowerCase().includes(searchText.toLowerCase()) ||
+                    (i.label && i.label.toLowerCase().includes(searchText.toLowerCase())) ||
+                    (Array.isArray(i.leaveType) && i.leaveType.some(t => t.toLowerCase().includes(searchText.toLowerCase())))
+                  )} 
                   loading={loading}
                   pagination={{ pageSize: 12, position: ["bottomRight"] }}
                 />
               </Card>
             ) : (
               <Row gutter={[24, 24]}>
-                {uniqueDataSource.map((item, idx) => (
-                  <Col xs={24} sm={12} lg={8} key={idx}>
-                    <Card 
-                      hoverable 
-                      className="policy-card"
-                      bodyStyle={{ padding: 24 }}
-                      style={{ borderRadius: 20, border: "1px solid #f1f5f9" }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                        <div style={{ background: "#f8fafc", padding: 10, borderRadius: 12, color: "#64748b" }}>
-                          {item.position === "User" ? <User size={20} /> : item.position === "Department" ? <Building2 size={20} /> : <Briefcase size={20} />}
+                {uniqueDataSource
+                  .filter(i => 
+                    i.position.toLowerCase().includes(searchText.toLowerCase()) ||
+                    (i.label && i.label.toLowerCase().includes(searchText.toLowerCase())) ||
+                    (Array.isArray(i.leaveType) && i.leaveType.some(t => t.toLowerCase().includes(searchText.toLowerCase())))
+                  )
+                  .map((item, idx) => (
+                    <Col xs={24} sm={12} lg={8} key={idx}>
+                      <Card 
+                        hoverable 
+                        className="policy-card"
+                        bodyStyle={{ padding: 24 }}
+                        style={{ borderRadius: 20, border: "1px solid #f1f5f9" }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+                          <div style={{ background: "#f8fafc", padding: 10, borderRadius: 12, color: "#64748b" }}>
+                            {item.position === "User" ? <User size={20} /> : item.position === "Department" ? <Building2 size={20} /> : <Briefcase size={20} />}
+                          </div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <Button type="text" icon={<Edit2 size={16} />} onClick={() => handleEdit(item)} className="small-action-btn" />
+                            <Button type="text" onClick={() => { setCurrentRecord(item); setIsDetailVisible(true); }} icon={<Maximize2 size={16} />} className="small-action-btn" />
+                          </div>
                         </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <Button type="text" icon={<Edit2 size={16} />} onClick={() => handleEdit(item)} className="small-action-btn" />
-                          <Button type="text" onClick={() => { setCurrentRecord(item); setIsDetailVisible(true); }} icon={<Maximize2 size={16} />} className="small-action-btn" />
-                        </div>
-                      </div>
-                      <Title level={5} style={{ margin: "0 0 4px 0", color: "#1e293b" }}>
-                        {item.position === "User" ? members.find(m => m.value === item.subOriginId)?.label : item.subOriginId}
-                      </Title>
-                      <Text type="secondary" style={{ fontSize: 13, display: "block", marginBottom: 16 }}>{item.position} Configuration</Text>
+                        <Title level={5} style={{ margin: "0 0 4px 0", color: "#1e293b" }}>
+                          {item.label}
+                        </Title>
+                        <Text type="secondary" style={{ fontSize: 13, display: "block", marginBottom: 16 }}>{item.position} Configuration</Text>
                       
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
                         {(item.leaveType as string[]).map((t, i) => <Tag key={i} style={{ borderRadius: 6, margin: 0, background: "#f1f5f9", border: 0, color: "#475569" }}>{t}</Tag>)}
@@ -611,7 +634,16 @@ export default function LeavePolicyPage() {
                 </Col>
                 <Col span={12}>
                   <Form.Item name="subOriginId" label={<Text strong style={{ fontSize: 13 }}>Specific Selection</Text>} rules={[{ required: true }]}>
-                    <Select disabled={!originType || !!editingKey} options={originType === "User" ? members : originType === "Grade" ? grades.map(g => ({ label: g.name, value: g.id })) : originType === "Department" ? departments.map(d => ({ label: d.name, value: d.id })) : []} />
+                    <Select
+                      disabled={!originType || !!editingKey}
+                      options={
+                        originType === "User" ? members :
+                        originType === "Grade" ? grades.map(g => ({ label: g.name, value: g.id })) :
+                        originType === "Department" ? departments.map(d => ({ label: d.name, value: d.id })) :
+                        originType === "Sub-department" ? subDepartments.map(sd => ({ label: sd.name, value: sd.id })) :
+                        originType === "Position" ? positions.map(p => ({ label: p.title, value: p.id })) :
+                        []
+                      } />
                   </Form.Item>
                 </Col>
               </Row>

@@ -4,7 +4,6 @@ import {
   LeaveAdjustmentAPIResponse,
   LeaveAdjustmentPayload,
 } from "@/services/leaveAdjustmentService";
-import { notification } from "antd";
 import dayjs from "dayjs";
 
 export interface LeaveAdjustmentViewData {
@@ -29,9 +28,11 @@ const transformApiToView = (
 ): LeaveAdjustmentViewData => ({
   key: adj.id,
   id: adj.id,
-  employee: `${adj.employee.first_name} ${adj.employee.last_name} (${adj.employee.employee_code})`,
+  employee: adj.employee
+    ? `${adj.employee.first_name} ${adj.employee.last_name} (${adj.employee.employee_code})`
+    : "Unknown Employee",
   employeeId: adj.employeeId,
-  leaveType: adj.leaveType.name,
+  leaveType: adj.leaveType?.name || "Unknown Type",
   leaveTypeId: adj.leaveTypeId,
   type: adj.adjustmentType,
   amount: Number(adj.amount),
@@ -60,11 +61,7 @@ export const useLeaveAdjustments = () => {
       const errorMessage =
         err.response?.data?.error || "Failed to load leave adjustments.";
       setError(errorMessage);
-      notification.error({
-        message: "Error",
-        description: errorMessage,
-        placement: "topRight",
-      });
+      console.error("Error loading adjustments:", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -77,19 +74,10 @@ export const useLeaveAdjustments = () => {
   const addAdjustment = async (payload: LeaveAdjustmentPayload) => {
     try {
       await LeaveAdjustmentService.createLeaveAdjustment(payload);
-      await fetchAdjustments(); // Refetch to get the latest data
-      notification.success({
-        message: "Adjustment added successfully",
-        placement: "topRight",
-        duration: 3,
-      });
+      await fetchAdjustments(); 
       return true;
     } catch (err: any) {
-      notification.error({
-        message: "Error",
-        description: err.response?.data?.error || "Failed to add adjustment.",
-        placement: "topRight",
-      });
+      console.error("Failed to add adjustment:", err);
       return false;
     }
   };
@@ -100,20 +88,10 @@ export const useLeaveAdjustments = () => {
   ) => {
     try {
       await LeaveAdjustmentService.updateLeaveAdjustment(id, payload);
-      await fetchAdjustments(); // Refetch to get the latest data
-      notification.success({
-        message: "Adjustment updated successfully",
-        placement: "topRight",
-        duration: 3,
-      });
+      await fetchAdjustments(); 
       return true;
     } catch (err: any) {
-      notification.error({
-        message: "Error",
-        description:
-          err.response?.data?.error || "Failed to update adjustment.",
-        placement: "topRight",
-      });
+      console.error("Failed to update adjustment:", err);
       return false;
     }
   };
@@ -122,18 +100,9 @@ export const useLeaveAdjustments = () => {
     try {
       await LeaveAdjustmentService.deleteLeaveAdjustment(id);
       setDataSource((prev) => prev.filter((item) => item.id !== id));
-      notification.success({
-        message: "Adjustment deleted successfully",
-        placement: "topRight",
-        duration: 3,
-      });
       return true;
     } catch (err: any) {
-      notification.error({
-        message: "Error",
-        description: "Failed to delete adjustment.",
-        placement: "topRight",
-      });
+      console.error("Failed to delete adjustment:", err);
       return false;
     }
   };

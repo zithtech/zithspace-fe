@@ -438,6 +438,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       "/onboarding",
       "/employee-exit",
       "/performance",
+      "/recruitment-settings"
     ],
     defaultPath: "/members",
     requiredPermission: Permissions.USER_READ,
@@ -461,6 +462,20 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         icon: <ImProfile />,
         path: "/new-profile",
       },
+       {
+        key: "/recruitment-settings",
+        label: "Status & Actions",
+        icon: <SolutionOutlined />,
+        path: "/recruitment-settings",
+      },
+       {
+        key: "/Candidate-management2",
+        label: "Candidate management2",
+        icon: < UserAddOutlined/>,
+        path: "/Candidate-management2",
+      },
+
+
       {
         key: "attendance-group",
         label: "Attendance",
@@ -488,6 +503,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+     
       {
         key: "leave-management-group",
         label: "Leave Management",

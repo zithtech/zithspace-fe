@@ -904,39 +904,65 @@ function SettingsPage() {
                 {locations.map((loc) => (
                   <Col xs={24} sm={12} lg={8} key={loc.id}>
                     <div 
-                      style={styles.locationCard}
-                      className="location-card-hover"
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #e2e8f0",
+                        overflow: "hidden",
+                        background: "#ffffff",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                      }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={styles.locationIcon}>
-                          <EnvironmentOutlined style={{ fontSize: 20 }} />
+                      {/* Header Section */}
+                      <div style={{ padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <Space size={10}>
+                            <div style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: "8px",
+                              backgroundColor: "#f8fafc",
+                              color: "#64748b",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              border: "1px solid #f1f5f9"
+                            }}>
+                              <EnvironmentOutlined style={{ fontSize: 16 }} />
+                            </div>
+                            <div>
+                              <Text strong style={{ fontSize: 13, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
+                                {loc.city}, {loc.state}
+                              </Text>
+                              <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+                                {loc.country}
+                              </Text>
+                            </div>
+                          </Space>
+                          <Space size={4}>
+                            <Button 
+                              type="text" 
+                              size="small" 
+                              icon={<EditOutlined style={{ color: '#64748b' }} />} 
+                              onClick={() => showEditLocationDrawer(loc)}
+                            />
+                            <Popconfirm
+                              title="Delete location?"
+                              onConfirm={() => handleDeleteLocation(loc.id)}
+                              okText="Yes"
+                              cancelText="No"
+                            >
+                              <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
+                            </Popconfirm>
+                          </Space>
                         </div>
-                        <Space>
-                          <Button 
-                            type="text" 
-                            size="small" 
-                            icon={<EditOutlined style={{ color: '#64748b' }} />} 
-                            onClick={() => showEditLocationDrawer(loc)}
-                          />
-                          <Popconfirm
-                            title="Delete location?"
-                            onConfirm={() => handleDeleteLocation(loc.id)}
-                            okText="Yes"
-                            cancelText="No"
-                          >
-                            <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
-                          </Popconfirm>
-                        </Space>
                       </div>
-                      <div style={{ marginTop: 4 }}>
-                        <Text strong style={{ fontSize: 16, color: '#1e293b', display: 'block', marginBottom: 8 }}>
-                          {loc.city}, {loc.state}
-                        </Text>
+
+                      {/* Content Section */}
+                      <div style={{ padding: 16 }}>
                         <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                          <Text style={{ color: '#64748b', fontSize: 13 }}>{loc.doorNumber}, {loc.street}</Text>
-                          <Text style={{ color: '#64748b', fontSize: 13 }}>{loc.area}</Text>
-                          <Text style={{ color: '#64748b', fontSize: 13 }}>{loc.pincode}</Text>
-                          <Text strong style={{ color: '#475569', fontSize: 13, marginTop: 4, display: 'block' }}>{loc.country}</Text>
+                          <Text style={{ color: '#475569', fontSize: 13 }}>{loc.doorNumber}, {loc.street}</Text>
+                          <Text style={{ color: '#475569', fontSize: 13 }}>{loc.area}</Text>
+                          <Text style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>Pincode: {loc.pincode}</Text>
                         </Space>
                       </div>
                     </div>
@@ -1269,12 +1295,6 @@ const GlobalStyles = () => (
       transition: all 0.3s ease;
     }
 
-    .location-card-hover:hover {
-      border-color: #bfdbfe !important;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-      transform: translateY(-2px);
-    }
-    
     /* Custom Scrollbar for Gallery */
     ::-webkit-scrollbar {
       width: 6px;

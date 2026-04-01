@@ -47,10 +47,10 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
     style={{
       display: "flex",
       alignItems: "center",
-      marginBottom: "10px",
-      padding: "8px 12px",
+      marginBottom: "8px",
+      padding: "6px 10px",
       background: "#ffffff",
-      borderRadius: "10px",
+      borderRadius: "8px",
       border: "1px solid #f1f5f9",
       transition: "all 0.2s ease",
     }}
@@ -58,18 +58,18 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
     {icon && (
       <div
         style={{
-          marginRight: "12px",
+          marginRight: "10px",
           color: color,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: "32px",
-          height: "32px",
+          width: "28px",
+          height: "28px",
           background: `${color}10`,
-          borderRadius: "8px",
+          borderRadius: "6px",
         }}
       >
-        {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+        {React.cloneElement(icon as React.ReactElement, { size: 14 })}
       </div>
     )}
     <div style={{ flex: 1 }}>
@@ -79,8 +79,8 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
           fontWeight: 600,
           color: "#94a3b8",
           textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          marginBottom: "2px",
+          letterSpacing: "0.3px",
+          marginBottom: "0px",
         }}
       >
         {label}
@@ -162,37 +162,37 @@ export default function OpeningDetailPage() {
   }
 
   const overviewTab = (
-    <div style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 🚀 Opening Context & Status */}
       <div style={{
         background: "white",
-        padding: 24,
-        borderRadius: 20,
+        padding: 16,
+        borderRadius: 12,
         border: "1px solid #e2e8f0",
         position: "relative",
         overflow: "hidden"
       }}>
         <div style={{
           position: "absolute",
-          top: -20,
-          right: -20,
-          width: 100,
-          height: 100,
+          top: -16,
+          right: -16,
+          width: 80,
+          height: 80,
           background: "#3b82f608",
           borderRadius: "50%"
         }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ background: "#3b82f6", padding: 8, borderRadius: 10, color: "white" }}>
-            <Briefcase size={20} />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <div style={{ background: "#3b82f6", padding: 6, borderRadius: 8, color: "white" }}>
+            <Briefcase size={18} />
           </div>
           <div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", display: "block" }}>Opening Overview</span>
-            <span style={{ fontSize: 13, color: "#64748b" }}>Core details of the job requisition</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b", display: "block" }}>Opening Overview</span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>Core details of the job requisition</span>
           </div>
         </div>
 
-        <Row gutter={[16, 0]}>
+        <Row gutter={[12, 0]}>
           <Col span={8}><RowItem label="Job ID" value={opening.jobId} icon={<FileText />} /></Col>
           <Col span={8}><RowItem label="Role category" value={opening.role} icon={<Info />} color="#8b5cf6" /></Col>
           <Col span={8}><RowItem label="Department" value={opening.department} icon={<Building2 />} color="#8b5cf6" /></Col>
@@ -210,18 +210,18 @@ export default function OpeningDetailPage() {
       </div>
 
       {/* 📅 Requirements & Logistics */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
-        <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Calendar size={18} style={{ color: "#3b82f6" }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>Key Requirements</span>
+      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16 }}>
+        <div style={{ padding: 16, background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <Calendar size={16} style={{ color: "#3b82f6" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Key Requirements</span>
           </div>
-          <Row gutter={[16, 0]}>
+          <Row gutter={[12, 0]}>
             <Col span={12}><RowItem label="Experience Range" value={`${opening.experience.min} - ${opening.experience.max} Years`} icon={<Clock />} /></Col>
             <Col span={12}><RowItem label="Total Openings" value={`${opening.numberOfOpenings} Vacancies`} icon={<Users />} color="#10b981" /></Col>
             <Col span={24}>
-              <div style={{ padding: '8px 12px', background: '#ffffff', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Primary Skills</Text>
+              <div style={{ padding: '6px 10px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Primary Skills</Text>
                 <Space wrap>
                   {opening.skills.map((skill: string) => (
                     <Tag key={skill} color="blue" style={{ borderRadius: 6, margin: 0 }}>{skill}</Tag>
@@ -232,10 +232,10 @@ export default function OpeningDetailPage() {
           </Row>
         </div>
 
-        <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <DollarSign size={18} style={{ color: "#f59e0b" }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>Budget & Timeline</span>
+        <div style={{ padding: 16, background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <DollarSign size={16} style={{ color: "#f59e0b" }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Budget & Timeline</span>
           </div>
           <RowItem label="Salary Bracket" value={`${opening.salary.min} - ${opening.salary.max} ${opening.salary.currency}`} icon={<DollarSign />} color="#f59e0b" />
           <RowItem label="Target Join Date" value={dayjs(opening.targetJoinDate).format('DD MMM YYYY')} icon={<Calendar />} color="#3b82f6" />
@@ -244,21 +244,21 @@ export default function OpeningDetailPage() {
       </div>
 
       {/* 📝 Detailed Description */}
-      <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ background: "#6366f115", padding: 8, borderRadius: 10, color: "#6366f1" }}>
-            <FileText size={20} />
+      <div style={{ padding: 16, background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <div style={{ background: "#6366f115", padding: 6, borderRadius: 8, color: "#6366f1" }}>
+            <FileText size={18} />
           </div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Detailed Job Description</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>Detailed Job Description</span>
         </div>
         <div style={{
-          padding: 20,
+          padding: 16,
           background: "#f8fafc",
-          borderRadius: 16,
+          borderRadius: 12,
           border: "1px solid #f1f5f9",
-          fontSize: 14,
+          fontSize: 13,
           color: "#475569",
-          lineHeight: 1.8,
+          lineHeight: 1.6,
           whiteSpace: 'pre-line'
         }}>
           {opening.description}
@@ -270,9 +270,9 @@ export default function OpeningDetailPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: '24px 32px', background: '#fff', minHeight: '100vh' }}>
+        <div style={{ padding: '16px 24px', background: '#fff', minHeight: '100vh' }}>
           {/* Header */}
-          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <Space size={16} align="center">
               <Button
                 icon={<ArrowLeft size={18} />}

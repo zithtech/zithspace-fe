@@ -37,6 +37,8 @@ import {
     Calendar,
     AlertCircle,
     ClipboardList,
+    CheckCircle2,
+    Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
@@ -339,20 +341,7 @@ export default function OpeningManagementPage() {
                 <Tag color="geekblue" style={{ borderRadius: 6, fontWeight: 500 }}>{type}</Tag>
             )
         },
-        {
-            title: 'Skills',
-            dataIndex: 'skills',
-            key: 'skills',
-            width: 200,
-            render: (skills: string[]) => (
-                <Space size={[0, 4]} wrap>
-                    {skills.slice(0, 2).map(skill => (
-                        <Tag key={skill} style={{ borderRadius: 4, fontSize: 11, margin: 0 }}>{skill}</Tag>
-                    ))}
-                    {skills.length > 2 && <Text type="secondary" style={{ fontSize: 11 }}>+{skills.length - 2}</Text>}
-                </Space>
-            )
-        },
+
         {
             title: 'Status',
             dataIndex: 'status',
@@ -409,10 +398,31 @@ export default function OpeningManagementPage() {
         },
     ];
 
+    const StatCard = ({ label, value, icon: Icon, color }: any) => (
+        <Card 
+            styles={{ body: { padding: "16px 20px" } }}
+            style={{ 
+                borderRadius: 12, 
+                border: "1px solid #f1f5f9", 
+                boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+            }}
+        >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                    <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+                </div>
+                <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
+                    <Icon size={20} />
+                </div>
+            </div>
+        </Card>
+    );
+
     return (
         <ProtectedRoute>
             <MainLayout>
-                <div style={{ margin: "-24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+                <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
                     {/* Header */}
                     <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                         <div>
@@ -453,6 +463,34 @@ export default function OpeningManagementPage() {
                             </Button>
                         </div>
                     </div>
+
+                    {/* Metrics Grid */}
+                    <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+                        <Col xs={24} sm={8}>
+                            <StatCard 
+                                label="Total Openings" 
+                                value={openings.length} 
+                                icon={Briefcase} 
+                                color="#3b82f6" 
+                            />
+                        </Col>
+                        <Col xs={24} sm={8}>
+                            <StatCard 
+                                label="Active Openings" 
+                                value={openings.filter(o => o.status === 'Open').length} 
+                                icon={CheckCircle2} 
+                                color="#10b981" 
+                            />
+                        </Col>
+                        <Col xs={24} sm={8}>
+                            <StatCard 
+                                label="High Priority" 
+                                value={openings.filter(o => o.priority === 'High').length} 
+                                icon={AlertCircle} 
+                                color="#ef4444" 
+                            />
+                        </Col>
+                    </Row>
 
                     {/* Filters */}
                     <div style={{ marginBottom: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -800,9 +838,7 @@ export default function OpeningManagementPage() {
                 text-transform: uppercase !important;
                 font-size: 11px !important;
                 letter-spacing: 0.05em !important;
-                padding: 16px !important;
               }
-              .custom-table .ant-table-tbody > tr > td { padding: 16px !important; }
               .custom-table .ant-table-row:hover > td { background: #f8fafc !important; }
               .ant-input:focus, .ant-select-focused .ant-select-selector, .ant-input-number:focus { 
                 border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; 

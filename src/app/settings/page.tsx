@@ -42,6 +42,7 @@ import {
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
+import { CompanyLocationService } from '@/services/companyLocationService';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
@@ -158,28 +159,7 @@ function SettingsPage() {
   const [logoVersions, setLogoVersions] = useState<string[]>([]);
 
   // Company locations state
-  const [locations, setLocations] = useState([
-    {
-      id: '1',
-      doorNumber: 'Suite 400',
-      street: '123 Tech Center Dr',
-      area: 'Innovations Park',
-      city: 'San Francisco',
-      state: 'CA',
-      pincode: '94105',
-      country: 'USA',
-    },
-    {
-      id: '2',
-      doorNumber: 'Ground Floor',
-      street: '456 Business Way',
-      area: 'Financial District',
-      city: 'New York',
-      state: 'NY',
-      pincode: '10004',
-      country: 'USA',
-    }
-  ]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
   const [editingLocation, setEditingLocation] = useState<any | null>(null);
   const [locationForm] = Form.useForm();
@@ -231,6 +211,19 @@ function SettingsPage() {
     }
   };
 
+  const fetchLocations = async () => {
+    try {
+      setLoading(true);
+      const data = await CompanyLocationService.getAll();
+      setLocations(data);
+    } catch (error) {
+      console.error('Failed to fetch locations:', error);
+      messageApi.error('Failed to fetch locations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load shifts when attendance tab is active
   useEffect(() => {
     if (user && activeTab === 'attendance') {
@@ -238,6 +231,9 @@ function SettingsPage() {
     }
     if (user && activeTab === 'system') {
       fetchTenantProfile();
+    }
+    if (user && activeTab === 'location') {
+      fetchLocations();
     }
   }, [user, activeTab]);
 
@@ -331,7 +327,7 @@ function SettingsPage() {
         tenantName: updatedProfile.name,
         tenantLogo: updatedProfile.settings?.logoUrl
       });
-      
+
       messageApi.success('System settings updated successfully!');
       fetchTenantProfile();
 
@@ -445,28 +441,40 @@ function SettingsPage() {
     setIsLocationDrawerVisible(true);
   };
 
-  const handleLocationsSubmit = (values: any) => {
-    if (editingLocation) {
-      setLocations(locations.map(loc => 
-        loc.id === editingLocation.id ? { ...loc, ...values } : loc
-      ));
-      messageApi.success('Location updated successfully!');
-    } else {
-      const newLocation = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...values
-      };
-      setLocations([...locations, newLocation]);
-      messageApi.success('Location added successfully!');
+  const handleLocationsSubmit = async (values: any) => {
+    try {
+      setFormLoading(true);
+      if (editingLocation) {
+        await CompanyLocationService.update(editingLocation.id, values);
+        messageApi.success('Location updated successfully!');
+      } else {
+        await CompanyLocationService.create(values);
+        messageApi.success('Location added successfully!');
+      }
+      setIsLocationDrawerVisible(false);
+      setEditingLocation(null);
+      locationForm.resetFields();
+      fetchLocations();
+    } catch (error) {
+      console.error('Failed to save location', error);
+      messageApi.error('Failed to save location');
+    } finally {
+      setFormLoading(false);
     }
-    setIsLocationDrawerVisible(false);
-    setEditingLocation(null);
-    locationForm.resetFields();
   };
 
-  const handleDeleteLocation = (id: string) => {
-    setLocations(locations.filter(loc => loc.id !== id));
-    messageApi.success('Location removed successfully!');
+  const handleDeleteLocation = async (id: string) => {
+    try {
+      setFormLoading(true);
+      await CompanyLocationService.delete(id);
+      messageApi.success('Location removed successfully!');
+      fetchLocations();
+    } catch (error) {
+      console.error('Failed to delete location', error);
+      messageApi.error('Failed to delete location');
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   // Shift table columns
@@ -862,18 +870,18 @@ function SettingsPage() {
             key="location"
           >
             <div style={{ padding: "8px 4px 24px 4px" }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start',
-                marginBottom: 32,
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
                 background: '#f8fafc',
-                padding: '24px',
+                padding: '16px 24px',
                 borderRadius: '16px',
                 border: '1px solid #f1f5f9'
               }}>
-                <Space align="start" size="middle">
-                  <div style={{ ...styles.iconContainer, background: '#fff' }}>
+                <Space align="center" size="middle">
+                  <div style={{ ...styles.iconContainer, width: 40, height: 40, borderRadius: 10, background: '#fff' }}>
                     <EnvironmentOutlined style={{ fontSize: 24 }} />
                   </div>
                   <div>
@@ -885,95 +893,182 @@ function SettingsPage() {
                     </Text>
                   </div>
                 </Space>
-                  <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />}
-                    onClick={showAddLocationDrawer}
-                    style={{ 
-                      borderRadius: 10, 
-                      height: 42, 
-                      fontWeight: 600,
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
-                    }}
-                  >
-                    Add Location
-                  </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={showAddLocationDrawer}
+                  style={{
+                    borderRadius: 10,
+                    height: 42,
+                    fontWeight: 600,
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+                  }}
+                >
+                  Add Location
+                </Button>
               </div>
 
               <Row gutter={[24, 24]}>
                 {locations.map((loc) => (
                   <Col xs={24} sm={12} lg={8} key={loc.id}>
-                    <div 
+                    <div
                       style={{
                         borderRadius: 16,
-                        border: "1px solid #e2e8f0",
-                        overflow: "hidden",
+                        border: "1px solid #f1f5f9",
                         background: "#ffffff",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                        padding: "20px",
+                        position: "relative",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                       }}
                     >
+                      {/* Top Right Ribbon */}
+                      <div style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -8,
+                        background: '#3b82f6',
+                        color: '#ffffff',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
+                        zIndex: 10
+                      }}>
+                        LOC
+                        <div style={{
+                          position: 'absolute',
+                          bottom: -4,
+                          right: 0,
+                          width: 0,
+                          height: 0,
+                          borderTop: '4px solid #1e3a8a',
+                          borderRight: '4px solid transparent',
+                        }} />
+                      </div>
+
                       {/* Header Section */}
-                      <div style={{ padding: "12px 16px", borderBottom: "1px solid #f1f5f9" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <Space size={10}>
-                            <div style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: "8px",
-                              backgroundColor: "#f8fafc",
-                              color: "#64748b",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              border: "1px solid #f1f5f9"
-                            }}>
-                              <EnvironmentOutlined style={{ fontSize: 16 }} />
-                            </div>
-                            <div>
-                              <Text strong style={{ fontSize: 13, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
-                                {loc.city}, {loc.state}
-                              </Text>
-                              <Text style={{ fontSize: 11, color: "#94a3b8" }}>
-                                {loc.country}
-                              </Text>
-                            </div>
-                          </Space>
-                          <Space size={4}>
-                            <Button 
-                              type="text" 
-                              size="small" 
-                              icon={<EditOutlined style={{ color: '#64748b' }} />} 
-                              onClick={() => showEditLocationDrawer(loc)}
-                            />
-                            <Popconfirm
-                              title="Delete location?"
-                              onConfirm={() => handleDeleteLocation(loc.id)}
-                              okText="Yes"
-                              cancelText="No"
-                            >
-                              <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
-                            </Popconfirm>
-                          </Space>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                        <div style={{ display: "flex", gap: 12 }}>
+                          <div style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: "50%",
+                            backgroundColor: "#eff6ff",
+                            color: "#2563eb",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 600,
+                            fontSize: 18,
+                            border: "1px solid #bfdbfe",
+                            flexShrink: 0
+                          }}>
+                            {loc.city ? loc.city.charAt(0).toUpperCase() : <EnvironmentOutlined />}
+                          </div>
+                          <div>
+                            <Text strong style={{ fontSize: 16, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
+                              {loc.city}, {loc.state}
+                            </Text>
+                            <Text style={{ fontSize: 13, color: "#64748b" }}>
+                              {loc.country}
+                            </Text>
+                          </div>
+                        </div>
+                        <Space size={2} style={{ marginRight: 24 }}>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined style={{ color: '#64748b' }} />}
+                            onClick={() => showEditLocationDrawer(loc)}
+                          />
+                          <Popconfirm
+                            title="Delete location?"
+                            onConfirm={() => handleDeleteLocation(loc.id)}
+                            okText="Yes"
+                            cancelText="No"
+                          >
+                            <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
+                          </Popconfirm>
+                        </Space>
+                      </div>
+
+                      {/* Pills Section */}
+                      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                        <div style={{
+                          background: "#f8fafc",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          border: "1px solid #f1f5f9"
+                        }}>
+                          <EnvironmentOutlined style={{ color: "#3b82f6", fontSize: 14 }} />
+                          <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.pincode}</Text>
+                        </div>
+                        <div style={{
+                          background: "#f8fafc",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          border: "1px solid #f1f5f9"
+                        }}>
+                          <EnvironmentOutlined style={{ color: "#8b5cf6", fontSize: 14 }} />
+                          <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.area}</Text>
                         </div>
                       </div>
 
-                      {/* Content Section */}
-                      <div style={{ padding: 16 }}>
-                        <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                          <Text style={{ color: '#475569', fontSize: 13 }}>{loc.doorNumber}, {loc.street}</Text>
-                          <Text style={{ color: '#475569', fontSize: 13 }}>{loc.area}</Text>
-                          <Text style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>Pincode: {loc.pincode}</Text>
-                        </Space>
+                      {/* Grey Section (Tasks equivalent) */}
+                      <div style={{
+                        background: "#f8fafc",
+                        borderRadius: "12px",
+                        padding: "16px",
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                          <div style={{ width: 16, height: 16, borderRadius: "4px", background: "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                          </div>
+                          <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Address Details</Text>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1", flexShrink: 0 }} />
+                          <Text style={{ fontSize: 13, color: "#334155" }}>
+                            {loc.flatNumber}, {loc.street}
+                          </Text>
+                        </div>
+                      </div>
+
+                      {/* Footer Section equivalent */}
+                      <div style={{
+                        marginTop: 16,
+                        paddingTop: 16,
+                        borderTop: "1px solid #f1f5f9",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
+                        <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+                          Status
+                        </Text>
+                        <Text style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                          ACTIVE
+                        </Text>
                       </div>
                     </div>
                   </Col>
                 ))}
                 {locations.length === 0 && (
                   <Col span={24}>
-                    <div style={{ 
-                      textAlign: 'center', 
-                      padding: '48px', 
-                      background: '#f8fafc', 
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '48px',
+                      background: '#f8fafc',
                       borderRadius: '16px',
                       border: '2px dashed #e2e8f0'
                     }}>
@@ -992,15 +1087,15 @@ function SettingsPage() {
         <Drawer
           title={
             <Space>
-              <div style={{ 
-                width: 32, 
-                height: 32, 
-                borderRadius: 8, 
-                background: '#eff6ff', 
-                color: '#2563eb', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: '#eff6ff',
+                color: '#2563eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}>
                 <EnvironmentOutlined style={{ fontSize: 16 }} />
               </div>
@@ -1039,7 +1134,7 @@ function SettingsPage() {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
-                  name="doorNumber"
+                  name="flatNumber"
                   label={<span style={{ fontWeight: 500, color: '#475569' }}>Door / Flat Number</span>}
                   rules={[{ required: true, message: 'Required' }]}
                 >

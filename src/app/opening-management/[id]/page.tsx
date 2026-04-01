@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dayjs from 'dayjs';
 import {
@@ -29,17 +29,21 @@ import {
   Building2,
   Info,
   Timer,
-  CheckCircle2,
   History,
-  MessageSquare,
 } from 'lucide-react';
-import Link from 'next/link';
 
 // Components
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 
-const { Title, Text, Paragraph } = Typography;
+// Services
+import { OpeningManagementService, OpeningManagement } from '@/services/openingManagementService';
+import { GradeService, GradeAPIResponse } from '@/services/gradeService';
+import { PositionService, Position as PositionType } from '@/services/positionService';
+import { MembersService } from '@/services/membersService';
+import { CompanyLocationService, CompanyLocation } from '@/services/companyLocationService';
+
+const { Title, Text } = Typography;
 
 // Helper Component for consistent row items
 const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
@@ -113,43 +117,57 @@ const PlaceholderTab = ({ title, icon: Icon }: { title: string, icon: any }) => 
 );
 
 export default function OpeningDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const router = useRouter();
+
   const [loading, setLoading] = useState(true);
-  const [opening, setOpening] = useState<any>(null);
+  const [opening, setOpening] = useState<OpeningManagement | null>(null);
+
+  // Mappings
+  const [grades, setGrades] = useState<GradeAPIResponse[]>([]);
+  const [positions, setPositions] = useState<PositionType[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [locations, setLocations] = useState<CompanyLocation[]>([]);
 
   useEffect(() => {
-    // Simulate API fetch delay
-    const timer = setTimeout(() => {
-      setOpening({
-        id: id || '1',
-        jobId: 'JOB-2024-001',
-        title: 'Senior Frontend Engineer',
-        role: 'Position',
-        department: 'Engineering',
-        experience: { min: 5, max: 8 },
-        skills: ['React', 'Next.js', 'TypeScript', 'Ant Design', 'State Management'],
-        secondarySkills: ['GraphQL', 'Tailwind CSS', 'Unit Testing'],
-        location: 'Bangalore, India',
-        workType: 'Hybrid',
-        employmentType: 'Full-time',
-        openingType: 'External',
-        numberOfOpenings: 3,
-        salary: { min: 25, max: 45, currency: 'LPA' },
-        priority: 'High',
-        status: 'Open',
-        targetJoinDate: '2024-05-01',
-        tags: ['Urgent', 'Tech', 'Remote-Friendly'],
-        createdAt: '2024-03-25',
-        description: "We are looking for a Senior Frontend Engineer who is passionate about building scalable, high-performance web applications. You will be responsible for architecting and implementing the frontend of our flagship product using React and Next.js.\n\nKey Responsibilities:\n- Design and develop high-quality UI components\n- Optimize application for maximum speed and scalability\n- Collaborate with backend engineers to integrate APIs\n- Mentor junior developers and conduct code reviews",
-        hiringManager: 'John Doe (Engineering Lead)',
-      });
-      setLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    if (id) {
+      fetchData();
+    }
   }, [id]);
 
-  if (loading) {
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [
+        openingData,
+        gradesData,
+        positionsData,
+        membersData,
+        locationsData
+      ] = await Promise.all([
+        OpeningManagementService.getById(id!),
+        GradeService.getAllGrades(),
+        PositionService.getAll(),
+        MembersService.getMembersForSelect(),
+        CompanyLocationService.getAll()
+      ]);
+
+      setOpening(openingData);
+      setGrades(Array.isArray(gradesData) ? gradesData : (gradesData as any).data || []);
+      setPositions(Array.isArray(positionsData) ? positionsData : (positionsData as any).data || []);
+      setMembers(Array.isArray(membersData) ? membersData : (membersData as any).data || []);
+      setLocations(Array.isArray(locationsData) ? locationsData : (locationsData as any).data || []);
+
+    } catch (error) {
+      console.error("Failed to fetch detail data", error);
+      notification.error({ message: "Error Loading Data", description: "Could not load the opening details." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !opening) {
     return (
       <ProtectedRoute>
         <MainLayout>
@@ -160,6 +178,27 @@ export default function OpeningDetailPage() {
       </ProtectedRoute>
     );
   }
+
+  // Resolving IDs to Names
+  const getDepartmentName = () => {
+    if (opening.roleType === 'Grade') {
+      return grades.find(g => g.id === opening.departmentId)?.name || opening.departmentId;
+    }
+    if (opening.roleType === 'Position') {
+      return positions.find(p => p.id === opening.departmentId)?.title || opening.departmentId;
+    }
+    return opening.departmentId;
+  };
+
+  const getHiringManagerName = () => {
+    return members.find(m => m.value === opening.hiringManagerId)?.label || opening.hiringManagerId;
+  };
+
+  const getLocationName = () => {
+    const loc = locations.find(l => l.id === opening.baseLocation);
+    if (!loc) return opening.baseLocation || 'Remote/TBD';
+    return [loc.city, loc.country].filter(Boolean).join(', ') || loc.id;
+  };
 
   const overviewTab = (
     <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -188,20 +227,20 @@ export default function OpeningDetailPage() {
           </div>
           <div>
             <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b", display: "block" }}>Opening Overview</span>
-            <span style={{ fontSize: 12, color: "#64748b" }}>Core details of the job requisition</span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>Core details of the requisition</span>
           </div>
         </div>
 
         <Row gutter={[12, 0]}>
-          <Col span={8}><RowItem label="Job ID" value={opening.jobId} icon={<FileText />} /></Col>
-          <Col span={8}><RowItem label="Role category" value={opening.role} icon={<Info />} color="#8b5cf6" /></Col>
-          <Col span={8}><RowItem label="Department" value={opening.department} icon={<Building2 />} color="#8b5cf6" /></Col>
-          <Col span={8}><RowItem label="Location" value={opening.location} icon={<MapPin />} /></Col>
-          <Col span={8}><RowItem label="Work Arrangement" value={opening.workType} icon={<Timer />} color="#10b981" /></Col>
+          <Col span={8}><RowItem label="Opening ID" value={opening.id?.substring(0, 8).toUpperCase()} icon={<FileText />} /></Col>
+          <Col span={8}><RowItem label="Role category" value={opening.roleType} icon={<Info />} color="#8b5cf6" /></Col>
+          <Col span={8}><RowItem label="Department" value={getDepartmentName()} icon={<Building2 />} color="#8b5cf6" /></Col>
+          <Col span={8}><RowItem label="Location" value={getLocationName()} icon={<MapPin />} /></Col>
+          <Col span={8}><RowItem label="Work Arrangement" value={opening.workArrangement || 'N/A'} icon={<Timer />} color="#10b981" /></Col>
           <Col span={8}>
             <RowItem
               label="Hiring Manager"
-              value={opening.hiringManager}
+              value={getHiringManagerName()}
               icon={<Users />}
               color="#f59e0b"
             />
@@ -217,15 +256,20 @@ export default function OpeningDetailPage() {
             <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Key Requirements</span>
           </div>
           <Row gutter={[12, 0]}>
-            <Col span={12}><RowItem label="Experience Range" value={`${opening.experience.min} - ${opening.experience.max} Years`} icon={<Clock />} /></Col>
-            <Col span={12}><RowItem label="Total Openings" value={`${opening.numberOfOpenings} Vacancies`} icon={<Users />} color="#10b981" /></Col>
+            <Col span={12}><RowItem label="Experience Range" value={`${opening.minExperience || 0} - ${opening.maxExperience || 0} Years`} icon={<Clock />} /></Col>
+            <Col span={12}><RowItem label="Notice Period" value={`${opening.noticePeriod ? opening.noticePeriod + ' Days' : 'N/A'}`} icon={<Clock />} color="#8b5cf6" /></Col>
+            <Col span={12}><RowItem label="Total Openings" value={`${opening.totalOpenings || 1} Vacancies`} icon={<Users />} color="#10b981" /></Col>
+            <Col span={12}><RowItem label="Employment Type" value={opening.employmentType || "Full-time"} icon={<Briefcase />} color="#f59e0b" /></Col>
             <Col span={24}>
-              <div style={{ padding: '6px 10px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+              <div style={{ padding: '6px 10px', background: '#ffffff', borderRadius: '8px', border: '1px solid #f1f5f9', marginTop: 8 }}>
                 <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Primary Skills</Text>
                 <Space wrap>
-                  {opening.skills.map((skill: string) => (
+                  {(opening.primarySkills || []).map((skill: string) => (
                     <Tag key={skill} color="blue" style={{ borderRadius: 6, margin: 0 }}>{skill}</Tag>
                   ))}
+                  {(!opening.primarySkills || opening.primarySkills.length === 0) && (
+                    <Text type="secondary" style={{ fontSize: 13 }}>No specific skills listed.</Text>
+                  )}
                 </Space>
               </div>
             </Col>
@@ -237,9 +281,24 @@ export default function OpeningDetailPage() {
             <DollarSign size={16} style={{ color: "#f59e0b" }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Budget & Timeline</span>
           </div>
-          <RowItem label="Salary Bracket" value={`${opening.salary.min} - ${opening.salary.max} ${opening.salary.currency}`} icon={<DollarSign />} color="#f59e0b" />
-          <RowItem label="Target Join Date" value={dayjs(opening.targetJoinDate).format('DD MMM YYYY')} icon={<Calendar />} color="#3b82f6" />
-          <RowItem label="Priority" value={<Tag color={opening.priority === 'High' ? 'red' : 'orange'} style={{ borderRadius: 6, margin: 0 }}>{opening.priority.toUpperCase()}</Tag>} icon={<Timer />} color="#ef4444" />
+          <RowItem
+            label="Salary Bracket"
+            value={opening.minSalary && opening.maxSalary ? `${opening.minSalary} - ${opening.maxSalary} ${opening.currency || ''}` : 'Not Specified'}
+            icon={<DollarSign />}
+            color="#f59e0b"
+          />
+          <RowItem
+            label="Created At"
+            value={dayjs(opening.createdAt).format('DD MMM YYYY')}
+            icon={<Calendar />}
+            color="#3b82f6"
+          />
+          <RowItem
+            label="Priority"
+            value={<Tag color={opening.priorityLevel === 'High' ? 'red' : 'orange'} style={{ borderRadius: 6, margin: 0 }}>{(opening.priorityLevel || 'Meduim').toUpperCase()}</Tag>}
+            icon={<Timer />}
+            color="#ef4444"
+          />
         </div>
       </div>
 
@@ -261,7 +320,7 @@ export default function OpeningDetailPage() {
           lineHeight: 1.6,
           whiteSpace: 'pre-line'
         }}>
-          {opening.description}
+          {opening.jobDescription || <Text type="secondary">No job description provided.</Text>}
         </div>
       </div>
     </div>
@@ -281,23 +340,23 @@ export default function OpeningDetailPage() {
               />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{opening.title}</Title>
-                  <Tag color="success" style={{ borderRadius: 20, padding: '2px 12px', fontWeight: 600, border: 0 }}>{opening.status.toUpperCase()}</Tag>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{opening.jobTitle}</Title>
+                  <Tag color="success" style={{ borderRadius: 20, padding: '2px 12px', fontWeight: 600, border: 0 }}>{(opening.currentStatus || 'OPEN').toUpperCase()}</Tag>
                 </div>
                 <Space split={<Divider type="vertical" />}>
-                  <Text style={{ color: "#64748b" }}>ID: {opening.jobId}</Text>
-                  <Text style={{ color: "#64748b" }}>{opening.department}</Text>
-                  <Text style={{ color: "#64748b" }}>{opening.employmentType}</Text>
+                  <Text style={{ color: "#64748b" }}>ID: {opening.id?.substring(0, 8).toUpperCase()}</Text>
+                  <Text style={{ color: "#64748b" }}>{getDepartmentName()}</Text>
+                  <Text style={{ color: "#64748b" }}>{opening.employmentType || 'Full-time'}</Text>
                 </Space>
               </div>
             </Space>
             <Space>
-              <Button icon={<Share2 size={18} />} style={{ borderRadius: 8 }}>Share</Button>
-              <Button type="primary" icon={<Edit size={18} />} style={{ borderRadius: 8, background: '#2563eb', border: 'none' }}>Edit Opening</Button>
+              {/* Buttons removed as per user request */}
             </Space>
           </div>
 
           <Tabs
+            style={{ position: "sticky" }}
             defaultActiveKey="overview"
             className="modern-tabs"
             items={[

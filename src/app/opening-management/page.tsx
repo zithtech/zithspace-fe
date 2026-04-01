@@ -52,93 +52,19 @@ import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { GradeService, GradeAPIResponse } from '@/services/gradeService';
 import { PositionService, Position as PositionType } from '@/services/positionService';
 import { MembersService } from '@/services/membersService';
+import { OpeningManagementService, OpeningManagement } from '@/services/openingManagementService';
+import { CompanyLocationService, CompanyLocation } from '@/services/companyLocationService';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
-// Types
-interface Opening {
-    id: string;
-    jobId: string;
-    title: string;
-    role: 'Grade' | 'Position';
-    department: string;
-    experience: {
-        min: number;
-        max: number;
-    };
-    skills: string[];
-    secondarySkills: string[];
-    location: string;
-    workType: 'Remote' | 'Onsite' | 'Hybrid';
-    employmentType: 'Full-time' | 'Contract' | 'C2C' | 'W2';
-    openingType: 'Internal' | 'External';
-    numberOfOpenings: number;
-    salary: {
-        min: number;
-        max: number;
-        currency: string;
-    };
-    priority: 'High' | 'Medium' | 'Low';
-    status: 'Open' | 'Closed' | 'On Hold';
-    targetJoinDate: string;
-    tags: string[];
-    createdAt: string;
-}
-
-// Dummy Data
-const initialOpenings: Opening[] = [
-    {
-        id: '1',
-        jobId: 'JOB-2024-001',
-        title: 'Senior Frontend Engineer',
-        role: 'Position',
-        department: 'Engineering',
-        experience: { min: 5, max: 8 },
-        skills: ['React', 'Next.js', 'TypeScript', 'Ant Design'],
-        secondarySkills: ['GraphQL', 'Tailwind CSS'],
-        location: 'Bangalore, India',
-        workType: 'Hybrid',
-        employmentType: 'Full-time',
-        openingType: 'External',
-        numberOfOpenings: 3,
-        salary: { min: 25, max: 45, currency: 'LPA' },
-        priority: 'High',
-        status: 'Open',
-        targetJoinDate: '2024-05-01',
-        tags: ['Urgent', 'Tech'],
-        createdAt: '2024-03-25',
-    },
-    {
-        id: '2',
-        jobId: 'JOB-2024-002',
-        title: 'UI/UX Designer',
-        role: 'Grade',
-        department: 'Design',
-        experience: { min: 2, max: 5 },
-        skills: ['Figma', 'Adobe XD', 'Prototyping'],
-        secondarySkills: ['Illustrator', 'User Research'],
-        location: 'Remote',
-        workType: 'Remote',
-        employmentType: 'Full-time',
-        openingType: 'Internal',
-        numberOfOpenings: 1,
-        salary: { min: 15, max: 25, currency: 'LPA' },
-        priority: 'Medium',
-        status: 'Open',
-        targetJoinDate: '2024-04-15',
-        tags: ['Design', 'Creative'],
-        createdAt: '2024-03-28',
-    },
-];
-
 export default function OpeningManagementPage() {
     const router = useRouter();
     const [form] = Form.useForm();
-    const [openings, setOpenings] = useState<Opening[]>(initialOpenings);
+    const [openings, setOpenings] = useState<OpeningManagement[]>([]);
     const [drawerVisible, setDrawerVisible] = useState(false);
-    const [editingOpening, setEditingOpening] = useState<Opening | null>(null);
+    const [editingOpening, setEditingOpening] = useState<OpeningManagement | null>(null);
     const [searchText, setSearchText] = useState('');
     const [filters, setFilters] = useState<any>({
         location: null,
@@ -151,24 +77,37 @@ export default function OpeningManagementPage() {
     const [grades, setGrades] = useState<GradeAPIResponse[]>([]);
     const [positions, setPositions] = useState<PositionType[]>([]);
     const [members, setMembers] = useState<any[]>([]);
+    const [locations, setLocations] = useState<CompanyLocation[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         fetchDynamicData();
+        fetchOpenings();
     }, []);
+
+    const fetchOpenings = async () => {
+        try {
+            const data = await OpeningManagementService.getAll();
+            setOpenings(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Error fetching openings:', error);
+        }
+    };
 
     const fetchDynamicData = async () => {
         setLoading(true);
         try {
-            const [gradesData, positionsData, membersData] = await Promise.all([
+            const [gradesData, positionsData, membersData, locationsData] = await Promise.all([
                 GradeService.getAllGrades(),
                 PositionService.getAll(),
                 MembersService.getMembersForSelect(),
+                CompanyLocationService.getAll(),
             ]);
 
             setGrades(Array.isArray(gradesData) ? gradesData : (gradesData as any).data || []);
             setPositions(Array.isArray(positionsData) ? positionsData : (positionsData as any).data || []);
             setMembers(Array.isArray(membersData) ? membersData : (membersData as any).data || []);
+            setLocations(Array.isArray(locationsData) ? locationsData : (locationsData as any).data || []);
         } catch (error) {
             console.error('Error fetching dynamic data:', error);
         } finally {
@@ -176,87 +115,65 @@ export default function OpeningManagementPage() {
         }
     };
 
-    const handleOpenDrawer = (opening?: Opening) => {
+    const handleOpenDrawer = (opening?: OpeningManagement) => {
         if (opening) {
             setEditingOpening(opening);
             form.setFieldsValue({
                 ...opening,
-                minExperience: opening.experience.min,
-                maxExperience: opening.experience.max,
-                salaryMin: opening.salary.min,
-                salaryMax: opening.salary.max,
-                currency: opening.salary.currency,
-                targetJoinDate: dayjs(opening.targetJoinDate),
             });
         } else {
             setEditingOpening(null);
             form.resetFields();
             form.setFieldsValue({
-                status: 'Open',
-                priority: 'Medium',
-                workType: 'Onsite',
-                openingType: 'External',
+                currentStatus: 'Open',
+                priorityLevel: 'Medium',
+                workArrangement: 'Onsite',
                 employmentType: 'Full-time',
                 currency: 'INR',
+                totalOpenings: 1
             });
         }
         setDrawerVisible(true);
     };
 
     const handleSave = () => {
-        form.validateFields().then((values) => {
-            const newOpening: Opening = {
-                id: editingOpening?.id || Math.random().toString(36).substr(2, 9),
-                jobId: editingOpening?.jobId || `JOB-2024-${Math.floor(Math.random() * 1000)}`,
-                title: values.title,
-                role: values.role,
-                department: values.department,
-                experience: { min: values.minExperience, max: values.maxExperience },
-                skills: values.skills,
-                secondarySkills: values.secondarySkills || [],
-                location: values.location,
-                workType: values.workType,
-                employmentType: values.employmentType,
-                openingType: values.openingType,
-                numberOfOpenings: values.numberOfOpenings,
-                salary: { min: values.salaryMin, max: values.salaryMax, currency: values.currency },
-                priority: values.priority,
-                status: values.status,
-                targetJoinDate: values.targetJoinDate ? values.targetJoinDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-                tags: values.tags || [],
-                createdAt: editingOpening?.createdAt || dayjs().format('YYYY-MM-DD'),
-            };
-
-            if (editingOpening) {
-                setOpenings(openings.map((o) => (o.id === editingOpening.id ? newOpening : o)));
-            } else {
-                setOpenings([newOpening, ...openings]);
+        form.validateFields().then(async (values) => {
+            try {
+                if (editingOpening) {
+                    await OpeningManagementService.update(editingOpening.id, values);
+                } else {
+                    await OpeningManagementService.create(values);
+                }
+                await fetchOpenings();
+                setDrawerVisible(false);
+            } catch (error) {
+                console.error("Failed to save opening", error);
             }
-            setDrawerVisible(false);
         });
     };
 
-    const handleDelete = (id: string) => {
-        setOpenings(openings.filter((o) => o.id !== id));
+    const handleDelete = async (id: string) => {
+        try {
+            await OpeningManagementService.delete(id);
+            await fetchOpenings();
+        } catch (error) {
+            console.error("Failed to delete opening", error);
+        }
     };
 
     const filteredOpenings = openings.filter((o) => {
-        const matchesSearch = o.title.toLowerCase().includes(searchText.toLowerCase()) ||
-            o.jobId.toLowerCase().includes(searchText.toLowerCase()) ||
-            o.department.toLowerCase().includes(searchText.toLowerCase()) ||
-            o.skills.some(s => s.toLowerCase().includes(searchText.toLowerCase()));
-            
-        const matchesLocation = !filters.location || o.location === filters.location;
-        const matchesWorkType = !filters.workType || o.workType === filters.workType;
-        const matchesStatus = !filters.status || o.status === filters.status;
-        
+        const matchesSearch = (o.jobTitle || "").toLowerCase().includes(searchText.toLowerCase()) ||
+            (o.primarySkills || []).some(s => s.toLowerCase().includes(searchText.toLowerCase()));
+
+        const matchesLocation = !filters.location || o.baseLocation === filters.location;
+        const matchesWorkType = !filters.workType || o.workArrangement === filters.workType;
+        const matchesStatus = !filters.status || o.currentStatus === filters.status;
+
         // Experience Range Match
-        const openingMin = o.experience.min;
-        const openingMax = o.experience.max;
+        const openingMin = o.minExperience || 0;
+        const openingMax = o.maxExperience || 0;
         const [filterMin, filterMax] = filters.experience;
-        
-        // Match if the opening experience range overlaps with the filter range
-        // or if we want stricter: if opening is within filter range
+
         const matchesExp = openingMin >= filterMin && openingMax <= filterMax;
 
         return matchesSearch && matchesLocation && matchesWorkType && matchesStatus && matchesExp;
@@ -266,8 +183,8 @@ export default function OpeningManagementPage() {
         {
             title: 'Job Info',
             key: 'jobInfo',
-            width: 250,
-            render: (record: Opening) => (
+            width: 290,
+            render: (record: OpeningManagement) => (
                 <Space size={12}>
                     <div style={{
                         width: 36,
@@ -285,8 +202,8 @@ export default function OpeningManagementPage() {
                         <Briefcase size={18} />
                     </div>
                     <div>
-                        <Text strong style={{ display: 'block', color: '#1e293b', fontSize: 14 }}>{record.title}</Text>
-                        <Text type="secondary" style={{ fontSize: 12 }}>{record.jobId}</Text>
+                        <Text strong style={{ display: 'block', color: '#1e293b', fontSize: 14 }}>{record.jobTitle}</Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>{record.id?.substring(0, 8).toUpperCase()}</Text>
                     </div>
                 </Space>
             ),
@@ -294,58 +211,59 @@ export default function OpeningManagementPage() {
         {
             title: 'Category',
             key: 'roleDept',
-            render: (record: Opening) => (
-                <Space direction="vertical" size={2}>
-                    <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>{record.role}</Tag>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{record.department}</Text>
-                </Space>
-            ),
+            width: 200,
+            render: (record: OpeningManagement) => {
+                const isGrade = record.roleType === 'Grade';
+                const deptName = isGrade
+                    ? grades.find(g => g.id === record.departmentId)?.name
+                    : positions.find(p => p.id === record.departmentId)?.title;
+
+                return (
+                    <Space direction="vertical" size={2}>
+                        <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 500 }}>{record.roleType}</Tag>
+                        <Text type="secondary" style={{ fontSize: 12 }}>{deptName || record.departmentId}</Text>
+                    </Space>
+                );
+            },
         },
         {
             title: 'Work Type',
-            dataIndex: 'workType',
-            key: 'workType',
+            dataIndex: 'workArrangement',
+            key: 'workArrangement',
             render: (type: string) => (
-                <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 500 }}>{type}</Tag>
-            )
-        },
-        {
-            title: 'Type',
-            dataIndex: 'openingType',
-            key: 'openingType',
-            render: (type: string) => (
-                <Tag color="purple" style={{ borderRadius: 6, fontWeight: 500 }}>{type}</Tag>
+                <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 500 }}>{type || "N/A"}</Tag>
             )
         },
         {
             title: 'Openings',
-            dataIndex: 'numberOfOpenings',
-            key: 'numberOfOpenings',
+            dataIndex: 'totalOpenings',
+            key: 'totalOpenings',
             align: 'center' as const,
             render: (count: number) => (
-                <div style={{ fontWeight: 700, color: '#1e293b' }}>{count}</div>
+                <div style={{ fontWeight: 700, color: '#1e293b' }}>{count || 0}</div>
             )
         },
         {
             title: 'Experience',
             key: 'exp',
-            render: (record: Opening) => (
-                <Text style={{ fontSize: 13 }}>{record.experience.min}-{record.experience.max} Yrs</Text>
+            render: (record: OpeningManagement) => (
+                <Text style={{ fontSize: 13 }}>{record.minExperience || 0}-{record.maxExperience || 0} Yrs</Text>
             ),
         },
         {
-            title: 'Employment',
-            dataIndex: 'employmentType',
-            key: 'employmentType',
-            render: (type: string) => (
-                <Tag color="geekblue" style={{ borderRadius: 6, fontWeight: 500 }}>{type}</Tag>
+            title: 'Notice Period',
+            dataIndex: 'noticePeriod',
+            key: 'noticePeriod',
+            render: (days: number) => (
+                <Text style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>
+                    {days ? `${days} Days` : 'N/A'}
+                </Text>
             )
         },
-
         {
             title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
+            dataIndex: 'currentStatus',
+            key: 'currentStatus',
             render: (status: string) => {
                 let color = "processing";
                 if (status === "Closed") color = "error";
@@ -355,7 +273,7 @@ export default function OpeningManagementPage() {
                         color={color}
                         style={{ borderRadius: 20, padding: "0 12px", fontWeight: 600, border: 0 }}
                     >
-                        {status.toUpperCase()}
+                        {(status || "OPEN").toUpperCase()}
                     </Tag>
                 );
             },
@@ -364,7 +282,7 @@ export default function OpeningManagementPage() {
             title: 'Actions',
             key: 'actions',
             align: 'right' as const,
-            render: (record: Opening) => (
+            render: (record: OpeningManagement) => (
                 <Space size={4}>
                     <Tooltip title="View Details">
                         <Button
@@ -384,7 +302,7 @@ export default function OpeningManagementPage() {
                     </Tooltip>
                     <Popconfirm
                         title="Delete this opening?"
-                        onConfirm={() => handleDelete(record.id)}
+                        onConfirm={() => handleDelete(record.id!)}
                         okText="Yes"
                         cancelText="No"
                         okButtonProps={{ danger: true }}
@@ -399,11 +317,11 @@ export default function OpeningManagementPage() {
     ];
 
     const StatCard = ({ label, value, icon: Icon, color }: any) => (
-        <Card 
+        <Card
             styles={{ body: { padding: "16px 20px" } }}
-            style={{ 
-                borderRadius: 12, 
-                border: "1px solid #f1f5f9", 
+            style={{
+                borderRadius: 12,
+                border: "1px solid #f1f5f9",
                 boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
             }}
         >
@@ -436,27 +354,43 @@ export default function OpeningManagementPage() {
                                 </div>
                             </Space>
                         </div>
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <Input
-                                placeholder="Search openings..."
-                                prefix={<Search size={16} style={{ color: '#94a3b8' }} />}
-                                value={searchText}
-                                onChange={(e) => setSearchText(e.target.value)}
-                                style={{ width: 280, borderRadius: 10, height: 44 }}
-                            />
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                            <div style={{ position: 'relative' }}>
+                                <Input
+                                    placeholder="Search openings..."
+                                    prefix={<Search size={18} style={{ color: '#6366f1' }} />}
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    className="creative-search"
+                                    suffix={
+                                        <div style={{
+                                            background: '#f1f5f9',
+                                            padding: '2px 6px',
+                                            borderRadius: 6,
+                                            fontSize: 11,
+                                            color: '#94a3b8',
+                                            fontWeight: 600,
+                                            border: '1px solid #e2e8f0'
+                                        }}>
+                                            ⌘K
+                                        </div>
+                                    }
+                                />
+                            </div>
                             <Button
                                 type="primary"
                                 icon={<Plus size={18} />}
                                 onClick={() => handleOpenDrawer()}
                                 style={{
-                                    height: 44,
-                                    borderRadius: 10,
+                                    height: 46,
+                                    borderRadius: 12,
                                     fontWeight: 600,
-                                    background: '#2563eb',
+                                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     border: 'none',
-                                    padding: '0 20px'
+                                    padding: '0 24px',
+                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
                                 }}
                             >
                                 Create Opening
@@ -466,105 +400,117 @@ export default function OpeningManagementPage() {
 
                     {/* Metrics Grid */}
                     <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
-                        <Col xs={24} sm={8}>
-                            <StatCard 
-                                label="Total Openings" 
-                                value={openings.length} 
-                                icon={Briefcase} 
-                                color="#3b82f6" 
+                        <Col xs={24} sm={6}>
+                            <StatCard
+                                label="Total Openings"
+                                value={openings.length}
+                                icon={Briefcase}
+                                color="#3b82f6"
                             />
                         </Col>
-                        <Col xs={24} sm={8}>
-                            <StatCard 
-                                label="Active Openings" 
-                                value={openings.filter(o => o.status === 'Open').length} 
-                                icon={CheckCircle2} 
-                                color="#10b981" 
+                        <Col xs={24} sm={6}>
+                            <StatCard
+                                label="Active Openings"
+                                value={openings.filter(o => o.currentStatus === 'Open').length}
+                                icon={CheckCircle2}
+                                color="#10b981"
                             />
                         </Col>
-                        <Col xs={24} sm={8}>
-                            <StatCard 
-                                label="High Priority" 
-                                value={openings.filter(o => o.priority === 'High').length} 
-                                icon={AlertCircle} 
-                                color="#ef4444" 
+                        <Col xs={24} sm={6}>
+                            <StatCard
+                                label="High Priority"
+                                value={openings.filter(o => o.priorityLevel === 'High').length}
+                                icon={AlertCircle}
+                                color="#ef4444"
                             />
                         </Col>
                     </Row>
 
                     {/* Filters */}
-                    <div style={{ marginBottom: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        <Select
-                            placeholder="Location"
-                            style={{ width: 180 }}
-                            allowClear
-                            onChange={(val) => setFilters({ ...filters, location: val })}
-                            dropdownStyle={{ borderRadius: 12 }}
-                        >
-                            <Option value="Bangalore, India">Bangalore, India</Option>
-                            <Option value="Remote">Remote</Option>
-                            <Option value="New York, USA">New York, USA</Option>
-                        </Select>
-                        <Select
-                            placeholder="Work Type"
-                            style={{ width: 180 }}
-                            allowClear
-                            onChange={(val) => setFilters({ ...filters, workType: val })}
-                            dropdownStyle={{ borderRadius: 12 }}
-                        >
-                            <Option value="Remote">Remote</Option>
-                            <Option value="Onsite">Onsite</Option>
-                            <Option value="Hybrid">Hybrid</Option>
-                        </Select>
-                        <Select
-                            placeholder="Status"
-                            style={{ width: 180 }}
-                            allowClear
-                            onChange={(val) => setFilters({ ...filters, status: val })}
-                            dropdownStyle={{ borderRadius: 12 }}
-                        >
-                            <Option value="Open">Open</Option>
-                            <Option value="Closed">Closed</Option>
-                            <Option value="On Hold">On Hold</Option>
-                        </Select>
+                    <Card
+                        styles={{ body: { padding: '16px 24px' } }}
+                        style={{
+                            marginBottom: 24,
+                            borderRadius: 16,
+                            border: '1px solid #f1f5f9',
+                            background: '#ffffff',
+                            boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.02)'
+                        }}
+                    >
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <Text strong style={{ marginRight: 8, color: '#64748b', fontSize: 13 }}>Quick Filters:</Text>
+                            <Select
+                                placeholder="Location"
+                                style={{ width: 180 }}
+                                allowClear
+                                onChange={(val) => setFilters({ ...filters, location: val })}
+                                dropdownStyle={{ borderRadius: 12 }}
+                            >
+                                <Option value="Bangalore, India">Bangalore, India</Option>
+                                <Option value="Remote">Remote</Option>
+                                <Option value="New York, USA">New York, USA</Option>
+                            </Select>
+                            <Select
+                                placeholder="Work Type"
+                                style={{ width: 180 }}
+                                allowClear
+                                onChange={(val) => setFilters({ ...filters, workType: val })}
+                                dropdownStyle={{ borderRadius: 12 }}
+                            >
+                                <Option value="Remote">Remote</Option>
+                                <Option value="Onsite">Onsite</Option>
+                                <Option value="Hybrid">Hybrid</Option>
+                            </Select>
+                            <Select
+                                placeholder="Status"
+                                style={{ width: 180 }}
+                                allowClear
+                                onChange={(val) => setFilters({ ...filters, status: val })}
+                                dropdownStyle={{ borderRadius: 12 }}
+                            >
+                                <Option value="Open">Open</Option>
+                                <Option value="Closed">Closed</Option>
+                                <Option value="On Hold">On Hold</Option>
+                            </Select>
 
-                        <Popover
-                            content={
-                                <div style={{ width: 280, padding: '12px 8px' }}>
-                                    <div style={{ marginBottom: 20 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                            <Text strong style={{ fontSize: 13, color: '#1e293b' }}>Experience: {filters.experience[0]}–{filters.experience[1]} yrs</Text>
+                            <Popover
+                                content={
+                                    <div style={{ width: 280, padding: '12px 8px' }}>
+                                        <div style={{ marginBottom: 20 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                                <Text strong style={{ fontSize: 13, color: '#1e293b' }}>Experience: {filters.experience[0]}–{filters.experience[1]} yrs</Text>
+                                            </div>
+                                            <Slider
+                                                range
+                                                min={0}
+                                                max={20}
+                                                defaultValue={[0, 20]}
+                                                value={filters.experience}
+                                                onChange={(val) => setFilters({ ...filters, experience: val })}
+                                                trackStyle={[{ background: '#3b82f6' }]}
+                                                handleStyle={[{ borderColor: '#3b82f6' }, { borderColor: '#3b82f6' }]}
+                                            />
                                         </div>
-                                        <Slider
-                                            range
-                                            min={0}
-                                            max={20}
-                                            defaultValue={[0, 20]}
-                                            value={filters.experience}
-                                            onChange={(val) => setFilters({ ...filters, experience: val })}
-                                            trackStyle={[{ background: '#3b82f6' }]}
-                                            handleStyle={[{ borderColor: '#3b82f6' }, { borderColor: '#3b82f6' }]}
-                                        />
+                                        <Divider style={{ margin: '12px 0' }} />
+                                        <Button
+                                            type="link"
+                                            size="small"
+                                            onClick={() => setFilters({ ...filters, experience: [0, 20] })}
+                                            style={{ padding: 0, height: 'auto' }}
+                                        >
+                                            Reset Advanced Filters
+                                        </Button>
                                     </div>
-                                    <Divider style={{ margin: '12px 0' }} />
-                                    <Button 
-                                        type="link" 
-                                        size="small" 
-                                        onClick={() => setFilters({ ...filters, experience: [0, 20] })}
-                                        style={{ padding: 0, height: 'auto' }}
-                                    >
-                                        Reset Advanced Filters
-                                    </Button>
-                                </div>
-                            }
-                            title={<Text strong style={{ fontSize: 14 }}>Advanced Filters</Text>}
-                            trigger="click"
-                            placement="bottomRight"
-                            overlayStyle={{ paddingTop: 8 }}
-                        >
-                            <Button icon={<Filter size={16} />} style={{ borderRadius: 8, height: 32 }}>More Filters</Button>
-                        </Popover>
-                    </div>
+                                }
+                                title={<Text strong style={{ fontSize: 14 }}>Advanced Filters</Text>}
+                                trigger="click"
+                                placement="bottomRight"
+                                overlayStyle={{ paddingTop: 8 }}
+                            >
+                                <Button icon={<Filter size={16} />} style={{ borderRadius: 10, height: 36, display: 'flex', alignItems: 'center', gap: 6 }}>More Filters</Button>
+                            </Popover>
+                        </div>
+                    </Card>
 
                     {/* Table */}
                     <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, border: '1px solid #f1f5f9', overflow: 'hidden', boxShadow: 'none' }}>
@@ -630,15 +576,15 @@ export default function OpeningManagementPage() {
                                 </div>
                                 <Row gutter={16}>
                                     <Col span={24}>
-                                        <Form.Item name="title" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Job Title</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="jobTitle" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Job Title</Text>} rules={[{ required: true }]}>
                                             <Input placeholder="e.g. Senior Frontend Engineer" style={{ height: 44, borderRadius: 8 }} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={10}>
-                                        <Form.Item name="role" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Role Category</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="roleType" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Role Category</Text>} rules={[{ required: true }]}>
                                             <Select
                                                 placeholder="Select role"
-                                                onChange={() => form.setFieldsValue({ department: undefined })}
+                                                onChange={() => form.setFieldsValue({ departmentId: undefined })}
                                                 style={{ height: 44 }}
                                             >
                                                 <Option value="Grade">Grade</Option>
@@ -647,14 +593,14 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={14}>
-                                        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.role !== curr.role}>
+                                        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.roleType !== curr.roleType}>
                                             {({ getFieldValue }) => {
-                                                const role = getFieldValue('role');
-                                                const label = role === 'Grade' ? 'Grade' : role === 'Position' ? 'Position' : 'Department';
-                                                const activeOptions = role === 'Grade' ? grades : role === 'Position' ? positions : [];
+                                                const roleType = getFieldValue('roleType');
+                                                const label = roleType === 'Grade' ? 'Grade' : roleType === 'Position' ? 'Position' : 'Department';
+                                                const activeOptions = roleType === 'Grade' ? grades : roleType === 'Position' ? positions : [];
                                                 return (
                                                     <Form.Item
-                                                        name="department"
+                                                        name="departmentId"
                                                         label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>{label}</Text>}
                                                         rules={[{ required: true }]}
                                                     >
@@ -669,7 +615,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name="hiringManager" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Hiring Manager</Text>}>
+                                        <Form.Item name="hiringManagerId" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Hiring Manager</Text>}>
                                             <Select showSearch placeholder="Assign a hiring manager" optionFilterProp="children" style={{ height: 44 }}>
                                                 {members.map(member => (
                                                     <Option key={member.value} value={member.value}>
@@ -702,8 +648,8 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name="skills" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Primary Skills</Text>} rules={[{ required: true }]}>
-                                            <Select mode="multiple" placeholder="Select key skills..." style={{ width: '100%', borderRadius: 8 }}>
+                                        <Form.Item name="primarySkills" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Primary Skills</Text>} rules={[{ required: true }]}>
+                                            <Select mode="tags" placeholder="Select or type key skills..." style={{ width: '100%', borderRadius: 8 }}>
                                                 <Option value="React">React</Option>
                                                 <Option value="Next.js">Next.js</Option>
                                                 <Option value="TypeScript">TypeScript</Option>
@@ -721,7 +667,12 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name="description" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Job Description</Text>}>
+                                        <Form.Item name="noticePeriod" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Notice Period (Days)</Text>}>
+                                            <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} min={0} placeholder="e.g. 30" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={24}>
+                                        <Form.Item name="jobDescription" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Job Description</Text>}>
                                             <TextArea rows={4} placeholder="Summarize the role and responsibilities..." style={{ borderRadius: 8, padding: '12px' }} />
                                         </Form.Item>
                                     </Col>
@@ -738,15 +689,18 @@ export default function OpeningManagementPage() {
                                 </div>
                                 <Row gutter={16}>
                                     <Col span={12}>
-                                        <Form.Item name="location" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Base Location</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="baseLocation" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Base Location</Text>} rules={[{ required: true }]}>
                                             <Select placeholder="Select office" style={{ height: 44 }}>
-                                                <Option value="Bangalore, India">Bangalore, India</Option>
-                                                <Option value="Remote">Remote</Option>
+                                                {locations.map((loc) => (
+                                                    <Option key={loc.id} value={loc.id}>
+                                                        {[loc.city, loc.country].filter(Boolean).join(', ') || loc.id}
+                                                    </Option>
+                                                ))}
                                             </Select>
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="workType" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Work Arrangement</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="workArrangement" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Work Arrangement</Text>} rules={[{ required: true }]}>
                                             <Select placeholder="Select type" style={{ height: 44 }}>
                                                 <Option value="Remote">Remote</Option>
                                                 <Option value="Onsite">Onsite</Option>
@@ -765,7 +719,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="numberOfOpenings" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Total Openings</Text>} rules={[{ required: true }]}>
+                                        <Form.Item name="totalOpenings" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Total Openings</Text>} rules={[{ required: true }]}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} min={1} />
                                         </Form.Item>
                                     </Col>
@@ -782,12 +736,12 @@ export default function OpeningManagementPage() {
                                 </div>
                                 <Row gutter={16}>
                                     <Col span={8}>
-                                        <Form.Item name="salaryMin" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Min Salary</Text>}>
+                                        <Form.Item name="minSalary" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Min Salary</Text>}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={8}>
-                                        <Form.Item name="salaryMax" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Max Salary</Text>}>
+                                        <Form.Item name="maxSalary" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Max Salary</Text>}>
                                             <InputNumber className="custom-input-number" style={{ width: '100%', height: 44 }} />
                                         </Form.Item>
                                     </Col>
@@ -805,7 +759,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="priority" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Priority Level</Text>}>
+                                        <Form.Item name="priorityLevel" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Priority Level</Text>}>
                                             <Select style={{ height: 44 }}>
                                                 <Option value="High">High</Option>
                                                 <Option value="Medium">Medium</Option>
@@ -814,7 +768,7 @@ export default function OpeningManagementPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="status" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Current Status</Text>}>
+                                        <Form.Item name="currentStatus" label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Current Status</Text>}>
                                             <Select style={{ height: 44 }}>
                                                 <Option value="Open">Open</Option>
                                                 <Option value="Closed">Closed</Option>
@@ -831,6 +785,25 @@ export default function OpeningManagementPage() {
                         __html: `
               .action-btn:hover { background: #f1f5f9 !important; color: #2563eb !important; }
               .action-btn-danger:hover { background: #fff1f2 !important; }
+              .creative-search {
+                width: 320px;
+                border-radius: 12px !important;
+                height: 46px !important;
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                transition: all 0.3s ease !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+              }
+              .creative-search:hover {
+                border-color: #cbd5e1 !important;
+                background: #ffffff !important;
+              }
+              .creative-search:focus, .creative-search-focused {
+                border-color: #2563eb !important;
+                background: #ffffff !important;
+                box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+                width: 380px !important;
+              }
               .custom-table .ant-table-thead > tr > th {
                 background: #f8fafc !important;
                 color: #64748b !important;
@@ -838,6 +811,14 @@ export default function OpeningManagementPage() {
                 text-transform: uppercase !important;
                 font-size: 11px !important;
                 letter-spacing: 0.05em !important;
+              }
+              .custom-table .ant-table-thead > tr > th:first-child,
+              .custom-table .ant-table-tbody > tr > td:first-child {
+                padding-left: 24px !important;
+              }
+              .custom-table .ant-table-thead > tr > th:last-child,
+              .custom-table .ant-table-tbody > tr > td:last-child {
+                padding-right: 24px !important;
               }
               .custom-table .ant-table-row:hover > td { background: #f8fafc !important; }
               .ant-input:focus, .ant-select-focused .ant-select-selector, .ant-input-number:focus { 

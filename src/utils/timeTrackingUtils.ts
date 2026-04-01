@@ -71,3 +71,64 @@ export const calculateNetDuration = (entries: TimeTrackingEntry[], sessionWindow
 
   return totalNetSeconds;
 };
+
+/**
+ * Processes time tracking logs into distinct active sessions.
+ * Handled STARTED/RESUMED followed by PAUSED/STOPPED.
+ */
+export const processLogsToSessions = (
+  logs: any[] | undefined, 
+  startTime: string, 
+  endTime?: string | null,
+  status?: string
+) => {
+  const sessions: any[] = [];
+
+  if (logs && logs.length > 0) {
+    const sortedLogs = [...logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    let current: any = null;
+
+    for (const log of sortedLogs) {
+      if (log.action === 'STARTED' || log.action === 'RESUMED') {
+        current = { id: log.id, start: log.createdAt, end: null, endAction: null };
+      } else if ((log.action === 'PAUSED' || log.action === 'STOPPED') && current) {
+        current.end = log.createdAt;
+        current.endAction = log.action;
+        sessions.push(current);
+        current = null;
+      }
+    }
+
+    if (current) {
+      if (endTime && !current.end) {
+        current.end = endTime;
+        current.endAction = 'STOPPED';
+        sessions.push(current);
+      } else if (status === 'RUNNING' && !current.end) {
+        // Still running, will stay as null end
+        sessions.push(current);
+      } else if (endTime) {
+        current.end = endTime;
+        current.endAction = 'STOPPED';
+        sessions.push(current);
+      } else {
+        // Fallback for running without explicit RUNNING status passed
+        sessions.push(current);
+      }
+    }
+  }
+
+  // Fallback: If no sessions were found from logs but we have start/end times,
+  // treat it as a single manual session. This handles legacy/manual entries.
+  if (sessions.length === 0 && startTime) {
+    return [{
+      id: 'fallback-' + startTime,
+      start: startTime,
+      end: endTime || null,
+      endAction: 'STOPPED',
+      isManual: true
+    }];
+  }
+
+  return sessions.reverse();
+};

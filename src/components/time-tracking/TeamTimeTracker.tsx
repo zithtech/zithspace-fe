@@ -17,7 +17,7 @@ import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.
 import { useMembers, useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import Link from "next/link";
-import { calculateNetDuration } from "@/utils/timeTrackingUtils";
+import { calculateNetDuration, processLogsToSessions } from "@/utils/timeTrackingUtils";
 
 const { Title, Text } = Typography;
 
@@ -154,49 +154,6 @@ const TimeEntryEditModal: React.FC<TimeEntryEditModalProps> = ({ open, onClose, 
   );
 };
 
-const processLogsToSessions = (logs: TimeTrackingEntry['logs'], startTime: string, endTime?: string | null) => {
-  const sessions: any[] = [];
-
-  if (logs && logs.length > 0) {
-    const sortedLogs = [...logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    let current: any = null;
-
-    for (const log of sortedLogs) {
-      if (log.action === 'STARTED' || log.action === 'RESUMED') {
-        current = { id: log.id, start: log.createdAt, end: null, endAction: null };
-      } else if ((log.action === 'PAUSED' || log.action === 'STOPPED') && current) {
-        current.end = log.createdAt;
-        current.endAction = log.action;
-        sessions.push(current);
-        current = null;
-      }
-    }
-
-    if (current) {
-      if (endTime && !current.end) {
-        current.end = endTime;
-        current.endAction = 'STOPPED';
-        sessions.push(current);
-      } else {
-        sessions.push(current);
-      }
-    }
-  }
-
-  // Fallback: If no sessions were found from logs but we have start/end times,
-  // treat it as a single manual session. This handles legacy/manual entries.
-  if (sessions.length === 0 && startTime && endTime) {
-    return [{
-      id: 'fallback-' + startTime,
-      start: startTime,
-      end: endTime,
-      endAction: 'STOPPED',
-      isManual: true
-    }];
-  }
-
-  return sessions.reverse();
-};
 
 interface TeamTimeTrackerProps {
   refreshKey?: number;

@@ -804,12 +804,32 @@ export default function MembersPage() {
               </div>
 
               <Form.Item name="reportsTo" label="Reports To">
-                <Select placeholder="Select manager (optional)" allowClear>
+                {/* <Select placeholder="Select manager (optional)" showSearch allowClear>
                   {managers
                     .filter((m) => m.id !== selectedMember?.id)
                     .map((manager) => (
                       <Option key={manager.id} value={manager.id}>{`${manager.name
                         } - ${manager.id.substring(0, 8)}`}</Option>
+                    ))}
+                </Select> */}
+                <Select
+                  placeholder="Select manager (optional)"
+                  showSearch
+                  allowClear
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    (option?.children ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                >
+                  {managers
+                    .filter((m) => m.id !== selectedMember?.id)
+                    .map((manager) => (
+                      <Option key={manager.id} value={manager.id}>
+                        {`${manager.name} - ${manager.id.substring(0, 8)}`}
+                      </Option>
                     ))}
                 </Select>
               </Form.Item>

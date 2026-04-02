@@ -387,6 +387,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                       style={{ width: "100%" }}
                       value={selectedUser}
                       onChange={setSelectedUser}
+                      showSearch
                       allowClear
                       options={uniqueUsers}
                       size="middle"

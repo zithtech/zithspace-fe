@@ -113,7 +113,7 @@ export default function AccountsPage() {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      
+
       const filters = {
         page: pagination.current,
         limit: pagination.pageSize,
@@ -147,7 +147,7 @@ export default function AccountsPage() {
   const fetchSummary = async () => {
     try {
       setSummaryLoading(true);
-      
+
       const startDate = dateRange?.[0]?.toISOString();
       const endDate = dateRange?.[1]?.toISOString();
 
@@ -189,7 +189,7 @@ export default function AccountsPage() {
     try {
       setFormLoading(true);
       setError('');
-      
+
       // Ensure amount is a valid number
       const amount = Number(values.amount);
       if (isNaN(amount) || amount <= 0) {
@@ -208,7 +208,7 @@ export default function AccountsPage() {
           notes: values.notes || '',
           date: values.date.toDate(),
         };
-        
+
         await TransactionsService.updateTransaction(selectedTransaction.id, updatePayload);
         setSuccess('Transaction updated successfully');
       } else {
@@ -222,7 +222,7 @@ export default function AccountsPage() {
           notes: values.notes || '',
           date: values.date.toDate(),
         };
-        
+
         await TransactionsService.createTransaction(createPayload);
         setSuccess('Transaction created successfully');
       }
@@ -281,7 +281,7 @@ export default function AccountsPage() {
   const showEditModal = (transaction: Transaction) => {
     setModalType('edit');
     setSelectedTransaction(transaction);
-    
+
     // Properly prefill form fields with correct data types
     form.setFieldsValue({
       type: transaction.type,
@@ -380,7 +380,7 @@ export default function AccountsPage() {
       key: 'member',
       width: 150,
       render: (_, record: Transaction) => {
-        const member:any = typeof record.member === 'object' ? record.member : null;
+        const member: any = typeof record.member === 'object' ? record.member : null;
         return member ? (
           <Space>
             <Avatar
@@ -578,9 +578,9 @@ export default function AccountsPage() {
                 value={summary?.balance?.net || 0}
                 formatter={(value) => formatCurrency(Number(value))}
                 prefix={<WalletOutlined style={{ color: '#1677ff' }} />}
-                valueStyle={{ 
+                valueStyle={{
                   color: (summary?.balance?.net || 0) >= 0 ? '#52c41a' : '#ff4d4f',
-                  fontSize: 20 
+                  fontSize: 20
                 }}
               />
               <Text type="secondary" style={{ fontSize: 11 }}>
@@ -618,7 +618,7 @@ export default function AccountsPage() {
                   style={{ width: 200 }}
                   allowClear
                 />
-                
+
                 <Select
                   placeholder="Type"
                   value={typeFilter}
@@ -687,7 +687,7 @@ export default function AccountsPage() {
                   total: pagination.total,
                   showSizeChanger: true,
                   showQuickJumper: true,
-                  showTotal: (total, range) => 
+                  showTotal: (total, range) =>
                     `${range[0]}-${range[1]} of ${total} transactions`,
                   onChange: (page, pageSize) => {
                     setPagination(prev => ({
@@ -828,7 +828,7 @@ export default function AccountsPage() {
         <Modal
           title={
             modalType === 'add' ? 'Add New Transaction' :
-            modalType === 'edit' ? 'Edit Transaction' : 'Delete Transaction'
+              modalType === 'edit' ? 'Edit Transaction' : 'Delete Transaction'
           }
           open={isModalVisible}
           onCancel={() => {
@@ -842,7 +842,7 @@ export default function AccountsPage() {
           {modalType === 'delete' ? (
             <div>
               <Text>
-                Are you sure you want to delete this transaction? 
+                Are you sure you want to delete this transaction?
                 This action cannot be undone.
               </Text>
               <div style={{ marginTop: 20, textAlign: 'right' }}>
@@ -874,14 +874,21 @@ export default function AccountsPage() {
                   label="Transaction Type"
                   rules={[{ required: true, message: 'Please select transaction type' }]}
                 >
-                  <Select placeholder="Select type">
-                    <Option value="credit">
+                  <Select
+                    showSearch
+                    placeholder="Select type"
+                    optionFilterProp="label"
+                    filterOption={(input, option) =>
+                      String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                  >
+                    <Option value="credit" label="Credit (Money In)">
                       <Space>
                         <ArrowUpOutlined style={{ color: '#52c41a' }} />
                         Credit (Money In)
                       </Space>
                     </Option>
-                    <Option value="debit">
+                    <Option value="debit" label="Debit (Money Out)">
                       <Space>
                         <ArrowDownOutlined style={{ color: '#ff4d4f' }} />
                         Debit (Money Out)
@@ -889,7 +896,7 @@ export default function AccountsPage() {
                     </Option>
                   </Select>
                 </Form.Item>
-                
+
                 <Form.Item
                   name="amount"
                   label="Amount"
@@ -918,11 +925,14 @@ export default function AccountsPage() {
                   <Select
                     placeholder="Select member"
                     showSearch
-                    optionFilterProp="children"
+                    optionFilterProp="label"
+                    filterOption={(input, option) =>
+                      String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
                     disabled={modalType === 'edit'}
                   >
                     {members.map((member) => (
-                      <Option key={member.id} value={member.id}>
+                      <Option key={member.id} value={member.id} label={member?.name}>
                         <Space>
                           <Avatar size={20} style={{ fontSize: 10 }}>
                             {member?.name.charAt(0)}
@@ -933,13 +943,20 @@ export default function AccountsPage() {
                     ))}
                   </Select>
                 </Form.Item>
-                
+
                 <Form.Item
                   name="category"
                   label="Category"
                   rules={[{ required: true, message: 'Please select category' }]}
                 >
-                  <Select placeholder="Select category">
+                  <Select
+                    showSearch
+                    placeholder="Select category"
+                    optionFilterProp="children"
+                    filterOption={(input, option) =>
+                      String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                  >
                     <Option value="salary">Salary</Option>
                     <Option value="bonus">Bonus</Option>
                     <Option value="client_payment">Client Payment</Option>

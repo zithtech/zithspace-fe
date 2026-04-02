@@ -4,14 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { 
-  Settings2, 
-  Briefcase, 
-  Plus, 
-  Search, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+import {
+  Settings2,
+  Briefcase,
+  Plus,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Clock,
   ArrowRight,
   ChevronRight,
   Info,
@@ -132,11 +132,11 @@ export default function LeaveTypePage() {
       width: "30%",
       render: (text: string, record: LeaveTypeRecord) => (
         <Space size={12}>
-          <div style={{ 
-            width: 36, 
-            height: 36, 
-            borderRadius: 10, 
-            background: "#f0f9ff", 
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "#f0f9ff",
             color: "#0369a1",
             display: "flex",
             alignItems: "center",
@@ -224,10 +224,10 @@ export default function LeaveTypePage() {
               okText="Delete"
               cancelText="Cancel"
             >
-              <Button 
-                danger 
-                type="text" 
-                icon={<DeleteOutlined style={{ fontSize: 18 }} />} 
+              <Button
+                danger
+                type="text"
+                icon={<DeleteOutlined style={{ fontSize: 18 }} />}
                 className="action-btn-danger"
               />
             </Popconfirm>
@@ -319,11 +319,11 @@ export default function LeaveTypePage() {
   };
 
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <Card 
-      bodyStyle={{ padding: "16px 20px" }} 
-      style={{ 
-        borderRadius: 12, 
-        border: "1px solid #f1f5f9", 
+    <Card
+      bodyStyle={{ padding: "16px 20px" }}
+      style={{
+        borderRadius: 12,
+        border: "1px solid #f1f5f9",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
       }}
     >
@@ -342,11 +342,11 @@ export default function LeaveTypePage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "#ffffff", 
-          minHeight: "calc(100vh - 64px)" 
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "#ffffff",
+          minHeight: "calc(100vh - 64px)"
         }}>
           {contextHolder}
 
@@ -354,10 +354,10 @@ export default function LeaveTypePage() {
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <Space size={12} align="center">
-                <div style={{ 
-                  background: "#eff6ff", 
-                  padding: 10, 
-                  borderRadius: 12, 
+                <div style={{
+                  background: "#eff6ff",
+                  padding: 10,
+                  borderRadius: 12,
                   color: "#2563eb",
                   display: "flex"
                 }}>
@@ -370,16 +370,16 @@ export default function LeaveTypePage() {
               </Space>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <Input 
-                placeholder="Search policies..." 
+              <Input
+                placeholder="Search policies..."
                 prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
                 style={{ width: 280, borderRadius: 10, height: 44 }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Plus size={18} />} 
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
                 style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
                 onClick={() => {
                   setEditingKey(null);
@@ -395,34 +395,34 @@ export default function LeaveTypePage() {
           {/* Metrics Grid */}
           <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Total Policy Types" 
-                value={dataSource.length} 
-                icon={Zap} 
-                color="#3b82f6" 
+              <StatCard
+                label="Total Policy Types"
+                value={dataSource.length}
+                icon={Zap}
+                color="#3b82f6"
               />
             </Col>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Active Policies" 
-                value={dataSource.filter(d => d.status === "Active").length} 
-                icon={CheckCircle2} 
-                color="#10b981" 
+              <StatCard
+                label="Active Policies"
+                value={dataSource.filter(d => d.status === "Active").length}
+                icon={CheckCircle2}
+                color="#10b981"
               />
             </Col>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Requires Approval" 
-                value={dataSource.filter(d => d.approval === "Required").length} 
-                icon={AlertCircle} 
-                color="#f59e0b" 
+              <StatCard
+                label="Requires Approval"
+                value={dataSource.filter(d => d.approval === "Required").length}
+                icon={AlertCircle}
+                color="#f59e0b"
               />
             </Col>
           </Row>
 
           {/* Table Card */}
-          <Card 
-            bodyStyle={{ padding: 0 }} 
+          <Card
+            bodyStyle={{ padding: 0 }}
             style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
           >
             <Table
@@ -462,10 +462,10 @@ export default function LeaveTypePage() {
           footer={
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "8px 0" }}>
               <Button onClick={() => setIsDrawerVisible(false)} style={{ borderRadius: 8, height: 40 }}>Cancel</Button>
-              <Button 
-                type="primary" 
-                loading={isSaving} 
-                onClick={() => form.submit()} 
+              <Button
+                type="primary"
+                loading={isSaving}
+                onClick={() => form.submit()}
                 style={{ borderRadius: 8, height: 40, padding: "0 24px" }}
               >
                 Save Configuration
@@ -486,7 +486,14 @@ export default function LeaveTypePage() {
                   >
                     <AutoComplete
                       placeholder="e.g. Sick Leave"
-                      options={leaveTypesData.map(l => ({ label: l.name, value: l.name }))}
+                      showSearch
+                      options={leaveTypesData.map(l => ({
+                        label: l.name,
+                        value: l.name
+                      }))}
+                      filterOption={(inputValue, option) =>
+                        String(option?.label ?? "").toLowerCase().includes(inputValue.toLowerCase())
+                      }
                       onChange={(value) => {
                         const selected = leaveTypesData.find(l => l.name === value);
                         if (selected) {
@@ -545,7 +552,7 @@ export default function LeaveTypePage() {
 
             <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
               <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "#334155" }}>Policy Controls</Title>
-              
+
               <Form.Item name="paid" valuePropName="checked" initialValue={true}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
@@ -583,7 +590,8 @@ export default function LeaveTypePage() {
           </Form>
         </Drawer>
 
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .action-btn:hover {
             background: #f1f5f9 !important;
             color: #2563eb !important;

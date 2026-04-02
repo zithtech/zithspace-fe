@@ -25,16 +25,16 @@ import {
   Collapse,
   Drawer,
 } from "antd";
-import { 
-  Globe, 
-  MapPin, 
-  Calendar, 
-  Plus, 
-  Search, 
-  Settings2, 
-  Trash2, 
-  Edit3, 
-  ChevronRight, 
+import {
+  Globe,
+  MapPin,
+  Calendar,
+  Plus,
+  Search,
+  Settings2,
+  Trash2,
+  Edit3,
+  ChevronRight,
   ArrowRight,
   ClipboardList,
   Info,
@@ -99,11 +99,11 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
       </Space>
     ),
     extra: fields.length > 1 ? (
-      <Button 
-        type="text" 
-        danger 
-        icon={<Trash2 size={16} />} 
-        onClick={(e) => { e.stopPropagation(); remove(name); }} 
+      <Button
+        type="text"
+        danger
+        icon={<Trash2 size={16} />}
+        onClick={(e) => { e.stopPropagation(); remove(name); }}
       />
     ) : null,
     children: (
@@ -175,6 +175,10 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
                       options={stateOptions}
                       disabled={!countryCode}
                       maxTagCount="responsive"
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
                     />
                   </Form.Item>
                 );
@@ -342,7 +346,7 @@ export default function GovernmentLeavesPage() {
       const values = await form.validateFields();
       setLoading(true);
       const holidays = values.holidays || [];
-      
+
       if (editingKey) {
         const editedItem = holidays[0];
         const payload = {
@@ -475,7 +479,7 @@ export default function GovernmentLeavesPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
-          
+
           {/* Header */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
             <div style={{ flex: 1 }}>
@@ -528,13 +532,32 @@ export default function GovernmentLeavesPage() {
               value={filterCountry}
               className="premium-select"
             />
-            <Select
+            {/* <Select
               placeholder="State / Region"
               style={{ width: 220 }}
               showSearch
               allowClear
               disabled={!filterCountry}
               options={filterCountry ? State.getStatesOfCountry(filterCountry).map(s => ({ label: s.name, value: s.isoCode })) : []}
+              onChange={setFilterState}
+              value={filterState}
+              className="premium-select"
+            /> */}
+            <Select
+              placeholder="State / Region"
+              style={{ width: 220 }}
+              showSearch
+              allowClear
+              disabled={!filterCountry}
+              options={
+                filterCountry
+                  ? State.getStatesOfCountry(filterCountry).map(s => ({
+                    label: s.name,
+                    value: s.isoCode
+                  }))
+                  : []
+              }
+              optionFilterProp="label"
               onChange={setFilterState}
               value={filterState}
               className="premium-select"
@@ -598,7 +621,8 @@ export default function GovernmentLeavesPage() {
             </Form>
           </Drawer>
 
-          <style dangerouslySetInnerHTML={{ __html: `
+          <style dangerouslySetInnerHTML={{
+            __html: `
             .history-table-row:hover { background-color: #f8fafc !important; }
             .ant-table-thead > tr > th {
               background-color: #f1f5f9 !important;

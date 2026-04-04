@@ -195,7 +195,7 @@ export default function ManageAttendancePage() {
             </div>
           </Space>
         );
-      },
+      }
     },
     {
       title: 'Date',
@@ -236,9 +236,9 @@ export default function ManageAttendancePage() {
       width: 120,
       render: (_, record) => (
         <Space>
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
+          <Button
+            type="text"
+            icon={<EditOutlined />}
             style={{ color: '#1677ff' }}
             onClick={() => {
               setEditingRecord(record);
@@ -266,10 +266,10 @@ export default function ManageAttendancePage() {
         {/* Header */}
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space align="center" size={16}>
-            <div style={{ 
-              background: '#fff', 
-              padding: '12px', 
-              borderRadius: '12px', 
+            <div style={{
+              background: '#fff',
+              padding: '12px',
+              borderRadius: '12px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
               display: 'flex',
               alignItems: 'center',
@@ -282,10 +282,10 @@ export default function ManageAttendancePage() {
               <Text type="secondary">Review and manage member attendance records</Text>
             </div>
           </Space>
-          
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
+
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={() => setIsAddModalVisible(true)}
             style={{ height: '40px', borderRadius: '8px', fontWeight: 600, boxShadow: '0 4px 12px rgba(22, 119, 255, 0.2)' }}
           >
@@ -297,7 +297,7 @@ export default function ManageAttendancePage() {
         {success && <Alert message={success} type="success" showIcon closable style={{ marginBottom: 24 }} />}
 
         {/* Filters Panel */}
-        <Card 
+        <Card
           style={{ marginBottom: '24px', borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
           bodyStyle={{ padding: '16px 24px' }}
         >
@@ -327,7 +327,7 @@ export default function ManageAttendancePage() {
               </Select>
             </Col>
             <Col xs={12} sm={6} lg={6}>
-              <Select
+              {/* <Select
                 placeholder="Team Member"
                 style={{ width: '100%' }}
                 value={memberFilter}
@@ -337,11 +337,30 @@ export default function ManageAttendancePage() {
                 allowClear
               >
                 {members.map(m => <Option key={m.id} value={m.id}>{m.name}</Option>)}
+              </Select> */}
+
+              <Select
+                placeholder="Team Member"
+                style={{ width: '100%' }}
+                value={memberFilter}
+                onChange={setMemberFilter}
+                showSearch
+                optionFilterProp="children"
+                allowClear
+                filterOption={(input, option) =>
+                  String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {members.map(m => (
+                  <Option key={m.id} value={m.id}>
+                    {m.name || ""}
+                  </Option>
+                ))}
               </Select>
             </Col>
             <Col xs={24} lg={8}>
-              <RangePicker 
-                style={{ width: '100%', borderRadius: '8px' }} 
+              <RangePicker
+                style={{ width: '100%', borderRadius: '8px' }}
                 value={dateRange}
                 onChange={(dates) => setDateRange(dates as any)}
               />
@@ -350,7 +369,7 @@ export default function ManageAttendancePage() {
         </Card>
 
         {/* Records Table */}
-        <Card 
+        <Card
           style={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
           bodyStyle={{ padding: '0' }}
         >
@@ -392,20 +411,20 @@ export default function ManageAttendancePage() {
           className="premium-modal"
         >
           <Divider style={{ margin: '0 0 24px 0', opacity: 0.6 }} />
-          <Form 
-            form={addForm} 
-            layout="vertical" 
+          <Form
+            form={addForm}
+            layout="vertical"
             onFinish={(v) => handleUpdate(v, false)}
             initialValues={{ date: dayjs(), status: 'present' }}
           >
-            <Form.Item 
-              name="member" 
-              label={<span style={{ fontWeight: 600 }}>Team Member</span>} 
+            <Form.Item
+              name="member"
+              label={<span style={{ fontWeight: 600 }}>Team Member</span>}
               rules={[{ required: true, message: 'Please select a member' }]}
             >
-              <Select 
-                placeholder="Search and select member" 
-                showSearch 
+              {/* <Select
+                placeholder="Search and select member"
+                showSearch
                 optionFilterProp="children"
                 style={{ height: '42px' }}
                 dropdownStyle={{ borderRadius: '10px' }}
@@ -421,23 +440,52 @@ export default function ManageAttendancePage() {
                     </Space>
                   </Option>
                 ))}
+              </Select> */}
+
+              <Select
+                placeholder="Search and select member"
+                showSearch
+                optionFilterProp="label"
+                style={{ height: '42px' }}
+                dropdownStyle={{ borderRadius: '10px' }}
+                filterOption={(input, option) =>
+                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {members.map(m => (
+                  <Option
+                    key={m.id}
+                    value={m.id}
+                    label={m.name || ""}
+                  >
+                    <Space>
+                      <Avatar size="small" style={{ backgroundColor: '#1677ff' }}>
+                        {(m.name || "").charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Text>{m.name}</Text>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        • {m.position?.title || 'Team Member'}
+                      </Text>
+                    </Space>
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
 
             <Row gutter={16}>
               <Col span={14}>
-                <Form.Item 
-                  name="date" 
-                  label={<span style={{ fontWeight: 600 }}>Date</span>} 
+                <Form.Item
+                  name="date"
+                  label={<span style={{ fontWeight: 600 }}>Date</span>}
                   rules={[{ required: true }]}
                 >
                   <DatePicker style={{ width: '100%', height: '40px', borderRadius: '8px' }} />
                 </Form.Item>
               </Col>
               <Col span={10}>
-                <Form.Item 
-                  name="status" 
-                  label={<span style={{ fontWeight: 600 }}>Status</span>} 
+                <Form.Item
+                  name="status"
+                  label={<span style={{ fontWeight: 600 }}>Status</span>}
                   rules={[{ required: true }]}
                 >
                   <Select style={{ height: '40px', borderRadius: '8px' }}>
@@ -468,22 +516,22 @@ export default function ManageAttendancePage() {
             </div>
 
             <Divider style={{ margin: '24px 0 20px 0' }} />
-            
+
             <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
               <Space size="middle">
-                <Button 
+                <Button
                   onClick={() => setIsAddModalVisible(false)}
                   style={{ borderRadius: '8px', height: '40px', padding: '0 20px' }}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  loading={actionLoading} 
-                  style={{ 
-                    borderRadius: '8px', 
-                    height: '40px', 
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={actionLoading}
+                  style={{
+                    borderRadius: '8px',
+                    height: '40px',
                     padding: '0 32px',
                     fontWeight: 600,
                     boxShadow: '0 4px 12px rgba(22, 119, 255, 0.2)'
@@ -517,26 +565,26 @@ export default function ManageAttendancePage() {
           centered
         >
           <Divider style={{ margin: '0 0 24px 0', opacity: 0.6 }} />
-          <Form 
-            form={editForm} 
-            layout="vertical" 
+          <Form
+            form={editForm}
+            layout="vertical"
             onFinish={(v) => handleUpdate(v, true)}
             style={{ marginTop: '16px' }}
           >
             <Row gutter={16}>
               <Col span={14}>
-                <Form.Item 
-                  name="date" 
-                  label={<span style={{ fontWeight: 600 }}>Date</span>} 
+                <Form.Item
+                  name="date"
+                  label={<span style={{ fontWeight: 600 }}>Date</span>}
                   rules={[{ required: true }]}
                 >
                   <DatePicker style={{ width: '100%', height: '40px', borderRadius: '8px' }} />
                 </Form.Item>
               </Col>
               <Col span={10}>
-                <Form.Item 
-                  name="status" 
-                  label={<span style={{ fontWeight: 600 }}>Status</span>} 
+                <Form.Item
+                  name="status"
+                  label={<span style={{ fontWeight: 600 }}>Status</span>}
                   rules={[{ required: true }]}
                 >
                   <Select style={{ height: '40px', borderRadius: '8px' }}>
@@ -570,19 +618,19 @@ export default function ManageAttendancePage() {
 
             <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
               <Space size="middle">
-                <Button 
+                <Button
                   onClick={() => setIsEditModalVisible(false)}
                   style={{ borderRadius: '8px', height: '40px', padding: '0 20px' }}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  loading={actionLoading} 
-                  style={{ 
-                    borderRadius: '8px', 
-                    height: '40px', 
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={actionLoading}
+                  style={{
+                    borderRadius: '8px',
+                    height: '40px',
                     padding: '0 32px',
                     fontWeight: 600,
                     boxShadow: '0 4px 12px rgba(22, 119, 255, 0.2)'

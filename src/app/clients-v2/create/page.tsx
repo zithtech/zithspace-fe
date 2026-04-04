@@ -326,7 +326,7 @@ function CreateClientV2Content() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="defaultCurrency" label="Default Currency">
-                      <Select>
+                      <Select showSearch allowClear>
                         <Option value="USD">USD</Option>
                         <Option value="EUR">EUR</Option>
                         <Option value="GBP">GBP</Option>

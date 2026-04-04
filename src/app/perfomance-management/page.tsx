@@ -635,9 +635,13 @@ export default function PerformanceManagePage() {
                 allowClear
                 showSearch
                 className="header-select"
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
               >
                 {members.map((member) => (
-                  <Option key={member.value} value={member.value}>
+                  <Option key={member.value} value={member.value} label={member.label}>
                     {member.label}
                   </Option>
                 ))}

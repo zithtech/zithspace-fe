@@ -800,10 +800,8 @@ const ProjectsManagePage: React.FC = () => {
               filterOption={(input, option) => {
                 const member = members.find((m) => m.value === option?.value);
                 return member
-                  ? member.label.toLowerCase().includes(input.toLowerCase()) ||
-                  member.position
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
+                  ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) ||
+                    String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
                   : false;
               }}
             >
@@ -1187,7 +1185,7 @@ const ProjectsManagePage: React.FC = () => {
                           style={{ borderRadius: 8 }}
                           filterOption={(input, option) => {
                             const member = members.find((m) => m.value === option?.value);
-                            return member ? member.label.toLowerCase().includes(input.toLowerCase()) : false;
+                            return member ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) : false;
                           }}
                         >
                           {members.map((member) => (

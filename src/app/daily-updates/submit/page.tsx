@@ -670,11 +670,11 @@ function SubmitDailyUpdateContent() {
       const data = {
         date: dateStr,
         mood: values.mood,
-        updateType: finalUpdateType,
+        updateType: finalUpdateType as "BOD" | "EOD",
         projectUpdates,
         generalNotes: values.generalNotes,
         is_missed: isMissedUpdate,
-        missed_updateAt: isMissedUpdate ? dateStr : null,
+        missed_updateAt: isMissedUpdate ? dateStr : undefined,
       };
 
       if (alreadySubmitted && existingUpdate) {

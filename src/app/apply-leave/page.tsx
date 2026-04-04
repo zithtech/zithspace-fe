@@ -47,7 +47,7 @@ dayjs.extend(isBetween);
 const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-const LOP_LEAVE_TYPE_ID = "lop";
+
 
 export default function LeavePage() {
   const { user } = useAuth();
@@ -201,8 +201,12 @@ export default function LeavePage() {
   ];
 
   // Carousel Logic
+  const filteredBalances = currentLeaveBalances.filter(
+    (lb) => !lb.leaveTypeName.toLowerCase().includes("loss of pay") && lb.leaveTypeId !== "lop"
+  );
+
   const handleBackward = () => setStartIndex(prev => Math.max(0, prev - 1));
-  const handleForward = () => setStartIndex(prev => Math.min(currentLeaveBalances.length - visibleCount, prev + 1));
+  const handleForward = () => setStartIndex(prev => Math.min(filteredBalances.length - visibleCount, prev + 1));
 
   return (
     <ProtectedRoute>
@@ -224,7 +228,7 @@ export default function LeavePage() {
 
           {/* Leave Balances Carousel */}
           <div style={{ marginBottom: 32, position: "relative", padding: "0 40px" }}>
-            {currentLeaveBalances.length > visibleCount && (
+            {filteredBalances.length > visibleCount && (
               <>
                 <Button 
                   icon={<ChevronLeft size={20} />} 
@@ -235,14 +239,16 @@ export default function LeavePage() {
                 <Button 
                   icon={<ChevronRight size={20} />} 
                   onClick={handleForward} 
-                  disabled={startIndex >= currentLeaveBalances.length - visibleCount}
+                  disabled={startIndex >= filteredBalances.length - visibleCount}
                   style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10, height: 44, width: 44, borderRadius: 22, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                 />
               </>
             )}
             
             <Row gutter={[16, 16]} style={{ overflow: "hidden", flexWrap: "nowrap" }}>
-              {currentLeaveBalances.slice(startIndex, startIndex + visibleCount).map((balance) => {
+              {filteredBalances
+                .slice(startIndex, startIndex + visibleCount)
+                .map((balance) => {
                 const used = balance.total - balance.balance;
                 const percent = balance.total > 0 ? (used / balance.total) * 100 : 0;
                 return (
@@ -314,14 +320,16 @@ export default function LeavePage() {
                       value={leaveTypeId || undefined}
                       onChange={setLeaveTypeId}
                       className="premium-select"
-                      options={[
-                        ...currentLeaveBalances.map((lb: LeaveBalance) => ({
-                          label: `${lb.leaveTypeName} (${lb.balance || 0}/${lb.total || 0})`,
+                      options={currentLeaveBalances.map((lb: LeaveBalance) => {
+                        const isLOP = lb.leaveTypeId === "lop" || lb.leaveTypeName.toLowerCase().includes("loss of pay");
+                        return {
+                          label: isLOP 
+                            ? lb.leaveTypeName 
+                            : `${lb.leaveTypeName} (${lb.balance || 0}/${lb.total || 0})`,
                           value: lb.leaveTypeId,
-                          disabled: !lb.balance || lb.balance <= 0,
-                        })),
-                        { label: "Loss Of Pay (LOP)", value: LOP_LEAVE_TYPE_ID },
-                      ]}
+                          disabled: !isLOP && (!lb.balance || lb.balance <= 0),
+                        };
+                      })}
                     />
                   </div>
 

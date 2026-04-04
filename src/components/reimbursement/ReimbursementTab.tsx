@@ -34,18 +34,18 @@ import {
   UserOutlined,
   ReloadOutlined,
   CloseOutlined,
-  InfoCircleOutlined 
+  InfoCircleOutlined
 } from "@ant-design/icons";
-import { 
-  ShieldCheck, 
-  Settings, 
-  Layers, 
-  CheckCircle, 
-  XCircle, 
-  Search, 
-  Plus, 
-  RefreshCw, 
-  Users, 
+import {
+  ShieldCheck,
+  Settings,
+  Layers,
+  CheckCircle,
+  XCircle,
+  Search,
+  Plus,
+  RefreshCw,
+  Users,
   ClipboardList,
   MoreHorizontal,
   Edit,
@@ -71,11 +71,11 @@ import {
 const { Text, Title } = Typography;
 
 const StatCard = ({ label, value, icon: Icon, color, subValue }: any) => (
-  <Card 
-    bodyStyle={{ padding: "16px 20px" }} 
-    style={{ 
-      borderRadius: 12, 
-      border: "1px solid #f1f5f9", 
+  <Card
+    bodyStyle={{ padding: "16px 20px" }}
+    style={{
+      borderRadius: 12,
+      border: "1px solid #f1f5f9",
       boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
     }}
   >
@@ -114,6 +114,7 @@ interface SubOriginOption {
   id: string;
   name: string;
   originType: string;
+  positionTitle?: string; // Essential for mapping back to the Position ID during edit
 }
 
 interface ApproverRow {
@@ -182,38 +183,38 @@ const CompactApprovalLevelsContent = ({
 
   const fetchEmployeesForPosition = async (positionId: string, rowIndex: number) => {
     if (!positionId) return;
-    
+
     try {
       setLoadingEmployees(prev => ({ ...prev, [rowIndex]: true }));
-      
+
       console.log("========== EMPLOYEE FETCH START ==========");
       console.log("🔍 Position ID received:", positionId);
-      
+
       const selectedPosition = positions.find(p => p.id === positionId);
       const positionName = selectedPosition?.title;
       console.log("🔍 Position name:", positionName);
-      
+
       if (!positionName) {
         console.log("❌ Position name not found");
         return;
       }
-      
-      const members = await MembersService.getMembersForSelect({ 
+
+      const members = await MembersService.getMembersForSelect({
         position: positionName
       });
-      
+
       console.log("🔍 Members received:", members);
-      
-      setEmployeesByPosition(prev => ({ 
-        ...prev, 
-        [positionId]: members 
+
+      setEmployeesByPosition(prev => ({
+        ...prev,
+        [positionId]: members
       }));
 
       // Call the callback to update parent component
       if (onEmployeesFetched) {
         onEmployeesFetched(positionId, members);
       }
-      
+
     } catch (error) {
       console.error("❌ ERROR:", error);
     } finally {
@@ -221,14 +222,16 @@ const CompactApprovalLevelsContent = ({
     }
   };
 
+  // Pre-fetch employees for all existing positions when component mounts or value changes initials
   useEffect(() => {
-    console.log("📊 employeesByPosition state updated:", employeesByPosition);
-    
-    Object.keys(employeesByPosition).forEach(positionId => {
-      const employees = employeesByPosition[positionId];
-      console.log(`📊 Position ${positionId}: ${employees?.length || 0} employees`);
-    });
-  }, [employeesByPosition]);
+    if (value && value.length > 0) {
+      value.forEach((row, index) => {
+        if (row.positionId && !employeesByPosition[row.positionId] && !loadingEmployees[index]) {
+          fetchEmployeesForPosition(row.positionId, index);
+        }
+      });
+    }
+  }, [value, positions]); // Reload on mount/value change but be mindful of positions loading state
 
   const addApproverRow = () => {
     const newRow: ApproverRow = {
@@ -252,21 +255,21 @@ const CompactApprovalLevelsContent = ({
   const updateApproverRow = (index: number, field: keyof ApproverRow, fieldValue: any) => {
     const newRows = [...(value || [])];
     newRows[index] = { ...newRows[index], [field]: fieldValue };
-    
+
     if (field === 'positionId') {
       newRows[index].employeeId = null;
       fetchEmployeesForPosition(fieldValue, index);
     }
-    
+
     onChange?.(newRows);
   };
 
   return (
     <div style={{ marginTop: 12 }}>
-      <div style={{ 
-        marginBottom: 16, 
-        padding: '12px 16px', 
-        background: '#eff6ff', 
+      <div style={{
+        marginBottom: 16,
+        padding: '12px 16px',
+        background: '#eff6ff',
         border: '1px solid #dbeafe',
         borderRadius: 12,
         fontSize: 13,
@@ -281,7 +284,7 @@ const CompactApprovalLevelsContent = ({
           <div style={{ fontSize: 12, color: '#60a5fa' }}>Automatically assigned to the employee's reporting manager.</div>
         </div>
       </div>
-      
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <Space size={8}>
           <div style={{ background: "#f8fafc", padding: 6, borderRadius: 8, color: "#64748b" }}>
@@ -291,15 +294,15 @@ const CompactApprovalLevelsContent = ({
         </Space>
         <Tag color="blue" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>{value?.length || 0} LEVELS</Tag>
       </div>
-      
+
       {(value || []).map((row, index) => {
         const isLevelOne = row.level === 1;
-        
+
         return (
-          <div 
+          <div
             key={index}
-            style={{ 
-              marginBottom: 12, 
+            style={{
+              marginBottom: 12,
               background: isLevelOne ? '#f8fafc' : '#ffffff',
               border: '1px solid #f1f5f9',
               borderRadius: 12,
@@ -315,7 +318,7 @@ const CompactApprovalLevelsContent = ({
                   <Text strong style={{ fontSize: 16, color: isLevelOne ? "#94a3b8" : "#2563eb" }}>{row.level}</Text>
                 </div>
               </Col>
-              
+
               <Col span={9}>
                 <Form.Item label={<span style={{ fontSize: 11, fontWeight: 600, color: "#64748b" }}>Position</span>} style={{ marginBottom: 0 }}>
                   <Select
@@ -359,9 +362,9 @@ const CompactApprovalLevelsContent = ({
                   onConfirm={() => removeApproverRow(index)}
                   disabled={isLevelOne}
                 >
-                  <Button 
-                    type="text" 
-                    danger 
+                  <Button
+                    type="text"
+                    danger
                     size="small"
                     icon={<Trash2 size={16} />}
                     disabled={isLevelOne}
@@ -374,9 +377,9 @@ const CompactApprovalLevelsContent = ({
         );
       })}
 
-      <Button 
-        type="dashed" 
-        block 
+      <Button
+        type="dashed"
+        block
         onClick={addApproverRow}
         icon={<Plus size={14} />}
         style={{ borderRadius: 8, height: 36, marginTop: 8, borderStyle: "dashed", color: "#2563eb" }}
@@ -414,17 +417,17 @@ const CompactCategoryConfigListContent = ({
   const [activeKey, setActiveKey] = useState<
     string | string[] | number | number[]
   >(fields.length > 0 ? fields[0].key : []);
-  
+
   const prevFieldsLength = useRef(fields.length);
 
   useEffect(() => {
     if (fields.length > prevFieldsLength.current) {
       const lastField = fields[fields.length - 1];
       setActiveKey(lastField.key);
-      
+
       const newIndex = fields.length - 1;
       const defaultApprovers = [{ level: 1, positionId: '', employeeId: null }];
-      
+
       onCategoryApproversChange(newIndex, defaultApprovers);
     }
     prevFieldsLength.current = fields.length;
@@ -469,11 +472,11 @@ const CompactCategoryConfigListContent = ({
             label: (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", paddingRight: 8 }}>
                 <Space size={12}>
-                  <div style={{ 
-                    width: 32, 
-                    height: 32, 
-                    borderRadius: 8, 
-                    background: "#f8fafc", 
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: "#f8fafc",
                     color: "#64748b",
                     display: "flex",
                     alignItems: "center",
@@ -504,9 +507,9 @@ const CompactCategoryConfigListContent = ({
                   onConfirm={(e) => { e?.stopPropagation(); remove(name); }}
                   onCancel={(e) => e?.stopPropagation()}
                 >
-                  <Button 
-                    type="text" 
-                    danger 
+                  <Button
+                    type="text"
+                    danger
                     size="small"
                     icon={<Trash2 size={16} />}
                     onClick={(e) => e.stopPropagation()}
@@ -595,7 +598,7 @@ const CompactCategoryConfigListContent = ({
 
                 <Divider style={{ margin: '20px 0 16px 0' }} />
 
-                <CompactApprovalLevelsContent 
+                <CompactApprovalLevelsContent
                   value={currentApprovers}
                   onChange={(newApprovers) => onCategoryApproversChange(index, newApprovers)}
                   positions={positions}
@@ -608,10 +611,10 @@ const CompactCategoryConfigListContent = ({
         })}
       />
 
-      <Button 
-        type="dashed" 
-        block 
-        onClick={() => add()} 
+      <Button
+        type="dashed"
+        block
+        onClick={() => add()}
         style={{ borderRadius: 10, height: 40, marginTop: 12, borderStyle: "dashed", color: "#2563eb", fontWeight: 600 }}
         icon={<Plus size={16} />}
       >
@@ -637,7 +640,7 @@ export default function ReimbursementConfigurationPage() {
   const [members, setMembers] = useState<SubOriginOption[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([]);
   const [globalEmployeesByPosition, setGlobalEmployeesByPosition] = useState<Record<string, any[]>>({});
-  
+
   const [categoryApproversMap, setCategoryApproversMap] = useState<Record<number, ApproverRow[]>>({});
 
   const { data: configs, isLoading, refetch } = useReimbursementConfigurations();
@@ -677,6 +680,7 @@ export default function ReimbursementConfigurationPage() {
           id: m.value,
           name: m.label,
           originType: "User",
+          positionTitle: m.position, // Important for mapping back to the Position ID during edit
         }));
         setMembers(formattedMembers);
       } catch (error) {
@@ -735,7 +739,7 @@ export default function ReimbursementConfigurationPage() {
     return configs.map((config) => {
       const subOriginLabel = getSubOriginLabel(config.origin, config.subOrigin);
       const amount = Number(config.amount) || 0;
-      
+
       return {
         key: config.id,
         id: config.id,
@@ -900,9 +904,9 @@ export default function ReimbursementConfigurationPage() {
 
   const handleEdit = (record: ReimbursementRecord) => {
     setEditingKey(record.id);
-    
+
     const selectedConfig = dataSource.find(item => item.id === record.id);
-    
+
     if (!selectedConfig) return;
 
     const configsForForm = [{
@@ -923,33 +927,32 @@ export default function ReimbursementConfigurationPage() {
 
     if (selectedConfig.approvers && selectedConfig.approvers.length > 0) {
       const mappedApprovers = selectedConfig.approvers.map((a: any) => {
-        console.log('Approver data:', a);
+        // Find position by title (from approverType)
+        let position = positions.find(p => p.title === a.approverType);
         
-        const isEmployeeName = a.approverType !== 'specific_employee' && 
-                              !positions.some(p => p.title === a.approverType);
+        // Check if the approverId is an employee ID (doesn't match any position ID)
+        const isEmployeeId = a.approverId && !positions.some(p => p.id === a.approverId);
+
+        // RECOVERY LOGIC: If it's an employee but positionId is missing, recover it
+        let recoveredPositionId = isEmployeeId ? '' : a.approverId;
         
-        if (isEmployeeName) {
-          return {
-            level: a.level,
-            positionId: '',
-            employeeId: a.approverId,
-          };
-        } else if (a.approverType === 'specific_employee') {
-          return {
-            level: a.level,
-            positionId: '',
-            employeeId: a.approverId,
-          };
-        } else {
-          const position = positions.find(p => p.title === a.approverType);
-          return {
-            level: a.level,
-            positionId: position?.id || a.approverId,
-            employeeId: null,
-          };
+        if (isEmployeeId && !position) {
+          // Look up employee in our members list to find their position title
+          const memberRecord = members.find(m => m.id === a.approverId);
+          if (memberRecord?.positionTitle) {
+            console.log(`🔍 [RECOVERY] Mapping position "${memberRecord.positionTitle}" for ${a.approverType}`);
+            position = positions.find(p => p.title === memberRecord.positionTitle);
+            if (position) recoveredPositionId = position.id;
+          }
         }
+
+        return {
+          level: a.level,
+          positionId: position?.id || recoveredPositionId,
+          employeeId: isEmployeeId ? a.approverId : null,
+        };
       });
-      
+
       setCategoryApproversMap({ 0: mappedApprovers });
     } else {
       setCategoryApproversMap({ 0: [{ level: 1, positionId: '', employeeId: null }] });
@@ -997,17 +1000,17 @@ export default function ReimbursementConfigurationPage() {
         for (let i = 0; i < categoryConfigs.length; i++) {
           const config = categoryConfigs[i];
           const categoryApprovers = categoryApproversMap[i] || [];
-          
+
           const approversData = categoryApprovers
             .filter(a => a.positionId)
             .map(a => {
               const selectedPosition = positions.find(p => p.id === a.positionId);
               const positionTitle = selectedPosition?.title || a.positionId;
-              
+
               if (a.employeeId) {
                 const employees = globalEmployeesByPosition[a.positionId] || [];
                 const selectedEmployee = employees.find(emp => emp.value === a.employeeId);
-                
+
                 return {
                   level: a.level,
                   approverType: selectedEmployee?.label || 'specific_employee',
@@ -1058,17 +1061,17 @@ export default function ReimbursementConfigurationPage() {
         for (let i = 0; i < categoryConfigs.length; i++) {
           const config = categoryConfigs[i];
           const categoryApprovers = categoryApproversMap[i] || [];
-          
+
           const approversData = categoryApprovers
             .filter(a => a.positionId)
             .map(a => {
               const selectedPosition = positions.find(p => p.id === a.positionId);
               const positionTitle = selectedPosition?.title || a.positionId;
-              
+
               if (a.employeeId) {
                 const employees = globalEmployeesByPosition[a.positionId] || [];
                 const selectedEmployee = employees.find(emp => emp.value === a.employeeId);
-                
+
                 return {
                   level: a.level,
                   approverType: selectedEmployee?.label || 'specific_employee',
@@ -1105,9 +1108,9 @@ export default function ReimbursementConfigurationPage() {
       form.resetFields();
       setEditingKey(null);
       setCategoryApproversMap({});
-      
+
       await refetch();
-      
+
     } catch (error: any) {
       console.error("Save error:", error);
       api.error({
@@ -1167,10 +1170,10 @@ export default function ReimbursementConfigurationPage() {
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ flex: 1 }}>
             <Space size={16} align="center">
-              <div style={{ 
-                background: "#eff6ff", 
-                padding: 12, 
-                borderRadius: 12, 
+              <div style={{
+                background: "#eff6ff",
+                padding: 12,
+                borderRadius: 12,
                 color: "#2563eb",
                 display: "flex",
                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)"
@@ -1184,23 +1187,23 @@ export default function ReimbursementConfigurationPage() {
             </Space>
           </div>
           <div style={{ display: "flex", gap: 12 }}>
-            <Input 
-              placeholder="Search policies..." 
+            <Input
+              placeholder="Search policies..."
               prefix={<Search size={18} style={{ color: "#94a3b8" }} />}
               style={{ width: 250, borderRadius: 10, height: 44 }}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
             />
-            <Button 
-              icon={<RefreshCw size={18} style={{ color: "#64748b" }} />} 
+            <Button
+              icon={<RefreshCw size={18} style={{ color: "#64748b" }} />}
               onClick={handleRefresh}
               loading={isLoading}
               style={{ borderRadius: 10, height: 44, width: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
             />
-            <Button 
-              type="primary" 
-              size="large" 
-              icon={<Plus size={18} />} 
+            <Button
+              type="primary"
+              size="large"
+              icon={<Plus size={18} />}
               style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
               onClick={() => {
                 setEditingKey(null);
@@ -1217,34 +1220,34 @@ export default function ReimbursementConfigurationPage() {
         {/* Metrics Row */}
         <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
           <Col xs={24} sm={8}>
-            <StatCard 
-              label="Total Policies" 
-              value={dataSource.length} 
-              icon={ClipboardList} 
-              color="#3b82f6" 
+            <StatCard
+              label="Total Policies"
+              value={dataSource.length}
+              icon={ClipboardList}
+              color="#3b82f6"
             />
           </Col>
           <Col xs={24} sm={8}>
-            <StatCard 
-              label="Active Configs" 
-              value={activeConfigs.length} 
-              icon={CheckCircle} 
-              color="#10b981" 
+            <StatCard
+              label="Active Configs"
+              value={activeConfigs.length}
+              icon={CheckCircle}
+              color="#10b981"
             />
           </Col>
           <Col xs={24} sm={8}>
-            <StatCard 
-              label="Inactive Configs" 
-              value={inactiveConfigs.length} 
-              icon={XCircle} 
-              color="#ef4444" 
+            <StatCard
+              label="Inactive Configs"
+              value={inactiveConfigs.length}
+              icon={XCircle}
+              color="#ef4444"
             />
           </Col>
         </Row>
 
         {/* Main Table */}
-        <Card 
-          bodyStyle={{ padding: 0 }} 
+        <Card
+          bodyStyle={{ padding: 0 }}
           style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)" }}
         >
           <Table
@@ -1286,9 +1289,9 @@ export default function ReimbursementConfigurationPage() {
               <Button onClick={handleCloseDrawer} style={{ borderRadius: 8 }} disabled={isSaving}>
                 Cancel
               </Button>
-              <Button 
-                type="primary" 
-                onClick={() => form.submit()} 
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
                 loading={isSaving}
                 style={{ borderRadius: 8, minWidth: 100, fontWeight: 600 }}
               >
@@ -1297,9 +1300,9 @@ export default function ReimbursementConfigurationPage() {
             </Space>
           }
         >
-          <Form 
-            form={form} 
-            layout="vertical" 
+          <Form
+            form={form}
+            layout="vertical"
             onFinish={handleSave}
             style={{ padding: 24 }}
           >
@@ -1352,12 +1355,12 @@ export default function ReimbursementConfigurationPage() {
                   </Form.Item>
                 </Col>
               </Row>
-              
+
               {originType && subOriginId && (
-                <div style={{ 
-                  marginTop: 12, 
-                  padding: "10px 14px", 
-                  background: "#eff6ff", 
+                <div style={{
+                  marginTop: 12,
+                  padding: "10px 14px",
+                  background: "#eff6ff",
                   borderRadius: 10,
                   border: "1px solid #dbeafe",
                   display: "flex",
@@ -1397,7 +1400,8 @@ export default function ReimbursementConfigurationPage() {
           </Form>
         </Drawer>
 
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .action-btn:hover {
             background: #f1f5f9 !important;
             color: #2563eb !important;

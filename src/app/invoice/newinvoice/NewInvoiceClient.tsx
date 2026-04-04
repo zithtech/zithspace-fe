@@ -47,6 +47,8 @@ const { Title } = Typography;
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+dayjs.extend(isSameOrBefore);
 
 import CustomerModal from "@/components/customer/CustomerModal";
 import { CustomersService, Customer, UpdateCustomerData } from "@/services/customersService";
@@ -77,7 +79,7 @@ interface Totals {
   totalBeforeDiscount: number;
 }
 
-export default function InvoiceproNewinvoicePage() {
+export default function InvoiceNewinvoicePage() {
   const router = useRouter();
   const { canCreateInvoice, canUpdateInvoice } = usePermission();
   const { isLoading: authLoading } = useAuth();
@@ -157,6 +159,23 @@ export default function InvoiceproNewinvoicePage() {
       setTemplateId(tId);
     }
   }, [searchParams, editInvoiceId, form]);
+
+  // Handle auto-selection of default template for new invoices
+  useEffect(() => {
+    // Only auto-select if:
+    // 1. We are creating a new invoice (not editing)
+    // 2. No template was specifically requested in the URL
+    // 3. We haven't already set a templateId in this session
+    // 4. Templates have been loaded
+    if (!editInvoiceId && !searchParams.get("templateId") && !templateId && templates.length > 0) {
+      const defaultTemplate = templates.find((t: any) => t.isDefault);
+      if (defaultTemplate) {
+        console.log('✨ AUTO-SELECTING DEFAULT TEMPLATE:', defaultTemplate.name);
+        form.setFieldValue("templateId", defaultTemplate.id);
+        setTemplateId(defaultTemplate.id);
+      }
+    }
+  }, [templates, editInvoiceId, searchParams, form, templateId]);
 
   const {
     data: nextInvoice,
@@ -587,11 +606,11 @@ export default function InvoiceproNewinvoicePage() {
             ? "Invoice saved as draft"
             : "Invoice submitted for approval"
         );
-        router.push(`/invoicepro/invoices?edit=${created.id}`);
+        router.push(`/invoice/invoices?edit=${created.id}`);
         return;
       }
 
-      router.push("/invoicepro/invoices");
+      router.push("/invoice/invoices");
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || error.message || "Submission Failed";
       console.error("Submission Error:", error);
@@ -655,8 +674,8 @@ export default function InvoiceproNewinvoicePage() {
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <SnippetsOutlined style={{ fontSize: 32, color: "#1677ff" }} />
-                <Title level={3} style={{ margin: 0, }}>
+                <SnippetsOutlined style={{ fontSize: 28, color: "#2563eb" }} />
+                <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
                   {editInvoiceId ? "Edit Invoice" : "New Invoice"}
                 </Title>
 
@@ -695,18 +714,17 @@ export default function InvoiceproNewinvoicePage() {
                   loading={loadingTemplates}
                   value={templateId || undefined}
                   onChange={(val) => {
-                    console.log('🎯 Header selected template (STATE):', val);
                     setTemplateId(val);
                     form.setFieldValue('templateId', val);
                   }}
-                  className="rounded-md h-8 text-xs"
-                  dropdownStyle={{ borderRadius: '8px' }}
+                  className="rounded-lg h-9"
+                  dropdownStyle={{ borderRadius: '12px' }}
                 >
                   {templates.map(t => (
                     <Select.Option key={t.id} value={t.id}>{t.name}</Select.Option>
                   ))}
                 </Select>
-
+                <div className="h-6 w-[1px] bg-gray-200 mx-1" />
                 <Button
                   type="primary"
                   loading={actionLoading === "PENDING"}
@@ -717,10 +735,10 @@ export default function InvoiceproNewinvoicePage() {
                     form.submit();
                   }}
                   size="large"
+                  style={{ borderRadius: 10, background: "#2563eb", fontWeight: 600, height: 40 }}
                 >
                   Submit for Approval
                 </Button>
-
                 <Button
                   loading={actionLoading === "DRAFT"}
                   onClick={() => {
@@ -730,25 +748,25 @@ export default function InvoiceproNewinvoicePage() {
                     form.submit();
                   }}
                   size="large"
+                  style={{ borderRadius: 10, height: 40 }}
                 >
                   Save as Draft
                 </Button>
-
                 <Button
                   icon={<EyeOutlined />}
                   onClick={() => setIsPreviewVisible(true)}
-                  className="hover:border-blue-400 hover:text-blue-500 rounded-md h-10 px-8"
+                  style={{ borderRadius: 10, height: 40 }}
                   size="large"
                 >
                   Preview
                 </Button>
-
                 <Button
                   danger
                   onClick={() => {
                     form.resetFields();
-                    router.push("/invoicepro/invoices");
+                    router.push("/invoice/invoices");
                   }}
+                  style={{ borderRadius: 10, height: 40 }}
                   size="large"
                 >
                   Cancel
@@ -795,7 +813,7 @@ export default function InvoiceproNewinvoicePage() {
               {/* LEFT COLUMN - Collapsible with smooth animation */}
               <div
                 className={`
-                  transition-all duration-500 ease-in-out
+                  transition-all duration-500 ease-in-out flex-shrink-0
                   ${isLeftPanelCollapsed
                     ? 'w-0 opacity-0 overflow-hidden'
                     : 'w-[27%] opacity-100 border-r border-gray-200'
@@ -810,15 +828,18 @@ export default function InvoiceproNewinvoicePage() {
                   <div className="flex-1 overflow-y-auto px-2 pt-2 pb-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
                     {/* SINGLE COMMON CARD - NO COLORS */}
                     <Card
-                      className="border border-gray-200 shadow-sm mb-4 transition-all duration-300 hover:shadow-md"
-                      bodyStyle={{ padding: 0 }}
+                      className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
+                      bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
                     >
-                      {/* Card Header - NO COLORS with TOGGLE BUTTON */}
-                      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                      {/* Card Header - Modern White Style */}
+                      <div className="px-5 py-4 border-b border-slate-100 bg-white">
                         <div className="flex items-center justify-between">
-                          <Title level={5} style={{ margin: 0 }}>
-                            Invoice Information
-                          </Title>
+                          <div className="flex flex-col gap-0.5">
+                            <Title level={5} style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>
+                              Invoice Information
+                            </Title>
+                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Configure your invoice setup</span>
+                          </div>
 
                           {/* TOGGLE BUTTON INSIDE INVOICE INFORMATION CARD - Eye icon to hide */}
                           {!isLeftPanelCollapsed && (
@@ -839,9 +860,9 @@ export default function InvoiceproNewinvoicePage() {
                       {/* Card Body with 3 sections - NO COLORS */}
                       <div className="p-4 space-y-4">
                         {/* INVOICE PROFILE SECTION - NO COLORS */}
-                        <div className="bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors duration-200">
+                        <div className="bg-white rounded-xl border border-slate-50 p-4 hover:bg-slate-50/30 transition-colors duration-200">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="font-semibold text-gray-800">Invoice Profile</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invoice Profile</span>
                           </div>
                           <Form.Item
                             name="settingsProfileId"
@@ -852,7 +873,7 @@ export default function InvoiceproNewinvoicePage() {
                               placeholder="Select profile"
                               loading={isLoading}
                               size="middle"
-                              className="w-full"
+                              className="w-full custom-select-premium"
                             >
                               {activeProfiles.map((profile) => (
                                 <Select.Option key={profile.id} value={profile.id}>
@@ -863,9 +884,9 @@ export default function InvoiceproNewinvoicePage() {
                           </Form.Item>
 
                           {selectedProfile && (
-                            <div className="flex items-start gap-3 rounded-lg bg-gray-50 p-3 border border-gray-200 hover:border-gray-300 transition-all duration-200">
+                            <div className="flex items-start gap-3 rounded-xl bg-[#fcfdfe] p-4 border border-slate-100 shadow-sm hover:border-blue-200 hover:bg-white transition-all duration-300">
                               {selectedProfile.general?.companyLogo && (
-                                <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-white border border-gray-200 flex items-center justify-center overflow-hidden shadow-sm">
+                                <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-sm">
                                   <img
                                     src={selectedProfile.general.companyLogo}
                                     alt="logo"
@@ -891,9 +912,9 @@ export default function InvoiceproNewinvoicePage() {
                         </div>
 
                         {/* CUSTOMER SECTION - NO COLORS */}
-                        <div className="bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors duration-200">
+                        <div className="bg-white rounded-xl border border-slate-50 p-4 hover:bg-slate-50/30 transition-colors duration-200">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="font-semibold text-gray-800">Customer</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</span>
                           </div>
                           <Form.Item
                             name="customer_id"
@@ -906,6 +927,9 @@ export default function InvoiceproNewinvoicePage() {
                               showSearch
                               size="middle"
                               className="w-full"
+                              filterOption={(input, option) =>
+                                String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                              }
                               onSelect={(id) => {
                                 const c = customers.find((x) => x.id === id);
                                 if (c) {
@@ -938,10 +962,18 @@ export default function InvoiceproNewinvoicePage() {
                             <Tooltip title="Click to edit customer">
                               <div
                                 onClick={() => setEditingCustomer(selectedCustomer)}
-                                className="rounded-lg bg-gray-50 p-3 border border-gray-200 cursor-pointer hover:bg-gray-100 hover:border-gray-300 transition-all duration-200"
+                                className="rounded-xl bg-[#fcfdfe] p-4 border border-slate-100 shadow-sm cursor-pointer hover:border-blue-200 hover:bg-white transition-all duration-300 group"
                               >
-                                <div className="text-base font-semibold text-gray-900 mb-1">
-                                  {selectedCustomer.companyName}
+                                <div className="flex items-center gap-3 mb-3 min-w-0">
+                                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-sm font-bold border border-blue-100 group-hover:scale-105 transition-transform duration-300">
+                                    {(selectedCustomer.companyName || "U").charAt(0)}
+                                  </div>
+                                  <div className="min-w-0 overflow-hidden">
+                                    <div className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                                      {selectedCustomer.companyName}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Verified Client</div>
+                                  </div>
                                 </div>
 
                                 {selectedCustomer.taxId && (
@@ -968,9 +1000,9 @@ export default function InvoiceproNewinvoicePage() {
                         </div>
 
                         {/* INVOICE DETAILS SECTION - NO COLORS */}
-                        <div className="bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors duration-200">
+                        <div className="bg-white rounded-xl border border-slate-50 p-4">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="font-semibold text-gray-800">Invoice Details</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invoice Details</span>
                           </div>
                           <Row gutter={[12, 12]}>
                             <Col span={12}>
@@ -983,7 +1015,7 @@ export default function InvoiceproNewinvoicePage() {
                                 <Input
                                   readOnly
                                   size="middle"
-                                  className="bg-gray-50 text-base"
+                                  className="bg-[#f8fafc] text-sm font-bold border-slate-200 rounded-lg h-9 text-slate-600 shadow-sm shadow-black/[0.01]"
                                 />
                               </Form.Item>
                             </Col>
@@ -995,7 +1027,7 @@ export default function InvoiceproNewinvoicePage() {
                                 rules={[{ required: true }]}
                                 style={{ marginBottom: 0 }}
                               >
-                                <Select size="middle">
+                                <Select size="middle" className="w-full custom-select-premium">
                                   <Select.Option value="standard">Standard</Select.Option>
                                   <Select.Option value="proforma">Proforma</Select.Option>
                                   <Select.Option value="credit_note">Credit</Select.Option>
@@ -1012,7 +1044,16 @@ export default function InvoiceproNewinvoicePage() {
                                 rules={[{ required: true }]}
                                 style={{ marginBottom: 0 }}
                               >
-                                <DatePicker className="w-full" size="middle" />
+                                <DatePicker 
+                                  className="w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]" 
+                                  size="middle" 
+                                  onChange={() => {
+                                    // Trigger re-validation of due_date when invoice_date changes
+                                    if (form.getFieldValue("due_date")) {
+                                      form.validateFields(["due_date"]);
+                                    }
+                                  }}
+                                />
                               </Form.Item>
                             </Col>
 
@@ -1020,10 +1061,29 @@ export default function InvoiceproNewinvoicePage() {
                               <Form.Item
                                 label="Due Date"
                                 name="due_date"
-                                rules={[{ required: true }]}
+                                rules={[
+                                  { required: true, message: "Please select a due date" },
+                                  ({ getFieldValue }) => ({
+                                    validator(_, value) {
+                                      const invoiceDate = getFieldValue("invoice_date");
+                                      if (!value || !invoiceDate || value.isAfter(invoiceDate, 'day')) {
+                                        return Promise.resolve();
+                                      }
+                                      return Promise.reject(new Error("Due date must be after the invoice date"));
+                                    },
+                                  }),
+                                ]}
                                 style={{ marginBottom: 0 }}
                               >
-                                <DatePicker className="w-full" size="middle" />
+                                <DatePicker 
+                                  className="w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 shadow-sm shadow-black/[0.01]" 
+                                  size="middle" 
+                                  disabledDate={(current) => {
+                                    const invoiceDate = form.getFieldValue("invoice_date");
+                                    // Disable dates on or before invoice_date
+                                    return invoiceDate && current && current.isSameOrBefore(invoiceDate, 'day');
+                                  }}
+                                />
                               </Form.Item>
                             </Col>
 
@@ -1034,7 +1094,7 @@ export default function InvoiceproNewinvoicePage() {
                                 rules={[{ required: true }]}
                                 style={{ marginBottom: 0 }}
                               >
-                                <Select size="middle">
+                                <Select size="middle" className="w-full custom-select-premium">
                                   {currencyOptions.map((c) => (
                                     <Select.Option key={c.value} value={c.value}>
                                       {c.symbol} {c.label}
@@ -1053,15 +1113,15 @@ export default function InvoiceproNewinvoicePage() {
 
               {/* RIGHT COLUMN - Expand when left is collapsed */}
               <div className={`
-                transition-all duration-500 ease-in-out
+                transition-all duration-500 ease-in-out min-w-0
                 ${isLeftPanelCollapsed ? 'flex-1 ml-0' : 'flex-1'}
               `}>
                 <div className="h-full flex flex-col overflow-hidden">
                   <div className="flex-1 overflow-y-auto px-2 pt-2 pb-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
                     {/* LINE ITEMS CARD - NO COLORS */}
                     <Card
-                      className="border border-gray-200 shadow-sm mb-4 transition-all duration-300 hover:shadow-md"
-                      bodyStyle={{ padding: 16 }}
+                      className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
+                      bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
                     >
                       {isFormReady ? (
                         <DynamicLineItems
@@ -1084,39 +1144,49 @@ export default function InvoiceproNewinvoicePage() {
 
                     {/* NOTES & TERMS CARD - SIDE BY SIDE LAYOUT */}
                     <Card
-                      title="Notes & Terms"
-                      className="border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-md"
-                      bodyStyle={{ padding: 16 }}
+                      className="border-none shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] mb-4 rounded-xl transition-all duration-300 hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]"
+                      bodyStyle={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}
                     >
-                      <Row gutter={[24, 0]}>
-                        <Col span={12}>
-                          <div>
-                            <div className="mb-2 text-base font-medium text-gray-700">Notes</div>
-                            <Form.Item name="notes" style={{ marginBottom: 0 }}>
-                              <Input.TextArea
-                                rows={4}
-                                placeholder="Add any notes for the customer..."
-                                className="text-base resize-none"
-                                size="middle"
-                              />
-                            </Form.Item>
-                          </div>
-                        </Col>
+                      {/* Card Header - Modern White Style */}
+                      <div className="px-5 py-4 border-b border-slate-100 bg-white">
+                        <div className="flex flex-col gap-0.5">
+                          <Title level={5} style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 700 }}>
+                            Notes & Terms
+                          </Title>
+                          <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Additional details for your customer</span>
+                        </div>
+                      </div>
 
-                        <Col span={12}>
-                          <div>
-                            <div className="mb-2 text-base font-medium text-gray-700">Terms & Conditions</div>
-                            <Form.Item name="terms" style={{ marginBottom: 0 }}>
-                              <Input.TextArea
-                                rows={4}
-                                placeholder="Add terms and conditions..."
-                                className="text-base resize-none"
-                                size="middle"
-                              />
-                            </Form.Item>
-                          </div>
-                        </Col>
-                      </Row>
+                      <div className="p-5">
+                        <Row gutter={[24, 0]}>
+                          <Col span={12}>
+                            <div>
+                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Customer Notes</div>
+                              <Form.Item name="notes" style={{ marginBottom: 0 }}>
+                                <Input.TextArea
+                                  rows={4}
+                                  placeholder="Add any notes for the customer..."
+                                  className="text-sm resize-none rounded-xl border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-white shadow-sm shadow-black/[0.01]"
+                                  size="middle"
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                          <Col span={12}>
+                            <div>
+                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Terms & Conditions</div>
+                              <Form.Item name="terms" style={{ marginBottom: 0 }}>
+                                <Input.TextArea
+                                  rows={4}
+                                  placeholder="Add terms and conditions..."
+                                  className="text-sm resize-none rounded-xl border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 bg-white shadow-sm shadow-black/[0.01]"
+                                  size="middle"
+                                />
+                              </Form.Item>
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
                     </Card>
                   </div>
                 </div>
@@ -1200,6 +1270,24 @@ export default function InvoiceproNewinvoicePage() {
           }
           .animate-ping {
             animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+          }
+          :global(.custom-select-premium .ant-select-selector) {
+            border-radius: 8px !important;
+            border-color: #e2e8f0 !important;
+            height: 36px !important;
+            padding: 0 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+            transition: all 0.2s !important;
+          }
+          :global(.custom-select-premium .ant-select-selector:hover) {
+            border-color: #93c5fd !important;
+          }
+          :global(.custom-select-premium.ant-select-focused .ant-select-selector) {
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 4px rgba(239, 246, 255, 0.5) !important;
           }
         `}</style>
 

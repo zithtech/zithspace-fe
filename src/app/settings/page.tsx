@@ -15,6 +15,7 @@ import {
   Table,
   Button,
   Modal,
+  Drawer,
   Form,
   Input,
   TimePicker,
@@ -36,10 +37,12 @@ import {
   EditOutlined,
   DeleteOutlined,
   CheckCircleFilled,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import LogoCropper from '@/components/common/LogoCropper';
 import { SettingsService, Shift, CreateShiftData, UpdateShiftData } from '@/services/settingsService';
 import { TenantService, TenantProfile } from '@/services/tenantService';
+import { CompanyLocationService } from '@/services/companyLocationService';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile, UploadProps } from 'antd';
@@ -85,6 +88,26 @@ const styles = {
     background: "#ffffff",
     marginBottom: "24px",
     padding: "0"
+  },
+  locationCard: {
+    padding: '20px',
+    borderRadius: '16px',
+    border: '1px solid #f1f5f9',
+    background: '#ffffff',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+  },
+  locationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: '12px',
+    background: '#f8fafc',
+    color: '#64748b',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '16px',
+    border: '1px solid #f1f5f9'
   }
 };
 
@@ -135,6 +158,12 @@ function SettingsPage() {
   const [cropLoading, setCropLoading] = useState(false);
   const [logoVersions, setLogoVersions] = useState<string[]>([]);
 
+  // Company locations state
+  const [locations, setLocations] = useState<any[]>([]);
+  const [isLocationDrawerVisible, setIsLocationDrawerVisible] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<any | null>(null);
+  const [locationForm] = Form.useForm();
+
   // Fetch shifts
   const fetchShifts = async () => {
     try {
@@ -182,6 +211,19 @@ function SettingsPage() {
     }
   };
 
+  const fetchLocations = async () => {
+    try {
+      setLoading(true);
+      const data = await CompanyLocationService.getAll();
+      setLocations(data);
+    } catch (error) {
+      console.error('Failed to fetch locations:', error);
+      messageApi.error('Failed to fetch locations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load shifts when attendance tab is active
   useEffect(() => {
     if (user && activeTab === 'attendance') {
@@ -189,6 +231,9 @@ function SettingsPage() {
     }
     if (user && activeTab === 'system') {
       fetchTenantProfile();
+    }
+    if (user && activeTab === 'location') {
+      fetchLocations();
     }
   }, [user, activeTab]);
 
@@ -282,7 +327,7 @@ function SettingsPage() {
         tenantName: updatedProfile.name,
         tenantLogo: updatedProfile.settings?.logoUrl
       });
-      
+
       messageApi.success('System settings updated successfully!');
       fetchTenantProfile();
 
@@ -382,6 +427,54 @@ function SettingsPage() {
       isFlexible: shift.isFlexible,
     });
     setIsShiftModalVisible(true);
+  };
+
+  const showAddLocationDrawer = () => {
+    setEditingLocation(null);
+    locationForm.resetFields();
+    setIsLocationDrawerVisible(true);
+  };
+
+  const showEditLocationDrawer = (location: any) => {
+    setEditingLocation(location);
+    locationForm.setFieldsValue(location);
+    setIsLocationDrawerVisible(true);
+  };
+
+  const handleLocationsSubmit = async (values: any) => {
+    try {
+      setFormLoading(true);
+      if (editingLocation) {
+        await CompanyLocationService.update(editingLocation.id, values);
+        messageApi.success('Location updated successfully!');
+      } else {
+        await CompanyLocationService.create(values);
+        messageApi.success('Location added successfully!');
+      }
+      setIsLocationDrawerVisible(false);
+      setEditingLocation(null);
+      locationForm.resetFields();
+      fetchLocations();
+    } catch (error) {
+      console.error('Failed to save location', error);
+      messageApi.error('Failed to save location');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeleteLocation = async (id: string) => {
+    try {
+      setFormLoading(true);
+      await CompanyLocationService.delete(id);
+      messageApi.success('Location removed successfully!');
+      fetchLocations();
+    } catch (error) {
+      console.error('Failed to delete location', error);
+      messageApi.error('Failed to delete location');
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   // Shift table columns
@@ -540,284 +633,578 @@ function SettingsPage() {
           </Space>
         </div>
 
-          {/* Settings Tabs */}
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            size="large"
-            type="line"
-            tabBarStyle={{
-              ...styles.tabStyle,
-              background: '#fff',
-              borderBottom: "1px solid rgba(0,0,0,0.05)",
-              padding: "0 4px"
-            }}
-            style={{ margin: "0 auto" }}
+        {/* Settings Tabs */}
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          size="large"
+          type="line"
+          tabBarStyle={{
+            ...styles.tabStyle,
+            background: '#fff',
+            borderBottom: "1px solid rgba(0,0,0,0.05)",
+            padding: "0 4px"
+          }}
+          style={{ margin: "0 auto" }}
+        >
+          <Tabs.TabPane
+            tab={
+              <Space size={8} style={{ padding: "4px 8px" }}>
+                <SettingOutlined style={{ fontSize: 16 }} />
+                <span style={{ fontWeight: 600 }}>System Information</span>
+              </Space>
+            }
+            key="system"
           >
-
-
-            {/* 
-            <Tabs.TabPane
-              tab={
-                <Space size={8} style={{ padding: "4px 8px" }}>
-                  <ClockCircleOutlined style={{ fontSize: 16 }} />
-                  <span style={{ fontWeight: 600 }}>Attendance Shifts</span>
+            <Card
+              bordered={false}
+              style={{ ...styles.sectionCard, maxWidth: 850, marginTop: 8 }}
+              styles={{ body: { padding: "32px" } }}
+              title={
+                <Space size={10} style={{ padding: "12px 0" }}>
+                  <div style={{ ...styles.iconContainer, width: 32, height: 32, borderRadius: 8 }}>
+                    <SettingOutlined style={{ fontSize: 16 }} />
+                  </div>
+                  <span style={{ fontWeight: 700, color: "#334155" }}>Company Branding</span>
                 </Space>
               }
-              key="shifts"
             >
-              <Card
-                bordered={false}
-                style={{ ...styles.sectionCard, marginTop: 8 }}
-                bodyStyle={{ padding: "32px" }}
+              <Form
+                form={systemForm}
+                layout="vertical"
+                onFinish={handleSystemSubmit}
               >
-                <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#334155" }}>Shift Management</Title>
-                    <Text type="secondary" style={{ fontSize: 13 }}>Configure working hours, grace periods, and flexibility rules.</Text>
-                  </div>
+                <Form.Item
+                  name="name"
+                  label="Company Name"
+                  rules={[{ required: true, message: 'Please enter company name' }]}
+                >
+                  <Input placeholder="Enter company name" />
+                </Form.Item>
+
+                <Form.Item label="Company Logo">
+                  <Upload
+                    listType="picture-card"
+                    fileList={fileList}
+                    onChange={({ fileList }) => setFileList(fileList)}
+                    beforeUpload={() => false} // Prevent auto upload
+                    maxCount={1}
+                  >
+                    {fileList.length < 1 && (
+                      <div>
+                        <PlusOutlined />
+                        <div style={{ marginTop: 8 }}>Upload</div>
+                      </div>
+                    )}
+                  </Upload>
+                  <Space direction="vertical" style={{ width: '100%', marginTop: 8 }}>
+                    {fileList.length > 0 && fileList[0].status === 'done' && (
+                      <div style={{ width: 'fit-content', marginTop: 8 }}>
+                        <EditOutlined
+                          style={{
+                            cursor: 'pointer',
+                            color: '#2563eb',
+                            fontSize: 18,
+                            padding: '6px',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s',
+                            background: '#eff6ff',
+                            border: '1px dashed #bfdbfe'
+                          }}
+                          onClick={() => {
+                            if (fileList[0].url) {
+                              setImageToCrop(fileList[0].url);
+                              setIsCropperVisible(true);
+                            }
+                          }}
+                          title="Edit / Crop Logo"
+                        />
+                      </div>
+                    )}
+                    <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                      Recommended size: 200x50px. Max size: 2MB.
+                    </Text>
+                  </Space>
+                </Form.Item>
+
+                <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
                   <Button
                     type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={showAddShiftModal}
-                    style={{ borderRadius: 8, height: 40, fontWeight: 600 }}
+                    htmlType="submit"
+                    loading={formLoading}
+                    size="large"
+                    style={{
+                      borderRadius: 10,
+                      height: 48,
+                      padding: "0 32px",
+                      fontWeight: 600,
+                      boxShadow: "0 4px 12px rgba(22, 119, 255, 0.2)"
+                    }}
                   >
-                    Add New Shift
+                    Save Changes
                   </Button>
-                </div>
+                </Form.Item>
+              </Form>
 
-                <div style={{
-                  border: "1px solid #f1f5f9",
-                  borderRadius: "12px",
-                  overflow: "hidden"
-                }}>
-                  <Table
-                    columns={shiftColumns}
-                    dataSource={shifts}
-                    loading={loading}
-                    rowKey="id"
-                    pagination={{ pageSize: 5 }}
-                  />
-                </div>
-              </Card>
-            </Tabs.TabPane>
-            */}
-
-            <Tabs.TabPane
-              tab={
-                <Space size={8} style={{ padding: "4px 8px" }}>
-                  <SettingOutlined style={{ fontSize: 16 }} />
-                  <span style={{ fontWeight: 600 }}>System Information</span>
-                </Space>
-              }
-              key="system"
-            >
-              <Card
-                bordered={false}
-                style={{ ...styles.sectionCard, maxWidth: 850, marginTop: 8 }}
-                bodyStyle={{ padding: "32px" }}
-                title={
-                  <Space size={10} style={{ padding: "12px 0" }}>
-                    <div style={{ ...styles.iconContainer, width: 32, height: 32, borderRadius: 8 }}>
-                      <SettingOutlined style={{ fontSize: 16 }} />
-                    </div>
-                    <span style={{ fontWeight: 700, color: "#334155" }}>Company Branding</span>
-                  </Space>
-                }
-              >
-                <Form
-                  form={systemForm}
-                  layout="vertical"
-                  onFinish={handleSystemSubmit}
-                >
-                  <Form.Item
-                    name="name"
-                    label="Company Name"
-                    rules={[{ required: true, message: 'Please enter company name' }]}
-                  >
-                    <Input placeholder="Enter company name" />
-                  </Form.Item>
-
-                  <Form.Item label="Company Logo">
-                    <Upload
-                      listType="picture-card"
-                      fileList={fileList}
-                      onChange={({ fileList }) => setFileList(fileList)}
-                      beforeUpload={() => false} // Prevent auto upload
-                      maxCount={1}
-                    >
-                      {fileList.length < 1 && (
-                        <div>
-                          <PlusOutlined />
-                          <div style={{ marginTop: 8 }}>Upload</div>
-                        </div>
-                      )}
-                    </Upload>
-                    <Space direction="vertical" style={{ width: '100%', marginTop: 8 }}>
-                      {fileList.length > 0 && fileList[0].status === 'done' && (
-                        <div style={{ width: 'fit-content', marginTop: 8 }}>
-                          <EditOutlined
-                            style={{
-                              cursor: 'pointer',
-                              color: '#2563eb',
+              {/* Logo Versions Gallery */}
+              {logoVersions.length > 0 && (
+                <div style={{ marginTop: 48, borderTop: '1px solid #f1f5f9', paddingTop: 32 }}>
+                  <div style={{ marginBottom: 24 }}>
+                    <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#334155" }}>Logo Versions</Title>
+                    <Text type="secondary" style={{ fontSize: 13 }}>Previously uploaded and cropped versions for branding.</Text>
+                  </div>
+                  <Row gutter={[16, 16]}>
+                    {logoVersions.map((url, index) => (
+                      <Col key={index} style={{ flex: '0 0 20%', maxWidth: '20%' }}>
+                        <Card
+                          hoverable
+                          styles={{ body: { padding: 0 } }}
+                          style={{
+                            borderRadius: "14px",
+                            overflow: 'hidden',
+                            borderColor: tenantProfile?.settings?.logoUrl === url ? '#2563eb' : '#f1f5f9',
+                            borderWidth: tenantProfile?.settings?.logoUrl === url ? 2 : 1,
+                            transition: "all 0.3s ease",
+                            position: 'relative',
+                          }}
+                        >
+                          {tenantProfile?.settings?.logoUrl === url && (
+                            <CheckCircleFilled style={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              color: '#1677ff',
                               fontSize: 18,
-                              padding: '6px',
-                              borderRadius: '8px',
-                              transition: 'all 0.2s',
-                              background: '#eff6ff',
-                              border: '1px dashed #bfdbfe'
-                            }}
-                            onClick={() => {
-                              if (fileList[0].url) {
-                                setImageToCrop(fileList[0].url);
-                                setIsCropperVisible(true);
-                              }
-                            }}
-                            title="Edit / Crop Logo"
-                          />
-                        </div>
-                      )}
-                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                        Recommended size: 200x50px. Max size: 2MB.
-                      </Text>
-                    </Space>
-                  </Form.Item>
-
-                  <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={formLoading}
-                      size="large"
-                      style={{
-                        borderRadius: 10,
-                        height: 48,
-                        padding: "0 32px",
-                        fontWeight: 600,
-                        boxShadow: "0 4px 12px rgba(22, 119, 255, 0.2)"
-                      }}
-                    >
-                      Save Changes
-                    </Button>
-                  </Form.Item>
-                </Form>
-
-                {/* Logo Versions Gallery */}
-                {logoVersions.length > 0 && (
-                  <div style={{ marginTop: 48, borderTop: '1px solid #f1f5f9', paddingTop: 32 }}>
-                    <div style={{ marginBottom: 24 }}>
-                      <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#334155" }}>Logo Versions</Title>
-                      <Text type="secondary" style={{ fontSize: 13 }}>Previously uploaded and cropped versions for branding.</Text>
-                    </div>
-                    <Row gutter={[16, 16]}>
-                      {logoVersions.map((url, index) => (
-                        <Col key={index} style={{ flex: '0 0 20%', maxWidth: '20%' }}>
-                          <Card
-                            hoverable
-                            bodyStyle={{ padding: 0 }}
-                            style={{
-                              borderRadius: "14px",
-                              overflow: 'hidden',
-                              borderColor: tenantProfile?.settings?.logoUrl === url ? '#2563eb' : '#f1f5f9',
-                              borderWidth: tenantProfile?.settings?.logoUrl === url ? 2 : 1,
-                              transition: "all 0.3s ease",
-                              position: 'relative',
-                            }}
-                          >
-                            {tenantProfile?.settings?.logoUrl === url && (
-                              <CheckCircleFilled style={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                color: '#1677ff',
-                                fontSize: 18,
-                                zIndex: 1,
-                                background: '#fff',
-                                borderRadius: '50%'
-                              }} />
-                            )}
-                            <div style={{
-                              height: 100,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              background: '#f9f9f9',
-                              padding: 12
-                            }}>
-                              <img src={url} alt={`Version ${index}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                              zIndex: 1,
+                              background: '#fff',
+                              borderRadius: '50%'
+                            }} />
+                          )}
+                          <div style={{
+                            height: 100,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#f9f9f9',
+                            padding: 12
+                          }}>
+                            <img src={url} alt={`Version ${index}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <EditOutlined
+                                style={{
+                                  cursor: 'pointer',
+                                  color: '#2563eb',
+                                  fontSize: 15,
+                                  padding: '4px',
+                                  borderRadius: '6px',
+                                  transition: 'all 0.2s',
+                                  background: '#eff6ff'
+                                }}
+                                onClick={() => {
+                                  setImageToCrop(url);
+                                  setIsCropperVisible(true);
+                                }}
+                                title="Edit / Crop"
+                              />
+                              {tenantProfile?.settings?.logoUrl !== url && (
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  ghost
+                                  style={{ fontSize: 11, borderRadius: 6 }}
+                                  onClick={() => handleSetAsFinal(url)}
+                                >
+                                  Set Final
+                                </Button>
+                              )}
                             </div>
-                            <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <EditOutlined
+
+                            <div style={{ padding: '0 4px' }}>
+                              <Popconfirm
+                                title="Delete logo version?"
+                                description="Are you sure?"
+                                onConfirm={() => handleDeleteVersion(url)}
+                                okText="Yes"
+                                cancelText="No"
+                                okButtonProps={{ danger: true }}
+                              >
+                                <DeleteOutlined
                                   style={{
                                     cursor: 'pointer',
-                                    color: '#2563eb',
+                                    color: '#ef4444',
                                     fontSize: 15,
-                                    padding: '4px',
-                                    borderRadius: '6px',
-                                    transition: 'all 0.2s',
-                                    background: '#eff6ff'
+                                    transition: 'all 0.2s'
                                   }}
-                                  onClick={() => {
-                                    setImageToCrop(url);
-                                    setIsCropperVisible(true);
-                                  }}
-                                  title="Edit / Crop"
+                                  title="Delete Version"
                                 />
-                                {tenantProfile?.settings?.logoUrl !== url && (
-                                  <Button
-                                    size="small"
-                                    type="primary"
-                                    ghost
-                                    style={{ fontSize: 11, borderRadius: 6 }}
-                                    onClick={() => handleSetAsFinal(url)}
-                                  >
-                                    Set Final
-                                  </Button>
-                                )}
-                              </div>
-
-                              <div style={{ padding: '0 4px' }}>
-                                <Popconfirm
-                                  title="Delete logo version?"
-                                  description="Are you sure?"
-                                  onConfirm={() => handleDeleteVersion(url)}
-                                  okText="Yes"
-                                  cancelText="No"
-                                  okButtonProps={{ danger: true }}
-                                >
-                                  <DeleteOutlined
-                                    style={{
-                                      cursor: 'pointer',
-                                      color: '#ef4444',
-                                      fontSize: 15,
-                                      transition: 'all 0.2s'
-                                    }}
-                                    title="Delete Version"
-                                  />
-                                </Popconfirm>
-                              </div>
+                              </Popconfirm>
                             </div>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
+                          </div>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </div>
+              )}
+            </Card>
+
+            {/* Cropper Modal */}
+            <LogoCropper
+              image={imageToCrop}
+              open={isCropperVisible}
+              onClose={() => setIsCropperVisible(false)}
+              onCropComplete={handleCropComplete}
+              loading={cropLoading}
+            />
+          </Tabs.TabPane>
+
+          <Tabs.TabPane
+            tab={
+              <Space size={8} style={{ padding: "4px 8px" }}>
+                <EnvironmentOutlined style={{ fontSize: 16 }} />
+                <span style={{ fontWeight: 600 }}>Company Location</span>
+              </Space>
+            }
+            key="location"
+          >
+            <div style={{ padding: "8px 4px 24px 4px" }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+                background: '#f8fafc',
+                padding: '16px 24px',
+                borderRadius: '16px',
+                border: '1px solid #f1f5f9'
+              }}>
+                <Space align="center" size="middle">
+                  <div style={{ ...styles.iconContainer, width: 40, height: 40, borderRadius: 10, background: '#fff' }}>
+                    <EnvironmentOutlined style={{ fontSize: 24 }} />
                   </div>
+                  <div>
+                    <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+                      Company Locations
+                    </Title>
+                    <Text style={{ color: "#64748b", fontSize: 14 }}>
+                      Manage your company office addresses and physical locations.
+                    </Text>
+                  </div>
+                </Space>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={showAddLocationDrawer}
+                  style={{
+                    borderRadius: 10,
+                    height: 42,
+                    fontWeight: 600,
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+                  }}
+                >
+                  Add Location
+                </Button>
+              </div>
+
+              <Row gutter={[24, 24]}>
+                {locations.map((loc) => (
+                  <Col xs={24} sm={12} lg={8} key={loc.id}>
+                    <div
+                      style={{
+                        borderRadius: 16,
+                        border: "1px solid #f1f5f9",
+                        background: "#ffffff",
+                        padding: "20px",
+                        position: "relative",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      {/* Top Right Ribbon */}
+                      <div style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -8,
+                        background: '#3b82f6',
+                        color: '#ffffff',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
+                        zIndex: 10
+                      }}>
+                        LOC
+                        <div style={{
+                          position: 'absolute',
+                          bottom: -4,
+                          right: 0,
+                          width: 0,
+                          height: 0,
+                          borderTop: '4px solid #1e3a8a',
+                          borderRight: '4px solid transparent',
+                        }} />
+                      </div>
+
+                      {/* Header Section */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                        <div style={{ display: "flex", gap: 12 }}>
+                          <div style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: "50%",
+                            backgroundColor: "#eff6ff",
+                            color: "#2563eb",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 600,
+                            fontSize: 18,
+                            border: "1px solid #bfdbfe",
+                            flexShrink: 0
+                          }}>
+                            {loc.city ? loc.city.charAt(0).toUpperCase() : <EnvironmentOutlined />}
+                          </div>
+                          <div>
+                            <Text strong style={{ fontSize: 16, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
+                              {loc.city}, {loc.state}
+                            </Text>
+                            <Text style={{ fontSize: 13, color: "#64748b" }}>
+                              {loc.country}
+                            </Text>
+                          </div>
+                        </div>
+                        <Space size={2} style={{ marginRight: 24 }}>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined style={{ color: '#64748b' }} />}
+                            onClick={() => showEditLocationDrawer(loc)}
+                          />
+                          <Popconfirm
+                            title="Delete location?"
+                            onConfirm={() => handleDeleteLocation(loc.id)}
+                            okText="Yes"
+                            cancelText="No"
+                          >
+                            <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
+                          </Popconfirm>
+                        </Space>
+                      </div>
+
+                      {/* Pills Section */}
+                      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                        <div style={{
+                          background: "#f8fafc",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          border: "1px solid #f1f5f9"
+                        }}>
+                          <EnvironmentOutlined style={{ color: "#3b82f6", fontSize: 14 }} />
+                          <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.pincode}</Text>
+                        </div>
+                        <div style={{
+                          background: "#f8fafc",
+                          padding: "4px 10px",
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          border: "1px solid #f1f5f9"
+                        }}>
+                          <EnvironmentOutlined style={{ color: "#8b5cf6", fontSize: 14 }} />
+                          <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.area}</Text>
+                        </div>
+                      </div>
+
+                      {/* Grey Section (Tasks equivalent) */}
+                      <div style={{
+                        background: "#f8fafc",
+                        borderRadius: "12px",
+                        padding: "16px",
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                          <div style={{ width: 16, height: 16, borderRadius: "4px", background: "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                          </div>
+                          <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Address Details</Text>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1", flexShrink: 0 }} />
+                          <Text style={{ fontSize: 13, color: "#334155" }}>
+                            {loc.flatNumber}, {loc.street}
+                          </Text>
+                        </div>
+                      </div>
+
+                      {/* Footer Section equivalent */}
+                      <div style={{
+                        marginTop: 16,
+                        paddingTop: 16,
+                        borderTop: "1px solid #f1f5f9",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
+                        <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+                          Status
+                        </Text>
+                        <Text style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+                          ACTIVE
+                        </Text>
+                      </div>
+                    </div>
+                  </Col>
+                ))}
+                {locations.length === 0 && (
+                  <Col span={24}>
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '48px',
+                      background: '#f8fafc',
+                      borderRadius: '16px',
+                      border: '2px dashed #e2e8f0'
+                    }}>
+                      <EnvironmentOutlined style={{ fontSize: 48, color: '#cbd5e1', marginBottom: 16 }} />
+                      <Title level={5} style={{ color: '#64748b' }}>No locations added yet</Title>
+                      <Button type="link" onClick={showAddLocationDrawer}>Add your first location</Button>
+                    </div>
+                  </Col>
                 )}
-              </Card>
+              </Row>
+            </div>
+          </Tabs.TabPane>
+        </Tabs>
 
-              {/* Cropper Modal */}
-              <LogoCropper
-                image={imageToCrop}
-                open={isCropperVisible}
-                onClose={() => setIsCropperVisible(false)}
-                onCropComplete={handleCropComplete}
-                loading={cropLoading}
-              />
-            </Tabs.TabPane>
-          </Tabs>
+        {/* Add Location Drawer */}
+        <Drawer
+          title={
+            <Space>
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: '#eff6ff',
+                color: '#2563eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <EnvironmentOutlined style={{ fontSize: 16 }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#1e293b', lineHeight: '1.2' }}>
+                  {editingLocation ? 'Edit Company Location' : 'Add Company Location'}
+                </div>
+                <div style={{ fontWeight: 400, fontSize: 12, color: '#64748b' }}>
+                  {editingLocation ? 'Update the company address details below' : 'Enter the company address details below'}
+                </div>
+              </div>
+            </Space>
+          }
+          placement="right"
+          onClose={() => setIsLocationDrawerVisible(false)}
+          open={isLocationDrawerVisible}
+          width={500}
+          styles={{ body: { padding: '24px' } }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '16px 24px' }}>
+              <Button onClick={() => setIsLocationDrawerVisible(false)} style={{ borderRadius: 8 }}>
+                Cancel
+              </Button>
+              <Button type="primary" onClick={() => locationForm.submit()} style={{ borderRadius: 8, fontWeight: 600 }}>
+                {editingLocation ? 'Update Location' : 'Save Location'}
+              </Button>
+            </div>
+          }
+        >
+          <Form
+            form={locationForm}
+            layout="vertical"
+            onFinish={handleLocationsSubmit}
+            requiredMark={false}
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="flatNumber"
+                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Door / Flat Number</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Input placeholder="e.g. 101 or Suite 4" style={{ borderRadius: 8 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="street"
+                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Street</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Input placeholder="e.g. Main St" style={{ borderRadius: 8 }} />
+                </Form.Item>
+              </Col>
+            </Row>
 
-        {/* Add/Edit Shift Modal */}
+            <Form.Item
+              name="area"
+              label={<span style={{ fontWeight: 500, color: '#475569' }}>Area</span>}
+              rules={[{ required: true, message: 'Required' }]}
+            >
+              <Input placeholder="e.g. Downtown" style={{ borderRadius: 8 }} />
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="city"
+                  label={<span style={{ fontWeight: 500, color: '#475569' }}>City</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Input placeholder="e.g. San Francisco" style={{ borderRadius: 8 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="state"
+                  label={<span style={{ fontWeight: 500, color: '#475569' }}>State</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Input placeholder="e.g. California" style={{ borderRadius: 8 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="pincode"
+                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Pincode</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Input placeholder="e.g. 94105" style={{ borderRadius: 8 }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="country"
+                  label={<span style={{ fontWeight: 500, color: '#475569' }}>Country</span>}
+                  rules={[{ required: true, message: 'Required' }]}
+                >
+                  <Input placeholder="e.g. USA" style={{ borderRadius: 8 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
+        </Drawer>
+
+        {/* Modals and other components */}
         <Modal
           title={modalType === 'add' ? 'Add New Shift' : 'Edit Shift'}
           open={isShiftModalVisible}
@@ -1002,7 +1389,7 @@ const GlobalStyles = () => (
     .ant-card {
       transition: all 0.3s ease;
     }
-    
+
     /* Custom Scrollbar for Gallery */
     ::-webkit-scrollbar {
       width: 6px;

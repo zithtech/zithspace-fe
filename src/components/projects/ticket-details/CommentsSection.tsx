@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Card, Input, Button, Divider, List, Avatar, Typography, Space, message } from "antd";
 import { SendOutlined, EditOutlined, DeleteOutlined, UserOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 import { TicketComment } from "@/types/ticket";
 
 const { TextArea } = Input;

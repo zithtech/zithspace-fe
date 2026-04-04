@@ -6,13 +6,18 @@
 
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, Row, Col, Typography, Table, Tag, Button,Spin ,Skeleton} from "antd";
-import {
-  FileTextOutlined,
-  DollarOutlined,
-  ExclamationCircleOutlined,
-  ClockCircleOutlined,
-} from "@ant-design/icons";
+import { Card, Row, Col, Typography, Table, Tag, Button, Spin, Skeleton, Space } from "antd";
+import { 
+  FileText, 
+  DollarSign, 
+  AlertCircle, 
+  Clock, 
+  Plus,
+  LayoutDashboard,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  TrendingUp
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
@@ -124,81 +129,32 @@ const overdueAmount = invoices
   });
 
   /* ================= ATTRACTIVE METRIC CARDS ================= */
-  const renderCard = (
-    icon: any,
-    title: string,
-    value: string,
-    color: string,
-  ) => (
-<Card
-  style={{
-    borderRadius: 12,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-    padding: "16px 12px",
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    height: "100%",
-    minHeight: "90px",
-    border: "1px solid #f0f0f0",
-    background: "#ffffff", 
-  }}
-  styles={{
-    body: {
-      padding: 0,
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-    },
-  }}
->
-      
-
-      {/* Icon */}
-      <div
-        style={{
-    fontSize: 20,
-    color: "#ffffff",          
-    background: color,         
-    padding: "10px",
-    borderRadius: "10px",
-    marginLeft: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "40px",
-    height: "40px",
-  }}
-      >
-        {icon}
-      </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={{
-            color: "#666",
-            fontSize: "13px",
-            fontWeight: 500,
-            display: "block",
-            marginBottom: "2px",
-          }}
-        >
-          {title}
-        </Text>
-        <Title
-          level={3}
-          style={{
-            margin: 0,
-            color: "#1f1f1f",
-            fontSize: "20px",
-            fontWeight: 600,
-            lineHeight: "1.2",
-          }}
-        >
-          {value}
-        </Title>
+  const StatCard = ({ label, value, icon: Icon, color }: any) => (
+    <Card 
+      styles={{ body: { padding: 20 } }} 
+      style={{ 
+        borderRadius: 16, 
+        border: "1px solid #f1f5f9", 
+        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        height: "100%"
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        </div>
+        <div style={{ 
+          color, 
+          background: `${color}12`, 
+          padding: 12, 
+          borderRadius: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <Icon size={24} />
+        </div>
       </div>
     </Card>
   );
@@ -560,47 +516,61 @@ const fullCellRender = (value: Dayjs) => {
   return (
     <MainLayout>
       <Spin spinning={isLoading} tip="Loading dashboard">
-      <div style={{ padding: "20px 24px" }}>
-        {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 24 }}>
-          <Title
-            level={2}
-            style={{ margin: 0, color: "#1f1f1f", fontWeight: 600 }}
-          >
-            Dashboard
-          </Title>
-          <Text type="secondary" style={{ fontSize: "14px" }}>
-            Overview of your invoicing and revenue
-          </Text>
-        </div>
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "#ffffff",
+          minHeight: "calc(100vh - 64px)"
+        }}>
+          {/* ================= HEADER ================= */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+            <div style={{ flex: 1 }}>
+              <Space size={14} align="center">
+                <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+                  <LayoutDashboard size={28} />
+                </div>
+                <div>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Dashboard</Title>
+                  <Text style={{ color: "#64748b", fontSize: 15 }}>Overview of your invoicing and revenue performance.</Text>
+                </div>
+              </Space>
+            </div>
+            {canCreateInvoice && (
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Plus size={18} />} 
+                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
+                onClick={() => router.push("/invoice/newinvoice")}
+              >
+                New Invoice
+              </Button>
+            )}
+          </div>
 
-        {/* ================= METRIC CARDS ================= */}
-
-
-        <Row gutter={[16, 16]} style={{ marginBottom: 28 }}>
-  {[1, 2, 3, 4].map((i) => (
-    <Col xs={24} sm={12} md={6} key={i}>
-      {isLoading ? (
-        <Skeleton active paragraph={{ rows: 1 }} />
-      ) : (
-        renderCard(
-          i === 1 ? <FileTextOutlined /> :
-          i === 2 ? <DollarOutlined /> :
-          i === 3 ? <ExclamationCircleOutlined /> :
-          <ClockCircleOutlined />,
-          ["Total Invoices", "Total Revenue", "Pending Amount", "Overdue Amount"][i - 1],
-          [
-            `${totalInvoices}`,
-            `$${totalRevenue.toFixed(2)}`,
-            `$${pendingAmount.toFixed(2)}`,
-            `$${overdueAmount.toFixed(2)}`
-          ][i - 1],
-          ["#1890ff", "#52c41a", "#faad14", "#f5222d"][i - 1]
-        )
-      )}
-    </Col>
-  ))}
-</Row>
+          {/* ================= METRIC CARDS ================= */}
+          <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+            <Col xs={24} sm={12} md={6}>
+              {isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
+                <StatCard label="Total Invoices" value={`${totalInvoices}`} icon={FileText} color="#3b82f6" />
+              )}
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              {isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
+                <StatCard label="Total Revenue" value={`$${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} color="#10b981" />
+              )}
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              {isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
+                <StatCard label="Pending Amount" value={`$${pendingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={TrendingUp} color="#f59e0b" />
+              )}
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              {isLoading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
+                <StatCard label="Overdue Amount" value={`$${overdueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={AlertCircle} color="#ef4444" />
+              )}
+            </Col>
+          </Row>
 
 
         {/* ================= CHART + CALENDAR (SAME LINE) ================= */}
@@ -734,73 +704,14 @@ const fullCellRender = (value: Dayjs) => {
 
         {/* ================= RECENT INVOICES TABLE ================= */}
         <Card
-          title={
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-              }}
-            >
-              {/* Left: Icon + Title */}
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <FileTextOutlined style={{ color: "#1890ff", fontSize: 16 }} />
-                <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 16,
-                    color: "#1f1f1f",
-                  }}
-                >
-                  Recent Invoices
-                </span>
-              </div>
-
-              {/* Right: Actions */}
-              <div style={{ display: "flex", gap: "10px" }}>
-                {canCreateInvoice && (
-                  <Button
-                    type="primary"
-                    style={{
-                      fontWeight: 500,
-                      borderRadius: 8,
-                    }}
-                    onClick={() => router.push("/invoicepro/newinvoice")}
-                  >
-                    New Invoice
-                  </Button>
-                )}
-
-                <Button
-                  style={{
-                    fontWeight: 500,
-                    borderRadius: 8,
-                  }}
-                  onClick={() => router.push("/invoicepro/invoices")}
-                >
-                  View All
-                </Button>
-              </div>
-            </div>
-          }
+          bordered={false}
           style={{
-            borderRadius: 12,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            border: "1px solid #f0f0f0",
+            borderRadius: 16,
+            border: "1px solid #f1f5f9",
+            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+            overflow: "hidden"
           }}
-          styles={{
-            header: {
-              borderBottom: "1px solid #f0f0f0",
-              padding: "16px 20px",
-              fontSize: "16px",
-            },
-            body: {
-              padding: "16px",
-            },
-          }}
+          styles={{ body: { padding: 0 } }}
         >
           <Table
             columns={columns}
@@ -812,34 +723,33 @@ const fullCellRender = (value: Dayjs) => {
                   new Date(a.invoiceDate).getTime(),
               )
               .slice(0, 5)}
-            rowKey="invoice_number"
+            rowKey="id"
             pagination={false}
-            style={{ marginTop: "8px" }}
+            size="middle"
             scroll={{ x: "max-content" }}
-            components={{
-              header: {
-                cell: (props: any) => (
-                  <th
-                    {...props}
-                    style={{
-                      ...props.style,
-                      background: "#fafafa",
-                      color: "#8c8c8c",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      borderBottom: "1px solid #f0f0f0",
-                    }}
-                  />
-                ),
-              },
-            }}
             onRow={() => ({
               style: { cursor: "pointer" },
             })}
+            rowClassName={() => "dashboard-table-row"}
           />
         </Card>
       </div>
       </Spin>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .dashboard-table-row:hover {
+          background-color: #f8fafc !important;
+        }
+        .ant-table-thead > tr > th {
+          background-color: #f1f5f9 !important;
+          color: #475569 !important;
+          font-weight: 600 !important;
+          padding: 12px 16px !important;
+        }
+        .ant-table-tbody > tr > td {
+          padding: 12px 16px !important;
+          border-bottom: 1px solid #f1f5f9 !important;
+        }
+      `}} />
     </MainLayout>
   );
 }

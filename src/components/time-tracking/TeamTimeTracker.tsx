@@ -441,7 +441,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
           if (ticket && typeof ticket === 'object') {
             return (
-              <Link href={`/public/tickets/${ticketId}`} target="_blank">
+              <Link href={`/tickets/${ticketId}`}>
                 <Text style={{ color: '#1890ff', fontWeight: 500 }}>{ticket.title}</Text>
               </Link>
             );
@@ -567,7 +567,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
                     <div style={{ marginBottom: 0 }}>
                       {session.ticket?.title ? (
-                        <Link href={`/public/tickets/${session.ticketId}`} target="_blank">
+                        <Link href={`/tickets/${session.ticketId}`}>
                           <Text strong style={{ fontSize: 13, color: '#1e293b', cursor: 'pointer' }}>{session.ticket.title}</Text>
                         </Link>
                       ) : (
@@ -673,14 +673,36 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       </Row>
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Select
+        {/* <Select
+          allowClear
+          showSearch
           placeholder="Member"
           style={{ width: 160, height: 32 }}
           size="small"
-          allowClear
           onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
         >
           {members.map(m => <Select.Option key={m.value} value={m.value}>{m.label}</Select.Option>)}
+        </Select> */}
+        <Select
+          allowClear
+          showSearch
+          placeholder="Member"
+          style={{ width: 160, height: 32 }}
+          size="small"
+          optionFilterProp="children"
+          filterOption={(input, option) =>
+            (option?.children ?? "")
+              .toString()
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
+          onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
+        >
+          {members.map(m => (
+            <Select.Option key={m.value} value={m.value}>
+              {m.label}
+            </Select.Option>
+          ))}
         </Select>
         <Select
           placeholder="Project"
@@ -705,9 +727,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           onChange={(dates) => setFilters(f => ({ ...f, dateRange: dates as any }))}
         />
         <Tooltip title="Refresh Data">
-          <Button 
-            onClick={fetchTeamEntries} 
-            icon={<ReloadOutlined />} 
+          <Button
+            onClick={fetchTeamEntries}
+            icon={<ReloadOutlined />}
             style={{ height: 32, width: 32, padding: 0, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             size="small"
           />

@@ -84,6 +84,7 @@ export interface ProjectsFilters {
   search?: string;
   status?: string;
   projectManagerId?: string; // Changed from projectManager
+  userId?: string; // Added filter
   startDate?: string;
   endDate?: string;
 }

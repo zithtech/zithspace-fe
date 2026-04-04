@@ -163,6 +163,23 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
   );
 };
 
+  const blockNonNumeric = (e: React.KeyboardEvent) => {
+    // List of allowed non-numeric keys: 
+    // Backspace, Tab, Enter, Escape, ArrowLeft, ArrowRight, Delete, End, Home, Decimal point (.)
+    const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'Delete', 'End', 'Home', '.'];
+    
+    // Allow numeric keys (0-9) and numeric keypad keys
+    const isNumeric = (e.key >= '0' && e.key <= '9') || 
+                      (e.code && e.code.startsWith('Numpad') && e.code.length === 7 && e.code[6] >= '0' && e.code[6] <= '9');
+    
+    // Allow command/ctrl combinations (like Ctrl+A, Ctrl+C, etc)
+    const isControlAction = e.ctrlKey || e.metaKey;
+    
+    if (!allowedKeys.includes(e.key) && !isNumeric && !isControlAction) {
+      e.preventDefault();
+    }
+  };
+
 const SortableItem = ({ 
   id, 
   name, 
@@ -204,7 +221,7 @@ const SortableItem = ({
           rules={[{ required: true, message: "" }]}
           style={{ marginBottom: 0 }}
         >
-          <Input placeholder="Item name" size="small" className="font-medium rounded-md h-8 text-xs" />
+          <Input placeholder="Item name" size="small" className="font-semibold rounded-lg h-9 text-sm border-slate-200 hover:border-blue-300 focus:border-blue-400 bg-white shadow-sm shadow-black/[0.02]" />
         </Form.Item>
       );
     }
@@ -212,12 +229,12 @@ const SortableItem = ({
     if (key === 'description') {
       return (
         <Form.Item name={[name, "description"]} style={{ marginBottom: 0 }}>
-          <Input placeholder="DESCRIPTION" size="small" className="rounded-md h-8 uppercase text-[9px]" />
+          <Input placeholder="DESCRIPTION" size="small" className="rounded-lg h-9 uppercase text-[10px] font-medium tracking-tight border-slate-200 hover:border-blue-300 focus:border-blue-400 bg-white shadow-sm shadow-black/[0.02]" />
         </Form.Item>
       );
     }
 
-    const inputClass = "w-full rounded-md h-8 border-gray-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition-all text-xs";
+    const inputClass = "w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all text-sm bg-white shadow-sm shadow-black/[0.02]";
 
     if (key === 'quantity') {
       return (
@@ -227,7 +244,7 @@ const SortableItem = ({
           rules={[{ required: true, message: "" }]}
           style={{ marginBottom: 0 }}
         >
-          <InputNumber size="small" min={0.01} precision={2} className={inputClass} placeholder="1.00" />
+          <InputNumber size="small" min={0.01} precision={2} className={inputClass} placeholder="1.00" onKeyDown={blockNonNumeric} />
         </Form.Item>
       );
     }
@@ -246,6 +263,7 @@ const SortableItem = ({
             precision={2} 
             className={inputClass} 
             placeholder="0.00"
+            onKeyDown={blockNonNumeric}
             prefix={<span className="text-[10px] text-gray-400 mr-1">{currencySymbol}</span>}
           />
         </Form.Item>
@@ -255,7 +273,7 @@ const SortableItem = ({
     if (key === 'taxRate') {
       return (
         <Form.Item key={key} name={[name, "taxRate"]} style={{ marginBottom: 0 }}>
-          <InputNumber size="small" min={0} max={100} precision={2} className={inputClass} placeholder="0.00" suffix={<span className="text-[10px] text-gray-400 ml-1">%</span>} />
+          <InputNumber size="small" min={0} max={100} precision={2} className={inputClass} placeholder="0.00" onKeyDown={blockNonNumeric} suffix={<span className="text-[10px] text-gray-400 ml-1">%</span>} />
         </Form.Item>
       );
     }
@@ -296,9 +314,9 @@ const SortableItem = ({
             )) || <Select.Option value="default">Default</Select.Option>}
           </Select>
         ) : type === 'number' ? (
-          <InputNumber size="small" className={inputClass} placeholder={label} />
+          <InputNumber size="small" className={inputClass} placeholder={label} onKeyDown={blockNonNumeric} />
         ) : type === 'percentage' ? (
-          <InputNumber size="small" className={inputClass} placeholder={label} suffix="%" />
+          <InputNumber size="small" className={inputClass} placeholder={label} onKeyDown={blockNonNumeric} suffix="%" />
         ) : type === 'textarea' ? (
           <Input.TextArea size="small" autoSize={{ minRows: 1, maxRows: 3 }} className="rounded-md border-gray-200 text-xs" placeholder={label} />
         ) : (
@@ -312,42 +330,41 @@ const SortableItem = ({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b border-gray-100 transition-colors duration-150 ${isDragging ? 'bg-blue-50 opacity-50' : 'hover:bg-gray-50'}`}
+      className={`border-b border-gray-100/50 transition-all duration-200 ${isDragging ? 'bg-blue-50/30 opacity-60 shadow-lg' : 'hover:bg-slate-50/80 group/row'}`}
     >
-      <td className="p-1.5 w-8 align-middle text-center">
+      <td className="p-2 w-12 align-middle text-center sticky left-0 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors">
         <Checkbox 
           checked={isSelected} 
           onChange={(e) => onSelect(id, e.target.checked)} 
+          className="scale-90"
         />
       </td>
-      <td className="p-1.5 w-10 align-middle text-center text-gray-400 font-medium text-xs">
+      <td className="p-2 w-12 align-middle text-center text-slate-400 font-bold text-[10px] sticky left-12 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-r border-slate-50">
         {index + 1}
       </td>
-      <td className="p-1.5 w-8 align-middle">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
-          <MenuOutlined style={{ fontSize: 16 }} />
+      <td className="p-2 w-10 align-middle text-center sticky left-24 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-r border-slate-100/50">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-blue-500 transition-colors">
+          <DragOutlined style={{ fontSize: 16 }} />
         </div>
       </td>
       
       {activeColumns.map((col: any) => (
-        <td key={col.key} className={`p-1.5 align-middle ${col.width || ''}`}>
+        <td key={col.key} className={`p-2 align-middle ${col.width || ''}`}>
           {renderField(col)}
         </td>
       ))}
 
-      <td className="p-1.5 align-middle text-right w-32">
-        <div className="font-semibold text-gray-900">
-          {currencySymbol} {lineTotal.toFixed(2)}
-        </div>
+      <td className="p-3 align-middle text-right w-36 sticky right-12 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-l border-slate-50 font-bold text-slate-700 text-sm">
+        {currencySymbol}{lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </td>
-      <td className="p-1.5 align-middle text-center w-12">
+      <td className="p-2 align-middle text-center w-12 sticky right-0 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors">
         <Tooltip title="Remove row">
           <Button
             type="text"
             danger
             icon={<DeleteOutlined />}
             onClick={() => remove(name)}
-            className="opacity-60 hover:opacity-100 flex pb-3 items-center justify-center m-auto"
+            className="opacity-40 hover:opacity-100 hover:bg-red-50 flex items-center justify-center m-auto rounded-lg transition-all"
           />
         </Tooltip>
       </td>
@@ -376,7 +393,7 @@ const SortableHeader = ({ column, onDelete, onSelectAll, isAllSelected, isIndete
     <th 
       ref={setNodeRef} 
       style={style}
-      className={`p-3 text-left font-bold text-gray-500 text-[10px] uppercase group whitespace-nowrap ${column.width || ''}`}
+      className={`px-4 py-4 text-left font-bold text-slate-500 text-[10px] uppercase group whitespace-nowrap tracking-widest ${column.width || ''}`}
     >
       <div className="flex items-center gap-2">
         <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity text-gray-300">
@@ -739,13 +756,16 @@ export default function DynamicLineItems({
               onDragEnd={(e) => handleDragEnd(e, fields, move)}
             >
               {/* Toolbar Matching Image */}
-              <div className="mb-4 flex justify-between items-center bg-white p-4 rounded-t-lg border-t border-l border-r border-gray-200">
-                <Text strong className="text-lg text-gray-700 font-inter">Invoice Line Items</Text>
+              <div className="mb-0 flex justify-between items-center bg-white px-5 py-4 border-b border-slate-100">
+                <div className="flex flex-col gap-0.5">
+                  <Text strong className="text-base text-slate-800 tracking-tight">Invoice Line Items</Text>
+                  <Text className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Manage your billing components</Text>
+                </div>
                 <div className="flex gap-2 items-center">
                   <Button
                     icon={<PlusOutlined />}
                     onClick={() => handleAddRow(add)}
-                    className="hover:bg-gray-50 flex items-center gap-1 font-medium text-gray-600 rounded-md border-gray-200 h-9"
+                    className="flex items-center gap-1 font-bold text-blue-600 rounded-lg border-blue-100 bg-blue-50 h-9 text-xs hover:border-blue-300 hover:bg-blue-100 transition-all duration-200 shadow-sm shadow-blue-200/20"
                   >
                     Add Row
                   </Button>
@@ -753,46 +773,47 @@ export default function DynamicLineItems({
                     icon={<CopyOutlined />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDuplicateRows(fields, add)}
-                    className="hover:bg-gray-50 flex items-center gap-1 font-medium text-gray-600 rounded-md border-gray-200 h-9"
+                    className="flex items-center gap-1 font-semibold text-slate-600 rounded-lg border-slate-200 bg-white h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
                   >
-                    Duplicate Row
+                    Duplicate
                   </Button>
                   <Button
                     danger
                     icon={<DeleteOutlined />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDeleteRows(remove, fields)}
-                    className="flex items-center gap-1 font-medium bg-red-50 rounded-md border-red-100 h-9"
+                    className="flex items-center gap-1 font-semibold bg-white rounded-lg border-red-50 h-9 text-xs hover:bg-red-50 hover:border-red-200 transition-all duration-200"
                   >
                     Delete Row
                   </Button>
-                  <Divider type="vertical" className="h-6 mx-1 border-gray-300" />
+                  <Divider type="vertical" className="h-6 mx-1 border-slate-200" />
                   <Button
-                    icon={<TableOutlined />}
+                    icon={<SettingOutlined />}
                     onClick={() => setShowAddFieldModal(true)}
-                    className="hover:bg-gray-50 flex items-center gap-1 font-medium text-gray-600 rounded-md border-gray-200 h-9"
+                    className="flex items-center gap-1 font-semibold text-slate-600 rounded-lg border-slate-200 bg-white h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
                   >
-                    Add Field
+                    Custom Fields
                   </Button>
                 </div>
               </div>
 
               {/* Template Selector Removed - Now in Header */}
 
-              <div className="overflow-x-auto border-l border-r border-b border-gray-200 rounded-b-lg">
-                <table className="w-full border-collapse bg-white">
+              <div className="overflow-x-auto custom-scrollbar rounded-b-xl border border-slate-200 border-t-0 shadow-sm relative">
+                <table className="w-full border-collapse bg-white min-w-max border-hidden">
                   <thead>
                     <SortableContext items={activeColumns.map(c => c.key)} strategy={horizontalListSortingStrategy}>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="p-1.5 w-8 text-center">
+                      <tr className="bg-[#f8fafc]/80 border-b border-slate-200">
+                        <th className="px-5 py-4 w-12 text-center sticky left-0 z-20 bg-[#f8fafc]">
                           <Checkbox 
                             checked={fields.length > 0 && selectedRowKeys.length === fields.length}
                             indeterminate={selectedRowKeys.length > 0 && selectedRowKeys.length < fields.length}
                             onChange={(e) => onSelectAll(e.target.checked, fields)}
+                            className="scale-110"
                           />
                         </th>
-                        <th className="p-1.5 w-10 text-center font-bold text-gray-500 text-[10px] uppercase whitespace-nowrap">S.NO</th>
-                        <th className="p-1.5 w-8"></th>
+                        <th className="px-3 py-4 w-12 text-center font-bold text-slate-400 text-[9px] uppercase tracking-widest whitespace-nowrap sticky left-12 z-20 bg-[#f8fafc] border-r border-slate-200/50">S.No</th>
+                        <th className="p-3 w-10 sticky left-24 z-20 bg-[#f8fafc] border-r border-slate-200/50"></th>
                         {activeColumns.map(col => (
                           <SortableHeader 
                             key={col.key} 
@@ -800,8 +821,8 @@ export default function DynamicLineItems({
                             onDelete={handleDeleteColumn}
                           />
                         ))}
-                        <th className="p-1.5 text-right font-bold text-gray-500 text-[10px] uppercase w-32 whitespace-nowrap">Total</th>
-                        <th className="p-1.5 text-center font-bold text-gray-500 text-[10px] uppercase w-12 whitespace-nowrap">Actions</th>
+                        <th className="px-5 py-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-widest sticky right-12 z-20 bg-[#f8fafc] border-l border-slate-200/50 w-36">Total</th>
+                        <th className="px-3 py-4 w-12 sticky right-0 z-20 bg-[#f8fafc] text-center font-bold text-slate-500 text-[10px] uppercase tracking-widest">Actions</th>
                       </tr>
                     </SortableContext>
                   </thead>
@@ -879,6 +900,27 @@ export default function DynamicLineItems({
         .cursor-grab { cursor: grab; }
         .cursor-grabbing { cursor: grabbing; }
         .font-inter { font-family: 'Inter', sans-serif; }
+      `}</style>
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          height: 8px;
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f8fafc;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 4px;
+          border: 2px solid #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
+        }
+        .table-fixed {
+          table-layout: fixed;
+        }
       `}</style>
     </div>
   );

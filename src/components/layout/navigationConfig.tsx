@@ -738,11 +738,36 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         ],
       },
       {
-        key: "/reimbursement",
+        key: "reimbursement-group",
         label: "Reimbursement",
         icon: <TransactionOutlined />,
-        path: "/reimbursement",
         requiredPermission: Permissions.REIMBURSEMENT_READ,
+        children: [
+          {
+            key: "/reimbursement/my-reimbursements",
+            label: "My Reimbursements",
+            icon: <UserOutlined />,
+            path: "/reimbursement/my-reimbursements",
+          },
+          {
+            key: "/reimbursement/approvals",
+            label: "Approvals",
+            icon: <CheckSquareOutlined />,
+            path: "/reimbursement/approvals",
+          },
+          {
+            key: "/reimbursement/policy",
+            label: "Policy",
+            icon: <ApartmentOutlined />,
+            path: "/reimbursement/policy",
+          },
+          {
+            key: "/reimbursement/settings",
+            label: "Settings",
+            icon: <SettingOutlined />,
+            path: "/reimbursement/settings",
+          },
+        ],
       },
       {
         key: "salary",

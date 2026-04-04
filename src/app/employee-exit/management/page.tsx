@@ -552,6 +552,10 @@ export default function EmployeeExitManagementPage() {
                   onChange={handleEmployeeChange}
                   style={{ height: 44, borderRadius: 8 }}
                   dropdownStyle={{ borderRadius: 12 }}
+                  optionFilterProp="label"
+                  filterOption={(input, option) =>
+                    String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
                 />
               </Form.Item>
 

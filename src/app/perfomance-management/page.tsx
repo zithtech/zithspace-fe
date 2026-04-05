@@ -2001,7 +2001,7 @@ export default function PerformanceManagePage() {
                     <Text type="secondary" style={{ fontSize: 11 }}>Beginning of Day Updates</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#10b981" }}>
-                    {performanceData?.dailyUpdates?.summary?.total ? Math.round((performanceData?.dailyUpdates?.summary?.bod / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
+                    {performanceData?.dailyUpdates?.summary?.total ? Math.round(((performanceData?.dailyUpdates?.summary?.bod ?? 0) / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
                   </Text>
                 </div>
                 <div style={{ fontSize: 12, background: "#f0fdf4", padding: "12px", borderRadius: "10px", color: "#166534", border: "1px solid #dcfce7" }}>
@@ -2017,7 +2017,7 @@ export default function PerformanceManagePage() {
                     <Text type="secondary" style={{ fontSize: 11 }}>End of Day Updates</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#f59e0b" }}>
-                    {performanceData?.dailyUpdates?.summary?.total ? Math.round((performanceData?.dailyUpdates?.summary?.eod / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
+                    {performanceData?.dailyUpdates?.summary?.total ? Math.round(((performanceData?.dailyUpdates?.summary?.eod ?? 0) / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
                   </Text>
                 </div>
                 <div style={{ fontSize: 12, background: "#fffbeb", padding: "12px", borderRadius: "10px", color: "#92400e", border: "1px solid #fef3c7" }}>
@@ -2028,7 +2028,7 @@ export default function PerformanceManagePage() {
                     <div style={{ color: "#ef4444", fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: "1px dashed #fcd34d" }}>
                       • {performanceData?.dailyUpdates?.summary?.missedEOD} missed EODs
                       <div style={{ fontSize: 13, marginTop: 2 }}>
-                        {performanceData?.dailyUpdates?.summary?.missedEOD} × 0.75 = {perf.eodPenalty} point reduction
+                        {performanceData?.dailyUpdates?.summary?.missedEOD ?? 0} × 0.75 = {perf.eodPenalty} point reduction
                       </div>
                     </div>
                   )}
@@ -2108,9 +2108,9 @@ export default function PerformanceManagePage() {
                     <div style={{ color: "#e11d48", fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: "1px dashed #fca5a5" }}>
                       • Penalty Calculation:
                       <div style={{ fontSize: 13, marginTop: 2 }}>
-                        {performanceData?.escalations?.summary?.total} × 2.5 = {(performanceData?.escalations?.summary?.total ?? 0) * 2.5} point reduction
+                        {performanceData?.escalations?.summary?.total ?? 0} × 2.5 = {(performanceData?.escalations?.summary?.total ?? 0) * 2.5} point reduction
                       </div>
-                      { (performanceData?.escalations?.summary?.total * 2.5) > 25 && (
+                      { ((performanceData?.escalations?.summary?.total ?? 0) * 2.5) > 25 && (
                         <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4, fontWeight: 500 }}>
                           (Capped at maximum penalty of -25 points)
                         </div>

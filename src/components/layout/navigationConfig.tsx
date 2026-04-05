@@ -55,6 +55,8 @@ import {
 import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
 import { ImProfile } from "react-icons/im";
+import { AiFillAlert } from "react-icons/ai";
+
 
 
 import { TiGroup } from "react-icons/ti";
@@ -689,6 +691,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Performance View",
         icon: <BarChartOutlined />,
         path: "/perfomance-management",
+        requiredPermission: Permissions.USER_READ,
+      },
+      {
+        key: "/opening-management",
+        label: "Opening Management",
+        icon: <AiFillAlert />,
+        path: "/opening-management",
         requiredPermission: Permissions.USER_READ,
       },
     ],

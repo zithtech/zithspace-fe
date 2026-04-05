@@ -441,7 +441,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
           if (ticket && typeof ticket === 'object') {
             return (
-              <Link href={`/public/tickets/${ticketId}`} target="_blank">
+              <Link href={`/tickets/${ticketId}`}>
                 <Text style={{ color: '#1890ff', fontWeight: 500 }}>{ticket.title}</Text>
               </Link>
             );
@@ -567,7 +567,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
                     <div style={{ marginBottom: 0 }}>
                       {session.ticket?.title ? (
-                        <Link href={`/public/tickets/${session.ticketId}`} target="_blank">
+                        <Link href={`/tickets/${session.ticketId}`}>
                           <Text strong style={{ fontSize: 13, color: '#1e293b', cursor: 'pointer' }}>{session.ticket.title}</Text>
                         </Link>
                       ) : (

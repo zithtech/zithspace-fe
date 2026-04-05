@@ -356,7 +356,7 @@
 //               isHoliday: true,
 //               holidayName: holidayInfo?.name,
 //               description: `Holiday: ${holidayInfo?.name || "Holiday"}`,
-//               hours: 8,
+//               hours: 6,
 //               projectId: undefined,
 //               taskIds: [],
 //               taskNames: [],
@@ -526,7 +526,7 @@
 //           : isHoliday
 //             ? `Holiday: ${holidayName}`
 //             : "",
-//         hours: isHoliday ? 8 : 0,
+//         hours: isHoliday ? 6 : 0,
 //         billable: !isLeave && !isHoliday,
 //         status: "Draft" as const,
 //         employeeName: sheet?.user?.name || user?.name || "Unknown Employee",
@@ -673,7 +673,7 @@
 //               : isHoliday
 //                 ? `Holiday: ${holidayInfo?.name || "Holiday"}`
 //                 : r.description,
-//             hours: isLeave ? 0 : isHoliday ? 8 : r.hours,
+//             hours: isLeave ? 0 : isHoliday ? 6 : r.hours,
 //             billable: isLeave ? false : isHoliday ? false : r.billable,
 //             status: mapBackendStatusToUI(sheet.status),
 //             projectName:
@@ -2606,7 +2606,7 @@ export default function SubmittimesheetTab({
               description: "",
               isHoliday: isHoliday,
               holidayName: holidayInfo?.name,
-              hours: isHoliday ? 8 : 0,
+              hours: isHoliday ? 6 : 0,
               billable: !isHoliday,
             };
           } else if (isHoliday && !row.isHoliday) {

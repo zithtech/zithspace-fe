@@ -19,6 +19,8 @@ import {
   Divider,
   Tabs,
   Tooltip,
+  Drawer,
+  Descriptions,
 } from "antd";
 
 import {
@@ -37,6 +39,10 @@ import {
   WarningOutlined,
   CloseSquareOutlined,
   SafetyCertificateOutlined,
+  AlertOutlined,
+  ProjectOutlined,
+  UserOutlined as AntUserOutlined,
+  AreaChartOutlined,
 } from "@ant-design/icons";
 import MainLayout from "@/components/layout/MainLayout";
 import { MembersService } from "@/services/membersService";
@@ -46,6 +52,8 @@ import {
 } from "@/services/attendanceService";
 import { usePerformance } from "@/hooks/userPerformance";
 import { usePositions } from "@/hooks/usePositions";
+import { useQuery } from "@tanstack/react-query";
+import { EscalationService } from "@/services/escalationService";
 import {
   BarChart,
   Bar,
@@ -69,16 +77,20 @@ import {
   ChevronRight,
   TrendingUp,
   Award,
-  Zap
+  Zap,
+  AlertTriangle
 } from "lucide-react";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime);
 
 const { Option } = Select;
 const { Text, Title } = Typography;
 
 const StatCard = ({ label, value, icon: Icon, color, suffix }: any) => (
   <Card
-    bodyStyle={{ padding: "16px 20px" }}
+    styles={{ body: { padding: "16px 20px" } }}
     style={{
       borderRadius: 12,
       border: "1px solid #f1f5f9",
@@ -106,13 +118,16 @@ export default function PerformanceManagePage() {
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<string>();
-  const [selectedMonth, setSelectedMonth] = useState<string>("3");
+  const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [loadingPercent, setLoadingPercent] = useState<number>(0);
 
   // State for selected user's full details including position
   const [selectedUserDetails, setSelectedUserDetails] = useState<any>(null);
+  const [breakdownVisible, setBreakdownVisible] = useState(false);
+  const [dailyBreakdownVisible, setDailyBreakdownVisible] = useState(false);
+  const [escalationBreakdownVisible, setEscalationBreakdownVisible] = useState(false);
 
   // Get all positions data
   const { dataSource: positions, loading: positionsLoading } = usePositions();
@@ -150,6 +165,21 @@ export default function PerformanceManagePage() {
   // Use the performance hook
   const { data: performanceData, isLoading: performanceLoading } =
     usePerformance(appliedFilters);
+
+  const [selectedEscalationId, setSelectedEscalationId] = useState<string | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  // Fetch full escalation details when one is selected
+  const { data: fullEscalation, isLoading: loadingDetails } = useQuery({
+    queryKey: ['escalation', selectedEscalationId],
+    queryFn: () => selectedEscalationId ? EscalationService.getEscalationById(selectedEscalationId) : null,
+    enabled: !!selectedEscalationId,
+  });
+
+  const handleRowClick = (record: any) => {
+    setSelectedEscalationId(record.id);
+    setDrawerVisible(true);
+  };
 
   // Fetch members on page load
   useEffect(() => {
@@ -473,10 +503,24 @@ export default function PerformanceManagePage() {
   const daysInMonth = dayjs(`${appliedYear}-${appliedMonth}-01`).daysInMonth();
 
   // Calculate summary statistics
-  const completionRate =
-    ticketSummary.total > 0
-      ? Math.round((ticketSummary.completed / ticketSummary.total) * 100)
-      : 0;
+  // Performance Metrics from Hook
+  const perf = performanceData?.performance || {
+    score: 0,
+    ticketScore: 0,
+    eodPenalty: 0,
+    escalationPenalty: 0,
+    completionScore: 0,
+    timelinessScore: 0,
+    trackingScore: 0
+  };
+
+  const performanceScore = perf.score;
+  const ticketScore = perf.ticketScore;
+  const eodPenalty = perf.eodPenalty;
+  const escalationPenalty = perf.escalationPenalty;
+
+  // Keep rates for separate displays if needed, but derived from new logic
+  const completionRate = perf.completionScore;
 
   const updateRate =
     dailyUpdatesSummary.total > 0
@@ -490,12 +534,6 @@ export default function PerformanceManagePage() {
         (attendanceSummary.presentDays / attendanceSummary.totalDays) * 100,
       )
       : 0;
-
-  // Performance score - exclude attendance for future months
-  const performanceScore =
-    !isFutureMonth && appliedFilters.userId
-      ? Math.round((completionRate + updateRate + attendanceRate) / 3)
-      : Math.round((completionRate + updateRate) / 2);
 
   // BOD and EOD out of format
   const bodOutOf = `${dailyUpdatesSummary.bod}/${attendanceSummary.totalDays}`;
@@ -825,7 +863,7 @@ export default function PerformanceManagePage() {
               <Progress
                 type="circle"
                 percent={Math.round(loadingPercent)}
-                width={180}
+                size={180}
                 strokeWidth={8}
                 strokeColor={{
                   '0%': '#3b82f6',
@@ -971,6 +1009,56 @@ export default function PerformanceManagePage() {
                       })()}
                     </div>
 
+                    {/* Performance Gauge Section (Now at top of details) */}
+                    <div style={{ textAlign: "center", paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+                      <Text strong style={{ fontSize: "10px", color: "#64748b", display: "block", marginBottom: 16, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                        Performance Gauge
+                      </Text>
+
+                      <Progress
+                        type="circle"
+                        percent={performanceScore}
+                        size={110}
+                        strokeWidth={8}
+                        strokeColor={{
+                          '0%': '#ef4444',
+                          '100%': '#10b981',
+                        }}
+                        format={(percent) => (
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                            <span style={{ fontSize: 24, fontWeight: 900, color: "#1e293b", lineHeight: 1 }}>{percent}%</span>
+                            <span style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, fontWeight: 700 }}>OVERALL</span>
+                          </div>
+                        )}
+                      />
+
+                      <div style={{ marginTop: 20, padding: "10px", background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+                        <Row gutter={[4, 4]}>
+                          <Col span={8}>
+                            <div style={{ textAlign: "center" }}>
+                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>Ticket Score</Text>
+                              <Text strong style={{ color: "#10b981", fontSize: 11 }}>{ticketScore}</Text>
+                            </div>
+                          </Col>
+                          <Col span={8}>
+                            <div style={{ textAlign: "center" }}>
+                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>EOD Penalty</Text>
+                              <Text strong style={{ color: "#f59e0b", fontSize: 11 }}>-{eodPenalty}</Text>
+                            </div>
+                          </Col>
+                          <Col span={8}>
+                            <div style={{ textAlign: "center" }}>
+                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>Escalation Penalty</Text>
+                              <Text strong style={{ color: "#ef4444", fontSize: 11 }}>-{escalationPenalty}</Text>
+                            </div>
+                          </Col>
+                        </Row>
+                      </div>
+                    </div>
+
+                    <Divider style={{ margin: "20px 0", borderColor: "#f1f5f9" }} />
+
+                    {/* Active Projects Section (Now below gauge) */}
                     {(() => {
                       const allProjects = [
                         ...assignedProjects.map((p: any) => ({ ...p, isAssigned: true })),
@@ -984,7 +1072,7 @@ export default function PerformanceManagePage() {
                       if (allProjects.length === 0) return null;
 
                       return (
-                        <div style={{ textAlign: "left", paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+                        <div style={{ textAlign: "left" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
                             <Text strong style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                               Active Projects
@@ -1039,55 +1127,6 @@ export default function PerformanceManagePage() {
                         </div>
                       );
                     })()}
-
-                    {/* Performance Gauge Section (Inside same minimalist container) */}
-                    <Divider style={{ margin: "20px 0", borderColor: "#f1f5f9" }} />
-
-                    <div style={{ textAlign: "center" }}>
-                      <Text strong style={{ fontSize: "10px", color: "#64748b", display: "block", marginBottom: 16, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                        Performance Gauge
-                      </Text>
-
-                      <Progress
-                        type="circle"
-                        percent={performanceScore}
-                        width={110}
-                        strokeWidth={8}
-                        strokeColor={{
-                          '0%': '#ef4444',
-                          '100%': '#10b981',
-                        }}
-                        format={(percent) => (
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                            <span style={{ fontSize: 24, fontWeight: 900, color: "#1e293b", lineHeight: 1 }}>{percent}%</span>
-                            <span style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, fontWeight: 700 }}>OVERALL</span>
-                          </div>
-                        )}
-                      />
-
-                      <div style={{ marginTop: 20, padding: "10px", background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
-                        <Row gutter={[4, 4]}>
-                          <Col span={8}>
-                            <div style={{ textAlign: "center" }}>
-                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>Tickets</Text>
-                              <Text strong style={{ color: "#10b981", fontSize: 11 }}>{completionRate}%</Text>
-                            </div>
-                          </Col>
-                          <Col span={8}>
-                            <div style={{ textAlign: "center" }}>
-                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>Updates</Text>
-                              <Text strong style={{ color: "#f59e0b", fontSize: 11 }}>{updateRate}%</Text>
-                            </div>
-                          </Col>
-                          <Col span={8}>
-                            <div style={{ textAlign: "center" }}>
-                              <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 2 }}>Attendance</Text>
-                              <Text strong style={{ color: "#3b82f6", fontSize: 11 }}>{attendanceRate}%</Text>
-                            </div>
-                          </Col>
-                        </Row>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -1171,7 +1210,20 @@ export default function PerformanceManagePage() {
                         <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Ticket Performance Details</span>
                       </Space>
                     }
-                    extra={<Tag style={{ borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>Total: {ticketSummary.total}</Tag>}
+                    extra={
+                      <Space>
+                        <Button 
+                          type="primary" 
+                          size="small" 
+                          icon={<AreaChartOutlined />} 
+                          style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
+                          onClick={() => setBreakdownVisible(true)}
+                        >
+                          Breakdown
+                        </Button>
+                        <Tag style={{ borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>Total: {ticketSummary.total}</Tag>
+                      </Space>
+                    }
                   >
                     <div style={{ padding: "12px 16px" }}>
                       <Row gutter={[10, 10]}>
@@ -1322,6 +1374,17 @@ export default function PerformanceManagePage() {
                         <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Daily Updates Log</span>
                       </Space>
                     }
+                    extra={
+                      <Button 
+                        type="primary" 
+                        size="small" 
+                        icon={<AreaChartOutlined />} 
+                        style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
+                        onClick={() => setDailyBreakdownVisible(true)}
+                      >
+                        Breakdown
+                      </Button>
+                    }
                   >
                     <Row gutter={24}>
                       {/* Left Side: Summary Cards (30%) */}
@@ -1435,10 +1498,641 @@ export default function PerformanceManagePage() {
                     </Row>
                   </Card>
                 )}
+
+                {selectedMember && (
+                  <Card
+                    size="small"
+                    style={{ borderRadius: "16px", border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", marginTop: 24 }}
+                    title={
+                      <Space size={8}>
+                        <div style={{ background: "#fff1f2", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                          <AlertTriangle style={{ color: "#e11d48", width: 16, height: 16 }} />
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Escalations Log</span>
+                      </Space>
+                    }
+                    extra={
+                      <Button 
+                        type="primary" 
+                        size="small" 
+                        danger
+                        icon={<AreaChartOutlined />} 
+                        style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
+                        onClick={() => setEscalationBreakdownVisible(true)}
+                      >
+                        Breakdown
+                      </Button>
+                    }
+                  >
+                    {!performanceData?.escalations?.details || performanceData?.escalations?.details.length === 0 ? (
+                      <div style={{
+                        padding: "40px 20px",
+                        textAlign: "center",
+                        background: "#f0fdf4",
+                        borderRadius: "12px",
+                        border: "1px dashed #bcf0da",
+                        margin: "12px"
+                      }}>
+                        <div style={{
+                          width: 48,
+                          height: 48,
+                          background: "#ffffff",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 16px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)"
+                        }}>
+                          <CheckCircleOutlined style={{ color: "#10b981", fontSize: 24 }} />
+                        </div>
+                        <Title level={5} style={{ margin: "0 0 10px", color: "#064e3b", fontWeight: 700 }}>Excellent Progress!</Title>
+                        <Text style={{ color: "#065f46" }}>No escalations have been recorded for <b>{selectedUserDetails?.label}</b> in this period. Keep up the great work.</Text>
+                      </div>
+                    ) : (
+                      <Row gutter={24} style={{ padding: "12px" }}>
+                        {/* Left Side: Consolidated Total Metric (30%) */}
+                        <Col xs={24} md={7}>
+                          <Card
+                            size="small"
+                            style={{
+                              borderRadius: "16px",
+                              border: "none",
+                              background: "linear-gradient(135deg, #fff1f2 0%, #fff 100%)",
+                              boxShadow: "0 4px 12px rgba(225, 29, 72, 0.08)",
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: "24px 0"
+                            }}
+                            styles={{ body: { width: "100%", textAlign: "center" } }}
+                          >
+                            <div style={{
+                              width: 56,
+                              height: 56,
+                              background: "#e11d48",
+                              borderRadius: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              margin: "0 auto 16px",
+                              boxShadow: "0 8px 16px -4px rgba(225, 29, 72, 0.4)"
+                            }}>
+                              <AlertTriangle style={{ color: "#fff", width: 28, height: 28 }} />
+                            </div>
+                            <Text strong style={{ fontSize: 12, color: "#9f1239", textTransform: "uppercase", letterSpacing: "0.1em", display: "block", marginBottom: 4 }}>
+                              Total Escalations
+                            </Text>
+                            <Title level={1} style={{ margin: 0, color: "#e11d48", fontWeight: 900, fontSize: 48, lineHeight: 1 }}>
+                              {performanceData?.escalations?.summary?.total || 0}
+                            </Title>
+
+                          </Card>
+                        </Col>
+
+                        {/* Right Side: Enhanced Escalation Table (70%) */}
+                        <Col xs={24} md={17}>
+                          <Table
+                            className="premium-table"
+                            columns={[
+                              {
+                                title: "ISSUE DETAILS",
+                                dataIndex: "subject",
+                                key: "subject",
+                                ellipsis: true,
+                                render: (text: string, record: any) => (
+                                  <Space direction="vertical" size={0}>
+                                    <Text strong style={{ color: "#1e293b", fontSize: 13 }}>{text}</Text>
+                                    <Text type="secondary" style={{ fontSize: 11 }}>{record.category || 'General Issue'}</Text>
+                                  </Space>
+                                )
+                              },
+                              {
+                                title: "PRIORITY",
+                                dataIndex: "priority",
+                                key: "priority",
+                                width: 110,
+                                align: 'center',
+                                render: (priority) => {
+                                  let color = "#94a3b8";
+                                  let bg = "#f1f5f9";
+                                  if (priority === "HIGH" || priority === "URGENT") { color = "#e11d48"; bg = "#fff1f2"; }
+                                  if (priority === "MEDIUM") { color = "#d97706"; bg = "#fffbeb"; }
+                                  return (
+                                    <div style={{
+                                      color: color,
+                                      background: bg,
+                                      padding: "4px 10px",
+                                      borderRadius: "6px",
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      display: "inline-block",
+                                      letterSpacing: "0.02em"
+                                    }}>
+                                      {priority}
+                                    </div>
+                                  );
+                                }
+                              },
+                              {
+                                title: "STATUS",
+                                dataIndex: "status",
+                                key: "status",
+                                width: 120,
+                                align: 'right',
+                                render: (status) => {
+                                  const config: any = {
+                                    OPEN: { color: "#e11d48", label: "ACTIVE", dot: "#e11d48" },
+                                    IN_PROGRESS: { color: "#2563eb", label: "PROGRESS", dot: "#2563eb" },
+                                    RESOLVED: { color: "#16a34a", label: "RESOLVED", dot: "#16a34a" },
+                                    CLOSED: { color: "#16a34a", label: "CLOSED", dot: "#16a34a" }
+                                  };
+                                  const s = config[status] || { color: "#64748b", label: status, dot: "#64748b" };
+                                  return (
+                                    <Space size={6}>
+                                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }} />
+                                      <Text strong style={{ fontSize: 11, color: s.color }}>{s.label}</Text>
+                                    </Space>
+                                  );
+                                }
+                              }
+                            ]}
+                            dataSource={performanceData?.escalations?.details || []}
+                            rowKey="id"
+                            pagination={{ pageSize: 5, size: "small" }}
+                            size="small"
+                            onRow={(record) => ({
+                              onClick: () => handleRowClick(record),
+                              style: { cursor: 'pointer' }
+                            })}
+                          />
+                        </Col>
+                      </Row>
+                    )}
+                  </Card>
+                )}
               </div>
             </Col>
           </Row>
         )}
+
+        {/* Escalation Detail Drawer */}
+        <Drawer
+          title={
+            <Space direction="vertical" size={2}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <AlertOutlined style={{ color: "#2563eb" }} />
+                <Title level={4} style={{ margin: 0 }}>Escalation Details</Title>
+              </div>
+              {fullEscalation && (
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 400 }}>
+                  ID: {fullEscalation.id?.split('-')[0].toUpperCase()} • Raised on {dayjs(fullEscalation.createdAt).format('MMM D, YYYY at HH:mm')}
+                </Text>
+              )}
+            </Space>
+          }
+          placement="right"
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+          width={600}
+          styles={{
+            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
+            body: { padding: 0 },
+            footer: { borderTop: '1px solid #f1f5f9', padding: '12px 24px' }
+          }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <Button onClick={() => setDrawerVisible(false)}>Close</Button>
+            </div>
+          }
+        >
+          {loadingDetails ? (
+            <div style={{ padding: 40, textAlign: 'center' }}><Spin /></div>
+          ) : fullEscalation && (
+            <div style={{ padding: '24px' }}>
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <Card styles={{ body: { padding: '12px 18px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 } }}>
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</Text>
+                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700 }}>{fullEscalation?.subject}</Title>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>Status</Text>
+                        <div style={{ marginTop: 4 }}>
+                          <Tag color={fullEscalation?.status === 'OPEN' ? 'error' : 'success'} style={{ borderRadius: 6, fontWeight: 600 }}>{fullEscalation?.status}</Tag>
+                        </div>
+                      </div>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>Priority</Text>
+                        <div style={{ marginTop: 4 }}>
+                          <Tag color={fullEscalation?.priority?.name === 'HIGH' ? 'error' : 'blue'} style={{ borderRadius: 4, fontWeight: 600 }}>{fullEscalation?.priority?.name || 'MEDIUM'}</Tag>
+                        </div>
+                      </div>
+                    </div>
+                  </Space>
+                </Card>
+
+                <Row gutter={[24, 24]}>
+                  <Col span={12}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                        <ProjectOutlined /> Category
+                      </Text>
+                      <Tag color="blue" style={{ borderRadius: 4, background: '#f1f5f9', color: '#475569' }}>{fullEscalation?.category?.name || 'General'}</Tag>
+                    </Space>
+                  </Col>
+                  <Col span={12}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                        Related Project
+                      </Text>
+                      <Text strong style={{ fontSize: 13 }}>{fullEscalation?.project?.name || 'N/A'}</Text>
+                    </Space>
+                  </Col>
+                </Row>
+
+                <Divider style={{ margin: 0 }} />
+
+                <div>
+                  <Space align="center" style={{ marginBottom: 8 }}>
+                    <FileTextOutlined style={{ color: "#2563eb", fontSize: 14 }} />
+                    <Text strong style={{ fontSize: 14 }}>Detailed Description</Text>
+                  </Space>
+                  <div style={{
+                    padding: '16px',
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    lineHeight: '1.5',
+                    color: '#334155',
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {fullEscalation?.description}
+                  </div>
+                </div>
+
+                {fullEscalation.tickets && fullEscalation.tickets.length > 0 && (
+                  <div>
+                    <Space align="center" style={{ marginBottom: 10 }}>
+                      <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Linked Development Tickets</Text>
+                    </Space>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {fullEscalation.tickets.map((t, idx) => (
+                        <Tag key={idx} color="blue" style={{ borderRadius: 4, margin: 0, padding: '4px 8px', border: '1px solid #bae6fd' }}>
+                          <Space size={4}>
+                            <Text strong style={{ fontSize: 11, color: '#0369a1' }}>{t.ticket?.ticketNumber}</Text>
+                            <Text style={{ fontSize: 11, color: '#0ea5e9' }}>{t.ticket?.title}</Text>
+                          </Space>
+                        </Tag>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <Space align="center" style={{ marginBottom: 10 }}>
+                    <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Target Team Members</Text>
+                  </Space>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {fullEscalation.targetMembers?.map((m, idx) => (
+                      <div key={idx} style={{
+                        padding: '4px 10px 4px 4px',
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 20,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                      }}>
+                        <Avatar size={24} style={{ backgroundColor: "#2563eb", fontSize: 10 }}>
+                          {m.user?.name?.charAt(0)}
+                        </Avatar>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Text strong style={{ fontSize: 12, color: '#334155' }}>{m.user?.name}</Text>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Divider style={{ margin: 0 }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f1f5f9', borderRadius: 10 }}>
+                  <Space size={10}>
+                    <Avatar size="small" style={{ backgroundColor: '#64748b' }}>
+                      {fullEscalation?.createdBy?.name?.charAt(0)}
+                    </Avatar>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Raised By</Text>
+                      <Text strong style={{ fontSize: 12 }}>{fullEscalation?.createdBy?.name}</Text>
+                    </div>
+                  </Space>
+                  <Space size={10}>
+                    <HistoryOutlined style={{ color: '#94a3b8', fontSize: 14 }} />
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Last Updated</Text>
+                      <Text strong style={{ fontSize: 12 }}>{dayjs(fullEscalation?.updatedAt).fromNow()}</Text>
+                    </div>
+                  </Space>
+                </div>
+              </Space>
+            </div>
+          )}
+        </Drawer>
+
+        {/* Ticket performance breakdown slider */}
+        <Drawer
+          title={
+            <Space>
+              <div style={{ background: "#f0f9ff", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                <AreaChartOutlined style={{ color: "#0ea5e9" }} />
+              </div>
+              <span style={{ fontWeight: 700 }}>Ticket Performance Breakdown</span>
+            </Space>
+          }
+          placement="right"
+          width={450}
+          onClose={() => setBreakdownVisible(false)}
+          open={breakdownVisible}
+          styles={{
+            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
+            body: { padding: '24px' }
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Header Summary */}
+            <div style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)", padding: "12px 20px", borderRadius: "16px", border: "1px solid #bae6fd" }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Weighted Ticket Score</Text>
+              <div style={{ fontSize: 36, fontWeight: 900, color: "#0ea5e9", marginTop: 2, lineHeight: 1 }}>{ticketScore}</div>
+              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block" }}>Calculated from completion, timeliness, and tracking.</Text>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* Completion Score */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Completion Score</Text>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Weight: 50%</Text>
+                  </div>
+                  <Text strong style={{ fontSize: 18, color: "#10b981" }}>{perf.completionScore}%</Text>
+                </div>
+                <Progress percent={perf.completionScore} strokeColor="#10b981" showInfo={false} strokeWidth={8} style={{ marginBottom: 4 }} />
+                <div style={{ fontSize: 12, background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid #f1f5f9" }}>
+                  <div style={{ marginBottom: 4 }}>
+                    <Text strong style={{ color: "#10b981", fontSize: 13 }}>{ticketSummary.completed}</Text> of <Text strong style={{ fontSize: 13 }}>{ticketSummary.total}</Text> tickets completed.
+                  </div>
+                  {ticketSummary.total > ticketSummary.completed && (() => {
+                    const incompleteCount = ticketSummary.total - ticketSummary.completed;
+                    const incompletePercent = Math.round((incompleteCount / ticketSummary.total) * 100);
+                    const totalReduction = incompletePercent * 2; // User's requested formula (since weight is 50%, 1% incomplete = 2% reduction of completion max)
+                    
+                    return (
+                      <div style={{ color: "#ef4444", marginBottom: 4, fontWeight: 500 }}>
+                        • {incompleteCount} tickets not completed ({incompletePercent}% of total).
+                        <div style={{ fontSize: 11, marginTop: 2, fontWeight: 600 }}>
+                          {incompletePercent}% × 2 = {totalReduction}% total reduction from 100%
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div style={{ fontSize: 10, opacity: 0.7 }}>Formula: (Completed / Total) * 100</div>
+                </div>
+              </div>
+
+              {/* Timeliness Score */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Timeliness Score</Text>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Weight: 40%</Text>
+                  </div>
+                  <Text strong style={{ fontSize: 18, color: "#f59e0b" }}>{perf.timelinessScore}%</Text>
+                </div>
+                <Progress percent={perf.timelinessScore} strokeColor="#f59e0b" showInfo={false} strokeWidth={8} style={{ marginBottom: 4 }} />
+                <div style={{ fontSize: 12, background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid #f1f5f9" }}>
+                  <div style={{ marginBottom: 4 }}>
+                    <Text strong style={{ color: "#10b981", fontSize: 13 }}>{ticketSummary.onTime}</Text> out of <Text strong style={{ fontSize: 13 }}>{ticketSummary.total}</Text> total tickets were on time (Dev Complete).
+                  </div>
+                  {ticketSummary.total > ticketSummary.onTime && (
+                    <div style={{ color: "#f59e0b", marginBottom: 4, fontWeight: 500 }}>
+                      • {ticketSummary.total - ticketSummary.onTime} tickets were delayed, impacting the timeliness score.
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, opacity: 0.7 }}>Formula: (On-Time / Total) * 100</div>
+                </div>
+              </div>
+
+              {/* Tracking Score */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Tracking Quality</Text>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Weight: 10%</Text>
+                  </div>
+                  <Text strong style={{ fontSize: 18, color: "#3b82f6" }}>{perf.trackingScore}%</Text>
+                </div>
+                <Progress percent={perf.trackingScore} strokeColor="#3b82f6" showInfo={false} strokeWidth={8} style={{ marginBottom: 4 }} />
+                <div style={{ fontSize: 12, background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid #f1f5f9" }}>
+                  <div style={{ marginBottom: 4 }}>
+                    <Text strong style={{ color: "#10b981", fontSize: 13 }}>{ticketSummary.total - ticketSummary.untracked}</Text> out of <Text strong style={{ fontSize: 13 }}>{ticketSummary.total}</Text> total tickets had time logs.
+                  </div>
+                  {ticketSummary.untracked > 0 && (
+                    <div style={{ color: "#3b82f6", marginBottom: 4, fontWeight: 500 }}>
+                      • {ticketSummary.untracked} tickets were untracked, lowering the tracking quality.
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, opacity: 0.7 }}>Formula: ((Total - Untracked) / Total) * 100</div>
+                </div>
+              </div>
+            </div>
+
+            <Divider style={{ margin: "8px 0" }} />
+
+            <div style={{ background: "#fef2f2", padding: "16px", borderRadius: "12px", border: "1px solid #fee2e2" }}>
+              <Text strong style={{ fontSize: 13, color: "#991b1b", display: "block", marginBottom: 8 }}>Score Calculation Note</Text>
+              <Text style={{ fontSize: 11, color: "#b91c1c", display: "block" }}>
+                The <b>Ticket Score</b> is the weighted sum of above metrics. 
+                Penalties for missed EODs and Escalations are subtracted 
+                separately from this score to reach the final 0-100 Performance Score.
+              </Text>
+            </div>
+          </div>
+        </Drawer>
+
+        {/* Daily updates performance breakdown slider */}
+        <Drawer
+          title={
+            <Space>
+              <div style={{ background: "#f8fafc", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                <FileTextOutlined style={{ color: "#64748b" }} />
+              </div>
+              <span style={{ fontWeight: 700 }}>Daily Updates Breakdown</span>
+            </Space>
+          }
+          placement="right"
+          width={450}
+          onClose={() => setDailyBreakdownVisible(false)}
+          open={dailyBreakdownVisible}
+          styles={{
+            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
+            body: { padding: '24px' }
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Header Summary */}
+            <div style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", padding: "16px 20px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total EOD Penalty</Text>
+              <div style={{ fontSize: 36, fontWeight: 900, color: "#f59e0b", marginTop: 2, lineHeight: 1 }}>-{perf.eodPenalty}</div>
+              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block" }}>Subtracted from the final performance score.</Text>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* BOD Section */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>BOD Compliance</Text>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Beginning of Day Updates</Text>
+                  </div>
+                  <Text strong style={{ fontSize: 18, color: "#10b981" }}>
+                    {performanceData?.dailyUpdates?.summary?.total ? Math.round(((performanceData?.dailyUpdates?.summary?.bod ?? 0) / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
+                  </Text>
+                </div>
+                <div style={{ fontSize: 12, background: "#f0fdf4", padding: "12px", borderRadius: "10px", color: "#166534", border: "1px solid #dcfce7" }}>
+                  <Text strong style={{ color: "#15803d" }}>{(performanceData?.dailyUpdates?.summary as any)?.bod ?? 0}</Text> out of <Text strong>{(performanceData?.dailyUpdates?.summary as any)?.total ?? 0}</Text> BODs submitted.
+                </div>
+              </div>
+
+              {/* EOD Section with Penalty Math */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>EOD Compliance</Text>
+                    <Text type="secondary" style={{ fontSize: 11 }}>End of Day Updates</Text>
+                  </div>
+                  <Text strong style={{ fontSize: 18, color: "#f59e0b" }}>
+                    {performanceData?.dailyUpdates?.summary?.total ? Math.round(((performanceData?.dailyUpdates?.summary?.eod ?? 0) / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
+                  </Text>
+                </div>
+                <div style={{ fontSize: 12, background: "#fffbeb", padding: "12px", borderRadius: "10px", color: "#92400e", border: "1px solid #fef3c7" }}>
+                  <div style={{ marginBottom: 4 }}>
+                    <Text strong style={{ color: "#b45309" }}>{(performanceData?.dailyUpdates?.summary as any)?.eod ?? 0}</Text> out of <Text strong>{(performanceData?.dailyUpdates?.summary as any)?.total ?? 0}</Text> EODs submitted.
+                  </div>
+                  {(performanceData?.dailyUpdates?.summary?.missedEOD ?? 0) > 0 && (
+                    <div style={{ color: "#ef4444", fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: "1px dashed #fcd34d" }}>
+                      • {performanceData?.dailyUpdates?.summary?.missedEOD} missed EODs
+                      <div style={{ fontSize: 13, marginTop: 2 }}>
+                        {performanceData?.dailyUpdates?.summary?.missedEOD ?? 0} × 0.75 = {perf.eodPenalty} point reduction
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* List of Missed Updates */}
+              {((performanceData?.dailyUpdates?.missedBOD?.length ?? 0) > 0 || (performanceData?.dailyUpdates?.missedEOD?.length ?? 0) > 0) && (
+                <div>
+                  <Text strong style={{ fontSize: 13, color: "#64748b", display: "block", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                    Missed Updates Details
+                  </Text>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {[
+                      ...(performanceData?.dailyUpdates?.missedBOD || []).map((m: any) => ({ ...m, type: 'BOD' })),
+                      ...(performanceData?.dailyUpdates?.missedEOD || []).map((m: any) => ({ ...m, type: 'EOD' }))
+                    ].sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix()).map((missed, idx) => (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #f1f5f9" }}>
+                         <Space size={8}>
+                          <Tag color={missed.type === 'BOD' ? "cyan" : "orange"} style={{ borderRadius: 4, fontSize: 10, margin: 0 }}>{missed.type}</Tag>
+                          <Text strong style={{ fontSize: 12 }}>{dayjs(missed.date).format('MMM DD, YYYY')}</Text>
+                        </Space>
+                        <Tag color="error" style={{ borderRadius: 6, fontSize: 10, margin: 0 }}>Missed</Tag>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Drawer>
+
+        {/* Escalation performance breakdown slider */}
+        <Drawer
+          title={
+            <Space>
+              <div style={{ background: "#fff1f2", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                <WarningOutlined style={{ color: "#e11d48" }} />
+              </div>
+              <span style={{ fontWeight: 700 }}>Escalations Breakdown</span>
+            </Space>
+          }
+          placement="right"
+          width={450}
+          onClose={() => setEscalationBreakdownVisible(false)}
+          open={escalationBreakdownVisible}
+          styles={{
+            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
+            body: { padding: '24px' }
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Header Summary */}
+            <div style={{ background: "linear-gradient(135deg, #fff1f2 0%, #fff5f5 100%)", padding: "16px 20px", borderRadius: "16px", border: "1px solid #fecdd3" }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Escalation Penalty</Text>
+              <div style={{ fontSize: 36, fontWeight: 900, color: "#e11d48", marginTop: 2, lineHeight: 1 }}>-{perf.escalationPenalty}</div>
+              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block" }}>Subtracted from the final performance score (Max -25).</Text>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Penalty Math Section */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
+                  <div>
+                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Escalation Count</Text>
+                    <Text type="secondary" style={{ fontSize: 11 }}>Total weighted impact</Text>
+                  </div>
+                  <Text strong style={{ fontSize: 18, color: "#e11d48" }}>
+                    {performanceData?.escalations?.summary?.total ?? 0}
+                  </Text>
+                </div>
+                <div style={{ fontSize: 12, background: "#fff5f5", padding: "12px", borderRadius: "10px", color: "#991b1b", border: "1px solid #fee2e2" }}>
+                  <div style={{ marginBottom: 4 }}>
+                    <Text strong style={{ color: "#e11d48" }}>{performanceData?.escalations?.summary?.total ?? 0}</Text> escalations recorded in this period.
+                  </div>
+                  { (performanceData?.escalations?.summary?.total ?? 0) > 0 && (
+                    <div style={{ color: "#e11d48", fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: "1px dashed #fca5a5" }}>
+                      • Penalty Calculation:
+                      <div style={{ fontSize: 13, marginTop: 2 }}>
+                        {performanceData?.escalations?.summary?.total ?? 0} × 2.5 = {(performanceData?.escalations?.summary?.total ?? 0) * 2.5} point reduction
+                      </div>
+                      { ((performanceData?.escalations?.summary?.total ?? 0) * 2.5) > 25 && (
+                        <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4, fontWeight: 500 }}>
+                          (Capped at maximum penalty of -25 points)
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Divider style={{ margin: "8px 0" }} />
+
+              <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #f1f5f9" }}>
+                <Text strong style={{ fontSize: 13, color: "#475569", display: "block", marginBottom: 8 }}>Impact on Professionalism</Text>
+                <Text style={{ fontSize: 11, color: "#64748b", display: "block", lineHeight: "1.6" }}>
+                  Escalations represent missed expectations or process deviations. 
+                  Each escalation negatively impacts the weighted performance score 
+                  to ensure high quality of ticket execution and collaboration.
+                </Text>
+              </div>
+            </div>
+          </div>
+        </Drawer>
 
         <style dangerouslySetInnerHTML={{
           __html: `

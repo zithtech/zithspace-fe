@@ -765,6 +765,7 @@ const validateForm = () => {
       return false;
     }
 
+    /* 
     const amountError = validateAmount(item.category, item.amount);
     if (amountError) {
       api.error({
@@ -775,6 +776,7 @@ const validateForm = () => {
       });
       return false;
     }
+    */
 
     if (!item.description?.trim()) {
       api.error({
@@ -1157,10 +1159,13 @@ const transformItemsForBackend = () => {
               </Text>
 
               {reimbursementItems.map((item, index) => {
+                const amountError = null;
+                /*
                 const amountError =
                   item.category && item.amount
                     ? validateAmount(item.category, item.amount)
                     : null;
+                */
 
                 return (
                   <div
@@ -1258,6 +1263,7 @@ const transformItemsForBackend = () => {
   value={item.category || undefined}
   onChange={(value) => {
     handleItemChange(index, "category", value);
+    /*
     if (item.amount) {
       const error = validateAmount(value, item.amount);
       if (error) {
@@ -1269,6 +1275,7 @@ const transformItemsForBackend = () => {
         });
       }
     }
+    */
   }}
   style={{ width: "100%" }}
   size="small"
@@ -1372,12 +1379,13 @@ const transformItemsForBackend = () => {
                           }
                           required={false}
                           style={{ marginBottom: 0 }}
-                          validateStatus={amountError ? "error" : undefined}
-                          help={amountError}
+                          // validateStatus={amountError ? "error" : undefined}
+                          // help={amountError}
                         >
                           <Input
                             type="number"
-                            placeholder={`Enter amount (max ₹${getMaxAmountForCategory(item.category)})`}
+                            placeholder="Enter amount"
+                            // placeholder={`Enter amount (max ₹${getMaxAmountForCategory(item.category)})`}
                             value={item.amount || undefined}
                             onChange={(e) =>
                               handleItemChange(
@@ -1390,7 +1398,7 @@ const transformItemsForBackend = () => {
                             }
                             prefix="₹"
                             min={0}
-                            max={getMaxAmountForCategory(item.category)}
+                            // max={getMaxAmountForCategory(item.category)}
                             step={0.01}
                             size="small"
                             disabled={
@@ -1398,7 +1406,7 @@ const transformItemsForBackend = () => {
                               actionLoading.submit ||
                               !item.category
                             }
-                            status={amountError ? "error" : undefined}
+                            // status={amountError ? "error" : undefined}
                           />
                         </Form.Item>
                       </Col>

@@ -68,14 +68,42 @@ const BankPaymentSettings: FC<BankPaymentSettingsProps> = ({ initialValues, onSa
               <Input size="large" placeholder="e.g. HDFC Bank" className="rounded-xl border-slate-200" />
             </Form.Item>
 
-            <Form.Item label={<span className="text-slate-500 font-medium">Account Number</span>} name="accountNumber">
-              <Input size="large" placeholder="XXXXXXXXXXXX" className="rounded-xl border-slate-200 font-mono" />
+            <Form.Item 
+              label={<span className="text-slate-500 font-medium">Account Number</span>} 
+              name="accountNumber"
+              rules={[
+                { pattern: /^[0-9]{9,18}$/, message: "Invalid Account Number (9-18 digits)" }
+              ]}
+            >
+              <Input 
+                size="large" 
+                placeholder="XXXXXXXXXXXX" 
+                className="rounded-xl border-slate-200 font-mono" 
+                maxLength={18}
+                onInput={(e: any) => {
+                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                }}
+              />
             </Form.Item>
 
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item label={<span className="text-slate-500 font-medium">IFSC Code</span>} name="ifscCode">
-                  <Input size="large" placeholder="IFSC0001234" className="rounded-xl border-slate-200 font-mono" />
+                <Form.Item 
+                  label={<span className="text-slate-500 font-medium">IFSC Code</span>} 
+                  name="ifscCode"
+                  rules={[
+                    { pattern: /^[A-Z]{4}0[A-Z0-9]{6}$/, message: "Invalid IFSC format (e.g. ABCD0123456)" }
+                  ]}
+                >
+                  <Input 
+                    size="large" 
+                    placeholder="IFSC0001234" 
+                    className="rounded-xl border-slate-200 font-mono" 
+                    maxLength={11}
+                    onInput={(e: any) => {
+                      e.target.value = e.target.value.toUpperCase();
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col span={12}>

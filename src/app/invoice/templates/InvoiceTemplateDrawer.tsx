@@ -19,7 +19,8 @@ import {
 import { 
   useCreateInvoiceTemplate, 
   useUpdateInvoiceTemplate,
-  useInvoiceTemplate
+  useInvoiceTemplate,
+  useInvoiceTemplates
 } from '@/hooks/useInvoiceTemplates';
 import { InvoiceTemplate } from '@/services/invoiceTemplateService';
 
@@ -46,6 +47,7 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
   
   // Fetch full details if we have an ID
   const { data: fullTemplate, isLoading: isFetching } = useInvoiceTemplate(templateId as string, visible && !!templateId);
+  const { data: allTemplates = [] } = useInvoiceTemplates();
   
   const createMutation = useCreateInvoiceTemplate();
   const updateMutation = useUpdateInvoiceTemplate();
@@ -129,7 +131,28 @@ export default function InvoiceTemplateDrawer({ visible, onClose, templateId }: 
               <Form.Item
                 name="name"
                 label="Template Name"
-                rules={[{ required: true, message: 'Please enter template name' }]}
+                dependencies={['description']}
+                rules={[
+                  { required: true, message: 'Please enter template name' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value) return Promise.resolve();
+                      const desc = (getFieldValue('description') || '').trim().toLowerCase();
+                      const val = value.trim().toLowerCase();
+                      
+                      const duplicate = allTemplates.find((t: any) => {
+                        if (isEditing && t.id === templateId) return false;
+                        const tDesc = (t.description || '').trim().toLowerCase();
+                        return t.name.trim().toLowerCase() === val && tDesc === desc;
+                      });
+
+                      if (duplicate) {
+                        return Promise.reject(new Error('A template with this exact name and description already exists'));
+                      }
+                      return Promise.resolve();
+                    },
+                  })
+                ]}
               >
                 <Input placeholder="e.g. Standard Service Template" />
               </Form.Item>

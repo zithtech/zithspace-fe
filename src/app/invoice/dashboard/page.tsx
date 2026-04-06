@@ -16,11 +16,13 @@ import {
   LayoutDashboard,
   ArrowUpCircle,
   ArrowDownCircle,
-  TrendingUp
+  TrendingUp,
+  History
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/context/AuthContext";
+import EmailHistoryDrawer from "@/components/invoice/EmailHistoryDrawer";
 
 import { Line } from "@ant-design/plots";
 import { Tooltip } from "antd";
@@ -52,8 +54,7 @@ export default function DashboardPage() {
   }, [authLoading, canReadInvoice, router]);
 
   const [currentMonth, setCurrentMonth] = useState(dayjs());
-
-
+  const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
 
   const { data, isLoading } = useInvoices({
   page: 1,
@@ -535,17 +536,27 @@ const fullCellRender = (value: Dayjs) => {
                 </div>
               </Space>
             </div>
-            {canCreateInvoice && (
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Plus size={18} />} 
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
-                onClick={() => router.push("/invoice/newinvoice")}
+            <div className="flex items-center gap-3">
+              <Button
+                size="large"
+                icon={<History size={18} />}
+                onClick={() => setHistoryDrawerVisible(true)}
+                style={{ borderRadius: 12, height: 44, color: "#64748b" }}
               >
-                New Invoice
+                Email History
               </Button>
-            )}
+              {canCreateInvoice && (
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  icon={<Plus size={18} />} 
+                  style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
+                  onClick={() => router.push("/invoice/newinvoice")}
+                >
+                  New Invoice
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* ================= METRIC CARDS ================= */}
@@ -750,6 +761,11 @@ const fullCellRender = (value: Dayjs) => {
           border-bottom: 1px solid #f1f5f9 !important;
         }
       `}} />
+
+      <EmailHistoryDrawer 
+        open={historyDrawerVisible} 
+        onClose={() => setHistoryDrawerVisible(false)} 
+      />
     </MainLayout>
   );
 }

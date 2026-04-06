@@ -51,17 +51,22 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
   };
 
   const handleValuesChange = (_: any, values: any) => {
-    const capsFormat = values.format?.toUpperCase();
-    if (capsFormat !== values.format) {
-      form.setFieldsValue({ format: capsFormat });
-    }
-    setPreview(generatePreview(capsFormat));
-    onSave({ ...initialValues, ...values, format: capsFormat });
+    const rawFormat = values.format || "";
+    setPreview(generatePreview(rawFormat.toUpperCase()));
+    // Pass the uppercase value to parent/preview, but don't force it back into 
+    // the form input immediately to avoid cursor jumping
+    onSave({ ...initialValues, ...values, format: rawFormat.toUpperCase() });
   };
 
   const handleCancel = () => {
     form.setFieldValue("format", cachedValue);
     setPreview(generatePreview(cachedValue));
+    setEditable(false);
+  };
+
+  const handleSave = () => {
+    const format = form.getFieldValue("format") || "";
+    form.setFieldsValue({ format: format.toUpperCase() });
     setEditable(false);
   };
 
@@ -98,6 +103,7 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
               size="large"
               disabled={!editable}
               placeholder="e.g. INV-{YYYY}-{###}"
+              style={{ textTransform: 'uppercase' }}
               className={`rounded-xl border-slate-200 font-mono ${!editable ? 'bg-slate-50 opacity-100 text-slate-500 cursor-not-allowed' : ''}`}
               suffix={
                 !editable ? (
@@ -114,7 +120,7 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
                       <CheckCircle2 
                         size={18} 
                         className="text-green-500 cursor-pointer hover:scale-110 transition-transform" 
-                        onClick={() => setEditable(false)} 
+                        onClick={handleSave} 
                       />
                     </Tooltip>
                     <Tooltip title="Cancel">

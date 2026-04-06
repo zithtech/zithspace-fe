@@ -43,7 +43,12 @@ import {
   PenTool,
   Clock,
   Check,
-  MapPin
+  MapPin,
+  Globe,
+  Landmark,
+  QrCode,
+  Building,
+  AlertCircle
 } from "lucide-react";
 import GeneralSettings from "./GeneralSettings";
 import InvoiceSetting from "./InvoiceSetting";
@@ -291,16 +296,7 @@ export default function InvoiceSettingPage() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
-          <Spin size="large" />
-          <Typography.Text className="text-slate-500 font-medium tracking-wide">Fetching profiles & synchronizing your dashboard...</Typography.Text>
-        </div>
-      </MainLayout>
-    );
-  }
+
 
   return (
     <MainLayout>
@@ -373,7 +369,12 @@ export default function InvoiceSettingPage() {
         {/* VIEW MODE */}
         {mode === "view" && (
           <>
-            {settingsList.length === 0 ? (
+            {isLoading ? (
+              <div className="flex h-[40vh] items-center justify-center flex-col gap-4">
+                <Spin size="large" />
+                <Typography.Text className="text-slate-500 font-medium tracking-wide">Fetching profiles & synchronizing your dashboard...</Typography.Text>
+              </div>
+            ) : settingsList.length === 0 ? (
               <div className="min-h-[60vh] flex items-center justify-center">
                 <div
                   onClick={() => setMode("create")}
@@ -812,266 +813,321 @@ export default function InvoiceSettingPage() {
           }}
         >
           {selectedProfileForView && (
-            <div className="h-full flex flex-col bg-white">
+            <div className="h-full flex flex-col bg-slate-50/50">
               {/* Header */}
-              <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+              <div className="px-6 py-5 bg-white border-b border-slate-200/60 shadow-sm">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200/60 flex items-center justify-center overflow-hidden shadow-inner">
                       {selectedProfileForView.general?.companyLogo ? (
                         <img
                           src={selectedProfileForView.general.companyLogo}
                           alt="Logo"
-                          className="w-full h-full object-contain p-1.5"
+                          className="w-full h-full object-contain p-2"
                         />
                       ) : (
-                        <Building2 size={20} className="text-gray-400" />
+                        <Building2 size={24} className="text-slate-300" />
                       )}
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900 m-0">
+                      <h2 className="text-xl font-bold text-slate-900 m-0 tracking-tight">
                         {selectedProfileForView.general?.companyName || "Untitled Profile"}
                       </h2>
-                      {selectedProfileForView.isActive && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium mt-1">
-                          <Check size={10} />
-                          Active
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {selectedProfileForView.isActive ? (
+                          <Tag color="success" className="rounded-full px-2.5 font-semibold text-[10px] uppercase tracking-wider m-0 flex items-center gap-1 border-none bg-emerald-50 text-emerald-600">
+                            <Check size={10} strokeWidth={3} /> Active Configuration
+                          </Tag>
+                        ) : (
+                          <Tag className="rounded-full px-2.5 font-semibold text-[10px] uppercase tracking-wider m-0 border-none bg-slate-100 text-slate-500">
+                            Inactive
+                          </Tag>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <button
                     onClick={() => setViewDrawerVisible(false)}
-                    className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 rounded-xl bg-slate-100/50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-all border border-transparent hover:border-slate-200"
                   >
-                    <ArrowLeft size={16} />
+                    <ArrowLeft size={18} />
                   </button>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto px-6 py-5">
-                {/* Row 1: Business Address & Regional Settings - Equal Height */}
-                <div className="grid grid-cols-2 gap-5 mb-5">
-                  {/* Business Address */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <MapPin size={14} className="text-gray-400" />
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide m-0">Business Address</h3>
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                
+                {/* BUSINESS & REGIONAL GROUP */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Business Address Card */}
+                  <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-1.5 bg-blue-50 text-blue-500 rounded-lg">
+                        <MapPin size={14} />
+                      </div>
+                      <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest m-0 leading-none">Business Address</h3>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3 flex-1">
-                      <p className="text-sm text-gray-700 leading-relaxed m-0">
-                        {[
-                          selectedProfileForView.general.address.plot_no,
-                          selectedProfileForView.general.address.floor_no,
-                          selectedProfileForView.general.address.building_name,
-                        ].filter(Boolean).join(", ")}
-                        {selectedProfileForView.general.address.street && (
-                          <><br />{selectedProfileForView.general.address.street}, {selectedProfileForView.general.address.area}</>
-                        )}
-                        {selectedProfileForView.general.address.city && (
-                          <><br />{selectedProfileForView.general.address.city}, {selectedProfileForView.general.address.pincode}</>
-                        )}
-                        {selectedProfileForView.general.address.country && (
-                          <><br /><span className="text-blue-600 text-xs font-medium">{selectedProfileForView.general.address.country}</span></>
-                        )}
-                        {!selectedProfileForView.general.address.plot_no &&
-                          !selectedProfileForView.general.address.street &&
-                          !selectedProfileForView.general.address.city && (
-                            <span className="text-gray-400">No address configured</span>
-                          )}
+                    <div className="flex-1">
+                      <p className="text-sm text-slate-700 leading-relaxed m-0 font-medium whitespace-pre-wrap">
+                        {(() => {
+                          const addr = selectedProfileForView.general?.address;
+                          if (!addr) return "No address configured";
+                          const parts = [
+                            [addr.plot_no, addr.floor_no, addr.building_name].filter(Boolean).join(", "),
+                            addr.street,
+                            addr.area,
+                            [addr.city, addr.pincode].filter(Boolean).join(" - "),
+                            addr.country
+                          ].filter(Boolean);
+                          
+                          return parts.length > 0 ? parts.join("\n") : "No address configured";
+                        })()}
                       </p>
                     </div>
                   </div>
 
-                  {/* Regional Settings */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <SettingsIcon size={14} className="text-gray-400" />
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide m-0">Regional Settings</h3>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3 flex-1">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs text-gray-500">Currency</span>
-                        <span className="text-sm font-medium text-gray-800">{selectedProfileForView.general.currency}</span>
+                  {/* Regional Settings Card */}
+                  <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-1.5 bg-indigo-50 text-indigo-500 rounded-lg">
+                        <Globe size={14} />
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-500">Date Format</span>
-                        <span className="text-sm font-medium text-gray-800">{selectedProfileForView.general.dateFormat || "MM/DD/YYYY"}</span>
+                      <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest m-0 leading-none">Regional Settings</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Base Currency</span>
+                        <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                          <span className="text-blue-600 font-bold">{selectedProfileForView.general.currency}</span>
+                          <span className="text-sm font-semibold text-slate-700">ISO-4217 Standard</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Date Format</span>
+                        <div className="font-mono text-sm font-semibold text-slate-700 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                          {selectedProfileForView.general.dateFormat || "MM/DD/YYYY"}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Row 2: Invoice Format & Tax Info - Equal Height */}
-                <div className="grid grid-cols-2 gap-5 mb-5">
-                  {/* Invoice Format */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <ReceiptText size={14} className="text-gray-400" />
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide m-0">Invoice Format</h3>
+                {/* INVOICE & TAX GROUP */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Invoice Formatting */}
+                  <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-1.5 bg-orange-50 text-orange-500 rounded-lg">
+                        <ReceiptText size={14} />
+                      </div>
+                      <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest m-0 leading-none">Invoice Format</h3>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3 flex-1 flex items-center">
-                      <code className="text-sm font-mono font-semibold text-gray-800 bg-white px-2 py-1 rounded block text-center w-full border border-gray-200">
-                        {selectedProfileForView.invoice.format.toUpperCase()}
-                      </code>
+                    <div className="mt-auto">
+                      <div className="bg-slate-900 rounded-xl p-4 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50"></div>
+                        <code className="text-lg font-mono font-bold text-white block text-center tracking-wider relative z-10">
+                          {selectedProfileForView.invoice.format.toUpperCase()}
+                        </code>
+                        <span className="text-[8px] font-bold text-slate-500 uppercase block text-center mt-2 relative z-10">Current Sequence Mask</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tax Info (GSTIN & PAN) */}
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <ShieldCheck size={14} className="text-gray-400" />
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide m-0">Tax Information</h3>
+                  {/* Tax Identifiers */}
+                  <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="p-1.5 bg-emerald-50 text-emerald-500 rounded-lg">
+                        <ShieldCheck size={14} />
+                      </div>
+                      <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest m-0 leading-none">Compliance Info</h3>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3 flex-1">
+                    <div className="space-y-4">
                       {selectedProfileForView.general.gstin && (
-                        <div className="mb-2">
-                          <span className="text-xs text-gray-500">GSTIN</span>
-                          <p className="text-sm font-mono text-gray-700 m-0">{selectedProfileForView.general.gstin}</p>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">GSTIN</span>
+                          <p className="text-sm font-mono font-bold text-slate-700 m-0 bg-emerald-50/30 px-2 py-1 rounded border border-emerald-100/50 inline-block">{selectedProfileForView.general.gstin}</p>
                         </div>
                       )}
                       {selectedProfileForView.general.pan && (
                         <div>
-                          <span className="text-xs text-gray-500">PAN</span>
-                          <p className="text-sm font-mono text-gray-700 m-0">{selectedProfileForView.general.pan}</p>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">PAN Number</span>
+                          <p className="text-sm font-mono font-bold text-slate-700 m-0 bg-blue-50/30 px-2 py-1 rounded border border-blue-100/50 inline-block">{selectedProfileForView.general.pan}</p>
                         </div>
                       )}
                       {!selectedProfileForView.general.gstin && !selectedProfileForView.general.pan && (
-                        <div className="flex items-center justify-center h-full min-h-[60px]">
-                          <span className="text-sm text-gray-400">No tax information</span>
+                        <div className="flex flex-col items-center justify-center flex-1 min-h-[80px] bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                          <AlertCircle size={20} className="text-slate-300 mb-2" />
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">No identifiers set</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Payment Information */}
-                <div className="mb-5">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <CreditCard size={14} className="text-gray-400" />
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide m-0">Payment Information</h3>
+                {/* FINANCIAL DETAILS CARD */}
+                <div className="bg-white rounded-3xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-5">
+                    <Landmark size={80} />
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    {selectedProfileForView.payment.bankName ||
-                      selectedProfileForView.payment.accountNumber ||
-                      selectedProfileForView.payment.ifscCode ||
-                      selectedProfileForView.payment.qrCode ? (
-                      <div className="space-y-3">
-                        {/* Bank Name - Full width */}
+                  <div className="flex items-center gap-2 mb-6">
+                    <div className="p-2 bg-slate-900 text-white rounded-xl">
+                      <CreditCard size={18} />
+                    </div>
+                    <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider m-0">Payment & Bank Details</h3>
+                  </div>
+
+                  {selectedProfileForView.payment.bankName ||
+                    selectedProfileForView.payment.accountNumber ||
+                    selectedProfileForView.payment.ifscCode ||
+                    selectedProfileForView.payment.qrCode ? (
+                    <div className="grid grid-cols-12 gap-6 items-center">
+                      <div className="col-span-12 md:col-span-8 space-y-5">
                         {selectedProfileForView.payment.bankName && (
                           <div>
-                            <span className="text-xs text-gray-500">Bank Name</span>
-                            <p className="text-sm font-medium text-gray-800 m-0">{selectedProfileForView.payment.bankName}</p>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Financial Institution</span>
+                            <p className="text-base font-bold text-slate-900 m-0">{selectedProfileForView.payment.bankName}</p>
                           </div>
                         )}
-
-                        {/* Two column layout for Account & QR */}
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Left column: Account & Branch & IFSC */}
-                          <div className="space-y-3">
-                            {selectedProfileForView.payment.accountNumber && (
-                              <div>
-                                <span className="text-xs text-gray-500">Account Number</span>
-                                <p className="text-sm font-mono text-gray-700 m-0">{selectedProfileForView.payment.accountNumber}</p>
-                              </div>
-                            )}
-                            {selectedProfileForView.payment.branchName && (
-                              <div>
-                                <span className="text-xs text-gray-500">Branch</span>
-                                <p className="text-sm text-gray-700 m-0">{selectedProfileForView.payment.branchName}</p>
-                              </div>
-                            )}
-                            {selectedProfileForView.payment.ifscCode && (
-                              <div>
-                                <span className="text-xs text-gray-500">IFSC Code</span>
-                                <p className="text-sm font-mono text-gray-700 m-0">{selectedProfileForView.payment.ifscCode}</p>
-                              </div>
-                            )}
-                            {!selectedProfileForView.payment.accountNumber &&
-                              !selectedProfileForView.payment.branchName &&
-                              !selectedProfileForView.payment.ifscCode && (
-                                <div className="flex items-center justify-center h-full min-h-[80px]">
-                                  <span className="text-sm text-gray-400">No bank details</span>
-                                </div>
-                              )}
+                        <div className="grid grid-cols-2 gap-6">
+                          {selectedProfileForView.payment.accountNumber && (
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Account Number</span>
+                              <p className="text-sm font-mono font-extrabold text-slate-700 m-0">{selectedProfileForView.payment.accountNumber}</p>
+                            </div>
+                          )}
+                          {selectedProfileForView.payment.ifscCode && (
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">IFSC Code</span>
+                              <p className="text-sm font-mono font-extrabold text-slate-700 m-0 bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block">{selectedProfileForView.payment.ifscCode}</p>
+                            </div>
+                          )}
+                        </div>
+                        {selectedProfileForView.payment.branchName && (
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Branch Name</span>
+                            <p className="text-sm font-semibold text-slate-700 m-0 flex items-center gap-2">
+                              <Building size={14} className="text-slate-400" /> {selectedProfileForView.payment.branchName}
+                            </p>
                           </div>
+                        )}
+                      </div>
 
-                          {/* Right column: QR Code */}
-                          <div className="flex justify-center items-center">
-                            {selectedProfileForView.payment.qrCode ? (
-                              <div className="text-center">
-                                <div className="w-24 h-24 bg-white rounded-xl border border-gray-200 flex items-center justify-center p-2">
-                                  <img src={selectedProfileForView.payment.qrCode} alt="QR Code" className="w-full h-full object-contain" />
-                                </div>
-                                <span className="text-xs text-gray-400 mt-1 block">Scan to pay</span>
+                      {/* Payment QR Section */}
+                      <div className="col-span-12 md:col-span-4 flex justify-center">
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 w-full max-w-[140px] text-center shadow-inner">
+                          {selectedProfileForView.payment.qrCode ? (
+                            <>
+                              <div className="bg-white rounded-xl border border-slate-200/60 p-2 shadow-sm mb-2">
+                                <img src={selectedProfileForView.payment.qrCode} alt="QR Code" className="w-full h-auto rounded" />
                               </div>
-                            ) : (
-                              <div className="text-center">
-                                <div className="w-24 h-24 bg-white rounded-xl border border-gray-200 flex items-center justify-center">
-                                  <CreditCard size={24} className="text-gray-300" />
-                                </div>
-                                <span className="text-xs text-gray-400 mt-1 block">No QR code</span>
-                              </div>
-                            )}
-                          </div>
+                              <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-tighter">Fast Billing QR</span>
+                            </>
+                          ) : (
+                            <div className="py-6 flex flex-col items-center opacity-40">
+                              <QrCode size={32} className="text-slate-300 mb-2" />
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">No QR Code</span>
+                            </div>
+                          )}
                         </div>
                       </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                      <CreditCard size={32} className="text-slate-200 mb-3" />
+                      <p className="text-sm font-semibold text-slate-400 m-0 tracking-tight">Payment Method Not Configured</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* SIGNATURE SECTION */}
+                <div className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-1.5 bg-slate-50 text-slate-500 rounded-lg">
+                      <PenTool size={14} />
+                    </div>
+                    <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest m-0 leading-none">Authorized Signature</h3>
+                  </div>
+                  <div className="bg-slate-50/50 rounded-2xl p-6 flex justify-center border border-slate-100 border-dashed min-h-[120px] items-center">
+                    {selectedProfileForView.general.signature ? (
+                      <div className="relative group">
+                        <div className="absolute -inset-2 bg-blue-500/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <img
+                          src={selectedProfileForView.general.signature}
+                          alt="Signature"
+                          className="max-h-20 object-contain drop-shadow-sm relative z-10 grayscale-[0.5] contrast-125"
+                        />
+                      </div>
                     ) : (
-                      <div className="flex items-center justify-center py-8">
-                        <span className="text-sm text-gray-400">No payment information configured</span>
+                      <div className="flex flex-col items-center gap-2 text-slate-300">
+                        <PenTool size={28} strokeWidth={1} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Pending Upload</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Signature */}
-                <div>
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <PenTool size={14} className="text-gray-400" />
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide m-0">Signature</h3>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4 flex justify-center">
-                    {selectedProfileForView.general.signature ? (
-                      <img
-                        src={selectedProfileForView.general.signature}
-                        alt="Signature"
-                        className="max-h-16 object-contain"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <PenTool size={16} />
-                        <span className="text-sm">No signature uploaded</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           )}
         </Drawer>
 
         <Modal
-          title="Confirm Permanent Deletion"
           open={deleteModalOpen}
           onCancel={() => setDeleteModalOpen(false)}
-          onOk={() => {
-            if (deleteId) {
-              deleteMutation.mutate(deleteId, {
-                onSuccess: () => {
-                  setDeleteModalOpen(false); // Close modal on success
-                  setDeleteId(null);
-                }
-              });
-            }
+          footer={null}
+          width={400}
+          centered
+          styles={{
+            body: { padding: '32px 24px 24px' },
+            mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' }
           }}
-          okText="Delete"
-          okButtonProps={{
-            danger: true,
-            loading: deleteMutation.isPending
-          }}
+          className="premium-delete-modal"
         >
-          <p>Are you sure? This will delete the profile and all associated <strong>General, Invoice, and Payment</strong> settings permanently.</p>
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 border border-red-100 shadow-sm">
+              <Trash2 size={32} strokeWidth={1.5} />
+            </div>
+            
+            <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">
+              Delete Profile?
+            </h3>
+            
+            <p className="text-slate-500 text-sm leading-relaxed mb-8 px-2">
+              Are you sure you want to permanently delete this profile? This will remove all associated 
+              <span className="text-slate-900 font-semibold mx-1">General, Invoice, and Payment</span> 
+              settings. This action cannot be undone.
+            </p>
+
+            <div className="flex w-full gap-3">
+              <Button
+                size="large"
+                className="flex-1 rounded-xl h-12 font-semibold text-slate-600 border-slate-200 hover:text-slate-800 hover:border-slate-300 bg-slate-50"
+                onClick={() => setDeleteModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="large"
+                danger
+                type="primary"
+                loading={deleteMutation.isPending}
+                className="flex-1 rounded-xl h-12 font-bold bg-red-600 border-none hover:bg-red-700 shadow-sm"
+                onClick={() => {
+                  if (deleteId) {
+                    deleteMutation.mutate(deleteId, {
+                      onSuccess: () => {
+                        setDeleteModalOpen(false);
+                        setDeleteId(null);
+                      }
+                    });
+                  }
+                }}
+              >
+                Delete Profile
+              </Button>
+            </div>
+          </div>
         </Modal>
       </div>
     </MainLayout>

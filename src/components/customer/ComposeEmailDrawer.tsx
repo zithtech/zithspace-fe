@@ -174,15 +174,15 @@ const onFinish = (values: any) => {
 </div> */}
 <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
   <Text type="secondary" className="text-xs">
-    {invoice?.pdfUrl ? (
+    {invoice?.pdfUrl || (invoice?.attachments && invoice.attachments.some((a: any) => a.fileName.toLowerCase().endsWith('.pdf') || a.fileUrl.toLowerCase().endsWith('.pdf'))) ? (
       <Space>
         <span className="text-green-600">●</span>
         <strong>Attachment Ready:</strong> Invoice_{invoice.invoiceNumber}.pdf
       </Space>
     ) : (
       <Space>
-        <span className="text-red-500">●</span>
-        <strong>Warning:</strong> PDF link not found. Email will send without attachment.
+        <span className="text-blue-500">●</span>
+        <strong>Automatic Attachment:</strong> System will generate and attach the latest invoice PDF.
       </Space>
     )}
   </Text>

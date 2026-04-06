@@ -54,8 +54,10 @@ import {
   useRestoreInvoice, 
   useBulkRestoreInvoices, 
   usePermanentDeleteInvoice, 
-  useBulkPermanentDeleteInvoices 
+  useBulkPermanentDeleteInvoices,
+  invoiceKeys
 } from "@/hooks/useInvoices";
+import { useQueryClient } from "@tanstack/react-query";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -100,6 +102,7 @@ export default function InvoiceTrashPage() {
   const [modal, modalContextHolder] = Modal.useModal();
   const { canReadInvoice, canDeleteInvoice } = usePermission();
   const { isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
 
   /* ================= ATTRACTIVE METRIC CARDS ================= */
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
@@ -142,15 +145,27 @@ export default function InvoiceTrashPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedInvoices, setSelectedInvoices] = useState<any[]>([]);
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
 
+  // Debounce search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchText);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchText]);
+
   // Hooks
-  const { data, isLoading, refetch } = useDeletedInvoices({
+  const { data, isLoading, isFetching, refetch } = useDeletedInvoices({
     page: pagination.page,
     limit: pagination.limit,
-    search: searchText
+    search: debouncedSearch
   });
 
   const restoreMutation = useRestoreInvoice();
@@ -199,8 +214,6 @@ export default function InvoiceTrashPage() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  /* ================= HANDLERS ================= */
 
   const handleRestore = (record: any) => {
     modal.confirm({
@@ -562,9 +575,11 @@ export default function InvoiceTrashPage() {
             </Popover>
             <Button
               size="large"
-              icon={<RefreshCw size={18} />}
-              onClick={() => refetch()}
-              loading={isLoading}
+              icon={<RefreshCw size={18} className={isFetching ? "animate-spin" : ""} />}
+              onClick={async () => {
+                await queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+                refetch();
+              }}
               style={{ borderRadius: 12, height: 44 }}
             />
             <Button

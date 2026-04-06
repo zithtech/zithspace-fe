@@ -39,11 +39,16 @@ import {
   Plus,
   Building2,
   Globe,
-  Fingerprint
+  Fingerprint,
+  Eye,
+  AlertCircle,
+  ShieldCheck,
+  Ban
 } from "lucide-react";
 import type { MenuProps } from "antd";
 
 import CustomerModal from "@/components/customer/CustomerModal";
+import CustomerViewDrawer from "@/components/invoice/CustomerViewDrawer";
 import { Customer as ServiceCustomer } from "@/services/customersService";
 import {
   useCustomers,
@@ -116,6 +121,10 @@ export default function InvoiceproCustomerPage() {
   const [deletingCustomerId, setDeletingCustomerId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
+  // View Drawer State
+  const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
+  const [selectedCustomerForView, setSelectedCustomerForView] = useState<ServiceCustomer | null>(null);
+
 
 
 
@@ -163,6 +172,7 @@ export default function InvoiceproCustomerPage() {
       taxId: values.taxId || "",
       gstin: values.gstin || "",
       pan: values.pan || "",
+      isActive: values.isActive ?? true,
     };
 
     try {
@@ -244,6 +254,20 @@ export default function InvoiceproCustomerPage() {
       ),
     },
     {
+      title: "Status",
+      key: "status",
+      width: 100,
+      render: (_: any, record: ServiceCustomer) => (
+        <Tag 
+          bordered={false} 
+          color={record.isActive ? "success" : "default"}
+          className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider m-0"
+        >
+          {record.isActive ? "Active" : "Inactive"}
+        </Tag>
+      ),
+    },
+    {
       title: "Action",
       key: "action",
       width: 80,
@@ -251,7 +275,35 @@ export default function InvoiceproCustomerPage() {
       render: (_: any, record: ServiceCustomer) => {
         if (!canUpdateInvoice && !canDeleteInvoice) return null;
 
-        const menuItems: MenuProps['items'] = [];
+        const menuItems: any[] = [
+          {
+            key: "view",
+            icon: <Eye size={16} />,
+            label: "View Profile",
+            onClick: () => {
+              setSelectedCustomerForView(record);
+              setViewDrawerVisible(true);
+            },
+          },
+          { type: 'divider' },
+          canUpdateInvoice ? {
+            key: "status_toggle",
+            icon: record.isActive ? <Ban size={16} /> : <ShieldCheck size={16} />,
+            label: record.isActive ? "Deactivate" : "Activate",
+            onClick: async () => {
+              try {
+                await updateCustomer.mutateAsync({ 
+                  id: record.id, 
+                  data: { ...record, isActive: !record.isActive } 
+                });
+                messageApi.success(`Customer ${record.isActive ? "deactivated" : "activated"} successfully`);
+              } catch (error: any) {
+                messageApi.error(error.message || "Operation failed");
+              }
+            },
+          } : null,
+          { type: 'divider' },
+        ].filter(Boolean);
         if (canUpdateInvoice) {
           menuItems.push({
             key: "edit",
@@ -274,7 +326,7 @@ export default function InvoiceproCustomerPage() {
         }
 
         return (
-          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+          <Dropdown menu={{ items: menuItems.filter(Boolean) as any }} trigger={['click']}>
             <Button type="text" icon={<MoreVertical size={18} className="text-slate-400" />} />
           </Dropdown>
         );
@@ -424,24 +476,59 @@ export default function InvoiceproCustomerPage() {
                           <Typography.Text strong className="block text-slate-800 truncate" title={customer.companyName}>
                             {customer.companyName}
                           </Typography.Text>
-                          <Typography.Text type="secondary" className="text-xs flex items-center gap-1">
-                            {/* <MapPin size={10} /> */}
-                            {customer.city}{customer.city && customer.country && ", "}{customer.country}
-                          </Typography.Text>
+                          <div className="flex items-center gap-2">
+                            <Typography.Text type="secondary" className="text-xs">
+                              {customer.city}{customer.city && customer.country && ", "}{customer.country}
+                            </Typography.Text>
+                            <Tag 
+                              bordered={false} 
+                              color={customer.isActive ? "success" : "default"}
+                              style={{ fontSize: '8px', padding: '0 4px', lineHeight: '14px', borderRadius: '4px', margin: 0 }}
+                            >
+                              {customer.isActive ? "ACTIVE" : "INACTIVE"}
+                            </Tag>
+                          </div>
                         </div>
                       </div>
 
-                      {(canUpdateInvoice || canDeleteInvoice) && (
+                      {(canReadInvoice || canUpdateInvoice || canDeleteInvoice) && (
                         <Dropdown
                           menu={{
                             items: [
-                              canUpdateInvoice && {
+                              {
+                                key: "view",
+                                icon: <Eye size={16} />,
+                                label: "View Profile",
+                                onClick: () => {
+                                  setSelectedCustomerForView(customer);
+                                  setViewDrawerVisible(true);
+                                },
+                              },
+                              { type: 'divider' },
+                              canUpdateInvoice ? {
+                                key: "status_toggle",
+                                icon: customer.isActive ? <Ban size={16} /> : <ShieldCheck size={16} />,
+                                label: customer.isActive ? "Deactivate Account" : "Activate Account",
+                                onClick: async () => {
+                                  try {
+                                    await updateCustomer.mutateAsync({ 
+                                      id: customer.id, 
+                                      data: { companyName: customer.companyName, isActive: !customer.isActive } 
+                                    });
+                                    messageApi.success(`Customer ${customer.isActive ? "deactivated" : "activated"} successfully`);
+                                  } catch (error: any) {
+                                    messageApi.error(error.message || "Operation failed");
+                                  }
+                                },
+                              } : null,
+                              { type: 'divider' },
+                              canUpdateInvoice ? {
                                 key: "edit",
                                 icon: <Edit2 size={16} />,
-                                label: "Edit",
+                                label: "Edit Customer",
                                 onClick: () => handleEdit(customer),
-                              },
-                              canDeleteInvoice && {
+                              } : null,
+                              canDeleteInvoice ? {
                                 key: "delete",
                                 danger: true,
                                 icon: <Trash2 size={16} />,
@@ -450,7 +537,7 @@ export default function InvoiceproCustomerPage() {
                                   setDeletingCustomerId(customer.id);
                                   setIsDeleteModalOpen(true);
                                 },
-                              },
+                              } : null,
                             ].filter(Boolean) as any
                           }}
                           trigger={["click"]}
@@ -580,6 +667,15 @@ export default function InvoiceproCustomerPage() {
           Are you sure you want to delete this customer? This action will remove all customer profiles and cannot be undone.
         </p>
       </Modal>
+
+      <CustomerViewDrawer 
+        open={viewDrawerVisible}
+        onClose={() => {
+          setViewDrawerVisible(false);
+          setSelectedCustomerForView(null);
+        }}
+        customer={selectedCustomerForView}
+      />
 
     </MainLayout>
   );

@@ -31,6 +31,7 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined,
 } from "@ant-design/icons";
+import { RefreshCw,FileText,ChevronRight,User,Text} from "lucide-react";
 import { currencyOptions } from "@/utils/currencyOptions";
 import {
   useInvoices,
@@ -668,7 +669,12 @@ export default function InvoiceNewinvoicePage() {
 
   return (
     <MainLayout>
-      <div className="bg-gray-50 min-h-screen">
+      <div style={{
+        margin: "0 -24px",
+        padding: "24px 32px",
+        background: "#ffffff",
+        minHeight: "calc(100vh - 64px)"
+      }}>
         {/* FIXED HEADER */}
         <div className="sticky top-0 bg-white z-40 border-b shadow-sm">
           <div className="px-4 py-3">
@@ -950,7 +956,7 @@ export default function InvoiceNewinvoicePage() {
                                 }
                               }}
                             >
-                              {customers.map((c) => (
+                              {customers.filter(c => c.isActive).map((c) => (
                                 <Select.Option key={c.id} value={c.id}>
                                   {c.companyName}
                                 </Select.Option>
@@ -1216,48 +1222,95 @@ export default function InvoiceNewinvoicePage() {
             });
 
             setShowApplyModal(true);
+            setEditingCustomer(null);
           }}
         />
 
         {/* APPLY CHANGES MODAL */}
         <Modal
           open={showApplyModal}
-          title="Apply changes to customer?"
           onCancel={() => {
             setShowApplyModal(false);
             setPendingCustomer(null);
           }}
-          footer={[
-            <Button
-              key="invoice"
-              onClick={() => {
-                if (!pendingCustomer) return;
-                applyToInvoiceOnly(pendingCustomer);
-                setShowApplyModal(false);
-                setPendingCustomer(null);
-              }}
-              size="large"
-            >
-              Invoice only
-            </Button>,
-
-            <Button
-              key="both"
-              type="primary"
-              onClick={async () => {
-                if (!pendingCustomer) return;
-                await applyToCustomerAndInvoice(pendingCustomer);
-                setShowApplyModal(false);
-                setPendingCustomer(null);
-                setEditingCustomer(null);
-              }}
-              size="large"
-            >
-              Apply to customer
-            </Button>
-          ]}
+          footer={null}
+          width={480}
+          styles={{
+            mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
+            content: { padding: 0, borderRadius: 24, overflow: 'hidden' }
+          }}
         >
-          <p>Apply these changes to customer record?</p>
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+                <RefreshCw size={20} />
+              </div>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 16 }}>Apply Information Changes</Title>
+                <Text type="secondary" style={{ fontSize: 12 }}>You have modified the customer details. Where should these apply?</Text>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 gap-4">
+              <div 
+                onClick={() => {
+                  if (!pendingCustomer) return;
+                  applyToInvoiceOnly(pendingCustomer);
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                }}
+                className="group cursor-pointer p-4 rounded-2xl border border-slate-100 bg-white hover:border-blue-200 hover:bg-blue-50/30 transition-all duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                    <FileText size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-slate-800">Apply to This Invoice Only</div>
+                    <div className="text-[11px] text-slate-500">Changes will be saved for this instance and won't affect the main client record.</div>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+
+              <div 
+                onClick={async () => {
+                  if (!pendingCustomer) return;
+                  await applyToCustomerAndInvoice(pendingCustomer);
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                  setEditingCustomer(null);
+                }}
+                className="group cursor-pointer p-4 rounded-2xl border border-blue-100 bg-blue-50/20 hover:bg-blue-50/40 transition-all duration-200 shadow-sm shadow-blue-100/50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 text-white rounded-lg">
+                    <User size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-blue-900 line-clamp-1">Apply to Customer Record (Global)</div>
+                    <div className="text-[11px] text-blue-600/80">Update the master database so these details appear on all future invoices for this client.</div>
+                  </div>
+                  <ChevronRight size={16} className="text-blue-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <Button 
+                type="text" 
+                onClick={() => {
+                  setShowApplyModal(false);
+                  setPendingCustomer(null);
+                }}
+                className="text-slate-400 font-medium hover:text-red-500"
+              >
+                Discard Changes
+              </Button>
+            </div>
+          </div>
         </Modal>
 
         {/* Add custom CSS for animations */}

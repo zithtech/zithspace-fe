@@ -229,8 +229,21 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name={["address", "pincode"]} label={<span className="text-slate-500 font-medium">Pincode</span>}>
-                  <Input placeholder="######" className="rounded-xl" />
+                <Form.Item 
+                  name={["address", "pincode"]} 
+                  label={<span className="text-slate-500 font-medium">Pincode</span>}
+                  rules={[
+                    { pattern: /^[0-9]{6}$/, message: "Must be 6 digits" }
+                  ]}
+                >
+                  <Input 
+                    placeholder="######" 
+                    className="rounded-xl" 
+                    maxLength={6}
+                    onInput={(e: any) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col span={24}>
@@ -330,13 +343,39 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="gstin" label={<span className="text-slate-500 font-medium">GSTIN</span>}>
-                  <Input placeholder="Optional" className="rounded-xl" />
+                <Form.Item 
+                  name="gstin" 
+                  label={<span className="text-slate-500 font-medium">GSTIN</span>}
+                  rules={[
+                    { pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, message: "Invalid GSTIN format (e.g. 29ABCDE1234F1Z5)" }
+                  ]}
+                >
+                  <Input 
+                    placeholder="15-digit Alpha-numeric" 
+                    className="rounded-xl font-mono" 
+                    maxLength={15}
+                    onInput={(e: any) => {
+                      e.target.value = e.target.value.toUpperCase();
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="pan" label={<span className="text-slate-500 font-medium">PAN</span>}>
-                  <Input placeholder="Optional" className="rounded-xl" />
+                <Form.Item 
+                  name="pan" 
+                  label={<span className="text-slate-500 font-medium">PAN</span>}
+                  rules={[
+                    { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: "Invalid PAN format (e.g. ABCDE1234F)" }
+                  ]}
+                >
+                  <Input 
+                    placeholder="10-digit Alpha-numeric" 
+                    className="rounded-xl font-mono" 
+                    maxLength={10}
+                    onInput={(e: any) => {
+                      e.target.value = e.target.value.toUpperCase();
+                    }}
+                  />
                 </Form.Item>
               </Col>
             </Row>

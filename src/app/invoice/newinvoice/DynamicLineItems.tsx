@@ -18,7 +18,8 @@ import {
   Empty,
   Modal,
   Switch,
-  Radio
+  Radio,
+  DatePicker
 } from 'antd';
 import { 
   DeleteOutlined, 
@@ -317,6 +318,8 @@ const SortableItem = ({
           <InputNumber size="small" className={inputClass} placeholder={label} onKeyDown={blockNonNumeric} />
         ) : type === 'percentage' ? (
           <InputNumber size="small" className={inputClass} placeholder={label} onKeyDown={blockNonNumeric} suffix="%" />
+        ) : type === 'date' ? (
+          <DatePicker size="small" className={inputClass} placeholder={label} style={{ width: '100%' }} format="YYYY-MM-DD" />
         ) : type === 'textarea' ? (
           <Input.TextArea size="small" autoSize={{ minRows: 1, maxRows: 3 }} className="rounded-md border-gray-200 text-xs" placeholder={label} />
         ) : (

@@ -63,7 +63,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import moment from "moment";
+
 import isBetween from "dayjs/plugin/isBetween";
 
 import { 
@@ -748,7 +748,7 @@ const startBulkDelete = async () => {
         statusForm.setFieldsValue({
           paidAmount: statusChangeInvoice.balanceDue,
           description: statusChangeInvoice.description || "",
-          paidAt: moment(),
+          paidAt: dayjs(),
           paymentMethod: "BANK_TRANSFER"
         });
         setStatusModalVisible(true);
@@ -821,7 +821,7 @@ const startBulkDelete = async () => {
       width: 120,
       render: (date: string) => (
         <div className="text-gray-600">
-          {date ? moment(date).format('MMM DD, YYYY') : '-'}
+          {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
         </div>
       ),
     },
@@ -830,10 +830,10 @@ const startBulkDelete = async () => {
       dataIndex: "dueDate",
       width: 120,
       render: (date: string) => {
-        const isOverdue = date && moment(date).isBefore(moment(), 'day');
+        const isOverdue = date && dayjs(date).isBefore(dayjs(), 'day');
         return (
           <div className={isOverdue ? "text-red-500 font-medium" : "text-gray-600"}>
-            {date ? moment(date).format('MMM DD, YYYY') : '-'}
+            {date ? dayjs(date).format('MMM DD, YYYY') : '-'}
           </div>
         );
       },
@@ -1174,12 +1174,12 @@ const startBulkDelete = async () => {
                       {selectedRowKeys.length} invoice(s) selected
                     </span>
                     <Space size="middle">
-                      <Button
+                      {/* <Button
                         icon={<Mail size={16} />}
                         onClick={() => messageApi.info('Send email feature coming soon')}
                       >
                         Send Email
-                      </Button>
+                      </Button> */}
                       <Button
                         icon={<Download size={16} />}
                         loading={isDownloading}
@@ -1458,111 +1458,145 @@ const startBulkDelete = async () => {
 
       {/* Payment Status Modal */}
       <Modal
-        title={
-          <div className="flex items-center">
-            <DollarSign size={20} className="text-green-500 mr-2" />
-            Update Payment for Invoice {statusInvoice?.invoiceNumber}
-          </div>
-        }
+        title={null}
         open={statusModalVisible}
         onCancel={() => {
           setStatusModalVisible(false);
           statusForm.resetFields();
         }}
-        onOk={handlePaymentUpdate}
-        confirmLoading={updateStatusMutation.isPending}
-        okText="Update Payment"
-        cancelText="Cancel"
+        footer={null}
         width={500}
+        styles={{
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
+          content: { padding: 0, borderRadius: 24, overflow: 'hidden' }
+        }}
       >
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-          <div className="flex justify-between">
-            <div>
-              <div className="text-sm text-gray-600">Total Amount</div>
-              <div className="text-2xl font-bold">
-                ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toFixed(2)}
-              </div>
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-green-50 text-green-600 rounded-xl border border-green-100">
+              <CreditCard size={20} />
             </div>
             <div>
-              <div className="text-sm text-gray-600">Balance Due</div>
-              <div className="text-2xl font-bold text-blue-600">
-                ${Number(statusInvoice?.balanceDue || 0).toFixed(2)}
-              </div>
+              <Title level={4} style={{ margin: 0, fontSize: 16 }}>Record Payment</Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>Invoice #{statusInvoice?.invoiceNumber}</Text>
             </div>
           </div>
         </div>
 
-        <Form form={statusForm} layout="vertical">
-          <Form.Item
-            label="Paid Amount"
-            name="paidAmount"
-            rules={[
-              { required: true, message: "Please enter paid amount" },
-              {
-                validator: (_, value) => {
-                  const balanceDue = Number(statusInvoice?.balanceDue || 0);
-                  const paidAmount = Number(value || 0);
+        <div className="p-6">
+          {/* Metrics Summary */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Total</Text>
+              <Text strong className="text-sm">
+                ${Number(statusInvoice?.grandTotal || statusInvoice?.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Text>
+            </div>
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
+              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Paid</Text>
+              <Text strong className="text-sm text-green-600">
+                ${Number(statusInvoice?.paidAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Text>
+            </div>
+            <div className="bg-blue-50/50 p-3 rounded-2xl border border-blue-100 shadow-sm">
+              <Text type="secondary" className="text-[10px] uppercase font-bold tracking-wider block mb-1">Due</Text>
+              <Text strong className="text-sm text-blue-600">
+                ${Number(statusInvoice?.balanceDue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Text>
+            </div>
+          </div>
 
-                  if (paidAmount > balanceDue) {
-                    return Promise.reject(new Error(`Amount cannot exceed balance due ($${balanceDue.toFixed(2)})`));
+          <Form form={statusForm} layout="vertical" onFinish={handlePaymentUpdate} requiredMark={false}>
+            <Form.Item
+              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Payment Amount (USD)</span>}
+              name="paidAmount"
+              rules={[
+                { required: true, message: "Please enter amount" },
+                {
+                  validator: (_, value) => {
+                    const balanceDue = Number(statusInvoice?.balanceDue || 0);
+                    const paidAmount = Number(value || 0);
+                    if (paidAmount > balanceDue) {
+                      return Promise.reject(new Error(`Amount exceeds balance ($${balanceDue.toFixed(2)})`));
+                    }
+                    if (paidAmount <= 0) {
+                      return Promise.reject(new Error('Amount must be positive'));
+                    }
+                    return Promise.resolve();
                   }
-                  if (paidAmount <= 0) {
-                    return Promise.reject(new Error('Amount must be greater than 0'));
-                  }
-                  return Promise.resolve();
                 }
-              }
-            ]}
-          >
-            <Input
-              type="number"
-              min={0.01}
-              max={statusInvoice?.balanceDue}
-              placeholder="0.00"
-              prefix="$"
-              size="large"
-              step="0.01"
-            />
-          </Form.Item>
+              ]}
+            >
+              <Input
+                type="number"
+                min={0}
+                max={statusInvoice?.balanceDue}
+                placeholder="0.00"
+                prefix={<span className="text-slate-400">$</span>}
+                className="h-12 rounded-xl text-lg font-bold border-slate-200"
+                step="0.01"
+              />
+            </Form.Item>
 
-          <Form.Item
-            label="Payment Method"
-            name="paymentMethod"
-            initialValue="BANK_TRANSFER"
-            rules={[{ required: true, message: "Please select payment method" }]}
-          >
-            <Select size="large">
-              <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
-              <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
-              <Select.Option value="CASH">Cash</Select.Option>
-              <Select.Option value="CHECK">Check</Select.Option>
-              <Select.Option value="OTHER">Other</Select.Option>
-            </Select>
-          </Form.Item>
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item
+                label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Method</span>}
+                name="paymentMethod"
+                initialValue="BANK_TRANSFER"
+              >
+                <Select className="h-11 rounded-xl" popupClassName="rounded-xl">
+                  <Select.Option value="BANK_TRANSFER">Bank Transfer</Select.Option>
+                  <Select.Option value="CREDIT_CARD">Credit Card</Select.Option>
+                  <Select.Option value="CASH">Cash</Select.Option>
+                  <Select.Option value="CHECK">Check</Select.Option>
+                  <Select.Option value="OTHER">Other</Select.Option>
+                </Select>
+              </Form.Item>
 
-          <Form.Item label="Description / Note" name="description">
-            <Input.TextArea
-              rows={3}
-              placeholder="Enter note for payment (optional)"
-              maxLength={500}
-              showCount
-            />
-          </Form.Item>
+              <Form.Item
+                label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Date</span>}
+                name="paidAt"
+                initialValue={dayjs()}
+              >
+                <DatePicker
+                  showTime
+                  format="YYYY-MM-DD HH:mm"
+                  className="h-11 w-full rounded-xl"
+                  popupClassName="rounded-xl"
+                />
+              </Form.Item>
+            </div>
 
-          <Form.Item
-            label="Payment Date"
-            name="paidAt"
-            rules={[{ required: true, message: "Please select payment date" }]}
-          >
-            <DatePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              style={{ width: '100%' }}
-              size="large"
-              defaultValue={dayjs()}
-            />
-          </Form.Item>
-        </Form>
+            <Form.Item 
+              label={<span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest leading-none">Note</span>} 
+              name="description"
+            >
+              <Input.TextArea
+                rows={2}
+                placeholder="Reference number or memo..."
+                className="rounded-xl border-slate-200 p-3"
+                maxLength={200}
+              />
+            </Form.Item>
+
+            <div className="flex gap-3 mt-8">
+              <Button 
+                onClick={() => setStatusModalVisible(false)} 
+                className="h-11 flex-1 rounded-xl font-semibold text-slate-600 border-slate-200"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="primary" 
+                htmlType="submit"
+                loading={updateStatusMutation.isPending}
+                className="h-11 flex-1 rounded-xl font-semibold bg-blue-600 shadow-lg shadow-blue-200"
+              >
+                Update Payment
+              </Button>
+            </div>
+          </Form>
+        </div>
       </Modal>
 
       {/* Approval Modal */}
@@ -1598,58 +1632,126 @@ const startBulkDelete = async () => {
 
       {/* Status Change Modal */}
       <Modal
-        title={`Change Status for Invoice ${statusChangeInvoice?.invoiceNumber}`}
+        title={null}
         open={statusChangeModalVisible}
         onCancel={() => {
           setStatusChangeModalVisible(false);
           setSelectedNewStatus(null);
         }}
-        onOk={handleGeneralStatusUpdate}
-        confirmLoading={updateStatusMutation.isPending}
-        okText="Update Status"
-        cancelText="Cancel"
-        width={400}
+        footer={null}
+        width={450}
+        styles={{
+          mask: { backdropFilter: 'blur(4px)', background: 'rgba(15, 23, 42, 0.4)' },
+          content: { padding: 0, borderRadius: 24, overflow: 'hidden' }
+        }}
       >
-        <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-1">Current Status</div>
-          <Tag
-            color={getStatusColor(fromBackendStatus(statusChangeInvoice?.status))}
-            icon={getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
-            className="text-sm font-medium"
-          >
-            {fromBackendStatus(statusChangeInvoice?.status)}
-          </Tag>
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+              <RefreshCw size={20} />
+            </div>
+            <div>
+              <Title level={4} style={{ margin: 0, fontSize: 16 }}>Update Status</Title>
+              <Text type="secondary" style={{ fontSize: 12 }}>Invoice #{statusChangeInvoice?.invoiceNumber}</Text>
+            </div>
+          </div>
         </div>
 
-        <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-2">Select New Status</div>
-          <Select
-            style={{ width: '100%' }}
-            placeholder="Select new status"
-            size="large"
-            value={selectedNewStatus}
-            onChange={(value) => setSelectedNewStatus(value)}
-            options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
-              label: (
-                <div className="flex items-center">
-                  {getStatusIcon(status)}
-                  <span className="ml-2">{status}</span>
+        <div className="p-6">
+          {/* Status Flow Indicator */}
+          <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100 flex items-center justify-between">
+            <div className="text-center flex-1 min-w-0">
+              <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Current Status</Text>
+              <div className="flex justify-center">
+                <Tag
+                  color={getStatusColor(fromBackendStatus(statusChangeInvoice?.status))}
+                  icon={getStatusIcon(fromBackendStatus(statusChangeInvoice?.status))}
+                  className="px-3 py-1 rounded-full border-none font-bold text-[10px] m-0 shadow-sm flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  {fromBackendStatus(statusChangeInvoice?.status)}
+                </Tag>
+              </div>
+            </div>
+            
+            <div className="px-4 text-slate-300">
+              <ChevronRight size={20} />
+            </div>
+
+            <div className="text-center flex-1 min-w-0">
+              <Text type="secondary" className="text-[10px] font-bold uppercase tracking-wider block mb-2">Target Status</Text>
+              <div className="flex justify-center">
+                {selectedNewStatus ? (
+                  <Tag
+                    color={getStatusColor(selectedNewStatus)}
+                    icon={getStatusIcon(selectedNewStatus)}
+                    className="px-3 py-1 rounded-full border-none font-bold text-[10px] m-0 shadow-sm animate-pulse flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    {selectedNewStatus}
+                  </Tag>
+                ) : (
+                  <div className="h-6 w-20 bg-slate-200 rounded-full mx-auto animate-pulse"></div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Text className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-2">Select Next Step</Text>
+              <Select
+                style={{ width: '100%' }}
+                placeholder="Where should this invoice go next?"
+                size="large"
+                value={selectedNewStatus}
+                onChange={(value) => setSelectedNewStatus(value)}
+                popupClassName="rounded-xl"
+                className="rounded-xl border-slate-200"
+                options={getAvailableTransitions(fromBackendStatus(statusChangeInvoice?.status)).map(status => ({
+                  label: (
+                    <div className="flex items-center gap-2 py-1">
+                      <div className={`p-1 rounded-md bg-${getStatusColor(status)}-50 text-${getStatusColor(status)}-600`}>
+                        {getStatusIcon(status)}
+                      </div>
+                      <span className="font-medium text-slate-700">{status}</span>
+                    </div>
+                  ),
+                  value: status
+                }))}
+              />
+            </div>
+
+            {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
+              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
+                <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-800 leading-relaxed">
+                  <Text strong className="text-amber-900 block mb-1">Payment Required</Text>
+                  Moving to <Text strong>{selectedNewStatus}</Text> will open the payment record form to log the transaction.
                 </div>
-              ),
-              value: status
-            }))}
-          />
-        </div>
+              </div>
+            )}
+          </div>
 
-        {(selectedNewStatus === 'PAID' || selectedNewStatus === 'PARTIALLY_PAID') && (
-          <Alert
-            message="Payment information will be required"
-            description="You'll need to enter payment details for this status change."
-            type="info"
-            showIcon
-            className="mb-2"
-          />
-        )}
+          <div className="flex gap-3 mt-8">
+            <Button 
+              onClick={() => {
+                setStatusChangeModalVisible(false);
+                setSelectedNewStatus(null);
+              }} 
+              className="h-11 flex-1 rounded-xl font-semibold text-slate-600 border-slate-200"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="primary" 
+              onClick={handleGeneralStatusUpdate}
+              loading={updateStatusMutation.isPending}
+              disabled={!selectedNewStatus}
+              className="h-11 flex-1 rounded-xl font-semibold bg-blue-600 shadow-lg shadow-blue-200"
+            >
+              Update Status
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Transaction History Drawer */}
@@ -1880,10 +1982,10 @@ const startBulkDelete = async () => {
                     <tr key={payment.id || index} className="hover:bg-gray-50">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="font-medium text-gray-800">
-                          {payment.date || moment(payment.paymentDate).format('MMM DD, YYYY')}
+                          {payment.date || dayjs(payment.paymentDate).format('MMM DD, YYYY')}
                         </div>
                         <div className="text-gray-400">
-                          {payment.time || moment(payment.paymentDate).format('HH:mm')}
+                          {payment.time || dayjs(payment.paymentDate).format('HH:mm')}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
@@ -1982,7 +2084,7 @@ const startBulkDelete = async () => {
                       </span>
                     </div>
                     <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
-                      {payment.date || moment(payment.paymentDate).format('MMM DD · HH:mm')}
+                      {payment.date || dayjs(payment.paymentDate).format('MMM DD · HH:mm')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">

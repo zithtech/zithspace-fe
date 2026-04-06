@@ -452,19 +452,22 @@ const DocumentHubPage = (props: Props) => {
               >
                 <Select
                   size="large"
+                  showSearch
                   placeholder="Select ticket"
                   loading={ticketsLoading}
                   className="rounded-lg"
                   suffixIcon={<TagOutlined className="text-gray-400" />}
                   allowClear
                   disabled={!selectedProjectId}
-                >
-                  {tickets.map((ticket: any) => (
-                    <Option key={ticket.id} value={ticket.id}>
-                      {ticket.ticketNumber} ({ticket.title})
-                    </Option>
-                  ))}
-                </Select>
+                  optionFilterProp="label"
+                  options={tickets.map((ticket: any) => ({
+                    value: ticket.id,
+                    label: `${ticket.ticketNumber} (${ticket.title})`,
+                  }))}
+                  filterOption={(input, option) =>
+                    String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
+                />
               </Form.Item>
             </Col>
           </Row>

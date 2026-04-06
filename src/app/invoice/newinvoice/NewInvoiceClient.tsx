@@ -927,6 +927,9 @@ export default function InvoiceNewinvoicePage() {
                               showSearch
                               size="middle"
                               className="w-full"
+                              filterOption={(input, option) =>
+                                String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                              }
                               onSelect={(id) => {
                                 const c = customers.find((x) => x.id === id);
                                 if (c) {

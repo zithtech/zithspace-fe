@@ -172,7 +172,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
   const selectedPids = Form.useWatch('projectId', form) || [];
 
   const renderContent = () => (
-    <div style={{ width: 320 }}>
+    <div style={{ width: showContentOnly ? '100%' : 320, maxWidth: 320, margin: '0 auto' }}>
       {isLoading && <div style={{ textAlign: "center", marginBottom: 16 }}><Spin /></div>}
 
       <div style={{ textAlign: "center", fontSize: '2rem', fontWeight: 600, fontFamily: 'monospace', marginBottom: '16px', color: activeEntry ? (activeEntry.status === 'PAUSED' ? '#f59e0b' : '#10b981') : '#374151' }}>

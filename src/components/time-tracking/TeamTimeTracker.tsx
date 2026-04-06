@@ -292,7 +292,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       key: "progress",
       width: 200,
       render: (_: any, record: any) => {
-        const targetSeconds = 8 * 3600; // 8 hours
+        const targetSeconds = 6 * 3600; // 6 hours
         const percent = Math.min(100, (record.totalSeconds / targetSeconds) * 100);
         let color = "#cbd5e1"; // Slate (0-50%)
         if (percent > 90) color = "#10b981"; // Emerald (90-100%)
@@ -315,7 +315,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           >
             <div style={{ width: '100%', cursor: 'help' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
-                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 8h`}</Text>
+                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 6h`}</Text>
                 <Text strong style={{ color: percent >= 100 ? '#10b981' : 'inherit' }}>{formatTime(record.totalSeconds)}</Text>
               </div>
               <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
@@ -398,7 +398,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
           if (ticket && typeof ticket === 'object') {
             return (
-              <Link href={`/public/tickets/${ticketId}`} target="_blank">
+              <Link href={`/tickets/${ticketId}`}>
                 <Text style={{ color: '#1890ff', fontWeight: 500 }}>{ticket.title}</Text>
               </Link>
             );
@@ -524,7 +524,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
                     <div style={{ marginBottom: 0 }}>
                       {session.ticket?.title ? (
-                        <Link href={`/public/tickets/${session.ticketId}`} target="_blank">
+                        <Link href={`/tickets/${session.ticketId}`}>
                           <Text strong style={{ fontSize: 13, color: '#1e293b', cursor: 'pointer' }}>{session.ticket.title}</Text>
                         </Link>
                       ) : (
@@ -630,14 +630,36 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       </Row>
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Select
+        {/* <Select
+          allowClear
+          showSearch
           placeholder="Member"
           style={{ width: 160, height: 32 }}
           size="small"
-          allowClear
           onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
         >
           {members.map(m => <Select.Option key={m.value} value={m.value}>{m.label}</Select.Option>)}
+        </Select> */}
+        <Select
+          allowClear
+          showSearch
+          placeholder="Member"
+          style={{ width: 160, height: 32 }}
+          size="small"
+          optionFilterProp="children"
+          filterOption={(input, option) =>
+            (option?.children ?? "")
+              .toString()
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
+          onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
+        >
+          {members.map(m => (
+            <Select.Option key={m.value} value={m.value}>
+              {m.label}
+            </Select.Option>
+          ))}
         </Select>
         <Select
           placeholder="Project"
@@ -662,9 +684,9 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           onChange={(dates) => setFilters(f => ({ ...f, dateRange: dates as any }))}
         />
         <Tooltip title="Refresh Data">
-          <Button 
-            onClick={fetchTeamEntries} 
-            icon={<ReloadOutlined />} 
+          <Button
+            onClick={fetchTeamEntries}
+            icon={<ReloadOutlined />}
             style={{ height: 32, width: 32, padding: 0, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             size="small"
           />

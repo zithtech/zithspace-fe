@@ -1,0 +1,682 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import {
+  Typography,
+  Button,
+  Table,
+  Tag,
+  Space,
+  Input,
+  Badge,
+  Card,
+  Tooltip,
+  Avatar,
+  Dropdown,
+  Tabs,
+  Row,
+  Col,
+  Select,
+  message,
+  Popconfirm
+} from 'antd';
+import {
+  PlusOutlined,
+  SearchOutlined,
+  FilterOutlined,
+  MoreOutlined,
+  AlertOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  BugOutlined,
+  CalendarOutlined,
+  ProjectOutlined,
+  UserOutlined,
+  FileTextOutlined,
+  HistoryOutlined,
+  EditOutlined,
+  DeleteOutlined
+} from '@ant-design/icons';
+import { Drawer, Divider, Descriptions } from 'antd';
+import MainLayout from '@/components/layout/MainLayout';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/axios';
+import { useAuth } from '@/context/AuthContext';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
+
+const { Title, Text } = Typography;
+
+const BLUE_PRIMARY = '#2563eb';
+
+export default function EscalationListPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [searchText, setSearchText] = useState('');
+  const [activeTab, setActiveTab] = useState('1');
+  const [escalations, setEscalations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedEscalation, setSelectedEscalation] = useState<any>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempStatus, setTempStatus] = useState<string>('');
+  const [statuses, setStatuses] = useState<any[]>([]);
+
+  const fetchEscalations = async () => {
+    setLoading(true);
+    try {
+      const [escData, statusData] = await Promise.all([
+        api.get('/api/escalations'),
+        api.get('/api/escalation-settings/statuses')
+      ]);
+      setEscalations(escData || []);
+      setStatuses(statusData || []);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEscalations();
+  }, []);
+
+  const handleUpdateStatus = async () => {
+    if (!selectedEscalation || !tempStatus) return;
+    
+    setUpdating(true);
+    try {
+      await api.patch(`/api/escalations/${selectedEscalation.id}/status`, { statusId: tempStatus });
+      message.success('Escalation status updated successfully');
+      setDrawerVisible(false);
+      fetchEscalations();
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      message.error('Failed to update escalation status');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    try {
+      await api.delete(`/api/escalations/${id}`);
+      message.success('Escalation deleted successfully');
+      setEscalations(prev => prev.filter(e => e.id !== id));
+      if (selectedEscalation?.id === id) {
+        setDrawerVisible(false);
+      }
+    } catch (error) {
+      console.error('Failed to delete escalation:', error);
+      message.error('Failed to delete escalation');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const getPriorityTag = (priority: any) => {
+    return (
+      <Tag
+        color={priority?.color || 'blue'}
+        style={{ borderRadius: 4, fontWeight: 600, fontSize: 11 }}
+      >
+        {priority?.name?.toUpperCase() || 'MEDIUM'}
+      </Tag>
+    );
+  };
+
+  const filteredEscalations = escalations.filter(e => {
+    // Search filter
+    const matchesSearch = 
+      e.subject.toLowerCase().includes(searchText.toLowerCase()) ||
+      e.category?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      e.project?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
+      e.targetMembers?.some((m: any) => m.user?.name?.toLowerCase().includes(searchText.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    // Tab filter
+    if (activeTab === '2') {
+      // My Escalations (Escalated Member)
+      return e.targetMembers?.some((m: any) => m.user?.id === user?.id);
+    } else if (activeTab === '3') {
+      // Raised by Me
+      return e.createdBy?.id === user?.id;
+    }
+
+    // Tab 1: All Escalations (no involvement filter)
+    return true;
+  });
+
+  const getStatusBadge = (record: any) => {
+    const status = record.escalationStatus;
+    if (!status) {
+      return <Badge status="default" text={record.status || 'Unknown'} />;
+    }
+    
+    return (
+      <Badge 
+        color={status.color || BLUE_PRIMARY} 
+        text={status.name} 
+        style={{ fontWeight: 500 }} 
+      />
+    );
+  };
+
+  const getCategoryTag = (cat: any) => {
+    return (
+      <Tag
+        color="blue"
+        style={{
+          borderRadius: 4,
+          borderLeft: cat?.color ? `4px solid ${cat.color}` : 'none',
+          background: '#f1f5f9',
+          color: '#475569',
+          fontWeight: 500
+        }}
+        bordered={false}
+      >
+        {cat?.name || 'General'}
+      </Tag>
+    );
+  };
+
+  const columns = [
+    {
+      title: 'Subject & Category',
+      dataIndex: 'subject',
+      key: 'subject',
+      render: (text: string, record: any) => (
+        <Space direction="vertical" size={2}>
+          <Text strong style={{ fontSize: 14 }}>{text}</Text>
+          {getCategoryTag(record.category)}
+        </Space>
+      ),
+    },
+    {
+      title: 'Target Team Members',
+      dataIndex: 'targetMembers',
+      key: 'targetMembers',
+      render: (members: any[]) => {
+        if (members?.length === 1) {
+          return (
+            <Space>
+              <Avatar size="small" style={{ backgroundColor: BLUE_PRIMARY }}>
+                {members[0].user?.name?.charAt(0)}
+              </Avatar>
+              <Text style={{ fontSize: 13 }}>{members[0].user?.name}</Text>
+            </Space>
+          );
+        }
+        return (
+          <Avatar.Group maxCount={3} size="small" maxStyle={{ color: '#f56a00', backgroundColor: '#fde3cf' }}>
+            {members?.map((m, idx) => (
+              <Tooltip title={m.user?.name} key={idx}>
+                <Avatar style={{ backgroundColor: BLUE_PRIMARY }}>
+                  {m.user?.name?.charAt(0)}
+                </Avatar>
+              </Tooltip>
+            ))}
+          </Avatar.Group>
+        );
+      },
+    },
+    {
+      title: 'Tickets',
+      dataIndex: 'tickets',
+      key: 'tickets',
+      render: (tickets: any[]) => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 150 }}>
+          {tickets?.map((t, idx) => (
+            <Tooltip title={t.ticket?.title} key={idx}>
+              <Tag color="cyan" style={{ fontSize: 10, borderRadius: 4, margin: 0, padding: '0 4px', background: '#ecfeff', border: '1px solid #a5f3fc', color: '#0891b2' }}>
+                {t.ticket?.ticketNumber}
+              </Tag>
+            </Tooltip>
+          ))}
+          {(!tickets || tickets.length === 0) && <Text type="secondary" style={{ fontSize: 12 }}>—</Text>}
+        </div>
+      ),
+    },
+    {
+      title: 'Priority',
+      dataIndex: 'priority',
+      key: 'priority',
+      render: (priority: any) => getPriorityTag(priority),
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      render: (_: any, record: any) => getStatusBadge(record),
+    },
+    {
+      title: 'Raised By',
+      dataIndex: 'createdBy',
+      key: 'createdBy',
+      render: (user: any) => (
+        <Space>
+          <Avatar size="small" style={{ backgroundColor: '#94a3b8' }}>{user?.name?.charAt(0)}</Avatar>
+          <Text type="secondary">{user?.name || 'System'}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Raised Date',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date: string) => (
+        <Tooltip title={dayjs(date).format('YYYY-MM-DD HH:mm:ss')}>
+          <Text style={{ fontSize: 13, color: '#94a3b8' }}>
+            {dayjs(date).format('MMM D, YYYY')}
+          </Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_: any, record: any) => (
+        <Space size={4} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="Edit / View Details">
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: BLUE_PRIMARY }} />}
+              onClick={() => { 
+                setSelectedEscalation(record); 
+                setTempStatus(record.statusId || record.status);
+                setIsEditing(true);
+                setDrawerVisible(true); 
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Delete Escalation"
+              description="Are you sure you want to delete this escalation? This action cannot be undone."
+              onConfirm={() => handleDelete(record.id)}
+              okText="Yes, Delete"
+              cancelText="No"
+              okButtonProps={{ danger: true, loading: deleting === record.id }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deleting === record.id}
+              />
+            </Popconfirm>
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
+
+  const stats = [
+    { 
+      label: 'Active Escalations', 
+      value: escalations.filter(e => !e.escalationStatus?.isFinal).length, 
+      icon: <ExclamationCircleOutlined />, 
+      color: BLUE_PRIMARY 
+    },
+    { 
+      label: 'High Priority', 
+      value: escalations.filter(e => (e.priority?.weight || 0) >= 80).length, 
+      icon: <BugOutlined />, 
+      color: '#ef4444' 
+    },
+    { 
+      label: 'Pending Reviews', 
+      value: escalations.filter(e => e.escalationStatus?.isDefault).length, 
+      icon: <ClockCircleOutlined />, 
+      color: '#f59e0b' 
+    },
+    { 
+      label: 'Total Resolved', 
+      value: escalations.filter(e => e.escalationStatus?.isFinal).length, 
+      icon: <CheckCircleOutlined />, 
+      color: '#10b981' 
+    },
+  ];
+
+  return (
+    <MainLayout>
+      <div style={{ padding: '24px 10px', background: '#ffffff', minHeight: '100vh' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+                <AlertOutlined style={{ fontSize: 24, color: BLUE_PRIMARY }} />
+                <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  Quality & Performance Escalations
+                </Title>
+              </div>
+              <Text type="secondary" style={{ fontSize: 16, maxWidth: 800, lineHeight: 1.5, display: 'block' }}>
+                Monitor and resolve manual escalations related to deployment quality and team regressions.
+              </Text>
+            </div>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              size="large"
+              onClick={() => router.push('/escalations/create')}
+              style={{ borderRadius: 8, height: 44, fontWeight: 600, background: BLUE_PRIMARY }}
+            >
+              Raise Manual Escalation
+            </Button>
+          </div>
+
+          {/* Stats Cards */}
+          <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+            {stats.map((stat, idx) => (
+              <Card key={idx} style={{ flex: 1, borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{stat.label}</Text>
+                    <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: '#1e293b' }}>
+                      {loading ? '...' : stat.value.toString().padStart(2, '0')}
+                    </div>
+                  </div>
+                  <div style={{ backgroundColor: `${stat.color}10`, padding: 12, borderRadius: 12 }}>
+                    {React.cloneElement(stat.icon as React.ReactElement, { style: { color: stat.color, fontSize: 20 } })}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab}
+            items={[
+              { key: '1', label: 'All Escalations' },
+              { key: '2', label: 'My Escalations' },
+              { key: '3', label: 'Raised by Me' },
+            ]} 
+          />
+
+          {/* Filter Bar */}
+          <Card style={{ marginBottom: 24, border: '1px solid #e2e8f0', borderRadius: '0 16px 16px 16px' }} bodyStyle={{ padding: '10px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Space size={16}>
+                <Input
+                  placeholder="Search by subject, target or category..."
+                  prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+                  style={{ width: 360, borderRadius: 8, height: 40 }}
+                  value={searchText}
+                  onChange={e => setSearchText(e.target.value)}
+                />
+                <Button icon={<FilterOutlined />} style={{ borderRadius: 8, height: 40 }}>Filters</Button>
+              </Space>
+              <Space>
+                <Text type="secondary">Sort by:</Text>
+                <Dropdown menu={{ items: [{ key: '1', label: 'Recent First' }, { key: '2', label: 'Priority' }] }}>
+                  <Button style={{ borderRadius: 8, height: 40 }}>Recent First</Button>
+                </Dropdown>
+              </Space>
+            </div>
+          </Card>
+
+          {/* Table */}
+          <Card style={{ borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+            <Table
+              columns={columns}
+              dataSource={filteredEscalations}
+              pagination={{ pageSize: 10 }}
+              rowKey="id"
+              loading={loading}
+              className="premium-table"
+              onRow={(record) => ({
+                onClick: () => {
+                  setSelectedEscalation(record);
+                  setTempStatus(record.statusId || record.status);
+                  setIsEditing(false);
+                  setDrawerVisible(true);
+                },
+                style: { cursor: 'pointer' }
+              })}
+            />
+          </Card>
+        </div>
+
+        {/* Escalation Detail Drawer */}
+        <Drawer
+          title={
+            <Space direction="vertical" size={2}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <AlertOutlined style={{ color: BLUE_PRIMARY }} />
+                <Title level={4} style={{ margin: 0 }}>Escalation Details</Title>
+              </div>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 400 }}>
+                ID: {selectedEscalation?.id?.split('-')[0].toUpperCase()} • Raised on {dayjs(selectedEscalation?.createdAt).format('MMM D, YYYY at HH:mm')}
+              </Text>
+            </Space>
+          }
+          placement="right"
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+          width={600}
+          headerStyle={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}
+          bodyStyle={{ padding: 0 }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              {isEditing ? (
+                <>
+                  <Button onClick={() => setIsEditing(false)}>Cancel</Button>
+                  <Button 
+                    type="primary" 
+                    loading={updating}
+                    onClick={handleUpdateStatus}
+                    style={{ background: BLUE_PRIMARY }}
+                  >
+                    Update Status
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={() => setDrawerVisible(false)}>Close</Button>
+                  <Button 
+                    type="primary" 
+                    onClick={() => setIsEditing(true)}
+                    style={{ background: BLUE_PRIMARY }}
+                  >
+                    Edit
+                  </Button>
+                </>
+              )}
+            </div>
+          }
+          footerStyle={{ borderTop: '1px solid #f1f5f9', padding: '12px 24px' }}
+        >
+          {selectedEscalation && (
+            <div style={{ padding: '24px' }}>
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+
+                {/* Header Info */}
+                <Card bodyStyle={{ padding: '12px 18px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 }}>
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</Text>
+                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700 }}>{selectedEscalation.subject}</Title>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>Current Status</Text>
+                        <div style={{ marginTop: 4 }}>
+                          {isEditing ? (
+                            <Select
+                              value={tempStatus}
+                              onChange={setTempStatus}
+                              style={{ width: '100%' }}
+                              options={statuses.map(s => ({
+                                label: (
+                                  <Space>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color || BLUE_PRIMARY }} />
+                                    {s.name}
+                                  </Space>
+                                ),
+                                value: s.id
+                              }))}
+                            />
+                          ) : (
+                            getStatusBadge(selectedEscalation)
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>Priority</Text>
+                        <div style={{ marginTop: 4 }}>{getPriorityTag(selectedEscalation.priority)}</div>
+                      </div>
+                    </div>
+                  </Space>
+                </Card>
+
+                {/* Grid Info */}
+                <Row gutter={[24, 24]}>
+                  <Col span={12}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                        <ProjectOutlined /> Category
+                      </Text>
+                      {getCategoryTag(selectedEscalation.category)}
+                    </Space>
+                  </Col>
+                  <Col span={12}>
+                    <Space direction="vertical" size={2}>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                        <PlusOutlined /> Related Project
+                      </Text>
+                      <Text strong style={{ fontSize: 13 }}>{selectedEscalation.project?.name || 'N/A'}</Text>
+                    </Space>
+                  </Col>
+                </Row>
+
+                <Divider style={{ margin: 0 }} />
+
+                {/* Description */}
+                <div>
+                  <Space align="center" style={{ marginBottom: 8 }}>
+                    <FileTextOutlined style={{ color: BLUE_PRIMARY, fontSize: 14 }} />
+                    <Text strong style={{ fontSize: 14 }}>Detailed Description</Text>
+                  </Space>
+                  <div style={{
+                    padding: '16px',
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    lineHeight: '1.5',
+                    color: '#334155',
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {selectedEscalation.description}
+                  </div>
+                </div>
+
+                {/* Linked Tickets */}
+                {selectedEscalation.tickets?.length > 0 && (
+                  <div>
+                    <Space align="center" style={{ marginBottom: 10 }}>
+                      <BugOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
+                      <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Linked Development Tickets</Text>
+                    </Space>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {selectedEscalation.tickets.map((t: any, idx: number) => (
+                        <Tag key={idx} color="blue" style={{ borderRadius: 4, margin: 0, padding: '4px 8px', border: '1px solid #bae6fd' }}>
+                          <Space size={4}>
+                            <Text strong style={{ fontSize: 11, color: '#0369a1' }}>{t.ticket?.ticketNumber}</Text>
+                            <Text style={{ fontSize: 11, color: '#0ea5e9' }}>{t.ticket?.title}</Text>
+                          </Space>
+                        </Tag>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Target Members */}
+                <div>
+                  <Space align="center" style={{ marginBottom: 10 }}>
+                    <UserOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
+                    <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Target Team Members</Text>
+                  </Space>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {selectedEscalation.targetMembers?.map((m: any, idx: number) => (
+                      <div key={idx} style={{
+                        padding: '4px 10px 4px 4px',
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 20,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                      }}>
+                        <Avatar size={24} style={{ backgroundColor: BLUE_PRIMARY, fontSize: 10 }}>
+                          {m.user?.name?.charAt(0)}
+                        </Avatar>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Text strong style={{ fontSize: 12, color: '#334155' }}>{m.user?.name}</Text>
+                          <Text style={{ fontSize: 10, color: '#94a3b8', background: '#f1f5f9', padding: '2px 6px', borderRadius: 10, fontWeight: 500 }}>
+                            {m.user?.position?.title || 'Member'}
+                          </Text>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Divider style={{ margin: 0 }} />
+
+                {/* Creator Audit */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f1f5f9', borderRadius: 10 }}>
+                  <Space size={10}>
+                    <Avatar size="small" src={selectedEscalation.createdBy?.avatar} style={{ backgroundColor: '#64748b' }}>
+                      {selectedEscalation.createdBy?.name?.charAt(0)}
+                    </Avatar>
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Raised By</Text>
+                      <Text strong style={{ fontSize: 12 }}>{selectedEscalation.createdBy?.name}</Text>
+                    </div>
+                  </Space>
+                  <Space size={10}>
+                    <HistoryOutlined style={{ color: '#94a3b8', fontSize: 14 }} />
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Last Updated</Text>
+                      <Text strong style={{ fontSize: 12 }}>{dayjs(selectedEscalation.updatedAt).fromNow()}</Text>
+                    </div>
+                  </Space>
+                </div>
+              </Space>
+            </div>
+          )}
+        </Drawer>
+
+        <style jsx global>{`
+          .premium-table .ant-table-thead > tr > th {
+            background: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #f1f5f9;
+          }
+          .premium-table .ant-table-tbody > tr > td {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 10px 16px;
+          }
+          .premium-table .ant-table-row:hover > td {
+            background: #f8fafc !important;
+          }
+        `}</style>
+      </div>
+    </MainLayout>
+  );
+}

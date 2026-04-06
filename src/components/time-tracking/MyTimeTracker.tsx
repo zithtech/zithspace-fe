@@ -1,14 +1,13 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
-import { Table, Tag, Button, Typography, Space, Popconfirm, App, Tabs, Card } from "antd";
-import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlayCircleOutlined, PauseCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import { TimeTrackingService, TimeTrackingEntry } from "@/services/timeTracking.service";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
 import dayjs from "dayjs";
 import Link from "next/link";
 import { PlayCircleOutlined as RunningIcon } from "@ant-design/icons";
 import { calculateNetDuration } from "@/utils/timeTrackingUtils";
+import { Table, Tag, Button, Typography, Space, Popconfirm, App, Tabs, Card, Row, Col } from "antd";
 
 const { Text } = Typography;
 
@@ -124,7 +123,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         <div>
           <div>
             {record.ticket?.title ? (
-              <Link href={`/public/tickets/${record.ticketId}`} style={{ fontWeight: 500 }}>
+              <Link href={`/tickets/${record.ticketId}`} style={{ fontWeight: 500 }}>
                 {record.ticket.title}
               </Link>
             ) : (
@@ -215,6 +214,49 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
     }
   ];
 
+  const processLogsToSessions = (logs: TimeTrackingEntry['logs'], startTime: string, endTime?: string | null) => {
+    const sessions: any[] = [];
+  
+    if (logs && logs.length > 0) {
+      const sortedLogs = [...logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      let current: any = null;
+  
+      for (const log of sortedLogs) {
+        if (log.action === 'STARTED' || log.action === 'RESUMED') {
+          current = { id: log.id, start: log.createdAt, end: null, endAction: null };
+        } else if ((log.action === 'PAUSED' || log.action === 'STOPPED') && current) {
+          current.end = log.createdAt;
+          current.endAction = log.action;
+          sessions.push(current);
+          current = null;
+        }
+      }
+  
+      if (current) {
+        if (endTime && !current.end) {
+          current.end = endTime;
+          current.endAction = 'STOPPED';
+          sessions.push(current);
+        } else {
+          sessions.push(current);
+        }
+      }
+    }
+  
+    // Fallback handles legacy/manual entries.
+    if (sessions.length === 0 && startTime && endTime) {
+      return [{
+        id: 'fallback-' + startTime,
+        start: startTime,
+        end: endTime,
+        endAction: 'STOPPED',
+        isManual: true
+      }];
+    }
+  
+    return sessions.reverse();
+  };
+
   return (
     <Card style={{
       height: '100%',
@@ -234,84 +276,112 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         rowClassName={(record) => record.status === "RUNNING" ? "running-row" : ""}
         expandable={{
           expandedRowRender: (record) => {
-            // ... (rest of the expandable code remains exactly same as user's version)
-            if (!record.logs || record.logs.length === 0) {
-              return <Text type="secondary" style={{ padding: '8px 16px', display: 'block' }}>No activity logs recorded.</Text>;
-            }
-            const sortedLogs = [...record.logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            const sessions = processLogsToSessions(record.logs, record.startTime, record.endTime);
+            const isLive = record.status === 'RUNNING';
 
-            const activityChunks = [];
-            let currentChunk: any = null;
-
-            for (const log of sortedLogs) {
-              if (log.action === 'STARTED' || log.action === 'RESUMED') {
-                currentChunk = {
-                  id: log.id,
-                  action: log.action === 'STARTED' ? 'Initial Session' : 'Resumed Session',
-                  startTime: log.createdAt,
-                  endTime: null,
-                  duration: null
-                };
-              } else if ((log.action === 'PAUSED' || log.action === 'STOPPED') && currentChunk) {
-                currentChunk.endTime = log.createdAt;
-                const start = new Date(currentChunk.startTime).getTime();
-                const end = new Date(currentChunk.endTime).getTime();
-                currentChunk.duration = Math.floor((end - start) / 1000);
-
-                activityChunks.push(currentChunk);
-                currentChunk = null;
-              }
-            }
-            if (currentChunk) {
-              activityChunks.push(currentChunk);
-            }
-
-            activityChunks.reverse();
-
-            const logColumns = [
-              {
-                title: "Session",
-                dataIndex: "action",
-                key: "action",
-                render: (text: string) => {
-                  let color = text === 'Initial Session' ? 'blue' : 'cyan';
-                  return <Tag color={color} style={{ borderRadius: 4 }}>{text}</Tag>;
-                }
-              },
-              {
-                title: "Start Time",
-                dataIndex: "startTime",
-                key: "startTime",
-                render: (text: string) => <Text type="secondary" style={{ fontSize: 13 }}>{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text>
-              },
-              {
-                title: "End Time",
-                dataIndex: "endTime",
-                key: "endTime",
-                render: (text: string) => text ? <Text type="secondary" style={{ fontSize: 13 }}>{dayjs(text).format("MMM D, YYYY h:mm:ss A")}</Text> : <Tag color="processing" icon={<PlayCircleOutlined />} style={{ borderRadius: 4 }}>Running</Tag>
-              },
-              {
-                title: "Duration",
-                dataIndex: "duration",
-                key: "duration",
-                render: (val: number | null) => val !== null ? <Text strong>{formatDuration(val)}</Text> : <Text type="secondary">-</Text>
-              }
-            ];
             return (
-              <div style={{ padding: '24px 32px', background: '#ffffff' }}>
-                <Text strong style={{ marginBottom: 16, display: 'block', color: '#64748b', fontSize: 11, letterSpacing: '0.05em' }}>DETAILED ACTIVITY HISTORY</Text>
-                <Table
-                  columns={logColumns}
-                  dataSource={activityChunks}
-                  rowKey="id"
-                  pagination={false}
-                  size="small"
-                  style={{ background: 'transparent' }}
-                />
+              <div style={{ padding: '20px 32px', backgroundColor: '#fff', borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ClockCircleOutlined style={{ color: '#1677ff', fontSize: 14 }} />
+                  <Text strong style={{ fontSize: 12, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
+                </div>
+        
+                <div style={{ position: 'relative', paddingLeft: 24 }}>
+                  {/* Vertical Line */}
+                  <div style={{
+                    position: 'absolute',
+                    left: 5,
+                    top: 6,
+                    bottom: 6,
+                    width: 1.5,
+                    background: 'linear-gradient(to bottom, #1677ff, #f1f5f9)',
+                    borderRadius: 1
+                  }} />
+        
+                  {sessions.map((session, idx) => {
+                    const sessionIsLive = !session.end && isLive;
+                    return (
+                      <div key={`${session.id}-${idx}`} style={{ position: 'relative', marginBottom: 16 }}>
+                        {/* Timeline Node */}
+                        <div style={{
+                          position: 'absolute',
+                          left: -24,
+                          top: 4,
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          background: sessionIsLive ? '#10b981' : session.endAction === 'PAUSED' ? '#f59e0b' : '#1677ff',
+                          border: '3px solid #fff',
+                          boxShadow: '0 0 0 1px #e0e7ff',
+                          zIndex: 2
+                        }} />
+        
+                        <div style={{ 
+                          padding: '12px 16px', 
+                          background: '#f8fafc', 
+                          borderRadius: 12, 
+                          border: '1px solid #e2e8f0',
+                          transition: 'all 0.2s ease'
+                        }}>
+                          <Row gutter={12} align="middle">
+                            <Col flex="auto">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
+                                  {dayjs(session.start).format("h:mm:ss A")} - {session.end ? dayjs(session.end).format("h:mm:ss A") : "Running"}
+                                </Text>
+                                <Tag color={sessionIsLive ? 'processing' : session.endAction === 'PAUSED' ? 'warning' : 'default'} style={{ borderRadius: 4, fontSize: 9, height: 16, lineHeight: '14px', padding: '0 4px', margin: 0 }}>
+                                  {sessionIsLive ? 'LIVE' : session.endAction === 'PAUSED' ? 'PAUSED' : 'STOPPED'}
+                                </Tag>
+                              </div>
+        
+                              <div style={{ marginBottom: 0 }}>
+                                {record.ticket?.title ? (
+                                  <Link href={`/tickets/${record.ticketId}`}>
+                                    <Text strong style={{ fontSize: 13, color: '#1e293b', cursor: 'pointer' }}>{record.ticket.title}</Text>
+                                  </Link>
+                                ) : (
+                                  <Text strong style={{ fontSize: 13, color: '#1e293b' }}>{record.description || "No description provided"}</Text>
+                                )}
+                              </div>
+                            </Col>
+        
+                            <Col style={{ textAlign: 'right' }}>
+                              <div style={{ 
+                                padding: '4px 12px', 
+                                background: sessionIsLive ? '#f0fdf4' : '#fff', 
+                                borderRadius: 8, 
+                                color: sessionIsLive ? '#16a34a' : '#475569', 
+                                fontWeight: 700, 
+                                fontSize: 13, 
+                                fontFamily: 'monospace',
+                                border: '1px solid ' + (sessionIsLive ? '#bcf0da' : '#e2e8f0')
+                              }}>
+                                {(() => {
+                                  const start = new Date(session.start).getTime();
+                                  const end = session.end ? new Date(session.end).getTime() : new Date().getTime();
+                                  const diff = Math.floor((end - start) / 1000);
+                                  const h = Math.floor(diff / 3600);
+                                  const m = Math.floor((diff % 3600) / 60);
+                                  const s = diff % 60;
+                                  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                                })()}
+                              </div>
+                            </Col>
+                          </Row>
+                        </div>
+                      </div>
+                    );
+                  })}
+        
+                  {sessions.length === 0 && (
+                    <div style={{ color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No activity recorded for this period.</div>
+                  )}
+                </div>
               </div>
             );
           }
         }}
+
       />
       <style jsx global>{`
         .ant-table-thead > tr > th {

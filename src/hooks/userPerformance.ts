@@ -764,6 +764,7 @@ import TicketService from "@/services/ticketService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { TimeTrackingService } from "@/services/timeTracking.service";
 import { ProjectService } from "@/services/projectService";
+import { EscalationService, Escalation } from "@/services/escalationService";
 import dayjs from "dayjs";
 
 interface PerformanceFilters {
@@ -830,7 +831,7 @@ export const usePerformance = (filters: PerformanceFilters) => {
 
     console.log("Fetching data for:", { startDate, endDate });
 
-    const [ticketsRes, updatesRes, timeTrackingRes, projectsRes] = await Promise.all([
+    const [ticketsRes, updatesRes, timeTrackingRes, projectsRes, escalationsRes] = await Promise.all([
       TicketService.getTickets({
         assigneeId: userId,
         limit: 1000
@@ -862,8 +863,18 @@ export const usePerformance = (filters: PerformanceFilters) => {
       }).catch((err: any) => {
         console.error("Error fetching assigned projects:", err);
         return { data: [] };
+      }),
+
+      EscalationService.getEscalations({
+        userId: userId,
+        startDate,
+        endDate,
+      }).catch((err: any) => {
+        console.error("Error fetching escalations:", err);
+        return { success: false, data: [] };
       })
     ]);
+
 
     // AFTER getting tickets from API
     const allTickets = (ticketsRes?.data || []) as Ticket[];
@@ -1030,6 +1041,35 @@ export const usePerformance = (filters: PerformanceFilters) => {
       .filter(date => !dailyMap.has(date) || !dailyMap.get(date)?.eod)
       .map(date => ({ key: `eod-${date}`, date, type: 'EOD', status: 'Missed' }));
 
+    // 4. Detailed Performance Calculation (Unified 0-100 Score)
+    const totalTickets = total;
+    const completedTickets = completed;
+    const onTimeTickets = onTime;
+    const notTrackedTickets = untracked;
+    const missedEODCount = missedEOD.length;
+    const totalEscalations = (escalationsRes?.data || []).length;
+
+    // Step 1: Ticket-Based Scores
+    const completionScore = totalTickets > 0 ? (completedTickets / totalTickets) * 100 : 0;
+    const timelinessScore = totalTickets > 0 ? (onTimeTickets / totalTickets) * 100 : 0;
+    const trackingScore = totalTickets > 0 ? Math.max(0, (totalTickets - notTrackedTickets) / totalTickets) * 100 : 0;
+
+    // Step 2: Weighted Ticket Score (50% Completion, 40% Timeliness, 10% Tracking)
+    const ticketScore = (completionScore * 0.5) + (timelinessScore * 0.4) + (trackingScore * 0.1);
+
+    // Step 3: Penalties
+    const eodPenalty = Math.min(missedEODCount * 0.75, 15);
+    const escalationPenalty = Math.min(totalEscalations * 2.5, 25);
+
+    // Step 4: Final Performance Score
+    let finalScore = totalTickets > 0 ? (ticketScore - eodPenalty - escalationPenalty) : 0;
+    
+    // Step 5: Boundary Conditions
+    finalScore = Math.max(0, Math.min(100, finalScore));
+
+    // Round values to 2 decimal places
+    const round = (val: number) => Math.round(val * 100) / 100;
+
     // Return the data
     return {
       tickets: {
@@ -1041,6 +1081,10 @@ export const usePerformance = (filters: PerformanceFilters) => {
           onTime,
           late,
           untracked,
+          completionScore: round(completionScore),
+          timelinessScore: round(timelinessScore),
+          trackingScore: round(trackingScore),
+          ticketScore: round(ticketScore),
         },
         details,
         distribution: [
@@ -1054,6 +1098,8 @@ export const usePerformance = (filters: PerformanceFilters) => {
           bod: bodCount,
           eod: eodCount,
           total: workingDays.length,
+          missedEOD: missedEODCount,
+          eodPenalty: round(eodPenalty),
         },
         logs: updatesList,
         missedBOD,
@@ -1065,6 +1111,31 @@ export const usePerformance = (filters: PerformanceFilters) => {
         name: p.name,
         code: p.code,
       })) || [],
+      escalations: {
+        summary: {
+          total: totalEscalations,
+          open: (escalationsRes?.data || []).filter(e => e.status === 'OPEN').length,
+          resolved: (escalationsRes?.data || []).filter(e => e.status === 'RESOLVED' || e.status === 'CLOSED').length,
+          penalty: round(escalationPenalty),
+        },
+        details: (escalationsRes?.data || []).map(e => ({
+          id: e.id,
+          subject: e.subject,
+          status: e.status,
+          priority: e.priority?.name,
+          category: e.category?.name,
+          createdAt: e.createdAt,
+        }))
+      },
+      performance: {
+        score: round(finalScore),
+        ticketScore: round(ticketScore),
+        eodPenalty: round(eodPenalty),
+        escalationPenalty: round(escalationPenalty),
+        completionScore: round(completionScore),
+        timelinessScore: round(timelinessScore),
+        trackingScore: round(trackingScore)
+      }
     };
   };
 

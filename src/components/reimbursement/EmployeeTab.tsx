@@ -256,8 +256,8 @@ export default function EmployeeTab() {
     return (
       <div style={{ padding: "12px 24px 24px 64px", background: "#f8fafc" }}>
         <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-          <ClipboardList size={16} style={{ color: "#64748b" }} />
-          <Text strong style={{ color: "#64748b", fontSize: 13 }}>Expense Items</Text>
+          {/* <ClipboardList size={16} style={{ color: "#64748b" }} />
+          <Text strong style={{ color: "#64748b", fontSize: 13 }}>Expense Items</Text> */}
         </div>
         <Table
           columns={childColumns}
@@ -543,7 +543,7 @@ export default function EmployeeTab() {
           <div className="py-6 text-center">
             {selectedApproverItem.approverDetails?.name ? (
               <div>
-                <div style={{ width: 80, height: 80, background: "#f0f9ff", borderRadius: "50%", display: "flex", alignItems: "center", justifyCenter: "center", margin: "0 auto 16px" }}>
+                <div style={{ width: 80, height: 80, background: "#f0f9ff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                   <UserOutlined style={{ fontSize: 32, color: "#0369a1" }} />
                 </div>
                 <Text style={{ color: "#64748b", fontSize: 13, display: "block", marginBottom: 4 }}>Designated Approver</Text>
@@ -553,7 +553,7 @@ export default function EmployeeTab() {
               </div>
             ) : (
               <div>
-                <div style={{ width: 80, height: 80, background: "#f8fafc", borderRadius: "50%", display: "flex", alignItems: "center", justifyCenter: "center", margin: "0 auto 16px" }}>
+                <div style={{ width: 80, height: 80, background: "#f8fafc", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                   <UserOutlined style={{ fontSize: 32, color: "#94a3b8" }} />
                 </div>
                 <Text style={{ color: "#64748b", fontSize: 13, display: "block", marginBottom: 4 }}>Role-based Approver</Text>

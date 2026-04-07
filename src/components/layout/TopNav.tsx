@@ -482,6 +482,8 @@ export default function TopNav({
         {!isCustomBreakpoint ? (
           <>
             <TimeTrackerPopover />
+
+
             <Button
               type="text"
               icon={<MailOutlined />}
@@ -537,67 +539,61 @@ export default function TopNav({
             </Dropdown>
           </>
         ) : (
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'timer',
-                  label: <TimeTrackerPopover isMenuItem />,
-                  onClick: () => setPopoverOpen(true)
+          <Space size={isSmallMobile ? 4 : 8}>
+            <Inbox
+              applicationIdentifier="67g_5lVLFWvd"
+              subscriberId={user?.id}
+              socketUrl="wss://socket.novu.co"
+              appearance={{
+                variables: {
+                  colorPrimary: "#DD2450",
+                  colorForeground: "#0E121B",
                 },
-                {
-                  key: 'mail',
-                  label: 'Mail',
-                  icon: <MailOutlined />,
-                  onClick: () => router.push('/mail')
-                },
-                {
-                  key: 'calendar',
-                  label: 'Calendar',
-                  icon: <CalendarOutlined />,
-                  onClick: () => router.push('/calendar')
-                },
-                {
-                  key: 'chat',
-                  label: 'Messages',
-                  icon: <MessageOutlined />,
-                  onClick: () => router.push('/chat')
-                },
-                {
-                  key: 'notification',
-                  label: (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <Inbox
-                        applicationIdentifier="67g_5lVLFWvd"
-                        subscriberId={user?.id}
-                        socketUrl="wss://socket.novu.co"
-                        appearance={{
-                          variables: {
-                            colorPrimary: "#DD2450",
-                            colorForeground: "#0E121B",
-                          },
-                        }}
-                      />
-                      <span style={{ fontSize: 13, color: '#262626' }}>Notifications</span>
-                    </div>
-                  ),
-                },
-                {
-                  key: 'bookmarks',
-                  label: 'Bookmarks',
-                  icon: <StarOutlined />,
-                  onClick: (e) => {
-                    e.domEvent.stopPropagation();
-                    setShortcutPopoverVisible(true);
+              }}
+            />
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'timer',
+                    label: <TimeTrackerPopover isMenuItem />,
+                    onClick: () => setPopoverOpen(true)
+                  },
+                  {
+                    key: 'mail',
+                    label: 'Mail',
+                    icon: <MailOutlined />,
+                    onClick: () => router.push('/mail')
+                  },
+                  {
+                    key: 'calendar',
+                    label: 'Calendar',
+                    icon: <CalendarOutlined />,
+                    onClick: () => router.push('/calendar')
+                  },
+                  {
+                    key: 'chat',
+                    label: 'Messages',
+                    icon: <MessageOutlined />,
+                    onClick: () => router.push('/chat')
+                  },
+                  {
+                    key: 'bookmarks',
+                    label: 'Bookmarks',
+                    icon: <StarOutlined />,
+                    onClick: (e) => {
+                      e.domEvent.stopPropagation();
+                      setShortcutPopoverVisible(true);
+                    }
                   }
-                }
-              ]
-            }}
-            trigger={['click']}
-            placement="bottomRight"
-          >
-            <Button type="text" icon={<MoreOutlined style={{ fontSize: 20 }} />} />
-          </Dropdown>
+                ]
+              }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <Button type="text" icon={<MoreOutlined style={{ fontSize: 20 }} />} />
+            </Dropdown>
+          </Space>
         )}
 
         {/* Mobile Bookmark Modal - Ensuring bookmarks only show when specifically clicked on mobile */}
@@ -620,6 +616,7 @@ export default function TopNav({
           </Modal>
         )}
 
+
         {/* Mobile Timer Modal - Rendering form content directly for seamless mobile use */}
         {isCustomBreakpoint && (
           <Modal
@@ -628,11 +625,11 @@ export default function TopNav({
             footer={null}
             title={<div style={{ textAlign: 'center', paddingBottom: 12, borderBottom: '1px solid #f0f0f0' }}>Time Tracker</div>}
             closable={true}
-            width={340}
+            width={360}
             centered
             styles={{ body: { padding: "20px 24px" } }}
           >
-             <TimeTrackerPopover showContentOnly />
+            <TimeTrackerPopover showContentOnly />
           </Modal>
         )}
 

@@ -27,6 +27,8 @@ import {
   Row,
   Col,
   message,
+  Tooltip,
+  Tag,
 } from 'antd';
 import {
   SettingOutlined,
@@ -53,16 +55,14 @@ const { Title, Text, Paragraph } = Typography;
 // Premium UI Styles
 const styles = {
   headerSection: {
-    position: "sticky" as const,
-    top: 0,
-    zIndex: 110,
-    marginBottom: "16px",
+    marginBottom: "8px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "16px 4px",
+    padding: "20px 8px 16px 8px",
     background: "#ffffff",
     borderBottom: "1px solid #f1f5f9",
+    flex: "0 0 auto"
   },
   iconContainer: {
     width: 48,
@@ -82,12 +82,9 @@ const styles = {
     background: "#ffffff"
   },
   tabStyle: {
-    position: "sticky" as const,
-    top: "84px", // height of headerSection
-    zIndex: 100,
     background: "#ffffff",
-    marginBottom: "24px",
-    padding: "0"
+    marginBottom: "0",
+    padding: "0 8px"
   },
   locationCard: {
     padding: '20px',
@@ -157,6 +154,7 @@ function SettingsPage() {
   const [imageToCrop, setImageToCrop] = useState<string>('');
   const [cropLoading, setCropLoading] = useState(false);
   const [logoVersions, setLogoVersions] = useState<string[]>([]);
+  const [isSystemFormDirty, setIsSystemFormDirty] = useState(false);
 
   // Company locations state
   const [locations, setLocations] = useState<any[]>([]);
@@ -204,6 +202,7 @@ function SettingsPage() {
       if (profile.settings?.logoVersions) {
         setLogoVersions(profile.settings.logoVersions);
       }
+      setIsSystemFormDirty(false);
     } catch (error) {
       console.error('Failed to fetch tenant profile:', error);
     } finally {
@@ -329,6 +328,8 @@ function SettingsPage() {
       });
 
       messageApi.success('System settings updated successfully!');
+      setFileList([]);
+      setIsSystemFormDirty(false);
       fetchTenantProfile();
 
     } catch (error) {
@@ -608,13 +609,484 @@ function SettingsPage() {
     );
   }
 
+  const tabItems = [
+    {
+      key: 'system',
+      label: (
+        <Space size={8} style={{ padding: "4px 8px" }}>
+          <SettingOutlined style={{ fontSize: 16 }} />
+          <span style={{ fontWeight: 600 }}>System Information</span>
+        </Space>
+      ),
+      children: (
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          padding: "8px 4px 40px 4px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          width: "100%"
+        }}>
+          <Card
+            variant="borderless"
+            style={{ ...styles.sectionCard, width: "100%", maxWidth: 1100, marginTop: 8 }}
+            styles={{ body: { padding: "40px" } }}
+            title={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: "8px 0" }}>
+                <Space size={12}>
+                  <div style={{ ...styles.iconContainer, width: 36, height: 36, borderRadius: 10 }}>
+                    <SettingOutlined style={{ fontSize: 18 }} />
+                  </div>
+                  <div>
+                    <Text strong style={{ fontSize: 18, color: "#1e293b", display: 'block' }}>Company Branding</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Customize your workspace identity</Text>
+                  </div>
+                </Space>
+              </div>
+            }
+          >
+            <Row gutter={40} align="top">
+              {/* Left Column: Branding Form */}
+              <Col xs={24} lg={10} xl={9}>
+                <Form
+                  form={systemForm}
+                  layout="vertical"
+                  onFinish={handleSystemSubmit}
+                  onValuesChange={() => setIsSystemFormDirty(true)}
+                >
+                  <Form.Item
+                    name="name"
+                    label={<Text strong style={{ color: '#475569' }}>Company Name</Text>}
+                    rules={[{ required: true, message: 'Please enter company name' }]}
+                  >
+                    <Input placeholder="Enter company name" style={{ height: 44, borderRadius: 10 }} />
+                  </Form.Item>
+
+                  <Form.Item
+                    label={
+                      <Space size={8}>
+                        <Text strong style={{ color: '#475569' }}>Company Logo</Text>
+                        {tenantProfile?.settings?.logoUrl && fileList.length === 0 && (
+                          <Tag color="blue" icon={<CheckCircleFilled />} style={{ margin: 0, borderRadius: 4 }}>Active</Tag>
+                        )}
+                      </Space>
+                    }
+                    style={{ marginBottom: 32 }}
+                  >
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+                      <Upload
+                        listType="picture-card"
+                        fileList={fileList}
+                        onChange={({ fileList }) => {
+                          setFileList(fileList);
+                          setIsSystemFormDirty(true);
+                        }}
+                        beforeUpload={() => false}
+                        maxCount={1}
+                      >
+                        {fileList.length < 1 && (
+                          <div style={{ color: '#64748b' }}>
+                            <PlusOutlined style={{ fontSize: 20 }} />
+                            <div style={{ marginTop: 8, fontSize: 12, fontWeight: 500 }}>Upload</div>
+                          </div>
+                        )}
+                      </Upload>
+                      <Space direction="vertical" size={2} style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ fontSize: 12, color: '#64748b', height: '100%', display: 'flex', alignItems: 'center' }}>
+                          <div style={{ padding: '12px 16px', background: '#f8fafc', borderRadius: 12, border: '1px dashed #e2e8f0', width: '100%' }}>
+                            Recommended: 200x50px transparent PNG. Max 2MB.
+                          </div>
+                        </div>
+                      </Space>
+                    </div>
+                  </Form.Item>
+
+                  <Form.Item style={{ marginBottom: 0 }}>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={formLoading}
+                      disabled={!isSystemFormDirty}
+                      size="large"
+                      block
+                      style={{
+                        borderRadius: 12,
+                        height: 50,
+                        fontWeight: 700,
+                        background: !isSystemFormDirty ? '#cbd5e1' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                        border: 'none',
+                        boxShadow: !isSystemFormDirty ? 'none' : "0 4px 12px rgba(37, 99, 235, 0.2)"
+                      }}
+                    >
+                      Save Branding
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </Col>
+
+              {/* Right Column: Logo Versions List */}
+              <Col xs={24} lg={14} xl={15} style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: 40 }}>
+                <div style={{ marginBottom: 24 }}>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Logo Assets</Title>
+                  <Text type="secondary" style={{ fontSize: 13 }}>Previously generated logo versions. Set any version as your primary logo.</Text>
+                </div>
+
+                {logoVersions.length > 0 ? (
+                  <div style={{
+                    background: '#f8fafc',
+                    borderRadius: 16,
+                    padding: 24,
+                    border: '1px solid #f1f5f9',
+                    width: '100%'
+                  }}>
+                    <Row gutter={[16, 16]}>
+                      {logoVersions.map((url, index) => (
+                        <Col key={index} span={12}>
+                          <Card
+                            hoverable
+                            styles={{ body: { padding: 12 } }}
+                            style={{
+                              borderRadius: "12px",
+                              overflow: 'hidden',
+                              border: tenantProfile?.settings?.logoUrl === url ? '2px solid #2563eb' : '1px solid #f1f5f9',
+                              position: 'relative',
+                              background: '#fff'
+                            }}
+                          >
+                            {tenantProfile?.settings?.logoUrl === url && (
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+                                <Tag color="blue" icon={<CheckCircleFilled />} style={{ borderRadius: 6, margin: 0, fontWeight: 700, fontSize: 10 }}>
+                                  Active
+                                </Tag>
+                              </div>
+                            )}
+                            <div style={{
+                              height: 80,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 8,
+                              background: '#fcfdfe',
+                              borderRadius: 8,
+                              marginBottom: 12,
+                              border: '1px solid #f8fafc'
+                            }}>
+                              <img src={url} alt={`Version ${index}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Space size={6}>
+                                <Tooltip title="Crop/Edit">
+                                  <Button
+                                    size="small"
+                                    type="text"
+                                    icon={<EditOutlined style={{ color: '#3b82f6' }} />}
+                                    onClick={() => {
+                                      setImageToCrop(url);
+                                      setIsCropperVisible(true);
+                                    }}
+                                    style={{ background: '#eff6ff', borderRadius: 8 }}
+                                  />
+                                </Tooltip>
+                                {tenantProfile?.settings?.logoUrl !== url && (
+                                  <Button
+                                    size="small"
+                                    type="link"
+                                    style={{ fontSize: 11, fontWeight: 600, padding: 0 }}
+                                    onClick={() => handleSetAsFinal(url)}
+                                  >
+                                    Use Logo
+                                  </Button>
+                                )}
+                              </Space>
+                              <Popconfirm
+                                title="Delete version?"
+                                onConfirm={() => handleDeleteVersion(url)}
+                                okText="Delete"
+                                cancelText="No"
+                                okButtonProps={{ danger: true, size: 'small' }}
+                              >
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined style={{ fontSize: 13 }} />}
+                                  style={{ borderRadius: 8 }}
+                                />
+                              </Popconfirm>
+                            </div>
+                          </Card>
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '60px 40px',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    borderRadius: 16,
+                    border: '1px dashed #e2e8f0'
+                  }}>
+                    <div style={{ color: '#cbd5e1', marginBottom: 16 }}>
+                      <PlusOutlined style={{ fontSize: 32 }} />
+                    </div>
+                    <Text type="secondary">Generated logo versions will appear here.</Text>
+                  </div>
+                )}
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Cropper Modal */}
+          <LogoCropper
+            image={imageToCrop}
+            open={isCropperVisible}
+            onClose={() => setIsCropperVisible(false)}
+            onCropComplete={handleCropComplete}
+            loading={cropLoading}
+          />
+        </div>
+      )
+    },
+    {
+      key: 'location',
+      label: (
+        <Space size={8} style={{ padding: "4px 8px" }}>
+          <EnvironmentOutlined style={{ fontSize: 16 }} />
+          <span style={{ fontWeight: 600 }}>Company Location</span>
+        </Space>
+      ),
+      children: (
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 4px 40px 4px" }}>
+          <div style={{ padding: "8px 4px 24px 4px" }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 20,
+              background: '#f8fafc',
+              padding: '16px 24px',
+              borderRadius: '16px',
+              border: '1px solid #f1f5f9'
+            }}>
+              <Space align="center" size="middle">
+                <div style={{ ...styles.iconContainer, width: 40, height: 40, borderRadius: 10, background: '#fff' }}>
+                  <EnvironmentOutlined style={{ fontSize: 24 }} />
+                </div>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+                    Company Locations
+                  </Title>
+                  <Text style={{ color: "#64748b", fontSize: 14 }}>
+                    Manage your company office addresses and physical locations.
+                  </Text>
+                </div>
+              </Space>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={showAddLocationDrawer}
+                style={{
+                  borderRadius: 10,
+                  height: 42,
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+                }}
+              >
+                Add Location
+              </Button>
+            </div>
+
+            <Row gutter={[24, 24]}>
+              {locations.map((loc) => (
+                <Col xs={24} sm={12} lg={8} key={loc.id}>
+                  <div
+                    style={{
+                      borderRadius: 16,
+                      border: "1px solid #f1f5f9",
+                      background: "#ffffff",
+                      padding: "20px",
+                      position: "relative",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                    }}
+                  >
+                    {/* Top Right Ribbon */}
+                    <div style={{
+                      position: 'absolute',
+                      top: -4,
+                      right: -8,
+                      background: '#3b82f6',
+                      color: '#ffffff',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
+                      zIndex: 10
+                    }}>
+                      LOC
+                      <div style={{
+                        position: 'absolute',
+                        bottom: -4,
+                        right: 0,
+                        width: 0,
+                        height: 0,
+                        borderTop: '4px solid #1e3a8a',
+                        borderRight: '4px solid transparent',
+                      }} />
+                    </div>
+
+                    {/* Header Section */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      <div style={{ display: "flex", gap: 12 }}>
+                        <div style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: "50%",
+                          backgroundColor: "#eff6ff",
+                          color: "#2563eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 600,
+                          fontSize: 18,
+                          border: "1px solid #bfdbfe",
+                          flexShrink: 0
+                        }}>
+                          {loc.city ? loc.city.charAt(0).toUpperCase() : <EnvironmentOutlined />}
+                        </div>
+                        <div>
+                          <Text strong style={{ fontSize: 16, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
+                            {loc.city}, {loc.state}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: "#64748b" }}>
+                            {loc.country}
+                          </Text>
+                        </div>
+                      </div>
+                      <Space size={2} style={{ marginRight: 24 }}>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<EditOutlined style={{ color: '#64748b' }} />}
+                          onClick={() => showEditLocationDrawer(loc)}
+                        />
+                        <Popconfirm
+                          title="Delete location?"
+                          onConfirm={() => handleDeleteLocation(loc.id)}
+                          okText="Yes"
+                          cancelText="No"
+                        >
+                          <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
+                        </Popconfirm>
+                      </Space>
+                    </div>
+
+                    {/* Pills Section */}
+                    <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                      <div style={{
+                        background: "#f8fafc",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        border: "1px solid #f1f5f9"
+                      }}>
+                        <EnvironmentOutlined style={{ color: "#3b82f6", fontSize: 14 }} />
+                        <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.pincode}</Text>
+                      </div>
+                      <div style={{
+                        background: "#f8fafc",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        border: "1px solid #f1f5f9"
+                      }}>
+                        <EnvironmentOutlined style={{ color: "#8b5cf6", fontSize: 14 }} />
+                        <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.area}</Text>
+                      </div>
+                    </div>
+
+                    {/* Grey Section (Tasks equivalent) */}
+                    <div style={{
+                      background: "#f8fafc",
+                      borderRadius: "12px",
+                      padding: "16px",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                        <div style={{ width: 16, height: 16, borderRadius: "4px", background: "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                          </svg>
+                        </div>
+                        <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Address Details</Text>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1", flexShrink: 0 }} />
+                        <Text style={{ fontSize: 13, color: "#334155" }}>
+                          {loc.flatNumber}, {loc.street}
+                        </Text>
+                      </div>
+                    </div>
+
+                    {/* Footer Section equivalent */}
+                    <div style={{
+                      marginTop: 16,
+                      paddingTop: 16,
+                      borderTop: "1px solid #f1f5f9",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}>
+                      <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+                        Status
+                      </Text>
+                      <Text style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
+
+
+                      </Text>
+                    </div>
+                  </div>
+                </Col>
+              ))}
+              {locations.length === 0 && (
+                <Col span={24}>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '48px',
+                    background: '#f8fafc',
+                    borderRadius: '16px',
+                    border: '2px dashed #e2e8f0'
+                  }}>
+                    <EnvironmentOutlined style={{ fontSize: 48, color: '#cbd5e1', marginBottom: 16 }} />
+                    <Title level={5} style={{ color: '#64748b' }}>No locations added yet</Title>
+                    <Button type="link" onClick={showAddLocationDrawer}>Add your first location</Button>
+                  </div>
+                </Col>
+              )}
+            </Row>
+          </div>
+        </div>
+      )
+    },
+  ];
+
   return (
     <MainLayout>
       {contextHolder}
       <div style={{
-        padding: "0 24px 24px 24px",
-        minHeight: "100%",
-        background: "#ffffff"
+        padding: "0 24px",
+        height: "calc(100vh - 64px)",
+        background: "#ffffff",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
       }}>
         {/* Premium Header */}
         <div style={styles.headerSection}>
@@ -645,443 +1117,18 @@ function SettingsPage() {
             borderBottom: "1px solid rgba(0,0,0,0.05)",
             padding: "0 4px"
           }}
-          style={{ margin: "0 auto" }}
-        >
-          <Tabs.TabPane
-            tab={
-              <Space size={8} style={{ padding: "4px 8px" }}>
-                <SettingOutlined style={{ fontSize: 16 }} />
-                <span style={{ fontWeight: 600 }}>System Information</span>
-              </Space>
-            }
-            key="system"
-          >
-            <Card
-              bordered={false}
-              style={{ ...styles.sectionCard, maxWidth: 850, marginTop: 8 }}
-              styles={{ body: { padding: "32px" } }}
-              title={
-                <Space size={10} style={{ padding: "12px 0" }}>
-                  <div style={{ ...styles.iconContainer, width: 32, height: 32, borderRadius: 8 }}>
-                    <SettingOutlined style={{ fontSize: 16 }} />
-                  </div>
-                  <span style={{ fontWeight: 700, color: "#334155" }}>Company Branding</span>
-                </Space>
-              }
-            >
-              <Form
-                form={systemForm}
-                layout="vertical"
-                onFinish={handleSystemSubmit}
-              >
-                <Form.Item
-                  name="name"
-                  label="Company Name"
-                  rules={[{ required: true, message: 'Please enter company name' }]}
-                >
-                  <Input placeholder="Enter company name" />
-                </Form.Item>
+          style={{
+            margin: 0,
+            width: "100%",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden"
+          }}
+          className="settings-tabs"
+          items={tabItems}
+        />
 
-                <Form.Item label="Company Logo">
-                  <Upload
-                    listType="picture-card"
-                    fileList={fileList}
-                    onChange={({ fileList }) => setFileList(fileList)}
-                    beforeUpload={() => false} // Prevent auto upload
-                    maxCount={1}
-                  >
-                    {fileList.length < 1 && (
-                      <div>
-                        <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
-                      </div>
-                    )}
-                  </Upload>
-                  <Space direction="vertical" style={{ width: '100%', marginTop: 8 }}>
-                    {fileList.length > 0 && fileList[0].status === 'done' && (
-                      <div style={{ width: 'fit-content', marginTop: 8 }}>
-                        <EditOutlined
-                          style={{
-                            cursor: 'pointer',
-                            color: '#2563eb',
-                            fontSize: 18,
-                            padding: '6px',
-                            borderRadius: '8px',
-                            transition: 'all 0.2s',
-                            background: '#eff6ff',
-                            border: '1px dashed #bfdbfe'
-                          }}
-                          onClick={() => {
-                            if (fileList[0].url) {
-                              setImageToCrop(fileList[0].url);
-                              setIsCropperVisible(true);
-                            }
-                          }}
-                          title="Edit / Crop Logo"
-                        />
-                      </div>
-                    )}
-                    <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                      Recommended size: 200x50px. Max size: 2MB.
-                    </Text>
-                  </Space>
-                </Form.Item>
-
-                <Form.Item style={{ marginTop: 24, marginBottom: 0 }}>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={formLoading}
-                    size="large"
-                    style={{
-                      borderRadius: 10,
-                      height: 48,
-                      padding: "0 32px",
-                      fontWeight: 600,
-                      boxShadow: "0 4px 12px rgba(22, 119, 255, 0.2)"
-                    }}
-                  >
-                    Save Changes
-                  </Button>
-                </Form.Item>
-              </Form>
-
-              {/* Logo Versions Gallery */}
-              {logoVersions.length > 0 && (
-                <div style={{ marginTop: 48, borderTop: '1px solid #f1f5f9', paddingTop: 32 }}>
-                  <div style={{ marginBottom: 24 }}>
-                    <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#334155" }}>Logo Versions</Title>
-                    <Text type="secondary" style={{ fontSize: 13 }}>Previously uploaded and cropped versions for branding.</Text>
-                  </div>
-                  <Row gutter={[16, 16]}>
-                    {logoVersions.map((url, index) => (
-                      <Col key={index} style={{ flex: '0 0 20%', maxWidth: '20%' }}>
-                        <Card
-                          hoverable
-                          styles={{ body: { padding: 0 } }}
-                          style={{
-                            borderRadius: "14px",
-                            overflow: 'hidden',
-                            borderColor: tenantProfile?.settings?.logoUrl === url ? '#2563eb' : '#f1f5f9',
-                            borderWidth: tenantProfile?.settings?.logoUrl === url ? 2 : 1,
-                            transition: "all 0.3s ease",
-                            position: 'relative',
-                          }}
-                        >
-                          {tenantProfile?.settings?.logoUrl === url && (
-                            <CheckCircleFilled style={{
-                              position: 'absolute',
-                              top: 8,
-                              right: 8,
-                              color: '#1677ff',
-                              fontSize: 18,
-                              zIndex: 1,
-                              background: '#fff',
-                              borderRadius: '50%'
-                            }} />
-                          )}
-                          <div style={{
-                            height: 100,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: '#f9f9f9',
-                            padding: 12
-                          }}>
-                            <img src={url} alt={`Version ${index}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                          </div>
-                          <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <EditOutlined
-                                style={{
-                                  cursor: 'pointer',
-                                  color: '#2563eb',
-                                  fontSize: 15,
-                                  padding: '4px',
-                                  borderRadius: '6px',
-                                  transition: 'all 0.2s',
-                                  background: '#eff6ff'
-                                }}
-                                onClick={() => {
-                                  setImageToCrop(url);
-                                  setIsCropperVisible(true);
-                                }}
-                                title="Edit / Crop"
-                              />
-                              {tenantProfile?.settings?.logoUrl !== url && (
-                                <Button
-                                  size="small"
-                                  type="primary"
-                                  ghost
-                                  style={{ fontSize: 11, borderRadius: 6 }}
-                                  onClick={() => handleSetAsFinal(url)}
-                                >
-                                  Set Final
-                                </Button>
-                              )}
-                            </div>
-
-                            <div style={{ padding: '0 4px' }}>
-                              <Popconfirm
-                                title="Delete logo version?"
-                                description="Are you sure?"
-                                onConfirm={() => handleDeleteVersion(url)}
-                                okText="Yes"
-                                cancelText="No"
-                                okButtonProps={{ danger: true }}
-                              >
-                                <DeleteOutlined
-                                  style={{
-                                    cursor: 'pointer',
-                                    color: '#ef4444',
-                                    fontSize: 15,
-                                    transition: 'all 0.2s'
-                                  }}
-                                  title="Delete Version"
-                                />
-                              </Popconfirm>
-                            </div>
-                          </div>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-                </div>
-              )}
-            </Card>
-
-            {/* Cropper Modal */}
-            <LogoCropper
-              image={imageToCrop}
-              open={isCropperVisible}
-              onClose={() => setIsCropperVisible(false)}
-              onCropComplete={handleCropComplete}
-              loading={cropLoading}
-            />
-          </Tabs.TabPane>
-
-          <Tabs.TabPane
-            tab={
-              <Space size={8} style={{ padding: "4px 8px" }}>
-                <EnvironmentOutlined style={{ fontSize: 16 }} />
-                <span style={{ fontWeight: 600 }}>Company Location</span>
-              </Space>
-            }
-            key="location"
-          >
-            <div style={{ padding: "8px 4px 24px 4px" }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-                background: '#f8fafc',
-                padding: '16px 24px',
-                borderRadius: '16px',
-                border: '1px solid #f1f5f9'
-              }}>
-                <Space align="center" size="middle">
-                  <div style={{ ...styles.iconContainer, width: 40, height: 40, borderRadius: 10, background: '#fff' }}>
-                    <EnvironmentOutlined style={{ fontSize: 24 }} />
-                  </div>
-                  <div>
-                    <Title level={4} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
-                      Company Locations
-                    </Title>
-                    <Text style={{ color: "#64748b", fontSize: 14 }}>
-                      Manage your company office addresses and physical locations.
-                    </Text>
-                  </div>
-                </Space>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={showAddLocationDrawer}
-                  style={{
-                    borderRadius: 10,
-                    height: 42,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
-                  }}
-                >
-                  Add Location
-                </Button>
-              </div>
-
-              <Row gutter={[24, 24]}>
-                {locations.map((loc) => (
-                  <Col xs={24} sm={12} lg={8} key={loc.id}>
-                    <div
-                      style={{
-                        borderRadius: 16,
-                        border: "1px solid #f1f5f9",
-                        background: "#ffffff",
-                        padding: "20px",
-                        position: "relative",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                      }}
-                    >
-                      {/* Top Right Ribbon */}
-                      <div style={{
-                        position: 'absolute',
-                        top: -4,
-                        right: -8,
-                        background: '#3b82f6',
-                        color: '#ffffff',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        letterSpacing: '0.05em',
-                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
-                        zIndex: 10
-                      }}>
-                        LOC
-                        <div style={{
-                          position: 'absolute',
-                          bottom: -4,
-                          right: 0,
-                          width: 0,
-                          height: 0,
-                          borderTop: '4px solid #1e3a8a',
-                          borderRight: '4px solid transparent',
-                        }} />
-                      </div>
-
-                      {/* Header Section */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                        <div style={{ display: "flex", gap: 12 }}>
-                          <div style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: "50%",
-                            backgroundColor: "#eff6ff",
-                            color: "#2563eb",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 600,
-                            fontSize: 18,
-                            border: "1px solid #bfdbfe",
-                            flexShrink: 0
-                          }}>
-                            {loc.city ? loc.city.charAt(0).toUpperCase() : <EnvironmentOutlined />}
-                          </div>
-                          <div>
-                            <Text strong style={{ fontSize: 16, color: "#1e293b", display: "block", lineHeight: 1.2 }}>
-                              {loc.city}, {loc.state}
-                            </Text>
-                            <Text style={{ fontSize: 13, color: "#64748b" }}>
-                              {loc.country}
-                            </Text>
-                          </div>
-                        </div>
-                        <Space size={2} style={{ marginRight: 24 }}>
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined style={{ color: '#64748b' }} />}
-                            onClick={() => showEditLocationDrawer(loc)}
-                          />
-                          <Popconfirm
-                            title="Delete location?"
-                            onConfirm={() => handleDeleteLocation(loc.id)}
-                            okText="Yes"
-                            cancelText="No"
-                          >
-                            <Button type="text" size="small" icon={<DeleteOutlined style={{ color: '#ef4444' }} />} />
-                          </Popconfirm>
-                        </Space>
-                      </div>
-
-                      {/* Pills Section */}
-                      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-                        <div style={{
-                          background: "#f8fafc",
-                          padding: "4px 10px",
-                          borderRadius: "6px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          border: "1px solid #f1f5f9"
-                        }}>
-                          <EnvironmentOutlined style={{ color: "#3b82f6", fontSize: 14 }} />
-                          <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.pincode}</Text>
-                        </div>
-                        <div style={{
-                          background: "#f8fafc",
-                          padding: "4px 10px",
-                          borderRadius: "6px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          border: "1px solid #f1f5f9"
-                        }}>
-                          <EnvironmentOutlined style={{ color: "#8b5cf6", fontSize: 14 }} />
-                          <Text style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{loc.area}</Text>
-                        </div>
-                      </div>
-
-                      {/* Grey Section (Tasks equivalent) */}
-                      <div style={{
-                        background: "#f8fafc",
-                        borderRadius: "12px",
-                        padding: "16px",
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                          <div style={{ width: 16, height: 16, borderRadius: "4px", background: "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                            </svg>
-                          </div>
-                          <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Address Details</Text>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1", flexShrink: 0 }} />
-                          <Text style={{ fontSize: 13, color: "#334155" }}>
-                            {loc.flatNumber}, {loc.street}
-                          </Text>
-                        </div>
-                      </div>
-
-                      {/* Footer Section equivalent */}
-                      <div style={{
-                        marginTop: 16,
-                        paddingTop: 16,
-                        borderTop: "1px solid #f1f5f9",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center"
-                      }}>
-                        <Text style={{ fontSize: 11, color: "#94a3b8" }}>
-                          Status
-                        </Text>
-                        <Text style={{ fontSize: 11, color: "#64748b", fontWeight: 500 }}>
-                          ACTIVE
-                        </Text>
-                      </div>
-                    </div>
-                  </Col>
-                ))}
-                {locations.length === 0 && (
-                  <Col span={24}>
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '48px',
-                      background: '#f8fafc',
-                      borderRadius: '16px',
-                      border: '2px dashed #e2e8f0'
-                    }}>
-                      <EnvironmentOutlined style={{ fontSize: 48, color: '#cbd5e1', marginBottom: 16 }} />
-                      <Title level={5} style={{ color: '#64748b' }}>No locations added yet</Title>
-                      <Button type="link" onClick={showAddLocationDrawer}>Add your first location</Button>
-                    </div>
-                  </Col>
-                )}
-              </Row>
-            </div>
-          </Tabs.TabPane>
-        </Tabs>
 
         {/* Add Location Drawer */}
         <Drawer
@@ -1390,17 +1437,54 @@ const GlobalStyles = () => (
       transition: all 0.3s ease;
     }
 
-    /* Custom Scrollbar for Gallery */
+    /* Hide Scrollbar while maintaining scrolling functionality */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      display: none !important;
     }
-    ::-webkit-scrollbar-thumb {
-      background: #e2e8f0;
-      border-radius: 10px;
+    
+    * {
+      -ms-overflow-style: none !important;  /* IE and Edge */
+      scrollbar-width: none !important;     /* Firefox */
     }
-    ::-webkit-scrollbar-track {
-      background: transparent;
+
+    /* Fixed Header/Tabs & Internal Content Scrolling (AntD 5.x) */
+    .settings-tabs {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+    
+    .settings-tabs .ant-tabs-nav {
+        flex: 0 0 auto !important;
+        background: #fff !important;
+        z-index: 10 !important;
+    }
+
+    .settings-tabs .ant-tabs-content-holder {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .settings-tabs .ant-tabs-content {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+    
+    .settings-tabs .ant-tabs-tabpane-active {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        overflow: hidden !important;
     }
   `}} />
 );

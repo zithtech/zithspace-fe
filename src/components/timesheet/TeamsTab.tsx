@@ -344,6 +344,10 @@ export default function TeamsTab({
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Select
             mode="multiple"
+            showSearch
+            filterOption={(input, option) =>
+              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
             placeholder="Search members..."
             style={{ width: 220, height: 44 }}
             className="custom-select-44"

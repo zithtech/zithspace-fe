@@ -4,17 +4,17 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
-import { 
-  Settings2, 
-  ShieldCheck, 
-  Plus, 
-  Search, 
-  LayoutGrid, 
-  LayoutList, 
-  CheckCircle2, 
-  AlertCircle, 
-  XCircle, 
-  ChevronRight, 
+import {
+  Settings2,
+  ShieldCheck,
+  Plus,
+  Search,
+  LayoutGrid,
+  LayoutList,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  ChevronRight,
   ArrowRight,
   User,
   GraduationCap,
@@ -112,11 +112,11 @@ const LeaveConfigListContent = ({
     <div style={{ marginTop: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <Text strong style={{ color: "#334155", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.025em" }}>Current Rules</Text>
-        <Button 
-          type="link" 
-          icon={<Plus size={14} />} 
-          onClick={() => add()} 
-          size="small" 
+        <Button
+          type="link"
+          icon={<Plus size={14} />}
+          onClick={() => add()}
+          size="small"
           style={{ padding: 0 }}
         >
           Add Rule
@@ -142,12 +142,12 @@ const LeaveConfigListContent = ({
                 onConfirm={() => remove(name)}
                 onCancel={(e) => e?.stopPropagation()}
               >
-                <Trash2 
-                  size={14} 
-                  style={{ color: "#94a3b8", transition: "0.2s" }} 
+                <Trash2
+                  size={14}
+                  style={{ color: "#94a3b8", transition: "0.2s" }}
                   onMouseEnter={(e: any) => e.target.style.color = "#ef4444"}
                   onMouseLeave={(e: any) => e.target.style.color = "#94a3b8"}
-                  onClick={(e) => e.stopPropagation()} 
+                  onClick={(e) => e.stopPropagation()}
                 />
               </Popconfirm>
             ),
@@ -228,10 +228,10 @@ const LeaveConfigListContent = ({
                 </div>
               </div>
             ),
-            style: { 
-              marginBottom: 8, 
-              background: "#ffffff", 
-              borderRadius: 12, 
+            style: {
+              marginBottom: 8,
+              background: "#ffffff",
+              borderRadius: 12,
               border: "1px solid #f1f5f9",
               overflow: "hidden"
             }
@@ -247,7 +247,7 @@ export default function LeavePolicyPage() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
-  
+
   const [viewType, setViewType] = useState<string>("table");
   const [searchText, setSearchText] = useState("");
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
@@ -315,6 +315,27 @@ export default function LeavePolicyPage() {
     return Object.values(acc);
   }, [dataSource]);
 
+  const getSubOriginLabel = (origin: string, subOriginId?: string) => {
+    let label = subOriginId || "";
+    if (origin === "User") label = members.find(m => String(m.value) === String(subOriginId))?.label as string || label;
+    else if (origin === "Grade") label = grades.find(g => String(g.id) === String(subOriginId))?.name || label;
+    else if (origin === "Department") label = departments.find(d => String(d.id) === String(subOriginId))?.name || label;
+    else if (origin === "Sub-department") label = subDepartments.find(sd => String(sd.id) === String(subOriginId))?.name || label;
+    else if (origin === "Position") label = positions.find(p => String(p.id) === String(subOriginId))?.title || label;
+    return String(label);
+  };
+
+  const filteredDataSource = useMemo(() => {
+    if (!searchText) return uniqueDataSource;
+    const lowerSearch = searchText.toLowerCase();
+    
+    return uniqueDataSource.filter((item) => {
+      const label = getSubOriginLabel(item.position, item.subOriginId);
+      return item.position.toLowerCase().includes(lowerSearch) ||
+             label.toLowerCase().includes(lowerSearch);
+    });
+  }, [uniqueDataSource, searchText, members, grades, departments, subDepartments, positions]);
+
   const columns: ColumnsType<PositionRecord> = [
     {
       title: "Origin & Category",
@@ -322,12 +343,7 @@ export default function LeavePolicyPage() {
       key: "position",
       width: "30%",
       render: (origin: string, record: PositionRecord) => {
-        let label = record.subOriginId;
-        if (origin === "User") label = members.find(m => m.value === record.subOriginId)?.label || label;
-        else if (origin === "Grade") label = grades.find(g => g.id === record.subOriginId)?.name || label;
-        else if (origin === "Department") label = departments.find(d => d.id === record.subOriginId)?.name || label;
-        else if (origin === "Sub-department") label = subDepartments.find(sd => sd.id === record.subOriginId)?.name || label;
-        else if (origin === "Position") label = positions.find(p => p.id === record.subOriginId)?.title || label;
+        const label = getSubOriginLabel(origin, record.subOriginId);
 
         const Icon = origin === "User" ? User : origin === "Department" ? Building2 : origin === "Position" ? Briefcase : origin === "Grade" ? GraduationCap : Layers;
 
@@ -459,10 +475,10 @@ export default function LeavePolicyPage() {
   };
 
   const ProgressCircle = ({ percent, size }: { percent: number; size: number }) => (
-    <div style={{ 
-      width: size, 
-      height: size, 
-      borderRadius: "50%", 
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: "50%",
       background: `conic-gradient(#22c55e ${percent}%, #e2e8f0 0)`,
       display: "flex",
       alignItems: "center",
@@ -489,7 +505,7 @@ export default function LeavePolicyPage() {
       <MainLayout>
         <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
           {contextHolder}
- 
+
           {/* Header */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
             <div style={{ flex: 1 }}>
@@ -504,8 +520,8 @@ export default function LeavePolicyPage() {
               </Space>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Input 
-                placeholder="Search origins..." 
+              <Input
+                placeholder="Search origins..."
                 prefix={<Search size={16} color="#94a3b8" />}
                 style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid #e2e8f0" }}
                 onChange={e => setSearchText(e.target.value)}
@@ -521,10 +537,10 @@ export default function LeavePolicyPage() {
                   style={{ background: "transparent", border: "none" }}
                 />
               </div>
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Plus size={18} />} 
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
                 style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
                 onClick={() => { setEditingKey(null); form.resetFields(); setIsDrawerVisible(true); }}
               >
@@ -544,19 +560,19 @@ export default function LeavePolicyPage() {
           {uniqueDataSource.length === 0 ? <Empty style={{ marginTop: 100 }} description="No leave policies configured yet." /> : (
             viewType === "table" ? (
               <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 20, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1)" }}>
-                <Table 
-                  columns={columns} 
-                  dataSource={uniqueDataSource.filter(i => i.position.toLowerCase().includes(searchText.toLowerCase()))} 
+                <Table
+                  columns={columns}
+                  dataSource={filteredDataSource}
                   loading={loading}
                   pagination={{ pageSize: 12, position: ["bottomRight"] }}
                 />
               </Card>
             ) : (
               <Row gutter={[24, 24]}>
-                {uniqueDataSource.map((item, idx) => (
+                {filteredDataSource.map((item, idx) => (
                   <Col xs={24} sm={12} lg={8} key={idx}>
-                    <Card 
-                      hoverable 
+                    <Card
+                      hoverable
                       className="policy-card"
                       bodyStyle={{ padding: 24 }}
                       style={{ borderRadius: 20, border: "1px solid #f1f5f9" }}
@@ -571,10 +587,10 @@ export default function LeavePolicyPage() {
                         </div>
                       </div>
                       <Title level={5} style={{ margin: "0 0 4px 0", color: "#1e293b" }}>
-                        {item.position === "User" ? members.find(m => m.value === item.subOriginId)?.label : item.subOriginId}
+                        {getSubOriginLabel(item.position, item.subOriginId)}
                       </Title>
                       <Text type="secondary" style={{ fontSize: 13, display: "block", marginBottom: 16 }}>{item.position} Configuration</Text>
-                      
+
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
                         {(item.leaveType as string[]).map((t, i) => <Tag key={i} style={{ borderRadius: 6, margin: 0, background: "#f1f5f9", border: 0, color: "#475569" }}>{t}</Tag>)}
                       </div>
@@ -650,7 +666,8 @@ export default function LeavePolicyPage() {
           />
         </Drawer>
 
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .action-btn:hover { background: #f1f5f9 !important; border-radius: 8px; }
           .action-btn-danger:hover { background: #fee2e2 !important; border-radius: 8px; }
           .small-action-btn { background: #fff !important; color: #64748b !important; border: 1px solid #f1f5f9 !important; border-radius: 10px !important; width: 32px !important; height: 32px !important; display: flex !important; align-items: center; justify-content: center; }

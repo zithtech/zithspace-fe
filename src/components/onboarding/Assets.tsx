@@ -18,18 +18,18 @@ import {
   Typography,
   message,
 } from "antd";
-import { 
-  Plus, 
-  Monitor, 
-  Smartphone, 
-  Laptop, 
-  Tablet, 
-  Keyboard, 
-  MousePointer2, 
-  Briefcase, 
-  Headphones, 
-  Trash2, 
-  Edit2, 
+import {
+  Plus,
+  Monitor,
+  Smartphone,
+  Laptop,
+  Tablet,
+  Keyboard,
+  MousePointer2,
+  Briefcase,
+  Headphones,
+  Trash2,
+  Edit2,
   Image as ImageIcon,
   CheckCircle2,
   Info
@@ -190,13 +190,13 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
       modelNumber: asset.modelNumber,
       image: asset.image
         ? [
-            {
-              uid: "-1",
-              name: asset.imageName || "asset.png",
-              status: "done",
-              url: asset.image,
-            },
-          ]
+          {
+            uid: "-1",
+            name: asset.imageName || "asset.png",
+            status: "done",
+            url: asset.image,
+          },
+        ]
         : [],
     });
   };
@@ -213,20 +213,20 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
       <Row gutter={[16, 16]}>
         {/* ADD BUTTON AS DASHED BOX */}
         <Col span={6}>
-          <div 
+          <div
             onClick={() => {
               setEditIndex(null);
               assetsform.resetFields();
               setOpen(true);
             }}
-            style={{ 
-              height: "280px", 
-              border: "2px dashed #cbd5e1", 
-              borderRadius: "12px", 
+            style={{
+              height: "280px",
+              border: "2px dashed #cbd5e1",
+              borderRadius: "12px",
               padding: "12px",
-              display: "flex", 
+              display: "flex",
               flexDirection: "column",
-              alignItems: "center", 
+              alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
               background: "#f8fafc",
@@ -242,10 +242,10 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
               e.currentTarget.style.background = "#f8fafc";
             }}
           >
-            <div style={{ 
-              padding: "8px", 
-              background: "#fff", 
-              borderRadius: "50%", 
+            <div style={{
+              padding: "8px",
+              background: "#fff",
+              borderRadius: "50%",
               boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
               marginBottom: "8px"
             }}>
@@ -312,10 +312,10 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
                   </div>
                 )}
 
-                <div style={{ 
-                  height: "168px", 
-                  background: "#f8fafc", 
-                  borderRadius: "8px", 
+                <div style={{
+                  height: "168px",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
                   marginBottom: "8px",
                   display: "flex",
                   alignItems: "center",
@@ -336,9 +336,9 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
                 <div style={{ display: "flex", flex: 1, flexDirection: "column", gap: "6px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ 
-                      padding: "4px", 
-                      background: "#eff6ff", 
+                    <div style={{
+                      padding: "4px",
+                      background: "#eff6ff",
                       borderRadius: "6px",
                       color: "#3b82f6",
                       display: "flex"
@@ -376,9 +376,9 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
       <Drawer
         title={
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ 
-              padding: "8px", 
-              background: "#eff6ff", 
+            <div style={{
+              padding: "8px",
+              background: "#eff6ff",
               borderRadius: "8px",
               color: "#3b82f6"
             }}>
@@ -403,12 +403,12 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
         footer={
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", padding: "16px 24px" }}>
             <Button onClick={() => setOpen(false)} style={{ borderRadius: "8px" }}>Cancel</Button>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               onClick={handleAddOrUpdateAsset}
-              style={{ 
+              style={{
                 borderRadius: "8px",
-                background: "#3b82f6", 
+                background: "#3b82f6",
                 border: "none",
                 padding: "0 24px"
               }}
@@ -429,7 +429,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
             name="item"
             rules={[{ required: true, message: "Please select an item" }]}
           >
-            <Select 
+            <Select
               placeholder="Select asset type"
               style={{ height: "40px", borderRadius: "8px" }}
               dropdownStyle={{ borderRadius: "8px" }}
@@ -447,7 +447,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
           <Divider style={{ margin: "24px 0" }} />
           <SectionHeader icon={Info} title="Device Information" subtitle="Brand and technical specifications" />
-          
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -479,7 +479,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
 
           <Divider style={{ margin: "24px 0" }} />
           <SectionHeader icon={ImageIcon} title="Visual Proof" subtitle="Upload a photograph of the physical asset" />
-          
+
           <Form.Item
             name="image"
             valuePropName="fileList"

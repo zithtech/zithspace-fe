@@ -36,15 +36,15 @@ const visibilityOptions = [
         activeColor: '#6b7280',
         borderColor: '#e5e7eb',
     },
-    {
-        value: 'internal',
-        icon: <TeamOutlined />,
-        label: 'Internal',
-        description: 'All workspace members can view',
-        bgColor: '#eff6ff',
-        activeColor: '#3b82f6',
-        borderColor: '#bfdbfe',
-    },
+    // {
+    //     value: 'internal',
+    //     icon: <TeamOutlined />,
+    //     label: 'Internal',
+    //     description: 'All workspace members can view',
+    //     bgColor: '#eff6ff',
+    //     activeColor: '#3b82f6',
+    //     borderColor: '#bfdbfe',
+    // },
     {
         value: 'public',
         icon: <GlobalOutlined />,
@@ -79,12 +79,12 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
     const handleVisibilityChange = async (newVisibility: string) => {
         if (newVisibility === visibility) return;
-        
+
         setIsUpdating(true);
         try {
             const result = await DocumentHubService.shareDocument(
                 documentId,
-                newVisibility as 'private' | 'internal' | 'public'
+                newVisibility as 'private' | 'public'
             );
             setVisibility(newVisibility);
             setShareToken(result.shareToken || null);
@@ -148,18 +148,18 @@ const ShareModal: React.FC<ShareModalProps> = ({
             footer={
                 <div className="flex justify-between items-center py-2">
                     {visibility !== 'private' ? (
-                        <Button 
-                            danger 
-                            type="text" 
+                        <Button
+                            danger
+                            type="text"
                             size="small"
-                            onClick={handleRevokeShare} 
+                            onClick={handleRevokeShare}
                             loading={isUpdating}
                             className="font-medium hover:!bg-red-50"
                         >
                             Revoke All Access
                         </Button>
                     ) : <div />}
-                    <Button 
+                    <Button
                         onClick={onClose}
                         className="rounded-lg px-6 font-medium border-gray-200 hover:border-blue-400 hover:text-blue-500"
                     >
@@ -193,7 +193,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                             <Text type="secondary" className="text-[10px] cursor-help font-medium">Settings Guide</Text>
                         </Tooltip>
                     </div>
-                    
+
                     <div className="flex flex-col gap-2">
                         {visibilityOptions.map((option) => {
                             const isActive = visibility === option.value;
@@ -203,8 +203,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                     onClick={() => !isUpdating && handleVisibilityChange(option.value)}
                                     className={`
                                         relative group cursor-pointer rounded-xl p-3 border transition-all duration-200
-                                        ${isActive 
-                                            ? `bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] ring-1 ring-opacity-10` 
+                                        ${isActive
+                                            ? `bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] ring-1 ring-opacity-10`
                                             : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}
                                     `}
                                     style={{
@@ -215,9 +215,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div 
+                                            <div
                                                 className="w-9 h-9 rounded-lg flex items-center justify-center text-base transition-colors border"
-                                                style={{ 
+                                                style={{
                                                     backgroundColor: isActive ? 'white' : option.bgColor,
                                                     color: isActive ? option.activeColor : '#6b7280',
                                                     borderColor: isActive ? `${option.activeColor}40` : 'transparent'
@@ -238,7 +238,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                             w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all
                                             ${isActive ? 'bg-white' : 'border-gray-200'}
                                         `}
-                                        style={{ borderColor: isActive ? option.activeColor : undefined }}>
+                                            style={{ borderColor: isActive ? option.activeColor : undefined }}>
                                             {isActive && (
                                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: option.activeColor }} />
                                             )}
@@ -260,7 +260,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                                 </Text>
                                 <Tag color="blue" className="!mr-0 border-blue-200 text-[9px] px-1.5 leading-tight py-0 rounded-full uppercase font-bold tracking-tight">Active</Tag>
                             </div>
-                            
+
                             <div className="flex gap-2">
                                 <div className="flex-1 bg-white border border-blue-100 rounded-lg px-2.5 py-2 flex items-center min-w-0">
                                     <Text
@@ -284,7 +284,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                     </div>
                 )}
 
-                {visibility === 'internal' && (
+                {/* {visibility === 'internal' && (
                     <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                         <Divider className="!my-4" />
                         <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100/60 flex items-center gap-3">
@@ -296,7 +296,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                             </Text>
                         </div>
                     </div>
-                )}
+                )} */}
             </div>
 
             <style jsx global>{`

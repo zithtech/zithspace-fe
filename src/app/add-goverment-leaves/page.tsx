@@ -528,21 +528,13 @@ export default function GovernmentLeavesPage() {
               showSearch
               allowClear
               options={Country.getAllCountries().map(c => ({ label: c.name, value: c.isoCode }))}
+              filterOption={(input, option) =>
+                String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
               onChange={val => { setFilterCountry(val); setFilterState(null); }}
               value={filterCountry}
               className="premium-select"
             />
-            {/* <Select
-              placeholder="State / Region"
-              style={{ width: 220 }}
-              showSearch
-              allowClear
-              disabled={!filterCountry}
-              options={filterCountry ? State.getStatesOfCountry(filterCountry).map(s => ({ label: s.name, value: s.isoCode })) : []}
-              onChange={setFilterState}
-              value={filterState}
-              className="premium-select"
-            /> */}
             <Select
               placeholder="State / Region"
               style={{ width: 220 }}
@@ -557,7 +549,9 @@ export default function GovernmentLeavesPage() {
                   }))
                   : []
               }
-              optionFilterProp="label"
+              filterOption={(input, option) =>
+                String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
               onChange={setFilterState}
               value={filterState}
               className="premium-select"

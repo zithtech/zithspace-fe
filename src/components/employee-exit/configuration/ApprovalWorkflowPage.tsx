@@ -38,6 +38,7 @@ const { Title, Text } = Typography;
 const ApprovalWorkflowPage: React.FC = () => {
   const [steps, setSteps] = useState<ExitApprovalStep[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
+  const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingStep, setEditingStep] = useState<ExitApprovalStep | null>(null);
@@ -240,6 +241,16 @@ const ApprovalWorkflowPage: React.FC = () => {
     }
   ];
 
+  const filteredSteps = steps.filter(step => {
+    const roleTitles = (step.roleIds || [])
+      .map(id => positions.find(p => p.id === id)?.title || "")
+      .join(" ")
+      .toLowerCase();
+    const orderStr = `step ${step.stepOrder}`.toLowerCase();
+    const q = searchText.toLowerCase();
+    return orderStr.includes(q) || roleTitles.includes(q);
+  });
+
   return (
     <div style={{ padding: '8px 0' }}>
       {notificationContextHolder}
@@ -250,6 +261,9 @@ const ApprovalWorkflowPage: React.FC = () => {
             placeholder="Search steps..." 
             prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
             style={{ width: 280, borderRadius: 10, height: 40 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
           />
         </div>
         <Button 
@@ -264,7 +278,7 @@ const ApprovalWorkflowPage: React.FC = () => {
 
       <Table 
         columns={columns} 
-        dataSource={steps} 
+        dataSource={filteredSteps} 
         rowKey="id" 
         loading={loading}
         pagination={false}

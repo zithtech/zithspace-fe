@@ -332,6 +332,7 @@ export default function NoticePeriodPolicyPage() {
             prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
             style={{ width: 280, borderRadius: 10, height: 40 }}
             onChange={(e) => setSearchText(e.target.value)}
+            allowClear
           />
         </div>
         <Button

@@ -32,6 +32,7 @@ const { Title, Text } = Typography;
 export default function ReasonForExitPage() {
   const [form] = Form.useForm();
   const [reasons, setReasons] = useState<ReasonForExit[]>([]);
+  const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingReason, setEditingReason] = useState<ReasonForExit | null>(null);
@@ -215,6 +216,11 @@ export default function ReasonForExitPage() {
     },
   ];
 
+  const filteredReasons = reasons.filter(reason => 
+    (reason.name || '').toLowerCase().includes(searchText.toLowerCase()) || 
+    (reason.code || '').toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <div style={{ padding: '8px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -223,6 +229,9 @@ export default function ReasonForExitPage() {
             placeholder="Search reasons..." 
             prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
             style={{ width: 280, borderRadius: 10, height: 40 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
           />
         </div>
         <Button
@@ -237,7 +246,7 @@ export default function ReasonForExitPage() {
 
       <Table
         columns={columns}
-        dataSource={reasons}
+        dataSource={filteredReasons}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10, position: ["bottomRight"] }}

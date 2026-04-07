@@ -1478,7 +1478,7 @@ const GlobalStyles = () => (
         height: 100% !important;
     }
     
-    .settings-tabs .ant-tabs-tabpane {
+    .settings-tabs .ant-tabs-tabpane-active {
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;

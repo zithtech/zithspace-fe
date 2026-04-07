@@ -269,28 +269,38 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         }}
         bodyStyle={{ padding: "0" }}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Points of Contact</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Manage multiple client representatives and communication details</div>
-          </div>
-          <Space size={12}>
-            <Input
-              placeholder="Filter by name or email..."
-              prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: 10, width: 280, height: 40 }}
-            />
-            <Button
-              type="primary"
-              size="large"
-              icon={<Plus size={18} />}
-              onClick={() => setIsModalOpen(true)}
-              style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
-            >
-              Add Contact
-            </Button>
-          </Space>
+        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9" }}>
+          <Row justify="space-between" align="middle" gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Points of Contact</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Manage multiple client representatives and communication details</div>
+              </div>
+            </Col>
+            <Col xs={24} md={12}>
+              <Row gutter={[12, 12]} justify="end">
+                <Col xs={24} sm={16} md={12} lg={14}>
+                  <Input
+                    placeholder="Filter by name..."
+                    prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ borderRadius: 10, width: "100%", height: 40 }}
+                  />
+                </Col>
+                <Col xs={24} sm={8} md={12} lg={10}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<Plus size={18} />}
+                    onClick={() => setIsModalOpen(true)}
+                    style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
+                  >
+                    Add Contact
+                  </Button>
+                </Col>
+              </Row>
+            </Col>
+          </Row>
         </div>
 
         <Table
@@ -299,6 +309,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
           rowKey="id"
           pagination={false}
           className="premium-table"
+          scroll={{ x: "max-content" }}
           locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No contacts found matching your criteria</div> }}
         />
       </Card>
@@ -324,7 +335,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         <div style={{ padding: "8px 0" }}>
           <Form form={form} layout="vertical" onFinish={handleAdd}>
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="firstName"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>First Name</span>}
@@ -343,7 +354,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                   }} style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="lastName"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Last Name</span>}
@@ -373,7 +384,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
             </Form.Item>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="mobileNumber"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Contact Number</span>}
@@ -381,7 +392,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                   <Input placeholder="+1 (555) 000-0000" type="number" prefix={<Phone size={16} style={{ color: "#94a3b8" }} />} style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="designation"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Job Designation</span>}
@@ -445,7 +456,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
         <div style={{ padding: "8px 0" }}>
           <Form form={editForm} layout="vertical" onFinish={handleEdit}>
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="firstName"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>First Name</span>}
@@ -454,7 +465,7 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
                   <Input style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="lastName"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Last Name</span>}
@@ -474,12 +485,12 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
             </Form.Item>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item name="mobileNumber" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Mobile Number</span>}>
                   <Input prefix={<Phone size={16} style={{ color: "#94a3b8" }} />} style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item name="designation" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Designation</span>}>
                   <Input style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
@@ -524,6 +535,16 @@ export default function ContactsTab({ clientId, contacts, onRefresh }: Props) {
           letter-spacing: 0.025em !important;
           padding: 16px 24px !important;
           border-bottom: 1px solid #f1f5f9 !important;
+          white-space: nowrap !important;
+        }
+        @media (max-width: 576px) {
+          .premium-table .ant-table-thead > tr > th,
+          .premium-table .ant-table-tbody > tr > td {
+            padding: 12px 16px !important;
+          }
+          .ant-modal-content {
+            padding: 20px !important;
+          }
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;

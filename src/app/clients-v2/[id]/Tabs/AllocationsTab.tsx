@@ -314,28 +314,38 @@ export default function AllocationsTab({
         }}
         bodyStyle={{ padding: "0" }}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Resource Allocations</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Monitor and manage expert resources assigned to this client account</div>
-          </div>
-          <Space size={12}>
-            <Input
-              placeholder="Search by resource name..."
-              prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: 10, width: 280, height: 40 }}
-            />
-            <Button
-              type="primary"
-              size="large"
-              icon={<Plus size={18} />}
-              onClick={() => setIsModalOpen(true)}
-              style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
-            >
-              Add Allocation
-            </Button>
-          </Space>
+        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9" }}>
+          <Row justify="space-between" align="middle" gutter={[16, 16]}>
+            <Col xs={24} md={14}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Resource Allocations</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Monitor and manage expert resources assigned to this client account</div>
+              </div>
+            </Col>
+              <Col xs={24} md={10}>
+              <Row gutter={[12, 12]} justify="end">
+                <Col xs={24} sm={16} md={12} lg={14}>
+                  <Input
+                    placeholder="Search resource..."
+                    prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ borderRadius: 10, width: "100%", height: 40 }}
+                  />
+                </Col>
+                <Col xs={24} sm={8} md={12} lg={10}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<Plus size={18} />}
+                    onClick={() => setIsModalOpen(true)}
+                    style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
+                  >
+                    Add Allocation
+                  </Button>
+                </Col>
+              </Row>
+            </Col>
+          </Row>
         </div>
 
         <Table
@@ -344,6 +354,7 @@ export default function AllocationsTab({
           rowKey="id"
           pagination={false}
           className="premium-table"
+          scroll={{ x: "max-content" }}
           locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No resource allocations found</div> }}
         />
       </Card>
@@ -386,7 +397,7 @@ export default function AllocationsTab({
             </Form.Item>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="billingType"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
@@ -399,7 +410,7 @@ export default function AllocationsTab({
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="billAmount"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Monthly Bill Rate</span>}
@@ -415,7 +426,7 @@ export default function AllocationsTab({
             </Row>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="startDate"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocation Start</span>}
@@ -424,7 +435,7 @@ export default function AllocationsTab({
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="endDate"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date (Optional)</span>}
@@ -484,7 +495,7 @@ export default function AllocationsTab({
             </Form.Item>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="billingType"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
@@ -497,7 +508,7 @@ export default function AllocationsTab({
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="billAmount"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Bill Rate</span>}
@@ -508,7 +519,7 @@ export default function AllocationsTab({
             </Row>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   name="startDate"
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>}
@@ -517,7 +528,7 @@ export default function AllocationsTab({
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item name="endDate" label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>}>
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
@@ -558,6 +569,13 @@ export default function AllocationsTab({
           letter-spacing: 0.05em !important;
           padding: 16px 24px !important;
           border-bottom: 1px solid #f1f5f9 !important;
+          white-space: nowrap !important;
+        }
+        @media (max-width: 576px) {
+          .premium-table .ant-table-thead > tr > th,
+          .premium-table .ant-table-tbody > tr > td {
+            padding: 12px 16px !important;
+          }
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;

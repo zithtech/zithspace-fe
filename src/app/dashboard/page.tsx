@@ -697,34 +697,34 @@ function DashboardContent() {
       <div style={{ background: "#ffffff", minHeight: "100vh" }}>
         <div style={{ padding: 20 }}>
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
-          <div
-            style={{
-              marginBottom: 20,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
+          <Row
+            justify="space-between"
+            align="middle"
+            gutter={[16, 16]}
+            style={{ marginBottom: 20 }}
           >
-            <div>
+            <Col xs={24} sm={16} md={18}>
               <Title level={3} style={{ margin: 0, color: "#141414", fontWeight: 600 }}>
                 Welcome back, {user?.name}!
               </Title>
               <Text type="secondary" style={{ fontSize: 13 }}>
                 Here&apos;s what&apos;s happening with your projects today.
               </Text>
-            </div>
+            </Col>
 
-            <Segmented
-              options={[
-                { label: "Me", value: "me", icon: <UserOutlined /> },
-                { label: "Organization", value: "organization", icon: <TeamOutlined /> },
-              ]}
-              value={activeSegment}
-              onChange={(value) =>
-                setActiveSegment(value as "me" | "organization")
-              }
-            />
-          </div>
+            <Col xs={24} sm={8} md={6} style={{ textAlign: "right" }}>
+              <Segmented
+                options={[
+                  { label: "Me", value: "me", icon: <UserOutlined /> },
+                  { label: "Organization", value: "organization", icon: <TeamOutlined /> },
+                ]}
+                value={activeSegment}
+                onChange={(value) =>
+                  setActiveSegment(value as "me" | "organization")
+                }
+              />
+            </Col>
+          </Row>
 
           {/* ✅ ME SEGMENT — your full original dashboard */}
           {activeSegment === "me" && (

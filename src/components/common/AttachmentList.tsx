@@ -114,9 +114,9 @@ export default function AttachmentList({
       <div style={{
         textAlign: "center",
         padding: "48px 20px",
-        background: "#fafafa",
+        background: "var(--bg-secondary)",
         borderRadius: "12px",
-        border: "1px dashed #d9d9d9"
+        border: "1px dashed var(--border-color)"
       }}>
         <FileOutlined style={{ fontSize: "40px", marginBottom: "12px", color: "#bfbfbf" }} />
         <div style={{ color: "#8c8c8c", fontSize: "14px" }}>No attachments attached to this ticket</div>
@@ -139,8 +139,8 @@ export default function AttachmentList({
                   alignItems: "center",
                   gap: 12,
                   padding: "12px",
-                  background: "#fff",
-                  border: "1px solid #f0f0f0",
+                  background: "var(--bg-secondary)",
+                  border: "1px solid var(--border-color)",
                   borderRadius: "12px",
                   transition: "all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1)",
                   position: "relative",
@@ -223,6 +223,8 @@ export default function AttachmentList({
       <style jsx global>{`
         .attachment-card:hover {
           border-color: #1890ff40 !important;
+          background-color: var(--bg-secondary) !important;
+          filter: brightness(0.98);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
           transform: translateY(-2px);
         }

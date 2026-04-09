@@ -297,13 +297,14 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   icon={<ArrowLeftOutlined style={{ fontSize: 14, color: '#8c8c8c' }} />}
                   onClick={navigateBack}
                   style={{
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: 'var(--bg-pure-white)',
                     borderRadius: 6,
                     width: 28,
                     height: 28,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    border: '1px solid var(--border-color)'
                   }}
                 />
                 <Tag
@@ -330,9 +331,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                     fontWeight: 700,
                     margin: 0,
                     padding: '0 8px',
-                    backgroundColor: '#f0f0f0',
+                    backgroundColor: 'var(--bg-pure-white)',
                     color: '#595959',
-                    borderRadius: 4
+                    borderRadius: 4,
+                    border: '1px solid var(--border-color)'
                   }}
                 >
                   {ticket.ticketNumber}
@@ -399,7 +401,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   icon={<ArrowLeftOutlined style={{ fontSize: 13 }} />}
                   disabled={!hasPrevious}
                   onClick={navigateToPrevious}
-                  style={{ height: 32, width: 36, borderRight: '1px solid #f0f0f0', borderRadius: 0 }}
+                  style={{ height: 32, width: 36, borderRight: '1px solid var(--border-color)', borderRadius: 0 }}
                 />
               </Tooltip>
               <Tooltip title="Next Ticket">
@@ -443,25 +445,25 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       open={open}
       width={1100} // Increased slightly for better column balance and header single-row fitting
       styles={{
-        header: { padding: '12px 20px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#ffffff' },
+        header: { padding: '12px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' },
         body: { padding: 0 }
       }}
       closeIcon={null}
     >
       {!ticket ? (
-        <div style={{ padding: 40, textAlign: "center" }}><Text>Loading</Text></div>
+        <div style={{ padding: 40, textAlign: "center", background: "var(--bg-pure-white)" }}><Text>Loading</Text></div>
       ) : (
-        <Row style={{ height: '100%', backgroundColor: '#ffffff' }}>
+        <Row style={{ height: '100%', backgroundColor: 'var(--bg-pure-white)' }}>
           {/* LEFT COLUMN: Main Content (Title, Description, Activity) */}
-          <Col 
-            xs={24} 
-            md={15} 
-            style={{ 
-              padding: '24px 32px', 
-              borderRight: '1px solid #f0f0f0', 
-              overflowY: 'auto', 
+          <Col
+            xs={24}
+            md={15}
+            style={{
+              padding: '24px 32px',
+              borderRight: '1px solid var(--border-color)',
+              overflowY: 'auto',
               height: '100%',
-              backgroundColor: '#ffffff' 
+              backgroundColor: 'var(--bg-pure-white)'
             }}
           >
 
@@ -470,7 +472,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               <EditableField
                 value={ticket.title}
                 onSave={(val) => handleUpdate('title', val)}
-                textStyle={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, color: '#262626', margin: '0' }}
+                textStyle={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3, color: 'var(--text-primary)', margin: '0' }}
                 type="textarea"
                 placeholder="Ticket Title"
                 editIconVisibility="hover"
@@ -486,9 +488,9 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   <Button
                     type="text"
                     size="small"
-                    style={{ 
-                      fontSize: 12, 
-                      color: "#1890ff", 
+                    style={{
+                      fontSize: 12,
+                      color: "#1890ff",
                       fontWeight: 600,
                       padding: '0 8px',
                       borderRadius: 4,
@@ -503,10 +505,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
                 {descriptionEditorOpen ? (
                   <div style={{
-                    border: '1px solid #1890ff',
+                    border: '1px solid var(--border-color)',
                     borderRadius: 14,
                     padding: '16px',
-                    backgroundColor: '#fff',
+                    backgroundColor: 'var(--bg-pure-white)',
                     boxShadow: '0 8px 24px rgba(24, 144, 255, 0.08)',
                     width: '100%'
                   }}>
@@ -552,8 +554,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       minHeight: 120,
                       cursor: "text",
                       padding: "20px",
-                      backgroundColor: "#ffffff",
-                      border: "1px solid #f0f0f0",
+                      backgroundColor: "var(--bg-pure-white)",
+                      border: "1px solid var(--border-color)",
                       borderRadius: 16,
                       position: "relative",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -563,7 +565,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   >
                     {ticket.description ? (
                       <div className="prose max-w-none focus:outline-none"
-                        style={{ color: '#334155', fontSize: 14 }}
+                        style={{ color: 'var(--text-secondary)', fontSize: 14 }}
                         dangerouslySetInnerHTML={{ __html: ticket.description }}
                       />
                     ) : (
@@ -635,7 +637,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 null
               ) : (
                 // Current ticket is a main ticket - show subtasks section
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-pure-white)' }}>
                   <SubtasksSection
                     tickets={ticket.subTasks || []}
                     parentId={ticket.id}
@@ -654,7 +656,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               <Tabs
                 defaultActiveKey="comments"
                 centered
-                tabBarStyle={{ marginBottom: 12, borderBottom: '1px solid #f0f0f0' }}
+                tabBarStyle={{ marginBottom: 12, borderBottom: '1px solid var(--border-color)' }}
                 items={[
                   {
                     key: 'comments',
@@ -759,19 +761,19 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             md={9}
             style={{
               padding: '24px 20px',
-              background: "#ffffff",
+              background: "var(--bg-pure-white)",
               height: "100%",
               overflowY: "auto",
-              borderLeft: "1px solid #f0f0f0",
+              borderLeft: "1px solid var(--border-color)",
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Status & Transitions */}
               <div style={{
-                border: '1px solid #f0f0f0',
+                border: '1px solid var(--border-color)',
                 borderRadius: 14,
                 overflow: 'hidden',
-                backgroundColor: '#ffffff', 
+                backgroundColor: 'var(--bg-pure-white)',
                 padding: '12px 16px', // Compacted from 20px
                 display: 'flex',
                 flexDirection: 'column',
@@ -781,29 +783,29 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 {/* Current Status Block */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Text strong style={{ fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</Text>
-                <div style={(() => {
-                  const s = ticket.status;
-                  let color = "#8c8c8c";
-                  if (s === "in_progress") color = "#1890ff";
-                  else if (s === "completed" || s === "live") color = "#52c41a";
-                  else if (s === "in_testing") color = "#fa8c16";
-                  else if (s === "in_review") color = "#722ed1";
-                  else if (s === "dev_complete") color = "#13c2c2";
+                  <div style={(() => {
+                    const s = ticket.status;
+                    let color = "#8c8c8c";
+                    if (s === "in_progress") color = "#1890ff";
+                    else if (s === "completed" || s === "live") color = "#52c41a";
+                    else if (s === "in_testing") color = "#fa8c16";
+                    else if (s === "in_review") color = "#722ed1";
+                    else if (s === "dev_complete") color = "#13c2c2";
 
-                  return {
-                    backgroundColor: '#ffffff',
-                    borderRadius: 14,
-                    padding: '10px 14px', // Compacted from 14px 16px
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    color: color,
-                    cursor: 'pointer',
-                    border: `1px solid ${color}40`,
-                    boxShadow: `0 4px 12px ${color}0a`,
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                  };
-                })()} className="status-badge-premium">
+                    return {
+                      backgroundColor: 'var(--bg-pure-white)',
+                      borderRadius: 14,
+                      padding: '10px 14px', // Compacted from 14px 16px
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      color: color,
+                      cursor: 'pointer',
+                      border: `1px solid var(--border-color)`,
+                      boxShadow: `0 4px 12px ${color}0a`,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    };
+                  })()} className="status-badge-premium">
                     <div style={{ flex: 1 }}>
                       <EditableSelect
                         value={ticket.status}
@@ -890,10 +892,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       </Button>
                     )}
                     {(ticket.status === 'completed' || ticket.status === 'live') && (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 10, 
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
                         padding: '12px',
                         background: '#f6ffed',
                         borderRadius: 10,
@@ -909,7 +911,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
               {/* Collapsible Sections */}
               <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Core Details Card */}
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' }}>
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', backgroundColor: 'var(--bg-pure-white)' }}>
                   <Collapse
                     defaultActiveKey={["details"]}
                     ghost
@@ -932,7 +934,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               }}>
                                 <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 14 }} />
                               </div>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                                 Core Details
                               </Text>
                             </Space>
@@ -1040,7 +1042,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 </div>
 
                 {/* Planning & Estimates Card */}
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' }}>
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', backgroundColor: 'var(--bg-pure-white)' }}>
                   <Collapse
                     defaultActiveKey={["planning"]}
                     ghost
@@ -1063,7 +1065,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               }}>
                                 <CalendarOutlined style={{ color: '#52c41a', fontSize: 14 }} />
                               </div>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                                 Planning & Estimates
                               </Text>
                             </Space>
@@ -1133,7 +1135,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                 </div>
 
                 {/* Time Tracking Card */}
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden', backgroundColor: '#fff' }}>
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', backgroundColor: 'var(--bg-pure-white)' }}>
                   <Collapse
                     ghost
                     expandIconPosition="end"
@@ -1188,7 +1190,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                                 {timeEntries.map(entry => {
                                   return (
-                                    <div key={entry.id} style={{ padding: '10px 12px', background: '#fff', borderBottom: '1px solid #f0f0f0' }}>
+                                    <div key={entry.id} style={{ padding: '10px 12px', background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' }}>
                                       {/* User row */}
                                       {entry.user && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -1254,12 +1256,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
       <style jsx global>{`
         .parent-ticket-badge:hover {
-          background-color: #e6f7ff !important;
+          background-color: var(--bg-pure-white) !important;
           color: #1890ff !important;
           transform: translateY(-1px);
         }
         .description-viewer:hover {
-          background-color: #ffffff !important;
+          background-color: var(--bg-pure-white) !important;
           border-color: #1890ff !important;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
         }
@@ -1271,9 +1273,9 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           position: sticky !important;
           top: -16px !important;
           z-index: 100 !important;
-          background: #ffffff !important;
+          background: var(--bg-pure-white) !important;
           margin-top: 0 !important;
-          border-bottom: 1px solid #f0f0f0 !important;
+          border-bottom: 1px solid var(--border-color) !important;
         }
         .premium-tabs-wrapper .ant-tabs-nav::before {
           content: '' !important;
@@ -1282,7 +1284,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           left: -40px !important;
           right: -40px !important;
           bottom: 0 !important;
-          background: #ffffff !important;
+          background: var(--bg-pure-white) !important;
           z-index: -1 !important;
         }
         .premium-tabs-wrapper .ant-tabs-tab {
@@ -1308,10 +1310,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           background: transparent !important;
         }
         .sidebar-collapse-wrapper .ant-collapse-item {
-          border: 1px solid #f0f0f0 !important;
+          border: 1px solid var(--border-color) !important;
           border-radius: 14px !important;
           margin-bottom: 12px !important;
-          background: #ffffff !important;
+          background: var(--bg-pure-white) !important;
           overflow: hidden !important;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
         }
@@ -1327,14 +1329,14 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           padding: 0 !important;
         }
         .sidebar-collapse-wrapper .DrawerField-table-variant {
-          border-bottom: 1px solid #f0f0f0 !important;
+          border-bottom: 1px solid var(--border-color) !important;
         }
         .sidebar-collapse-wrapper .DrawerField-table-variant:last-child {
           border-bottom: none !important;
         }
         .status-badge-premium:hover {
           filter: brightness(0.98);
-          background-color: #fff !important;
+          background-color: var(--bg-pure-white) !important;
           box-shadow: 0 6px 16px rgba(0,0,0,0.06) !important;
           transform: translateY(-1px);
         }

@@ -50,14 +50,14 @@ const { Text } = Typography;
 const labelStyle = {
   fontSize: "12px",
   fontWeight: 600,
-  color: "#475569",
+  color: "var(--text-slate-500)",
   marginBottom: "4px",
   display: "block"
 };
 
 const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #ebedef",
+  background: "var(--bg-pure-white)",
+  border: "1px solid var(--border-slate-100)",
   borderRadius: "12px",
   padding: "20px",
   marginBottom: "16px",
@@ -66,12 +66,12 @@ const cardStyle: React.CSSProperties = {
 
 const SectionHeader = ({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) => (
   <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-    <div style={{ padding: "6px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
-      <Icon size={16} style={{ color: "#3b82f6" }} />
+    <div style={{ padding: "6px", background: "var(--bg-blue-50)", borderRadius: "8px", border: "1px solid var(--border-slate-100)" }}>
+      <Icon size={16} style={{ color: "var(--premium-blue)" }} />
     </div>
     <div>
-      <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "14px" }}>{title}</div>
-      {subtitle && <div style={{ fontSize: "11px", color: "#64748b" }}>{subtitle}</div>}
+      <div style={{ fontWeight: 700, color: "var(--text-slate-900)", fontSize: "14px" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: "11px", color: "var(--text-slate-500)" }}>{subtitle}</div>}
     </div>
   </div>
 );
@@ -91,8 +91,10 @@ const CustomInputField = ({ label, name, placeholder, rules, onKeyDown, onKeyPre
       style={{
         height: "38px",
         borderRadius: "8px",
-        border: "1px solid #cbd5e1",
-        fontSize: "13px"
+        border: "1px solid var(--border-slate-200)",
+        fontSize: "13px",
+        background: "var(--bg-pure-white)",
+        color: "var(--text-slate-900)"
       }}
     />
   </Form.Item>
@@ -180,8 +182,8 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
   return (
     <div
       style={{
-        background: "#ffffff",
-        border: "1px solid #ebedef",
+        background: "var(--bg-pure-white)",
+        border: "1px solid var(--border-slate-100)",
         borderRadius: "12px",
         padding: "20px",
         height: "100%",
@@ -191,7 +193,7 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-        <span style={{ fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>{label}</span>
+        <span style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-slate-900)" }}>{label}</span>
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -199,7 +201,7 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
           <div style={{ textAlign: "center" }}>
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={<span style={{ color: "#94a3b8", fontSize: "12px" }}>No file uploaded</span>}
+              description={<span style={{ color: "var(--text-slate-400)", fontSize: "12px" }}>No file uploaded</span>}
               style={{ margin: "5px 0" }}
             />
             <Upload
@@ -226,20 +228,20 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
             <div style={{
               width: "32px",
               height: "40px",
-              background: "#eff6ff",
+              background: "var(--bg-blue-50)",
               borderRadius: "4px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: "1px solid #dbeafe"
+              border: "1px solid var(--border-slate-100)"
             }}>
-              <FileText size={18} style={{ color: "#3b82f6" }} />
+              <FileText size={18} style={{ color: "var(--premium-blue)" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: "13px", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-slate-900)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {fileName}
               </div>
-              <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-slate-400)" }}>
                 {uploadDate}
               </div>
 
@@ -259,7 +261,7 @@ const DocumentBox = ({ label, name, icon: CustomIcon, isAdditional = false, onRe
                   size="small"
                   icon={<Eye size={13} />}
                   onClick={() => window.open(fileUrl, "_blank")}
-                  style={{ padding: 0, height: "auto", color: "#3b82f6", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}
+                  style={{ padding: 0, height: "auto", color: "var(--premium-blue)", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}
                 >
                   View
                 </Button>
@@ -278,8 +280,8 @@ const AdditionalDocItem = ({ field, companyIndex, adIdx, remove, form }: any) =>
   return (
     <Col span={8} key={field.key}>
       <div style={{
-        background: "#ffffff",
-        border: "1px solid #ebedef",
+        background: "var(--bg-pure-white)",
+        border: "1px solid var(--border-slate-100)",
         borderRadius: "10px",
         padding: "12px",
         height: "100%",
@@ -322,7 +324,7 @@ const ContactDetails = ({ contactIndex, companyIndex, form }: any) => {
   const label = roleLabelMap[role] || "Contact";
 
   return (
-    <div style={{ background: "#ffffff", padding: "16px", borderRadius: "10px", border: "1px solid #f1f5f9", marginBottom: "12px" }}>
+    <div style={{ background: "var(--bg-pure-white)", padding: "16px", borderRadius: "10px", border: "1px solid var(--border-slate-100)", marginBottom: "12px" }}>
       <Row gutter={16}>
         <Col span={24}>
           <CustomSelectField
@@ -383,14 +385,14 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
     <div style={cardStyle}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div style={{ width: "40px", height: "40px", background: "#eff6ff", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
+          <div style={{ width: "40px", height: "40px", background: "var(--bg-blue-50)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--premium-blue)" }}>
             <Building2 size={24} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#1e293b" }}>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--text-slate-900)" }}>
               {companyName || `Previous Company #${index + 1}`}
             </h3>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>Experience Details</span>
+            <span style={{ fontSize: "12px", color: "var(--text-slate-500)" }}>Experience Details</span>
           </div>
         </div>
         {length > 1 && (
@@ -459,7 +461,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
 
         {/* Documents Section - Moved Below */}
         <Col span={24}>
-          <div style={{ padding: "20px", background: "#ffffff", borderRadius: "12px", border: "1px solid #ebedef", marginBottom: "20px" }}>
+          <div style={{ padding: "20px", background: "var(--bg-pure-white)", borderRadius: "12px", border: "1px solid var(--border-slate-100)", marginBottom: "20px" }}>
             <SectionHeader icon={FileSearch} title="Supportive Documents" subtitle="Upload relevant certificates and proof" />
 
             <Row gutter={[12, 12]}>
@@ -495,7 +497,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                         style={{
                           height: "100%",
                           minHeight: "130px",
-                          border: "1px dashed #cbd5e1",
+                          border: "1px dashed var(--border-slate-200)",
                           borderRadius: "12px",
                           padding: "16px",
                           display: "flex",
@@ -503,13 +505,13 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                           alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
-                          background: "#ffffff",
-                          color: "#64748b",
+                          background: "var(--bg-slate-50)",
+                          color: "var(--text-slate-500)",
                           transition: "all 0.2s ease"
                         }}
                       >
-                        <Plus size={18} style={{ color: "#94a3b8" }} />
-                        <span style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: "#64748b" }}>Add Form 16</span>
+                        <Plus size={18} style={{ color: "var(--text-slate-400)" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: "var(--text-slate-500)" }}>Add Form 16</span>
                       </div>
                     </Col>
                   </>
@@ -535,7 +537,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                         style={{
                           height: "100%",
                           minHeight: "130px",
-                          border: "1px dashed #cbd5e1",
+                          border: "1px dashed var(--border-slate-200)",
                           borderRadius: "12px",
                           padding: "16px",
                           display: "flex",
@@ -543,13 +545,13 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                           alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
-                          background: "#ffffff",
-                          color: "#64748b",
+                          background: "var(--bg-slate-50)",
+                          color: "var(--text-slate-500)",
                           transition: "all 0.2s ease"
                         }}
                       >
-                        <Plus size={18} style={{ color: "#94a3b8" }} />
-                        <span style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: "#64748b" }}>Add Payslip</span>
+                        <Plus size={18} style={{ color: "var(--text-slate-400)" }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, marginTop: "6px", color: "var(--text-slate-500)" }}>Add Payslip</span>
                       </div>
                     </Col>
                   </>
@@ -576,7 +578,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                         style={{
                           height: "100%",
                           minHeight: "180px",
-                          border: "1px dashed #3b82f6",
+                          border: "1px dashed var(--premium-blue)",
                           borderRadius: "12px",
                           padding: "16px",
                           display: "flex",
@@ -584,8 +586,8 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                           alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
-                          background: "#eff6ff",
-                          color: "#3b82f6",
+                          background: "var(--bg-blue-50)",
+                          color: "var(--premium-blue)",
                           transition: "all 0.2s ease"
                         }}
                       >
@@ -602,7 +604,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
 
         {/* Contact Details Section */}
         <Col span={24}>
-          <div style={{ padding: "24px", borderTop: "1px solid #f1f5f9" }}>
+          <div style={{ padding: "24px", borderTop: "1px solid var(--border-slate-100)" }}>
             <SectionHeader icon={User} title="Verification Contacts" subtitle="Professional references from this tenure" />
             <Form.List name={["previousCompanies", index, "contacts"]}>
               {(fields, { add, remove }) => (
@@ -630,7 +632,7 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                       style={{
                         height: "100%",
                         minHeight: "180px",
-                        border: "1px dashed #cbd5e1",
+                        border: "1px dashed var(--border-slate-200)",
                         borderRadius: "12px",
                         padding: "20px",
                         display: "flex",
@@ -638,12 +640,12 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
                         alignItems: "center",
                         justifyContent: "center",
                         cursor: "pointer",
-                        background: "#ffffff",
-                        color: "#64748b",
+                        background: "var(--bg-slate-50)",
+                        color: "var(--text-slate-500)",
                         transition: "all 0.2s ease"
                       }}
                     >
-                      <Plus size={20} style={{ color: "#94a3b8" }} />
+                      <Plus size={20} style={{ color: "var(--text-slate-400)" }} />
                       <span style={{ fontSize: "13px", fontWeight: 600, marginTop: "8px" }}>Add Reference Contact</span>
                     </div>
                   </Col>
@@ -654,8 +656,8 @@ const CompanyCard = ({ field, index, form, remove, length }: any) => {
         </Col>
         {/* Declaration */}
         <Col span={24}>
-          <div style={{ marginTop: "16px", padding: "16px", borderTop: "1px solid #f1f5f9" }}>
-            <Checkbox style={{ fontSize: "13px", color: "#64748b" }}>
+          <div style={{ marginTop: "16px", padding: "16px", borderTop: "1px solid var(--border-slate-100)" }}>
+            <Checkbox style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
               I declare that the information provided above for this company is correct and verifiable.
             </Checkbox>
           </div>
@@ -706,11 +708,11 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
   }));
 
   return (
-    <div style={{ padding: "0 24px 24px", background: "#ffffff" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", padding: "16px 0", borderBottom: "1px solid #f1f5f9" }}>
+    <div style={{ padding: "0 24px 24px", background: "transparent" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", padding: "16px 0", borderBottom: "1px solid var(--border-slate-100)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#1e293b" }}>Employee History</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "14px", color: "#64748b" }}>Add your previous work experiences and relevant documents.</p>
+          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "var(--text-slate-900)" }}>Employee History</h2>
+          <p style={{ margin: "2px 0 0", fontSize: "14px", color: "var(--text-slate-500)" }}>Add your previous work experiences and relevant documents.</p>
         </div>
       </div>
 
@@ -752,9 +754,9 @@ const EmployeHistory = forwardRef(({ data }: any, ref: any) => {
                 style={{
                   height: "56px",
                   borderRadius: "12px",
-                  border: "2px dashed #cbd5e1",
-                  background: "#f8fafc",
-                  color: "#3b82f6",
+                  border: "2px dashed var(--border-slate-200)",
+                  background: "var(--bg-slate-50)",
+                  color: "var(--premium-blue)",
                   fontSize: "15px",
                   fontWeight: 600,
                   transition: "all 0.2s ease"

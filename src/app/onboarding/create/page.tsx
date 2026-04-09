@@ -61,11 +61,11 @@ const Onboarding = () => {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );
@@ -224,24 +224,24 @@ const Onboarding = () => {
 
   return (
     <MainLayout>
-      <div style={{ width: "100%", minHeight: "100vh", background: "white", paddingBottom: "80px" }}>
-        <div style={{ 
-          padding: "16px 24px", 
-          borderBottom: "1px solid #f0f0f0",
-          background: "white",
+      <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg-secondary)", paddingBottom: "80px" }}>
+        <div style={{
+          padding: "16px 24px",
+          borderBottom: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)",
         }}>
-          <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0 }}>
+          <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0, color: "var(--text-slate-900)" }}>
             Employee Onboarding
           </h1>
         </div>
 
-        <div style={{ 
+        <div style={{
           padding: "20px 24px",
-          background: "white",
+          background: "var(--bg-pure-white)",
           position: "sticky",
           top: 0,
           zIndex: 100,
-          borderBottom: "1px solid #f1f5f9",
+          borderBottom: "1px solid var(--border-slate-100)",
           boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
         }}>
           <Steps current={current} size="small" style={{ marginBottom: 0 }}>
@@ -331,8 +331,8 @@ const Onboarding = () => {
             display: "flex",
             justifyContent: "space-between",
             padding: "16px 24px",
-            background: "#fff",
-            borderTop: "1px solid #f0f0f0",
+            background: "var(--bg-pure-white)",
+            borderTop: "1px solid var(--border-slate-100)",
             zIndex: 1000,
             marginTop: "20px",
           }}
@@ -344,14 +344,14 @@ const Onboarding = () => {
               <>
                 <Button onClick={saveAndSkip}>Save & Skip</Button>
 
-                <Button type="primary" onClick={next} loading={submitting}>
+                <Button type="primary" onClick={next} loading={submitting} style={{ background: "var(--premium-blue)" }}>
                   Continue
                 </Button>
               </>
             )}
 
             {current === 4 && (
-              <Button type="primary" onClick={submitAll}>
+              <Button type="primary" onClick={submitAll} style={{ background: "var(--premium-blue)" }}>
                 Submit
               </Button>
             )}

@@ -166,7 +166,7 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                             display: 'flex',
                             alignItems: 'center',
                             padding: '4px 10px',
-                            borderBottom: '1px solid #f0f0f0',
+                            borderBottom: '1px solid var(--border-color)',
                             gap: 8,
                             position: 'relative', // For hover actions
                             transition: 'all 0.2s'
@@ -214,7 +214,7 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                                     style={{
                                         fontSize: 13,
                                         textDecoration: subtask.status === 'completed' ? 'line-through' : 'none',
-                                        color: subtask.status === 'completed' ? '#8c8c8c' : '#262626', // Updated color
+                                        color: subtask.status === 'completed' ? '#8c8c8c' : 'var(--text-primary)', // Updated color
                                         cursor: 'text',
                                         padding: '2px 6px',
                                         borderRadius: 4,
@@ -247,7 +247,7 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                                             width: 24,
                                             height: 24,
                                             borderRadius: '50%',
-                                            border: '1px dashed #8c8c8c',
+                                            border: '1px dashed var(--border-color)',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -323,11 +323,13 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
 
             <style jsx global>{`
                 .subtask-row:hover {
-                    background-color: #fafafa;
+                    background-color: var(--bg-secondary);
+                    filter: brightness(0.98);
                 }
                 .create-subtask-btn:hover {
-                    background-color: #f0f7ff;
-                    border-color: #bae7ff;
+                    background-color: var(--bg-secondary);
+                    border-color: var(--border-color);
+                    filter: brightness(0.98);
                 }
                 .create-subtask-btn:hover .plus-icon-container {
                     background-color: #1890ff;
@@ -337,8 +339,8 @@ const SubtasksSection: React.FC<SubtasksSectionProps> = ({ tickets = [], parentI
                     background-color: #e6f7ff;
                 }
                 .editable-title:hover {
-                    background-color: #ffffff;
-                    border: 1px solid #d9d9d9;
+                    background-color: var(--bg-pure-white);
+                    border: 1px solid var(--border-color);
                     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                 }
                 .assignee-trigger:hover {

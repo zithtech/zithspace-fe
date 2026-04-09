@@ -79,10 +79,12 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
         borderRadius: '12px',
         overflow: 'hidden',
         transition: 'all 0.3s ease',
+        background: 'var(--bg-pure-white)',
+        border: '1px solid var(--border-slate-200)',
         transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
         boxShadow: isHovered
           ? '0 12px 24px rgba(0,0,0,0.12)'
-          : '0 4px 12px rgba(0,0,0,0.06)'
+          : 'var(--card-shadow)'
       }}
       bodyStyle={{ padding: '24px' }}
       actions={[
@@ -96,17 +98,17 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
             shape="square"
             size={40}
             icon={<TeamOutlined />}
-            style={{ backgroundColor: '#f0f2f5', color: '#1890ff', borderRadius: '8px' }}
+            style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--premium-blue)', borderRadius: '8px' }}
           />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Title level={5} style={{ margin: 0 }}>{squad.squadName}</Title>
-              <Space size={4} style={{ color: '#8c8c8c', fontSize: '14px' }}>
+              <Title level={5} style={{ margin: 0, color: 'var(--text-slate-900)' }}>{squad.squadName}</Title>
+              <Space size={4} style={{ color: 'var(--text-slate-400)', fontSize: '14px' }}>
                 <TeamOutlined />
-                <Text type="secondary">{totalCount}</Text>
+                <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>{totalCount}</Text>
               </Space>
             </div>
-            <Text type="secondary" style={{ fontSize: '12px' }}>{squad.squadCode}</Text>
+            <Text type="secondary" style={{ fontSize: '12px', color: 'var(--text-slate-400)' }}>{squad.squadCode}</Text>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -121,7 +123,7 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
 
       <div style={{ marginBottom: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>SQUAD HEADS</Text>
+          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-slate-400)' }}>SQUAD HEADS</Text>
           <Avatar.Group maxCount={3} size="small">
             {squad.squadMembers.filter(m => m.memberType === 'HEAD').map(m => (
               <Tooltip key={m.id} title={m.member.name}>
@@ -131,7 +133,7 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
           </Avatar.Group>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>SUB HEADS</Text>
+          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-slate-400)' }}>SUB HEADS</Text>
           <Avatar.Group maxCount={3} size="small">
             {squad.squadMembers.filter(m => m.memberType === 'SUB_HEAD').map(m => (
               <Tooltip key={m.id} title={m.member.name}>
@@ -141,7 +143,7 @@ const SquadCard: React.FC<SquadCardProps> = ({ squad, onOpen, onManage, onRefres
           </Avatar.Group>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>MEMBERS</Text>
+          <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-slate-400)' }}>MEMBERS</Text>
           <Avatar.Group maxCount={5} size="small">
             {squad.squadMembers.filter(m => m.memberType === 'MEMBER').map(m => (
               <Tooltip key={m.id} title={m.member.name}>

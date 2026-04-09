@@ -88,13 +88,13 @@ export default function UpdateDetailsDrawer({
       width={640}
       title={null}
       closable={false}
-      bodyStyle={{ padding: 0, backgroundColor: "#ffffff" }}
+      bodyStyle={{ padding: 0, backgroundColor: "var(--bg-pure-white)" }}
     >
       {/* Premium Header */}
       <div style={{
         padding: "24px",
-        background: "#ffffff",
-        borderBottom: "1px solid #e2e8f0",
+        background: "var(--bg-pure-white)",
+        borderBottom: "1px solid var(--border-slate-200)",
         position: "sticky",
         top: 0,
         zIndex: 10
@@ -104,21 +104,21 @@ export default function UpdateDetailsDrawer({
             <Avatar
               size={56}
               style={{
-                backgroundColor: update.updateType === "BOD" ? "#dcfce7" : "#dbeafe",
-                color: update.updateType === "BOD" ? "#166534" : "#1e40af",
+                backgroundColor: update.updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",
+                color: update.updateType === "BOD" ? "var(--text-holiday)" : "var(--text-blue-700)",
                 fontSize: 20,
                 fontWeight: 700,
-                border: "2px solid #fff",
-                boxShadow: "0 0 0 1px #e2e8f0"
+                border: "2px solid var(--bg-pure-white)",
+                boxShadow: "0 0 0 1px var(--border-slate-100)"
               }}
             >
               {update.user?.name.charAt(0).toUpperCase()}
             </Avatar>
             <div>
-              <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+              <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
                 {update.user?.name}
               </Title>
-              <Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>
+              <Text style={{ fontSize: 13, color: "var(--text-slate-600)", fontWeight: 500 }}>
                 {update.user?.position?.title || "Team Member"}
               </Text>
             </div>
@@ -129,9 +129,9 @@ export default function UpdateDetailsDrawer({
               padding: "4px 12px",
               borderRadius: 8,
               fontSize: 14,
-              background: "#f1f5f9",
+              background: "var(--bg-slate-50)",
               border: "none",
-              color: "#475569",
+              color: "var(--text-slate-700)",
               fontWeight: 600
             }}>
               {getMoodEmoji(update.mood)} {update.mood?.toUpperCase()}
@@ -151,33 +151,33 @@ export default function UpdateDetailsDrawer({
 
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{
-            background: "#f0f9ff",
+            background: "var(--bg-sky-50)",
             padding: "8px 16px",
             borderRadius: 12,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            border: "1px solid #e0f2fe"
+            border: "1px solid var(--border-blue-200)"
           }}>
-            <Clock size={16} color="#0ea5e9" />
+            <Clock size={16} color="var(--text-sky-500)" />
             <div>
-              <Text style={{ display: "block", fontSize: 10, color: "#0ea5e9", fontWeight: 700, textTransform: "uppercase", lineHeight: 1 }}>Total Hours</Text>
-              <Text strong style={{ fontSize: 15, color: "#0369a1" }}>{formatHours(totalHours)}</Text>
+              <Text style={{ display: "block", fontSize: 10, color: "var(--text-sky-500)", fontWeight: 700, textTransform: "uppercase", lineHeight: 1 }}>Total Hours</Text>
+              <Text strong style={{ fontSize: 15, color: "var(--text-blue-700)" }}>{formatHours(totalHours)}</Text>
             </div>
           </div>
           <div style={{
-            background: "#f8fafc",
+            background: "var(--bg-slate-50)",
             padding: "8px 16px",
             borderRadius: 12,
             display: "flex",
             alignItems: "center",
             gap: 8,
-            border: "1px solid #e2e8f0"
+            border: "1px solid var(--border-slate-100)"
           }}>
-            <Activity size={16} color="#64748b" />
+            <Activity size={16} color="var(--text-slate-600)" />
             <div>
-              <Text style={{ display: "block", fontSize: 10, color: "#64748b", fontWeight: 700, textTransform: "uppercase", lineHeight: 1 }}>Update Type</Text>
-              <Text strong style={{ fontSize: 14, color: "#334155" }}>{update.updateType || "EOD"}</Text>
+              <Text style={{ display: "block", fontSize: 10, color: "var(--text-slate-600)", fontWeight: 700, textTransform: "uppercase", lineHeight: 1 }}>Update Type</Text>
+              <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>{update.updateType || "EOD"}</Text>
             </div>
           </div>
         </div>
@@ -187,10 +187,10 @@ export default function UpdateDetailsDrawer({
         {/* General Notes */}
         {update.generalNotes && (
           <div style={{
-            background: "#fff",
+            background: "var(--bg-pure-white)",
             borderRadius: 16,
             padding: 20,
-            border: "1px solid #e2e8f0",
+            border: "1px solid var(--border-slate-200)",
             marginBottom: 24,
             boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
           }}>
@@ -210,32 +210,32 @@ export default function UpdateDetailsDrawer({
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {projectUpdates.map((project, idx) => (
             <div key={idx} style={{
-              background: "#fff",
+              background: "var(--bg-pure-white)",
               borderRadius: 16,
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--border-slate-200)",
               overflow: "hidden",
               boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
             }}>
               {/* Project Header */}
               <div style={{
                 padding: "12px 20px",
-                background: "#f8fafc",
-                borderBottom: "1px solid #e2e8f0",
+                background: "var(--bg-table-header)",
+                borderBottom: "1px solid var(--border-slate-200)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center"
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ background: "#fff", padding: 6, borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                    <Package size={16} color="#0ea5e9" />
+                  <div style={{ background: "var(--bg-pure-white)", padding: 6, borderRadius: 8, border: "1px solid var(--border-slate-100)" }}>
+                    <Package size={16} color="var(--text-sky-500)" />
                   </div>
-                  <Text strong style={{ fontSize: 14, color: "#0f172a" }}>{project.projectName}</Text>
+                  <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>{project.projectName}</Text>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+                  <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
                     {formatTime(project.startTime)} - {formatTime(project.endTime)}
                   </Text>
-                  <Tag style={{ borderRadius: 6, margin: 0, border: "none", background: "#dcfce7", color: "#166534", fontWeight: 600 }}>
+                  <Tag style={{ borderRadius: 6, margin: 0, border: "none", background: "var(--bg-holiday)", color: "var(--text-holiday)", fontWeight: 600 }}>
                     {formatHours(project.hoursWorked)}
                   </Tag>
                 </div>
@@ -254,9 +254,9 @@ export default function UpdateDetailsDrawer({
                     return (
                       <div key={tIdx} style={{
                         padding: 12,
-                        background: "#f8fafc",
+                        background: "var(--bg-secondary)",
                         borderRadius: 12,
-                        border: "1px solid #f1f5f9"
+                        border: "1px solid var(--border-slate-100)"
                       }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -281,7 +281,7 @@ export default function UpdateDetailsDrawer({
                 {(project.blockers || project.notes) && (
                   <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                     {project.blockers && (
-                      <div style={{ padding: 12, background: "#fff1f2", borderRadius: 12, border: "1px solid #ffe4e6" }}>
+                      <div style={{ padding: 12, background: "var(--bg-leave)", borderRadius: 12, border: "1px solid var(--border-rose-200)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                           <AlertCircle size={14} color="#e11d48" />
                           <Text strong style={{ fontSize: 12, color: "#be123c" }}>Blockers</Text>
@@ -290,7 +290,7 @@ export default function UpdateDetailsDrawer({
                       </div>
                     )}
                     {project.notes && (
-                      <div style={{ padding: 12, background: "#f0f9ff", borderRadius: 12, border: "1px solid #e0f2fe" }}>
+                      <div style={{ padding: 12, background: "var(--bg-sky-50)", borderRadius: 12, border: "1px solid var(--border-blue-200)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                           <FileText size={14} color="#0ea5e9" />
                           <Text strong style={{ fontSize: 12, color: "#0369a1" }}>Notes</Text>

@@ -32,6 +32,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useIsBreakpoint } from '@/hooks/use-is-breakpoint';
 import { TimeTrackerPopover } from '@/components/time-tracking/TimeTrackerPopover';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
+import ThemeToggle from "./ThemeToggle";
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -358,11 +359,10 @@ export default function TopNav({
 
   return (
     <Header
+      className="glass-panel"
       style={{
         padding: isMobile ? "0 16px" : "0 24px 0 0",
-        background: "rgba(255, 255, 255, 0.8)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+        borderBottom: "1px solid var(--border-color) !important",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -372,7 +372,7 @@ export default function TopNav({
         right: 0,
         left: 0,
         zIndex: 1000,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+        boxShadow: "var(--shadow-sm)"
       }}
     >
       {/* Left Side: Logo & Module Selector */}
@@ -410,9 +410,9 @@ export default function TopNav({
                   strong
                   style={{
                     fontSize: 18,
-                    color: '#262626',
+                    color: 'var(--text-primary)',
                     whiteSpace: 'nowrap',
-                    background: "linear-gradient(135deg, #1677ff 0%, #003eb3 100%)",
+                    background: "linear-gradient(135deg, var(--premium-blue) 0%, #1D4ED8 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                     fontWeight: 700
@@ -481,6 +481,7 @@ export default function TopNav({
       <Space size={isSmallMobile ? 4 : 12} align="center" style={{ flexShrink: 0 }}>
         {!isCustomBreakpoint ? (
           <>
+            <ThemeToggle />
             <TimeTrackerPopover />
 
 
@@ -540,6 +541,7 @@ export default function TopNav({
           </>
         ) : (
           <Space size={isSmallMobile ? 4 : 8}>
+            <ThemeToggle />
             <Inbox
               applicationIdentifier="67g_5lVLFWvd"
               subscriberId={user?.id}

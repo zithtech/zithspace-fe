@@ -226,20 +226,20 @@ const BoardView: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", padding: "16px", background: "#fff" }}>
+      <div style={{ height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", padding: "16px", background: 'var(--bg-pure-white)' }}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <div>
             <Space align="center" size={10}>
               <div style={{
-                width: 36, height: 36, borderRadius: 8, background: '#fff0f6',
+                width: 36, height: 36, borderRadius: 8, background: 'var(--bg-red-50)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                <FireOutlined style={{ color: '#eb2f96', fontSize: 18 }} />
+                <FireOutlined style={{ color: 'var(--text-leave)', fontSize: 18 }} />
               </div>
-              <Title level={3} style={{ margin: 0 }}>Sales Pipeline</Title>
+              <Title level={3} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Sales Pipeline</Title>
             </Space>
-            <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>Manage your deals and track progress across stages</Text>
+            <Text style={{ display: 'block', marginTop: 4, color: 'var(--text-slate-500)' }}>Manage your deals and track progress across stages</Text>
           </div>
           <Space>
             <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
@@ -253,8 +253,8 @@ const BoardView: React.FC = () => {
         {/* Filters */}
         <div style={{ 
           padding: "12px 16px", 
-          background: "#fafafa", 
-          border: "1px solid #f0f0f0", 
+          background: "var(--bg-slate-50)", 
+          border: "1px solid var(--border-slate-100)", 
           borderRadius: "8px", 
           marginBottom: "20px" 
         }}>

@@ -246,7 +246,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
               {label.charAt(0).toUpperCase()}
             </div>
           ) : (
-            <div style={{ width: 24, height: 24, background: '#f5f5f5', borderRadius: 8 }} />
+            <div style={{ width: 24, height: 24, background: 'var(--bg-secondary)', borderRadius: 8 }} />
           )}
           <Text strong style={{ fontSize: 14 }}>{label}</Text>
         </Space>
@@ -323,6 +323,8 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         bordered={false} 
         style={{ 
           borderRadius: 20, 
+          border: '1px solid var(--border-color)',
+          backgroundColor: 'var(--bg-pure-white)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
           overflow: 'hidden',
           display: 'flex',
@@ -331,14 +333,14 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
         }}
         bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
       >
-        <div style={{ padding: '16px 32px', background: '#ffffff', borderBottom: '1px solid #f0f0f0' }}>
+        <div style={{ padding: '16px 32px', background: 'var(--bg-pure-white)', borderBottom: '1px solid var(--border-color)' }}>
           <Row justify="space-between" align="middle">
             <Col>
               <Space align="center">
                 <div style={{ 
                   width: 32, 
                   height: 32, 
-                  background: 'white', 
+                  background: 'var(--bg-pure-white)', 
                   borderRadius: 10, 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -421,7 +423,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       <Modal
         title={
           <Space>
-            <div style={{ width: 32, height: 32, background: '#e6f4ff', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, background: 'rgba(22, 119, 255, 0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {editingOption ? <EditOutlined style={{ color: '#1677ff' }} /> : <PlusOutlined style={{ color: '#1677ff' }} />}
             </div>
             <Text strong style={{ fontSize: 18 }}>{editingOption ? 'Edit Mapping' : 'New Mapping Definition'}</Text>
@@ -515,7 +517,7 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
                   label={<Text strong>Availability Status</Text>}
                   valuePropName="checked"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f9f9f9', borderRadius: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
                     <Space size="small">
                       <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
                       <Text style={{ fontSize: 13 }}>Enable for all projects</Text>
@@ -543,9 +545,9 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
       <style jsx global>{`
         .manager-tabs .ant-tabs-nav {
           width: 240px;
-          background: #ffffff;
+          background: var(--bg-pure-white);
           margin-bottom: 0 !important;
-          border-right: 1px solid #f0f0f0;
+          border-right: 1px solid var(--border-color);
         }
         .manager-tabs .ant-tabs-tab {
           margin: 0 !important;
@@ -554,22 +556,23 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
           transition: all 0.3s;
         }
         .manager-tabs .ant-tabs-tab-active {
-          background: #fff !important;
+          background: var(--bg-pure-white) !important;
           border-left-color: #1677ff !important;
         }
         .manager-tabs .ant-tabs-ink-bar {
           display: none;
         }
         .premium-table .ant-table-thead > tr > th {
-          background: #fafafa;
+          background: var(--bg-pure-white);
           font-weight: 700;
-          color: #8c8c8c;
+          color: var(--text-secondary);
           text-transform: uppercase;
           font-size: 11px;
           letter-spacing: 0.5px;
+          border-bottom: 1px solid var(--border-color);
         }
         .premium-table .ant-table-row:hover {
-          background: #f0f7ff !important;
+          filter: brightness(0.98);
         }
       `}</style>
     </div>

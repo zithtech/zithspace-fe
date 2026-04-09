@@ -175,7 +175,7 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
     <div style={{ width: showContentOnly ? '100%' : 320, maxWidth: 320, margin: '0 auto' }}>
       {isLoading && <div style={{ textAlign: "center", marginBottom: 16 }}><Spin /></div>}
 
-      <div style={{ textAlign: "center", fontSize: '2rem', fontWeight: 600, fontFamily: 'monospace', marginBottom: '16px', color: activeEntry ? (activeEntry.status === 'PAUSED' ? '#f59e0b' : '#10b981') : '#374151' }}>
+      <div style={{ textAlign: "center", fontSize: '2rem', fontWeight: 600, fontFamily: 'monospace', marginBottom: '16px', color: activeEntry ? (activeEntry.status === 'PAUSED' ? '#f59e0b' : '#10b981') : 'var(--text-slate-800)' }}>
         {formatTime(elapsedTime)}
       </div>
 
@@ -324,14 +324,14 @@ export const TimeTrackerPopover: React.FC<TimeTrackerPopoverProps> = ({ isMenuIt
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           backgroundColor: activeEntry
-            ? (activeEntry.status === 'RUNNING' ? '#f0fdf4' : '#fffbeb')
-            : 'white',
+            ? (activeEntry.status === 'RUNNING' ? 'var(--bg-running-row)' : 'var(--bg-paused-row)')
+            : 'var(--bg-pure-white)',
           color: activeEntry
             ? (activeEntry.status === 'RUNNING' ? '#15803d' : '#d97706')
-            : '#374151',
+            : 'var(--text-slate-700)',
           borderColor: activeEntry
-            ? (activeEntry.status === 'RUNNING' ? '#bcf0da' : '#fcd34d')
-            : '#d1d5db'
+            ? (activeEntry.status === 'RUNNING' ? 'var(--border-blue-200)' : '#fcd34d')
+            : 'var(--border-slate-300)'
         }}
       >
         <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatTime(elapsedTime)}</span>

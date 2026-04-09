@@ -44,11 +44,12 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
           <div
             style={{
               padding: 12,
-              background: "#f5f5f5",
+              background: "var(--bg-pure-white)",
               borderRadius: 8,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              border: "1px solid var(--border-color)"
             }}
           >
             <Space size={8}>

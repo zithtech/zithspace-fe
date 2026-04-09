@@ -104,7 +104,7 @@ function CreateClientV2Content() {
             left: 0,
             width: "100%",
             height: "100%",
-            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backgroundColor: "var(--mask-bg)",
             backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
@@ -138,25 +138,26 @@ function CreateClientV2Content() {
             paddingTop: 20,
             marginTop: -20,
             zIndex: 1000,
-            backgroundColor: "var(--premium-white)",
+            backgroundColor: "var(--bg-pure-white)",
             gap: 16,
             boxShadow: "none",
             margin: "0 -24px 24px -24px",
             padding: "20px 24px",
-            borderBottom: "1px solid #e8e8e8",
+            borderBottom: "1px solid var(--border-slate-100)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <Button
               icon={<ArrowLeftOutlined />}
               onClick={() => router.back()}
+              style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
             />
-            <UserAddOutlined style={{ fontSize: 28, color: "#1677ff" }} />
+            <UserAddOutlined style={{ fontSize: 28, color: "var(--premium-blue)" }} />
             <div>
-              <Title level={2} style={{ margin: 0 }}>
+              <Title level={2} style={{ margin: 0, color: "var(--text-slate-900)" }}>
                 {isEditMode ? "Edit Client" : "Create New Client"}
               </Title>
-              <Text type="secondary">
+              <Text style={{ color: "var(--text-slate-500)" }}>
                 {isEditMode
                   ? "Update the client's details below."
                   : "Fill in the details below to create a new client profile."}
@@ -170,7 +171,7 @@ function CreateClientV2Content() {
               gap: 16,
             }}
           >
-            <Button onClick={() => router.back()}>Cancel</Button>
+            <Button onClick={() => router.back()} style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}>Cancel</Button>
 
             <Button
               type="primary"
@@ -193,11 +194,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Basic Details</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Core information about the company.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"
@@ -287,11 +285,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Compliance & Finance</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Tax, registration, and financial details.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"
@@ -362,11 +357,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Operational Details</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Client status, risk, and billing contacts.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"
@@ -418,11 +410,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Banking Information</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Client's primary bank account for payments.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"

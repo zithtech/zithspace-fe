@@ -456,28 +456,28 @@ export default function IntegrationPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', backgroundColor: '#ffffff', minHeight: '100vh' }}>
+      <div style={{ padding: '24px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         {/* Main content container */}
         <div style={{ 
-          backgroundColor: '#ffffff', 
+          background: 'var(--bg-pure-white)', 
           padding: '16px 0', 
           width: '100%'
         }}>
           
           <div style={{ marginBottom: 32 }}>
             <Space align="center" size="middle">
-              <SettingOutlined style={{ fontSize: 24, color: "#1677ff" }} />
-              <Title level={3} style={{ margin: 0 }}>
+              <SettingOutlined style={{ fontSize: 24, color: "var(--premium-blue)" }} />
+              <Title level={3} style={{ margin: 0, color: "var(--text-primary)" }}>
                 Integrations
               </Title>
             </Space>
-            <Paragraph style={{ marginTop: 8, color: '#666', maxWidth: '800px' }}>
+            <Paragraph style={{ marginTop: 8, color: 'var(--text-secondary)', maxWidth: '800px' }}>
               Connect your favorite tools to Zithspace to streamline your workflow and sync your schedule.
             </Paragraph>
           </div>
 
-          <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 24 }}>
-            <Title level={5} style={{ marginBottom: 20 }}>Calendar Integrations</Title>
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 24 }}>
+            <Title level={5} style={{ marginBottom: 20, color: "var(--text-primary)" }}>Calendar Integrations</Title>
 
             <Row gutter={[16, 16]} justify="start">
               {PROVIDERS.map((provider) => {
@@ -495,12 +495,12 @@ export default function IntegrationPage() {
                       size="small"
                       style={{ 
                         borderRadius: 8, 
-                        border: isConnected ? `1px solid ${provider.color}` : '1px solid #f0f0f0',
-                        // Removed opacity logic here so whole card remains bright
+                        border: isConnected ? `1px solid ${provider.color}` : '1px solid var(--border-color)',
+                        background: 'var(--bg-pure-white)',
                         transition: 'all 0.2s',
                         height: '100%'
                       }}
-                      bodyStyle={{ padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' }}
+                      styles={{ body: { padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' } }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                         <div style={{

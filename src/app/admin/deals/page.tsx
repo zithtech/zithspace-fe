@@ -223,20 +223,20 @@ const DealsListPage: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ padding: "16px", background: '#fff', minHeight: '100vh' }}>
+      <div style={{ padding: "16px", background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         {/* Header Section */}
         <Flex justify="space-between" align="center" style={{ marginBottom: '16px' }}>
           <div>
             <Space align="center" size={10}>
               <div style={{
-                width: 36, height: 36, borderRadius: 8, background: '#fff0f6',
+                width: 36, height: 36, borderRadius: 8, background: 'var(--bg-red-50)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
-                <FireOutlined style={{ color: '#eb2f96', fontSize: 18 }} />
+                <FireOutlined style={{ color: 'var(--text-leave)', fontSize: 18 }} />
               </div>
-              <Title level={3} style={{ margin: 0 }}>Deals & Leads</Title>
+              <Title level={3} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Deals & Leads</Title>
             </Space>
-            <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>Manage your sales pipeline and track opportunities</Text>
+            <Text style={{ display: 'block', marginTop: 4, color: 'var(--text-slate-500)' }}>Manage your sales pipeline and track opportunities</Text>
           </div>
           <Space>
             <Button 
@@ -261,52 +261,52 @@ const DealsListPage: React.FC = () => {
         {/* Stats Row */}
         <Row gutter={[12, 12]} style={{ marginBottom: '16px' }}>
           <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+            <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
               <Statistic 
-                title={<Text type="secondary">Total Pipeline Value</Text>}
+                title={<Text style={{ color: 'var(--text-slate-500)' }}>Total Pipeline Value</Text>}
                 value={metrics.totalValue}
                 precision={2}
-                prefix={<DollarOutlined style={{ color: '#1890ff' }} />}
-                valueStyle={{ color: '#1890ff', fontWeight: 700 }}
+                prefix={<DollarOutlined style={{ color: 'var(--premium-blue)' }} />}
+                valueStyle={{ color: 'var(--premium-blue)', fontWeight: 700 }}
               />
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+            <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
               <Statistic 
-                title={<Text type="secondary">Won Revenue</Text>}
+                title={<Text style={{ color: 'var(--text-slate-500)' }}>Won Revenue</Text>}
                 value={metrics.wonValue}
                 precision={2}
-                prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                valueStyle={{ color: '#52c41a', fontWeight: 700 }}
+                prefix={<CheckCircleOutlined style={{ color: 'var(--text-holiday)' }} />}
+                valueStyle={{ color: 'var(--text-holiday)', fontWeight: 700 }}
               />
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+            <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
               <Statistic 
-                title={<Text type="secondary">Active Deals</Text>}
+                title={<Text style={{ color: 'var(--text-slate-500)' }}>Active Deals</Text>}
                 value={metrics.activeCount}
-                prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ fontWeight: 700 }}
+                prefix={<ClockCircleOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                valueStyle={{ fontWeight: 700, color: 'var(--text-slate-900)' }}
               />
             </Card>
           </Col>
           <Col span={6}>
-            <Card bordered style={{ borderColor: '#f0f0f0' }} styles={{ body: { padding: '16px' } }} className="stat-card">
+            <Card bordered style={{ borderColor: 'var(--border-slate-100)', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px' } }} className="stat-card">
               <Statistic 
-                title={<Text type="secondary">Conversion Rate</Text>}
+                title={<Text style={{ color: 'var(--text-slate-500)' }}>Conversion Rate</Text>}
                 value={metrics.totalCount > 0 ? (metrics.wonCount / metrics.totalCount) * 100 : 0}
                 precision={1}
                 suffix="%"
-                valueStyle={{ color: '#722ed1', fontWeight: 700 }}
+                valueStyle={{ color: 'var(--text-slate-700)', fontWeight: 700 }}
               />
             </Card>
           </Col>
         </Row>
 
         {/* Filters & Table Card */}
-        <Card bordered style={{ borderColor: '#f0f0f0', borderRadius: '12px' }}>
+        <Card bordered style={{ borderColor: 'var(--border-slate-100)', borderRadius: '12px', background: 'var(--bg-pure-white)' }}>
           <div style={{ marginBottom: '16px' }}>
             <Row gutter={12} align="middle">
               <Col span={8}>
@@ -375,16 +375,19 @@ const DealsListPage: React.FC = () => {
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: transform 0.2s;
+            background: var(--bg-pure-white);
+            border: 1px solid var(--border-slate-100);
           }
           .stat-card:hover {
             transform: translateY(-4px);
           }
           .custom-table .ant-table-thead > tr > th {
-            background: #fafafa;
-            border-bottom: 2px solid #f0f0f0;
+            background: var(--bg-table-header) !important;
+            border-bottom: 2px solid var(--border-slate-100) !important;
+            color: var(--text-slate-900) !important;
           }
           .custom-table .ant-table-row:hover > td {
-            background: #f0f7ff !important;
+            background: var(--bg-slate-50) !important;
           }
         `}</style>
       </div>

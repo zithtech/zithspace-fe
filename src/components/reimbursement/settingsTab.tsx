@@ -29,7 +29,7 @@ import {
   FilterOutlined,
   SettingOutlined,
   CloseOutlined,
-  PlusCircleOutlined 
+  PlusCircleOutlined
 } from "@ant-design/icons";
 import {
   useReimbursementSettings,
@@ -45,7 +45,7 @@ export interface ReimbursementSetting {
   id: string;
   name: string;
   code: string;
-  description?: string;  
+  description?: string;
   attachmentRequired: boolean;
   isActive: boolean;
 }
@@ -72,15 +72,15 @@ export default function ReimbursementSettings() {
 
   // Filter data based on search and status
   const filteredData = settings.filter((item) => {
-    const matchesSearch = 
+    const matchesSearch =
       item.name?.toLowerCase().includes(searchText.toLowerCase()) ||
       item.code?.toLowerCase().includes(searchText.toLowerCase()) ||
       item.description?.toLowerCase().includes(searchText.toLowerCase()); // 👈 added description search
-    const matchesStatus = 
-      statusFilter === "all" || 
+    const matchesStatus =
+      statusFilter === "all" ||
       (statusFilter === "active" && item.isActive) ||
       (statusFilter === "inactive" && !item.isActive);
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -145,7 +145,7 @@ export default function ReimbursementSettings() {
 
       setModalOpen(false);
       form.resetFields();
-      
+
       // Force refetch after a short delay
       setTimeout(() => {
         refetch();
@@ -162,7 +162,7 @@ export default function ReimbursementSettings() {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     form.setFieldValue("name", value);
-    
+
     // Auto-generate code: uppercase and replace spaces with underscores
     const generatedCode = value
       .toUpperCase()
@@ -181,155 +181,155 @@ export default function ReimbursementSettings() {
     handleEdit: (r: ReimbursementSetting) => void,
     handleConfirmDelete: (id: string) => void
   ): ColumnsType<ReimbursementSetting> => [
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      render: (text) => <span className="font-medium text-sm">{text}</span>,
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: "Code",
-      dataIndex: "code",
-      key: "code",
-      render: (text) => <span className="text-sm font-mono">{text}</span>,
-    },
-    {
-      title: "Description",        // 👈 changed
-      dataIndex: "description",
-      key: "description",
-      render: (text) => text || "-",
-      ellipsis: true,              // 👈 optional truncation
-    },
-    {
-      title: "Attachment",
-      dataIndex: "attachmentRequired",
-      key: "attachmentRequired",
-      align: "center",
-      render: (value) => (
-        <Tag color={value ? "blue" : "default"}>
-          {value ? "Required" : "Optional"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "isActive",
-      key: "isActive",
-      align: "center",
-      render: (isActive) => (
-        <Tag color={isActive ? "green" : "red"}>
-          {isActive ? "Active" : "Inactive"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      align: "center",
-      width: 120,
-      render: (_, record) => (
-        <Space size={4}>
-          <Button
-            type="text"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            className="text-blue-600 hover:text-blue-700"
-          />
-          <Popconfirm
-            title="Delete this setting?"
-            description="This action cannot be undone."
-            onConfirm={() => handleConfirmDelete(record.id)}
-            okText="Delete"
-            okType="danger"
-            cancelText="Cancel"
-          >
+      {
+        title: "Name",
+        dataIndex: "name",
+        key: "name",
+        render: (text) => <span className="font-medium text-sm">{text}</span>,
+        sorter: (a, b) => a.name.localeCompare(b.name),
+      },
+      {
+        title: "Code",
+        dataIndex: "code",
+        key: "code",
+        render: (text) => <span className="text-sm font-mono">{text}</span>,
+      },
+      {
+        title: "Description",        // 👈 changed
+        dataIndex: "description",
+        key: "description",
+        render: (text) => text || "-",
+        ellipsis: true,              // 👈 optional truncation
+      },
+      {
+        title: "Attachment",
+        dataIndex: "attachmentRequired",
+        key: "attachmentRequired",
+        align: "center",
+        render: (value) => (
+          <Tag color={value ? "blue" : "default"}>
+            {value ? "Required" : "Optional"}
+          </Tag>
+        ),
+      },
+      {
+        title: "Status",
+        dataIndex: "isActive",
+        key: "isActive",
+        align: "center",
+        render: (isActive) => (
+          <Tag color={isActive ? "green" : "red"}>
+            {isActive ? "Active" : "Inactive"}
+          </Tag>
+        ),
+      },
+      {
+        title: "Actions",
+        key: "actions",
+        align: "center",
+        width: 120,
+        render: (_, record) => (
+          <Space size={4}>
             <Button
               type="text"
               size="small"
-              danger
-              icon={<DeleteOutlined />}
-              className="hover:bg-red-50"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              className="text-blue-600 hover:text-blue-700"
             />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+            <Popconfirm
+              title="Delete this setting?"
+              description="This action cannot be undone."
+              onConfirm={() => handleConfirmDelete(record.id)}
+              okText="Delete"
+              okType="danger"
+              cancelText="Cancel"
+            >
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                className="hover:bg-red-50"
+              />
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ];
 
   return (
     // <Card className="rounded-lg shadow-sm bg-white border border-gray-100">
-      <div className="flex flex-col flex-1 overflow-visible p-3">
-        {/* HEADER SECTION */}
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-3">
-          {/* LEFT SIDE */}
-          <div className="space-y-1.5">
-            <h2 className="text-base font-semibold text-gray-900">
-              <Space size={4}>
-                <SettingOutlined className="text-blue-600" />
-                <span>Reimbursement Settings</span>
-              </Space>
-            </h2>
+    <div className="flex flex-col flex-1 overflow-visible p-3">
+      {/* HEADER SECTION */}
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-3">
+        {/* LEFT SIDE */}
+        <div className="space-y-1.5">
+          <h2 className="text-base font-semibold text-gray-900">
+            <Space size={4}>
+              <SettingOutlined className="text-blue-600" />
+              <span>Reimbursement Settings</span>
+            </Space>
+          </h2>
 
-            <p className="text-xs text-gray-500 max-w-[500px]">
-              Configure reimbursement categories and settings
-            </p>
+          <p className="text-xs text-gray-500 max-w-[500px]">
+            Configure reimbursement categories and settings
+          </p>
 
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
-              <div className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
-                Total: {stats.total}
-              </div>
-              <div className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-100">
-                Active: {stats.active}
-              </div>
-              <div className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium border border-red-100">
-                Inactive: {stats.inactive}
-              </div>
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            <div className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+              Total: {stats.total}
             </div>
-          </div>
-
-          {/* RIGHT SIDE – ACTIONS */}
-          <div className="flex items-center gap-2">
-            {/* SEARCH */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search by name or code..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="w-44 px-3 py-1.5 rounded-md border border-gray-200 text-xs focus:outline-none focus:border-blue-500 bg-gray-50/50"
-              />
+            <div className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-medium border border-green-100">
+              Active: {stats.active}
             </div>
-
-            {/* STATUS FILTER */}
-            <Select
-              placeholder="Status"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              className="w-24"
-              size="small"
-            >
-              <Select.Option value="all">All</Select.Option>
-              <Select.Option value="active">Active</Select.Option>
-              <Select.Option value="inactive">Inactive</Select.Option>
-            </Select>
-
-            {/* CREATE BUTTON */}
-            <Button
-              type="primary"
-              size="middle"
-              icon={<PlusOutlined />}
-              className="h-8 px-4 text-xs font-medium bg-blue-600 hover:bg-blue-700 border-none shadow-sm"
-              onClick={handleAdd}
-            >
-              Add Category
-            </Button>
+            <div className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium border border-red-100">
+              Inactive: {stats.inactive}
+            </div>
           </div>
         </div>
 
-        {/* ================= TABLE ================= */}
-        <style jsx global>{`
+        {/* RIGHT SIDE – ACTIONS */}
+        <div className="flex items-center gap-2">
+          {/* SEARCH */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by name or code..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-44 px-3 py-1.5 rounded-md border border-gray-200 text-xs focus:outline-none focus:border-blue-500 bg-gray-50/50"
+            />
+          </div>
+
+          {/* STATUS FILTER */}
+          <Select
+            placeholder="Status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            className="w-24"
+            size="small"
+          >
+            <Select.Option value="all">All</Select.Option>
+            <Select.Option value="active">Active</Select.Option>
+            <Select.Option value="inactive">Inactive</Select.Option>
+          </Select>
+
+          {/* CREATE BUTTON */}
+          <Button
+            type="primary"
+            size="middle"
+            icon={<PlusOutlined />}
+            className="h-8 px-4 text-xs font-medium bg-blue-600 hover:bg-blue-700 border-none shadow-sm"
+            onClick={handleAdd}
+          >
+            Add Category
+          </Button>
+        </div>
+      </div>
+
+      {/* ================= TABLE ================= */}
+      <style jsx global>{`
           .settings-table .ant-table-thead > tr > th {
             padding: 8px 10px !important;
             font-size: 12px !important;
@@ -348,25 +348,25 @@ export default function ReimbursementSettings() {
           }
         `}</style>
 
-        <div className="mt-3 flex-1 overflow-hidden">
-          <Table
-            className="settings-table"
-            rowKey="id"
-            columns={columns(handleEdit, handleConfirmDelete)}
-            dataSource={filteredData}
-            loading={isLoading}
-            pagination={{
-              pageSize: 8,
-              showSizeChanger: false,
-              showQuickJumper: false,
-              position: ["bottomRight"],
-            }}
-            locale={{ emptyText: "No settings found" }}
-          />
-        </div>
+      <div className="mt-3 flex-1 overflow-hidden">
+        <Table
+          className="settings-table"
+          rowKey="id"
+          columns={columns(handleEdit, handleConfirmDelete)}
+          dataSource={filteredData}
+          loading={isLoading}
+          pagination={{
+            pageSize: 8,
+            showSizeChanger: false,
+            showQuickJumper: false,
+            position: ["bottomRight"],
+          }}
+          locale={{ emptyText: "No settings found" }}
+        />
+      </div>
 
-        {/* ================= MODAL ================= */}
-        {/* <Modal
+      {/* ================= MODAL ================= */}
+      {/* <Modal
           open={modalOpen}
           onCancel={() => {
             setModalOpen(false);
@@ -520,179 +520,179 @@ export default function ReimbursementSettings() {
             </Button>
           </div>
         </Modal> */}
-        <Modal
-  open={modalOpen}
-  onCancel={() => {
-    setModalOpen(false);
-    setEditingItem(null);
-    form.resetFields();
-  }}
-  footer={null}
-  width={440}
-  centered
-  styles={{
-    body: {
-      padding: 0,
-      display: "flex",
-      flexDirection: "column",
-    },
-  }}
-  className="rounded-lg overflow-hidden"
->
-  {/* ===== HEADER with left alignment ===== */}
- <div className="px-1 py-3 border-b border-gray-200 shrink-0">
-    <div className="flex items-center gap-2">
-      <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50">
-        {editingItem ? (
-          <EditOutlined className="text-sm text-blue-600" />
-        ) : (
-          <PlusCircleOutlined className="text-sm text-blue-600" />
-        )}
-      </div>
-      <div>
-        <h3 className="text-sm font-semibold text-gray-900">
-          {editingItem ? "Edit Category" : "Create Category"}
-        </h3>
-        <p className="text-xs text-gray-500">
-          {editingItem ? "Update reimbursement category" : "Add new reimbursement category"}
-        </p>
-      </div>
-    </div>
-  </div>
-
-  {/* ===== FORM with flex layout for name and code ===== */}
-  <Form
-    form={form}
-    layout="vertical"
-    className="px-5 py-3"
-    size="small"
-  >
-    {/* Name and Code in one line - flex row */}
-    <div className="flex gap-3">
-      <div className="flex-1">
-        <Form.Item
-          name="name"
-          label={<span className="text-xs font-medium text-gray-700">Category</span>}
-          rules={[{ required: true, message: "Name is required" }]}
-          className="mb-3"
-        >
-          <Input 
-            placeholder="e.g., Travel Allowance" 
-            className="w-full text-sm h-8" 
-            onChange={handleNameChange}
-          />
-        </Form.Item>
-      </div>
-
-      <div className="flex-1">
-        <Form.Item
-          name="code"
-          label={<span className="text-xs font-medium text-gray-700">Code</span>}
-          rules={[{ required: true, message: "Code is required" }]}
-          className="mb-3"
-        >
-          <Input 
-            placeholder="Auto-generated" 
-            className="w-full text-sm font-mono bg-gray-50 h-8" 
-            readOnly
-          />
-        </Form.Item>
-      </div>
-    </div>
-
-    {/* Description field - full width */}
-    <Form.Item
-      name="description"
-      label={<span className="text-xs font-medium text-gray-700">Description</span>}
-      className="mb-3"
-    >
-      <Input.TextArea
-        className="w-full text-sm"
-        placeholder="Enter description (optional)"
-        rows={2}
-      />
-    </Form.Item>
-
-    {/* Settings section */}
-    <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-3">
-      <div className="flex justify-between items-center">
-        <div>
-          <p className="text-sm font-medium text-gray-800">
-            Attachment Required
-          </p>
-          <p className="text-xs text-gray-500">
-            Employee must upload bills
-          </p>
+      <Modal
+        open={modalOpen}
+        onCancel={() => {
+          setModalOpen(false);
+          setEditingItem(null);
+          form.resetFields();
+        }}
+        footer={null}
+        width={440}
+        centered
+        styles={{
+          body: {
+            padding: 0,
+            display: "flex",
+            flexDirection: "column",
+          },
+        }}
+        className="rounded-lg overflow-hidden"
+      >
+        {/* ===== HEADER with left alignment ===== */}
+        <div className="px-1 py-3 border-b border-gray-200 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50">
+              {editingItem ? (
+                <EditOutlined className="text-sm text-blue-600" />
+              ) : (
+                <PlusCircleOutlined className="text-sm text-blue-600" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {editingItem ? "Edit Category" : "Create Category"}
+              </h3>
+              <p className="text-xs text-gray-500">
+                {editingItem ? "Update reimbursement category" : "Add new reimbursement category"}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <ConfigProvider
-          theme={{
-            components: {
-              Switch: {
-                colorPrimary: "#22c55e",
-                colorPrimaryHover: "#16a34a",
-              },
-            },
-          }}
+        {/* ===== FORM with flex layout for name and code ===== */}
+        <Form
+          form={form}
+          layout="vertical"
+          className="px-5 py-3"
+          size="small"
         >
-          <Form.Item name="attachmentRequired" valuePropName="checked" noStyle>
-            <Switch size="small" />
-          </Form.Item>
-        </ConfigProvider>
-      </div>
+          {/* Name and Code in one line - flex row */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Form.Item
+                name="name"
+                label={<span className="text-xs font-medium text-gray-700">Category</span>}
+                rules={[{ required: true, message: "Name is required" }]}
+                className="mb-3"
+              >
+                <Input
+                  placeholder="e.g., Travel Allowance"
+                  className="w-full text-sm h-8"
+                  onChange={handleNameChange}
+                />
+              </Form.Item>
+            </div>
 
-      <div className="flex justify-between items-center">
-        <div>
-          <p className="text-sm font-medium text-gray-800">Status</p>
-          <p className="text-xs text-gray-500">
-            Category is active and available
-          </p>
+            <div className="flex-1">
+              <Form.Item
+                name="code"
+                label={<span className="text-xs font-medium text-gray-700">Code</span>}
+                rules={[{ required: true, message: "Code is required" }]}
+                className="mb-3"
+              >
+                <Input
+                  placeholder="Auto-generated"
+                  className="w-full text-sm font-mono bg-gray-50 h-8"
+                  readOnly
+                />
+              </Form.Item>
+            </div>
+          </div>
+
+          {/* Description field - full width */}
+          <Form.Item
+            name="description"
+            label={<span className="text-xs font-medium text-gray-700">Description</span>}
+            className="mb-3"
+          >
+            <Input.TextArea
+              className="w-full text-sm"
+              placeholder="Enter description (optional)"
+              rows={2}
+            />
+          </Form.Item>
+
+          {/* Settings section */}
+          <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  Attachment Required
+                </p>
+                <p className="text-xs text-gray-500">
+                  Employee must upload bills
+                </p>
+              </div>
+
+              <ConfigProvider
+                theme={{
+                  components: {
+                    Switch: {
+                      colorPrimary: "#22c55e",
+                      colorPrimaryHover: "#16a34a",
+                    },
+                  },
+                }}
+              >
+                <Form.Item name="attachmentRequired" valuePropName="checked" noStyle>
+                  <Switch size="small" />
+                </Form.Item>
+              </ConfigProvider>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Status</p>
+                <p className="text-xs text-gray-500">
+                  Category is active and available
+                </p>
+              </div>
+
+              <ConfigProvider
+                theme={{
+                  components: {
+                    Switch: {
+                      colorPrimary: "#22c55e",
+                      colorPrimaryHover: "#16a34a",
+                    },
+                  },
+                }}
+              >
+                <Form.Item name="isActive" valuePropName="checked" initialValue={true} noStyle>
+                  <Switch size="small" />
+                </Form.Item>
+              </ConfigProvider>
+            </div>
+          </div>
+        </Form>
+
+        {/* ===== FOOTER ===== */}
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200">
+          <Button
+            size="middle"
+            onClick={() => {
+              setModalOpen(false);
+              setEditingItem(null);
+              form.resetFields();
+            }}
+            className="px-4 text-xs h-8"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="primary"
+            size="middle"
+            onClick={handleSubmit}
+            loading={submitting}
+            className="px-4 text-xs h-8 bg-blue-600 hover:bg-blue-700"
+          >
+            {editingItem ? "Update" : "Create"}
+          </Button>
         </div>
-
-        <ConfigProvider
-          theme={{
-            components: {
-              Switch: {
-                colorPrimary: "#22c55e",
-                colorPrimaryHover: "#16a34a",
-              },
-            },
-          }}
-        >
-          <Form.Item name="isActive" valuePropName="checked" initialValue={true} noStyle>
-            <Switch size="small" />
-          </Form.Item>
-        </ConfigProvider>
-      </div>
+      </Modal>
     </div>
-  </Form>
-
-  {/* ===== FOOTER ===== */}
-  <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200">
-    <Button
-      size="middle"
-      onClick={() => {
-        setModalOpen(false);
-        setEditingItem(null);
-        form.resetFields();
-      }}
-      className="px-4 text-xs h-8"
-    >
-      Cancel
-    </Button>
-
-    <Button 
-      type="primary" 
-      size="middle" 
-      onClick={handleSubmit} 
-      loading={submitting}
-      className="px-4 text-xs h-8 bg-blue-600 hover:bg-blue-700"
-    >
-      {editingItem ? "Update" : "Create"}
-    </Button>
-  </div>
-</Modal>
-      </div>
   );
 }
 

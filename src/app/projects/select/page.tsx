@@ -26,7 +26,8 @@ const { Title, Text, Paragraph } = Typography;
 
 // Professional blue color palette constants
 const BLUE_PRIMARY = '#2563eb';
-const BLUE_LIGHT = '#eff6ff';
+const BLUE_LIGHT = '#ffffff'; // Modernized to Pure White
+const BLUE_BG_SUBTLE = 'var(--bg-pure-white)';
 const BLUE_BORDER = '#dbeafe';
 const BLUE_TEXT = '#1e3a8a';
 const BLUE_MUTE = '#60a5fa';
@@ -99,7 +100,7 @@ function ProjectSelectContent() {
   if ((!user && !authLoading) || isRedirecting) {
     return (
       <MainLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-pure-white)' }}>
           <Spin size="large" tip="Redirecting..." />
         </div>
       </MainLayout>
@@ -111,7 +112,7 @@ function ProjectSelectContent() {
       <div style={{
         padding: '32px 40px 48px 40px',
         minHeight: '100vh',
-        background: '#ffffff',
+        background: 'var(--bg-pure-white)',
         fontFamily: "'Inter', sans-serif"
       }}>
         {/* Header Section - Modern Single Row Layout */}
@@ -160,8 +161,8 @@ function ProjectSelectContent() {
                 borderRadius: 12,
                 height: 48,
                 fontSize: 14,
-                border: '1px solid #e2e8f0',
-                background: '#fff',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-pure-white)',
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 padding: '0 16px'
               }}
@@ -181,11 +182,11 @@ function ProjectSelectContent() {
             </Row>
           ) : filteredProjects.length === 0 ? (
             <div style={{
-              background: '#fff',
+              background: 'var(--bg-pure-white)',
               borderRadius: 24,
               padding: '80px 40px',
               textAlign: 'center',
-              border: '1px solid #f1f5f9'
+              border: '1px solid var(--border-color)'
             }}>
               <Empty
                 image={<div style={{ fontSize: 64, marginBottom: 16 }}>📁</div>}
@@ -214,11 +215,11 @@ function ProjectSelectContent() {
                       style={{
                         height: '100%',
                         borderRadius: 20,
-                        border: '1px solid #f1f5f9',
+                        border: '1px solid var(--border-color)',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         overflow: 'hidden',
-                        background: '#fff'
+                        background: 'var(--bg-pure-white)'
                       }}
                       bodyStyle={{ padding: '24px 28px' }}
                       className="project-selection-card"
@@ -265,7 +266,7 @@ function ProjectSelectContent() {
                               textTransform: 'capitalize',
                               fontSize: 11,
                               border: 'none',
-                              background: project?.status === 'active' ? BLUE_LIGHT : '#f8fafc',
+                              background: project?.status === 'active' ? 'var(--bg-pure-white)' : 'var(--bg-pure-white)',
                               color: project?.status === 'active' ? BLUE_PRIMARY : '#64748b',
                               marginLeft: 12
                             }}
@@ -307,7 +308,7 @@ function ProjectSelectContent() {
                         <div style={{
                           marginTop: 'auto',
                           paddingTop: 20,
-                          borderTop: '1px solid #f1f5f9',
+                          borderTop: '1px solid var(--border-color)',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center'
@@ -390,7 +391,7 @@ export default function ProjectSelectPage() {
   return (
     <Suspense fallback={
       <MainLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-pure-white)' }}>
           <Spin size="large" tip="Loading ZithSpace..." />
         </div>
       </MainLayout>

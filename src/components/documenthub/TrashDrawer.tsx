@@ -71,27 +71,27 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
         onRestore,
         type 
     }: any) => (
-        <div className="relative bg-white border border-gray-100 rounded-xl p-4 mb-3 overflow-hidden">
+        <div className="relative bg-white border border-gray-100 rounded-xl p-4 mb-3 overflow-hidden" style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }}>
             <div className="flex items-start justify-between gap-4">
                 <div className="flex gap-4 flex-1">
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${type === 'hub' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${type === 'hub' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`} style={{ backgroundColor: type === 'hub' ? 'var(--bg-blue-50)' : 'var(--bg-green-50)', color: type === 'hub' ? 'var(--text-blue-700)' : 'var(--text-holiday)' }}>
                         {icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <Title level={5} className="!mb-1 truncate text-gray-800">
+                        <Title level={5} className="!mb-1 truncate text-gray-800" style={{ color: 'var(--text-slate-900)' }}>
                             {title}
                         </Title>
                         <Space direction="vertical" size={2} className="w-full">
                             {subtext && (
-                                <Text type="secondary" className="text-xs block flex items-center gap-1.5 font-medium">
+                                <Text type="secondary" className="text-xs block flex items-center gap-1.5 font-medium" style={{ color: 'var(--text-slate-400)' }}>
                                     <FolderOpenOutlined className="text-[10px]" /> {subtext}
                                 </Text>
                             )}
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                                <Text type="secondary" className="text-[11px] flex items-center gap-1.5">
+                                <Text type="secondary" className="text-[11px] flex items-center gap-1.5" style={{ color: 'var(--text-slate-400)' }}>
                                     <UserOutlined className="text-[10px]" /> {deletedBy || "Unknown"}
                                 </Text>
-                                <Text type="secondary" className="text-[11px] flex items-center gap-1.5">
+                                <Text type="secondary" className="text-[11px] flex items-center gap-1.5" style={{ color: 'var(--text-slate-400)' }}>
                                     <ClockCircleOutlined className="text-[10px]" /> {deletedAt ? format(new Date(deletedAt), "MMM d, h:mm a") : "Unknown"}
                                 </Text>
                             </div>
@@ -116,12 +116,12 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
         <Drawer
             title={
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-red-50)' }}>
                         <InboxOutlined className="text-red-500" />
                     </div>
                     <div>
-                        <div className="text-base font-semibold text-gray-800">Trash Bin</div>
-                        <div className="text-[11px] font-normal text-gray-400">Manage and restore deleted items</div>
+                        <div className="text-base font-semibold text-gray-800" style={{ color: 'var(--text-slate-900)' }}>Trash Bin</div>
+                        <div className="text-[11px] font-normal text-gray-400" style={{ color: 'var(--text-slate-400)' }}>Manage and restore deleted items</div>
                     </div>
                 </div>
             }
@@ -130,8 +130,8 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
             onClose={onClose}
             open={open}
             className="premium-drawer"
-            headerStyle={{ borderBottom: '1px solid #f0f0f0', padding: '16px 24px' }}
-            bodyStyle={{ padding: '20px' }}
+            headerStyle={{ borderBottom: '1px solid var(--border-slate-200)', padding: '16px 24px', background: 'var(--bg-pure-white)' }}
+            bodyStyle={{ padding: '20px', background: 'var(--bg-pure-white)' }}
         >
             {contextHolder}
             
@@ -146,7 +146,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                             label: (
                                 <span className="flex items-center gap-2 px-1">
                                     Document Hubs
-                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'hubs' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'hubs' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`} style={{ backgroundColor: activeTab === 'hubs' ? 'var(--bg-blue-50)' : 'var(--bg-slate-50)', color: activeTab === 'hubs' ? 'var(--text-blue-700)' : 'var(--text-slate-400)' }}>
                                         {hubs.length}
                                     </span>
                                 </span>
@@ -157,7 +157,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                             label: (
                                 <span className="flex items-center gap-2 px-1">
                                     Documents
-                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'documents' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === 'documents' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`} style={{ backgroundColor: activeTab === 'documents' ? 'var(--bg-green-50)' : 'var(--bg-slate-50)', color: activeTab === 'documents' ? 'var(--text-holiday)' : 'var(--text-slate-400)' }}>
                                         {documents.length}
                                     </span>
                                 </span>
@@ -170,8 +170,8 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
             <div className="trash-content">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-                        <Text type="secondary">Loading trash items...</Text>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" style={{ borderColor: 'var(--premium-blue)' }} />
+                        <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>Loading trash items...</Text>
                     </div>
                 ) : activeTab === "hubs" ? (
                     hubs.length > 0 ? (
@@ -189,7 +189,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                     ) : (
                         <Empty 
                             image={Empty.PRESENTED_IMAGE_SIMPLE} 
-                            description={<span className="text-gray-400">No trashed document hubs found</span>}
+                            description={<span className="text-gray-400" style={{ color: 'var(--text-slate-400)' }}>No trashed document hubs found</span>}
                             className="mt-20"
                         />
                     )
@@ -210,7 +210,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                     ) : (
                         <Empty 
                             image={Empty.PRESENTED_IMAGE_SIMPLE} 
-                            description={<span className="text-gray-400">No trashed documents found</span>}
+                            description={<span className="text-gray-400" style={{ color: 'var(--text-slate-400)' }}>No trashed documents found</span>}
                             className="mt-20"
                         />
                     )
@@ -229,7 +229,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
                     margin: 0 24px 0 0 !important;
                 }
                 .premium-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
-                    color: #1f2937 !important;
+                    color: var(--text-slate-900) !important;
                     font-weight: 600 !important;
                 }
                 .premium-tabs .ant-tabs-ink-bar {

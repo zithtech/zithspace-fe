@@ -14,6 +14,7 @@ import {
   Col,
   Divider,
 } from "antd";
+import type { ColumnType } from "antd/es/table";
 import {
   Plus,
   Search,
@@ -119,7 +120,7 @@ export default function ClientsV2ListPage() {
       const result = await api.get(`/api/clients-v2/${clientId}/projects`);
       setExpandedClientProjects((prev) => ({
         ...prev,
-        [clientId]: result || [],
+        [clientId]: (result as any)?.data || result || [],
       }));
     } catch (err) {
       console.error(`Failed to fetch projects for client ${clientId}`, err);
@@ -144,11 +145,11 @@ export default function ClientsV2ListPage() {
     fetchClients(1, pagination.pageSize, value);
   };
 
-  const columns = [
+  const columns: ColumnType<any>[] = [
     {
       title: "Client Entity",
       key: "client",
-      width: "35%",
+      width: 280,
       render: (_: any, record: any) => (
         <Space size={12}>
           <div style={{ 
@@ -176,6 +177,7 @@ export default function ClientsV2ListPage() {
       title: "Risk Analysis",
       dataIndex: "riskLevel",
       key: "riskLevel",
+      width: 130,
       render: (risk: string) => (
         <Tag
           style={{ borderRadius: 6, fontWeight: 500, border: 0 }}
@@ -191,6 +193,7 @@ export default function ClientsV2ListPage() {
       title: "Business Status",
       dataIndex: "status",
       key: "status",
+      width: 140,
       render: (status: string) => (
         <Tag 
           style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
@@ -204,6 +207,8 @@ export default function ClientsV2ListPage() {
       title: "Actions",
       key: "actions",
       align: "right" as const,
+      width: 100,
+      fixed: "right" as const,
       render: (_: any, record: any) => (
         <Space size={4}>
           <Tooltip title="View Details">
@@ -227,24 +232,27 @@ export default function ClientsV2ListPage() {
     },
   ];
 
-  const projectColumns = [
+  const projectColumns: ColumnType<any>[] = [
     { 
       title: "Project Name", 
       dataIndex: "name", 
       key: "name",
+      width: 180,
       render: (text: string) => <Text strong style={{ fontSize: 13 }}>{text}</Text>
     },
-    { title: "Code", dataIndex: "code", key: "code" },
+    { title: "Code", dataIndex: "code", key: "code", width: 100 },
     {
       title: "Budget Allocation",
       dataIndex: "budget",
       key: "budget",
+      width: 140,
       render: (val: number) => (val ? <Text style={{ color: "#059669", fontWeight: 600 }}>${val.toLocaleString()}</Text> : "N/A"),
     },
     {
       title: "Project Manager",
       dataIndex: "projectManager",
       key: "projectManager",
+      width: 160,
       render: (pm: any) => (pm ? (
         <Space>
           <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600 }}>
@@ -263,18 +271,19 @@ export default function ClientsV2ListPage() {
     return (
       <div style={{ padding: "0 24px 24px 72px", background: "var(--bg-slate-50)" }}>
         <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 20, height: 1, background: "#e2e8f0" }} />
+          <div style={{ width: 20, height: 1, background: "#e2e8e0" }} />
           <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
             Active Projects for {record.companyName}
           </Text>
         </div>
         <Table
           columns={projectColumns}
-          dataSource={projects}
+          dataSource={projects || []}
           loading={isLoading}
           rowKey="id"
           pagination={false}
           size="small"
+          scroll={{ x: "max-content" }}
           className="nested-project-table"
         />
       </div>
@@ -292,9 +301,14 @@ export default function ClientsV2ListPage() {
         }}>
         
         {/* Header Section */}
-        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div style={{ flex: 1 }}>
-            <Space size={12} align="center">
+        <Row 
+          justify="space-between" 
+          align="bottom" 
+          gutter={[16, 24]} 
+          style={{ marginBottom: 32 }}
+        >
+          <Col xs={24} lg={14}>
+            <Space size={12} align="start">
               <div style={{ 
                 background: "var(--bg-blue-50)", 
                 padding: 10, 
@@ -309,9 +323,25 @@ export default function ClientsV2ListPage() {
                 <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Monitor, manage, and configure all client entity profiles and their associated projects.</Text>
               </div>
             </Space>
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <Input 
+          </Col>
+          <Col xs={24} lg={10}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {/* <Input 
+                placeholder="Search clients..." 
+                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+                style={{ flex: "1 1 200px", maxWidth: "100%", borderRadius: 10, height: 44 }}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Plus size={18} />} 
+                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                onClick={() => router.push("/clients-v2/create")}
+              >
+                Create Client
+              </Button> */}
+              <Input 
               placeholder="Search clients..." 
               prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
               style={{ width: 280, borderRadius: 10, height: 44, background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
@@ -326,8 +356,9 @@ export default function ClientsV2ListPage() {
             >
               Create Client
             </Button>
-          </div>
-        </div>
+            </div>
+          </Col>
+        </Row>
 
         {/* Metrics Grid */}
         <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
@@ -375,6 +406,7 @@ export default function ClientsV2ListPage() {
             dataSource={data}
             rowKey="id"
             size="middle"
+            scroll={{ x: "max-content" }}
             pagination={{
               ...pagination,
               pageSizeOptions: ["10", "20", "50"],
@@ -417,6 +449,11 @@ export default function ClientsV2ListPage() {
           .nested-project-table .ant-table-thead > tr > th {
             background: transparent !important;
             border-bottom: 1px solid var(--border-slate-100) !important;
+          }
+          @media (max-width: 768px) {
+            .expanded-row-container {
+              padding: 0 16px 16px 24px !important;
+            }
           }
         `}} />
       </div>

@@ -445,7 +445,7 @@ export default function ClientV2DetailsPage() {
                 children: (
                   <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
                     <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Active Contacts" 
                           value={activeContacts} 
@@ -453,7 +453,7 @@ export default function ClientV2DetailsPage() {
                           color="#3b82f6" 
                         />
                       </Col>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Resource Allocations" 
                           value={`${activeAllocations} / ${totalAllocations}`} 
@@ -461,7 +461,7 @@ export default function ClientV2DetailsPage() {
                           color="#10b981" 
                         />
                       </Col>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Total Projects" 
                           value={totalProjects} 
@@ -469,7 +469,7 @@ export default function ClientV2DetailsPage() {
                           color="#f59e0b" 
                         />
                       </Col>
-                      <Col xs={24} sm={6}>
+                      <Col xs={24} sm={12} xl={6}>
                         <StatCard 
                           label="Projected Budget" 
                           value={`$${totalProjectBudget.toLocaleString()}`} 
@@ -609,7 +609,7 @@ export default function ClientV2DetailsPage() {
                           <Descriptions
                             size="small"
                             layout="vertical"
-                            column={3}
+                            column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
                             colon={false}
                             labelStyle={{ color: "#64748b", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.025em" }}
                             contentStyle={{ fontWeight: 500, fontSize: 15, paddingBottom: 24 }}
@@ -721,7 +721,7 @@ export default function ClientV2DetailsPage() {
                             <Descriptions
                                 size="small"
                                 layout="vertical"
-                                column={3}
+                                column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
                                 colon={false}
                                 labelStyle={{ color: "#64748b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}
                                 contentStyle={{ fontWeight: 600, fontSize: 14, paddingBottom: 20 }}
@@ -783,7 +783,7 @@ export default function ClientV2DetailsPage() {
                             <Descriptions
                                 size="small"
                                 layout="vertical"
-                                column={2}
+                                column={{ xxl: 2, xl: 2, lg: 2, md: 2, sm: 1, xs: 1 }}
                                 colon={false}
                                 labelStyle={{ color: "#64748b", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}
                                 contentStyle={{ fontWeight: 600, fontSize: 14, paddingBottom: 20 }}

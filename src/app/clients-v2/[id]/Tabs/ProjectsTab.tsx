@@ -361,6 +361,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           loading={loading}
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           className="premium-table"
+          scroll={{ x: "max-content" }}
           locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No project initiatives recorded</div> }}
         />
       </Card>
@@ -389,7 +390,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         <div style={{ padding: "8px 0" }}>
           <Form form={form} layout="vertical" onFinish={handleCreateProject}>
             <Row gutter={20}>
-              <Col span={14}>
+              <Col xs={24} sm={14}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>}
                   name="name"
@@ -398,7 +399,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   <Input placeholder="e.g. Q3 Infrastructure Modernization" style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={10}>
+              <Col xs={24} sm={10}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>System Identification Code</span>}
                   name="code"
@@ -410,7 +411,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Leadership</span>}
                   name="projectManagerId"
@@ -430,7 +431,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Initial Lifecycle Status</span>}
                   name="status"
@@ -449,7 +450,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
                   name="billingType"
@@ -464,7 +465,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocated Budget</span>} name="budget">
                   <InputNumber
                     type="number"
@@ -479,7 +480,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Commencement</span>}
                   name="startDate"
@@ -488,7 +489,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Estimated Completion</span>} name="endDate">
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
@@ -539,12 +540,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         <div style={{ padding: "8px 0" }}>
           <Form form={editForm} layout="vertical" onFinish={handleEditProject}>
             <Row gutter={20}>
-              <Col span={14}>
+              <Col xs={24} sm={14}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>} name="name" rules={[{ required: true }]}>
                   <Input style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={10}>
+              <Col xs={24} sm={10}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Code</span>} name="code">
                   <Input disabled style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
@@ -552,7 +553,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
                   <Select showSearch optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
                     {employees.map((emp) => (
@@ -563,7 +564,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Status</span>} name="status" rules={[{ required: true }]}>
                   <Select style={{ borderRadius: 8, height: 40 }}>
                     <Select.Option value="Draft">Draft</Select.Option>
@@ -577,7 +578,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Type</span>} name="billingType" rules={[{ required: true }]}>
                   <Select style={{ borderRadius: 8, height: 40 }}>
                     <Select.Option value="Hourly">Hourly</Select.Option>
@@ -588,7 +589,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Total Budget</span>} name="budget">
                   <InputNumber
                     addonBefore={currencySelector}
@@ -601,12 +602,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>} name="startDate" rules={[{ required: true }]}>
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>} name="endDate">
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>

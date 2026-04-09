@@ -33,7 +33,7 @@ import MainLayout from '@/components/layout/MainLayout';
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
-const BLUE_PRIMARY = '#2563eb';
+const BLUE_PRIMARY = 'var(--premium-blue)';
 
 export default function SLARulesEnginePage() {
   const [activeTab, setActiveTab] = useState('1');
@@ -94,21 +94,21 @@ export default function SLARulesEnginePage() {
       title: 'Policy Name',
       dataIndex: 'name',
       key: 'name',
-      render: (text: string) => <Text strong>{text}</Text>,
+      render: (text: string) => <Text strong style={{ color: 'var(--text-slate-900)' }}>{text}</Text>,
     },
     {
       title: 'Applied To',
       dataIndex: 'appliedTo',
       key: 'appliedTo',
-      render: (text: string) => <Tag style={{ borderRadius: 4 }}>{text}</Tag>,
+      render: (text: string) => <Tag bordered={false} style={{ borderRadius: 4, background: 'var(--bg-slate-50)', color: 'var(--text-slate-600)' }}>{text}</Tag>,
     },
     {
       title: 'Response / Resolution',
       key: 'timers',
       render: (record: any) => (
         <Space direction="vertical" size={0}>
-          <Text style={{ fontSize: 13 }}>Response: <Text strong>{record.response}</Text></Text>
-          <Text style={{ fontSize: 13 }}>Resolution: <Text strong>{record.resolution}</Text></Text>
+          <Text style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>Response: <Text strong style={{ color: 'var(--text-slate-900)' }}>{record.response}</Text></Text>
+          <Text style={{ fontSize: 13, color: 'var(--text-slate-600)' }}>Resolution: <Text strong style={{ color: 'var(--text-slate-900)' }}>{record.resolution}</Text></Text>
         </Space>
       ),
     },
@@ -132,16 +132,16 @@ export default function SLARulesEnginePage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px 40px', background: '#f8fafc', minHeight: '100vh' }}>
+      <div style={{ padding: '24px 40px', background: 'var(--bg-primary)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32 }}>
             <div>
               <Space align="center" style={{ marginBottom: 8 }}>
                 <ThunderboltOutlined style={{ fontSize: 24, color: BLUE_PRIMARY }} />
-                <Title level={2} style={{ margin: 0, fontWeight: 700 }}>SLA & Rules Engine</Title>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>SLA & Rules Engine</Title>
               </Space>
-              <Text type="secondary">Define automation rules, response times, and escalation workflows to keep your team on track.</Text>
+              <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>Define automation rules, response times, and escalation workflows to keep your team on track.</Text>
             </div>
             <Button 
               type="primary" 
@@ -163,13 +163,14 @@ export default function SLARulesEnginePage() {
                 label: <Space><ClockCircleOutlined /> SLA Policies</Space>,
                 children: (
                   <div style={{ marginTop: 16 }} className="fade-in">
-                    <Card style={{ borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+                    <Card style={{ borderRadius: 16, border: '1px solid var(--border-slate-200)', overflow: 'hidden', background: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 0 }}>
                       <Table 
                         columns={slaColumns} 
                         dataSource={slaPolicies} 
                         pagination={false}
                         rowKey="id"
-                        style={{ margin: 0 }}
+                        style={{ margin: 0, background: 'var(--bg-pure-white)' }}
+                        className="premium-table"
                       />
                     </Card>
                     
@@ -179,7 +180,7 @@ export default function SLARulesEnginePage() {
                         showIcon 
                         message="Intelligent Sorters"
                         description="Policies are evaluated from top to bottom. Use the drag handles (coming soon) to prioritize policy evaluations."
-                        style={{ borderRadius: 12, border: '1px solid #bae7ff' }}
+                        style={{ borderRadius: 12, border: '1px solid var(--border-sky-100)', background: 'var(--bg-sky-50)' }}
                       />
                     </div>
                   </div>
@@ -190,10 +191,10 @@ export default function SLARulesEnginePage() {
                 label: <Space><SlidersOutlined /> Escalation Rules</Space>,
                 children: (
                   <div style={{ marginTop: 16 }} className="fade-in">
-                    <Card style={{ borderRadius: 16, border: '1px solid #e2e8f0' }} bodyStyle={{ padding: 24 }}>
+                    <Card style={{ borderRadius: 16, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                        <Title level={4} style={{ margin: 0 }}>Active Automation Rules</Title>
-                        <Button icon={<SettingOutlined />}>Global Settings</Button>
+                        <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Active Automation Rules</Title>
+                        <Button icon={<SettingOutlined />} style={{ color: 'var(--text-slate-600)', background: 'var(--bg-pure-white)' }}>Global Settings</Button>
                       </div>
                       
                       <Collapse 
@@ -209,22 +210,22 @@ export default function SLARulesEnginePage() {
                                   <Badge status={rule.status ? 'success' : 'default'} />
                                   <Text strong>{rule.name}</Text>
                                 </Space>
-                                <Tag bordered={false} color={rule.status ? 'green' : 'default'}>{rule.status ? 'Active' : 'Disabled'}</Tag>
+                                <Tag bordered={false} color={rule.status ? 'green' : 'default'} style={{ borderRadius: '6px' }}>{rule.status ? 'Active' : 'Disabled'}</Tag>
                               </div>
                             } 
                             key={idx}
-                            style={{ marginBottom: 12, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12 }}
+                            style={{ marginBottom: 12, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', borderRadius: 12 }}
                           >
                             <div style={{ padding: '0 16px 16px 16px' }}>
                               <Divider style={{ margin: '12px 0' }} />
                               <Space direction="vertical" style={{ width: '100%' }}>
                                 <div style={{ display: 'flex', gap: 24 }}>
                                   <div style={{ flex: 1 }}>
-                                    <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>Condition / Trigger</Text>
-                                    <div style={{ marginTop: 4, fontWeight: 600 }}>{rule.trigger}</div>
+                                    <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>Condition / Trigger</Text>
+                                    <div style={{ marginTop: 4, fontWeight: 600, color: 'var(--text-slate-900)' }}>{rule.trigger}</div>
                                   </div>
                                   <div style={{ flex: 1 }}>
-                                    <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>Then Action</Text>
+                                    <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>Then Action</Text>
                                     <div style={{ marginTop: 4, fontWeight: 600, color: BLUE_PRIMARY }}>{rule.action}</div>
                                   </div>
                                 </div>
@@ -242,7 +243,7 @@ export default function SLARulesEnginePage() {
                         type="dashed" 
                         block 
                         icon={<PlusOutlined />} 
-                        style={{ height: 50, borderRadius: 12, marginTop: 12, border: '1px dashed #cbd5e1', color: '#64748b' }}
+                        style={{ height: 50, borderRadius: 12, marginTop: 12, border: '1px dashed var(--border-slate-200)', color: 'var(--text-slate-400)' }}
                       >
                         Add Custom Automation Rule
                       </Button>
@@ -255,13 +256,13 @@ export default function SLARulesEnginePage() {
                 label: <Space><SafetyOutlined /> Shift Management</Space>,
                 children: (
                   <div style={{ marginTop: 16 }} className="fade-in">
-                    <Card style={{ borderRadius: 16, border: '1px solid #e2e8f0', padding: 40, textAlign: 'center' }}>
+                    <Card style={{ borderRadius: 16, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', padding: 40, textAlign: 'center' }}>
                       <div style={{ fontSize: 48, marginBottom: 16 }}>🗓️</div>
-                      <Title level={3}>Shift-Based Escalations</Title>
-                      <Paragraph style={{ color: '#64748b', fontSize: 16 }}>
+                      <Title level={3} style={{ color: 'var(--text-slate-900)' }}>Shift-Based Escalations</Title>
+                      <Paragraph style={{ color: 'var(--text-slate-400)', fontSize: 16 }}>
                         Configure support rotas and shifts to ensure escalations are always routed to the right on-call engineer based on time of day.
                       </Paragraph>
-                      <Button type="primary" ghost size="large" style={{ borderRadius: 8, marginTop: 12 }}>Configure Rotas</Button>
+                      <Button type="primary" ghost size="large" style={{ borderRadius: 8, marginTop: 12, color: BLUE_PRIMARY, borderColor: BLUE_PRIMARY }}>Configure Rotas</Button>
                     </Card>
                   </div>
                 ),
@@ -272,15 +273,19 @@ export default function SLARulesEnginePage() {
 
         <style jsx global>{`
           .premium-tabs .ant-tabs-nav::before {
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-slate-100);
           }
           .premium-tabs .ant-tabs-tab {
             padding: 12px 16px !important;
             margin: 0 16px 0 0 !important;
             font-weight: 500;
+            color: var(--text-slate-600);
           }
           .premium-tabs .ant-tabs-tab-active {
             font-weight: 700;
+          }
+          .premium-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+            color: var(--premium-blue) !important;
           }
           .premium-tabs .ant-tabs-ink-bar {
             height: 3px !important;
@@ -309,16 +314,16 @@ const Alert = ({ message, description, type, showIcon, style }: any) => (
   <div style={{ 
     padding: '12px 16px', 
     borderRadius: 8, 
-    background: type === 'info' ? '#e6f7ff' : '#fffbe6', 
-    border: `1px solid ${type === 'info' ? '#91d5ff' : '#ffe58f'}`,
+    background: type === 'info' ? 'var(--bg-sky-50)' : 'var(--bg-slate-50)', 
+    border: `1px solid ${type === 'info' ? 'var(--border-sky-100)' : 'var(--border-slate-100)'}`,
     display: 'flex',
     gap: 12,
     ...style
   }}>
-    {showIcon && <QuestionCircleOutlined style={{ color: type === 'info' ? '#1890ff' : '#faad14', marginTop: 4 }} />}
+    {showIcon && <QuestionCircleOutlined style={{ color: type === 'info' ? 'var(--premium-blue)' : 'var(--text-slate-400)', marginTop: 4 }} />}
     <div style={{ flex: 1 }}>
-      <div style={{ fontWeight: 600, color: '#1f2937' }}>{message}</div>
-      <div style={{ color: '#4b5563', fontSize: 13, marginTop: 2 }}>{description}</div>
+      <div style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>{message}</div>
+      <div style={{ color: 'var(--text-slate-600)', fontSize: 13, marginTop: 2 }}>{description}</div>
     </div>
   </div>
 );

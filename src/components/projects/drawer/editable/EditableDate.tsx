@@ -86,13 +86,13 @@ export const EditableDate: React.FC<EditableDateProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 transition: 'background 0.2s',
-                backgroundColor: '#f5f5f5', // Always show background
+                backgroundColor: 'var(--bg-secondary)', // Theme-aware background
             }}
             className="editable-field-hover"
             title={label || placeholder}
         >
             {hasValue ? (
-                <Text>{displayValue}</Text>
+                <Text style={{ color: 'var(--text-primary)' }}>{displayValue}</Text>
             ) : (
                 <Text style={{ color: '#bfbfbf', fontSize: '13px' }}>{placeholder || emptyText}</Text>
             )}

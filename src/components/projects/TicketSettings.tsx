@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Card, Typography, Button, Space, Row, Col, List, Tabs, Divider, Tag, Badge } from 'antd';
-import { 
-  ControlOutlined, 
-  SettingOutlined, 
+import {
+  ControlOutlined,
+  SettingOutlined,
   DatabaseOutlined,
   ThunderboltOutlined,
   GithubOutlined,
@@ -25,7 +25,7 @@ const { Title, Paragraph, Text } = Typography;
 
 export default function TicketSettings() {
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   const settingsFeatures = [
     { title: 'Lookup Mapping', icon: <DatabaseOutlined />, color: '#1677ff' },
     { title: 'Priority & Severity', icon: <ThunderboltOutlined />, color: '#faad14' },
@@ -42,11 +42,12 @@ export default function TicketSettings() {
       <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={16} style={{ display: 'flex' }}>
           {/* Main Hero Card */}
-          <Card 
-            bordered={false} 
-            style={{ 
-              borderRadius: 20, 
-              background: 'linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%)',
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 20,
+              background: 'var(--bg-pure-white)',
+              border: '1px solid var(--border-color)',
               boxShadow: '0 10px 30px rgba(22, 119, 255, 0.05)',
               overflow: 'hidden',
               flex: 1
@@ -55,13 +56,13 @@ export default function TicketSettings() {
           >
             <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>
               <Space align="start" size={24}>
-                <div style={{ 
-                  width: 64, 
-                  height: 64, 
-                  background: '#1677ff', 
-                  borderRadius: 18, 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  width: 64,
+                  height: 64,
+                  background: '#1677ff',
+                  borderRadius: 18,
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   boxShadow: '0 8px 20px rgba(22, 119, 255, 0.25)'
                 }}>
@@ -71,18 +72,18 @@ export default function TicketSettings() {
                   <Title level={2} style={{ marginBottom: 8, fontWeight: 800 }}>
                     System Orchestration
                   </Title>
-                  <Paragraph style={{ fontSize: 15, color: '#4b5563', maxWidth: 550, marginBottom: 24 }}>
+                  <Paragraph style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 550, marginBottom: 24 }}>
                     Master your workspace architecture. Configure global taxonomies, optimize workflow lifecycles, and synchronize with external dev ecosystems from a single pane of glass.
                   </Paragraph>
                   <Space size="middle">
-                    <Button 
-                      type="primary" 
+                    <Button
+                      type="primary"
                       onClick={() => setActiveTab('dropdown-management')}
                       style={{ borderRadius: 10, height: 40, padding: '0 20px', fontWeight: 600 }}
                     >
                       Lookup Management
                     </Button>
-                    <Button 
+                    <Button
                       icon={<GithubOutlined />}
                       style={{ borderRadius: 10, height: 40, padding: '0 20px', fontWeight: 600 }}
                     >
@@ -96,22 +97,22 @@ export default function TicketSettings() {
         </Col>
 
         <Col xs={24} lg={8} style={{ display: 'flex' }}>
-          <Card 
-            title={<Text strong style={{ fontSize: 16 }}>Core Infrastructure</Text>} 
-            bordered={false} 
-            style={{ borderRadius: 20, flex: 1, boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}
+          <Card
+            title={<Text strong style={{ fontSize: 16 }}>Core Infrastructure</Text>}
+            bordered={false}
+            style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}
             bodyStyle={{ padding: '0 20px' }}
           >
             <List
               dataSource={settingsFeatures}
               renderItem={(item) => (
-                <List.Item style={{ padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <List.Item style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)' }}>
                   <List.Item.Meta
                     avatar={
-                      <div style={{ 
-                        width: 30, 
-                        height: 30, 
-                        background: `${item.color}12`, 
+                      <div style={{
+                        width: 30,
+                        height: 30,
+                        background: `${item.color}12`,
                         borderRadius: 8,
                         display: 'flex',
                         alignItems: 'center',
@@ -134,9 +135,9 @@ export default function TicketSettings() {
 
       <Row gutter={[20, 20]}>
         <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
             <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: '#f6ffed', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(82, 196, 26, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <HeartOutlined style={{ color: '#52c41a', fontSize: 20 }} />
               </div>
               <div>
@@ -151,11 +152,11 @@ export default function TicketSettings() {
             </Space>
           </Card>
         </Col>
-        
+
         <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
             <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: '#e6f4ff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(22, 119, 255, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <SafetyCertificateOutlined style={{ color: '#1677ff', fontSize: 20 }} />
               </div>
               <div>
@@ -169,9 +170,9 @@ export default function TicketSettings() {
         </Col>
 
         <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
             <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: '#fff7e6', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(250, 173, 20, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <DeploymentUnitOutlined style={{ color: '#faad14', fontSize: 20 }} />
               </div>
               <div>
@@ -185,9 +186,9 @@ export default function TicketSettings() {
         </Col>
 
         <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1 }} bodyStyle={{ padding: 24 }}>
+          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
             <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: '#fff1f0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(255, 77, 79, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ExportOutlined style={{ color: '#ff4d4f', fontSize: 20 }} />
               </div>
               <div>
@@ -207,26 +208,26 @@ export default function TicketSettings() {
   );
 
   return (
-    <div className="no-scrollbar" style={{ 
-      margin: '0', 
+    <div className="no-scrollbar" style={{
+      margin: '0',
       height: 'calc(100vh - 104px)',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#ffffff'
+      backgroundColor: 'var(--bg-pure-white)'
     }}>
       {/* Sticky Header and Tabs Container */}
-      <div style={{ 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 100, 
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
         paddingTop: 0,
         paddingBottom: 0,
         margin: '0 -20px 20px -20px',
         paddingLeft: 20,
         paddingRight: 20,
         backdropFilter: 'blur(12px)',
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderBottom: '1px solid rgba(0,0,0,0.05)'
+        backgroundColor: 'var(--bg-pure-white)',
+        borderBottom: '1px solid var(--border-color)'
       }}>
         <div style={{ padding: '12px 0' }}>
           <Space align="center" size={12}>
@@ -235,8 +236,8 @@ export default function TicketSettings() {
           </Space>
         </div>
 
-        <Tabs 
-          activeKey={activeTab} 
+        <Tabs
+          activeKey={activeTab}
           onChange={setActiveTab}
           type="card"
           className="settings-tabs"
@@ -290,7 +291,7 @@ export default function TicketSettings() {
           transition: all 0.3s;
         }
         .settings-tabs .ant-tabs-tab-active {
-          background: #fff !important;
+          background: var(--bg-pure-white) !important;
           box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
         }
         .settings-tabs .ant-tabs-tab:hover {

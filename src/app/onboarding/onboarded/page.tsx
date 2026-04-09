@@ -108,16 +108,16 @@ const labelize = (key: string) =>
   key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 
 // Enhanced RowItem component for better view display
-const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
+const RowItem = ({ label, value, icon, color = "var(--premium-blue)" }: any) => (
   <div
     style={{
       display: "flex",
       alignItems: "center",
       marginBottom: "10px",
       padding: "8px 12px",
-      background: "#ffffff",
+      background: "var(--bg-pure-white)",
       borderRadius: "10px",
-      border: "1px solid #f1f5f9",
+      border: "1px solid var(--border-slate-100)",
       transition: "all 0.2s ease",
     }}
   >
@@ -143,7 +143,7 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
         style={{
           fontSize: "11px",
           fontWeight: 600,
-          color: "#94a3b8",
+          color: "var(--text-slate-500)",
           textTransform: "uppercase",
           letterSpacing: "0.5px",
           marginBottom: "2px",
@@ -154,7 +154,7 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
       <div
         style={{
           fontSize: "13px",
-          color: "#1e293b",
+          color: "var(--text-slate-900)",
           fontWeight: 500,
         }}
       >
@@ -165,7 +165,7 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
             value
           )
         ) : (
-          <span style={{ color: "#3b82f6" }}>--</span>
+          <span style={{ color: "var(--premium-blue)" }}>--</span>
         )}
       </div>
     </div>
@@ -176,26 +176,26 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
 const labelStyle = {
   fontSize: "12px",
   fontWeight: 600,
-  color: "#475569",
+  color: "var(--text-primary)",
   marginBottom: "4px",
   display: "inline-block"
 };
-const inputStyle = { borderRadius: "8px", border: "1px solid #e2e8f0" };
+const inputStyle = { borderRadius: "8px", border: "1px solid var(--border-color)" };
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
   <Card
     bodyStyle={{ padding: "16px 20px" }}
     style={{
       borderRadius: 12,
-      border: "1px solid #ebedef",
+      border: "1px solid var(--border-slate-100)",
       boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-      background: "#fff"
+      background: "var(--bg-pure-white)"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
         <Icon size={20} />
@@ -285,19 +285,19 @@ const PersonalDetailsEditForm = ({ form, initialData }: any) => {
       {/* Basic Information */}
       <div
         style={{
-          background: "white",
+          background: "var(--bg-pure-white)",
           borderRadius: "12px",
           padding: "20px",
-          border: "1px solid #ebedef",
+          border: "1px solid var(--border-color)",
         }}
       >
         <div
           style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}
         >
-          <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
+          <div style={{ background: "var(--bg-blue-50)", padding: "8px", borderRadius: "8px", color: "var(--premium-blue)" }}>
             <User size={18} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)" }}>
             Basic Information
           </span>
         </div>
@@ -420,19 +420,19 @@ const PersonalDetailsEditForm = ({ form, initialData }: any) => {
       {/* Address Information */}
       <div
         style={{
-          background: "#ffffff",
+          background: "var(--bg-pure-white)",
           borderRadius: "12px",
           padding: "20px",
-          border: "1px solid #ebedef",
+          border: "1px solid var(--border-color)",
         }}
       >
         <div
           style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}
         >
-          <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
+          <div style={{ background: "var(--bg-blue-50)", padding: "8px", borderRadius: "8px", color: "var(--premium-blue)" }}>
             <MapPin size={18} />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)" }}>
             Address Information
           </span>
         </div>
@@ -888,17 +888,17 @@ const EmploymentEditForm = ({ form, initialData, projects }: any) => {
   return (
     <div
       style={{
-        background: "#ffffff",
+        background: "var(--bg-pure-white)",
         borderRadius: "12px",
         padding: "20px",
-        border: "1px solid #ebedef",
+        border: "1px solid var(--border-color)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}>
         <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
           <Briefcase size={18} />
         </div>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
           Employment Information
         </span>
       </div>
@@ -1366,17 +1366,17 @@ const BankPayrollEditForm = ({ form, initialData }: any) => {
   return (
     <div
       style={{
-        background: "#ffffff",
+        background: "var(--bg-pure-white)",
         borderRadius: "12px",
         padding: "20px",
-        border: "1px solid #ebedef",
+        border: "1px solid var(--border-color)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}>
         <div style={{ background: "White", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
           <Banknote size={18} />
         </div>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
           Bank & Payroll Information
         </span>
       </div>
@@ -1501,17 +1501,17 @@ const AssetsEditForm = ({ form, initialData }: any) => {
   return (
     <div
       style={{
-        background: "#ffffff",
+        background: "var(--bg-pure-white)",
         borderRadius: "12px",
         padding: "20px",
-        border: "1px solid #ebedef",
+        border: "1px solid var(--border-color)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", marginBottom: 20, gap: "10px" }}>
         <div style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6" }}>
           <Laptop size={18} />
         </div>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
           Assigned Assets
         </span>
       </div>
@@ -1688,7 +1688,7 @@ const PersonalDetailsView = ({ data }: any) => {
         background: "linear-gradient(135deg, #ffffff 0%, #f8faff 100%)",
         padding: 24,
         borderRadius: 20,
-        border: "1px solid #e2e8f0",
+        border: "1px solid var(--border-color)",
         position: "relative",
         overflow: "hidden"
       }}>
@@ -1706,7 +1706,7 @@ const PersonalDetailsView = ({ data }: any) => {
           <div style={{ background: "#3b82f6", padding: 8, borderRadius: 10, color: "#fff" }}>
             <User size={20} />
           </div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Basic Information</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Basic Information</span>
         </div>
 
         <Row gutter={[16, 0]}>
@@ -1746,19 +1746,19 @@ const PersonalDetailsView = ({ data }: any) => {
 
       {/* 📧 Contact & Identity */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ padding: 20, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-color)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <Mail size={18} style={{ color: "#3b82f6" }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Communication</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Communication</span>
           </div>
           <RowItem label="Work Email" value={data.workEmail} icon={<Mail />} />
           <RowItem label="Personal Email" value={data.personalEmail || data.email} icon={<Mail />} />
         </div>
 
-        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ padding: 20, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-color)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <Lock size={18} style={{ color: "#f59e0b" }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Identity Info</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Identity Info</span>
           </div>
           <RowItem label="PAN Number" value={data.pan} icon={<IdCard size={16} />} color="#f59e0b" />
           <RowItem label="Aadhaar" value={data.aadhaar} icon={<IdCard size={16} />} color="#f59e0b" />
@@ -1766,27 +1766,27 @@ const PersonalDetailsView = ({ data }: any) => {
       </div>
 
       {/* 🏠 Address Section */}
-      <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+      <div style={{ padding: 24, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-color)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
           <div style={{ background: "#8b5cf6", padding: 8, borderRadius: 10, color: "#fff" }}>
             <MapPin size={20} />
           </div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Address Information</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Address Information</span>
         </div>
 
         <Row gutter={[20, 20]}>
           <Col span={12}>
-            <div style={{ padding: 16, background: "#f8fafc", borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}>
+            <div style={{ padding: 16, background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-color)", height: "100%" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#8b5cf6", marginBottom: 12, textTransform: "uppercase" }}>Current Address</div>
-              <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6, fontWeight: 500 }}>
+              <div style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: 1.6, fontWeight: 500 }}>
                 {currentAddress || <span style={{ color: "#ef4444" }}>Not Verified</span>}
               </div>
             </div>
           </Col>
           <Col span={12}>
-            <div style={{ padding: 16, background: "#f8fafc", borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}>
+            <div style={{ padding: 16, background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-color)", height: "100%" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#8b5cf6", marginBottom: 12, textTransform: "uppercase" }}>Permanent Address</div>
-              <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.6, fontWeight: 500 }}>
+              <div style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: 1.6, fontWeight: 500 }}>
                 {permanentAddress || <span style={{ color: "#ef4444" }}>Not Verified</span>}
               </div>
             </div>
@@ -1892,7 +1892,7 @@ const EmploymentView = ({ data, projects: allProjects }: any) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* 🏢 Primary Role & Department */}
       <div style={{
-        background: "white",
+        background: "var(--bg-pure-white)",
         padding: 24,
         borderRadius: 24,
         border: "1px solid #bfdbfe",
@@ -1903,8 +1903,8 @@ const EmploymentView = ({ data, projects: allProjects }: any) => {
             <Briefcase size={22} />
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", lineHeight: 1.2 }}>Role & Assignment</div>
-            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Current position and organizational unit</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1.2 }}>Role & Assignment</div>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>Current position and organizational unit</div>
           </div>
         </div>
 
@@ -1930,19 +1930,19 @@ const EmploymentView = ({ data, projects: allProjects }: any) => {
 
       {/* 📅 Tenure & Timing */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 20 }}>
-        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ padding: 20, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-color)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <Calendar size={18} style={{ color: "#3b82f6" }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Tenure Details</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Tenure Details</span>
           </div>
           <RowItem label="Joining Date" value={data.joiningDate ? dayjs(data.joiningDate).format("DD MMM YYYY") : null} icon={<Calendar />} />
           <RowItem label="Completion" value={data.trainingCompletion ? dayjs(data.trainingCompletion).format("DD MMM YYYY") : null} icon={<CheckCircle />} color="#10b981" />
         </div>
 
-        <div style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ padding: 20, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-color)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <Clock size={18} style={{ color: "#f59e0b" }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Working Schedule</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Working Schedule</span>
           </div>
           <Row gutter={[12, 0]}>
             <Col span={12}><RowItem label="Work Type" value={data.workType} icon={<Laptop />} color="#f59e0b" /></Col>
@@ -1953,10 +1953,10 @@ const EmploymentView = ({ data, projects: allProjects }: any) => {
       </div>
 
       {/* 📊 Additional Assignments */}
-      <div style={{ padding: 20, background: "#f8fafc", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+      <div style={{ padding: 20, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-color)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <Layers size={18} style={{ color: "#6366f1" }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b" }}>Projects & Grade</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Projects & Grade</span>
         </div>
         <Row gutter={[16, 0]}>
           <Col span={14}>
@@ -1975,14 +1975,14 @@ const BankPayrollView = ({ data }: any) => {
   if (!data) return <div>No data available</div>;
 
   return (
-    <div style={{ padding: 24, background: "White", borderRadius: 24, border: "1px solid #f5f5f5ff" }}>
+    <div style={{ padding: 24, background: "White", borderRadius: 24, border: "1px solid #f5f5f5" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24 }}>
-        <div style={{ background: "#ffffffff", padding: 10, borderRadius: 14, color: "#bfe3c7ff", boxShadow: "0 4px 8px rgba(16, 185, 129, 0.2)" }}>
+        <div style={{ background: "#ffffff", padding: 10, borderRadius: 14, color: "#bfe3c7ff", boxShadow: "0 4px 8px rgba(16, 185, 129, 0.2)" }}>
           <Banknote size={22} />
         </div>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: "#1e293b", lineHeight: 1.2 }}>Bank & Payroll</div>
-          <div style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Secure financial and settlement details</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1.2 }}>Bank & Payroll</div>
+          <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>Secure financial and settlement details</div>
         </div>
       </div>
 
@@ -2017,12 +2017,12 @@ const AssetsView = ({ data }: any) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {data.map((item: any, idx: number) => (
-        <div key={idx} style={{ padding: 20, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div key={idx} style={{ padding: 20, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-color)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <div style={{ background: "#6366f115", padding: 8, borderRadius: 10, color: "#6366f1" }}>
               <Laptop size={20} />
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
               Asset {idx + 1}: {item.brand || "Unnamed Asset"}
             </div>
           </div>
@@ -2035,14 +2035,14 @@ const AssetsView = ({ data }: any) => {
           </Row>
 
           {item.image && (
-            <div style={{ marginTop: 12, padding: 12, background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 8, textTransform: "uppercase" }}>Asset Image</div>
+            <div style={{ marginTop: 12, padding: 12, background: "var(--bg-pure-white)", borderRadius: 12, border: "1px solid var(--border-color)" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 8, textTransform: "uppercase" }}>Asset Image</div>
               <Image
                 src={item.image}
                 alt="Asset"
                 width={120}
                 height={120}
-                style={{ objectFit: "cover", borderRadius: 10, border: "1px solid #e2e8f0" }}
+                style={{ objectFit: "cover", borderRadius: 10, border: "1px solid var(--border-color)" }}
               />
             </div>
           )}
@@ -2691,38 +2691,38 @@ const Onboarded = () => {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+        <div style={{ padding: "24px 32px", background: "var(--bg-secondary)", minHeight: "calc(100vh - 64px)" }}>
           {/* Header Section */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <Space size={12} align="center">
                 <div style={{
-                  background: "#eff6ff",
+                  background: "var(--bg-blue-50)",
                   padding: 10,
                   borderRadius: 12,
-                  color: "#3b82f6",
+                  color: "var(--premium-blue)",
                   display: "flex"
                 }}>
                   <Users size={24} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Onboarded Members</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Review and manage employees who have successfully completed the onboarding journey.</Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Onboarded Members</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Review and manage employees who have successfully completed the onboarding journey.</Text>
                 </div>
               </Space>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <Input
                 placeholder="Search employees..."
-                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-                style={{ width: 280, borderRadius: 10, height: 44 }}
+                prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
+                style={{ width: 280, borderRadius: 10, height: 44, background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)" }}
                 onChange={(e) => setSearch(e.target.value)}
               />
               <Button
                 type="primary"
                 size="large"
                 icon={<Plus size={18} />}
-                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "#3b82f6", border: "none" }}
+                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)", border: "none" }}
                 onClick={() => router.push("/onboarding/create")}
               >
                 Hire Employee
@@ -2769,7 +2769,7 @@ const Onboarded = () => {
           {/* Table Card */}
           <Card
             bodyStyle={{ padding: 0 }}
-            style={{ borderRadius: 16, border: "1px solid #ebedef", overflow: "hidden", background: "#fff" }}
+            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", background: "var(--bg-pure-white)" }}
           >
             {loading ? (
               <div style={{ textAlign: "center", padding: 100 }}>
@@ -2803,22 +2803,22 @@ const Onboarded = () => {
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  background: "var(--bg-blue-50)",
+                  border: "1px solid var(--border-slate-100)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#3b82f6",
+                  color: "var(--premium-blue)",
                   fontSize: 20
                 }}>
                   {sectionIconMap[section]}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.2 }}>
                     {labelize(section)}
                   </span>
                   {sectionSubTitleMap[section] && (
-                    <span style={{ fontSize: 13, color: "#64748b", fontWeight: 400, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 400, lineHeight: 1.4 }}>
                       {sectionSubTitleMap[section]}
                     </span>
                   )}
@@ -2826,8 +2826,8 @@ const Onboarded = () => {
               </div>
             }
             width={800}
-            headerStyle={{ borderBottom: "1px solid #f8fafc", padding: "24px 32px" }}
-            bodyStyle={{ padding: "32px", background: "#ffffff" }}
+            headerStyle={{ borderBottom: "1px solid var(--border-slate-100)", padding: "24px 32px", background: "var(--bg-pure-white)" }}
+            bodyStyle={{ padding: "32px", background: "var(--bg-pure-white)" }}
           >
             <Spin spinning={viewLoading}>{renderView()}</Spin>
           </Drawer>
@@ -2848,22 +2848,22 @@ const Onboarded = () => {
                   width: 48,
                   height: 48,
                   borderRadius: 12,
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  background: "var(--bg-blue-50)",
+                  border: "1px solid var(--border-slate-100)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#3b82f6",
+                  color: "var(--premium-blue)",
                   fontSize: 20
                 }}>
                   {sectionIconMap[section]}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "#1e293b", lineHeight: 1.2 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.2 }}>
                     Edit {labelize(section)}
                   </span>
                   {sectionSubTitleMap[section] && (
-                    <span style={{ fontSize: 13, color: "#64748b", fontWeight: 400, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 400, lineHeight: 1.4 }}>
                       {sectionSubTitleMap[section]}
                     </span>
                   )}
@@ -2909,6 +2909,21 @@ const Onboarded = () => {
               </Button>
             </Form>
           </Modal>
+
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            .ant-table-thead > tr > th {
+              background-color: var(--bg-slate-50) !important;
+              color: var(--text-slate-500) !important;
+              font-weight: 600 !important;
+              border-bottom: 2px solid var(--border-slate-100) !important;
+              padding: 12px 20px !important;
+            }
+            .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-50) !important; padding: 16px 20px !important; color: var(--text-slate-900) !important; }
+            .ant-table-row:hover { background-color: var(--bg-slate-50) !important; }
+            .ant-pagination-item a { color: var(--text-slate-500) !important; }
+            .ant-pagination-item-active { background: var(--bg-pure-white) !important; border-color: var(--premium-blue) !important; }
+          `}} />
         </div>
       </MainLayout>
     </ProtectedRoute>

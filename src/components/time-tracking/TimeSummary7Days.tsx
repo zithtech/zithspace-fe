@@ -85,8 +85,8 @@ export function TimeSummary7Days({ refreshKey }: { refreshKey?: number }) {
 
   return (
     <Card 
-      title={<Space><Text strong style={{ color: '#1e293b' }}>7-Day History</Text><Tag color="blue" style={{ marginLeft: 12, borderRadius: 6 }}>Last 7 Days Avg: {averageHours} Hours</Tag></Space>}
-      style={{ height: '100%', background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: 'hidden' }}
+      title={<Space><Text strong style={{ color: 'var(--text-slate-900)' }}>7-Day History</Text><Tag color="blue" style={{ marginLeft: 12, borderRadius: 6 }}>Last 7 Days Avg: {averageHours} Hours</Tag></Space>}
+      style={{ height: '100%', background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: 'hidden' }}
       styles={{ body: { padding: '0px' } }}
     >
       {loading ? (

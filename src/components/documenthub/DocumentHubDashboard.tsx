@@ -48,29 +48,29 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
             title: 'Document Hubs',
             value: totalHubs,
             icon: <FolderOutlined />,
-            color: '#1677ff',
-            bg: '#e6f4ff',
+            color: 'var(--text-sky-500)',
+            bg: 'var(--bg-blue-50)',
         },
         {
             title: 'Total Documents',
             value: totalDocuments,
             icon: <FileTextOutlined />,
-            color: '#52c41a',
-            bg: '#f6ffed',
+            color: 'var(--text-holiday)',
+            bg: 'var(--bg-green-50)',
         },
         {
             title: 'Project Linked',
             value: projectLinked,
             icon: <ProjectOutlined />,
             color: '#722ed1',
-            bg: '#f9f0ff',
+            bg: 'var(--bg-purple-50)',
         },
         {
             title: 'Contributors',
             value: uniqueCreators,
             icon: <UserOutlined />,
             color: '#fa8c16',
-            bg: '#fff7e6',
+            bg: 'var(--bg-orange-50)',
         },
     ];
 
@@ -112,8 +112,9 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                         size="small"
                         style={{
                             borderRadius: 12,
-                            border: '1px solid #f0f0f0',
+                            border: '1px solid var(--border-slate-200)',
                             cursor: 'default',
+                            background: 'var(--bg-pure-white)'
                         }}
                         styles={{ body: { padding: '16px 20px' } }}
                     >
@@ -122,7 +123,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                 <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>
                                     {stat.title}
                                 </Text>
-                                <span style={{ fontSize: 28, fontWeight: 700, color: '#262626', lineHeight: 1 }}>
+                                <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-slate-900)', lineHeight: 1 }}>
                                     {stat.value}
                                 </span>
                             </div>
@@ -180,8 +181,9 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                 onClick={() => onHubClick(hub.id)}
                                 style={{
                                     borderRadius: 12,
-                                    border: '1px solid #f0f0f0',
+                                    border: '1px solid var(--border-slate-200)',
                                     transition: 'all 0.2s',
+                                    background: 'var(--bg-pure-white)'
                                 }}
                                 styles={{ body: { padding: '14px 18px' } }}
                             >

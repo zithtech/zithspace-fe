@@ -195,7 +195,7 @@ const DocumentHubPage = (props: Props) => {
             <Tag color="blue">{text}</Tag>
           </Tooltip>
         ) : (
-          <span className="text-gray-400">-</span>
+          <span className="text-slate-400" style={{ color: 'var(--text-slate-400)' }}>-</span>
         ),
     },
     {
@@ -210,7 +210,7 @@ const DocumentHubPage = (props: Props) => {
             </Tag>
           </Tooltip>
         ) : (
-          <span className="text-gray-400">-</span>
+          <span className="text-slate-400" style={{ color: 'var(--text-slate-400)' }}>-</span>
         ),
     },
     {
@@ -223,7 +223,7 @@ const DocumentHubPage = (props: Props) => {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date) => (
-        <span className="text-gray-500">
+        <span className="text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
           {format(new Date(date), "MMM d, yyyy")}
         </span>
       ),
@@ -235,7 +235,7 @@ const DocumentHubPage = (props: Props) => {
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: (date) => (
-        <span className="text-gray-500">
+        <span className="text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
           {format(new Date(date), "MMM d, yyyy")}
         </span>
       ),
@@ -263,11 +263,11 @@ const DocumentHubPage = (props: Props) => {
       <div className="h-[calc(100vh-64px)] flex flex-col px-2 pt-4 pb-2">
         <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-slate-800 flex items-center gap-2" style={{ color: 'var(--text-slate-900)' }}>
               <FileZipOutlined className="text-blue-500" />
               Document Hub
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-slate-500 mt-1" style={{ color: 'var(--text-slate-400)' }}>
               Manage all your documentation in one place
             </p>
           </div>
@@ -302,12 +302,12 @@ const DocumentHubPage = (props: Props) => {
           </div>
 
           {/* Filters Section - Sticky inside the card */}
-          <div className="sticky top-0  bg-white z-20">
+          <div className="sticky top-0  bg-white z-20" style={{ background: 'var(--bg-pure-white)' }}>
             <div className="px-4 py-2 flex items-center gap-2 justify-between">
               <div className="flex items-center gap-2 w-full">
                 <Input
                   placeholder="Search..."
-                  prefix={<SearchOutlined className="text-gray-400" />}
+                  prefix={<SearchOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
                   style={{ width: "40%" }}
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
@@ -366,7 +366,7 @@ const DocumentHubPage = (props: Props) => {
               }}
               onRow={(record) => ({
                 onClick: () => router.push(`/documenthub/${record.id}`),
-                className: "cursor-pointer hover:bg-gray-50",
+                className: "cursor-pointer",
               })}
               className="[&_.ant-table-body]:!scrollbar-hide [&_.ant-table-body]:![-ms-overflow-style:none] [&_.ant-table-body]:![scrollbar-width:none] [&_.ant-table-body::-webkit-scrollbar]:!hidden"
             />
@@ -377,12 +377,12 @@ const DocumentHubPage = (props: Props) => {
       <Modal
         title={
           <div className="flex items-center gap-3 py-1">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center" style={{ backgroundColor: 'var(--bg-blue-50)' }}>
               <FileZipOutlined className="text-blue-500 text-lg" />
             </div>
             <div>
-              <div className="text-lg font-semibold text-gray-900 leading-tight">Create New Hub</div>
-              <div className="text-sm font-normal text-gray-500">Organize your technical knowledge and project assets</div>
+              <div className="text-lg font-semibold text-slate-900 leading-tight" style={{ color: 'var(--text-slate-900)' }}>Create New Hub</div>
+              <div className="text-sm font-normal text-slate-500" style={{ color: 'var(--text-slate-400)' }}>Organize your technical knowledge and project assets</div>
             </div>
           </div>
         }
@@ -405,7 +405,7 @@ const DocumentHubPage = (props: Props) => {
             <Col span={24}>
               <Form.Item
                 name="name"
-                label={<span className="font-medium text-gray-700">Hub Name</span>}
+                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Hub Name</span>}
                 rules={[
                   { required: true, message: "Please enter hub name" },
                   { min: 2, message: "Name must be at least 2 characters" },
@@ -414,8 +414,9 @@ const DocumentHubPage = (props: Props) => {
                 <Input
                   size="large"
                   placeholder="e.g., API Documentation"
-                  prefix={<FileTextOutlined className="text-gray-400" />}
-                  className="rounded-lg border-gray-200 hover:border-blue-400 focus:border-blue-500"
+                  prefix={<FileTextOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
+                  className="rounded-lg border-slate-200 hover:border-blue-400 focus:border-blue-500"
+                  style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
                 />
               </Form.Item>
             </Col>
@@ -423,14 +424,14 @@ const DocumentHubPage = (props: Props) => {
             <Col span={24}>
               <Form.Item
                 name="projectId"
-                label={<span className="font-medium text-gray-700">Project <span className="text-gray-400 font-normal">(Optional)</span></span>}
+                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Project <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
               >
                 <Select
                   size="large"
                   placeholder="Select project"
                   loading={projectsLoading}
                   className="rounded-lg"
-                  suffixIcon={<ProjectOutlined className="text-gray-400" />}
+                  suffixIcon={<ProjectOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
                   onChange={(value) => {
                     setSelectedProjectId(value);
                     form.setFieldsValue({ projectId: value });
@@ -448,7 +449,7 @@ const DocumentHubPage = (props: Props) => {
             <Col span={24}>
               <Form.Item
                 name="ticketId"
-                label={<span className="font-medium text-gray-700">Ticket <span className="text-gray-400 font-normal">(Optional)</span></span>}
+                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Ticket <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
               >
                 <Select
                   size="large"
@@ -456,7 +457,7 @@ const DocumentHubPage = (props: Props) => {
                   placeholder="Select ticket"
                   loading={ticketsLoading}
                   className="rounded-lg"
-                  suffixIcon={<TagOutlined className="text-gray-400" />}
+                  suffixIcon={<TagOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
                   allowClear
                   disabled={!selectedProjectId}
                   optionFilterProp="label"
@@ -471,10 +472,13 @@ const DocumentHubPage = (props: Props) => {
               </Form.Item>
             </Col>
           </Row>
-          <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100" style={{ borderTopColor: 'var(--border-slate-100)' }}>
             <Button
               size="large"
-              className="px-6 rounded-lg font-medium text-gray-500 border-none hover:bg-gray-100"
+              className="px-6 rounded-lg font-medium text-slate-500 border-none hover:bg-slate-100"
+              style={{ color: 'var(--text-slate-600)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               onClick={() => {
                 setModalVisible(false);
                 setSelectedProjectId(undefined);

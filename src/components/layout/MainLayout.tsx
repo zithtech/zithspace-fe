@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Layout, App as AntApp } from "antd";
+import { Layout, App as AntApp, theme } from "antd";
 import LoadingSpinner from "../common/LoadingSpinner";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
@@ -17,6 +17,7 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
+  const { token } = theme.useToken();
   const { user, logout, isLoading: authLoading } = useAuth();
   const { notification } = AntApp.useApp();
 
@@ -100,7 +101,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         collapsed={collapsed}
       />
 
-      <Layout style={{ marginTop: 64 }}>
+      <Layout style={{ marginTop: 64, background: 'var(--bg-pure-white)' }}>
         <SideNav
           activeModule={activeModule}
           collapsed={collapsed}
@@ -108,13 +109,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
         />
 
         <Content
+          className="fade-in"
           style={{
             margin: 0,
             // padding: "10px",
             paddingLeft: "16px",
             paddingRight: "16px",
             // background: "#f5f5f5",
-            background: "#ffffff",
+            background: 'var(--bg-pure-white)',
             marginLeft: collapsed ? 65 : 200,
             transition: "all 0.2s",
             height: "calc(100vh - 64px)",

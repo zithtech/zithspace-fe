@@ -66,7 +66,7 @@ export default function CommentsSection({
         {/* Comment List */}
         <div className="comments-list-container" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {comments.length === 0 ? (
-            <div style={{ padding: '24px 0', textAlign: 'center', backgroundColor: '#fafafa', borderRadius: 8, border: '1px dashed #d9d9d9' }}>
+            <div style={{ padding: '24px 0', textAlign: 'center', backgroundColor: 'var(--bg-secondary)', borderRadius: 8, border: '1px dashed var(--border-color)' }}>
                <Text type="secondary" style={{ fontSize: 13 }}>No conversation started yet</Text>
             </div>
           ) : (
@@ -88,7 +88,7 @@ export default function CommentsSection({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {isEditingThis ? (
                       <div style={{ 
-                        backgroundColor: '#fff', 
+                        backgroundColor: 'var(--bg-secondary)', 
                         border: '1px solid #1890ff', 
                         borderRadius: 12, 
                         padding: 8,
@@ -120,12 +120,12 @@ export default function CommentsSection({
                     ) : (
                         <div className="comment-content-container" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div className="comment-bubble" style={{ 
-                            backgroundColor: '#f6f8fa', 
+                            backgroundColor: 'var(--bg-secondary)', 
                             padding: '10px 14px', 
                             borderRadius: '0 12px 12px 12px',
                             display: 'inline-block',
                             maxWidth: '100%',
-                            border: '1px solid #f0f0f0',
+                            border: '1px solid var(--border-color)',
                             transition: 'all 0.2s'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
@@ -180,9 +180,9 @@ export default function CommentsSection({
         {/* Input Area */}
         <div style={{ 
           marginTop: 8,
-          backgroundColor: '#fff',
+          backgroundColor: 'var(--bg-secondary)',
           borderRadius: 12,
-          border: '1px solid #f0f0f0',
+          border: '1px solid var(--border-color)',
           padding: 8,
           transition: 'border-color 0.2s, box-shadow 0.2s',
           boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
@@ -207,7 +207,7 @@ export default function CommentsSection({
             alignItems: 'center', 
             marginTop: 4,
             padding: '4px 8px',
-            borderTop: '1px solid #f9f9f9'
+            borderTop: '1px solid var(--border-color)'
           }}>
             <Text type="secondary" style={{ fontSize: 11 }}>Press Enter to send, Shift+Enter for newline</Text>
             <Button
@@ -236,11 +236,11 @@ export default function CommentsSection({
           opacity: 1 !important;
         }
         .comment-bubble:hover {
-          background-color: #f0f2f5 !important;
-          border-color: #e6e8eb !important;
+          filter: brightness(0.97);
+          border-color: #1890ff40 !important;
         }
         .action-btn:hover {
-          background-color: #f0f0f0 !important;
+          background-color: var(--border-color) !important;
         }
         .comment-input-wrapper:focus-within {
           border-color: #1890ff !important;

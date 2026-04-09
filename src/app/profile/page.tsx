@@ -187,21 +187,24 @@ export default function ProfilePage() {
       onClick={() => setActiveTab(id)}
       className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${
         activeTab === id
-          ? 'bg-blue-50 text-blue-600 shadow-sm'
-          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          ? 'text-[#2563eb] shadow-sm'
+          : 'text-slate-600 hover:text-slate-900'
       }`}
+      style={{
+        backgroundColor: activeTab === id ? 'var(--bg-blue-50)' : 'transparent'
+      }}
     >
       <div className="flex items-center gap-3">
-        <Icon size={18} className={activeTab === id ? 'text-blue-600' : 'text-slate-400'} />
+        <Icon size={18} className={activeTab === id ? 'text-[#2563eb]' : 'text-slate-400'} />
         <span className="font-medium text-[14px]">{label}</span>
       </div>
-      {activeTab === id && <ChevronRight size={16} className="text-blue-500" />}
+      {activeTab === id && <ChevronRight size={16} className="text-[#2563eb]" />}
     </button>
   );
 
   return (
     <MainLayout>
-      <div className="min-h-[calc(100vh-64px)] bg-[#fcfcfd]">
+      <div className="min-h-[calc(100vh-64px)]" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* Banner Area - Compacted */}
         <div className="h-24 bg-gradient-to-r from-[#1e40af] to-[#3730a3] relative overflow-hidden flex items-center px-10">
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mt-[-20px]" />
@@ -210,12 +213,16 @@ export default function ProfilePage() {
             <div className="relative">
               <Avatar
                 size={80}
-                className="border-4 border-white/20 shadow-xl bg-white/10 text-3xl font-semibold uppercase backdrop-blur-sm"
+                className="border-4 border-white/20 shadow-xl text-3xl font-semibold uppercase backdrop-blur-sm"
+                style={{ background: 'rgba(255, 255, 255, 0.1)' }}
               >
                 {userProfile?.name.charAt(0) || user?.name?.charAt(0)}
               </Avatar>
               <Tooltip title="Coming Soon: Upload Avatar">
-                <button className="absolute bottom-0 right-0 p-1.5 bg-white rounded-full border border-slate-200 shadow-sm text-slate-500 cursor-not-allowed scale-75">
+                <button 
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full shadow-sm cursor-not-allowed scale-75"
+                  style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', color: 'var(--text-slate-400)' }}
+                >
                   <Camera size={14} />
                 </button>
               </Tooltip>
@@ -253,15 +260,18 @@ export default function ProfilePage() {
           <div className="flex flex-col lg:flex-row gap-6 items-start">
             {/* Left Column: Compact Settings Nav */}
             <div className="w-full lg:w-[240px] space-y-4">
-              <div className="bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
-                <div className="px-4 py-2 border-b border-slate-50">
+              <div 
+                className="rounded-xl p-1 shadow-sm"
+                style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)' }}
+              >
+                <div className="px-4 py-2" style={{ borderBottom: '1px solid var(--border-slate-50)' }}>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Settings</span>
                 </div>
                 <div className="p-1 space-y-0.5">
                   <SidebarItem id="profile" icon={User} label="Profile Details" />
                   <SidebarItem id="security" icon={Shield} label="Security" />
                 </div>
-                <div className="mt-2 pt-1 border-t border-slate-100 p-1">
+                <div className="mt-2 pt-1 p-1" style={{ borderTop: '1px solid var(--border-slate-100)' }}>
                   <button 
                     onClick={() => logout()}
                     className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-rose-500 hover:bg-rose-50 transition-all duration-200 text-[12px] font-bold"
@@ -299,43 +309,49 @@ export default function ProfilePage() {
               </div>
 
               {/* Main Container */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[440px]">
+              <div 
+                className="rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[440px]"
+                style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)' }}
+              >
                 {activeTab === 'profile' ? (
                   <div className="flex flex-col h-full animate-in fade-in duration-500">
                     {/* Information Bento Section - Enhanced Premium Style */}
-                    <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 shadow-sm relative z-0">
-                      <div className="p-4 bg-white hover:bg-slate-50/50 transition-colors group cursor-default">
+                    <div 
+                      className="grid grid-cols-3 shadow-sm relative z-0"
+                      style={{ borderBottom: '1px solid var(--border-slate-100)' }}
+                    >
+                      <div className="p-4 transition-colors group cursor-default" style={{ background: 'var(--bg-pure-white)', borderRight: '1px solid var(--border-slate-50)' }}>
                         <div className="flex items-center gap-2.5 mb-2">
-                          <div className="w-6 h-6 rounded-md bg-blue-100/50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                          <div className="w-6 h-6 rounded-md flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform" style={{ background: 'var(--bg-blue-50)' }}>
                             <Briefcase size={12} strokeWidth={2.5} />
                           </div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Position</span>
                         </div>
-                        <p className="text-slate-900 font-extrabold text-[13px] tracking-tight truncate leading-none">
+                        <p className="font-extrabold text-[13px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
                           {userProfile?.position?.title || 'N/A'}
                         </p>
                       </div>
 
-                      <div className="p-4 bg-white hover:bg-slate-50/50 transition-colors group cursor-default">
+                      <div className="p-4 transition-colors group cursor-default" style={{ background: 'var(--bg-pure-white)', borderRight: '1px solid var(--border-slate-50)' }}>
                         <div className="flex items-center gap-2.5 mb-2">
-                          <div className="w-6 h-6 rounded-md bg-indigo-100/50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                          <div className="w-6 h-6 rounded-md flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform" style={{ background: 'var(--bg-blue-50)' }}>
                             <Calendar size={12} strokeWidth={2.5} />
                           </div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Joined</span>
                         </div>
-                        <p className="text-slate-900 font-extrabold text-[13px] tracking-tight truncate leading-none">
+                        <p className="font-extrabold text-[13px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
                           {userProfile?.createdAt ? dayjs(userProfile.createdAt).format('MMM D, YYYY') : 'N/A'}
                         </p>
                       </div>
 
-                      <div className="p-4 bg-white hover:bg-slate-50/50 transition-colors group cursor-default">
+                      <div className="p-4 transition-colors group cursor-default" style={{ background: 'var(--bg-pure-white)' }}>
                         <div className="flex items-center gap-2.5 mb-2">
-                          <div className="w-6 h-6 rounded-md bg-emerald-100/50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                          <div className="w-6 h-6 rounded-md flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform" style={{ background: 'var(--bg-green-50)' }}>
                             <User size={12} strokeWidth={2.5} />
                           </div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead</span>
                         </div>
-                        <p className="text-slate-900 font-extrabold text-[13px] tracking-tight truncate leading-none">
+                        <p className="font-extrabold text-[13px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
                           {userProfile?.reportsTo?.name || 'N/A'}
                         </p>
                       </div>
@@ -389,11 +405,11 @@ export default function ProfilePage() {
                             label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Calendar size={12}/> Date of Birth</span>}
                             className="mb-1"
                           >
-                            <Input type="date" className="rounded-lg py-1.5 focus:ring-0 border-slate-200 text-sm font-semibold h-9" />
+                            <Input type="date" className="rounded-lg py-1.5 focus:ring-0 text-sm font-semibold h-9" style={{ border: '1px solid var(--border-slate-100)', background: 'var(--bg-pure-white)', color: 'var(--text-slate-900)' }} />
                           </Form.Item>
                         </div>
 
-                        <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div className="mt-8 pt-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--border-slate-100)' }}>
                           <p className="text-[10px] text-slate-400 italic">Position changes require admin approval.</p>
                           <Button
                             type="primary"
@@ -408,13 +424,13 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-8 flex items-center justify-center h-full animate-in fade-in duration-500">
+                  <div className="p-8 flex items-center justify-center h-full animate-in fade-in duration-500" style={{ background: 'var(--bg-pure-white)' }}>
                     <div className="max-w-xs w-full">
                       <div className="text-center mb-6">
                         <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
                           <KeyRound size={20} />
                         </div>
-                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight">Access Control</h3>
+                        <h3 className="text-sm font-bold uppercase tracking-tight" style={{ color: 'var(--text-slate-900)' }}>Access Control</h3>
                         <p className="text-slate-400 text-[11px] mt-1">Choose a unique, high-strength password.</p>
                       </div>
 
@@ -468,6 +484,27 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        <style jsx global>{`
+          .ant-form-item-label > label {
+            font-weight: 500 !important;
+            color: var(--text-slate-500) !important;
+            font-size: 11px !important;
+          }
+          .ant-input, .ant-input-password, .ant-input-affix-wrapper {
+            border-radius: 8px !important;
+            border-color: var(--border-slate-100) !important;
+            background: var(--bg-pure-white) !important;
+            color: var(--text-slate-900) !important;
+          }
+          .ant-input:focus, .ant-input-affix-wrapper-focused {
+            border-color: #2563eb !important;
+            box-shadow: none !important;
+          }
+           .ant-input:disabled {
+            background-color: var(--bg-slate-50) !important;
+            color: var(--text-slate-400) !important;
+          }
+        `}</style>
       </div>
     </MainLayout>
   );

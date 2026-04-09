@@ -473,8 +473,9 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
       {/* Work Details */}
       <Card
-        title={<Space><BankOutlined style={{ color: "#1677ff" }} /> <span>Work Details</span></Space>}
+        title={<Space><BankOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Work Details</span></Space>}
         bordered={false}
+        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
         styles={{ body: { padding: "24px" } }}
       >
         <Form
@@ -576,7 +577,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
             <Col span={24}>
               {workType === "Hybrid" && (
-                <div style={{ background: "#fff", padding: "16px", borderRadius: "8px", border: "1px solid #f0f0f0", marginBottom: "16px" }}>
+                <div style={{ background: "var(--bg-slate-50)", padding: "16px", borderRadius: "8px", border: "1px solid var(--border-slate-100)", marginBottom: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
                     <span style={{ fontWeight: 500 }}>Hybrid Mode:</span>
                     <Switch
@@ -599,7 +600,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
 
                   {hybridMode === "Fixed" ? (
                     selectedDays.length > 0 && (
-                      <div style={{ fontSize: "13px", color: "#666" }}>
+                      <div style={{ fontSize: "13px", color: "var(--text-slate-500)" }}>
                         Selected Days: <strong>{selectedDays.join(", ").toUpperCase()}</strong> |
                         Total: <strong>{selectedDays.length} days</strong> ({selectedDays.length * 8} hrs)
                       </div>
@@ -659,10 +660,10 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         <Col span={12}>
           {/* Employee Timeline */}
           <Card
-            title={<Space><CalendarOutlined style={{ color: "#1677ff" }} /> <span>Employee Timeline</span></Space>}
+            title={<Space><CalendarOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Employee Timeline</span></Space>}
             bordered={false}
+            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
             styles={{ body: { padding: "24px" } }}
-            style={{ height: "100%" }}
           >
             <Form
               layout="vertical"
@@ -727,10 +728,10 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         <Col span={12}>
           {/* Additional Details */}
           <Card
-            title={<Space><TrophyOutlined style={{ color: "#1677ff" }} /> <span>Additional Details</span></Space>}
+            title={<Space><TrophyOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Additional Details</span></Space>}
             bordered={false}
+            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
             styles={{ body: { padding: "24px" } }}
-            style={{ height: "100%" }}
           >
             <Form
               layout="vertical"
@@ -762,8 +763,8 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
       <Modal
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <CalendarOutlined style={{ color: "#1677ff" }} />
-            <span>Configure Hybrid Working Days</span>
+            <CalendarOutlined style={{ color: "var(--premium-blue)" }} />
+            <span style={{ color: "var(--text-slate-900)" }}>Configure Hybrid Working Days</span>
           </div>
         }
         open={isHybridModalOpen}
@@ -778,7 +779,7 @@ const EmploymentDetails = forwardRef(({ data }: any, ref: any) => {
         <Card
           bordered={false}
           style={{
-            background: "#fafafa",
+            background: "var(--bg-slate-50)",
             borderRadius: 10,
           }}
         >

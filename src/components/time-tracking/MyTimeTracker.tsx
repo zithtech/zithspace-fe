@@ -260,9 +260,9 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
   return (
     <Card style={{
       height: '100%',
-      background: "#fff",
+      background: "var(--bg-pure-white)",
       borderRadius: 16,
-      border: "1px solid #f1f5f9",
+      border: "1px solid var(--border-slate-100)",
       overflow: "hidden"
     }}
       styles={{ body: { padding: 0 } }}
@@ -280,10 +280,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
             const isLive = record.status === 'RUNNING';
 
             return (
-              <div style={{ padding: '20px 32px', backgroundColor: '#fff', borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ padding: '20px 32px', backgroundColor: 'var(--bg-pure-white)', borderTop: '1px solid var(--border-slate-100)' }}>
                 <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <ClockCircleOutlined style={{ color: '#1677ff', fontSize: 14 }} />
-                  <Text strong style={{ fontSize: 12, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
+                  <Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
                 </div>
         
                 <div style={{ position: 'relative', paddingLeft: 24 }}>
@@ -294,7 +294,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                     top: 6,
                     bottom: 6,
                     width: 1.5,
-                    background: 'linear-gradient(to bottom, #1677ff, #f1f5f9)',
+                    background: 'linear-gradient(to bottom, #1677ff, var(--border-slate-100))',
                     borderRadius: 1
                   }} />
         
@@ -311,16 +311,16 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                           height: 12,
                           borderRadius: '50%',
                           background: sessionIsLive ? '#10b981' : session.endAction === 'PAUSED' ? '#f59e0b' : '#1677ff',
-                          border: '3px solid #fff',
-                          boxShadow: '0 0 0 1px #e0e7ff',
+                          border: '3px solid var(--bg-pure-white)',
+                          boxShadow: '0 0 0 1px var(--border-slate-200)',
                           zIndex: 2
                         }} />
         
                         <div style={{ 
                           padding: '12px 16px', 
-                          background: '#f8fafc', 
+                          background: 'var(--bg-secondary)', 
                           borderRadius: 12, 
-                          border: '1px solid #e2e8f0',
+                          border: '1px solid var(--border-slate-200)',
                           transition: 'all 0.2s ease'
                         }}>
                           <Row gutter={12} align="middle">
@@ -337,10 +337,10 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                               <div style={{ marginBottom: 0 }}>
                                 {record.ticket?.title ? (
                                   <Link href={`/tickets/${record.ticketId}`}>
-                                    <Text strong style={{ fontSize: 13, color: '#1e293b', cursor: 'pointer' }}>{record.ticket.title}</Text>
+                                    <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)', cursor: 'pointer' }}>{record.ticket.title}</Text>
                                   </Link>
                                 ) : (
-                                  <Text strong style={{ fontSize: 13, color: '#1e293b' }}>{record.description || "No description provided"}</Text>
+                                  <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.description || "No description provided"}</Text>
                                 )}
                               </div>
                             </Col>
@@ -385,26 +385,27 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
       />
       <style jsx global>{`
         .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-table-header) !important;
+          color: var(--text-slate-600) !important;
           font-weight: 600 !important;
           font-size: 11px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
-          border-bottom: 1px solid #e2e8f0 !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
           padding: 12px 16px !important;
         }
         .ant-table-tbody > tr > td {
           padding: 14px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          background-color: var(--bg-pure-white) !important;
           font-size: 14px !important;
-          color: #1e293b !important;
+          color: var(--text-slate-900) !important;
         }
         .ant-table-row:hover > td {
-          background-color: #f8fafc !important;
+          background-color: var(--bg-table-header) !important;
         }
         .running-row {
-          background-color: #f0f7ff !important;
+          background-color: var(--bg-running-row) !important;
         }
         .nested-history-table .ant-table-thead > tr > th {
           background: #f8fafc !important;

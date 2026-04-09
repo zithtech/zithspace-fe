@@ -57,11 +57,11 @@ const OPTIONS = [
 ];
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
-  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}>
         <Icon size={24} />
@@ -92,10 +92,10 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
     key: key.toString(),
     label: (
       <Space>
-        <div style={{ background: "#f1f5f9", width: 24, height: 24, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#64748b" }}>
+        <div style={{ background: "var(--bg-slate-100)", width: 24, height: 24, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--text-slate-500)" }}>
           {index + 1}
         </div>
-        <Text strong>{form.getFieldValue(["holidays", name, "holidayName"]) || `New Holiday`}</Text>
+        <Text strong style={{ color: "var(--text-slate-900)" }}>{form.getFieldValue(["holidays", name, "holidayName"]) || `New Holiday`}</Text>
       </Space>
     ),
     extra: fields.length > 1 ? (
@@ -251,7 +251,7 @@ const HolidayCollapse = ({ fields, add, remove, form }: any) => {
         block
         onClick={() => add()}
         icon={<Plus size={16} />}
-        style={{ marginTop: 16, height: 44, borderRadius: 12, borderColor: "#e2e8f0", color: "#64748b" }}
+        style={{ marginTop: 16, height: 44, borderRadius: 12, borderColor: "var(--border-slate-200)", color: "var(--text-slate-500)", background: "transparent" }}
       >
         Add Another Holiday
       </Button>
@@ -383,10 +383,10 @@ export default function GovernmentLeavesPage() {
       key: "holidayName",
       render: (text) => (
         <div style={{ display: "flex", alignItems: "center", gap: 12, paddingLeft: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: "#f1f7ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: "var(--bg-blue-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--premium-blue)" }}>
             <Calendar size={14} />
           </div>
-          <Text strong style={{ color: "#1e293b" }}>{text}</Text>
+          <Text strong style={{ color: "var(--text-slate-900)" }}>{text}</Text>
         </div>
       ),
     },
@@ -397,8 +397,8 @@ export default function GovernmentLeavesPage() {
         const countryName = Country.getCountryByCode(record.country)?.name || record.country;
         return (
           <Space direction="vertical" size={2}>
-            <Tag color="blue" style={{ borderRadius: 6, margin: 0 }}>{countryName}</Tag>
-            <Text type="secondary" style={{ fontSize: 11 }}>
+            <Tag color="blue" style={{ borderRadius: 6, margin: 0, background: "var(--bg-blue-50)", color: "var(--premium-blue)", border: 0 }}>{countryName}</Tag>
+            <Text style={{ fontSize: 11, color: "var(--text-slate-500)" }}>
               {Array.isArray(record.state) ? record.state.join(", ") : record.state || "All Regions"}
             </Text>
           </Space>
@@ -410,12 +410,12 @@ export default function GovernmentLeavesPage() {
       key: "duration",
       render: (_, record) => (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-200)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
           </div>
-          <ArrowRight size={14} color="#94a3b8" />
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
+          <ArrowRight size={14} color="var(--text-slate-400)" />
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-200)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
           </div>
         </div>
       )
@@ -425,7 +425,7 @@ export default function GovernmentLeavesPage() {
       dataIndex: "type",
       key: "type",
       render: (type) => (
-        <Tag style={{ borderRadius: 20, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569", fontWeight: 500 }}>
+        <Tag style={{ borderRadius: 20, background: "var(--bg-slate-100)", border: "1px solid var(--border-slate-200)", color: "var(--text-slate-500)", fontWeight: 500 }}>
           {type}
         </Tag>
       )
@@ -434,7 +434,7 @@ export default function GovernmentLeavesPage() {
       title: "Rule / Note",
       dataIndex: "rule",
       key: "rule",
-      render: (text) => <Text type="secondary" style={{ fontSize: 13 }}>{text || "—"}</Text>
+      render: (text) => <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{text || "—"}</Text>
     },
     {
       title: "Actions",
@@ -447,7 +447,7 @@ export default function GovernmentLeavesPage() {
             size="small"
             icon={<Edit3 size={16} />}
             onClick={() => handleEdit(record)}
-            style={{ color: "#2563eb", background: "#eff6ff", borderRadius: 6 }}
+            style={{ color: "var(--premium-blue)", background: "var(--bg-blue-50)", borderRadius: 6 }}
           />
           <Popconfirm
             title="Delete holiday?"
@@ -478,18 +478,18 @@ export default function GovernmentLeavesPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "var(--bg-secondary)", minHeight: "calc(100vh - 64px)" }}>
 
           {/* Header */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
             <div style={{ flex: 1 }}>
               <Space size={14} align="center">
-                <div style={{ background: "#eff6ff", padding: 12, borderRadius: 14, color: "#2563eb", display: "flex" }}>
+                <div style={{ background: "var(--bg-blue-50)", padding: 12, borderRadius: 14, color: "var(--premium-blue)", display: "flex" }}>
                   <Settings2 size={28} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Holiday Configuration</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Manage global government holiday data sources and regional settings.</Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Holiday Configuration</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Manage global government holiday data sources and regional settings.</Text>
                 </div>
               </Space>
             </div>
@@ -497,7 +497,7 @@ export default function GovernmentLeavesPage() {
               icon={<Plus size={18} />}
               type="primary"
               onClick={showDrawer}
-              style={{ height: 44, borderRadius: 12, fontWeight: 600, padding: "0 24px" }}
+              style={{ height: 44, borderRadius: 12, fontWeight: 600, padding: "0 24px", background: "var(--premium-blue)" }}
             >
               Add Holiday Source
             </Button>
@@ -515,11 +515,11 @@ export default function GovernmentLeavesPage() {
             </Col>
           </Row>
 
-          <Divider style={{ margin: "12px 0 24px 0" }} />
+          <Divider style={{ margin: "12px 0 24px 0", borderColor: "var(--border-slate-100)" }} />
 
           {/* Filters */}
           <div style={{ marginBottom: 24, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#64748b", fontSize: 14, fontWeight: 500, marginRight: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-slate-500)", fontSize: 14, fontWeight: 500, marginRight: 8 }}>
               <Filter size={18} /> Filters:
             </div>
             <Select
@@ -575,7 +575,7 @@ export default function GovernmentLeavesPage() {
 
           <Card
             bordered={false}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
             bodyStyle={{ padding: "0" }}
           >
             <Table
@@ -593,24 +593,26 @@ export default function GovernmentLeavesPage() {
           <Drawer
             title={
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb" }}>
+                <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)" }}>
                   {editingKey ? <Edit3 size={20} /> : <Plus size={20} />}
                 </div>
-                <Text strong style={{ fontSize: 18 }}>{editingKey ? "Edit Holiday Source" : "Add Holiday Sources"}</Text>
+                <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)" }}>{editingKey ? "Edit Holiday Source" : "Add Holiday Sources"}</Text>
               </div>
             }
             width={520}
             onClose={() => setIsDrawerOpen(false)}
             open={isDrawerOpen}
+            headerStyle={{ background: "var(--bg-pure-white)", borderBottom: "1px solid var(--border-slate-100)" }}
+            bodyStyle={{ padding: "24px", background: "var(--bg-pure-white)" }}
+            footerStyle={{ background: "var(--bg-pure-white)", borderTop: "1px solid var(--border-slate-100)" }}
             footer={
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "16px 8px" }}>
                 <Button onClick={() => setIsDrawerOpen(false)} style={{ borderRadius: 8 }}>Cancel</Button>
-                <Button type="primary" onClick={handleSubmit} loading={loading} style={{ borderRadius: 8, padding: "0 24px" }}>
+                <Button type="primary" onClick={handleSubmit} loading={loading} style={{ borderRadius: 8, padding: "0 24px", background: "var(--premium-blue)" }}>
                   {editingKey ? "Update Holiday" : "Create Holidays"}
                 </Button>
               </div>
             }
-            bodyStyle={{ padding: "24px" }}
           >
             <Form form={form} layout="vertical" initialValues={{ holidays: [{}] }}>
               <Form.List name="holidays">
@@ -623,19 +625,20 @@ export default function GovernmentLeavesPage() {
 
           <style dangerouslySetInnerHTML={{
             __html: `
-            .history-table-row:hover { background-color: #f8fafc !important; }
+            .history-table-row:hover { background-color: var(--bg-slate-50) !important; }
             .ant-table-thead > tr > th {
-              background-color: #f1f5f9 !important;
-              color: #475569 !important;
+              background-color: var(--bg-slate-100) !important;
+              color: var(--text-slate-500) !important;
               font-weight: 600 !important;
-              border-bottom: 2px solid #e2e8f0 !important;
+              border-bottom: 2px solid var(--border-slate-200) !important;
               padding: 12px 20px !important;
             }
-            .ant-table-tbody > tr > td { border-bottom: 1px solid #f1f5f9 !important; padding: 16px 20px !important; }
-            .premium-select { height: 44px !important; border-radius: 12px !important; }
-            .premium-select .ant-select-selector { border-radius: 12px !important; height: 44px !important; display: flex !important; alignItems: center !important; }
-            .ant-collapse > .ant-collapse-item { border: 1px solid #f1f5f9; border-radius: 12px !important; margin-bottom: 12px; overflow: hidden; }
-            .ant-collapse > .ant-collapse-item > .ant-collapse-header { background: #f8fafc; padding: 12px 16px; }
+            .ant-table-tbody > tr > td { border-bottom: 1px solid var(--border-slate-50) !important; padding: 16px 20px !important; color: var(--text-slate-900) !important; }
+            .premium-select .ant-select-selector { border-radius: 12px !important; height: 44px !important; display: flex !important; alignItems: center !important; background: var(--bg-pure-white) !important; border: 1px solid var(--border-slate-200) !important; }
+            .ant-collapse > .ant-collapse-item { border: 1px solid var(--border-slate-100); border-radius: 12px !important; margin-bottom: 12px; overflow: hidden; background: var(--bg-pure-white); }
+            .ant-collapse > .ant-collapse-item > .ant-collapse-header { background: var(--bg-slate-50); padding: 12px 16px; color: var(--text-slate-900) !important; }
+            .ant-pagination-item a { color: var(--text-slate-500) !important; }
+            .ant-pagination-item-active { background: var(--bg-pure-white) !important; border-color: var(--premium-blue) !important; }
           `}} />
         </div>
       </MainLayout>

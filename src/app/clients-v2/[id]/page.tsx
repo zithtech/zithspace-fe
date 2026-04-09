@@ -155,7 +155,7 @@ const EditableSelect = ({
     >
       {renderTag ? renderTag(value) : <Text>{value || "N/A"}</Text>}
       {isEditMode && (
-        <Edit2 size={12} style={{ color: "#3b82f6" }} />
+        <Edit2 size={12} style={{ color: "var(--premium-blue)" }} />
       )}
     </Space>
   );
@@ -231,7 +231,7 @@ const EditableTextArea = ({
     >
       <Text>{value || "N/A"}</Text>
       {isEditMode && (
-        <Edit2 size={12} style={{ color: "#3b82f6", marginLeft: 8 }} />
+        <Edit2 size={12} style={{ color: "var(--premium-blue)", marginLeft: 8 }} />
       )}
     </div>
   );
@@ -242,14 +242,16 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
     bodyStyle={{ padding: "16px 20px" }} 
     style={{ 
       borderRadius: 12, 
-      border: "1px solid #f1f5f9", 
-      height: "100%"
+      border: "1px solid var(--border-slate-100)", 
+      background: "var(--bg-pure-white)",
+      height: "100%",
+      boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div className="stat-card-value" style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Icon size={20} />
@@ -347,7 +349,7 @@ export default function ClientV2DetailsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#fff' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-pure-white)' }}>
         <Spin size="large" />
       </div>
     );
@@ -365,116 +367,73 @@ export default function ClientV2DetailsPage() {
     <ProtectedRoute>
       <MainLayout>
         {contextHolder}
-          <div className="client-details-page" style={{ 
-            margin: "0 -24px", 
-            padding: "20px 24px", 
-            background: "#ffffff", 
-            minHeight: "calc(100vh - 64px)" 
-          }}>
-            
-            <style dangerouslySetInnerHTML={{ __html: `
-              @media (max-width: 768px) {
-                .client-details-page {
-                  padding: 16px !important;
-                  margin: 0 !important;
-                }
-                .ant-typography h2 {
-                  font-size: 20px !important;
-                }
-                .ant-descriptions-item-label {
-                  font-size: 11px !important;
-                }
-                .ant-descriptions-item-content {
-                  font-size: 13px !important;
-                  padding-bottom: 16px !important;
-                }
-                .stat-card-value {
-                  font-size: 20px !important;
-                }
-                .premium-tabs .ant-tabs-nav-list {
-                  width: 100%;
-                  display: flex;
-                  overflow-x: auto;
-                }
-              }
-              @media (max-width: 576px) {
-                .ant-btn-large {
-                   width: 100% !important;
-                   max-width: none !important;
-                }
-                .header-actions {
-                  text-align: left !important;
-                  margin-top: 16px;
-                }
-              }
-            `}} />
-            <Row 
-              justify="space-between" 
-              align="middle" 
-              gutter={[16, 24]} 
-              style={{ marginBottom: 32 }}
-            >
-              <Col xs={24} md={18}>
-                <Space size={12} align="start" style={{ width: '100%' }}>
-                  <Button 
-                    icon={<ArrowLeft size={18} />} 
-                    onClick={() => router.push("/clients-v2")}
-                    style={{ borderRadius: 10, height: 44, width: 44, minWidth: 44, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 4 }}
-                  />
-                  <div style={{ 
-                    background: "#eff6ff", 
-                    padding: 10, 
-                    borderRadius: 12, 
-                    color: "#2563eb",
-                    display: "flex",
-                    marginTop: 4
-                  }}>
-                    <Building2 size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{client.companyName}</Title>
-                      <Space size={8} wrap>
-                        <Tag style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0, margin: 0 }} color={client.status === "Active" ? "success" : "default"}>
-                          {client.status?.toUpperCase()}
-                        </Tag>
-                        <Tag 
-                          style={{ borderRadius: 6, fontWeight: 500, border: 0, margin: 0 }}
-                          color={client.riskLevel === "High" ? "error" : client.riskLevel === "Medium" ? "warning" : "success"}
-                        >
-                          {client.riskLevel?.toUpperCase()} RISK
-                        </Tag>
-                      </Space>
-                    </div>
-                    <div style={{ display: "flex", gap: 16, marginTop: 4, flexWrap: "wrap" }}>
-                      <Space size={4} style={{ color: "#64748b", fontSize: 13 }}>
-                        <Globe size={14} />
-                        {client.clientType || "N/A"}
-                      </Space>
-                      <Space size={4} style={{ color: "#64748b", fontSize: 13 }}>
-                        <ShieldCheck size={14} />
-                        {client.industry || "N/A"}
-                      </Space>
-                      <Space size={4} style={{ color: "#64748b", fontSize: 13 }}>
-                          <Text type="secondary" style={{ fontSize: 13 }}>Code:</Text>
-                          <Text strong style={{ fontSize: 13 }}>{client.clientCode}</Text>
-                      </Space>
-                    </div>
-                  </div>
-                </Space>
-              </Col>
-              <Col xs={24} md={6} className="header-actions" style={{ textAlign: "right" }}>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "20px 24px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)" 
+        }}>
+          
+          {/* Header Section */}
+          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}>
+              <Space size={12} align="center">
                 <Button 
-                  type="primary" 
-                  size="large" 
-                  icon={<Edit2 size={18} />} 
-                  style={{ borderRadius: 10, height: 44, fontWeight: 600, width: "100%" }}
-                  onClick={() => router.push(`/clients-v2/create?id=${client.id}`)}
-                >
-                  Edit Profile
-                </Button>
-              </Col>
-            </Row>
+                  icon={<ArrowLeft size={18} />} 
+                  onClick={() => router.push("/clients-v2")}
+                  style={{ borderRadius: 10, height: 44, width: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
+                />
+                <div style={{ 
+                  background: "var(--bg-blue-50)", 
+                  padding: 10, 
+                  borderRadius: 12, 
+                  color: "var(--text-blue-600)",
+                  display: "flex"
+                }}>
+                  <Building2 size={24} />
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>{client.companyName}</Title>
+                    <Tag style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }} color={client.status === "Active" ? "success" : "default"}>
+                      {client.status?.toUpperCase()}
+                    </Tag>
+                    <Tag 
+                      style={{ borderRadius: 6, fontWeight: 500, border: 0 }}
+                      color={client.riskLevel === "High" ? "error" : client.riskLevel === "Medium" ? "warning" : "success"}
+                    >
+                      {client.riskLevel?.toUpperCase()} RISK
+                    </Tag>
+                  </div>
+                  <div style={{ display: "flex", gap: 16, marginTop: 4 }}>
+                    <Space size={4} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+                      <Globe size={14} />
+                      {client.clientType || "N/A"}
+                    </Space>
+                    <Space size={4} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+                      <ShieldCheck size={14} />
+                      {client.industry || "N/A"}
+                    </Space>
+                    <Space size={4} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+                        <Text style={{ fontSize: 13, color: "var(--text-slate-400)" }}>Code:</Text>
+                        <Text strong style={{ fontSize: 13, color: "var(--text-slate-700)" }}>{client.clientCode}</Text>
+                    </Space>
+                  </div>
+                </div>
+              </Space>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<Edit2 size={18} />} 
+                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                onClick={() => router.push(`/clients-v2/create?id=${client.id}`)}
+              >
+                Edit Profile
+              </Button>
+            </div>
+          </div>
 
           <Tabs
             defaultActiveKey="1"
@@ -526,13 +485,13 @@ export default function ClientV2DetailsPage() {
                           title={
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <Space size={12}>
-                                <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 8, color: "#0ea5e9", display: "flex" }}>
+                                <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 8, color: "var(--text-blue-700)", display: "flex" }}>
                                   <Building2 size={18} />
                                 </div>
-                                <span style={{ fontWeight: 700, fontSize: 16 }}>Corporate Profile</span>
+                                <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Corporate Profile</span>
                               </Space>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <Text type="secondary" style={{ fontSize: 12 }}>Edit Mode</Text>
+                                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Edit Mode</Text>
                                 <Checkbox 
                                   className="premium-checkbox"
                                   onChange={(e) => handleEditModeChange("basic", e.target.checked)} 
@@ -540,7 +499,7 @@ export default function ClientV2DetailsPage() {
                               </div>
                             </div>
                           }
-                          style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
+                          style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)", height: "100%" }}
                           bodyStyle={{ padding: "24px" }}
                         >
                           <Descriptions
@@ -633,10 +592,10 @@ export default function ClientV2DetailsPage() {
                           title={
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <Space size={12}>
-                                <div style={{ background: "#fdf2f8", padding: 8, borderRadius: 8, color: "#db2777", display: "flex" }}>
+                                <div style={{ background: "var(--bg-red-50)", padding: 8, borderRadius: 8, color: "var(--text-leave)", display: "flex" }}>
                                   <Globe size={18} />
                                 </div>
-                                <span style={{ fontWeight: 700, fontSize: 16 }}>Operations & Risk</span>
+                                <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Operations & Risk</span>
                               </Space>
                               <Checkbox 
                                 className="premium-checkbox"
@@ -644,7 +603,7 @@ export default function ClientV2DetailsPage() {
                               />
                             </div>
                           }
-                          style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
+                          style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)", height: "100%" }}
                           bodyStyle={{ padding: "24px" }}
                         >
                           <Descriptions
@@ -745,10 +704,10 @@ export default function ClientV2DetailsPage() {
                             title={
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                     <Space size={12}>
-                                        <div style={{ background: "#f0fdf4", padding: 8, borderRadius: 8, color: "#16a34a", display: "flex" }}>
+                                        <div style={{ background: "var(--bg-green-50)", padding: 8, borderRadius: 8, color: "var(--text-holiday)", display: "flex" }}>
                                             <ShieldCheck size={18} />
                                         </div>
-                                        <span style={{ fontWeight: 700, fontSize: 16 }}>Compliance & Finance</span>
+                                        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Compliance & Finance</span>
                                     </Space>
                                     <Checkbox 
                                         className="premium-checkbox"
@@ -756,7 +715,7 @@ export default function ClientV2DetailsPage() {
                                     />
                                 </div>
                             }
-                            style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)" }}
                             bodyStyle={{ padding: "24px" }}
                         >
                             <Descriptions
@@ -807,10 +766,10 @@ export default function ClientV2DetailsPage() {
                             title={
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                     <Space size={12}>
-                                        <div style={{ background: "#faf5ff", padding: 8, borderRadius: 8, color: "#9333ea", display: "flex" }}>
+                                        <div style={{ background: "var(--bg-purple-50)", padding: 8, borderRadius: 8, color: "var(--text-primary)", display: "flex" }}>
                                             <DollarSign size={18} />
                                         </div>
-                                        <span style={{ fontWeight: 700, fontSize: 16 }}>Banking Information</span>
+                                        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-slate-900)" }}>Banking Information</span>
                                     </Space>
                                     <Checkbox 
                                         className="premium-checkbox"
@@ -818,7 +777,7 @@ export default function ClientV2DetailsPage() {
                                     />
                                 </div>
                             }
-                            style={{ borderRadius: 16, border: "1px solid #f1f5f9" }}
+                            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)" }}
                             bodyStyle={{ padding: "24px" }}
                         >
                             <Descriptions

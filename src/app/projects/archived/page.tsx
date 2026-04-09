@@ -234,11 +234,11 @@ export default function ArchivedTicketsPage() {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading trash">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading trash">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );
@@ -250,13 +250,13 @@ export default function ArchivedTicketsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: "0 32px 32px", background: "#ffffff", minHeight: "100vh" }}>
+      <div style={{ padding: "0 32px 32px", background: "var(--bg-pure-white)", minHeight: "100vh" }}>
         {/* Header Section */}
         <div style={{
           padding: "24px 0",
           marginBottom: 32,
-          borderBottom: "1px solid #f0f0f0",
-          background: "#fff",
+          borderBottom: "1px solid var(--border-color)",
+          background: "var(--bg-pure-white)",
           position: "sticky",
           top: 0,
           zIndex: 10
@@ -324,7 +324,7 @@ export default function ArchivedTicketsPage() {
 
           {statsLoading ? (
             <div style={{ flex: 1 }}>
-              <Card style={{ borderRadius: 12, border: '1px solid #f0f0f0', height: 82, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Card style={{ borderRadius: 12, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)', height: 82, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Spin size="small" />
               </Card>
             </div>
@@ -336,8 +336,8 @@ export default function ArchivedTicketsPage() {
                   style={{
                     borderRadius: 12,
                     height: '100%',
-                    border: selectedProject === p.id ? '2px solid #1677ff' : '1px solid #f0f0f0',
-                    background: selectedProject === p.id ? '#f0f5ff' : '#fff',
+                    border: selectedProject === p.id ? '2px solid #1677ff' : '1px solid var(--border-color)',
+                    background: 'var(--bg-pure-white)',
                     cursor: 'pointer',
                     transition: 'all 0.3s',
                     boxShadow: selectedProject === p.id ? '0 4px 12px rgba(22, 119, 255, 0.15)' : 'none'
@@ -359,7 +359,7 @@ export default function ArchivedTicketsPage() {
         </div>
 
         {/* Filters Row */}
-        <Card styles={{ body: { padding: 16 } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", marginBottom: 24 }}>
+        <Card styles={{ body: { padding: 16 } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", marginBottom: 24 }}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={12} lg={8}>
               <Input
@@ -407,7 +407,8 @@ export default function ArchivedTicketsPage() {
           style={{
             borderRadius: 16,
             overflow: "hidden",
-            border: "1px solid #f0f0f0",
+            border: "1px solid var(--border-color)",
+            backgroundColor: "var(--bg-pure-white)",
             boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
           }}
         >
@@ -453,16 +454,18 @@ export default function ArchivedTicketsPage() {
 
         <style jsx global>{`
           .premium-table .ant-table-thead > tr > th {
-            background: #fafafa;
+            background: var(--bg-pure-white);
             font-weight: 600;
-            color: #595959;
-            font-size: 12px;
+            color: var(--text-secondary);
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.05em;
             padding: 16px;
+            border-bottom: 1px solid var(--border-color);
           }
           .premium-table .ant-table-tbody > tr > td {
             padding: 16px;
+            border-bottom: 1px solid var(--border-color);
           }
           .ant-table-row:hover .ant-typography-strong {
             color: #1677ff;

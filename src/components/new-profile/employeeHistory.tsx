@@ -218,7 +218,7 @@ const ContactDetails: React.FC<{ contacts: ContactPerson[] }> = ({
       <span>
         Contact {i + 1}
         {c.contactName && (
-          <span style={{ color: "#8c8c8c", fontWeight: 400, marginLeft: 4 }}>
+          <span style={{ color: "var(--text-slate-400)", fontWeight: 400, marginLeft: 4 }}>
             — {c.contactName}
           </span>
         )}
@@ -424,9 +424,9 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
     key: `exp-${i}`,
     label: (
       <span>
-        <BankOutlined style={{ marginRight: 8 }} />
+        <BankOutlined style={{ marginRight: 8, color: 'var(--premium-blue)' }} />
         {exp.companyName && (
-          <span style={{ color: "#8c8c8c", fontWeight: 400, marginLeft: 4 }}>
+          <span style={{ color: "var(--text-slate-900)", fontWeight: 600, marginLeft: 4 }}>
             {exp.companyName}
           </span>
         )}
@@ -440,7 +440,7 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
       <style>{`
         .exp-root {
           // padding: 10px;
-          background: white;
+          background: var(--bg-pure-white);
           min-height: 100vh;
           box-sizing: border-box;
         }
@@ -466,8 +466,8 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
         }
 
         .panel-card {
-          background: #ffffff;
-          border: 1px solid #f0f0f0;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
           border-radius: 8px;
           padding: 16px;
           box-shadow: none;
@@ -492,29 +492,29 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
         }
 
         .docs-scroll-area::-webkit-scrollbar-track {
-          background: #f0f0f0;
+          background: var(--bg-slate-50);
           border-radius: 4px;
         }
 
         .docs-scroll-area::-webkit-scrollbar-thumb {
-          background: #d9d9d9;
+          background: var(--border-slate-200);
           border-radius: 4px;
         }
 
         .docs-scroll-area::-webkit-scrollbar-thumb:hover {
-          background: #bfbfbf;
+          background: var(--text-slate-300);
         }
 
         .card-title {
           font-size: 13px;
           font-weight: 600;
-          color: #1677ff;
+          color: var(--premium-blue);
           display: flex;
           align-items: center;
           gap: 6px;
           margin-bottom: 12px;
           padding-bottom: 10px;
-          border-bottom: 1px solid #f0f0f0;
+          border-bottom: 1px solid var(--border-slate-100);
           flex-shrink: 0;
         }
 
@@ -523,7 +523,7 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
           align-items: flex-start;
           gap: 8px;
           padding: 7px 0;
-          border-bottom: 1px solid #fafafa;
+          border-bottom: 1px solid var(--border-slate-50);
         }
 
         .info-row:last-child {
@@ -531,7 +531,7 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
         }
 
         .info-icon {
-          color: #8c8c8c;
+          color: var(--text-slate-400);
           font-size: 13px;
           margin-top: 2px;
           width: 16px;
@@ -545,21 +545,21 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
 
         .info-label {
           font-size: 11px;
-          color: #8c8c8c;
+          color: var(--text-slate-400);
           text-transform: uppercase;
           letter-spacing: 0.3px;
         }
 
         .info-value {
           font-size: 13px;
-          color: #262626;
+          color: var(--text-slate-900);
           font-weight: 600;
           margin-top: 1px;
           word-break: break-word;
         }
 
         .no-docs {
-          color: #bfbfbf;
+          color: var(--text-slate-300);
           font-size: 13px;
           padding: 24px 0;
           text-align: center;
@@ -579,7 +579,7 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
           gap: 6px;
           font-size: 12px;
           font-weight: 600;
-          color: #595959;
+          color: var(--text-slate-500);
           margin-bottom: 5px;
         }
 
@@ -594,16 +594,16 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
           align-items: center;
           gap: 8px;
           padding: 6px 10px;
-          background: #fafafa;
-          border: 1px solid #e8e8e8;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-slate-100);
           border-radius: 6px;
           cursor: pointer;
           transition: background 0.15s;
         }
 
         .doc-item:hover {
-          background: #e6f4ff;
-          border-color: #91caff;
+          background: var(--bg-blue-50);
+          border-color: var(--premium-blue);
         }
 
         .doc-icon {
@@ -614,25 +614,25 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
         .doc-name {
           flex: 1;
           font-size: 12px;
-          color: #434343;
+          color: var(--text-slate-900);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
         .doc-actions a {
-          color: #8c8c8c;
+          color: var(--text-slate-400);
           font-size: 13px;
         }
 
         .doc-actions a:hover {
-          color: #1677ff;
+          color: var(--premium-blue);
         }
 
         /* Nested contact section inside company panel */
         .contact-section {
-          background: #ffffff;
-          border: 1px solid #f0f0f0;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
           border-radius: 8px;
           padding: 16px;
           box-shadow: none;
@@ -641,7 +641,7 @@ const PreviousExperience: React.FC<{ profile: any }> = ({ profile }) => {
         .contact-section-label {
           font-size: 13px;
           font-weight: 600;
-          color: #434343;
+          color: var(--text-slate-900);
           margin-bottom: 10px;
           display: flex;
           align-items: center;

@@ -65,14 +65,14 @@ import { DepartmentService } from '@/services/departmentService';
 const { Title, Text, Paragraph } = Typography;
 
 const PlaceholderTab = ({ title, icon: Icon }: { title: string, icon: any }) => (
-  <div style={{ padding: '60px 0', textAlign: 'center', background: '#fbfcfd', borderRadius: 16, border: '1px dashed #e2e8f0', margin: '24px 0' }}>
+  <div style={{ padding: '60px 0', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: 16, border: '1px dashed var(--border-slate-200)', margin: '24px 0' }}>
     <Space direction="vertical" align="center" size={20}>
-      <div style={{ color: '#3b82f6', background: '#fff', padding: 20, borderRadius: '50%', boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}>
+      <div style={{ color: 'var(--premium-blue)', background: 'var(--bg-pure-white)', padding: 20, borderRadius: '50%', boxShadow: "var(--shadow-premium-sm)" }}>
         <Icon size={40} strokeWidth={1.5} />
       </div>
       <div>
-        <Title level={4} style={{ margin: 0, color: '#1e293b', fontWeight: 600 }}>{title}</Title>
-        <Text style={{ color: '#64748b', fontSize: 15 }}>This section is currently being prepared for the next release.</Text>
+        <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)', fontWeight: 600 }}>{title}</Title>
+        <Text style={{ color: 'var(--text-slate-500)', fontSize: 15 }}>This section is currently being prepared for the next release.</Text>
       </div>
     </Space>
   </div>
@@ -87,9 +87,9 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
       alignItems: "center",
       marginBottom: "10px",
       padding: "8px 12px",
-      background: "#ffffff",
+      background: "var(--bg-pure-white)",
       borderRadius: "10px",
-      border: "1px solid #f1f5f9",
+      border: "1px solid var(--border-slate-100)",
       transition: "all 0.2s ease",
     }}
   >
@@ -115,7 +115,7 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
         style={{
           fontSize: "11px",
           fontWeight: 600,
-          color: "#94a3b8",
+          color: "var(--text-slate-400)",
           textTransform: "uppercase",
           letterSpacing: "0.5px",
           marginBottom: "2px",
@@ -126,7 +126,7 @@ const RowItem = ({ label, value, icon, color = "#3b82f6" }: any) => (
       <div
         style={{
           fontSize: "13px",
-          color: "#1e293b",
+          color: "var(--text-slate-900)",
           fontWeight: 500,
         }}
       >
@@ -264,12 +264,13 @@ export default function ExitRequestViewPage() {
     <div style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* 🚀 Exit Context & Status */}
       <div style={{
-        background: "White",
+        background: "var(--bg-pure-white)",
         padding: 24,
         borderRadius: 20,
-        border: "1px solid #e2e8f0",
+        border: "1px solid var(--border-slate-100)",
         position: "relative",
-        overflow: "hidden"
+        overflow: "hidden",
+        boxShadow: "var(--shadow-premium-sm)"
       }}>
         <div style={{
           position: "absolute",
@@ -277,17 +278,18 @@ export default function ExitRequestViewPage() {
           right: -20,
           width: 100,
           height: 100,
-          background: "#3b82f608",
-          borderRadius: "50%"
+          background: "var(--bg-blue-50)",
+          borderRadius: "50%",
+          opacity: 0.5
         }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ background: "#3b82f6", padding: 8, borderRadius: 10, color: "White" }}>
+          <div style={{ background: "var(--premium-blue)", padding: 8, borderRadius: 10, color: "var(--bg-pure-white)" }}>
             <FileText size={20} />
           </div>
           <div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b", display: "block" }}>Request Overview</span>
-            <span style={{ fontSize: 13, color: "#64748b" }}>Core details of the resignation request</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)", display: "block" }}>Request Overview</span>
+            <span style={{ fontSize: 13, color: "var(--text-slate-500)" }}>Core details of the resignation request</span>
           </div>
         </div>
 
@@ -310,10 +312,10 @@ export default function ExitRequestViewPage() {
 
       {/* 📅 Timeline & Reasons */}
       <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 24 }}>
-        <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ padding: 24, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-slate-100)", boxShadow: "var(--shadow-premium-sm)" }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Calendar size={18} style={{ color: "#3b82f6" }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>Timeline Details</span>
+            <Calendar size={18} style={{ color: "var(--premium-blue)" }} />
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)" }}>Timeline Details</span>
           </div>
           <Row gutter={[16, 0]}>
             <Col span={12}><RowItem label="Resignation Date" value={dayjs(request.resignationDate).format('DD MMM YYYY')} icon={<Calendar />} /></Col>
@@ -322,21 +324,21 @@ export default function ExitRequestViewPage() {
               <RowItem
                 label="Days Remaining"
                 value={
-                  <span style={{ color: noticeRemaining < 0 ? "#10b981" : "#3b82f6", fontWeight: 700 }}>
+                  <span style={{ color: noticeRemaining < 0 ? "var(--text-green-600)" : "var(--premium-blue)", fontWeight: 700 }}>
                     {noticeRemaining < 0 ? 'Resignation Period Completed' : `${noticeRemaining} Days to LWD`}
                   </span>
                 }
                 icon={<Clock />}
-                color={noticeRemaining < 0 ? "#10b981" : "#3b82f6"}
+                color={noticeRemaining < 0 ? "#10b981" : "var(--premium-blue)"}
               />
             </Col>
           </Row>
         </div>
 
-        <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+        <div style={{ padding: 24, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-slate-100)", boxShadow: "var(--shadow-premium-sm)" }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <HelpCircle size={18} style={{ color: "#f59e0b" }} />
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#1e293b" }}>Resignation Context</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-slate-900)" }}>Resignation Context</span>
           </div>
           <RowItem label="Primary Reason" value={getReasonName(request.exitReasonId)} icon={<MessageSquare />} color="#f59e0b" />
           <RowItem label="Current Status" value={<Tag color="orange" style={{ borderRadius: 6, margin: 0 }}>{request.status || 'PENDING'}</Tag>} icon={<ShieldCheck />} color="#f59e0b" />
@@ -344,20 +346,20 @@ export default function ExitRequestViewPage() {
       </div>
 
       {/* 📝 Explanation Block */}
-      <div style={{ padding: 24, background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0" }}>
+      <div style={{ padding: 24, background: "var(--bg-pure-white)", borderRadius: 20, border: "1px solid var(--border-slate-100)", boxShadow: "var(--shadow-premium-sm)" }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ background: "#6366f115", padding: 8, borderRadius: 10, color: "#6366f1" }}>
+          <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)" }}>
             <FileText size={20} />
           </div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Detailed Explanation</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Detailed Explanation</span>
         </div>
         <div style={{
           padding: 18,
-          background: "#f8fafc",
+          background: "var(--bg-secondary)",
           borderRadius: 16,
-          border: "1px solid #f1f5f9",
+          border: "1px solid var(--border-slate-100)",
           fontSize: 14,
-          color: "#475569",
+          color: "var(--text-slate-500)",
           lineHeight: 1.6,
           minHeight: 100
         }}>
@@ -406,7 +408,7 @@ export default function ExitRequestViewPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ padding: '24px 32px', background: '#fff', minHeight: '100vh' }}>
+        <div style={{ padding: '24px 32px', background: 'var(--bg-secondary)', minHeight: '100vh' }}>
           {notificationContextHolder}
 
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -417,10 +419,10 @@ export default function ExitRequestViewPage() {
                 style={{ borderRadius: 10, height: 40, width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               />
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{employeeName}</Title>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>{employeeName}</Title>
                 <Space split={<Divider type="vertical" />}>
-                  <Text style={{ color: "#64748b" }}>ID: {request.employee?.employee_code || 'N/A'}</Text>
-                  <Text style={{ color: "#64748b" }}>{getDepartmentName(request.departmentId)}</Text>
+                  <Text style={{ color: "var(--text-slate-500)" }}>ID: {request.employee?.employee_code || 'N/A'}</Text>
+                  <Text style={{ color: "var(--text-slate-500)" }}>{getDepartmentName(request.departmentId)}</Text>
                 </Space>
               </div>
             </Space>
@@ -471,12 +473,12 @@ export default function ExitRequestViewPage() {
           __html: `
           .modern-tabs .ant-tabs-nav { margin-bottom: 0 !important; }
           .modern-tabs .ant-tabs-tab { padding: 12px 0 !important; margin: 0 32px 0 0 !important; }
-          .modern-tabs .ant-tabs-tab-btn { font-size: 15px !important; font-weight: 600 !important; color: #64748b !important; }
-          .modern-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: #2563eb !important; }
-          .modern-tabs .ant-tabs-ink-bar { height: 3px !important; background: #2563eb !important; }
+          .modern-tabs .ant-tabs-tab-btn { font-size: 15px !important; font-weight: 600 !important; color: var(--text-slate-500) !important; }
+          .modern-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--premium-blue) !important; }
+          .modern-tabs .ant-tabs-ink-bar { height: 3px !important; background: var(--premium-blue) !important; }
           
           .ant-table-thead > tr > th { 
-            background: #f8fafc !important; color: #64748b !important; 
+            background: var(--bg-secondary) !important; color: var(--text-slate-500) !important; 
             font-weight: 600 !important; text-transform: uppercase !important; 
             font-size: 11px !important; letter-spacing: 0.05em !important; 
           }

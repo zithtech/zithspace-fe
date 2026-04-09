@@ -344,11 +344,11 @@ export default function MembersPage() {
             {text.charAt(0).toUpperCase()}
           </div>
           <div>
-            <Text strong style={{ fontSize: 13 }}>
+            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
               {text}
             </Text>
             <br />
-            <Text type="secondary" style={{ fontSize: 11 }}>
+            <Text style={{ fontSize: 11, color: 'var(--text-slate-500)' }}>
               {record?.position?.title}
             </Text>
           </div>
@@ -361,9 +361,9 @@ export default function MembersPage() {
       width: 200,
       render: (_, record: Member) => (
         <div>
-          <Text style={{ fontSize: 12 }}>{record.workEmail}</Text>
+          <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{record.workEmail}</Text>
           <br />
-          <Text type="secondary" style={{ fontSize: 11 }}>
+          <Text style={{ fontSize: 11, color: 'var(--text-slate-500)' }}>
             {record?.phone}
           </Text>
         </div>
@@ -375,7 +375,7 @@ export default function MembersPage() {
       width: 200,
       render: (_, record: Member) => (
         <div>
-          <Text style={{ fontSize: 12 }}>{record?.position?.title}</Text>
+          <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{record?.position?.title}</Text>
         </div>
       ),
     },
@@ -404,7 +404,7 @@ export default function MembersPage() {
       key: "reportsTo",
       width: 120,
       render: (_, record: Member) => (
-        <Text style={{ fontSize: 12 }}>
+        <Text style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>
           {record?.reportsTo
             ? typeof record?.reportsTo === "object"
               ? record?.reportsTo?.name
@@ -489,7 +489,7 @@ export default function MembersPage() {
 
   return (
     <MainLayout>
-      <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
+      <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <Space
@@ -497,12 +497,12 @@ export default function MembersPage() {
             style={{ width: "100%", justifyContent: "space-between" }}
           >
             <Space align="start" size={16}>
-              <TeamOutlined style={{ fontSize: 28, color: "#1677ff", marginTop: 4 }} />
+              <TeamOutlined style={{ fontSize: 28, color: "var(--premium-blue)", marginTop: 4 }} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px' }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--text-slate-900)' }}>
                   Members Management
                 </Title>
-                <Text type="secondary" style={{ fontSize: 13, marginTop: 2 }}>
+                <Text style={{ fontSize: 13, marginTop: 2, color: 'var(--text-slate-500)' }}>
                   Directory and access control for all organization members
                 </Text>
               </div>
@@ -524,34 +524,34 @@ export default function MembersPage() {
         {/* Stats Cards */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
               <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Members</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{memberStats.total}</Title>
+                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Total Members</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>{memberStats.total}</Title>
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
               <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Super Admins</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#ff4d4f' }}>{memberStats.superAdmin}</Title>
+                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Super Admins</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-leave)' }}>{memberStats.superAdmin}</Title>
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
               <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Team Admins</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#faad14' }}>{memberStats.admin}</Title>
+                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Team Admins</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--warning-yellow, #faad14)' }}>{memberStats.admin}</Title>
               </Space>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid #f0f0f0', boxShadow: 'none' }} styles={{ body: { padding: '16px 20px' } }}>
+            <Card bordered={false} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', boxShadow: 'none', background: 'var(--bg-pure-white)' }} styles={{ body: { padding: '16px 20px' } }}>
               <Space direction="vertical" size={4}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Regular Users</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: '#52c41a' }}>{memberStats.user}</Title>
+                <Text style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-slate-500)' }}>Regular Users</Text>
+                <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-holiday)' }}>{memberStats.user}</Title>
               </Space>
             </Card>
           </Col>
@@ -585,20 +585,21 @@ export default function MembersPage() {
           style={{
             marginBottom: 16,
             borderRadius: 12,
-            border: '1px solid #f0f0f0',
-            boxShadow: 'none'
+            border: '1px solid var(--border-slate-100)',
+            boxShadow: 'none',
+            background: 'var(--bg-pure-white)'
           }}
           styles={{ body: { padding: 0 } }}
         >
           {/* Filters Bar */}
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-slate-100)' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
               <Input
                 placeholder="Search members..."
-                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: 280, borderRadius: 8, height: 40 }}
+                style={{ width: 280, borderRadius: 8, height: 40, background: 'var(--bg-pure-white)', color: 'var(--text-slate-900)' }}
                 allowClear
               />
 
@@ -894,6 +895,42 @@ export default function MembersPage() {
             </Form>
           )}
         </Modal>
+        <style jsx global>{`
+          .ant-form-item-label > label {
+            font-weight: 500;
+            color: var(--text-slate-600) !important;
+            font-size: 13px;
+          }
+          .ant-input, .ant-input-number, .ant-select-selector, .ant-picker, .ant-input-affix-wrapper {
+            border-radius: 8px !important;
+            border-color: var(--border-slate-200) !important;
+            background: var(--bg-pure-white) !important;
+            color: var(--text-slate-900) !important;
+          }
+          .ant-input:focus, .ant-input-number:focus, .ant-select-selector:focus {
+            border-color: var(--premium-blue) !important;
+            outline: none;
+          }
+          .ant-table-thead > tr > th {
+            background: var(--bg-table-header) !important;
+            border-bottom: 2px solid var(--border-slate-100) !important;
+            color: var(--text-slate-900) !important;
+          }
+          .ant-table-row:hover > td {
+            background: var(--bg-slate-50) !important;
+          }
+          .ant-modal-content {
+            background-color: var(--bg-pure-white) !important;
+          }
+          .ant-modal-header {
+            background-color: var(--bg-pure-white) !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
+            margin-bottom: 16px !important;
+          }
+          .ant-modal-title {
+            color: var(--text-slate-900) !important;
+          }
+        `}</style>
       </div>
     </MainLayout>
   );

@@ -41,14 +41,16 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
     bodyStyle={{ padding: "16px 20px" }} 
     style={{ 
       borderRadius: 12, 
-      border: "1px solid #f1f5f9", 
-      height: "100%"
+      border: "1px solid var(--border-slate-100)", 
+      background: "var(--bg-pure-white)",
+      height: "100%",
+      boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
         <Icon size={20} />
@@ -154,8 +156,8 @@ export default function ClientsV2ListPage() {
             width: 36, 
             height: 36, 
             borderRadius: 10, 
-            background: "#f0f9ff", 
-            color: "#0369a1",
+            background: "var(--bg-blue-50)", 
+            color: "var(--text-blue-600)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -165,8 +167,8 @@ export default function ClientsV2ListPage() {
             {record.clientCode?.substring(0, 2).toUpperCase() || "CL"}
           </div>
           <div>
-            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{record.companyName}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.clientCode} • {record.clientType}</Text>
+            <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{record.companyName}</Text>
+            <Text type="secondary" style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.clientCode} • {record.clientType}</Text>
           </div>
         </Space>
       ),
@@ -212,7 +214,7 @@ export default function ClientsV2ListPage() {
           <Tooltip title="View Details">
             <Button
               type="text"
-              icon={<Eye size={18} style={{ color: "#64748b" }} />}
+              icon={<Eye size={18} style={{ color: "var(--text-slate-400)" }} />}
               onClick={() => router.push(`/clients-v2/${record.id}`)}
               className="action-btn"
             />
@@ -220,7 +222,7 @@ export default function ClientsV2ListPage() {
           <Tooltip title="Edit Configuration">
             <Button
               type="text"
-              icon={<Settings2 size={18} style={{ color: "#64748b" }} />}
+              icon={<Settings2 size={18} style={{ color: "var(--text-slate-400)" }} />}
               onClick={() => router.push(`/clients-v2/create?id=${record.id}`)}
               className="action-btn"
             />
@@ -267,7 +269,7 @@ export default function ClientsV2ListPage() {
     const isLoading = expandedLoading === record.id;
 
     return (
-      <div className="expanded-row-container" style={{ padding: "0 24px 24px 72px", background: "#fcfdfe" }}>
+      <div style={{ padding: "0 24px 24px 72px", background: "var(--bg-slate-50)" }}>
         <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 20, height: 1, background: "#e2e8e0" }} />
           <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -294,7 +296,7 @@ export default function ClientsV2ListPage() {
         <div style={{ 
           margin: "0 -24px", 
           padding: "24px 32px", 
-          background: "#ffffff", 
+          background: "var(--bg-pure-white)", 
           minHeight: "calc(100vh - 64px)" 
         }}>
         
@@ -308,24 +310,23 @@ export default function ClientsV2ListPage() {
           <Col xs={24} lg={14}>
             <Space size={12} align="start">
               <div style={{ 
-                background: "#eff6ff", 
+                background: "var(--bg-blue-50)", 
                 padding: 10, 
                 borderRadius: 12, 
-                color: "#2563eb",
-                display: "flex",
-                marginTop: 4
+                color: "var(--text-blue-600)",
+                display: "flex"
               }}>
                 <Building2 size={24} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Client Management</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Monitor, manage, and configure all client entity profiles and their associated projects.</Text>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Client Management</Title>
+                <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Monitor, manage, and configure all client entity profiles and their associated projects.</Text>
               </div>
             </Space>
           </Col>
           <Col xs={24} lg={10}>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              <Input 
+              {/* <Input 
                 placeholder="Search clients..." 
                 prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
                 style={{ flex: "1 1 200px", maxWidth: "100%", borderRadius: 10, height: 44 }}
@@ -339,7 +340,22 @@ export default function ClientsV2ListPage() {
                 onClick={() => router.push("/clients-v2/create")}
               >
                 Create Client
-              </Button>
+              </Button> */}
+              <Input 
+              placeholder="Search clients..." 
+              prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
+              style={{ width: 280, borderRadius: 10, height: 44, background: "var(--bg-secondary)", border: "1px solid var(--border-color)" }}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            <Button 
+              type="primary" 
+              size="large" 
+              icon={<Plus size={18} />} 
+              style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+              onClick={() => router.push("/clients-v2/create")}
+            >
+              Create Client
+            </Button>
             </div>
           </Col>
         </Row>
@@ -383,7 +399,7 @@ export default function ClientsV2ListPage() {
         {/* Table Card */}
         <Card 
           bodyStyle={{ padding: 0 }} 
-          style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
+          style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", overflow: "hidden" }}
         >
           <Table
             columns={columns}
@@ -418,20 +434,21 @@ export default function ClientsV2ListPage() {
 
         <style dangerouslySetInnerHTML={{ __html: `
           .ant-table-thead > tr > th {
-            background: #f8fafc !important;
-            color: #64748b !important;
+            background: var(--bg-slate-50) !important;
+            color: var(--text-slate-500) !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
             font-size: 11px !important;
             letter-spacing: 0.05em !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
           }
           .ant-input:focus, .ant-input-focused {
-            border-color: #3b82f6 !important;
+            border-color: var(--premium-blue) !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
           }
           .nested-project-table .ant-table-thead > tr > th {
             background: transparent !important;
-            border-bottom: 1px solid #f1f5f9 !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
           }
           @media (max-width: 768px) {
             .expanded-row-container {

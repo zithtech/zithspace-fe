@@ -50,7 +50,7 @@ dayjs.extend(relativeTime);
 
 const { Title, Text } = Typography;
 
-const BLUE_PRIMARY = '#2563eb';
+const BLUE_PRIMARY = 'var(--premium-blue)';
 
 export default function EscalationListPage() {
   const router = useRouter();
@@ -177,8 +177,8 @@ export default function EscalationListPage() {
         style={{
           borderRadius: 4,
           borderLeft: cat?.color ? `4px solid ${cat.color}` : 'none',
-          background: '#f1f5f9',
-          color: '#475569',
+          background: 'var(--bg-slate-50)',
+          color: 'var(--text-slate-600)',
           fontWeight: 500
         }}
         bordered={false}
@@ -216,7 +216,7 @@ export default function EscalationListPage() {
           );
         }
         return (
-          <Avatar.Group maxCount={3} size="small" maxStyle={{ color: '#f56a00', backgroundColor: '#fde3cf' }}>
+          <Avatar.Group maxCount={3} size="small" maxStyle={{ color: 'var(--text-slate-900)', backgroundColor: 'var(--bg-secondary)' }}>
             {members?.map((m, idx) => (
               <Tooltip title={m.user?.name} key={idx}>
                 <Avatar style={{ backgroundColor: BLUE_PRIMARY }}>
@@ -236,7 +236,7 @@ export default function EscalationListPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 150 }}>
           {tickets?.map((t, idx) => (
             <Tooltip title={t.ticket?.title} key={idx}>
-              <Tag color="cyan" style={{ fontSize: 10, borderRadius: 4, margin: 0, padding: '0 4px', background: '#ecfeff', border: '1px solid #a5f3fc', color: '#0891b2' }}>
+              <Tag color="cyan" style={{ fontSize: 10, borderRadius: 4, margin: 0, padding: '0 4px', background: 'var(--bg-sky-50)', border: '1px solid var(--border-sky-100)', color: 'var(--text-sky-600)' }}>
                 {t.ticket?.ticketNumber}
               </Tag>
             </Tooltip>
@@ -262,8 +262,8 @@ export default function EscalationListPage() {
       key: 'createdBy',
       render: (user: any) => (
         <Space>
-          <Avatar size="small" style={{ backgroundColor: '#94a3b8' }}>{user?.name?.charAt(0)}</Avatar>
-          <Text type="secondary">{user?.name || 'System'}</Text>
+          <Avatar size="small" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-slate-400)' }}>{user?.name?.charAt(0)}</Avatar>
+          <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>{user?.name || 'System'}</Text>
         </Space>
       ),
     },
@@ -273,7 +273,7 @@ export default function EscalationListPage() {
       key: 'createdAt',
       render: (date: string) => (
         <Tooltip title={dayjs(date).format('YYYY-MM-DD HH:mm:ss')}>
-          <Text style={{ fontSize: 13, color: '#94a3b8' }}>
+          <Text style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>
             {dayjs(date).format('MMM D, YYYY')}
           </Text>
         </Tooltip>
@@ -347,18 +347,18 @@ export default function EscalationListPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px 10px', background: '#ffffff', minHeight: '100vh' }}>
+      <div style={{ padding: '24px 10px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                 <AlertOutlined style={{ fontSize: 24, color: BLUE_PRIMARY }} />
-                <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2, color: 'var(--text-slate-900)' }}>
                   Quality & Performance Escalations
                 </Title>
               </div>
-              <Text type="secondary" style={{ fontSize: 16, maxWidth: 800, lineHeight: 1.5, display: 'block' }}>
+              <Text type="secondary" style={{ fontSize: 16, maxWidth: 800, lineHeight: 1.5, display: 'block', color: 'var(--text-slate-400)' }}>
                 Monitor and resolve manual escalations related to deployment quality and team regressions.
               </Text>
             </div>
@@ -367,7 +367,7 @@ export default function EscalationListPage() {
               icon={<PlusOutlined />}
               size="large"
               onClick={() => router.push('/escalations/create')}
-              style={{ borderRadius: 8, height: 44, fontWeight: 600, background: BLUE_PRIMARY }}
+              style={{ borderRadius: 8, height: 44, fontWeight: 600, background: BLUE_PRIMARY, border: 'none' }}
             >
               Raise Manual Escalation
             </Button>
@@ -376,11 +376,11 @@ export default function EscalationListPage() {
           {/* Stats Cards */}
           <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
             {stats.map((stat, idx) => (
-              <Card key={idx} style={{ flex: 1, borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: 12 }}>
+              <Card key={idx} style={{ flex: 1, borderRadius: 16, border: '1px solid var(--border-slate-200)', background: 'var(--bg-pure-white)', boxShadow: 'var(--card-shadow)' }} bodyStyle={{ padding: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>{stat.label}</Text>
-                    <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: '#1e293b' }}>
+                    <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-400)' }}>{stat.label}</Text>
+                    <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, color: 'var(--text-slate-900)' }}>
                       {loading ? '...' : stat.value.toString().padStart(2, '0')}
                     </div>
                   </div>
@@ -396,36 +396,36 @@ export default function EscalationListPage() {
             activeKey={activeTab} 
             onChange={setActiveTab}
             items={[
-              { key: '1', label: 'All Escalations' },
-              { key: '2', label: 'My Escalations' },
-              { key: '3', label: 'Raised by Me' },
+              { key: '1', label: <span style={{ color: activeTab === '1' ? 'var(--premium-blue)' : 'var(--text-slate-600)' }}>All Escalations</span> },
+              { key: '2', label: <span style={{ color: activeTab === '2' ? 'var(--premium-blue)' : 'var(--text-slate-600)' }}>My Escalations</span> },
+              { key: '3', label: <span style={{ color: activeTab === '3' ? 'var(--premium-blue)' : 'var(--text-slate-600)' }}>Raised by Me</span> },
             ]} 
           />
 
           {/* Filter Bar */}
-          <Card style={{ marginBottom: 24, border: '1px solid #e2e8f0', borderRadius: '0 16px 16px 16px' }} bodyStyle={{ padding: '10px 20px' }}>
+          <Card style={{ marginBottom: 24, border: '1px solid var(--border-slate-200)', borderRadius: '0 16px 16px 16px', background: 'var(--bg-pure-white)' }} bodyStyle={{ padding: '10px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Space size={16}>
                 <Input
                   placeholder="Search by subject, target or category..."
-                  prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
-                  style={{ width: 360, borderRadius: 8, height: 40 }}
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                  style={{ width: 360, borderRadius: 8, height: 40, background: 'var(--bg-secondary)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
                   value={searchText}
                   onChange={e => setSearchText(e.target.value)}
                 />
                 <Button icon={<FilterOutlined />} style={{ borderRadius: 8, height: 40 }}>Filters</Button>
               </Space>
               <Space>
-                <Text type="secondary">Sort by:</Text>
+                <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>Sort by:</Text>
                 <Dropdown menu={{ items: [{ key: '1', label: 'Recent First' }, { key: '2', label: 'Priority' }] }}>
-                  <Button style={{ borderRadius: 8, height: 40 }}>Recent First</Button>
+                  <Button style={{ borderRadius: 8, height: 40, background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-600)' }}>Recent First</Button>
                 </Dropdown>
               </Space>
             </div>
           </Card>
 
           {/* Table */}
-          <Card style={{ borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }} bodyStyle={{ padding: 0 }}>
+          <Card style={{ borderRadius: 16, border: '1px solid var(--border-slate-200)', overflow: 'hidden', background: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 0 }}>
             <Table
               columns={columns}
               dataSource={filteredEscalations}
@@ -452,9 +452,9 @@ export default function EscalationListPage() {
             <Space direction="vertical" size={2}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <AlertOutlined style={{ color: BLUE_PRIMARY }} />
-                <Title level={4} style={{ margin: 0 }}>Escalation Details</Title>
+                <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Escalation Details</Title>
               </div>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 400 }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-slate-400)' }}>
                 ID: {selectedEscalation?.id?.split('-')[0].toUpperCase()} • Raised on {dayjs(selectedEscalation?.createdAt).format('MMM D, YYYY at HH:mm')}
               </Text>
             </Space>
@@ -463,8 +463,8 @@ export default function EscalationListPage() {
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
           width={600}
-          headerStyle={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}
-          bodyStyle={{ padding: 0 }}
+          headerStyle={{ borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' }}
+          bodyStyle={{ padding: 0, background: 'var(--bg-pure-white)' }}
           footer={
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               {isEditing ? (
@@ -493,22 +493,22 @@ export default function EscalationListPage() {
               )}
             </div>
           }
-          footerStyle={{ borderTop: '1px solid #f1f5f9', padding: '12px 24px' }}
+          footerStyle={{ borderTop: '1px solid var(--border-slate-100)', padding: '12px 24px', background: 'var(--bg-pure-white)' }}
         >
           {selectedEscalation && (
             <div style={{ padding: '24px' }}>
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
 
                 {/* Header Info */}
-                <Card bodyStyle={{ padding: '12px 18px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 }}>
+                <Card bodyStyle={{ padding: '12px 18px', background: 'var(--bg-slate-50)', border: '1px solid var(--border-slate-200)', borderRadius: 12 }}>
                   <Space direction="vertical" size={12} style={{ width: '100%' }}>
                     <div>
-                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</Text>
-                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700 }}>{selectedEscalation.subject}</Title>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-400)' }}>Subject</Text>
+                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700, color: 'var(--text-slate-900)' }}>{selectedEscalation.subject}</Title>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ flex: 1 }}>
-                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>Current Status</Text>
+                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>Current Status</Text>
                         <div style={{ marginTop: 4 }}>
                           {isEditing ? (
                             <Select
@@ -531,7 +531,7 @@ export default function EscalationListPage() {
                         </div>
                       </div>
                       <div>
-                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>Priority</Text>
+                        <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>Priority</Text>
                         <div style={{ marginTop: 4 }}>{getPriorityTag(selectedEscalation.priority)}</div>
                       </div>
                     </div>
@@ -542,7 +542,7 @@ export default function EscalationListPage() {
                 <Row gutter={[24, 24]}>
                   <Col span={12}>
                     <Space direction="vertical" size={2}>
-                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>
                         <ProjectOutlined /> Category
                       </Text>
                       {getCategoryTag(selectedEscalation.category)}
@@ -550,10 +550,10 @@ export default function EscalationListPage() {
                   </Col>
                   <Col span={12}>
                     <Space direction="vertical" size={2}>
-                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                      <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>
                         <PlusOutlined /> Related Project
                       </Text>
-                      <Text strong style={{ fontSize: 13 }}>{selectedEscalation.project?.name || 'N/A'}</Text>
+                      <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{selectedEscalation.project?.name || 'N/A'}</Text>
                     </Space>
                   </Col>
                 </Row>
@@ -564,16 +564,16 @@ export default function EscalationListPage() {
                 <div>
                   <Space align="center" style={{ marginBottom: 8 }}>
                     <FileTextOutlined style={{ color: BLUE_PRIMARY, fontSize: 14 }} />
-                    <Text strong style={{ fontSize: 14 }}>Detailed Description</Text>
+                    <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>Detailed Description</Text>
                   </Space>
                   <div style={{
                     padding: '16px',
-                    background: '#fff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-slate-200)',
                     borderRadius: 10,
                     fontSize: 13,
                     lineHeight: '1.5',
-                    color: '#334155',
+                    color: 'var(--text-slate-700)',
                     whiteSpace: 'pre-wrap'
                   }}>
                     {selectedEscalation.description}
@@ -589,10 +589,10 @@ export default function EscalationListPage() {
                     </Space>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {selectedEscalation.tickets.map((t: any, idx: number) => (
-                        <Tag key={idx} color="blue" style={{ borderRadius: 4, margin: 0, padding: '4px 8px', border: '1px solid #bae6fd' }}>
+                        <Tag key={idx} color="blue" bordered={false} style={{ borderRadius: 4, margin: 0, padding: '4px 8px', background: 'var(--bg-blue-50)', border: '1px solid var(--border-slate-200)' }}>
                           <Space size={4}>
-                            <Text strong style={{ fontSize: 11, color: '#0369a1' }}>{t.ticket?.ticketNumber}</Text>
-                            <Text style={{ fontSize: 11, color: '#0ea5e9' }}>{t.ticket?.title}</Text>
+                            <Text strong style={{ fontSize: 11, color: 'var(--premium-blue)' }}>{t.ticket?.ticketNumber}</Text>
+                            <Text style={{ fontSize: 11, color: 'var(--text-slate-600)' }}>{t.ticket?.title}</Text>
                           </Space>
                         </Tag>
                       ))}
@@ -604,14 +604,14 @@ export default function EscalationListPage() {
                 <div>
                   <Space align="center" style={{ marginBottom: 10 }}>
                     <UserOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
-                    <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Target Team Members</Text>
+                    <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-400)' }}>Target Team Members</Text>
                   </Space>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {selectedEscalation.targetMembers?.map((m: any, idx: number) => (
                       <div key={idx} style={{
                         padding: '4px 10px 4px 4px',
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-slate-200)',
                         borderRadius: 20,
                         display: 'flex',
                         alignItems: 'center',
@@ -622,8 +622,8 @@ export default function EscalationListPage() {
                           {m.user?.name?.charAt(0)}
                         </Avatar>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Text strong style={{ fontSize: 12, color: '#334155' }}>{m.user?.name}</Text>
-                          <Text style={{ fontSize: 10, color: '#94a3b8', background: '#f1f5f9', padding: '2px 6px', borderRadius: 10, fontWeight: 500 }}>
+                          <Text strong style={{ fontSize: 12, color: 'var(--text-slate-700)' }}>{m.user?.name}</Text>
+                          <Text style={{ fontSize: 10, color: 'var(--text-slate-400)', background: 'var(--bg-slate-50)', padding: '2px 6px', borderRadius: 10, fontWeight: 500 }}>
                             {m.user?.position?.title || 'Member'}
                           </Text>
                         </div>
@@ -635,21 +635,21 @@ export default function EscalationListPage() {
                 <Divider style={{ margin: 0 }} />
 
                 {/* Creator Audit */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f1f5f9', borderRadius: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-slate-50)', borderRadius: 10 }}>
                   <Space size={10}>
-                    <Avatar size="small" src={selectedEscalation.createdBy?.avatar} style={{ backgroundColor: '#64748b' }}>
+                    <Avatar size="small" src={selectedEscalation.createdBy?.avatar} style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-slate-400)' }}>
                       {selectedEscalation.createdBy?.name?.charAt(0)}
                     </Avatar>
                     <div>
-                      <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Raised By</Text>
-                      <Text strong style={{ fontSize: 12 }}>{selectedEscalation.createdBy?.name}</Text>
+                      <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>Raised By</Text>
+                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{selectedEscalation.createdBy?.name}</Text>
                     </div>
                   </Space>
                   <Space size={10}>
-                    <HistoryOutlined style={{ color: '#94a3b8', fontSize: 14 }} />
+                    <HistoryOutlined style={{ color: 'var(--text-slate-400)', fontSize: 14 }} />
                     <div>
-                      <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Last Updated</Text>
-                      <Text strong style={{ fontSize: 12 }}>{dayjs(selectedEscalation.updatedAt).fromNow()}</Text>
+                      <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>Last Updated</Text>
+                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{dayjs(selectedEscalation.updatedAt).fromNow()}</Text>
                     </div>
                   </Space>
                 </div>
@@ -660,20 +660,21 @@ export default function EscalationListPage() {
 
         <style jsx global>{`
           .premium-table .ant-table-thead > tr > th {
-            background: #f8fafc;
-            color: #64748b;
+            background: var(--bg-slate-50) !important;
+            color: var(--text-slate-400) !important;
             font-weight: 600;
             text-transform: uppercase;
             font-size: 11px;
             letter-spacing: 0.05em;
-            border-bottom: 2px solid #f1f5f9;
+            border-bottom: 2px solid var(--border-slate-100) !important;
           }
           .premium-table .ant-table-tbody > tr > td {
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid var(--border-slate-100);
             padding: 10px 16px;
+            color: var(--text-slate-900);
           }
           .premium-table .ant-table-row:hover > td {
-            background: #f8fafc !important;
+            background: var(--bg-slate-50) !important;
           }
         `}</style>
       </div>

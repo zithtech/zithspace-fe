@@ -32,7 +32,7 @@ export default function ProjectsSettingsPage() {
 
   return (
     <MainLayout>
-      <div style={{ backgroundColor: '#ffffff', minHeight: 'calc(100vh - 64px)', padding: '20px' }}>
+      <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)', padding: '20px' }}>
         <TicketSettings />
       </div>
     </MainLayout>

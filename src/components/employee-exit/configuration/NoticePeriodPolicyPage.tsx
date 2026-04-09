@@ -215,8 +215,8 @@ export default function NoticePeriodPolicyPage() {
             width: 36,
             height: 36,
             borderRadius: 10,
-            background: "#eff6ff",
-            color: "#2563eb",
+            background: "var(--bg-blue-50)",
+            color: "var(--premium-blue)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -226,8 +226,8 @@ export default function NoticePeriodPolicyPage() {
             <Clock size={18} />
           </div>
           <div>
-            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{text}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.code}</Text>
+            <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.code}</Text>
           </div>
         </Space>
       ),
@@ -251,11 +251,11 @@ export default function NoticePeriodPolicyPage() {
       key: 'noticePeriodDays',
       render: (record: NoticePolicy) => (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ padding: "4px 8px", background: "#f0fdf4", borderRadius: 6, color: "#16a34a", fontWeight: 700 }}>
+          <div style={{ padding: "4px 8px", background: "var(--bg-green-50)", borderRadius: 6, color: "#16a34a", fontWeight: 700 }}>
             {record.noticePeriodDays} Days
           </div>
-          <ArrowRight size={14} style={{ color: "#94a3b8" }} />
-          <Text type="secondary" style={{ fontSize: 12 }}>Standard</Text>
+          <ArrowRight size={14} style={{ color: "var(--text-slate-400)" }} />
+          <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Standard</Text>
         </div>
       ),
     },
@@ -266,8 +266,8 @@ export default function NoticePeriodPolicyPage() {
         <Space size={16}>
           <Tooltip title="Buyout Calculation Type">
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ShieldCheck size={14} color="#3b82f6" />
-              <Text style={{ fontSize: 13, color: "#475569" }}>{record.buyoutCalculatingType}</Text>
+              <ShieldCheck size={14} style={{ color: "var(--premium-blue)" }} />
+              <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{record.buyoutCalculatingType}</Text>
             </div>
           </Tooltip>
         </Space>
@@ -295,7 +295,7 @@ export default function NoticePeriodPolicyPage() {
           <Tooltip title="Edit Rules">
             <Button
               type="text"
-              icon={<Edit size={18} style={{ color: '#64748b' }} />}
+              icon={<Edit size={18} style={{ color: 'var(--text-slate-400)' }} />}
               onClick={() => handleEdit(record)}
               className="action-btn"
             />
@@ -338,7 +338,7 @@ export default function NoticePeriodPolicyPage() {
           type="primary"
           icon={<Plus size={18} />}
           onClick={handleAdd}
-          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
         >
           Add New Rule
         </Button>
@@ -354,20 +354,20 @@ export default function NoticePeriodPolicyPage() {
         loading={loading}
         pagination={{ pageSize: 10, position: ["bottomRight"] }}
         size="middle"
-        style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
+        style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", boxShadow: "var(--shadow-premium-sm)" }}
       />
 
       <Drawer
         title={
           <Space size={12}>
-            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb", display: "flex" }}>
+            <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: "flex" }}>
               <Settings2 size={20} />
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
                 {editingPolicy ? "Edit Rule" : "Create New Rule"}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>
+              <div style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>
                 Configure notice periods and level mappings
               </div>
             </div>
@@ -391,9 +391,9 @@ export default function NoticePeriodPolicyPage() {
         }
         className="config-drawer"
       >
-        <Form form={form} layout="vertical" requiredMark={false}>
+        <Form form={form} layout="vertical" requiredMark={false} style={{ background: "var(--bg-pure-white)" }}>
           <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Notice Strategy</Title>
+            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Notice Strategy</Title>
             <Row gutter={16}>
               <Col span={14}>
                 <Form.Item
@@ -457,7 +457,7 @@ export default function NoticePeriodPolicyPage() {
           <Divider />
 
           <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Period Durations</Title>
+            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Period Durations</Title>
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item
@@ -489,13 +489,13 @@ export default function NoticePeriodPolicyPage() {
 
           <Divider />
 
-          <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
-            <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "#334155" }}>Policy Controls</Title>
+          <div style={{ background: "var(--bg-secondary)", padding: 20, borderRadius: 12, border: "1px solid var(--border-slate-100)" }}>
+            <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "var(--text-slate-900)" }}>Policy Controls</Title>
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <Text strong style={{ fontSize: 14, display: "block" }}>Gross Buyout</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>Calculate buyout based on Gross instead of Basic.</Text>
+                <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Gross Buyout</Text>
+                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Calculate buyout based on Gross instead of Basic.</Text>
               </div>
               <Form.Item name="buyout_calculating_type" valuePropName="checked" noStyle>
                 <Switch checkedChildren="ON" unCheckedChildren="OFF" />
@@ -506,8 +506,8 @@ export default function NoticePeriodPolicyPage() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <Text strong style={{ fontSize: 14, display: "block" }}>Active Policy</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>Allow this rule to be applied to new requests.</Text>
+                <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Active Policy</Text>
+                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Allow this rule to be applied to new requests.</Text>
               </div>
               <Form.Item name="status" valuePropName="checked" noStyle>
                 <Switch checkedChildren="ACTIVE" unCheckedChildren="INACTIVE" />
@@ -525,19 +525,19 @@ export default function NoticePeriodPolicyPage() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
-        .action-btn:hover { background: #f1f5f9 !important; color: #2563eb !important; }
+        .action-btn:hover { background: var(--bg-secondary) !important; color: var(--premium-blue) !important; }
         .action-btn-danger:hover { background: #fff1f2 !important; }
         .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-secondary) !important;
+          color: var(--text-slate-500) !important;
           font-weight: 600 !important;
           text-transform: uppercase !important;
           font-size: 11px !important;
           letter-spacing: 0.05em !important;
         }
-        .ant-table-row:hover > td { background: #f8fafc !important; }
-        .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
-        .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
+        .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
+        .config-drawer .ant-drawer-header { border-bottom: 1px solid var(--border-slate-100) !important; padding: 24px !important; }
+        .config-drawer .ant-drawer-footer { border-top: 1px solid var(--border-slate-100) !important; padding: 16px 24px !important; }
       `}} />
     </div>
   );

@@ -47,7 +47,7 @@ dayjs.extend(relativeTime);
 dayjs.extend(duration);
 
 const { Title, Text } = Typography;
- 
+
 const calculateDaysRemaining = (deletedAt: string) => {
   const deleteDate = dayjs(deletedAt);
   const purgeDate = deleteDate.add(7, "days");
@@ -91,7 +91,7 @@ export default function TrashManagementPage() {
       const days = calculateDaysRemaining(t.deletedAt || t.createdAt);
       return days <= 2;
     }).length;
-    
+
     return {
       total: trashData?.pagination.total || 0,
       purgingSoon
@@ -188,7 +188,7 @@ export default function TrashManagementPage() {
         <Space direction="vertical" size={2}>
           <Text strong style={{ fontSize: 14 }}>{record.title}</Text>
           <Space size={8}>
-            <Tag icon={<ProjectOutlined />} style={{ borderRadius: 4, fontSize: 11, background: "#f5f5f5", border: "none" }}>
+            <Tag icon={<ProjectOutlined />} style={{ borderRadius: 4, fontSize: 11, background: "var(--bg-secondary)", border: "none" }}>
               {record.project?.name || "Global"}
             </Tag>
             <Tag color={record.status === 'completed' ? 'success' : 'processing'} style={{ borderRadius: 4, fontSize: 10, border: "none" }}>
@@ -204,8 +204,8 @@ export default function TrashManagementPage() {
       width: 180,
       render: (_: any, record: any) => (
         <Space>
-          <Avatar 
-            size="small" 
+          <Avatar
+            size="small"
             style={{ backgroundColor: "#87d068" }}
           >
             {record.deletedBy?.name?.charAt(0) || "U"}
@@ -228,11 +228,11 @@ export default function TrashManagementPage() {
         const isUrgent = daysRemaining <= 2;
         return (
           <Tooltip title={`Permanently purged in approx. ${daysRemaining} days`}>
-            <div style={{ 
-              padding: "4px 12px", 
-              borderRadius: 6, 
-              background: isUrgent ? "#fff2f0" : "#f6ffed",
-              border: `1px solid ${isUrgent ? "#ffccc7" : "#b7eb8f"}`,
+            <div style={{
+              padding: "4px 12px",
+              borderRadius: 6,
+              background: isUrgent ? "rgba(255, 77, 79, 0.1)" : "rgba(82, 196, 26, 0.1)",
+              border: `1px solid ${isUrgent ? "rgba(255, 77, 79, 0.2)" : "rgba(82, 196, 26, 0.2)"}`,
               display: "inline-flex",
               alignItems: "center",
               gap: 8
@@ -295,26 +295,26 @@ export default function TrashManagementPage() {
   ];
 
   return (
-    <div style={{ padding: "0", background: "#ffffff", minHeight: "100%" }}>
+    <div style={{ padding: "0", background: "var(--bg-pure-white)", minHeight: "100%" }}>
       <Space direction="vertical" size={24} style={{ width: "100%" }}>
         {/* Premium Header - Reduced Height */}
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
-          background: "#fff",
+          background: "var(--bg-pure-white)",
           padding: "16px 0",
           borderRadius: 0,
           position: "sticky",
           top: 0,
           zIndex: 10,
-          borderBottom: "1px solid #f0f0f0"
+          borderBottom: "1px solid var(--border-color)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Avatar 
-              size={40} 
-              icon={<DeleteOutlined />} 
-              style={{ backgroundColor: "#ff4d4f", boxShadow: "0 4px 12px rgba(255, 77, 79, 0.2)" }} 
+            <Avatar
+              size={40}
+              icon={<DeleteOutlined />}
+              style={{ backgroundColor: "#ff4d4f", boxShadow: "0 4px 12px rgba(255, 77, 79, 0.2)" }}
             />
             <div>
               <Title level={4} style={{ margin: 0 }}>Trash Repository</Title>
@@ -349,7 +349,7 @@ export default function TrashManagementPage() {
         {/* Summary Stats Row - Reduced Card Heights */}
         <Row gutter={[16, 16]} style={{ display: 'flex' }}>
           <Col xs={24} sm={12} md={6} style={{ display: 'flex' }}>
-            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
+            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
               <Space direction="vertical" size={2}>
                 <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Deleted</Text>
                 <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{stats.total}</Title>
@@ -357,7 +357,7 @@ export default function TrashManagementPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6} style={{ display: 'flex' }}>
-            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
+            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
               <Space direction="vertical" size={2}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <WarningOutlined style={{ color: stats.purgingSoon > 0 ? "#faad14" : "#52c41a", fontSize: 12 }} />
@@ -370,12 +370,12 @@ export default function TrashManagementPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={12} style={{ display: 'flex' }}>
-            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid #ffe58f", backgroundColor: "#fffbe6", boxShadow: "none", width: "100%", display: 'flex', alignItems: 'center' }}>
+            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid rgba(250, 173, 20, 0.2)", backgroundColor: "rgba(250, 173, 20, 0.1)", boxShadow: "none", width: "100%", display: 'flex', alignItems: 'center' }}>
               <Space size={12}>
                 <InfoCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
                 <div>
-                  <Text strong style={{ display: "block", color: "#856404", fontSize: 13 }}>Automatic Maintenance Active</Text>
-                  <Text type="secondary" style={{ fontSize: 12, color: "#856404" }}>
+                  <Text strong style={{ display: "block", color: "var(--text-primary)", fontSize: 13 }}>Automatic Maintenance Active</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
                     Items in trash are automatically purged after 7 days to keep your workspace clean.
                   </Text>
                 </div>
@@ -385,7 +385,7 @@ export default function TrashManagementPage() {
         </Row>
 
         {/* Filters Row */}
-        <Card styles={{ body: { padding: "16px 24px" } }} style={{ borderRadius: 12, border: "1px solid #f0f0f0", boxShadow: "none" }}>
+        <Card styles={{ body: { padding: "16px 24px" } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "none" }}>
           <Row gutter={16} align="middle">
             <Col flex="auto">
               <Input
@@ -478,7 +478,7 @@ export default function TrashManagementPage() {
         )}
 
         {/* Results Table */}
-        <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+        <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
           <Table
             rowSelection={rowSelection}
             columns={columns}

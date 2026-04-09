@@ -60,8 +60,8 @@ export default function UpdateTable({
             <Avatar
               size={32}
               style={{
-                backgroundColor: updateType === "BOD" ? "#dcfce7" : "#dbeafe",
-                color: updateType === "BOD" ? "#166534" : "#1e40af",
+                backgroundColor: updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",
+                color: updateType === "BOD" ? "var(--text-holiday)" : "var(--text-blue-700)",
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -69,10 +69,10 @@ export default function UpdateTable({
               {name.charAt(0).toUpperCase()}
             </Avatar>
             <div>
-              <Text strong style={{ fontSize: 13, display: "block", color: "#1e293b", lineHeight: 1.2 }}>
+              <Text strong style={{ fontSize: 13, display: "block", color: "var(--text-slate-900)", lineHeight: 1.2 }}>
                 {name}
               </Text>
-              <Text style={{ fontSize: 11, color: "#94a3b8" }}>
+              <Text style={{ fontSize: 11, color: "var(--text-slate-400)" }}>
                 {record.userPosition || "Team Member"}
               </Text>
             </div>
@@ -89,8 +89,8 @@ export default function UpdateTable({
         const projectUpdates = (record.update.projectUpdates || []) as ProjectUpdate[];
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Package size={14} color="#94a3b8" />
-            <Text style={{ fontSize: 12, color: "#475569" }}>
+            <Package size={14} color="var(--text-slate-400)" />
+            <Text style={{ fontSize: 12, color: "var(--text-slate-700)" }}>
               {count === 1 ? projectUpdates[0]?.projectName : `${count} Projects`}
             </Text>
           </div>
@@ -107,8 +107,8 @@ export default function UpdateTable({
         const firstTask = projectUpdates[0]?.tasks?.[0];
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <CheckCircle2 size={14} color="#22c55e" />
-            <Text ellipsis style={{ fontSize: 12, color: "#475569", maxWidth: 160 }}>
+            <CheckCircle2 size={14} color="var(--text-green-500)" />
+            <Text ellipsis style={{ fontSize: 12, color: "var(--text-slate-700)", maxWidth: 160 }}>
               {count === 1 ? (firstTask?.ticketNumber || firstTask?.description) : `${count} Tasks Completed`}
             </Text>
           </div>
@@ -124,9 +124,9 @@ export default function UpdateTable({
         <Tag
           style={{
             borderRadius: 6,
-            background: "#eff6ff",
+            background: "var(--bg-blue-50)",
             border: "none",
-            color: "#3b82f6",
+            color: "var(--text-blue-700)",
             fontSize: 11,
             fontWeight: 600,
             padding: "2px 8px"
@@ -142,7 +142,7 @@ export default function UpdateTable({
       key: "dueDate",
       width: 130,
       render: (date: string) => (
-        <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+        <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
           {dayjs(date).format("DD MMM YYYY")}
         </Text>
       ),
@@ -153,7 +153,7 @@ export default function UpdateTable({
       key: "submittedAt",
       width: 140,
       render: (time: string | Date) => (
-        <Text style={{ fontSize: 12, color: "#64748b" }}>
+        <Text style={{ fontSize: 12, color: "var(--text-slate-600)" }}>
           {dayjs(time).format("MMM D, h:mm A")}
         </Text>
       ),
@@ -166,7 +166,7 @@ export default function UpdateTable({
       render: (_, record) => (
         <Button
           type="text"
-          icon={<Eye size={16} color="#0ea5e9" />}
+          icon={<Eye size={16} color="var(--text-sky-500)" />}
           onClick={(e) => {
             e.stopPropagation();
             onViewDetails(record.update);
@@ -175,7 +175,7 @@ export default function UpdateTable({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#f0f9ff",
+            background: "var(--bg-sky-50)",
             borderRadius: 8
           }}
         />

@@ -197,12 +197,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       width: 280,
       render: (_: any, record: any) => (
         <Space size={12}>
-          <div style={{ background: "#f8fafc", padding: 8, borderRadius: 8, color: "#64748b", display: "flex" }}>
+          <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 8, color: "var(--text-slate-500)", display: "flex" }}>
             <Layers size={18} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>{record.name}</div>
-            <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>CODE: {record.code}</div>
+            <div style={{ fontWeight: 600, color: "var(--text-slate-900)", fontSize: 14 }}>{record.name}</div>
+            <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>CODE: {record.code}</div>
           </div>
         </Space>
       )
@@ -212,8 +212,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       key: "billing",
       render: (_: any, record: any) => (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{record.billingType}</div>
-          <div style={{ fontSize: 12, color: "#94a3b8" }}>Model</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-slate-700)" }}>{record.billingType}</div>
+          <div style={{ fontSize: 12, color: "var(--text-slate-400)" }}>Model</div>
         </div>
       )
     },
@@ -229,15 +229,15 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         return (
           <div style={{ width: 140 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{symbol}{budget.toLocaleString()}</span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{Math.round(percentage)}%</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-slate-900)" }}>{symbol}{budget.toLocaleString()}</span>
+              <span style={{ fontSize: 11, color: "var(--text-slate-500)" }}>{Math.round(percentage)}%</span>
             </div>
             <Progress
               percent={percentage}
               size="small"
               showInfo={false}
-              strokeColor="#3b82f6"
-              trailColor="#f1f5f9"
+              strokeColor="var(--premium-blue)"
+              trailColor="var(--border-slate-100)"
               strokeWidth={6}
             />
           </div>
@@ -275,10 +275,10 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         <Space size={8}>
           <Avatar
             size="small"
-            style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}
+            style={{ backgroundColor: "var(--bg-slate-50)", color: "var(--text-slate-400)" }}
             icon={<User size={12} />}
           />
-          <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>
+          <span style={{ fontSize: 13, color: "var(--text-slate-700)", fontWeight: 500 }}>
             {record.projectManager?.first_name
               ? `${record.projectManager.first_name} ${record.projectManager.last_name}`
               : record.projectManager?.name || "Unassigned"}
@@ -291,8 +291,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       dataIndex: "startDate",
       key: "startDate",
       render: (date: string) => (
-        <Space size={6} style={{ color: "#64748b", fontSize: 13 }}>
-          <Calendar size={14} style={{ color: "#94a3b8" }} />
+        <Space size={6} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+          <Calendar size={14} style={{ color: "var(--text-slate-400)" }} />
           {date ? dayjs(date).format("MMM DD, YYYY") : "N/A"}
         </Space>
       )
@@ -304,10 +304,10 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       render: (_: any, record: any) => (
         <Space>
           <Tooltip title="View Project Details">
-            <Button type="text" className="premium-action-btn" icon={<Eye size={16} />} style={{ color: "#64748b" }} />
+            <Button type="text" className="premium-action-btn" icon={<Eye size={16} />} style={{ color: "var(--text-slate-400)" }} />
           </Tooltip>
           <Tooltip title="Edit Configuration">
-            <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "#64748b" }} onClick={() => openEditModal(record)} />
+            <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "var(--text-slate-400)" }} onClick={() => openEditModal(record)} />
           </Tooltip>
         </Space>
       ),
@@ -325,43 +325,33 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       <Card
         style={{
           borderRadius: 16,
-          border: "1px solid #f1f5f9",
-          background: "#fff"
+          border: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)"
         }}
         bodyStyle={{ padding: "0" }}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9" }}>
-          <Row justify="space-between" align="middle" gutter={[16, 16]}>
-            <Col xs={24} md={14}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Internal Projects</div>
-                <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Monitor project lifecycles, budget utilization, and leadership assignments</div>
-              </div>
-            </Col>
-            <Col xs={24} md={10}>
-              <Row gutter={[12, 12]} justify="end">
-                <Col xs={24} sm={16} md={12} lg={14}>
-                  <Input
-                    placeholder="Search projects..."
-                    prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ borderRadius: 10, width: "100%", height: 40 }}
-                  />
-                </Col>
-                <Col xs={24} sm={8} md={12} lg={10}>
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<Plus size={18} />}
-                    onClick={() => setIsModalVisible(true)}
-                    style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
-                  >
-                    Initiate Project
-                  </Button>
-                </Col>
-              </Row>
-            </Col>
-          </Row>
+        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Internal Projects</div>
+            <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Monitor project lifecycles, budget utilization, and leadership assignments</div>
+          </div>
+          <Space size={12}>
+            <Input
+              placeholder="Search by name or project code..."
+              prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ borderRadius: 10, width: 300, height: 40 }}
+            />
+            <Button
+              type="primary"
+              size="large"
+              icon={<Plus size={18} />}
+              onClick={() => setIsModalVisible(true)}
+              style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+            >
+              Initiate Project
+            </Button>
+          </Space>
         </div>
 
         <Table
@@ -637,23 +627,22 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       <style dangerouslySetInnerHTML={{
         __html: `
         .premium-table .ant-table-thead > tr > th {
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
+          font-weight: 600 !important;
+          font-size: 11px !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
-          white-space: nowrap !important;
-        }
-        @media (max-width: 576px) {
-          .premium-table .ant-table-thead > tr > th,
-          .premium-table .ant-table-tbody > tr > td {
-            padding: 12px 16px !important;
-          }
+          border-bottom: 1px solid var(--border-slate-100) !important;
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
         }
         .premium-action-btn:hover {
-          background: #f1f5f9 !important;
-          color: #3b82f6 !important;
+          background: var(--bg-slate-50) !important;
+          color: var(--premium-blue) !important;
         }
       `}} />
     </div>

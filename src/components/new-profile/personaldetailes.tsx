@@ -25,18 +25,25 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
     console.log("Profile Data:", profile);
   }, [profile]);
 
+  const cardStyle = {
+    borderRadius: 8,
+    padding: 8,
+    boxShadow: "none",
+    border: "1px solid var(--border-slate-100)",
+    background: "var(--bg-pure-white)",
+  };
+
+  const innerCardStyle = {
+    borderRadius: 8,
+    boxShadow: "none",
+    border: "1px solid var(--border-slate-100)",
+    background: "var(--bg-slate-50)",
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* 🔹 Personal Details Card */}
-      <Card
-        bordered
-        style={{
-          borderRadius: 8,
-          padding: 8,
-          boxShadow: "none",
-          border: "1px solid #f0f0f0",
-        }}
-      >
+      <Card bordered style={cardStyle}>
         <Row gutter={[16, 10]}>
           {" "}
           {/* reduced spacing */}
@@ -112,7 +119,15 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
       </Card>
 
       {/* 🔹 Address Card */}
-      <Card bordered style={{ borderRadius: 8, boxShadow: "none", border: "1px solid #f0f0f0" }}>
+      <Card
+        bordered
+        style={{
+          borderRadius: 8,
+          boxShadow: "none",
+          border: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)",
+        }}
+      >
         <Row gutter={24} align="stretch">
           {/* 🔹 LEFT SIDE - ADDRESSES */}
           <Col span={14}>
@@ -120,10 +135,8 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
             <Card
               bordered
               style={{
+                ...innerCardStyle,
                 marginBottom: 16,
-                borderRadius: 8,
-                boxShadow: "none",
-                border: "1px solid #f0f0f0",
               }}
             >
               <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
@@ -148,7 +161,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
             </Card>
 
             {/* Permanent Address */}
-            <Card bordered style={{ borderRadius: 8, boxShadow: "none", border: "1px solid #f0f0f0" }}>
+            <Card bordered style={innerCardStyle}>
               <div style={{ display: "flex", flexDirection: "row", gap: 8 }}>
                 <FaHome size={18} />
                 <Text strong style={{ display: "block", marginBottom: 8 }}>
@@ -175,10 +188,8 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
             <Card
               bordered
               style={{
-                borderRadius: 8,
+                ...innerCardStyle,
                 height: "100%",
-                boxShadow: "none",
-                border: "1px solid #f0f0f0",
               }}
             >
               <Text strong style={{ display: "block", marginBottom: 12 }}>
@@ -203,6 +214,14 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           </Col>
         </Row>
       </Card>
+      <style jsx global>{`
+        .ant-col .ant-typography-secondary {
+          color: var(--text-slate-400) !important;
+        }
+        .ant-typography {
+          color: var(--text-slate-900) !important;
+        }
+      `}</style>
     </div>
   );
 };

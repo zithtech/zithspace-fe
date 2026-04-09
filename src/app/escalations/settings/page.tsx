@@ -39,7 +39,7 @@ import { api } from '@/lib/axios';
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
-const BLUE_PRIMARY = '#2563eb';
+const BLUE_PRIMARY = 'var(--premium-blue)';
 
 interface EscalationCategory {
   id: string;
@@ -186,7 +186,7 @@ export default function EscalationSettingsPage() {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
-      render: (desc: string) => <Text type="secondary" style={{ fontSize: 13 }}>{desc || 'No description'}</Text>
+      render: (desc: string) => <Text type="secondary" style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>{desc || 'No description'}</Text>
     },
     {
       title: 'Status',
@@ -322,7 +322,7 @@ export default function EscalationSettingsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px 40px', background: '#ffffff', minHeight: '100vh' }}>
+      <div style={{ padding: '16px 40px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           
           {/* Header */}
@@ -332,11 +332,11 @@ export default function EscalationSettingsPage() {
             alignItems: 'center', 
             marginBottom: 24,
             paddingBottom: 16,
-            borderBottom: '1px solid #f1f5f9'
+            borderBottom: '1px solid var(--border-slate-100)'
           }}>
             <Space direction="vertical" size={4}>
-              <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' }}>Escalation Settings</Title>
-              <Text type="secondary" style={{ fontSize: 14 }}>Manage master data for categories, priorities, and statuses.</Text>
+              <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-slate-900)' }}>Escalation Settings</Title>
+              <Text type="secondary" style={{ fontSize: 14, color: 'var(--text-slate-400)' }}>Manage master data for categories, priorities, and statuses.</Text>
             </Space>
             <Button 
               type="primary" 
@@ -359,8 +359,9 @@ export default function EscalationSettingsPage() {
           <Card 
             style={{ 
               borderRadius: 20, 
-              border: '1px solid #e2e8f0', 
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              border: '1px solid var(--border-slate-200)', 
+              background: 'var(--bg-pure-white)',
+              boxShadow: 'var(--card-shadow)',
               overflow: 'hidden' 
             }} 
             bodyStyle={{ padding: 0 }}
@@ -424,39 +425,39 @@ export default function EscalationSettingsPage() {
 
           {/* Modal for CRUD */}
           <Modal
-            title={<Title level={4} style={{ margin: 0 }}>{editingItem ? 'Edit' : 'Create'} {activeTab === '1' ? 'Escalation Category' : activeTab === '2' ? 'Escalation Priority' : 'Escalation Status'}</Title>}
+            title={<Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>{editingItem ? 'Edit' : 'Create'} {activeTab === '1' ? 'Escalation Category' : activeTab === '2' ? 'Escalation Priority' : 'Escalation Status'}</Title>}
             open={isModalOpen}
             onCancel={() => setIsModalOpen(false)}
             onOk={() => form.submit()}
             okText="Save Changes"
             centered
             width={520}
-            bodyStyle={{ padding: '24px 0' }}
+            bodyStyle={{ padding: '24px 0', background: 'var(--bg-pure-white)' }}
           >
             <Form form={form} layout="vertical" onFinish={handleSave} style={{ padding: '0 24px' }}>
-              <Form.Item name="name" label={<Text strong>Display Name</Text>} rules={[{ required: true }]}>
-                <Input placeholder="e.g. Deployment Failure" size="large" style={{ borderRadius: 8 }} />
+              <Form.Item name="name" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Display Name</Text>} rules={[{ required: true }]}>
+                <Input placeholder="e.g. Deployment Failure" size="large" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }} />
               </Form.Item>
 
               {activeTab === '1' ? (
-                <Form.Item name="description" label={<Text strong>Description</Text>}>
-                  <Input.TextArea rows={3} placeholder="Briefly describe when this category should be used" style={{ borderRadius: 8 }} />
+                <Form.Item name="description" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Description</Text>}>
+                  <Input.TextArea rows={3} placeholder="Briefly describe when this category should be used" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', color: 'var(--text-slate-900)' }} />
                 </Form.Item>
               ) : (
-                <Form.Item name="weight" label={<Text strong>Priority Weight (Order)</Text>}>
-                  <InputNumber min={0} max={100} style={{ width: '100%', borderRadius: 8 }} size="large" />
+                <Form.Item name="weight" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Priority Weight (Order)</Text>}>
+                  <InputNumber min={0} max={100} style={{ width: '100%', borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }} size="large" />
                 </Form.Item>
               )}
 
               <Row gutter={24}>
                 <Col span={12}>
-                  <Form.Item name="color" label={<Text strong>Visual Color</Text>}>
+                  <Form.Item name="color" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Visual Color</Text>}>
                     <ColorPicker showText />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="isActive" label={<Text strong>Status</Text>} initialValue={true}>
-                    <Select size="large" style={{ borderRadius: 8 }}>
+                  <Form.Item name="isActive" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Status</Text>} initialValue={true}>
+                    <Select size="large" style={{ borderRadius: 8, background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)' }}>
                       <Option value={true}>Active</Option>
                       <Option value={false}>Inactive</Option>
                     </Select>
@@ -465,28 +466,28 @@ export default function EscalationSettingsPage() {
               </Row>
 
               {activeTab === '3' && (
-                <div style={{ background: '#f0f9ff', padding: '16px 20px', borderRadius: 12, marginBottom: 20, border: '1px solid #e0f2fe' }}>
+                <div style={{ background: 'var(--bg-sky-50)', padding: '16px 20px', borderRadius: 12, marginBottom: 20, border: '1px solid var(--border-sky-100)' }}>
                   <Row gutter={24}>
                     <Col span={12}>
-                      <Form.Item name="isDefault" valuePropName="checked" label={<Text strong>Default Status</Text>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="isDefault" valuePropName="checked" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Default Status</Text>} style={{ marginBottom: 0 }}>
                         <Switch />
                       </Form.Item>
-                      <Text type="secondary" style={{ fontSize: 11 }}>Set as default for new escalations.</Text>
+                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>Set as default for new escalations.</Text>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="isFinal" valuePropName="checked" label={<Text strong>Final State</Text>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="isFinal" valuePropName="checked" label={<Text strong style={{ color: 'var(--text-slate-900)' }}>Final State</Text>} style={{ marginBottom: 0 }}>
                         <Switch />
                       </Form.Item>
-                      <Text type="secondary" style={{ fontSize: 11 }}>Mark as a terminal/closed state.</Text>
+                      <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>Mark as a terminal/closed state.</Text>
                     </Col>
                   </Row>
                 </div>
               )}
 
-              <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, marginTop: 8 }}>
+              <div style={{ background: 'var(--bg-slate-50)', padding: 16, borderRadius: 12, marginTop: 8 }}>
                 <Space>
                   <InfoCircleOutlined style={{ color: BLUE_PRIMARY }} />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
+                  <Text type="secondary" style={{ fontSize: 12, color: 'var(--text-slate-400)' }}>
                     Changes will reflect immediately across all new and existing manual escalations.
                   </Text>
                 </Space>
@@ -496,44 +497,53 @@ export default function EscalationSettingsPage() {
 
         </div>
         
-        <style jsx global>{`
+         <style jsx global>{`
           .premium-table .ant-table-thead > tr > th {
-            background: #fafafa;
-            color: #475569;
+            background: var(--bg-slate-50);
+            color: var(--text-slate-600);
             font-weight: 700;
             text-transform: uppercase;
             font-size: 11px;
             letter-spacing: 0.05em;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-slate-200);
             padding: 12px 16px;
           }
           .premium-table .ant-table-tbody > tr > td {
             padding: 16px;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid var(--border-slate-100);
+            background: var(--bg-pure-white);
+            color: var(--text-slate-700);
           }
           .premium-table .ant-table-row:hover > td {
-            background: #f8fafc !important;
+            background: var(--bg-slate-50) !important;
           }
           .ant-tabs-nav {
             margin-bottom: 0 !important;
             padding: 8px 24px 0 !important;
-            background: #fafafa;
-            border-bottom: 1px solid #e2e8f0;
+            background: var(--bg-slate-50);
+            border-bottom: 1px solid var(--border-slate-200);
           }
           .ant-tabs-tab {
             padding: 12px 16px !important;
             margin: 0 8px 0 0 !important;
             font-weight: 500 !important;
-            color: #64748b !important;
+            color: var(--text-slate-400) !important;
           }
           .ant-tabs-tab-active .ant-tabs-tab-btn {
-            color: ${BLUE_PRIMARY} !important;
+            color: var(--premium-blue) !important;
             font-weight: 700 !important;
           }
           .ant-tabs-ink-bar {
             height: 3px !important;
-            background: ${BLUE_PRIMARY} !important;
+            background: var(--premium-blue) !important;
             border-radius: 3px 3px 0 0;
+          }
+          .ant-modal-content, .ant-modal-header {
+            background: var(--bg-pure-white) !important;
+          }
+          .ant-modal-title {
+            color: var(--text-slate-900) !important;
+            background: var(--bg-pure-white) !important;
           }
         `}</style>
       </div>

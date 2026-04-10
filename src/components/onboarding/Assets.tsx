@@ -49,7 +49,7 @@ const cardStyle: React.CSSProperties = {
   background: "#fff",
   border: "1px solid #ebedef",
   borderRadius: "12px",
-  padding: "10px",
+  padding: "11px",
   height: "280px",
   transition: "all 0.2s ease",
   display: "flex",
@@ -206,7 +206,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "12px 0", borderBottom: "1px solid #f1f5f9" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>Assets Information</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>Manage assignment hardware.</p>
+          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>Manage Assignment Hardware.</p>
         </div>
       </div>
 

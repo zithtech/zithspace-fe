@@ -63,90 +63,178 @@ export default function DayView({ currentDate, events, onEventClick, onTimeSlotC
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
-            <div style={{ padding: '24px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Day Header */}
+            <div style={{ 
+                padding: '24px', 
+                borderBottom: '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                background: '#fff',
+                position: 'sticky',
+                top: 0,
+                zIndex: 20
+            }}>
                 <div style={{
-                    width: '48px',
-                    height: '48px',
-                    background: currentDate.isSame(dayjs(), 'day') ? '#1677ff' : '#f5f5f5',
-                    color: currentDate.isSame(dayjs(), 'day') ? '#fff' : '#262626',
-                    borderRadius: '50%',
+                    width: '56px',
+                    height: '56px',
+                    background: currentDate.isSame(dayjs(), 'day') ? '#3b82f6' : '#f8fafc',
+                    color: currentDate.isSame(dayjs(), 'day') ? '#fff' : '#1e293b',
+                    borderRadius: '16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '20px',
-                    fontWeight: 600
+                    fontSize: '24px',
+                    fontWeight: 800,
+                    border: currentDate.isSame(dayjs(), 'day') ? 'none' : '1px solid #e2e8f0',
+                    boxShadow: currentDate.isSame(dayjs(), 'day') ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none'
                 }}>
                     {currentDate.date()}
                 </div>
                 <div>
-                    <Title level={4} style={{ margin: 0 }}>{currentDate.format('dddd')}</Title>
-                    <Text type="secondary">{currentDate.format('MMMM D, YYYY')}</Text>
+                    <Text strong style={{ 
+                        fontSize: '14px', 
+                        color: currentDate.isSame(dayjs(), 'day') ? '#3b82f6' : '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        display: 'block',
+                        marginBottom: '2px'
+                    }}>
+                        {currentDate.format('dddd')}
+                    </Text>
+                    <Title level={4} style={{ margin: 0, color: '#1e293b', fontWeight: 700 }}>
+                        {currentDate.format('MMMM YYYY')}
+                    </Title>
                 </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', position: 'relative', display: 'flex' }}>
-                <div style={{ width: '80px', borderRight: '1px solid #f0f0f0', flexShrink: 0 }}>
+            {/* Time Grid */}
+            <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', position: 'relative', display: 'flex', paddingBottom: '100px' }}>
+                <div style={{ width: '80px', borderRight: '1px solid #f1f5f9', background: '#f8fafc', flexShrink: 0 }}>
                     {hours.map(hour => (
-                        <div key={hour} style={{ height: '60px', padding: '12px 0', textAlign: 'center', position: 'relative' }}>
-                            <Text type="secondary" style={{ fontSize: '11px' }}>{dayjs().hour(hour).format('h A')}</Text>
+                        <div key={hour} style={{ height: '80px', padding: '12px 0', textAlign: 'center', position: 'relative' }}>
+                            <Text style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                                {dayjs().hour(hour).format('h A')}
+                            </Text>
                         </div>
                     ))}
                 </div>
 
-                <div style={{ flex: 1, position: 'relative', minHeight: '1440px' }}>
+                <div style={{ flex: 1, position: 'relative', minHeight: '1920px' }}>
                     {hours.map(hour => (
                         <div
                             key={hour}
                             onClick={() => onTimeSlotClick(currentDate.hour(hour).minute(0))}
-                            style={{ height: '60px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
+                            style={{ 
+                                height: '80px', 
+                                borderBottom: '1px solid #f1f5f9', 
+                                cursor: 'pointer',
+                                transition: 'background 0.1s'
+                            }}
+                            className="time-slot-hover"
                         />
                     ))}
+
+                    {/* Current time indicator */}
+                    {currentDate.isSame(dayjs(), 'day') && (
+                        <div style={{
+                            position: 'absolute',
+                            top: `${(dayjs().hour() + dayjs().minute() / 60) * 80}px`,
+                            left: 0,
+                            right: 0,
+                            height: '2px',
+                            background: '#ef4444',
+                            zIndex: 5,
+                            pointerEvents: 'none'
+                        }}>
+                            <div style={{
+                                position: 'absolute',
+                                left: '-5px',
+                                top: '-4px',
+                                width: '10px',
+                                height: '10px',
+                                borderRadius: '50%',
+                                background: '#ef4444',
+                                boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)'
+                            }} />
+                        </div>
+                    )}
 
                     {getDayEvents().map((event, idx) => {
                         const start = dayjs(event.startTime);
                         const occurrenceStart = currentDate.hour(start.hour()).minute(start.minute()).second(start.second()).millisecond(start.millisecond());
+                        
+                        const eventColors = {
+                            bg: '#eff6ff',
+                            border: '#3b82f6',
+                            text: '#1d4ed8'
+                        };
+
                         return (
-                            <div key={`${event.id}-${idx}`} style={getEventStyle(event)} onClick={(e) => {
-                                e.stopPropagation();
-                                onEventClick(event, occurrenceStart);
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                    {event.meetingLink && <VideoCameraOutlined style={{ fontSize: '16px', color: '#52c41a' }} />}
-                                    <Text strong style={{ fontSize: '16px', color: '#003a8c' }}>{event.title}</Text>
+                            <div
+                                key={`${event.id}-${idx}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEventClick(event, occurrenceStart);
+                                }}
+                                style={{
+                                    ...getEventStyle(event),
+                                    top: `${(start.hour() + start.minute() / 60) * 80}px`,
+                                    height: `${dayjs(event.endTime).diff(start, 'hour', true) * 80}px`,
+                                    background: eventColors.bg,
+                                    borderLeft: `5px solid ${eventColors.border}`,
+                                    borderRadius: '12px',
+                                    padding: '16px 20px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '6px'
+                                }}
+                                className="event-card-hover"
+                            >
+                                <div style={{ 
+                                    fontWeight: 700, 
+                                    fontSize: '15px',
+                                    color: eventColors.text,
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px'
+                                }}>
+                                    {event.meetingLink && <VideoCameraOutlined style={{ fontSize: '18px' }} />}
+                                    {event.title}
                                 </div>
-                                <div style={{ fontSize: '13px', opacity: 0.8 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: eventColors.text, opacity: 0.8 }}>
                                     {dayjs(event.startTime).format('h:mm A')} - {dayjs(event.endTime).format('h:mm A')}
                                 </div>
-                                {event.meetingLink && (
-                                    <div style={{ marginTop: '8px' }}>
-                                        <a
-                                            href={event.meetingLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={(e) => e.stopPropagation()}
-                                            style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '4px',
-                                                color: '#52c41a',
-                                                fontWeight: 600,
-                                                fontSize: '13px'
-                                            }}
-                                        >
-                                            <VideoCameraOutlined /> Join Meeting
-                                        </a>
-                                    </div>
-                                )}
-                                {event.location && (
-                                    <div style={{ fontSize: '11px', color: '#8c8c8c', marginTop: '4px' }}>
-                                        📍 {event.location}
-                                    </div>
+                                {event.description && (
+                                    <Text ellipsis={true} style={{ fontSize: '13px', color: eventColors.text, opacity: 0.6, marginTop: '4px' }}>
+                                        {event.description}
+                                    </Text>
                                 )}
                             </div>
                         );
                     })}
                 </div>
             </div>
+
+            <style jsx global>{`
+                .time-slot-hover:hover {
+                    background: #f8fafc !important;
+                }
+                .event-card-hover:hover {
+                    transform: scale(1.005);
+                    box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+                    z-index: 10;
+                }
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 }

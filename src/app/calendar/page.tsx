@@ -15,7 +15,8 @@ import CalendarToolbar from "@/components/calendar/CalendarToolbar";
 import MonthView from "@/components/calendar/MonthView";
 import WeekView from "@/components/calendar/WeekView";
 import DayView from "@/components/calendar/DayView";
-import EventModal from "@/components/calendar/EventModal";
+import EventFormDrawer from "@/components/calendar/EventFormDrawer";
+import EventDrawer from "@/components/calendar/EventDrawer";
 import dayjs, { Dayjs } from "dayjs";
 
 const { Sider, Content } = Layout;
@@ -37,7 +38,8 @@ function CalendarPageContent() {
 
     const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
     const [view, setView] = useState<'month' | 'week' | 'day'>('month');
-    const [showModal, setShowModal] = useState(false);
+    const [showFormDrawer, setShowFormDrawer] = useState(false);
+    const [showDrawer, setShowDrawer] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [selectedOccurrenceDate, setSelectedOccurrenceDate] = useState<Dayjs | null>(null);
     const [initialDateForModal, setInitialDateForModal] = useState<Dayjs | undefined>();
@@ -132,7 +134,7 @@ function CalendarPageContent() {
     const handleDayClick = (date: Dayjs) => {
         setInitialDateForModal(date);
         setSelectedEvent(null);
-        setShowModal(true);
+        setShowFormDrawer(true);
     };
 
     const handleEventClick = (event: any, occurrenceDate?: Dayjs) => {
@@ -154,8 +156,21 @@ function CalendarPageContent() {
             setSelectedEvent(event);
             setSelectedOccurrenceDate(null);
         }
-        setShowModal(false);
-        setTimeout(() => setShowModal(true), 0);
+        setShowDrawer(true);
+    };
+
+    const handleEditFromDrawer = (event: any) => {
+        setShowDrawer(false);
+        setInitialDateForModal(undefined);
+        setShowFormDrawer(true);
+    };
+
+    const handleDeleteFromDrawer = async (event: any) => {
+        if (event) {
+            const finalOccurrenceDate = selectedOccurrenceDate?.toISOString();
+            const ok = await deleteEvent(event.id, undefined, finalOccurrenceDate);
+            if (ok) setShowDrawer(false);
+        }
     };
 
     // const handleSaveEvent = async (data: any) => {
@@ -206,7 +221,7 @@ function CalendarPageContent() {
 
                 await createEvent(eventToCreate);
             }
-            setShowModal(false);
+            setShowFormDrawer(false);
         } catch (error) {
             console.error("Error saving event:", error);
         }
@@ -217,7 +232,10 @@ function CalendarPageContent() {
         if (selectedEvent) {
             const finalOccurrenceDate = occurrenceDate || selectedOccurrenceDate?.toISOString();
             const ok = await deleteEvent(selectedEvent.id, action, finalOccurrenceDate);
-            if (ok) setShowModal(false);
+            if (ok) {
+                setShowFormDrawer(false);
+                setShowDrawer(false);
+            }
         }
     };
 
@@ -237,101 +255,141 @@ function CalendarPageContent() {
     const providerInfo = getProviderInfo(connectedProvider);
 
     return (
-        <MainLayout>
-            <Layout style={{ height: 'calc(100vh - 64px)', background: '#fff' }}>
-                <Sider width={280} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
-                    <CalendarSidebar
-                        selectedDate={currentDate}
-                        onDateSelect={setCurrentDate}
-                        selectedCalendars={selectedCalendars}
-                        onCalendarChange={setSelectedCalendars}
-                        provider={connectedProvider}
-                        onSync={() => syncAll(connectedProvider!)}
-                        syncing={syncing}
-                    />
-                </Sider>
+        <MainLayout noPadding={true}>
+            <div style={{ 
+                height: 'calc(100vh - 64px)', 
+                display: 'flex', 
+                flexDirection: 'column',
+                overflow: 'hidden'
+            }}>
+                <CalendarToolbar
+                    view={view}
+                    onViewChange={setView}
+                    onNavigate={handleNavigate}
+                    currentDateRange={formatRange()}
+                    provider={connectedProvider}
+                    providerInfo={providerInfo}
+                    onSync={() => syncAll(connectedProvider!)}
+                    syncing={syncing}
+                    onCreateEvent={() => {
+                        if (!connectedProvider) {
+                            message.warning('Please connect a calendar first');
+                            return;
+                        }
+                        setSelectedEvent(null);
+                        setInitialDateForModal(currentDate);
+                        setShowFormDrawer(true);
+                    }}
+                />
 
-                <Layout>
-                    {/* NEW: Provider Banner */}
-                    <div style={{
-                        padding: '12px 24px',
-                        background: providerInfo.color + '10', // 10% opacity
-                        borderBottom: `2px solid ${providerInfo.color}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{
-                                fontSize: 24,
-                                color: providerInfo.color,
-                                background: 'white',
-                                padding: 8,
-                                borderRadius: '50%',
-                                width: 40,
-                                height: 40,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                {providerInfo.icon}
-                            </div>
-                            <div>
-                                <Title level={5} style={{ margin: 0, color: providerInfo.color }}>
-                                    Connected Calendar
-                                </Title>
-                                <Text strong style={{ fontSize: 16 }}>
-                                    {providerInfo.name}
-                                </Text>
-                            </div>
-                        </div>
-                        {!connectedProvider && (
-                            <Button type="primary" href="/integrations">
-                                Connect Calendar
-                            </Button>
-                        )}
-                    </div>
-
-                    <CalendarToolbar
-                        view={view}
-                        onViewChange={setView}
-                        onNavigate={handleNavigate}
-                        currentDateRange={formatRange()}
-                        onCreateEvent={() => {
-                            if (!connectedProvider) {
-                                message.warning('Please connect a calendar first');
-                                return;
-                            }
-                            setSelectedEvent(null);
-                            setInitialDateForModal(currentDate);
-                            setShowModal(true);
+                <div style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    overflow: 'hidden', 
+                    padding: '16px', 
+                    gap: '16px',
+                    minHeight: 0
+                }}>
+                    <Sider 
+                        width={240} 
+                        theme="light" 
+                        className="no-scrollbar"
+                        style={{ 
+                            background: 'transparent',
+                            height: '100%',
+                            border: 'none',
+                            boxShadow: 'none',
+                            overflowY: 'auto',
+                            flexShrink: 0
                         }}
-                    />
+                    >
+                        <CalendarSidebar
+                            selectedDate={currentDate}
+                            onDateSelect={setCurrentDate}
+                            selectedCalendars={selectedCalendars}
+                            onCalendarChange={setSelectedCalendars}
+                            provider={connectedProvider}
+                        />
+                    </Sider>
 
-                    <Content style={{ position: 'relative', overflow: 'auto' }}>
+                    <div style={{ 
+                        flex: 1,
+                        position: 'relative', 
+                        overflow: 'hidden', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        background: '#fff',
+                        borderRadius: '16px',
+                        border: '1px solid #f1f5f9',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                        minHeight: 0
+                    }}>
                         {!connectedProvider ? (
                             <div style={{
-                                textAlign: 'center',
+                                flex: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                                 padding: 80,
-                                background: '#fafafa',
-                                borderRadius: 8,
-                                margin: 24
+                                background: '#fff',
                             }}>
-                                <CalendarOutlined style={{ fontSize: 48, color: '#ccc' }} />
-                                <Title level={3} style={{ marginTop: 16 }}>
-                                    No Calendar Connected
-                                </Title>
-                                <Text type="secondary">
-                                    Connect a calendar to start managing your events
-                                </Text>
-                                <div style={{ marginTop: 24 }}>
-                                    <Button type="primary" size="large" href="/integrations">
-                                        Connect Calendar
-                                    </Button>
+                                <div style={{
+                                    width: 80,
+                                    height: 80,
+                                    borderRadius: '24px',
+                                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginBottom: 24,
+                                    border: '1px solid #e2e8f0',
+                                    boxShadow: '0 8px 16px rgba(0,0,0,0.04)'
+                                }}>
+                                    <CalendarOutlined style={{ fontSize: 36, color: '#3b82f6' }} />
                                 </div>
+                                <Title level={3} style={{ 
+                                    marginTop: 0, 
+                                    marginBottom: 12, 
+                                    fontWeight: 700,
+                                    color: '#1e293b',
+                                    letterSpacing: '-0.02em'
+                                }}>
+                                    Connect Your Calendar
+                                </Title>
+                                <Text style={{ 
+                                    fontSize: 16, 
+                                    maxWidth: 420, 
+                                    textAlign: 'center', 
+                                    marginBottom: 32,
+                                    color: '#64748b',
+                                    lineHeight: 1.6
+                                }}>
+                                    Sync your Google, Zoho, or Outlook calendar to manage all your meetings and schedules in one premium interface.
+                                </Text>
+                                <Button 
+                                    type="primary" 
+                                    size="large" 
+                                    href="/integrations"
+                                    style={{ 
+                                        height: 52, 
+                                        padding: '0 40px', 
+                                        borderRadius: '14px',
+                                        fontSize: 16,
+                                        fontWeight: 700,
+                                        background: '#3b82f6',
+                                        border: 'none',
+                                        boxShadow: '0 10px 20px rgba(59, 130, 246, 0.25)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px'
+                                    }}
+                                >
+                                    Go to Integrations
+                                </Button>
                             </div>
                         ) : (
-                            <>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                 {view === 'month' && (
                                     <MonthView
                                         currentDate={currentDate}
@@ -356,7 +414,7 @@ function CalendarPageContent() {
                                         onTimeSlotClick={handleDayClick}
                                     />
                                 )}
-                            </>
+                            </div>
                         )}
 
                         {loading && !syncing && (
@@ -366,28 +424,38 @@ function CalendarPageContent() {
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                background: 'rgba(255,255,255,0.5)',
+                                background: 'rgba(255,255,255,0.7)',
+                                backdropFilter: 'blur(4px)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                zIndex: 10
+                                zIndex: 50
                             }}>
                                 <div className="ant-spin-spinning" style={{ fontSize: 32 }} />
                             </div>
                         )}
-                    </Content>
-                </Layout>
-            </Layout>
+                    </div>
+                </div>
+            </div>
 
-            <EventModal
-                open={showModal}
-                onClose={() => setShowModal(false)}
+            <EventFormDrawer
+                open={showFormDrawer}
+                onClose={() => setShowFormDrawer(false)}
                 onSave={handleSaveEvent}
                 onDelete={selectedEvent ? handleDeleteEvent : undefined}
                 editEvent={selectedEvent}
                 initialDate={initialDateForModal}
                 loading={loading}
                 error={error}
+            />
+
+            <EventDrawer
+                open={showDrawer}
+                onClose={() => setShowDrawer(false)}
+                event={selectedEvent}
+                onEdit={handleEditFromDrawer}
+                onDelete={handleDeleteFromDrawer}
+                loading={loading}
             />
         </MainLayout>
     );

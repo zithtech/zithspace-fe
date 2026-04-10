@@ -66,7 +66,10 @@ export const MailService = {
     async getContacts() {
         return await api.get("/api/mail/contacts");
     },
-
+    async getUnreadCount() {
+        const response = await api.get("/api/mail/unread-count");
+        return response?.data || response || { unreadCount: 0 };
+    },
     async deleteThread(id: string) {
         return await api.delete(`/api/mail/threads/${id}`);
     },

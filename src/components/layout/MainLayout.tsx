@@ -14,9 +14,10 @@ const { Content } = Layout;
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  noPadding?: boolean;
 }
 
-export default function MainLayout({ children }: MainLayoutProps) {
+export default function MainLayout({ children, noPadding = false }: MainLayoutProps) {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { notification } = AntApp.useApp();
 
@@ -110,15 +111,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <Content
           style={{
             margin: 0,
-            // padding: "10px",
-            paddingLeft: "16px",
-            paddingRight: "16px",
-            // background: "#f5f5f5",
-            background: "#ffffff",
+            paddingLeft: noPadding ? "0" : "14px",
+            paddingRight: noPadding ? "0" : "16px",
+            background: noPadding ? "transparent" : "#ffffff",
             marginLeft: collapsed ? 65 : 200,
             transition: "all 0.2s",
             height: "calc(100vh - 64px)",
-            overflow: "auto",
+            overflow: noPadding ? "hidden" : "auto",
             position: "relative",
           }}
         >

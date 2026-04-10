@@ -64,47 +64,120 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeSlot
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '80px repeat(7, 1fr)', borderBottom: '1px solid #f0f0f0' }}>
-                <div style={{ borderRight: '1px solid #f0f0f0' }} />
-                {days.map(day => (
-                    <div key={day.toString()} style={{ padding: '12px 8px', textAlign: 'center', borderRight: '1px solid #f0f0f0' }}>
-                        <Text type="secondary" strong style={{ fontSize: '12px' }}>{day.format('ddd').toUpperCase()}</Text>
-                        <div style={{
-                            fontSize: '18px',
-                            fontWeight: 600,
-                            color: day.isSame(dayjs(), 'day') ? '#1677ff' : '#262626',
-                            marginTop: '4px'
+            {/* Week Header */}
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '80px repeat(7, 1fr)', 
+                borderBottom: '1px solid #f1f5f9',
+                background: '#fff',
+                position: 'sticky',
+                top: 0,
+                zIndex: 20
+            }}>
+                <div style={{ borderRight: '1px solid #f1f5f9' }} />
+                {days.map(day => {
+                    const isToday = day.isSame(dayjs(), 'day');
+                    return (
+                        <div key={day.toString()} style={{ 
+                            padding: '16px 8px', 
+                            textAlign: 'center', 
+                            borderRight: '1px solid #f1f5f9',
+                            background: isToday ? '#eff6ff' : 'transparent'
                         }}>
-                            {day.date()}
+                            <Text strong style={{ 
+                                fontSize: '11px', 
+                                color: isToday ? '#3b82f6' : '#64748b', 
+                                letterSpacing: '0.05em',
+                                textTransform: 'uppercase'
+                            }}>
+                                {day.format('ddd')}
+                            </Text>
+                            <div style={{
+                                fontSize: '20px',
+                                fontWeight: 700,
+                                color: isToday ? '#3b82f6' : '#1e293b',
+                                marginTop: '4px',
+                                lineHeight: 1
+                            }}>
+                                {day.date()}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: '80px repeat(7, 1fr)', position: 'relative' }}>
-                <div style={{ borderRight: '1px solid #f0f0f0' }}>
+            {/* Time Grid */}
+            <div className="no-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: '80px repeat(7, 1fr)', position: 'relative', paddingBottom: '100px' }}>
+                <div style={{ borderRight: '1px solid #f1f5f9', background: '#f8fafc' }}>
                     {hours.map(hour => (
-                        <div key={hour} style={{ height: '60px', padding: '12px 0', textAlign: 'center', position: 'relative' }}>
-                            <Text type="secondary" style={{ fontSize: '11px' }}>{dayjs().hour(hour).format('h A')}</Text>
+                        <div key={hour} style={{ height: '60px', padding: '8px 0', textAlign: 'center', position: 'relative' }}>
+                            <Text style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>
+                                {dayjs().hour(hour).format('h A')}
+                            </Text>
                         </div>
                     ))}
                 </div>
 
                 {days.map(day => {
                     const dayEvents = getEventsForDay(day);
+                    const isToday = day.isSame(dayjs(), 'day');
+                    
                     return (
-                        <div key={day.toString()} style={{ borderRight: '1px solid #f0f0f0', position: 'relative', minHeight: '1440px' }}>
+                        <div key={day.toString()} style={{ 
+                            borderRight: '1px solid #f1f5f9', 
+                            position: 'relative', 
+                            minHeight: '1440px',
+                            background: isToday ? '#fcfdff' : 'transparent'
+                        }}>
+                            {/* Hour horizontal lines */}
                             {hours.map(hour => (
                                 <div
                                     key={hour}
                                     onClick={() => onTimeSlotClick(day.hour(hour).minute(0))}
-                                    style={{ height: '60px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
+                                    style={{ 
+                                        height: '60px', 
+                                        borderBottom: '1px solid #f1f5f9', 
+                                        cursor: 'pointer',
+                                        transition: 'background 0.1s'
+                                    }}
+                                    className="time-slot-hover"
                                 />
                             ))}
+
+                            {/* Current time indicator */}
+                            {isToday && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: `${(dayjs().hour() + dayjs().minute() / 60) * 60}px`,
+                                    left: 0,
+                                    right: 0,
+                                    height: '2px',
+                                    background: '#ef4444',
+                                    zIndex: 5,
+                                    pointerEvents: 'none'
+                                }}>
+                                    <div style={{
+                                        position: 'absolute',
+                                        left: '-4px',
+                                        top: '-3px',
+                                        width: '8px',
+                                        height: '8px',
+                                        borderRadius: '50%',
+                                        background: '#ef4444'
+                                    }} />
+                                </div>
+                            )}
 
                             {dayEvents.map((event, idx) => {
                                 const start = dayjs(event.startTime);
                                 const occurrenceStart = day.hour(start.hour()).minute(start.minute()).second(start.second()).millisecond(start.millisecond());
+                                
+                                const eventColors = {
+                                    bg: '#eff6ff',
+                                    border: '#3b82f6',
+                                    text: '#1d4ed8'
+                                };
+
                                 return (
                                     <div
                                         key={`${event.id}-${idx}`}
@@ -112,14 +185,36 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeSlot
                                             e.stopPropagation();
                                             onEventClick(event, occurrenceStart);
                                         }}
-                                        style={getEventStyle(event)}
+                                        style={{
+                                            ...getEventStyle(event),
+                                            background: eventColors.bg,
+                                            borderLeft: `4px solid ${eventColors.border}`,
+                                            borderRadius: '6px',
+                                            padding: '6px 10px',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                            transition: 'all 0.1s',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '2px'
+                                        }}
+                                        className="event-card-hover"
                                     >
-                                        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            {event.meetingLink && <VideoCameraOutlined style={{ color: '#1677ff' }} />}
+                                        <div style={{ 
+                                            fontWeight: 700, 
+                                            fontSize: '12px',
+                                            color: eventColors.text,
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '4px',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis'
+                                        }}>
+                                            {event.meetingLink && <VideoCameraOutlined style={{ fontSize: '12px' }} />}
                                             {event.title}
                                         </div>
-                                        <div style={{ fontSize: '10px', opacity: 0.7 }}>
-                                            {dayjs(event.startTime).format('HH:mm')} - {dayjs(event.endTime).format('HH:mm')}
+                                        <div style={{ fontSize: '10px', fontWeight: 500, color: eventColors.text, opacity: 0.8 }}>
+                                            {dayjs(event.startTime).format('h:mm A')} - {dayjs(event.endTime).format('h:mm A')}
                                         </div>
                                     </div>
                                 );
@@ -128,6 +223,24 @@ export default function WeekView({ currentDate, events, onEventClick, onTimeSlot
                     );
                 })}
             </div>
+
+            <style jsx global>{`
+                .time-slot-hover:hover {
+                    background: #f8fafc !important;
+                }
+                .event-card-hover:hover {
+                    transform: translateX(2px);
+                    filter: brightness(0.98);
+                    z-index: 10;
+                }
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 }

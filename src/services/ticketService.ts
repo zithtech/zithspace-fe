@@ -870,6 +870,28 @@ class TicketService {
   }
 
   /**
+   * Rename attachment
+   */
+  static async renameAttachment(
+    ticketId: string,
+    attachmentId: string,
+    newFileName: string,
+  ): Promise<any> {
+    try {
+      const response = await apiClient.put(
+        `/api/tickets/${ticketId}/attachments/${attachmentId}`,
+        { newFileName },
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error renaming attachment:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to rename attachment";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Get Tickets By Project Name
    */
   static async getTicketsByProjectId(

@@ -45,10 +45,11 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
-import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink } from "@/hooks/useTicketDetails";
+import { useTicketComments, useTicketAttachments, useTicketLinks, useAddComment, useUpdateComment, useDeleteComment, useUploadAttachment, useDeleteAttachment, useRenameAttachment, useAddRelatedLink, useUpdateRelatedLink, useDeleteRelatedLink } from "@/hooks/useTicketDetails";
 import { useTicket, useUpdateTicket, ticketKeys } from "@/hooks/useTickets";
 import { useMembers, useTicketConfig, useUserProjects } from "@/hooks/useGlobalData";
 import { useTimeTrackerStore } from "@/store/useTimeTrackerStore";
+import { useAuth } from "@/context/AuthContext";
 import { PRIORITY_OPTIONS, TYPE_OPTIONS, STATUS_OPTIONS, getStatusColor, getPriorityColor, getTypeColor, getPlatformColor, getTaskLevelColor, getStackColor } from "@/utils/ticketUtils";
 import { EditableField } from "./editable/EditableField";
 import { EditableSelect } from "./editable/EditableSelect";
@@ -194,6 +195,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const deleteCommentMutation = useDeleteComment();
   const uploadAttachmentMutation = useUploadAttachment();
   const deleteAttachmentMutation = useDeleteAttachment();
+  const renameAttachmentMutation = useRenameAttachment();
+
+  const { user: authUser } = useAuth();
+  const currentUserId = authUser?.id;
   const addLinkMutation = useAddRelatedLink();
   const updateLinkMutation = useUpdateRelatedLink();
   const deleteLinkMutation = useDeleteRelatedLink();
@@ -689,8 +694,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         attachments={attachments}
                         isLoading={attachmentsLoading}
                         isEditing={false} // pass false to enable Uploader
-                        onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId, file: f, fileName: n })}
-                        onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId, attachmentId: id })}
+                        onUpload={async (f, n) => await uploadAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", file: f, fileName: n })}
+                        onDelete={async (id) => await deleteAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id })}
+                        onRename={async (id, newName) => await renameAttachmentMutation.mutateAsync({ ticketId: currentTicketId || "", attachmentId: id, newFileName: newName })}
+                        currentUserId={currentUserId}
                       />
                     )
                   },

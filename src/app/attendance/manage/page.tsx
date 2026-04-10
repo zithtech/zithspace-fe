@@ -22,6 +22,7 @@ import {
   Modal,
   TimePicker,
   Popconfirm,
+  App,
 } from 'antd';
 import {
   TeamOutlined,
@@ -38,6 +39,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { AttendanceService, Attendance, AttendanceFilters } from '@/services/attendanceService';
 import { MembersService, Member } from '@/services/membersService';
+import { ProjectService } from '@/services/projectService';
 import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
@@ -57,13 +59,12 @@ interface ExtendedAttendance extends Attendance {
 
 export default function ManageAttendancePage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { notification } = App.useApp();
   const router = useRouter();
   const { canManageAttendance } = usePermission();
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -76,7 +77,12 @@ export default function ManageAttendancePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [memberFilter, setMemberFilter] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>([
+    dayjs().startOf('day'),
+    dayjs().endOf('day'),
+  ]);
+  const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
+  const [projects, setProjects] = useState<any[]>([]);
 
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -101,19 +107,26 @@ export default function ManageAttendancePage() {
         endDate: dateRange?.[1]?.toISOString(),
         search: searchTerm,
         member: memberFilter,
+        projectId: projectFilter,
       };
 
-      const [attendanceRes, membersRes] = await Promise.all([
+      const [attendanceRes, membersRes, projectsRes] = await Promise.all([
         AttendanceService.getAttendance(filters),
         MembersService.getMembers({ limit: 100 }),
+        ProjectService.getProjectsForSelect(),
       ]);
 
       setAttendanceRecords(attendanceRes.data);
       setPagination(prev => ({ ...prev, total: attendanceRes.pagination.total }));
       setMembers(membersRes.data);
+      setProjects(projectsRes);
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
-      setError('Failed to load attendance management data');
+      notification.error({
+        message: 'Load Error',
+        description: 'Failed to load attendance management data',
+        placement: 'topRight'
+      });
     } finally {
       setLoading(false);
     }
@@ -123,7 +136,7 @@ export default function ManageAttendancePage() {
     if (user && canManageAttendance) {
       fetchData();
     }
-  }, [user, canManageAttendance, pagination.current, pagination.pageSize, searchTerm, statusFilter, memberFilter, dateRange]);
+  }, [user, canManageAttendance, pagination.current, pagination.pageSize, searchTerm, statusFilter, memberFilter, dateRange, projectFilter]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -177,10 +190,18 @@ export default function ManageAttendancePage() {
 
       if (isEdit && editingRecord) {
         await AttendanceService.updateAttendance(editingRecord.id, payload);
-        setSuccess('Attendance record updated successfully!');
+        notification.success({
+          message: 'Update Successful',
+          description: 'Attendance record updated successfully!',
+          placement: 'topRight'
+        });
       } else {
         await AttendanceService.createAttendance(payload as any);
-        setSuccess('Attendance record added successfully!');
+        notification.success({
+          message: 'Record Created',
+          description: 'Attendance record added successfully!',
+          placement: 'topRight'
+        });
       }
 
       isEdit ? setIsEditModalVisible(false) : setIsAddModalVisible(false);
@@ -189,7 +210,11 @@ export default function ManageAttendancePage() {
       fetchData();
     } catch (err: any) {
       console.error('Update failed:', err);
-      setError(err?.message || `Failed to ${isEdit ? 'update' : 'add'} record`);
+      notification.error({
+        message: 'Action Failed',
+        description: err?.message || `Failed to ${isEdit ? 'update' : 'add'} record`,
+        placement: 'topRight'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -199,11 +224,19 @@ export default function ManageAttendancePage() {
     try {
       setActionLoading(true);
       await AttendanceService.deleteAttendance(id);
-      setSuccess('Attendance record deleted successfully!');
+      notification.success({
+        message: 'Record Deleted',
+        description: 'Attendance record deleted successfully!',
+        placement: 'topRight'
+      });
       fetchData();
     } catch (err: any) {
       console.error('Delete failed:', err);
-      setError(err?.message || 'Failed to delete record');
+      notification.error({
+        message: 'Delete Failed',
+        description: err?.message || 'Failed to delete record',
+        placement: 'topRight'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -327,9 +360,6 @@ export default function ManageAttendancePage() {
           </Button>
         </div>
 
-        {error && <Alert message={error} type="error" showIcon closable style={{ marginBottom: 24 }} />}
-        {success && <Alert message={success} type="success" showIcon closable style={{ marginBottom: 24 }} />}
-
         {/* Filters Panel */}
         <Card
           style={{ marginBottom: '24px', borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', background: 'var(--bg-pure-white)' }}
@@ -360,7 +390,23 @@ export default function ManageAttendancePage() {
                 <Option value="absent">Absent</Option>
               </Select>
             </Col>
-            <Col xs={12} sm={6} lg={6}>
+            <Col xs={12} sm={6} lg={4}>
+              <Select
+                placeholder="Project"
+                style={{ width: '100%' }}
+                dropdownStyle={{ borderRadius: '8px' }}
+                value={projectFilter}
+                onChange={setProjectFilter}
+                allowClear
+                showSearch
+                optionFilterProp="children"
+              >
+                {projects.map(p => (
+                  <Option key={p.value} value={p.value}>{p.label}</Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={12} sm={6} lg={4}>
               {/* <Select
                 placeholder="Team Member"
                 style={{ width: '100%' }}
@@ -392,7 +438,7 @@ export default function ManageAttendancePage() {
                 ))}
               </Select>
             </Col>
-            <Col xs={24} lg={8}>
+            <Col xs={24} lg={6}>
               <RangePicker
                 style={{ width: '100%', borderRadius: '8px' }}
                 value={dateRange}

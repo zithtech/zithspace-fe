@@ -47,6 +47,7 @@ export interface AttendanceFilters {
   endDate?: string;
   status?: string;
   search?: string; // Search by member name
+  projectId?: string;
 }
 
 export interface AttendanceSummary {

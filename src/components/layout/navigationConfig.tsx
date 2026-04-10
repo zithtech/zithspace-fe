@@ -259,13 +259,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         children: [
           {
             key: "/time-tracking/my",
-            label: "My Time Tracking",
+            label: "My Tracking",
             icon: <UserOutlined />,
             path: "/time-tracking/my",
           },
           {
             key: "/time-tracking/team",
-            label: "Team View",
+            label: "Team Tracking",
             icon: <TeamOutlined />,
             path: "/time-tracking/team",
           },

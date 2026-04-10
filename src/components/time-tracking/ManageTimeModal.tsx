@@ -12,11 +12,12 @@ import {
   CloseCircleOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
-import { TimeTrackingService } from '@/services/timeTracking.service';
+import { TimeTrackingService, TimeTrackingEntry } from '@/services/timeTracking.service';
 import TicketService from '@/services/ticketService';
 import { useMembers } from '@/hooks/useGlobalData';
 import { useTimeTrackerStore } from '@/store/useTimeTrackerStore';
 import { useQuery } from '@tanstack/react-query';
+import { processLogsToSessions } from '@/utils/timeTrackingUtils';
 import dayjs from 'dayjs';
 
 const { Text, Title } = Typography;
@@ -117,35 +118,77 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
       const startISO = startDayjs.toISOString();
       const endISO = endDayjs.toISOString();
 
-      // Check for overlaps with ALL entries for this user on this day
+      // 1. Fetch ALL entries for this user on this day
       const allUserEntries = await TimeTrackingService.getEntries({
         userId,
         startDate: values.date.startOf('day').toISOString(),
         endDate: values.date.endOf('day').toISOString(),
       });
 
-      const overlapping = (allUserEntries || []).find(entry => {
+      // 2. Identify entries that overlap with the [startDayjs, endDayjs] range
+      const overlappingEntries = (allUserEntries || []).filter((entry: TimeTrackingEntry) => {
         const existingStart = dayjs(entry.startTime);
         const existingEnd = entry.endTime ? dayjs(entry.endTime) : dayjs();
-        return existingStart.isBefore(endDayjs) && startDayjs.isBefore(existingEnd);
+
+        // Overlap condition: (StartA < EndB) AND (EndA > StartB)
+        const overlaps = existingStart.isBefore(endDayjs) && startDayjs.isBefore(existingEnd);
+        if (!overlaps) return false;
+
+        // Session-aware check: Check if any of the active sessions in this entry overlap
+        const sessions = processLogsToSessions(entry.logs, entry.startTime, entry.endTime, entry.status);
+        return sessions.some((s: any) => {
+          const sStart = dayjs(s.start);
+          const sEnd = s.end ? dayjs(s.end) : dayjs();
+          return sStart.isBefore(endDayjs) && startDayjs.isBefore(sEnd);
+        });
       });
 
-      if (overlapping) {
-        const overlapStart = dayjs(overlapping.startTime).format('h:mm A');
-        const overlapEnd = overlapping.endTime ? dayjs(overlapping.endTime).format('h:mm A') : 'Running';
-        const projName = overlapping.project?.name || overlapping.project || 'No Project';
-        const taskName = overlapping.ticket?.title || overlapping.description || 'No Task';
+      // 3. Resolve Overlaps (Smart Adjustment / Split)
+      for (const entry of overlappingEntries) {
+        const existingStart = dayjs(entry.startTime);
+        const existingEnd = entry.endTime ? dayjs(entry.endTime) : dayjs();
 
-        notification.error({
-          message: "Time Overlap Detected",
-          icon: <InfoCircleOutlined style={{ color: '#ff4d4f' }} />,
-          description: `This range overlaps with an existing entry for "${projName}" - "${taskName}" (${overlapStart} - ${overlapEnd}).`
-        });
-        setLoading(false);
-        return;
+        // Case: Split (New entry in the middle of existing)
+        if (existingStart.isBefore(startDayjs) && endDayjs.isBefore(existingEnd)) {
+          // A. Truncate current entry to end at new entry's start
+          await TimeTrackingService.updateEntry(entry.id, {
+            endTime: startISO,
+            status: 'STOPPED'
+          });
+
+          // B. Create a NEW entry for the remaining time (end to existingEnd)
+          await TimeTrackingService.addManualEntry({
+            userId,
+            projectId: (entry.project && typeof entry.project === 'object') ? (entry.project as any).id : entry.project,
+            ticketId: entry.ticketId,
+            description: entry.description,
+            startTime: endISO,
+            endTime: existingEnd.toISOString(),
+            billable: entry.billable
+          });
+        } 
+        // Case: Truncate End (Existing starts before new, ends inside new)
+        else if (existingStart.isBefore(startDayjs) && existingEnd.isAfter(startDayjs)) {
+          await TimeTrackingService.updateEntry(entry.id, {
+            endTime: startISO,
+            status: 'STOPPED'
+          });
+        }
+        // Case: Truncate Start (Existing starts inside new, ends after new)
+        else if (existingStart.isAfter(startDayjs) && existingEnd.isAfter(endDayjs)) {
+          await TimeTrackingService.updateEntry(entry.id, {
+            startTime: endISO
+          });
+        }
+        // Case: Full Overlap (Existing is completely inside new)
+        else if (existingStart.isSame(startDayjs) || existingStart.isAfter(startDayjs)) {
+          if (existingEnd.isSame(endDayjs) || existingEnd.isBefore(endDayjs)) {
+            await TimeTrackingService.deleteEntry(entry.id);
+          }
+        }
       }
 
-      // Batch Create
+      // 4. Create the requested entries
       let successCount = 0;
       for (const tId of ticketIds) {
         const ticketObj = allUserTickets.find((t: any) => t.id === tId);
@@ -241,7 +284,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
                 placeholder="Search User"
                 showSearch
                 filterOption={(input, option) => (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
-                options={members.map(m => ({ value: m.value, label: m.label }))}
+                options={members.map((m: any) => ({ value: m.value, label: m.label }))}
               />
             </Form.Item>
           </Col>

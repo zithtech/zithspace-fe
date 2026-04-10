@@ -89,7 +89,7 @@ const TimeEntryEditModal: React.FC<TimeEntryEditModalProps> = ({ open, onClose, 
       cancelButtonProps={{ style: { borderRadius: 8 } }}
     >
       <div style={{ padding: '8px 0' }}>
-        <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 24 }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 12, border: '1px solid var(--border-slate-200)', marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
               <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>PROJECT</Text>
@@ -112,7 +112,7 @@ const TimeEntryEditModal: React.FC<TimeEntryEditModalProps> = ({ open, onClose, 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ flex: 1 }}>
               <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>Original Start</Text>
-              <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: 8, color: '#475569', fontWeight: 600 }}>
+              <div style={{ background: 'var(--bg-table-header)', padding: '8px 12px', borderRadius: 8, color: 'var(--text-slate-600)', fontWeight: 600, border: '1px solid var(--border-slate-100)' }}>
                 {dayjs(entry?.start).format("h:mm:ss A")}
               </div>
             </div>
@@ -129,7 +129,7 @@ const TimeEntryEditModal: React.FC<TimeEntryEditModalProps> = ({ open, onClose, 
             </div>
           </div>
 
-          <div style={{ background: '#fef2f2', padding: 12, borderRadius: 8, border: '1px solid #fee2e2' }}>
+          <div style={{ background: 'var(--bg-leave)', padding: 12, borderRadius: 8, border: '1px solid var(--border-slate-200)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <Text style={{ fontSize: 13, color: '#991b1b' }}>New Duration</Text>
               <Text strong style={{ fontSize: 13, color: '#991b1b' }}>{formatTime(newDuration)}</Text>
@@ -320,12 +320,12 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       key: "user",
       render: (_: any, record: any) => (
         <Space>
-          <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#87d068' }}>
+          <Avatar icon={<UserOutlined />} style={{ backgroundColor: 'var(--bg-holiday)', color: 'var(--text-holiday)' }}>
             {record.user.name[0]}
           </Avatar>
           <div>
-            <div style={{ fontWeight: 600 }}>{record.user.name}</div>
-            <div style={{ fontSize: 11, color: '#9ca3af' }}>{record.user.workEmail}</div>
+            <div style={{ fontWeight: 600, color: 'var(--text-slate-900)' }}>{record.user.name}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-slate-400)' }}>{record.user.workEmail}</div>
           </div>
         </Space>
       ),
@@ -335,7 +335,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       key: "progress",
       width: 200,
       render: (_: any, record: any) => {
-        const targetSeconds = 8 * 3600; // 8 hours
+        const targetSeconds = 6 * 3600; // 6 hours
         const percent = Math.min(100, (record.totalSeconds / targetSeconds) * 100);
         let color = "#cbd5e1"; // Slate (0-50%)
         if (percent > 90) color = "#10b981"; // Emerald (90-100%)
@@ -358,10 +358,10 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
           >
             <div style={{ width: '100%', cursor: 'help' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11 }}>
-                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 8h`}</Text>
-                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'inherit' }}>{formatTime(record.totalSeconds)}</Text>
+                <Text type="secondary">{percent >= 100 ? 'Goal Reached' : `${Math.round(percent)}% of 6h`}</Text>
+                <Text strong style={{ color: percent >= 100 ? '#10b981' : 'var(--text-slate-700)' }}>{formatTime(record.totalSeconds)}</Text>
               </div>
-              <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: 6, background: 'var(--bg-secondary)', borderRadius: 3, overflow: 'hidden', border: '1px solid var(--border-divider)' }}>
                 <div
                   style={{
                     height: '100%',
@@ -441,7 +441,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
           if (ticket && typeof ticket === 'object') {
             return (
-              <Link href={`/public/tickets/${ticketId}`} target="_blank">
+              <Link href={`/tickets/${ticketId}`}>
                 <Text style={{ color: '#1890ff', fontWeight: 500 }}>{ticket.title}</Text>
               </Link>
             );
@@ -519,10 +519,10 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     ];
 
     return (
-      <div style={{ padding: '16px', backgroundColor: '#fff', borderRadius: 12, border: '1px solid #f1f5f9' }}>
+      <div style={{ padding: '16px', backgroundColor: 'var(--bg-pure-white)', borderRadius: 12, border: '1px solid var(--border-slate-100)' }}>
         <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
           <ClockCircleOutlined style={{ color: '#6366f1', fontSize: 14 }} />
-          <Text strong style={{ fontSize: 14, color: '#1e293b' }}>Activity Timeline</Text>
+          <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>Activity Timeline</Text>
         </div>
 
         <div style={{ position: 'relative', paddingLeft: 24 }}>
@@ -533,7 +533,7 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
             top: 6,
             bottom: 6,
             width: 1.5,
-            background: 'linear-gradient(to bottom, #6366f1, #f1f5f9)',
+            background: 'linear-gradient(to bottom, #6366f1, var(--border-slate-100))',
             borderRadius: 1
           }} />
 
@@ -548,12 +548,12 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                 height: 12,
                 borderRadius: '50%',
                 background: session.isLive ? '#10b981' : session.endAction === 'PAUSED' ? '#f59e0b' : '#6366f1',
-                border: '3px solid #fff',
-                boxShadow: '0 0 0 1px #e0e7ff',
+                border: '3px solid var(--bg-pure-white)',
+                boxShadow: '0 0 0 1px var(--border-slate-200)',
                 zIndex: 2
               }} />
 
-              <div className="glass-card" style={{ padding: '12px 16px', background: '#fff' }}>
+              <div className="glass-card" style={{ padding: '12px 16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-slate-200)', borderRadius: 12 }}>
                 <Row gutter={12} align="middle">
                   <Col flex="auto">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -566,13 +566,13 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                     </div>
 
                     <div style={{ marginBottom: 0 }}>
-                      {session.ticket?.title ? (
-                        <Link href={`/public/tickets/${session.ticketId}`} target="_blank">
-                          <Text strong style={{ fontSize: 13, color: '#1e293b', cursor: 'pointer' }}>{session.ticket.title}</Text>
-                        </Link>
-                      ) : (
-                        <Text strong style={{ fontSize: 13, color: '#1e293b' }}>{session.description || "No description provided"}</Text>
-                      )}
+                        {session.ticket?.title ? (
+                          <Link href={`/tickets/${session.ticketId}`}>
+                            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)', cursor: 'pointer' }}>{session.ticket.title}</Text>
+                          </Link>
+                        ) : (
+                          <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.description || "No description provided"}</Text>
+                        )}
                     </div>
                   </Col>
 
@@ -580,13 +580,13 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{
                         padding: '2px 10px',
-                        background: session.isLive ? '#f0fdf4' : session.endAction === 'PAUSED' ? '#fffbeb' : '#f8fafc',
+                        background: session.isLive ? 'var(--bg-holiday)' : session.endAction === 'PAUSED' ? 'var(--bg-paused-row)' : 'var(--bg-table-header)',
                         borderRadius: 12,
-                        color: session.isLive ? '#16a34a' : session.endAction === 'PAUSED' ? '#b45309' : '#475569',
+                        color: session.isLive ? '#16a34a' : session.endAction === 'PAUSED' ? '#b45309' : 'var(--text-slate-700)',
                         fontWeight: 700,
                         fontSize: 12,
                         fontFamily: 'monospace',
-                        border: '1px solid ' + (session.isLive ? '#bcf0da' : session.endAction === 'PAUSED' ? '#fde68a' : '#e2e8f0')
+                        border: '1px solid ' + (session.isLive ? 'var(--bg-holiday)' : session.endAction === 'PAUSED' ? 'var(--bg-paused-row)' : 'var(--border-slate-100)')
                       }}>
                         {(() => {
                           const start = new Date(session.start).getTime();
@@ -632,39 +632,39 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
     <div style={{ padding: '0 0 24px 0' }}>
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
-          <Card bordered={true} style={{ borderRadius: 12, border: '1px solid #f1f5f9', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
+          <Card bordered={true} style={{ borderRadius: 12, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <Text style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>Active Members</Text>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>{stats.activeUsers}</div>
+                <Text style={{ color: 'var(--text-slate-600)', fontSize: 13, fontWeight: 500 }}>Active Members</Text>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', marginTop: 4 }}>{stats.activeUsers}</div>
               </div>
-              <div style={{ background: '#eff6ff', color: '#2563eb', padding: 10, borderRadius: 12, display: 'flex' }}>
+              <div style={{ background: 'var(--bg-blue-50)', color: 'var(--text-blue-600)', padding: 10, borderRadius: 12, display: 'flex' }}>
                 <TeamOutlined style={{ fontSize: 20 }} />
               </div>
             </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={true} style={{ borderRadius: 12, border: '1px solid #f1f5f9', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
+          <Card bordered={true} style={{ borderRadius: 12, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <Text style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>Total Work Hours</Text>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>{formatTime(stats.totalSeconds)}</div>
+                <Text style={{ color: 'var(--text-slate-600)', fontSize: 13, fontWeight: 500 }}>Total Work Hours</Text>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', marginTop: 4 }}>{formatTime(stats.totalSeconds)}</div>
               </div>
-              <div style={{ background: '#ecfdf5', color: '#10b981', padding: 10, borderRadius: 12, display: 'flex' }}>
+              <div style={{ background: 'var(--bg-holiday)', color: 'var(--text-holiday)', padding: 10, borderRadius: 12, display: 'flex' }}>
                 <ClockCircleOutlined style={{ fontSize: 20 }} />
               </div>
             </div>
           </Card>
         </Col>
         <Col span={8}>
-          <Card bordered={true} style={{ borderRadius: 12, border: '1px solid #f1f5f9', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
+          <Card bordered={true} style={{ borderRadius: 12, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }} styles={{ body: { padding: '16px 20px' } }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <Text style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>Project Coverage</Text>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>{stats.uniqueProjects}</div>
+                <Text style={{ color: 'var(--text-slate-600)', fontSize: 13, fontWeight: 500 }}>Project Coverage</Text>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-slate-900)', marginTop: 4 }}>{stats.uniqueProjects}</div>
               </div>
-              <div style={{ background: '#fff7ed', color: '#f59e0b', padding: 10, borderRadius: 12, display: 'flex' }}>
+              <div style={{ background: 'var(--bg-paused-row)', color: '#f59e0b', padding: 10, borderRadius: 12, display: 'flex' }}>
                 <RocketOutlined style={{ fontSize: 20 }} />
               </div>
             </div>
@@ -673,16 +673,6 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
       </Row>
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* <Select
-          allowClear
-          showSearch
-          placeholder="Member"
-          style={{ width: 160, height: 32 }}
-          size="small"
-          onChange={(val) => setFilters(f => ({ ...f, userId: val }))}
-        >
-          {members.map(m => <Select.Option key={m.value} value={m.value}>{m.label}</Select.Option>)}
-        </Select> */}
         <Select
           allowClear
           showSearch
@@ -715,13 +705,13 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         </Select>
         <Input
           placeholder="Search..."
-          prefix={<SearchOutlined style={{ color: '#94a3b8', fontSize: 13 }} />}
-          style={{ width: 220, height: 32, borderRadius: 6, fontSize: 13 }}
+          prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)', fontSize: 13 }} />}
+          style={{ width: 220, height: 32, borderRadius: 6, fontSize: 13, background: 'var(--bg-pure-white)', color: 'var(--text-slate-900)', border: '1px solid var(--border-slate-200)' }}
           size="small"
           onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
         />
         <RangePicker
-          style={{ height: 32, borderRadius: 6 }}
+          style={{ height: 32, borderRadius: 6, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
           size="small"
           value={filters.dateRange}
           onChange={(dates) => setFilters(f => ({ ...f, dateRange: dates as any }))}
@@ -748,22 +738,24 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
       <style jsx global>{`
         .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-table-header) !important;
+          color: var(--text-slate-600) !important;
           font-weight: 600 !important;
           font-size: 11px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
-          border-bottom: 1px solid #e2e8f0 !important;
+          border-bottom: 1px solid var(--border-slate-200) !important;
+          padding: 12px 16px !important;
         }
         .ant-table-tbody > tr > td {
           padding: 14px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          background-color: var(--bg-pure-white) !important;
           font-size: 14px !important;
-          color: #1e293b !important;
+          color: var(--text-slate-900) !important;
         }
         .ant-table-row:hover > td {
-          background-color: #f8fafc !important;
+          background-color: var(--bg-table-header) !important;
         }
 
         .pulse-tag {
@@ -776,11 +768,11 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
         }
 
         .control-bar {
-            background: #fff;
+            background: var(--bg-pure-white);
             padding: 16px 20px;
             border-radius: 12px;
             margin-bottom: 12px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-slate-200);
             display: flex;
             flex-wrap: wrap;
             gap: 16px;

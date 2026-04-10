@@ -670,11 +670,11 @@ function SubmitDailyUpdateContent() {
       const data = {
         date: dateStr,
         mood: values.mood,
-        updateType: finalUpdateType,
+        updateType: finalUpdateType as "BOD" | "EOD",
         projectUpdates,
         generalNotes: values.generalNotes,
         is_missed: isMissedUpdate,
-        missed_updateAt: isMissedUpdate ? dateStr : null,
+        missed_updateAt: isMissedUpdate ? dateStr : undefined,
       };
 
       if (alreadySubmitted && existingUpdate) {
@@ -740,7 +740,7 @@ function SubmitDailyUpdateContent() {
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        backgroundColor: "#ffffff"
+        backgroundColor: "var(--bg-pure-white)"
       }}
     >
       {contextHolder}
@@ -757,28 +757,30 @@ function SubmitDailyUpdateContent() {
         .premium-form-item .ant-form-item-label > label {
           font-size: 13px;
           font-weight: 600;
-          color: #475569;
+          color: var(--text-slate-600);
         }
         .mood-btn {
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          border: 1px solid #e2e8f0 !important;
+          border: 1px solid var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          color: var(--text-slate-600) !important;
           height: 38px !important;
           border-radius: 10px !important;
         }
-        .mood-btn-active-happy { background: #f0fdf4 !important; border-color: #22c55e !important; color: #166534 !important; }
-        .mood-btn-active-neutral { background: #f8fafc !important; border-color: #64748b !important; color: #1e293b !important; }
-        .mood-btn-active-stressed { background: #fffbeb !important; border-color: #f59e0b !important; color: #92400e !important; }
-        .mood-btn-active-blocked { background: #fff1f2 !important; border-color: #f43f5e !important; color: #9f1239 !important; }
+        .mood-btn-active-happy { background: var(--bg-holiday) !important; border-color: var(--text-holiday) !important; color: var(--text-holiday) !important; }
+        .mood-btn-active-neutral { background: var(--bg-slate-50) !important; border-color: var(--text-slate-400) !important; color: var(--text-slate-900) !important; }
+        .mood-btn-active-stressed { background: var(--bg-paused-row) !important; border-color: #f59e0b !important; color: #92400e !important; }
+        .mood-btn-active-blocked { background: var(--bg-leave) !important; border-color: var(--text-leave) !important; color: var(--text-leave) !important; }
         
         .project-card {
-          border: 1px solid #e2e8f0 !important;
+          border: 1px solid var(--border-slate-200) !important;
           border-radius: 16px !important;
           overflow: hidden !important;
           transition: all 0.3s ease !important;
-          background: #ffffff !important;
+          background: var(--bg-pure-white) !important;
         }
         .project-card:hover {
-          border-color: #0ea5e9 !important;
+          border-color: var(--border-sky-500) !important;
           box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
         }
       `}} />
@@ -786,8 +788,8 @@ function SubmitDailyUpdateContent() {
       {/* Premium Header */}
       <div style={{
         padding: "16px 32px",
-        background: "#ffffff",
-        borderBottom: "1px solid #e2e8f0",
+        background: "var(--bg-pure-white)",
+        borderBottom: "1px solid var(--border-slate-200)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -795,15 +797,15 @@ function SubmitDailyUpdateContent() {
         flexShrink: 0
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+          <div style={{ background: "var(--bg-sky-50)", padding: 12, borderRadius: 14, color: "var(--text-sky-500)", display: "flex" }}>
             <FileText size={28} />
           </div>
           <div>
-            <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+            <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
               {alreadySubmitted ? "Edit Status Update" : "Submit Daily Update"}
             </Title>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+              <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
                 {dayjs().format("dddd, MMMM D, YYYY")}
               </Text>
               {alreadySubmitted && (
@@ -824,12 +826,12 @@ function SubmitDailyUpdateContent() {
 
         <Space size="middle">
           <div style={{ textAlign: "right", marginRight: 16 }}>
-            <Text style={{ fontSize: 11, color: "#64748b", display: "block" }}>Project Entries</Text>
-            <Text strong style={{ fontSize: 18, color: "#0f172a" }}>{projectUpdates.length}</Text>
+            <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Project Entries</Text>
+            <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)" }}>{projectUpdates.length}</Text>
           </div>
           <div style={{ textAlign: "right", marginRight: 16 }}>
-            <Text style={{ fontSize: 11, color: "#64748b", display: "block" }}>Total Hours</Text>
-            <Text strong style={{ fontSize: 18, color: "#0ea5e9" }}>{formatHours(totalHours)}</Text>
+            <Text style={{ fontSize: 11, color: "var(--text-slate-600)", display: "block" }}>Total Hours</Text>
+            <Text strong style={{ fontSize: 18, color: "var(--text-sky-500)" }}>{formatHours(totalHours)}</Text>
           </div>
           <Button
             type="primary"
@@ -842,10 +844,7 @@ function SubmitDailyUpdateContent() {
               padding: "0 20px",
               borderRadius: 10,
               fontWeight: 600,
-              // background: "#0ea5e9",
               background: "#1677ff",
-              // borderColor: "#0ea5e9",
-              // boxShadow: "0 4px 6px -1px rgba(14, 165, 233, 0.2)",
               display: "flex",
               alignItems: "center",
               gap: 8
@@ -874,15 +873,15 @@ function SubmitDailyUpdateContent() {
             }}>
               {/* Mood Card */}
               <Card
-                style={{ borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+                style={{ borderRadius: 16, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)" }}
                 bodyStyle={{ padding: "16px 20px" }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 10, color: "#0ea5e9" }}>
+                    <div style={{ background: "var(--bg-sky-50)", padding: 8, borderRadius: 10, color: "var(--text-sky-500)" }}>
                       <Smile size={20} />
                     </div>
-                    <Text strong style={{ fontSize: 14, color: "#1e293b" }}>How are you feeling?</Text>
+                    <Text strong style={{ fontSize: 14, color: "var(--text-slate-900)" }}>How are you feeling?</Text>
                   </div>
                   <Form.Item name="mood" noStyle>
                     <Space size={8}>
@@ -912,7 +911,7 @@ function SubmitDailyUpdateContent() {
 
               {/* Update Type & Date Card */}
               <Card
-                style={{ borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+                style={{ borderRadius: 16, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)" }}
                 bodyStyle={{ padding: "16px 20px" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
@@ -927,7 +926,7 @@ function SubmitDailyUpdateContent() {
                       <Radio.Button value="EOD" style={{ width: 60, textAlign: "center" }}>EOD</Radio.Button>
                     </Radio.Group>
                   </Form.Item>
-                  <div style={{ height: 24, width: 1, background: "#e2e8f0" }} />
+                  <div style={{ height: 24, width: 1, background: "var(--border-slate-200)" }} />
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Switch
                       size="small"
@@ -937,7 +936,7 @@ function SubmitDailyUpdateContent() {
                         if (!checked) setMissedDate(null);
                       }}
                     />
-                    <Text style={{ fontSize: 12, fontWeight: 500, color: isMissedUpdate ? "#f59e0b" : "#64748b" }}>
+                    <Text style={{ fontSize: 12, fontWeight: 500, color: isMissedUpdate ? "var(--text-amber-500)" : "var(--text-slate-600)" }}>
                       Missed Update
                     </Text>
                   </div>
@@ -967,15 +966,15 @@ function SubmitDailyUpdateContent() {
               padding: "0 4px"
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Activity size={18} color="#0ea5e9" />
-                <Text strong style={{ fontSize: 16, color: "#1e293b" }}>Work Details</Text>
+                <Activity size={18} color="var(--text-sky-500)" />
+                <Text strong style={{ fontSize: 16, color: "var(--text-slate-900)" }}>Work Details</Text>
               </div>
               <Button
                 type="link"
                 icon={<Plus size={16} />}
                 onClick={handleAddProject}
                 disabled={projectUpdates.length >= projects.length}
-                style={{ fontWeight: 600, fontSize: 14, color: "#0ea5e9" }}
+                style={{ fontWeight: 600, fontSize: 14, color: "var(--text-sky-500)" }}
               >
                 Add Project
               </Button>
@@ -992,8 +991,8 @@ function SubmitDailyUpdateContent() {
                   {/* Card Header Strip */}
                   <div style={{
                     padding: "12px 20px",
-                    background: "#f8fafc",
-                    borderBottom: "1px solid #e2e8f0",
+                    background: "var(--bg-table-header)",
+                    borderBottom: "1px solid var(--border-slate-200)",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center"
@@ -1003,7 +1002,7 @@ function SubmitDailyUpdateContent() {
                         width: 24,
                         height: 24,
                         borderRadius: 6,
-                        background: "#0ea5e9",
+                        background: "var(--text-sky-500)",
                         color: "white",
                         display: "flex",
                         alignItems: "center",
@@ -1013,7 +1012,7 @@ function SubmitDailyUpdateContent() {
                       }}>
                         {projectIndex + 1}
                       </div>
-                      <Text strong style={{ color: "#1e293b" }}>Project Entry</Text>
+                      <Text strong style={{ color: "var(--text-slate-900)" }}>Project Entry</Text>
                     </Space>
                     {projectUpdates.length > 1 && (
                       <Button
@@ -1094,14 +1093,14 @@ function SubmitDailyUpdateContent() {
                           <Form.Item label="Total" style={{ marginBottom: 16 }}>
                             <div style={{
                               height: 32,
-                              background: "#f1f5f9",
+                              background: "var(--bg-secondary)",
                               borderRadius: 6,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              border: "1px solid #e2e8f0",
+                              border: "1px solid var(--border-slate-200)",
                               fontWeight: 600,
-                              color: "#0f172a",
+                              color: "var(--text-slate-900)",
                               fontSize: 13
                             }}>
                               {update.hoursWorked > 0 ? formatHours(update.hoursWorked) : "0h 0m"}
@@ -1115,15 +1114,15 @@ function SubmitDailyUpdateContent() {
                     <div style={{
                       marginTop: 8,
                       padding: 16,
-                      background: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+                      background: "var(--bg-secondary)",
                       borderRadius: 12,
-                      border: "1px solid #e2e8f0",
-                      borderLeft: "4px solid #0ea5e9"
+                      border: "1px solid var(--border-slate-200)",
+                      borderLeft: "4px solid var(--text-sky-500)"
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <CheckCircle2 size={14} color="#22c55e" />
-                          <Text strong style={{ fontSize: 13, color: "#475569" }}>Tasks & Deliverables</Text>
+                          <CheckCircle2 size={14} color="var(--text-green-500)" />
+                          <Text strong style={{ fontSize: 13, color: "var(--text-slate-600)" }}>Tasks & Deliverables</Text>
                         </div>
                         <Button
                           type="link"
@@ -1145,10 +1144,10 @@ function SubmitDailyUpdateContent() {
                               gridTemplateColumns: "140px 1fr 180px 32px",
                               gap: 12,
                               alignItems: "flex-start",
-                              background: "#ffffff",
+                              background: "var(--bg-pure-white)",
                               padding: 10,
                               borderRadius: 10,
-                              border: "1px solid #e2e8f0"
+                              border: "1px solid var(--border-slate-200)"
                             }}
                           >
                             <Select
@@ -1229,7 +1228,7 @@ function SubmitDailyUpdateContent() {
                       </Col>
                       <Col span={12}>
                         <Form.Item
-                          label={<span style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageSquare size={14} color="#64748b" />  Comments</span>}
+                          label={<span style={{ display: "flex", alignItems: "center", gap: 6 }}><MessageSquare size={14} color="var(--text-slate-600)" />  Comments</span>}
                           style={{ marginBottom: 0 }}
                         >
                           <TextArea
@@ -1251,14 +1250,14 @@ function SubmitDailyUpdateContent() {
             <div style={{ marginTop: 32 }}>
               <div style={{
                 padding: "24px 32px",
-                background: "#ffffff",
+                background: "var(--bg-pure-white)",
                 borderRadius: 20,
-                border: "1px solid #e2e8f0",
+                border: "1px solid var(--border-slate-200)",
                 boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                  <MessageSquare size={18} color="#64748b" />
-                  <Text strong style={{ fontSize: 16, color: "#1e293b", margin: 0 }}>
+                  <MessageSquare size={18} color="var(--text-slate-600)" />
+                  <Text strong style={{ fontSize: 16, color: "var(--text-slate-900)", margin: 0 }}>
                     General Comments
                   </Text>
                 </div>
@@ -1266,7 +1265,7 @@ function SubmitDailyUpdateContent() {
                   <TextArea
                     rows={4}
                     placeholder="Provide any overall updates, wins, or concerns for the day..."
-                    style={{ borderRadius: 12, border: "1px solid #e2e8f0", padding: 16 }}
+                    style={{ borderRadius: 12, border: "1px solid var(--border-slate-200)", background: 'var(--bg-secondary)', padding: 16 }}
                   />
                 </Form.Item>
               </div>
@@ -1276,9 +1275,9 @@ function SubmitDailyUpdateContent() {
             <div style={{
               marginTop: 24,
               padding: "12px 20px",
-              background: "#eff6ff",
+              background: "var(--bg-blue-50)",
               borderRadius: 12,
-              border: "1px solid #bfdbfe",
+              border: "1px solid var(--border-blue-200)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center"
@@ -1288,14 +1287,14 @@ function SubmitDailyUpdateContent() {
                   <Clock size={16} />
                 </div>
                 <div>
-                  <Text strong style={{ color: "#1e40af", fontSize: 13 }}>Final Review</Text>
-                  <Text type="secondary" style={{ display: "block", fontSize: 11, color: "#60a5fa" }}>
+                  <Text strong style={{ color: "var(--text-blue-700)", fontSize: 13 }}>Final Review</Text>
+                  <Text type="secondary" style={{ display: "block", fontSize: 11, color: "var(--text-slate-400)" }}>
                     Total logged time for all selected projects today
                   </Text>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <Text style={{ fontSize: 12, color: "#1e40af", fontWeight: 500 }}>Daily Total:</Text>
+                <Text style={{ fontSize: 12, color: "var(--text-blue-700)", fontWeight: 500 }}>Daily Total:</Text>
                 <Text strong style={{ fontSize: 20, color: "#2563eb", marginLeft: 8 }}>{formatHours(totalHours)}</Text>
               </div>
             </div>

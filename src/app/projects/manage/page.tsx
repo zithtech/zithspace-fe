@@ -141,8 +141,8 @@ const ProjectsManagePage: React.FC = () => {
   }, [filters]);
 
   const glassStyle = {
-    background: "#ffffff",
-    border: "1px solid rgba(0, 0, 0, 0.06)",
+    background: "var(--bg-pure-white)",
+    border: "1px solid var(--border-color)",
     borderRadius: "12px",
     transition: "all 0.3s ease",
   };
@@ -335,8 +335,9 @@ const ProjectsManagePage: React.FC = () => {
         <Space size={12}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
-            background: "rgba(22, 119, 255, 0.05)",
-            display: "flex", alignItems: "center", justifyContent: "center"
+            background: "var(--bg-pure-white)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            border: "1px solid var(--border-color)"
           }}>
             <ProjectOutlined style={{ color: "#1677ff", fontSize: 16 }} />
           </div>
@@ -377,7 +378,7 @@ const ProjectsManagePage: React.FC = () => {
         <Space size={8}>
           <Avatar
             size="small"
-            style={{ backgroundColor: "#f56a00", border: "1px solid #fff" }}
+            style={{ backgroundColor: "rgba(245, 106, 0, 0.2)", border: "1px solid var(--border-color)" }}
           >
             {record?.projectManager?.name.charAt(0)}
           </Avatar>
@@ -430,7 +431,7 @@ const ProjectsManagePage: React.FC = () => {
       render: (_, record) => (
         <div style={{ fontSize: 12 }}>
           <div style={{ marginBottom: 2 }}>
-            <CalendarOutlined style={{ marginRight: 6, color: "#1677ff", fontSize: 11 }} />
+            <CalendarOutlined style={{ marginRight: 6, color: "var(--primary-color)", fontSize: 11 }} />
             <Text style={{ fontSize: 12 }}>{dayjs(record?.startDate).format("MMM DD, YYYY")}</Text>
           </div>
           {record.endDate && (
@@ -548,7 +549,7 @@ const ProjectsManagePage: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ padding: "16px", background: "#ffffff", minHeight: "100vh" }}>
+      <div style={{ padding: "16px", background: "transparent", minHeight: "100vh" }}>
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <Space
@@ -562,10 +563,11 @@ const ProjectsManagePage: React.FC = () => {
                   width: 42,
                   height: 42,
                   borderRadius: 12,
-                  background: "rgba(22, 119, 255, 0.08)",
+                  background: "var(--bg-pure-white)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  border: "1px solid var(--border-color)"
                 }}
               >
                 <ProjectOutlined style={{ fontSize: 22, color: "#1677ff" }} />
@@ -586,7 +588,7 @@ const ProjectsManagePage: React.FC = () => {
               <div
                 style={{
                   display: "flex",
-                  background: "rgba(0, 0, 0, 0.04)",
+                  background: "var(--bg-secondary)",
                   borderRadius: 10,
                   padding: 3,
                 }}
@@ -601,9 +603,9 @@ const ProjectsManagePage: React.FC = () => {
                     padding: "4px 16px",
                     fontWeight: 600,
                     height: 36,
-                    background: viewMode === "card" ? "#ffffff" : "transparent",
-                    color: viewMode === "card" ? "#1677ff" : "#595959",
-                    boxShadow: viewMode === "card" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+                    background: viewMode === "card" ? "var(--bg-pure-white)" : "transparent",
+                    color: viewMode === "card" ? "var(--primary-color)" : "var(--text-secondary)",
+                    boxShadow: viewMode === "card" ? "0 2px 4px rgba(0,0,0,0.1)" : "none",
                     transition: "all 0.25s ease",
                   }}
                 >
@@ -620,9 +622,9 @@ const ProjectsManagePage: React.FC = () => {
                     padding: "4px 16px",
                     fontWeight: 600,
                     height: 36,
-                    background: viewMode === "table" ? "#ffffff" : "transparent",
-                    color: viewMode === "table" ? "#1677ff" : "#595959",
-                    boxShadow: viewMode === "table" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+                    background: viewMode === "table" ? "var(--bg-pure-white)" : "transparent",
+                    color: viewMode === "table" ? "var(--primary-color)" : "var(--text-secondary)",
+                    boxShadow: viewMode === "table" ? "0 2px 4px rgba(0,0,0,0.1)" : "none",
                     transition: "all 0.25s ease",
                   }}
                 >
@@ -650,12 +652,13 @@ const ProjectsManagePage: React.FC = () => {
         {/* Stats Row */}
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} lg={6}>
-            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+            <Card style={{ ...glassStyle, background: "var(--bg-pure-white)" }} styles={{ body: { padding: 20 } }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{
                   width: 48, height: 48, borderRadius: 12,
-                  background: "rgba(22, 119, 255, 0.1)",
-                  display: "flex", alignItems: "center", justifyContent: "center"
+                  background: "var(--bg-pure-white)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: "1px solid var(--border-color)"
                 }}>
                   <ProjectOutlined style={{ fontSize: 24, color: "#1677ff" }} />
                 </div>
@@ -667,7 +670,7 @@ const ProjectsManagePage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+            <Card style={{ ...glassStyle, background: "var(--bg-pure-white)" }} styles={{ body: { padding: 20 } }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{
                   width: 48, height: 48, borderRadius: 12,
@@ -684,7 +687,7 @@ const ProjectsManagePage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+            <Card style={{ ...glassStyle, background: "var(--bg-pure-white)" }} styles={{ body: { padding: 20 } }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{
                   width: 48, height: 48, borderRadius: 12,
@@ -701,7 +704,7 @@ const ProjectsManagePage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card style={glassStyle} styles={{ body: { padding: 20 } }}>
+            <Card style={{ ...glassStyle, background: "var(--bg-pure-white)" }} styles={{ body: { padding: 20 } }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{
                   width: 48, height: 48, borderRadius: 12,
@@ -879,7 +882,7 @@ const ProjectsManagePage: React.FC = () => {
                           <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 0 }}>
                             <div style={{
                               width: 32, height: 32, borderRadius: 8,
-                              background: "#f0f5ff",
+                              background: "rgba(22, 119, 255, 0.1)",
                               display: "flex", alignItems: "center", justifyContent: "center",
                               flexShrink: 0
                             }}>
@@ -1051,11 +1054,11 @@ const ProjectsManagePage: React.FC = () => {
             {/* Drawer Header */}
             <div style={{
               padding: "24px 32px",
-              borderBottom: "1px solid #f0f0f0",
+              borderBottom: "1px solid var(--border-color)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              background: "#fff",
+              background: "transparent",
               position: "sticky",
               top: 0,
               zIndex: 10
@@ -1289,12 +1292,12 @@ const ProjectsManagePage: React.FC = () => {
           }}
         >
           {viewProject && (
-            <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fdfdfd" }}>
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-pure-white)" }}>
               {/* Drawer Header - Compact & Premium */}
               <div style={{
                 padding: "24px 24px",
-                background: "linear-gradient(135deg, rgba(22, 119, 255, 0.04) 0%, rgba(255, 255, 255, 1) 100%)",
-                borderBottom: "1px solid rgba(0,0,0,0.05)",
+                background: "var(--bg-pure-white)",
+                borderBottom: "1px solid var(--border-color)",
                 position: "relative",
                 zIndex: 5
               }}>
@@ -1375,7 +1378,7 @@ const ProjectsManagePage: React.FC = () => {
                   <Col span={12}>
                     <div style={{
                       padding: "12px",
-                      background: "#fff",
+                      background: "transparent",
                       borderRadius: 10,
                       border: "1px solid rgba(0,0,0,0.03)",
                       boxShadow: "0 1px 2px rgba(0,0,0,0.01)"
@@ -1396,7 +1399,7 @@ const ProjectsManagePage: React.FC = () => {
                   <Col span={12}>
                     <div style={{
                       padding: "12px",
-                      background: "#fff",
+                      background: "transparent",
                       borderRadius: 10,
                       border: "1px solid rgba(0,0,0,0.03)",
                       boxShadow: "0 1px 2px rgba(0,0,0,0.01)"
@@ -1421,7 +1424,7 @@ const ProjectsManagePage: React.FC = () => {
                     padding: "0 2px",
                     lineHeight: 1.6
                   }}>
-                    <Typography.Paragraph type="secondary" style={{ fontSize: 13, margin: 0, color: "#595959" }}>
+                    <Typography.Paragraph type="secondary" style={{ fontSize: 13, margin: 0, color: "var(--text-secondary)" }}>
                       {viewProject.description || "No description provided."}
                     </Typography.Paragraph>
                   </div>
@@ -1434,7 +1437,7 @@ const ProjectsManagePage: React.FC = () => {
                   <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Timeline</Title>
                   <div style={{
                     display: "flex",
-                    background: "#f9f9f9",
+                    background: "var(--bg-secondary)",
                     padding: "12px",
                     borderRadius: 12,
                     gap: 12
@@ -1460,13 +1463,13 @@ const ProjectsManagePage: React.FC = () => {
                   {/* Manager - More modern/refined */}
                   <div style={{
                     padding: "12px 16px",
-                    background: "#fff",
+                    background: "var(--bg-secondary)",
                     borderRadius: 14,
-                    border: "1px solid #f0f0f0",
+                    border: "1px solid var(--border-color)",
                     marginBottom: 12,
                     display: "flex",
                     alignItems: "center",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.01)"
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
                   }}>
                     <Avatar size={40} style={{ backgroundColor: "#fa8c16", marginRight: 12, fontSize: 14 }}>
                       {viewProject.projectManager?.name.charAt(0)}
@@ -1488,7 +1491,7 @@ const ProjectsManagePage: React.FC = () => {
                           alignItems: "center",
                           gap: 10,
                           padding: "8px 12px",
-                          background: "#fff",
+                          background: "transparent",
                           borderRadius: 10,
                           border: "1px solid rgba(0,0,0,0.02)"
                         }}
@@ -1512,9 +1515,9 @@ const ProjectsManagePage: React.FC = () => {
                       {viewProject.repositories.map((repo: any, idx: number) => (
                         <div key={idx} style={{
                           padding: "8px 12px",
-                          background: "#f0f5ff",
+                          background: "rgba(22, 119, 255, 0.1)",
                           borderRadius: 10,
-                          border: "1px solid #d6e4ff",
+                          border: "1px solid rgba(22, 119, 255, 0.2)",
                           display: "flex",
                           alignItems: "center",
                           gap: 8
@@ -1532,7 +1535,7 @@ const ProjectsManagePage: React.FC = () => {
                 <div style={{
                   marginTop: 32,
                   padding: "12px 16px",
-                  background: "#f5f5f5",
+                  background: "var(--bg-secondary)",
                   borderRadius: 12,
                   display: "flex",
                   justifyContent: "space-between",
@@ -1560,7 +1563,7 @@ const ProjectsManagePage: React.FC = () => {
               <div style={{
                 padding: "20px 24px",
                 borderTop: "1px solid rgba(0,0,0,0.05)",
-                background: "#fff",
+                background: "transparent",
                 display: "flex",
                 gap: 12
               }}>

@@ -139,7 +139,7 @@ export default function TicketDashboard() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(22, 119, 255, 0.2)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)'
             }}>
               <DashboardOutlined style={{ color: 'white', fontSize: 20 }} />
             </div>
@@ -161,7 +161,7 @@ export default function TicketDashboard() {
       {/* Metric Cards Row */}
       <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
         <Col xs={24} sm={12} md={6}>
-          <Card bordered={false} hoverable style={{ borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+          <Card bordered={false} hoverable style={{ borderRadius: 16, backgroundColor: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
             <Statistic
               title={<Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>Total Tickets</Text>}
               value={generalStats.total}
@@ -240,7 +240,7 @@ export default function TicketDashboard() {
                 <Col xs={24} md={12} key={project.id}>
                   <Card 
                     hoverable
-                    style={{ borderRadius: 12, border: '1px solid #f0f0f0' }}
+                    style={{ borderRadius: 12, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }}
                     bodyStyle={{ padding: 20 }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -314,7 +314,7 @@ export default function TicketDashboard() {
                 key={ticket.id} 
                 style={{ 
                   padding: '16px 0', 
-                  borderBottom: index === 7 ? 'none' : '1px solid #f5f5f5',
+                  borderBottom: index === 7 ? 'none' : '1px solid var(--border-color)',
                   display: 'flex',
                   gap: 12
                 }}

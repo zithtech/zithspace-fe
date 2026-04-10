@@ -60,18 +60,19 @@ type Props = {
 
 export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <Card 
-      bodyStyle={{ padding: "16px 20px" }} 
-      style={{ 
-        borderRadius: 12, 
-        border: "1px solid #f1f5f9", 
+    <Card
+      bodyStyle={{ padding: "16px 20px" }}
+      style={{
+        borderRadius: 12,
+        background: "var(--bg-pure-white)",
+        border: "1px solid var(--border-slate-100)",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--text-slate-600)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
         </div>
         <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
           <Icon size={20} />
@@ -234,12 +235,12 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
           const end = dayjs(record.weekStart).day(6);
           return (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                <Text style={{ fontSize: 13, color: "#475569" }}>{start.format("MMM DD")}</Text>
+              <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-200)" }}>
+                <Text style={{ fontSize: 13, color: "var(--text-slate-700)" }}>{start.format("MMM DD")}</Text>
               </div>
-              <ChevronRight size={14} color="#94a3b8" />
-              <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                <Text style={{ fontSize: 13, color: "#475569" }}>{end.format("MMM DD")}</Text>
+              <ChevronRight size={14} color="var(--text-slate-400)" />
+              <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-200)" }}>
+                <Text style={{ fontSize: 13, color: "var(--text-slate-700)" }}>{end.format("MMM DD")}</Text>
               </div>
             </div>
           );
@@ -301,7 +302,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         title: "Total Hours",
         dataIndex: "totalHours",
         render: (hours: string) => (
-          <Tag style={{ borderRadius: 20, background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontWeight: 600, padding: "0 12px" }}>
+          <Tag style={{ borderRadius: 20, background: "var(--bg-blue-50)", border: "1px solid var(--border-blue-200)", color: "var(--text-blue-700)", fontWeight: 600, padding: "0 12px" }}>
             {hours}
           </Tag>
         )
@@ -377,7 +378,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
               ],
             }}
           >
-            <Button type="text" icon={<MoreVertical size={16} color="#64748b" />} />
+            <Button type="text" icon={<MoreVertical size={16} color="var(--text-slate-400)" />} />
           </Dropdown>
         ),
       },
@@ -407,7 +408,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
     <div style={{
       margin: "0 -24px",
       padding: "0 32px 24px 32px",
-      background: "#ffffff",
+      background: "var(--bg-pure-white)",
       height: "calc(100vh - 72px)",
       display: "flex",
       flexDirection: "column",
@@ -422,26 +423,26 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         gap: 24,
         position: "sticky",
         top: 0,
-        background: "#ffffff",
+        background: "var(--bg-pure-white)",
         zIndex: 10,
         padding: "24px 0 12px 0"
       }}>
         <div style={{ flex: 1 }}>
           <Space size={14} align="center">
-            <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+            <div style={{ background: "var(--bg-sky-50)", padding: 12, borderRadius: 14, color: "var(--text-sky-500)", display: "flex" }}>
               <FileText size={28} />
             </div>
             <div>
-              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Timesheets</Title>
-              <Text style={{ color: "#64748b", fontSize: 15 }}>Manage and track your weekly timesheet submissions.</Text>
+              <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Timesheets</Title>
+              <Text style={{ color: "var(--text-slate-600)", fontSize: 15 }}>Manage and track your weekly timesheet submissions.</Text>
             </div>
           </Space>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Input
             placeholder="Search timesheets..."
-            prefix={<Search size={16} color="#94a3b8" />}
-            style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid #e2e8f0" }}
+            prefix={<Search size={16} color="var(--text-slate-400)" />}
+            style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid var(--border-slate-200)" }}
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
             allowClear
@@ -482,11 +483,11 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
           {stats.map(stat => (
             <Col key={stat.label} xs={24} sm={8}>
-              <StatCard 
-                label={stat.label} 
-                value={stat.value} 
-                icon={stat.icon} 
-                color={stat.color} 
+              <StatCard
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
               />
             </Col>
           ))}
@@ -494,7 +495,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
 
         <Card
           bordered={false}
-          style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+          style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
           bodyStyle={{ padding: "0" }}
         >
           <Table
@@ -524,7 +525,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
       >
         <div style={{ padding: "8px 0" }}>
           <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>Manager feedback for this timesheet:</Text>
-          <div style={{ background: "#fff1f0", border: "1px solid #ffa39e", borderRadius: 10, padding: 16, color: "#1e293b", lineHeight: 1.6 }}>
+          <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: 10, padding: 16, color: "var(--text-slate-900)", lineHeight: 1.6 }}>
             {currentRejectReason || "No reasons provided."}
           </div>
         </div>
@@ -537,25 +538,25 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         centered
         bodyStyle={{ padding: "0" }}
         title={
-          <div style={{ padding: "16px 24px", borderBottom: "1px solid #f1f5f9" }}>
+          <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-slate-100)" }}>
             {previewTimesheetData && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar size={36} style={{ backgroundColor: "#f0f9ff", color: "#0ea5e9", fontWeight: 700, fontSize: 14 }}>
+                  <Avatar size={36} style={{ backgroundColor: "var(--bg-sky-50)", color: "var(--text-sky-500)", fontWeight: 700, fontSize: 14 }}>
                     {previewTimesheetData.user?.name?.charAt(0).toUpperCase()}
                   </Avatar>
                   <div>
-                    <Text strong style={{ margin: 0, color: "#1e293b", fontSize: 15, display: "block", lineHeight: 1.2 }}>{previewTimesheetData.user?.name}</Text>
+                    <Text strong style={{ margin: 0, color: "var(--text-slate-900)", fontSize: 15, display: "block", lineHeight: 1.2 }}>{previewTimesheetData.user?.name}</Text>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-                      <Calendar size={12} color="#94a3b8" />
-                      <Text style={{ fontSize: 12, color: "#64748b" }}>
+                      <Calendar size={12} color="var(--text-slate-400)" />
+                      <Text style={{ fontSize: 12, color: "var(--text-slate-600)" }}>
                         {dayjs(previewTimesheetData.weekStart).format("MMM DD")} – {dayjs(previewTimesheetData.weekEnd).format("MMM DD, YYYY")}
                       </Text>
                     </div>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <Tag style={{ borderRadius: 6, fontWeight: 600, fontSize: 11, margin: 0, padding: "2px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", color: "#475569" }}>Total: {previewTimesheetData.totalHours}h</Tag>
+                  <Tag style={{ borderRadius: 6, fontWeight: 600, fontSize: 11, margin: 0, padding: "2px 10px", background: "var(--bg-slate-50)", border: "1px solid var(--border-slate-200)", color: "var(--text-slate-700)" }}>Total: {previewTimesheetData.totalHours}h</Tag>
                   {(() => {
                     const status = previewTimesheetData.status;
                     const config: any = {
@@ -585,7 +586,7 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
           </div>
         }
         footer={[
-          <div key="footer" style={{ padding: "12px 24px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end" }}>
+          <div key="footer" style={{ padding: "12px 24px", borderTop: "1px solid var(--border-slate-100)", display: "flex", justifyContent: "flex-end" }}>
             <Button key="close" onClick={() => setPreviewOpen(false)} style={{ borderRadius: 8, height: 38, padding: "0 24px", fontWeight: 500 }}>
               Close
             </Button>
@@ -635,27 +636,29 @@ export default function TimesheetsTab({ goToSubmitTimesheet }: Props) {
         width={600}
         centered
       >
-        <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #e2e8f0" }}>
-          <Text style={{ whiteSpace: "pre-wrap", color: "#334155", lineHeight: 1.6 }}>{selectedDesc}</Text>
+        <div style={{ background: "var(--bg-slate-50)", padding: 20, borderRadius: 12, border: "1px solid var(--border-color)" }}>
+          <Text style={{ whiteSpace: "pre-wrap", color: "var(--text-slate-700)", lineHeight: 1.6 }}>{selectedDesc}</Text>
         </div>
       </Modal>
 
       <style dangerouslySetInnerHTML={{
         __html: `
         .history-table-row:hover {
-          background-color: #f8fafc !important;
+          background-color: var(--bg-slate-50) !important;
           cursor: pointer;
         }
         .ant-table-thead > tr > th {
-          background-color: #f1f5f9 !important;
-          color: #475569 !important;
+          background-color: var(--bg-table-header) !important;
+          color: var(--text-slate-900) !important;
           font-weight: 600 !important;
           padding: 12px 16px !important;
-          border-bottom: 2px solid #e2e8f0 !important;
+          border-bottom: 2px solid var(--border-slate-200) !important;
         }
         .ant-table-tbody > tr > td {
           padding: 14px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
+          background-color: var(--bg-pure-white) !important;
+          color: var(--text-slate-600) !important;
         }
       `}} />
     </div>

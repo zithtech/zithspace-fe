@@ -138,9 +138,9 @@ const CreateDealPage: React.FC = () => {
   };
 
   const glassStyle = {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-pure-white)',
     borderRadius: '16px',
-    border: '1px solid rgba(0, 0, 0, 0.08)',
+    border: '1px solid var(--border-slate-100)',
     padding: '24px',
     height: '100%',
   };
@@ -149,8 +149,8 @@ const CreateDealPage: React.FC = () => {
     <Space style={{ marginBottom: '16px' }}>
       <span style={{ 
         fontSize: '20px', 
-        color: '#1890ff', 
-        background: 'rgba(24, 144, 255, 0.1)', 
+        color: 'var(--premium-blue)', 
+        background: 'var(--bg-blue-50)', 
         padding: '8px', 
         borderRadius: '8px',
         display: 'flex',
@@ -159,7 +159,7 @@ const CreateDealPage: React.FC = () => {
       }}>
         {icon}
       </span>
-      <Title level={4} style={{ margin: 0 }}>{title}</Title>
+      <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>{title}</Title>
     </Space>
   );
 
@@ -168,7 +168,7 @@ const CreateDealPage: React.FC = () => {
       <div style={{ 
         padding: "32px 24px", 
         minHeight: '100vh', 
-        background: '#ffffff' 
+        background: 'var(--bg-pure-white)' 
       }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           {/* Breadcrumbs */}
@@ -199,8 +199,8 @@ const CreateDealPage: React.FC = () => {
               }}
             />
             <Space direction="vertical" size={0}>
-              <Title level={2} style={{ margin: 0, fontWeight: 700 }}>Initiate New Deal</Title>
-              <Text type="secondary">Capture lead information and set up your sales pipeline</Text>
+              <Title level={2} style={{ margin: 0, fontWeight: 700, color: 'var(--text-slate-900)' }}>Initiate New Deal</Title>
+              <Text style={{ color: 'var(--text-slate-500)' }}>Capture lead information and set up your sales pipeline</Text>
             </Space>
           </div>
 
@@ -228,7 +228,7 @@ const CreateDealPage: React.FC = () => {
                       </Col>
                       <Col xs={24} md={12}>
                         <Form.Item name="companyName" label="Company / Organization">
-                          <Input size="large" prefix={<BankOutlined style={{ color: '#bfbfbf' }} />} placeholder="Company name" />
+                          <Input size="large" prefix={<BankOutlined style={{ color: 'var(--text-slate-400)' }} />} placeholder="Company name" />
                         </Form.Item>
                       </Col>
                       <Col xs={24} md={12}>
@@ -449,10 +449,10 @@ const CreateDealPage: React.FC = () => {
               left: 0,
               right: 0,
               zIndex: 1000,
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--bg-pure-white)',
               margin: '32px -24px -32px -24px',
               padding: '16px 24px',
-              borderTop: '1px solid rgba(0,0,0,0.06)',
+              borderTop: '1px solid var(--border-slate-100)',
               display: "flex", 
               justifyContent: "flex-end", 
               gap: "16px",
@@ -489,15 +489,17 @@ const CreateDealPage: React.FC = () => {
       <style jsx global>{`
         .ant-form-item-label > label {
           font-weight: 500;
-          color: #595959;
+          color: var(--text-slate-600) !important;
           font-size: 13px;
         }
         .ant-input, .ant-input-number, .ant-select-selector, .ant-picker {
           border-radius: 10px !important;
-          border-color: #d9d9d9 !important;
+          border-color: var(--border-slate-200) !important;
+          background: var(--bg-pure-white) !important;
+          color: var(--text-slate-900) !important;
         }
         .ant-input:focus, .ant-input-number:focus, .ant-select-selector:focus {
-          border-color: #1890ff !important;
+          border-color: var(--premium-blue) !important;
           outline: none;
         }
         .ant-card-head {

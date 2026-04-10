@@ -47,6 +47,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import UpdateCard from "@/components/daily-updates/UpdateCard";
 import UpdateTable from "@/components/daily-updates/UpdateTable";
 import UpdateDetailsDrawer from "@/components/daily-updates/UpdateDetailsDrawer";
+import ManageTimeDrawer from "@/components/daily-updates/ManageTimeDrawer";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { ProjectService } from "@/services/projectService";
 import { DailyStatusUpdate } from "@/types/dailyUpdate";
@@ -149,6 +150,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
   const [selectedUpdate, setSelectedUpdate] =
     useState<DailyStatusUpdate | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [manageTimeOpen, setManageTimeOpen] = useState(false);
 
   const canViewTeam = canManageDailyUpdates || user?.position === "Project Manager";
 
@@ -249,7 +251,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        backgroundColor: "#ffffff"
+        backgroundColor: "var(--bg-pure-white)"
       }}
     >
       {contextHolder}
@@ -264,9 +266,9 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           -ms-overflow-style: none;
         }
         .premium-filter-card {
-          border: 1px solid #e2e8f0 !important;
+          border: 1px solid var(--border-slate-200) !important;
           border-radius: 12px !important;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+          background: var(--bg-pure-white) !important;
           margin-bottom: 20px !important;
         }
         .updates-grid {
@@ -279,8 +281,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
       {/* Premium Header */}
       <div style={{
         padding: "16px 32px",
-        background: "#ffffff",
-        borderBottom: "1px solid #e2e8f0",
+        background: "var(--bg-pure-white)",
+        borderBottom: "1px solid var(--border-slate-200)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -288,19 +290,19 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         flexShrink: 0
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+          <div style={{ background: "var(--bg-sky-50)", padding: 12, borderRadius: 14, color: "var(--text-sky-500)", display: "flex" }}>
             <FileText size={28} />
           </div>
           <div>
-            <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0f172a" }}>
+            <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
               Daily Status Updates
             </Title>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Text style={{ fontSize: 12, color: "#64748b", fontWeight: 500 }}>
+              <Text style={{ fontSize: 12, color: "var(--text-slate-600)", fontWeight: 500 }}>
                 {canViewTeam ? "Team Overview" : "Personal Log"}
               </Text>
-              <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#cbd5e1" }} />
-              <Text style={{ fontSize: 12, color: "#64748b" }}>
+              <div style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--border-color)" }} />
+              <Text style={{ fontSize: 12, color: "var(--text-slate-600)" }}>
                 {updates.length} Updates found
               </Text>
             </div>
@@ -308,6 +310,23 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         </div>
 
         <Space size="middle">
+          {canViewTeam && (
+            <Button
+              icon={<Clock size={16} />}
+              onClick={() => setManageTimeOpen(true)}
+              style={{ 
+                borderRadius: 10, 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 8,
+                background: "var(--bg-sky-50)",
+                color: "var(--text-blue-700)",
+                border: "1px solid var(--border-blue-200)"
+              }}
+            >
+              Manage Time
+            </Button>
+          )}
           <Button
             icon={<RefreshCw size={16} />}
             onClick={handleRefresh}
@@ -350,7 +369,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           <Card className="premium-filter-card" bodyStyle={{ padding: "12px 20px" }}>
             <div style={{ display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 240px" }}>
-                <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
+                <Text strong style={{ fontSize: 11, color: "var(--text-slate-400)", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
                   Date Range
                 </Text>
                 <DatePicker.RangePicker
@@ -365,7 +384,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
               {canViewTeam && (
                 <>
                   <div style={{ flex: "1 1 200px" }}>
-                    <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
+                    <Text strong style={{ fontSize: 11, color: "var(--text-slate-400)", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
                       Project
                     </Text>
                     <Select
@@ -383,7 +402,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                     />
                   </div>
                   <div style={{ flex: "1 1 200px" }}>
-                    <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
+                    <Text strong style={{ fontSize: 11, color: "var(--text-slate-400)", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
                       Team Member
                     </Text>
                     <Select
@@ -401,7 +420,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                     />
                   </div>
                   <div style={{ flex: "1 1 120px" }}>
-                    <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
+                    <Text strong style={{ fontSize: 11, color: "var(--text-slate-400)", display: "block", marginBottom: 4, textTransform: "uppercase" }}>
                       Type
                     </Text>
                     <Select
@@ -420,8 +439,8 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                 </>
               )}
 
-              <div style={{ borderLeft: "1px solid #e2e8f0", paddingLeft: 16, display: "flex", flexDirection: "column", gap: 4 }}>
-                <Text strong style={{ fontSize: 11, color: "#94a3b8", display: "block", textTransform: "uppercase" }}>
+              <div style={{ borderLeft: "1px solid var(--border-slate-200)", paddingLeft: 16, display: "flex", flexDirection: "column", gap: 4 }}>
+                <Text strong style={{ fontSize: 11, color: "var(--text-slate-400)", display: "block", textTransform: "uppercase" }}>
                   View
                 </Text>
                 <Segmented
@@ -457,16 +476,16 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
           {loading ? (
             <div style={{ padding: "100px 0", textAlign: "center" }}>
               <Spin size="large" />
-              <div style={{ marginTop: 16, color: "#94a3b8", fontWeight: 500 }}>Fetching status updates...</div>
+              <div style={{ marginTop: 16, color: "var(--text-slate-400)", fontWeight: 500 }}>Fetching status updates...</div>
             </div>
           ) : updates.length === 0 ? (
-            <Card style={{ borderRadius: 16, border: "1px solid #e2e8f0", textAlign: "center", padding: "60px 0" }}>
+            <Card style={{ borderRadius: 16, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", textAlign: "center", padding: "60px 0" }}>
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   <Space direction="vertical" size={2}>
-                    <Text strong style={{ color: "#475569", fontSize: 15 }}>No updates found</Text>
-                    <Text style={{ color: "#94a3b8" }}>Try adjusting your filters or date range</Text>
+                    <Text strong style={{ color: "var(--text-slate-700)", fontSize: 15 }}>No updates found</Text>
+                    <Text style={{ color: "var(--text-slate-400)" }}>Try adjusting your filters or date range</Text>
                   </Space>
                 }
               >
@@ -487,7 +506,7 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
               ))}
             </div>
           ) : (
-            <div style={{ background: "white", borderRadius: 16, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+            <div style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-200)", overflow: "hidden" }}>
               <UpdateTable
                 updates={updates}
                 loading={false}
@@ -505,6 +524,11 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
         update={selectedUpdate}
         open={detailsModalOpen}
         onClose={handleCloseDetails}
+      />
+      <ManageTimeDrawer 
+        open={manageTimeOpen}
+        onClose={() => setManageTimeOpen(false)}
+        onSuccess={handleRefresh}
       />
     </div>
   );

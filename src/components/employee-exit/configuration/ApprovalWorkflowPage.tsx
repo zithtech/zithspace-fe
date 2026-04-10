@@ -143,18 +143,18 @@ const ApprovalWorkflowPage: React.FC = () => {
             width: 32, 
             height: 32, 
             borderRadius: "50%", 
-            background: "#eff6ff", 
-            color: "#2563eb",
+            background: "var(--bg-blue-50)", 
+            color: "var(--premium-blue)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontWeight: 700,
             fontSize: 12,
-            border: "2px solid #dbeafe"
+            border: "2px solid var(--border-blue-100)"
           }}>
             {order}
           </div>
-          <Text strong style={{ color: "#1e293b" }}>Step {order}</Text>
+          <Text strong style={{ color: "var(--text-slate-900)" }}>Step {order}</Text>
         </Space>
       )
     },
@@ -170,9 +170,9 @@ const ApprovalWorkflowPage: React.FC = () => {
               return (
                 <Tag key={id} style={{ 
                   borderRadius: 6, 
-                  background: "#f8fafc", 
-                  border: "1px solid #e2e8f0", 
-                  color: "#475569",
+                  background: "var(--bg-slate-50)", 
+                  border: "1px solid var(--border-slate-100)", 
+                  color: "var(--text-slate-500)",
                   padding: "2px 8px",
                   display: "flex",
                   alignItems: "center",
@@ -185,7 +185,7 @@ const ApprovalWorkflowPage: React.FC = () => {
               );
             })
           ) : (
-            <Text type="secondary" italic style={{ fontSize: 13 }}>No positions assigned</Text>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontStyle: "italic" }}>No positions assigned</Text>
           )}
         </div>
       )
@@ -215,7 +215,7 @@ const ApprovalWorkflowPage: React.FC = () => {
           <Tooltip title="Configure Step">
             <Button 
               type="text" 
-              icon={<Edit size={18} style={{ color: '#64748b' }} />} 
+              icon={<Edit size={18} style={{ color: 'var(--text-slate-400)' }} />} 
               onClick={() => handleEdit(record)} 
               className="action-btn"
             />
@@ -270,7 +270,7 @@ const ApprovalWorkflowPage: React.FC = () => {
           type="primary" 
           icon={<Plus size={18} />} 
           onClick={handleAdd}
-          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
         >
           Add Step
         </Button>
@@ -282,20 +282,20 @@ const ApprovalWorkflowPage: React.FC = () => {
         rowKey="id" 
         loading={loading}
         pagination={false}
-        style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
+        style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", boxShadow: "var(--shadow-premium-sm)" }}
       />
 
       <Drawer
         title={
           <Space size={12}>
-            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb", display: "flex" }}>
+            <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: "flex" }}>
               <Settings2 size={20} />
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
                 {editingStep ? "Edit Approval Step" : "Create Approval Step"}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>
+              <div style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>
                 Define sequence and responsibility mapping
               </div>
             </div>
@@ -319,9 +319,9 @@ const ApprovalWorkflowPage: React.FC = () => {
         }
         className="config-drawer"
       >
-        <Form form={form} layout="vertical" requiredMark={false}>
+        <Form form={form} layout="vertical" requiredMark={false} style={{ background: "var(--bg-pure-white)" }}>
           <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Step Details</Title>
+            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Step Details</Title>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -347,7 +347,7 @@ const ApprovalWorkflowPage: React.FC = () => {
           <Divider />
 
           <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Authorized Entities</Title>
+            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Authorized Entities</Title>
             <Form.Item
               name="roleIds"
               label={<Text strong style={{ fontSize: 13 }}>Approver Positions</Text>}
@@ -367,12 +367,12 @@ const ApprovalWorkflowPage: React.FC = () => {
             </Form.Item>
           </div>
 
-          <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9", marginTop: 24 }}>
+          <div style={{ background: "var(--bg-secondary)", padding: 20, borderRadius: 12, border: "1px solid var(--border-slate-100)", marginTop: 24 }}>
             <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ color: "#3b82f6" }}><ShieldCheck size={20} /></div>
+              <div style={{ color: "var(--premium-blue)" }}><ShieldCheck size={20} /></div>
               <div>
-                <Text strong style={{ fontSize: 14, display: "block", color: "#1e293b" }}>Workflow Logic</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>
+                <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Workflow Logic</Text>
+                <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>
                   Requests will flow sequentially through steps. Mandatory steps cannot be skipped.
                 </Text>
               </div>
@@ -382,19 +382,19 @@ const ApprovalWorkflowPage: React.FC = () => {
       </Drawer>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .action-btn:hover { background: #f1f5f9 !important; color: #2563eb !important; }
+        .action-btn:hover { background: var(--bg-secondary) !important; color: var(--premium-blue) !important; }
         .action-btn-danger:hover { background: #fff1f2 !important; }
         .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-secondary) !important;
+          color: var(--text-slate-500) !important;
           font-weight: 600 !important;
           text-transform: uppercase !important;
           font-size: 11px !important;
           letter-spacing: 0.05em !important;
         }
-        .ant-table-row:hover > td { background: #f8fafc !important; }
-        .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
-        .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
+        .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
+        .config-drawer .ant-drawer-header { border-bottom: 1px solid var(--border-slate-100) !important; padding: 24px !important; }
+        .config-drawer .ant-drawer-footer { border-top: 1px solid var(--border-slate-100) !important; padding: 16px 24px !important; }
       `}} />
     </div>
   );

@@ -67,11 +67,12 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
   }));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", padding: "24px", background: "#fff" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", padding: "24px", background: "transparent" }}>
       {/* Bank Details */}
       <Card
-        title={<span style={{ fontWeight: 600, color: "#1677ff" }}>🏦 Bank Details</span>}
+        title={<span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>🏦 Bank Details</span>}
         bordered={false}
+        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
         styles={{ body: { padding: "24px" } }}
       >
         <Form
@@ -160,7 +161,7 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
             <Col span={8}>
               <Form.Item
                 name="accountType"
-                label={<span style={{ fontWeight: 500 }}>Account Type</span>}
+                label={<span style={{ fontWeight: 500, color: "var(--text-slate-500)" }}>Account Type</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
                 <Select placeholder="Select Type">
@@ -175,8 +176,9 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
 
       {/* Payroll Identifiers */}
       <Card
-        title={<span style={{ fontWeight: 600, color: "#1677ff" }}>💰 Payroll Identifiers</span>}
+        title={<span style={{ fontWeight: 600, color: "var(--premium-blue)" }}>💰 Payroll Identifiers</span>}
         bordered={false}
+        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
         styles={{ body: { padding: "24px" } }}
       >
         <Form
@@ -263,7 +265,7 @@ const BankPayroll = forwardRef(({ data }: any, ref: any) => {
             <Col span={8}>
               <Form.Item
                 name="paymentType"
-                label={<span style={{ fontWeight: 500 }}>Payment Type</span>}
+                label={<span style={{ fontWeight: 500, color: "var(--text-slate-500)" }}>Payment Type</span>}
                 rules={[{ required: true, message: "Required" }]}
               >
                 <Select placeholder="Select Type">

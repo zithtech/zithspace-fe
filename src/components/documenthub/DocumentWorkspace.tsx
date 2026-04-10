@@ -114,10 +114,16 @@ function TreeNode({
         <div>
             <div
                 className={`group flex items-center gap-2 px-3 py-2 cursor-pointer rounded-md text-sm transition-colors ${isSelected
-                    ? 'bg-gray-200 text-gray-900'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-slate-200 text-slate-900'
+                    : 'text-slate-700 hover:bg-slate-100'
                     }`}
-                onClick={() => {
+                style={{
+                    backgroundColor: isSelected ? 'var(--border-slate-200)' : 'transparent',
+                    color: isSelected ? 'var(--text-slate-900)' : 'var(--text-slate-700)',
+                }}
+                onMouseEnter={(e) => !isSelected && (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
+                onMouseLeave={(e) => !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')}
+                onClick={(e) => {
                     if (hasChildren) {
                         onToggleExpand(item.id)
                     }
@@ -148,11 +154,11 @@ function TreeNode({
                     )}
 
                     {item.type === 'file' ? (
-                        <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                        <FileText className="w-4 h-4 text-slate-500" style={{ color: 'var(--text-slate-400)' }} />
                     ) : item.type === 'folder' ? (
-                        <Folder className="w-4 h-4 text-gray-500 shrink-0" />
+                        <Folder className="w-4 h-4 text-slate-500" style={{ color: 'var(--text-slate-400)' }} />
                     ) : (
-                        <Clock className="w-4 h-4 text-gray-500 shrink-0" />
+                        <Clock className="w-4 h-4 text-slate-500" style={{ color: 'var(--text-slate-400)' }} />
                     )}
 
                     {isEditing ? (
@@ -188,7 +194,7 @@ function TreeNode({
             </div>
 
             {hasChildren && isExpanded && (
-                <div className="ml-4 border-l border-gray-200 pl-1">
+                <div className="ml-4 border-l border-slate-200 pl-1" style={{ borderColor: 'var(--border-slate-200)' }}>
                     {item.children!.map((child) => (
                         <TreeNode
                             key={child.id}
@@ -412,7 +418,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             const ticketsKey = [...globalDataKeys.tickets, documentId];
             const hubKey = [...globalDataKeys.documentHub, documentId];
             console.log('Invalidating and refetching Document Hub tree with keys:', { ticketsKey, hubKey });
-            
+
             queryClient.invalidateQueries({ queryKey: ticketsKey });
             queryClient.refetchQueries({ queryKey: ticketsKey });
             queryClient.invalidateQueries({ queryKey: hubKey });
@@ -518,7 +524,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             const ticketsKey = [...globalDataKeys.tickets, documentId];
             const hubKey = [...globalDataKeys.documentHub, documentId];
             console.log('Invalidating and refetching Document Hub tree after rename with keys:', { ticketsKey, hubKey });
-            
+
             queryClient.invalidateQueries({ queryKey: ticketsKey });
             queryClient.refetchQueries({ queryKey: ticketsKey });
             queryClient.invalidateQueries({ queryKey: hubKey });
@@ -537,7 +543,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             const ticketsKey = [...globalDataKeys.tickets, documentId];
             const hubKey = [...globalDataKeys.documentHub, documentId];
             console.log('Invalidating and refetching Document Hub tree after node rename with keys:', { ticketsKey, hubKey });
-            
+
             queryClient.invalidateQueries({ queryKey: ticketsKey });
             queryClient.refetchQueries({ queryKey: ticketsKey });
             queryClient.invalidateQueries({ queryKey: hubKey });
@@ -572,7 +578,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             const ticketsKey = [...globalDataKeys.tickets, documentId];
                             const hubKey = [...globalDataKeys.documentHub, documentId];
                             console.log('Invalidating and refetching Document Hub tree after file deletion with keys:', { ticketsKey, hubKey });
-                            
+
                             queryClient.invalidateQueries({ queryKey: ticketsKey });
                             queryClient.refetchQueries({ queryKey: ticketsKey });
                             queryClient.invalidateQueries({ queryKey: hubKey });
@@ -605,7 +611,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         const ticketsKey = [...globalDataKeys.tickets, documentId];
                         const hubKey = [...globalDataKeys.documentHub, documentId];
                         console.log('Invalidating and refetching Document Hub tree after node deletion with keys:', { ticketsKey, hubKey });
-                        
+
                         queryClient.invalidateQueries({ queryKey: ticketsKey });
                         queryClient.refetchQueries({ queryKey: ticketsKey });
                         queryClient.invalidateQueries({ queryKey: hubKey });
@@ -623,12 +629,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         <MainLayout>
             {contextHolder}
             {modalContextHolder}
-            <div className="flex h-[calc(100vh-64px)] w-full bg-white">
+            <div className="flex h-[calc(100vh-64px)] w-full bg-white" style={{ background: 'var(--bg-pure-white)' }}>
                 {/* Sidebar */}
                 {!isFullScreen && (
                     <aside
-                        className={`flex flex-col border-r border-gray-200 bg-[#f5f5f5] transition-all duration-300 overflow-hidden ${collapsed ? 'w-0 border-none' : 'w-64'
+                        className={`flex flex-col border-r border-slate-200 bg-[#f5f5f5] transition-all duration-300 overflow-hidden ${collapsed ? 'w-0 border-none' : 'w-64'
                             }`}
+                        style={{ borderRightColor: 'var(--border-slate-200)', background: 'var(--bg-secondary)' }}
                     >
                         {/* Sidebar Header */}
                         <div className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200 h-[40px] group/header">
@@ -663,13 +670,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 {/* Search */}
                                 <div className="p-4">
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" style={{ color: 'var(--text-slate-400)' }} />
                                         <input
                                             type="text"
                                             placeholder="Search documents..."
                                             value={searchValue}
                                             onChange={(e) => setSearchValue(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent"
+                                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent"
+                                            style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
                                         />
                                     </div>
                                 </div>
@@ -692,7 +700,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 </div>
 
                                 {/* New Document Button (Root Level) */}
-                                <div className="p-4 border-t border-gray-200">
+                                <div className="p-4 border-t border-slate-200" style={{ borderTopColor: 'var(--border-slate-200)' }}>
                                     <Dropdown
                                         menu={{
                                             items: [
@@ -712,7 +720,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                         }}
                                         trigger={['click']}
                                     >
-                                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors">
+                                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors" style={{ background: 'var(--text-slate-900)', color: 'var(--bg-pure-white)' }}>
                                             <Plus className="w-4 h-4" />
                                             New Item
                                         </button>
@@ -726,19 +734,25 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Header */}
-                    <header className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200 bg-white">
+                    <header className="flex items-center justify-between py-[4px] px-[8px] border-b border-slate-200 bg-white" style={{ background: 'var(--bg-pure-white)', borderBottomColor: 'var(--border-slate-200)' }}>
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => confirmAction(() => router.push('/documenthub'))}
-                                className="p-2 rounded-md hover:bg-gray-100 text-gray-600 mr-1"
+                                className="p-2 rounded-md hover:bg-slate-100 text-slate-600 mr-1"
+                                style={{ color: 'var(--text-slate-600)' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                                 title="Back to Document Hub"
                             >
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
-                            <div className="h-6 w-px bg-gray-200 mx-1" />
+                            <div className="h-6 w-px bg-slate-200 mx-1" style={{ backgroundColor: 'var(--border-slate-200)' }} />
                             <button
                                 onClick={() => setCollapsed(!collapsed)}
-                                className="p-2 rounded-md hover:bg-gray-100 text-gray-600"
+                                className="p-2 rounded-md hover:bg-slate-100 text-slate-600"
+                                style={{ color: 'var(--text-slate-600)' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                             >
                                 {collapsed ? (
                                     <PanelLeft className="w-5 h-5" />
@@ -811,13 +825,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             }}
                                         />
                                     </Tooltip>
-                                    <div className="h-6 w-px bg-gray-200 mx-2" />
+                                    <div className="h-6 w-px bg-slate-200 mx-2" style={{ backgroundColor: 'var(--border-slate-200)' }} />
                                 </>
                             )}
                             <Tooltip title={isFullScreen ? "Exit Full Screen" : "Full Screen"}>
                                 <Button
                                     type="text"
                                     icon={isFullScreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+                                    style={{ color: 'var(--text-slate-600)' }}
                                     onClick={() => {
                                         if (!document.fullscreenElement) {
                                             document.documentElement.requestFullscreen();
@@ -829,7 +844,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             </Tooltip>
 
                             <button
-                                className={`flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md ${isHistoryOpen ? 'bg-gray-100' : ''}`}
+                                className={`flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md ${isHistoryOpen ? 'bg-slate-100' : ''}`}
+                                style={{ color: 'var(--text-slate-600)', background: isHistoryOpen ? 'var(--bg-slate-50)' : 'transparent' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
+                                onMouseLeave={(e) => !isHistoryOpen && (e.currentTarget.style.backgroundColor = 'transparent')}
                                 onClick={() => setIsHistoryOpen(true)}
                             >
                                 <History className="w-4 h-4" />
@@ -839,10 +857,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     </header>
 
                     {/* Editor Content */}
-                    <main className="flex-1 overflow-auto px-4 pt-4 pb-2 bg-white flex flex-col">
+                    <main className="flex-1 overflow-auto px-4 pt-4 pb-2 bg-white flex flex-col" style={{ background: 'var(--bg-pure-white)' }}>
                         {previewVersion && (
-                            <div className="bg-blue-50 border-b border-blue-100 p-3 flex items-center justify-between mb-4 rounded-lg">
-                                <div className="flex items-center gap-2 text-blue-700">
+                            <div className="bg-blue-50 border-b border-blue-100 p-3 flex items-center justify-between mb-4 rounded-lg" style={{ background: 'var(--bg-blue-50)', borderColor: 'var(--border-blue-200)' }}>
+                                <div className="flex items-center gap-2 text-blue-700" style={{ color: 'var(--text-blue-700)' }}>
                                     <History className="w-4 h-4" />
                                     <span className="text-sm font-medium">
                                         Viewing version from {new Date(previewVersion.createdAt).toLocaleString()}
@@ -862,7 +880,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         {selectedDoc && selectedDoc !== 'api-ref' ? (
                             isDocumentLoading ? (
                                 <div className="flex items-center justify-center h-full">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900" style={{ borderColor: 'var(--text-slate-900)' }}></div>
                                 </div>
                             ) : (
                                 <DocumentEditor
@@ -872,7 +890,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 />
                             )
                         ) : (
-                            <div className="flex items-center justify-center h-full text-gray-400">
+                            <div className="flex items-center justify-center h-full text-slate-400" style={{ color: 'var(--text-slate-400)' }}>
                                 Select a document to edit
                             </div>
                         )}

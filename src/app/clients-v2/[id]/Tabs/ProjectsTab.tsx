@@ -197,12 +197,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       width: 280,
       render: (_: any, record: any) => (
         <Space size={12}>
-          <div style={{ background: "#f8fafc", padding: 8, borderRadius: 8, color: "#64748b", display: "flex" }}>
+          <div style={{ background: "var(--bg-slate-50)", padding: 8, borderRadius: 8, color: "var(--text-slate-500)", display: "flex" }}>
             <Layers size={18} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: "#1e293b", fontSize: 14 }}>{record.name}</div>
-            <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>CODE: {record.code}</div>
+            <div style={{ fontWeight: 600, color: "var(--text-slate-900)", fontSize: 14 }}>{record.name}</div>
+            <div style={{ fontSize: 11, color: "var(--text-slate-400)", fontWeight: 500 }}>CODE: {record.code}</div>
           </div>
         </Space>
       )
@@ -212,8 +212,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       key: "billing",
       render: (_: any, record: any) => (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: "#475569" }}>{record.billingType}</div>
-          <div style={{ fontSize: 12, color: "#94a3b8" }}>Model</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-slate-700)" }}>{record.billingType}</div>
+          <div style={{ fontSize: 12, color: "var(--text-slate-400)" }}>Model</div>
         </div>
       )
     },
@@ -229,15 +229,15 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         return (
           <div style={{ width: 140 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{symbol}{budget.toLocaleString()}</span>
-              <span style={{ fontSize: 11, color: "#64748b" }}>{Math.round(percentage)}%</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-slate-900)" }}>{symbol}{budget.toLocaleString()}</span>
+              <span style={{ fontSize: 11, color: "var(--text-slate-500)" }}>{Math.round(percentage)}%</span>
             </div>
             <Progress
               percent={percentage}
               size="small"
               showInfo={false}
-              strokeColor="#3b82f6"
-              trailColor="#f1f5f9"
+              strokeColor="var(--premium-blue)"
+              trailColor="var(--border-slate-100)"
               strokeWidth={6}
             />
           </div>
@@ -275,10 +275,10 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         <Space size={8}>
           <Avatar
             size="small"
-            style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}
+            style={{ backgroundColor: "var(--bg-slate-50)", color: "var(--text-slate-400)" }}
             icon={<User size={12} />}
           />
-          <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>
+          <span style={{ fontSize: 13, color: "var(--text-slate-700)", fontWeight: 500 }}>
             {record.projectManager?.first_name
               ? `${record.projectManager.first_name} ${record.projectManager.last_name}`
               : record.projectManager?.name || "Unassigned"}
@@ -291,8 +291,8 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       dataIndex: "startDate",
       key: "startDate",
       render: (date: string) => (
-        <Space size={6} style={{ color: "#64748b", fontSize: 13 }}>
-          <Calendar size={14} style={{ color: "#94a3b8" }} />
+        <Space size={6} style={{ color: "var(--text-slate-500)", fontSize: 13 }}>
+          <Calendar size={14} style={{ color: "var(--text-slate-400)" }} />
           {date ? dayjs(date).format("MMM DD, YYYY") : "N/A"}
         </Space>
       )
@@ -304,10 +304,10 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       render: (_: any, record: any) => (
         <Space>
           <Tooltip title="View Project Details">
-            <Button type="text" className="premium-action-btn" icon={<Eye size={16} />} style={{ color: "#64748b" }} />
+            <Button type="text" className="premium-action-btn" icon={<Eye size={16} />} style={{ color: "var(--text-slate-400)" }} />
           </Tooltip>
           <Tooltip title="Edit Configuration">
-            <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "#64748b" }} onClick={() => openEditModal(record)} />
+            <Button type="text" className="premium-action-btn" icon={<Edit2 size={16} />} style={{ color: "var(--text-slate-400)" }} onClick={() => openEditModal(record)} />
           </Tooltip>
         </Space>
       ),
@@ -325,15 +325,15 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       <Card
         style={{
           borderRadius: 16,
-          border: "1px solid #f1f5f9",
-          background: "#fff"
+          border: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)"
         }}
         bodyStyle={{ padding: "0" }}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "24px", borderBottom: "1px solid var(--border-slate-100)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Internal Projects</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Monitor project lifecycles, budget utilization, and leadership assignments</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-slate-900)" }}>Internal Projects</div>
+            <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 4 }}>Monitor project lifecycles, budget utilization, and leadership assignments</div>
           </div>
           <Space size={12}>
             <Input
@@ -361,6 +361,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
           loading={loading}
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           className="premium-table"
+          scroll={{ x: "max-content" }}
           locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No project initiatives recorded</div> }}
         />
       </Card>
@@ -389,7 +390,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         <div style={{ padding: "8px 0" }}>
           <Form form={form} layout="vertical" onFinish={handleCreateProject}>
             <Row gutter={20}>
-              <Col span={14}>
+              <Col xs={24} sm={14}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>}
                   name="name"
@@ -398,7 +399,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   <Input placeholder="e.g. Q3 Infrastructure Modernization" style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={10}>
+              <Col xs={24} sm={10}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>System Identification Code</span>}
                   name="code"
@@ -410,7 +411,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Leadership</span>}
                   name="projectManagerId"
@@ -430,7 +431,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Initial Lifecycle Status</span>}
                   name="status"
@@ -449,7 +450,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Model</span>}
                   name="billingType"
@@ -464,7 +465,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Allocated Budget</span>} name="budget">
                   <InputNumber
                     type="number"
@@ -479,7 +480,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Commencement</span>}
                   name="startDate"
@@ -488,7 +489,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Estimated Completion</span>} name="endDate">
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
@@ -539,12 +540,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
         <div style={{ padding: "8px 0" }}>
           <Form form={editForm} layout="vertical" onFinish={handleEditProject}>
             <Row gutter={20}>
-              <Col span={14}>
+              <Col xs={24} sm={14}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Name</span>} name="name" rules={[{ required: true }]}>
                   <Input style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={10}>
+              <Col xs={24} sm={10}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Code</span>} name="code">
                   <Input disabled style={{ borderRadius: 8, height: 40 }} />
                 </Form.Item>
@@ -552,7 +553,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Manager</span>} name="projectManagerId" rules={[{ required: true }]}>
                   <Select showSearch optionFilterProp="children" style={{ borderRadius: 8, height: 40 }}>
                     {employees.map((emp) => (
@@ -563,7 +564,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Project Status</span>} name="status" rules={[{ required: true }]}>
                   <Select style={{ borderRadius: 8, height: 40 }}>
                     <Select.Option value="Draft">Draft</Select.Option>
@@ -577,7 +578,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Billing Type</span>} name="billingType" rules={[{ required: true }]}>
                   <Select style={{ borderRadius: 8, height: 40 }}>
                     <Select.Option value="Hourly">Hourly</Select.Option>
@@ -588,7 +589,7 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Total Budget</span>} name="budget">
                   <InputNumber
                     addonBefore={currencySelector}
@@ -601,12 +602,12 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
             </Row>
 
             <Row gutter={20}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Start Date</span>} name="startDate" rules={[{ required: true }]}>
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>End Date</span>} name="endDate">
                   <DatePicker style={{ width: "100%", borderRadius: 8, height: 40 }} />
                 </Form.Item>
@@ -626,22 +627,22 @@ export default function ProjectsTab({ clientId, onRefresh }: ProjectsTabProps) {
       <style dangerouslySetInnerHTML={{
         __html: `
         .premium-table .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-slate-50) !important;
+          color: var(--text-slate-500) !important;
           font-weight: 600 !important;
           font-size: 11px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--border-slate-100) !important;
         }
         .premium-action-btn:hover {
-          background: #f1f5f9 !important;
-          color: #3b82f6 !important;
+          background: var(--bg-slate-50) !important;
+          color: var(--premium-blue) !important;
         }
       `}} />
     </div>

@@ -132,15 +132,25 @@ export interface DailyStatusUpdate {
 }
 
 export interface CreateDailyUpdateRequest {
+  userId?: string; // Optional: for managers logging on behalf of others
   mood?: "happy" | "neutral" | "stressed" | "blocked";
-  projectUpdates: ProjectUpdate[]; // Using new ProjectUpdate structure
+  projectUpdates: ProjectUpdate[];
   generalNotes?: string;
+  updateType?: "BOD" | "EOD";
+  is_missed?: boolean;
+  missed_updateAt?: string;
+  date?: string;
 }
 
 export interface UpdateDailyUpdateRequest {
+  userId?: string; // Optional
   mood?: "happy" | "neutral" | "stressed" | "blocked";
-  projectUpdates?: ProjectUpdate[]; // Using new ProjectUpdate structure
+  projectUpdates?: ProjectUpdate[];
   generalNotes?: string;
+  updateType?: "BOD" | "EOD";
+  is_missed?: boolean;
+  missed_updateAt?: string;
+  date?: string;
 }
 
 export interface DailyUpdateFilters {

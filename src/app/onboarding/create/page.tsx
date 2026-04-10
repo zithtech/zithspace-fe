@@ -93,9 +93,15 @@ const OnboardingContent = () => {
 
   if (authLoading || dataLoading) {
     return (
-      <div style={{ padding: 100, textAlign: 'center' }}>
-        <Spin size="large" tip={dataLoading ? "Loading employee data..." : "Loading..."} />
-      </div>
+      <MainLayout>
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
+        </div>
+      </MainLayout>
     );
   }
 
@@ -168,7 +174,7 @@ const OnboardingContent = () => {
         await createOnboarding(partialPayload);
         message.success("Profile created and saved as draft");
       }
-      
+
       if (current < 4) setCurrent(prev => prev + 1);
       else router.push("/onboarding/onboarded");
     } catch (error) {
@@ -209,7 +215,7 @@ const OnboardingContent = () => {
         await createOnboarding(finalPayload);
         message.success("Employee onboarding process completed");
       }
-      
+
       router.push("/onboarding/onboarded");
     } catch (error) {
       console.log("Submit Failed", error);
@@ -217,35 +223,48 @@ const OnboardingContent = () => {
   };
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "white", paddingBottom: "80px" }}>
-      <div style={{ padding: "16px 24px", borderBottom: "1px solid #f0f0f0", background: "white" }}>
-        <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0 }}>
-          {isEdit ? "Edit Employee Profile" : "Employee Onboarding"}
-        </h1>
-      </div>
-
-      <div style={{ 
-        padding: "20px 24px",
-        background: "white",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-        borderBottom: "1px solid #f1f5f9",
-        boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
-      }}>
-        <Steps current={current} size="small">
-          <Step title="Personal Details" />
-          <Step title="Employment" />
-          <Step title="Bank & Payroll" />
-          <Step title="History" />
-          <Step title="Assets" />
-        </Steps>
-      </div>
-
-      <div style={{ padding: "0 24px" }}>
-        <div style={{ display: current === 0 ? "block" : "none" }}>
-          <PersonalDetails key={`p-${resetKey}`} ref={personalRef} data={allData.personal} />
+    <MainLayout>
+      <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg-secondary)", paddingBottom: "80px" }}>
+        <div style={{
+          padding: "16px 24px",
+          borderBottom: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)",
+        }}>
+          <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0, color: "var(--text-slate-900)" }}>
+            Employee Onboarding
+          </h1>
         </div>
+
+        <div style={{
+          padding: "20px 24px",
+          background: "var(--bg-pure-white)",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          borderBottom: "1px solid var(--border-slate-100)",
+          boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+        }}>
+          <Steps current={current} size="small" style={{ marginBottom: 0 }}>
+            <Step title="Personal Details" />
+            <Step title="Employment" />
+            <Step title="Bank & Payroll" />
+            <Step title="Employee History" />
+            <Step title="Assets" />
+          </Steps>
+        </div>
+
+        {/*
+          KEY STRATEGY: All steps are always mounted (display:block/none).
+          This keeps the Ant Design form instances alive in memory,
+          so values are not lost when switching steps.
+          The `data` prop carries the saved allData back into each step
+          so the forms are repopulated when going back/forward.
+        */}
+
+        {/* <div style={{ display: current === 0 ? "block" : "none" }}>
+          <PersonalDetails ref={personalRef} data={allData.personal} />
+        </div>
+
         <div style={{ display: current === 1 ? "block" : "none" }}>
           <EmploymentDetails key={`e-${resetKey}`} ref={employmentRef} data={allData.employment} />
         </div>
@@ -256,7 +275,84 @@ const OnboardingContent = () => {
           <EmployeHistory key={`h-${resetKey}`} ref={historyRef} data={allData.history} />
         </div>
         <div style={{ display: current === 4 ? "block" : "none" }}>
-          <Assets key={`a-${resetKey}`} ref={assetsRef} data={allData.assets} />
+          <Assets ref={assetsRef} data={allData.assets} />
+        </div> */}
+
+        <div style={{ padding: "0 24px" }}>
+          <div style={{ display: current === 0 ? "block" : "none" }}>
+            <PersonalDetails
+              key={`personal-${resetKey}`}
+              ref={personalRef}
+              data={allData.personal}
+            />
+          </div>
+
+          <div style={{ display: current === 1 ? "block" : "none" }}>
+            <EmploymentDetails
+              key={`employment-${resetKey}`}
+              ref={employmentRef}
+              data={allData.employment}
+            />
+          </div>
+
+          <div style={{ display: current === 2 ? "block" : "none" }}>
+            <BankPayroll
+              key={`bank-${resetKey}`}
+              ref={bankRef}
+              data={allData.bank}
+            />
+          </div>
+
+          <div style={{ display: current === 3 ? "block" : "none" }}>
+            <EmployeHistory
+              key={`history-${resetKey}`}
+              ref={historyRef}
+              data={allData.history}
+            />
+          </div>
+
+          <div style={{ display: current === 4 ? "block" : "none" }}>
+            <Assets
+              key={`assets-${resetKey}`}
+              ref={assetsRef}
+              data={allData.assets}
+            />
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div
+          style={{
+            position: "sticky",
+            bottom: 0,
+            display: "flex",
+            justifyContent: "space-between",
+            padding: "16px 24px",
+            background: "var(--bg-pure-white)",
+            borderTop: "1px solid var(--border-slate-100)",
+            zIndex: 1000,
+            marginTop: "20px",
+          }}
+        >
+          <div>{current > 0 && <Button onClick={prev}>Previous</Button>}</div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            {current < 4 && (
+              <>
+                <Button onClick={saveAndSkip}>Save & Skip</Button>
+
+                <Button type="primary" onClick={next} loading={submitting} style={{ background: "var(--premium-blue)" }}>
+                  Continue
+                </Button>
+              </>
+            )}
+
+            {current === 4 && (
+              <Button type="primary" onClick={submitAll} style={{ background: "var(--premium-blue)" }}>
+                Submit
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -283,7 +379,7 @@ const OnboardingContent = () => {
           {current === 4 && <Button type="primary" onClick={submitAll} loading={submitting}>{isEdit ? "Update Profile" : "Submit Process"}</Button>}
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

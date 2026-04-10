@@ -45,15 +45,16 @@ const StatBox = ({ label, value, icon: Icon, color, subText }: any) => (
     bodyStyle={{ padding: "16px 20px" }} 
     style={{ 
       borderRadius: 16, 
-      border: "1px solid #f1f5f9", 
+      background: "var(--bg-pure-white)",
+      border: "1px solid var(--border-color)", 
       boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
       height: "100%"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>{value}</div>
         {subText && (
           <div style={{ marginTop: 2 }}>
             <Text style={{ fontSize: 11, color: "#94a3b8" }}>{subText}</Text>
@@ -131,11 +132,11 @@ export default function DashboardTab() {
       return (
         <div
           style={{
-            background: "#ffffff",
+            background: "var(--bg-pure-white)",
             padding: "12px 14px",
             borderRadius: 8,
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            border: "1px solid #f0f0f0",
+            border: "1px solid var(--border-color)",
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 6 }}>{label}</div>
@@ -158,7 +159,7 @@ export default function DashboardTab() {
     <div style={{
       margin: "0 -24px",
       padding: "0 32px 24px 32px",
-      background: "#ffffff",
+      background: "var(--bg-pure-white)",
       height: "calc(100vh - 72px)",
       display: "flex",
       flexDirection: "column",
@@ -172,19 +173,19 @@ export default function DashboardTab() {
         alignItems: "center",
         position: "sticky",
         top: 0,
-        background: "#ffffff",
+        background: "var(--bg-pure-white)",
         zIndex: 10,
         padding: "16px 0 4px 0"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+          <div style={{ background: "rgba(14, 165, 233, 0.1)", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
             <LayoutDashboard size={28} />
           </div>
           <div>
-            <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>
+            <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>
               Timesheet Dashboard
             </Title>
-            <Text style={{ color: "#64748b", fontSize: 15 }}>
+            <Text style={{ color: "var(--text-secondary)", fontSize: 15 }}>
               Weekly activity and timesheet status overview
             </Text>
           </div>
@@ -257,9 +258,9 @@ export default function DashboardTab() {
         {/* LEFT: Status Breakdown */}
         <Col xs={24} lg={10}>
           <Card
-            title={<span style={{ color: "#334155", fontWeight: 600 }}>Status Breakdown</span>}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
-            headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "0 20px", minHeight: 48 }}
+            title={<span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Status Breakdown</span>}
+            style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", height: "100%" }}
+            headStyle={{ borderBottom: "1px solid var(--border-color)", padding: "0 20px", minHeight: 48 }}
             bodyStyle={{ padding: "12px 20px" }}
           >
             <div style={{ height: 210 }}>
@@ -280,8 +281,8 @@ export default function DashboardTab() {
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
-                          <div style={{ background: "#fff", border: "1px solid #e2e8f0", padding: "8px 12px", borderRadius: 8, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", fontSize: 13 }}>
-                            <strong style={{ color: "#1e293b" }}>{payload[0].name}</strong>: {payload[0].value}
+                          <div style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", padding: "8px 12px", borderRadius: 8, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", fontSize: 13 }}>
+                            <strong style={{ color: "var(--text-primary)" }}>{payload[0].name}</strong>: {payload[0].value}
                           </div>
                         );
                       }
@@ -297,7 +298,7 @@ export default function DashboardTab() {
               {statusData.map((item, i) => (
                 <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 10, height: 10, background: STATUS_COLORS[i], borderRadius: "50%" }} />
-                  <Text style={{ color: "#475569", fontWeight: 500 }}>{item.name}</Text>
+                  <Text style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{item.name}</Text>
                 </div>
               ))}
             </div>
@@ -307,9 +308,9 @@ export default function DashboardTab() {
         {/* RIGHT: Weekly Hours Trend */}
         <Col xs={24} lg={14}>
           <Card
-            title={<span style={{ color: "#334155", fontWeight: 600 }}>Weekly Hours Trend</span>}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", height: "100%" }}
-            headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "0 20px", minHeight: 48 }}
+            title={<span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Weekly Hours Trend</span>}
+            style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", height: "100%" }}
+            headStyle={{ borderBottom: "1px solid var(--border-color)", padding: "0 20px", minHeight: 48 }}
             bodyStyle={{ padding: "12px 20px" }}
           >
             <div style={{ height: 240 }}>
@@ -345,8 +346,8 @@ export default function DashboardTab() {
       <style dangerouslySetInnerHTML={{
         __html: `
         .ant-table-thead > tr > th {
-          background-color: #f1f5f9 !important;
-          color: #475569 !important;
+          background-color: var(--bg-secondary) !important;
+          color: var(--text-secondary) !important;
           font-weight: 600 !important;
         }
           box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;

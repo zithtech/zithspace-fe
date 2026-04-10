@@ -43,15 +43,15 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
     styles={{ body: { padding: "16px 20px" } }}
     style={{
       borderRadius: 12,
-      border: "1px solid #ebedef",
+      border: "1px solid var(--border-slate-100)",
       boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-      background: "#fff"
+      background: "var(--bg-pure-white)"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
         <Icon size={20} />

@@ -4,31 +4,30 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import {
-  Card,
   Typography,
   Input,
   Button,
-  Space,
   Form,
   Alert,
-  Divider,
-  Row,
-  Col,
   Avatar,
   Tag,
-  Descriptions,
   Spin,
+  Tooltip,
 } from 'antd';
 import {
-  SaveOutlined,
-  LockOutlined,
-  UserOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  CalendarOutlined,
-  TeamOutlined,
-  IdcardOutlined,
-} from '@ant-design/icons';
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Shield,
+  Briefcase,
+  ChevronRight,
+  LogOut,
+  Camera,
+  CheckCircle2,
+  AlertCircle,
+  KeyRound,
+} from 'lucide-react';
 import dayjs from 'dayjs';
 import { AuthService, UpdateProfileData, ChangePasswordData, UserProfile } from '@/services/authService';
 import { ApiError } from '@/lib/axios';
@@ -49,12 +48,15 @@ interface PasswordFormData {
   confirmPassword: string;
 }
 
+type SettingsSection = 'profile' | 'security';
+
 export default function ProfilePage() {
-  const { user, isLoading } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
 
   // State management
+  const [activeTab, setActiveTab] = useState<SettingsSection>('profile');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -69,25 +71,20 @@ export default function ProfilePage() {
 
       try {
         setLoading(true);
-        const userProfile = await AuthService.getProfile();
-
-        setUserProfile(userProfile);
+        const data = await AuthService.getProfile();
+        setUserProfile(data);
 
         // Pre-fill the form with current data
         profileForm.setFieldsValue({
-          name: userProfile.name || '',
-          phone: userProfile.phone || '',
-          personalEmail: userProfile.personalEmail || '',
-          workEmail: userProfile.workEmail || '',
-          dateOfBirth: userProfile.dateOfBirth ? dayjs(userProfile.dateOfBirth).format('YYYY-MM-DD') : '',
+          name: data.name || '',
+          phone: data.phone || '',
+          personalEmail: data.personalEmail || '',
+          workEmail: data.workEmail || '',
+          dateOfBirth: data.dateOfBirth ? dayjs(data.dateOfBirth).format('YYYY-MM-DD') : '',
         });
-      } catch (error) {
-        console.error('Failed to load profile:', error);
-        if (error instanceof ApiError) {
-          setError(error.message);
-        } else {
-          setError('Failed to load profile');
-        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+        setError('Failed to load profile details. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -112,25 +109,30 @@ export default function ProfilePage() {
       };
 
       const updatedProfile = await AuthService.updateProfile(updateData);
-
       setSuccess('Profile updated successfully!');
       setUserProfile(updatedProfile);
+      
+      // Sync with global auth state
+      if (updateUser) {
+        updateUser({
+          name: updatedProfile.name,
+          personalEmail: updatedProfile.personalEmail,
+          workEmail: updatedProfile.workEmail,
+          phone: updatedProfile.phone,
+        });
+      }
 
-      // Update the form with the latest data
+      // Refresh form fields
       profileForm.setFieldsValue({
-        name: updatedProfile.name || '',
-        phone: updatedProfile.phone || '',
-        personalEmail: updatedProfile.personalEmail || '',
-        workEmail: updatedProfile.workEmail || '',
+        name: updatedProfile.name,
+        phone: updatedProfile.phone,
+        personalEmail: updatedProfile.personalEmail,
+        workEmail: updatedProfile.workEmail,
         dateOfBirth: updatedProfile.dateOfBirth ? dayjs(updatedProfile.dateOfBirth).format('YYYY-MM-DD') : '',
       });
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      if (error instanceof ApiError) {
-        setError(error.message);
-      } else {
-        setError('An error occurred while updating profile');
-      }
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      setError(err instanceof ApiError ? err.message : 'An error occurred while updating profile');
     } finally {
       setProfileLoading(false);
     }
@@ -143,47 +145,19 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
-      if (values.newPassword !== values.confirmPassword) {
-        setError('New passwords do not match');
-        return;
-      }
-
-      if (values.newPassword.length < 6) {
-        setError('New password must be at least 6 characters long');
-        return;
-      }
-
-      const passwordData: ChangePasswordData = {
+      await AuthService.changePassword({
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
         confirmPassword: values.confirmPassword,
-      };
-
-      await AuthService.changePassword(passwordData);
+      });
 
       setSuccess('Password changed successfully!');
       passwordForm.resetFields();
-    } catch (error) {
-      console.error('Failed to change password:', error);
-      if (error instanceof ApiError) {
-        setError(error.message);
-      } else {
-        setError('An error occurred while changing password');
-      }
+    } catch (err) {
+      console.error('Failed to change password:', err);
+      setError(err instanceof ApiError ? err.message : 'An error occurred while changing password');
     } finally {
       setPasswordLoading(false);
-    }
-  };
-
-  // Get role color
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return '#ff4d4f';
-      case 'admin':
-        return '#faad14';
-      default:
-        return '#52c41a';
     }
   };
 
@@ -201,330 +175,336 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <MainLayout>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <Spin size="large" />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Spin size="large" tip="Loading your workspace..." />
         </div>
       </MainLayout>
     );
   }
 
+  const SidebarItem = ({ id, icon: Icon, label }: { id: SettingsSection; icon: any; label: string }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${
+        activeTab === id
+          ? 'text-[#2563eb] shadow-sm'
+          : 'text-slate-600 hover:text-slate-900'
+      }`}
+      style={{
+        backgroundColor: activeTab === id ? 'var(--bg-blue-50)' : 'transparent'
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <Icon size={18} className={activeTab === id ? 'text-[#2563eb]' : 'text-slate-400'} />
+        <span className="font-medium text-[14px]">{label}</span>
+      </div>
+      {activeTab === id && <ChevronRight size={16} className="text-[#2563eb]" />}
+    </button>
+  );
+
   return (
     <MainLayout>
-      <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Space align="center">
-            <UserOutlined style={{ fontSize: 24, color: '#1677ff' }} />
-            <Title level={2} style={{ margin: 0 }}>
-              My Profile
-            </Title>
-          </Space>
+      <div className="min-h-[calc(100vh-64px)]" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        {/* Banner Area - Compacted */}
+        <div className="h-24 bg-gradient-to-r from-[#1e40af] to-[#3730a3] relative overflow-hidden flex items-center px-10">
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mt-[-20px]" />
+          
+          <div className="flex items-center gap-6 z-10 w-full max-w-[1100px] mx-auto">
+            <div className="relative">
+              <Avatar
+                size={80}
+                className="border-4 border-white/20 shadow-xl text-3xl font-semibold uppercase backdrop-blur-sm"
+                style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+              >
+                {userProfile?.name.charAt(0) || user?.name?.charAt(0)}
+              </Avatar>
+              <Tooltip title="Coming Soon: Upload Avatar">
+                <button 
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full shadow-sm cursor-not-allowed scale-75"
+                  style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)', color: 'var(--text-slate-400)' }}
+                >
+                  <Camera size={14} />
+                </button>
+              </Tooltip>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-white tracking-tight">
+                  {userProfile?.name || user?.name}
+                </h2>
+                <Tag 
+                  className="m-0 px-2 py-0 border-0 bg-white/20 text-white font-bold text-[10px] tracking-wider uppercase rounded-full backdrop-blur-md"
+                >
+                  {userProfile?.role?.replace('_', ' ') || 'User'}
+                </Tag>
+              </div>
+              <p className="text-blue-100 text-[14px] font-medium opacity-90">
+                {userProfile?.position?.title || 'Team Member'}
+              </p>
+            </div>
+            
+            {/* Status indicators moved to header for space */}
+            <div className="hidden md:flex gap-4">
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest leading-none mb-1">Status</p>
+                <div className="flex items-center gap-1.5 justify-end">
+                  <div className={`w-1.5 h-1.5 rounded-full ${userProfile?.isActive ? 'bg-emerald-400' : 'bg-rose-400'} animate-pulse`} />
+                  <span className="text-white text-xs font-bold">{userProfile?.isActive ? 'Active' : 'Inactive'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Alerts */}
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setError('')}
-          />
-        )}
-        {success && (
-          <Alert
-            message={success}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setSuccess('')}
-          />
-        )}
+        <div className="max-w-[1100px] mx-auto px-6 py-8 relative z-10">
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Left Column: Compact Settings Nav */}
+            <div className="w-full lg:w-[240px] space-y-4">
+              <div 
+                className="rounded-xl p-1 shadow-sm"
+                style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)' }}
+              >
+                <div className="px-4 py-2" style={{ borderBottom: '1px solid var(--border-slate-50)' }}>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Settings</span>
+                </div>
+                <div className="p-1 space-y-0.5">
+                  <SidebarItem id="profile" icon={User} label="Profile Details" />
+                  <SidebarItem id="security" icon={Shield} label="Security" />
+                </div>
+                <div className="mt-2 pt-1 p-1" style={{ borderTop: '1px solid var(--border-slate-100)' }}>
+                  <button 
+                    onClick={() => logout()}
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-rose-500 hover:bg-rose-50 transition-all duration-200 text-[12px] font-bold"
+                  >
+                    <LogOut size={16} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
 
-        <Row gutter={[24, 24]}>
-          {/* Profile Information Display */}
-          <Col xs={24} lg={8}>
-            <Card
-              title={
-                <Space>
-                  <IdcardOutlined style={{ color: '#1677ff' }} />
-                  <span>Profile Information</span>
-                </Space>
-              }
-              size="small"
-            >
-              {userProfile && (
-                <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                  {/* Avatar and Basic Info */}
-                  <div style={{ textAlign: 'center' }}>
-                    <Avatar
-                      size={80}
-                      style={{
-                        backgroundColor: getRoleColor(userProfile.role),
-                        fontSize: 32,
-                        fontWeight: 600,
-                        marginBottom: 12,
-                      }}
+               {/* Help Widget */}
+               <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                <h4 className="text-[10px] font-bold text-blue-900 uppercase tracking-wider mb-1">Help Center</h4>
+                <p className="text-[9px] text-blue-700/70 leading-relaxed mb-2">Need professional role or permission updates?</p>
+                <button className="text-[10px] font-bold text-blue-600 hover:underline">Contact Admin</button>
+              </div>
+            </div>
+
+            {/* Right Column: Main Content */}
+            <div className="flex-1 w-full relative">
+              {/* Notifications Area - Floating style */}
+              <div className="absolute -top-10 right-0 z-50">
+                {success && (
+                  <div className="bg-emerald-600 text-white shadow-lg rounded-full px-4 py-1 flex items-center gap-2 animate-in slide-in-from-top-4">
+                    <CheckCircle2 size={12} />
+                    <span className="text-[10px] font-bold uppercase tracking-tight">{success}</span>
+                  </div>
+                )}
+                {error && (
+                  <div className="bg-rose-600 text-white shadow-lg rounded-full px-4 py-1 flex items-center gap-2 animate-in slide-in-from-top-4">
+                    <AlertCircle size={12} />
+                    <span className="text-[10px] font-bold uppercase tracking-tight">{error}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Main Container */}
+              <div 
+                className="rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[440px]"
+                style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)' }}
+              >
+                {activeTab === 'profile' ? (
+                  <div className="flex flex-col h-full animate-in fade-in duration-500">
+                    {/* Information Bento Section - Enhanced Premium Style */}
+                    <div 
+                      className="grid grid-cols-3 shadow-sm relative z-0"
+                      style={{ borderBottom: '1px solid var(--border-slate-100)' }}
                     >
-                      {userProfile.name.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <div>
-                      <Title level={4} style={{ margin: 0 }}>
-                        {userProfile.name}
-                      </Title>
-                      <Text type="secondary">{userProfile.position?.title || 'No Position'}</Text>
+                      <div className="p-4 transition-colors group cursor-default" style={{ background: 'var(--bg-pure-white)', borderRight: '1px solid var(--border-slate-50)' }}>
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className="w-6 h-6 rounded-md flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform" style={{ background: 'var(--bg-blue-50)' }}>
+                            <Briefcase size={12} strokeWidth={2.5} />
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Position</span>
+                        </div>
+                        <p className="font-extrabold text-[13px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
+                          {userProfile?.position?.title || 'N/A'}
+                        </p>
+                      </div>
+
+                      <div className="p-4 transition-colors group cursor-default" style={{ background: 'var(--bg-pure-white)', borderRight: '1px solid var(--border-slate-50)' }}>
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className="w-6 h-6 rounded-md flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform" style={{ background: 'var(--bg-blue-50)' }}>
+                            <Calendar size={12} strokeWidth={2.5} />
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Joined</span>
+                        </div>
+                        <p className="font-extrabold text-[13px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
+                          {userProfile?.createdAt ? dayjs(userProfile.createdAt).format('MMM D, YYYY') : 'N/A'}
+                        </p>
+                      </div>
+
+                      <div className="p-4 transition-colors group cursor-default" style={{ background: 'var(--bg-pure-white)' }}>
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className="w-6 h-6 rounded-md flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform" style={{ background: 'var(--bg-green-50)' }}>
+                            <User size={12} strokeWidth={2.5} />
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead</span>
+                        </div>
+                        <p className="font-extrabold text-[13px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
+                          {userProfile?.reportsTo?.name || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Edit Form Body - Compact grid */}
+                    <div className="p-6 flex-1">
+                       <Form
+                        form={profileForm}
+                        layout="vertical"
+                        onFinish={handleProfileSubmit}
+                        requiredMark={false}
+                        className="h-full flex flex-col justify-between"
+                      >
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                          <Form.Item
+                            name="name"
+                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><User size={12}/> Full Name</span>}
+                            rules={[{ required: true, message: 'Required' }]}
+                            className="mb-1"
+                          >
+                            <Input className="rounded-lg py-1.5 focus:ring-0 border-slate-200 text-sm font-semibold h-9" />
+                          </Form.Item>
+
+                          <Form.Item
+                            name="phone"
+                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Phone size={12}/> Phone Number</span>}
+                            className="mb-1"
+                          >
+                            <Input className="rounded-lg py-1.5 focus:ring-0 border-slate-200 text-sm font-semibold h-9" />
+                          </Form.Item>
+
+                          <Form.Item
+                            name="workEmail"
+                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Mail size={12}/> Work Email</span>}
+                            className="mb-1"
+                          >
+                            <Input disabled className="rounded-lg py-1.5 h-9 bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed text-sm font-bold" />
+                          </Form.Item>
+
+                          <Form.Item
+                            name="personalEmail"
+                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Mail size={12}/> Personal Email</span>}
+                            className="mb-1"
+                          >
+                            <Input className="rounded-lg py-1.5 focus:ring-0 border-slate-200 text-sm font-semibold h-9" />
+                          </Form.Item>
+
+                          <Form.Item
+                            name="dateOfBirth"
+                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Calendar size={12}/> Date of Birth</span>}
+                            className="mb-1"
+                          >
+                            <Input type="date" className="rounded-lg py-1.5 focus:ring-0 text-sm font-semibold h-9" style={{ border: '1px solid var(--border-slate-100)', background: 'var(--bg-pure-white)', color: 'var(--text-slate-900)' }} />
+                          </Form.Item>
+                        </div>
+
+                        <div className="mt-8 pt-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--border-slate-100)' }}>
+                          <p className="text-[10px] text-slate-400 italic">Position changes require admin approval.</p>
+                          <Button
+                            type="primary"
+                            htmlType="submit"
+                            loading={profileLoading}
+                            className="h-9 px-10 rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] border-0 font-bold text-xs"
+                          >
+                            Save Changes
+                          </Button>
+                        </div>
+                      </Form>
                     </div>
                   </div>
+                ) : (
+                  <div className="p-8 flex items-center justify-center h-full animate-in fade-in duration-500" style={{ background: 'var(--bg-pure-white)' }}>
+                    <div className="max-w-xs w-full">
+                      <div className="text-center mb-6">
+                        <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <KeyRound size={20} />
+                        </div>
+                        <h3 className="text-sm font-bold uppercase tracking-tight" style={{ color: 'var(--text-slate-900)' }}>Access Control</h3>
+                        <p className="text-slate-400 text-[11px] mt-1">Choose a unique, high-strength password.</p>
+                      </div>
 
-                  <Divider style={{ margin: '12px 0' }} />
-
-                  {/* Detailed Information */}
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item
-                      label={<><TeamOutlined /> Role</>}
-                    >
-                      <Tag color={getRoleColor(userProfile.role)} style={{ fontSize: 11 }}>
-                        {userProfile.role.toUpperCase()}
-                      </Tag>
-                    </Descriptions.Item>
-
-                    <Descriptions.Item
-                      label={<><PhoneOutlined /> Phone</>}
-                    >
-                      {userProfile.phone}
-                    </Descriptions.Item>
-
-                    <Descriptions.Item
-                      label={<><MailOutlined /> Work Email</>}
-                    >
-                      {userProfile.workEmail}
-                    </Descriptions.Item>
-
-                    <Descriptions.Item
-                      label={<><MailOutlined /> Personal Email</>}
-                    >
-                      {userProfile.personalEmail}
-                    </Descriptions.Item>
-
-                    {userProfile.reportsTo && (
-                      <Descriptions.Item
-                        label={<><UserOutlined /> Reports To</>}
+                      <Form
+                        form={passwordForm}
+                        layout="vertical"
+                        onFinish={handlePasswordSubmit}
+                        requiredMark={false}
+                        className="space-y-4"
                       >
-                        {userProfile.reportsTo.name}
-                        <br />
-                        <Text type="secondary" style={{ fontSize: 11 }}>
-                          {userProfile.reportsTo?.position?.title || 'No Position'}
-                        </Text>
-                      </Descriptions.Item>
-                    )}
+                        <Form.Item
+                          name="currentPassword"
+                          label={<span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">Current Key</span>}
+                          rules={[{ required: true, message: 'Required' }]}
+                          className="mb-2"
+                        >
+                          <Input.Password className="rounded-lg py-1.5 h-9 border-slate-200" />
+                        </Form.Item>
 
-                    {userProfile.dateOfBirth && (
-                      <Descriptions.Item
-                        label={<><CalendarOutlined /> Date of Birth</>}
-                      >
-                        {dayjs(userProfile.dateOfBirth).format('MMM DD, YYYY')}
-                      </Descriptions.Item>
-                    )}
+                        <Form.Item
+                          name="newPassword"
+                          label={<span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">New Password</span>}
+                          rules={[{ required: true, message: 'Required' }]}
+                          className="mb-2"
+                        >
+                          <Input.Password className="rounded-lg py-1.5 h-9 border-slate-200" />
+                        </Form.Item>
 
-                    <Descriptions.Item
-                      label={<><CalendarOutlined /> Joined</>}
-                    >
-                      {dayjs(userProfile.createdAt).format('MMM DD, YYYY')}
-                    </Descriptions.Item>
+                        <Form.Item
+                          name="confirmPassword"
+                          label={<span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">Verify Key</span>}
+                          rules={[{ required: true, message: 'Required' }]}
+                          className="mb-2"
+                        >
+                          <Input.Password className="rounded-lg py-1.5 h-9 border-slate-200" />
+                        </Form.Item>
 
-                    <Descriptions.Item label="Status">
-                      <Tag color={userProfile.isActive ? 'green' : 'red'} style={{ fontSize: 11 }}>
-                        {userProfile.isActive ? 'ACTIVE' : 'INACTIVE'}
-                      </Tag>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Space>
-              )}
-            </Card>
-          </Col>
-
-          {/* Settings Forms */}
-          <Col xs={24} lg={16}>
-            <Space direction="vertical" size={24} style={{ width: '100%' }}>
-              {/* Profile Settings Form */}
-              <Card
-                title={
-                  <Space>
-                    <SaveOutlined style={{ color: '#52c41a' }} />
-                    <span>Edit Profile</span>
-                  </Space>
-                }
-                size="small"
-              >
-                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                  Update your personal information. Note: You cannot change your role or position from here.
-                </Text>
-
-                <Form
-                  form={profileForm}
-                  layout="vertical"
-                  onFinish={handleProfileSubmit}
-                  size="middle"
-                >
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="name"
-                        label="Full Name"
-                        rules={[
-                          { required: true, message: 'Please enter your full name' },
-                          { min: 2, message: 'Name must be at least 2 characters' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your full name" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="phone"
-                        label="Phone Number"
-                        rules={[
-                          { required: true, message: 'Please enter your phone number' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your phone number" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="personalEmail"
-                        label="Personal Email"
-                        rules={[
-                          { required: true, message: 'Please enter your personal email' },
-                          { type: 'email', message: 'Please enter a valid email address' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your personal email" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="workEmail"
-                        label="Work Email"
-                        rules={[
-                          { required: true, message: 'Please enter your work email' },
-                          { type: 'email', message: 'Please enter a valid email address' },
-                        ]}
-                      >
-                        <Input placeholder="Enter your work email" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Form.Item
-                    name="dateOfBirth"
-                    label="Date of Birth"
-                  >
-                    <Input type="date" />
-                  </Form.Item>
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      icon={<SaveOutlined />}
-                      loading={profileLoading}
-                      size="middle"
-                    >
-                      {profileLoading ? 'Saving...' : 'Save Profile'}
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Card>
-
-              {/* Password Change Form */}
-              <Card
-                title={
-                  <Space>
-                    <LockOutlined style={{ color: '#faad14' }} />
-                    <span>Change Password</span>
-                  </Space>
-                }
-                size="small"
-              >
-                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                  Update your password to keep your account secure. All fields are required.
-                </Text>
-
-                <Form
-                  form={passwordForm}
-                  layout="vertical"
-                  onFinish={handlePasswordSubmit}
-                  size="middle"
-                >
-                  <Form.Item
-                    name="currentPassword"
-                    label="Current Password"
-                    rules={[
-                      { required: true, message: 'Please enter your current password' },
-                    ]}
-                  >
-                    <Input.Password placeholder="Enter your current password" />
-                  </Form.Item>
-
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="newPassword"
-                        label="New Password"
-                        rules={[
-                          { required: true, message: 'Please enter your new password' },
-                          { min: 6, message: 'Password must be at least 6 characters long' },
-                        ]}
-                      >
-                        <Input.Password placeholder="Enter your new password" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="confirmPassword"
-                        label="Confirm New Password"
-                        rules={[
-                          { required: true, message: 'Please confirm your new password' },
-                          ({ getFieldValue }) => ({
-                            validator(_, value) {
-                              if (!value || getFieldValue('newPassword') === value) {
-                                return Promise.resolve();
-                              }
-                              return Promise.reject(new Error('Passwords do not match'));
-                            },
-                          }),
-                        ]}
-                      >
-                        <Input.Password placeholder="Confirm your new password" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      icon={<LockOutlined />}
-                      loading={passwordLoading}
-                      size="middle"
-                    >
-                      {passwordLoading ? 'Changing...' : 'Change Password'}
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Card>
-            </Space>
-          </Col>
-        </Row>
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          loading={passwordLoading}
+                          className="w-full h-10 rounded-lg bg-slate-900 hover:bg-slate-800 border-0 font-bold text-xs mt-2"
+                        >
+                          Update Security Key
+                        </Button>
+                      </Form>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        <style jsx global>{`
+          .ant-form-item-label > label {
+            font-weight: 500 !important;
+            color: var(--text-slate-500) !important;
+            font-size: 11px !important;
+          }
+          .ant-input, .ant-input-password, .ant-input-affix-wrapper {
+            border-radius: 8px !important;
+            border-color: var(--border-slate-100) !important;
+            background: var(--bg-pure-white) !important;
+            color: var(--text-slate-900) !important;
+          }
+          .ant-input:focus, .ant-input-affix-wrapper-focused {
+            border-color: #2563eb !important;
+            box-shadow: none !important;
+          }
+           .ant-input:disabled {
+            background-color: var(--bg-slate-50) !important;
+            color: var(--text-slate-400) !important;
+          }
+        `}</style>
       </div>
     </MainLayout>
   );

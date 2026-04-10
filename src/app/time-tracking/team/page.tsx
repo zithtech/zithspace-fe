@@ -26,7 +26,7 @@ export default function TeamTimePage() {
       <div style={{ 
         margin: "0 -24px", 
         padding: "24px 32px", 
-        background: "#ffffff", 
+        background: "var(--bg-pure-white)", 
         minHeight: "calc(100vh - 64px)" 
       }}>
         {/* Header Section */}
@@ -34,17 +34,17 @@ export default function TeamTimePage() {
           <div style={{ flex: 1 }}>
             <Space size={12} align="center">
               <div style={{ 
-                background: "#eff6ff", 
+                background: "var(--bg-blue-50)", 
                 padding: 10, 
                 borderRadius: 12, 
-                color: "#2563eb",
+                color: "var(--text-blue-600)",
                 display: "flex"
               }}>
                 <TeamOutlined style={{ fontSize: 24 }} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Team View</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Monitor team productivity, work sessions, and daily capacity in real-time.</Text>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Team View</Title>
+                <Text style={{ color: "var(--text-slate-600)", fontSize: 15 }}>Monitor team productivity, work sessions, and daily capacity in real-time.</Text>
               </div>
             </Space>
           </div>
@@ -53,7 +53,7 @@ export default function TeamTimePage() {
             <Button 
               size="large" 
               onClick={() => setIsManageModalOpen(true)} 
-              style={{ height: 44, borderRadius: 10, fontWeight: 500, padding: '0 20px' }}
+              style={{ height: 44, borderRadius: 10, fontWeight: 500, padding: '0 20px', background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
             >
               Manage Time
             </Button>

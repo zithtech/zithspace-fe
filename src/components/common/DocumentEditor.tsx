@@ -18,6 +18,30 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   viewMode,
   onChange,
 }) => {
+  const [currentTheme, setCurrentTheme] = React.useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          const theme = document.documentElement.getAttribute('data-theme');
+          setCurrentTheme(theme === 'dark' ? 'dark' : 'light');
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    // Initial check
+    const initialTheme = document.documentElement.getAttribute('data-theme');
+    setCurrentTheme(initialTheme === 'dark' ? 'dark' : 'light');
+
+    return () => observer.disconnect();
+  }, []);
+
   // Secondary editor for the "Combined" view's preview pane
   const previewEditor = useCreateBlockNote();
 
@@ -48,11 +72,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }
 
   const renderEditor = (instance: BlockNoteEditor, editable: boolean, onInternalChange?: () => void) => (
-    <div className="h-full overflow-auto p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+    <div className="h-full overflow-auto p-4 bg-white rounded-lg shadow-sm border border-gray-100" style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)' }}>
       <BlockNoteView
         editor={instance}
         editable={editable}
-        theme="light"
+        theme={currentTheme}
         onChange={onInternalChange || (editable ? onChange : undefined)}
       />
     </div>
@@ -66,15 +90,15 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({
         {viewMode === "preview" && renderEditor(editor, false)}
         {viewMode === "combined" && (
           <div className="flex h-full gap-4">
-            <div className="flex-1 h-full overflow-hidden border-r border-gray-200">
-              <div className="text-xs font-semibold text-gray-500 mb-2 px-2">
+            <div className="flex-1 h-full overflow-hidden border-r border-gray-200" style={{ borderRightColor: 'var(--border-slate-200)' }}>
+              <div className="text-xs font-semibold text-gray-500 mb-2 px-2" style={{ color: 'var(--text-slate-400)' }}>
                 EDITOR
               </div>
               {/* Main editor: Editable, triggers sync on change */}
               {renderEditor(editor, true, handleEditorChange)}
             </div>
             <div className="flex-1 h-full overflow-hidden">
-              <div className="text-xs font-semibold text-gray-500 mb-2 px-2">
+              <div className="text-xs font-semibold text-gray-500 mb-2 px-2" style={{ color: 'var(--text-slate-400)' }}>
                 PREVIEW
               </div>
               {/* Preview editor: Read-only */}

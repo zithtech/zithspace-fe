@@ -196,10 +196,10 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
     <Modal
       title={
         <Space size="middle">
-          <div style={{ background: "#e0f2fe", padding: 6, borderRadius: 8, display: "flex", color: "#0ea5e9" }}>
+          <div style={{ background: "var(--bg-blue-50)", padding: 6, borderRadius: 8, display: "flex", color: "#0ea5e9" }}>
             <ClockCircleOutlined style={{ fontSize: 18 }} />
           </div>
-          <span style={{ fontWeight: 700, color: "#1e293b", fontSize: 16 }}>Log Time Session</span>
+          <span style={{ fontWeight: 700, color: "var(--text-slate-900)", fontSize: 16 }}>Log Time Session</span>
         </Space>
       }
       open={open}
@@ -299,10 +299,10 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
         </Form.Item>
 
         <div style={{
-          background: '#f8faff',
+          background: 'var(--bg-secondary)',
           padding: '16px',
           borderRadius: '8px',
-          border: '1px solid #e6f4ff',
+          border: '1px solid var(--border-slate-200)',
           marginBottom: '24px'
         }}>
           <Row gutter={16} align="bottom">
@@ -350,7 +350,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
             <Button
               onClick={onClose}
               icon={<CloseCircleOutlined />}
-              style={{ borderRadius: 8, height: 40 }}
+              style={{ borderRadius: 8, height: 40, background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
             >
               Cancel
             </Button>

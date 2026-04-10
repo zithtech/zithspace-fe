@@ -154,14 +154,15 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
     }
   };
 
-  const labelStyle = { fontSize: 12, fontWeight: 500 };
+  const labelStyle = { fontSize: 12, fontWeight: 500, color: "var(--text-slate-500)" };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingBottom: "24px" }}>
       {/* Basic Information */}
       <Card
-        title={<Space><UserOutlined style={{ color: "#1677ff" }} /> <span>Basic Information</span></Space>}
+        title={<Space><UserOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Basic Information</span></Space>}
         bordered={false}
+        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
         styles={{ body: { padding: "24px" } }}
       >
         <Form
@@ -289,8 +290,9 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
       {/* Address Information */}
       <Card
-        title={<Space><EnvironmentOutlined style={{ color: "#1677ff" }} /> <span>Address Information</span></Space>}
+        title={<Space><EnvironmentOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Address Information</span></Space>}
         bordered={false}
+        style={{ background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
         styles={{ body: { padding: "24px" } }}
       >
         <Form
@@ -298,7 +300,7 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           layout="vertical"
           requiredMark={false}
         >
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: "#1677ff" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: "var(--premium-blue)" }}>
             Current Address
           </div>
           <Row gutter={24}>
@@ -385,10 +387,10 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
             </Col>
           </Row>
 
-          <Divider style={{ margin: "16px 0" }} />
+          <Divider style={{ margin: "16px 0", borderColor: "var(--border-slate-100)" }} />
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#1677ff" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--premium-blue)" }}>
               Permanent Address
             </div>
             <Checkbox checked={sameAsCurrent} onChange={onSameAddressChange}>
@@ -462,8 +464,8 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
           <Card
             title={<Space><Users size={18} style={{ color: "#ec4899" }} /> <span>Relationship & Emergency Contact</span></Space>}
             bordered={false}
+            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
             styles={{ body: { padding: "24px" } }}
-            style={{ height: "100%", borderRadius: 12, border: "1px solid #f1f5f9" }}
           >
             <Form form={emergencyInfoForm} layout="vertical" requiredMark={false}>
               <Form.Item label={<span style={labelStyle}>Relationship</span>} name="relationship" rules={[{ required: true }]}>
@@ -514,10 +516,10 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
         <Col span={12}>
           {/* Identity Information */}
           <Card
-            title={<Space><IdcardOutlined style={{ color: "#1677ff" }} /> <span>Identity Information</span></Space>}
+            title={<Space><IdcardOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Identity Information</span></Space>}
             bordered={false}
+            style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
             styles={{ body: { padding: "24px" } }}
-            style={{ height: "100%" }}
           >
             <Form form={identityForm} layout="vertical" requiredMark={false}>
               <Form.Item

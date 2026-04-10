@@ -1,5 +1,5 @@
 import React from "react";
-export const NAV_MOBILE_BREAKPOINT = 700;
+export const NAV_MOBILE_BREAKPOINT = 720;
 import { Permissions } from "@/types/permissions";
 import {
   DashboardOutlined,
@@ -55,6 +55,8 @@ import {
 import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
 import { ImProfile } from "react-icons/im";
+import { AiFillAlert } from "react-icons/ai";
+
 
 
 import { TiGroup } from "react-icons/ti";
@@ -117,7 +119,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: <ProjectOutlined />,
-    pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates"],
+    pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates", "/escalations"],
     defaultPath: "/projects/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -305,32 +307,63 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         path: "/squad",
         requiredPermission: Permissions.DOCUMENT_READ,
       },
+      // {
+      //   key: "releasenotes",
+      //   icon: <FileTextOutlined />,
+      //   label: "Release Notes",
+      //   requiredPermission: Permissions.PROJECT_READ,
+      //   children: [
+      //     {
+      //       key: "/releasenotes/dashboard",
+      //       path: "/releasenotes/dashboard",
+      //       icon: <AppstoreOutlined />,
+      //       label: "Dashboard",
+      //       requiredPermission: Permissions.PROJECT_READ,
+      //     },
+      //     {
+      //       key: "/releasenotes",
+      //       path: "/releasenotes",
+      //       icon: <FileTextOutlined />,
+      //       label: "Release",
+      //       requiredPermission: Permissions.PROJECT_READ,
+      //     },
+      //     {
+      //       key: "/releasenotes/settings",
+      //       path: "/releasenotes/settings",
+      //       icon: <SettingOutlined />,
+      //       label: "Settings",
+      //       requiredPermission: Permissions.PROJECT_MANAGE,
+      //     },
+      //   ],
+      // },
       {
-        key: "releasenotes",
-        icon: <FileTextOutlined />,
-        label: "Release Notes",
-        requiredPermission: Permissions.PROJECT_READ,
+        key: "escalations-group",
+        label: "Escalations",
+        icon: <AlertOutlined />,
         children: [
           {
-            key: "/releasenotes/dashboard",
-            path: "/releasenotes/dashboard",
-            icon: <AppstoreOutlined />,
-            label: "Dashboard",
-            requiredPermission: Permissions.PROJECT_READ,
+            key: "/escalations",
+            label: "Escalation List",
+            icon: <UnorderedListOutlined />,
+            path: "/escalations",
           },
           {
-            key: "/releasenotes",
-            path: "/releasenotes",
-            icon: <FileTextOutlined />,
-            label: "Release",
-            requiredPermission: Permissions.PROJECT_READ,
+            key: "/escalations/create",
+            label: "Create Escalation",
+            icon: <PlusCircleOutlined />,
+            path: "/escalations/create",
           },
           {
-            key: "/releasenotes/settings",
-            path: "/releasenotes/settings",
-            icon: <SettingOutlined />,
+            key: "/escalations/sla-rules",
+            label: "SLA & Rules Engine",
+            icon: <ControlOutlined />,
+            path: "/escalations/sla-rules",
+          },
+          {
+            key: "/escalations/settings",
             label: "Settings",
-            requiredPermission: Permissions.PROJECT_MANAGE,
+            icon: <SettingOutlined />,
+            path: "/escalations/settings",
           },
         ],
       },
@@ -658,6 +691,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
         label: "Performance View",
         icon: <BarChartOutlined />,
         path: "/perfomance-management",
+        requiredPermission: Permissions.USER_READ,
+      },
+      {
+        key: "/opening-management",
+        label: "Opening Management",
+        icon: <AiFillAlert />,
+        path: "/opening-management",
         requiredPermission: Permissions.USER_READ,
       },
     ],

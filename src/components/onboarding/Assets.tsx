@@ -49,7 +49,7 @@ const cardStyle: React.CSSProperties = {
   background: "var(--bg-pure-white)",
   border: "1px solid var(--border-slate-100)",
   borderRadius: "12px",
-  padding: "10px",
+  padding: "11px",
   height: "280px",
   transition: "all 0.2s ease",
   display: "flex",
@@ -205,8 +205,8 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
     <div style={{ padding: "0 24px 20px", background: "transparent", borderRadius: "12px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", padding: "12px 0", borderBottom: "1px solid var(--border-slate-100)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "var(--text-slate-900)" }}>Assets Information</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "var(--text-slate-500)" }}>Manage assignment hardware.</p>
+          <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>Assets Information</h2>
+          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#64748b" }}>Manage Assignment Hardware.</p>
         </div>
       </div>
 
@@ -434,7 +434,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
               style={{ height: "40px", borderRadius: "8px" }}
               dropdownStyle={{ borderRadius: "8px" }}
             >
-              <Select.Option value="Mobile">Smartphone</Select.Option>
+              <Select.Option value="Mobile">Smartphones</Select.Option>
               <Select.Option value="Laptop">Laptop / Notebook</Select.Option>
               <Select.Option value="Tab">Tablet Device</Select.Option>
               <Select.Option value="Monitor">External Monitor</Select.Option>

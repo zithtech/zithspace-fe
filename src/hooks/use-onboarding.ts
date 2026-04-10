@@ -52,6 +52,29 @@ export function useEmployeeOnboarding() {
     }
   };
 
+  /* ================= UPDATE ONBOARDING ================= */
+
+  const updateOnboarding = async (id: string, data: any) => {
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccess(false);
+
+      const response = await EmployeeOnboardingService.updateEmployee(id, data);
+
+      setResult(response);
+      setSuccess(true);
+      await fetchEmployees(); // Refresh list after update
+      return response;
+    } catch (err: any) {
+      setError(err.message || "Failed to update onboarding");
+      setSuccess(false);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   /* ================= RESET ================= */
 
   const resetOnboardingState = () => {
@@ -75,6 +98,7 @@ export function useEmployeeOnboarding() {
     // actions
     fetchEmployees,
     createOnboarding,
+    updateOnboarding,
     resetOnboardingState,
   };
 }

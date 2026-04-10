@@ -484,12 +484,14 @@ export default function ManageAttendancePage() {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="clockIn" label="Clock In" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="09:00" />
+                    <TimePicker format="HH:mm" popupClassName="my-timepicker-popup"
+                      style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="09:00" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item name="clockOut" label="Clock Out" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="18:00" />
+                    <TimePicker format="HH:mm" popupClassName="my-timepicker-popup"
+                      style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="18:00" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -583,12 +585,16 @@ export default function ManageAttendancePage() {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="clockIn" label="Clock In" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
+                    <TimePicker format="HH:mm" onChange={(time) => {
+                      console.log(time); // immediate value
+                    }} style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item name="clockOut" label="Clock Out" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
+                    <TimePicker format="HH:mm" needConfirm={false} onChange={(time) => {
+                      console.log(time); // immediate value
+                    }} style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -642,6 +648,9 @@ export default function ManageAttendancePage() {
           .ant-table-pagination.ant-pagination {
             border-top: 1px solid var(--border-slate-100) !important;
           }
+            .my-timepicker-popup .ant-picker-footer {
+  display: none !important;
+}
         `}</style>
       </div>
     </MainLayout>

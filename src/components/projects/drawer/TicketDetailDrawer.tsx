@@ -123,9 +123,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   // Update editor content when description changes externally
   React.useEffect(() => {
-    if (ticket?.description) {
-      setEditorContent(ticket.description);
-    }
+    setEditorContent(ticket?.description || "");
   }, [ticket?.description]);
 
   // Pagination Navigation
@@ -154,6 +152,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       setCurrentTicketId(null);
       setNavigationStack([]);
       setTimeEntries([]);
+      setEditorContent("");
     }
   }, [open, ticketId]);
 

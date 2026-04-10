@@ -434,7 +434,7 @@ const Assets = forwardRef(({ data }: any, ref: any) => {
               style={{ height: "40px", borderRadius: "8px" }}
               dropdownStyle={{ borderRadius: "8px" }}
             >
-              <Select.Option value="Mobile">Smartphone</Select.Option>
+              <Select.Option value="Mobile">Smartphones</Select.Option>
               <Select.Option value="Laptop">Laptop / Notebook</Select.Option>
               <Select.Option value="Tab">Tablet Device</Select.Option>
               <Select.Option value="Monitor">External Monitor</Select.Option>

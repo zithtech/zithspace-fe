@@ -129,6 +129,9 @@ export interface Ticket {
   endDate?: string;
   releasePlanId?: string; // Mapped from backend
   sprintPlanId?: string; // Mapped from backend
+  demoPlanId?: string;
+  bucketId?: string;
+  isArchived?: boolean;
   parentId?: string; // Hierarchy support (Subtask)
   metadata?: {
     platform?: string;

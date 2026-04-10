@@ -59,9 +59,10 @@ export default function ArchivedTicketsPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Use useTickets hook with archivedOnly flag to show ONLY archived tickets
-  const { data: ticketsData, isLoading, refetch } = useTickets({
+  const { data: ticketsData, isLoading, refetch, isFetching } = useTickets({
     archivedOnly: true,
     projectId: selectedProject,
     search: searchText,
@@ -72,20 +73,33 @@ export default function ArchivedTicketsPage() {
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
+  const loadStats = async () => {
+    setStatsLoading(true);
+    try {
+      const stats = await TicketService.getDashboardStats();
+      setDashboardStats(stats);
+    } catch (error) {
+      console.error("Failed to load dashboard stats:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadStats = async () => {
-      setStatsLoading(true);
-      try {
-        const stats = await TicketService.getDashboardStats();
-        setDashboardStats(stats);
-      } catch (error) {
-        console.error("Failed to load dashboard stats:", error);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
     loadStats();
   }, []);
+
+  const handleReload = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refetch(), loadStats()]);
+      message.success("Archived tickets refreshed");
+    } catch (e) {
+      message.error("Failed to refresh archived tickets");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const totalArchived = ticketsData?.pagination?.total || 0;
 
@@ -310,7 +324,8 @@ export default function ArchivedTicketsPage() {
                 )}
                 <Button
                   icon={<ReloadOutlined />}
-                  onClick={() => refetch()}
+                  onClick={handleReload}
+                  loading={isRefreshing || isFetching || statsLoading}
                   style={{ height: 40, borderRadius: 8 }}
                 />
               </Space>

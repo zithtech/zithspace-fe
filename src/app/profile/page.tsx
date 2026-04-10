@@ -405,7 +405,7 @@ export default function ProfilePage() {
                             label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Calendar size={12}/> Date of Birth</span>}
                             className="mb-1"
                           >
-                            <Input type="date" className="rounded-lg py-1.5 focus:ring-0 text-sm font-semibold h-9" style={{ border: '1px solid var(--border-slate-100)', background: 'var(--bg-pure-white)', color: 'var(--text-slate-900)' }} />
+                            <Input type="date" className="rounded-lg py-1.5 focus:ring-0 text-sm font-semibold h-9" style={{ border: '1px solid var(--border-slate-100)', background: 'var(--bg-secondary)', color: 'var(--text-slate-900)' }} />
                           </Form.Item>
                         </div>
 
@@ -493,7 +493,7 @@ export default function ProfilePage() {
           .ant-input, .ant-input-password, .ant-input-affix-wrapper {
             border-radius: 8px !important;
             border-color: var(--border-slate-100) !important;
-            background: var(--bg-pure-white) !important;
+            background: var(--bg-secondary) !important;
             color: var(--text-slate-900) !important;
           }
           .ant-input:focus, .ant-input-affix-wrapper-focused {

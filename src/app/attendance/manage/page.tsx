@@ -152,11 +152,43 @@ export default function ManageAttendancePage() {
   const handleUpdate = async (values: any, isEdit: boolean) => {
     try {
       setActionLoading(true);
-      // Actual API calls would go here
-      setSuccess(`Attendance record ${isEdit ? 'updated' : 'added'} successfully!`);
+      
+      const selectedDate = dayjs(values.date);
+      const clockInTime = values.clockIn ? dayjs(values.clockIn) : null;
+      const clockOutTime = values.clockOut ? dayjs(values.clockOut) : null;
+
+      // Combine selected date with selected times to get correct ISO strings
+      const formattedClockIn = clockInTime
+        ? selectedDate.hour(clockInTime.hour()).minute(clockInTime.minute()).second(0).toISOString()
+        : undefined;
+
+      const formattedClockOut = clockOutTime
+        ? selectedDate.hour(clockOutTime.hour()).minute(clockOutTime.minute()).second(0).toISOString()
+        : undefined;
+
+      const payload = {
+        date: selectedDate.toISOString(),
+        status: values.status,
+        clockIn: formattedClockIn,
+        clockOut: formattedClockOut,
+        notes: values.notes,
+        userId: values.member,
+      };
+
+      if (isEdit && editingRecord) {
+        await AttendanceService.updateAttendance(editingRecord.id, payload);
+        setSuccess('Attendance record updated successfully!');
+      } else {
+        await AttendanceService.createAttendance(payload as any);
+        setSuccess('Attendance record added successfully!');
+      }
+
       isEdit ? setIsEditModalVisible(false) : setIsAddModalVisible(false);
+      addForm.resetFields();
+      editForm.resetFields();
       fetchData();
     } catch (err: any) {
+      console.error('Update failed:', err);
       setError(err?.message || `Failed to ${isEdit ? 'update' : 'add'} record`);
     } finally {
       setActionLoading(false);
@@ -166,10 +198,11 @@ export default function ManageAttendancePage() {
   const handleDelete = async (id: string) => {
     try {
       setActionLoading(true);
-      // Actual API call would go here
+      await AttendanceService.deleteAttendance(id);
       setSuccess('Attendance record deleted successfully!');
       fetchData();
     } catch (err: any) {
+      console.error('Delete failed:', err);
       setError(err?.message || 'Failed to delete record');
     } finally {
       setActionLoading(false);
@@ -246,6 +279,7 @@ export default function ManageAttendancePage() {
                 date: dayjs(record.date),
                 clockIn: record.clockIn ? dayjs(record.clockIn) : null,
                 clockOut: record.clockOut ? dayjs(record.clockOut) : null,
+                status: record.status,
               });
               setIsEditModalVisible(true);
             }}
@@ -383,6 +417,13 @@ export default function ManageAttendancePage() {
               showSizeChanger: true,
               size: 'default',
               style: { padding: '16px 24px' }
+            }}
+            onChange={(newPagination) => {
+              setPagination({
+                ...pagination,
+                current: newPagination.current || 1,
+                pageSize: newPagination.pageSize || 10,
+              });
             }}
             size="middle"
             scroll={{ x: 900 }}

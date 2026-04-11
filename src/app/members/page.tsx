@@ -28,6 +28,7 @@ import {
   DeleteOutlined,
   MoreOutlined,
   TeamOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import {
@@ -313,6 +314,12 @@ export default function MembersPage() {
     setIsModalVisible(true);
   };
 
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setRoleFilter(undefined);
+    setPositionFilter(undefined);
+  };
+
   // Table columns
   const columns: ColumnsType<Member> = [
     {
@@ -593,42 +600,63 @@ export default function MembersPage() {
         >
           {/* Filters Bar */}
           <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-slate-100)' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-              <Input
-                placeholder="Search members..."
-                prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: 280, borderRadius: 8, height: 40, background: 'var(--bg-pure-white)', color: 'var(--text-slate-900)' }}
-                allowClear
-              />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, flex: 1 }}>
+                <Input
+                  placeholder="Search members..."
+                  prefix={<SearchOutlined style={{ color: 'var(--text-slate-400)' }} />}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: 280, borderRadius: 8, height: 40, background: 'var(--bg-secondary)', color: 'var(--text-slate-900)' }}
+                  allowClear
+                />
 
-              <Select
-                placeholder="Filter by role"
-                value={roleFilter}
-                onChange={setRoleFilter}
-                style={{ width: 180, height: 40 }}
-                allowClear
-              >
-                <Option value="super_admin">Super Admin</Option>
-                <Option value="admin">Admin</Option>
-                <Option value="user">User</Option>
-              </Select>
+                <Select
+                  placeholder="Filter by role"
+                  value={roleFilter}
+                  onChange={setRoleFilter}
+                  style={{ width: 180, height: 40 }}
+                  allowClear
+                >
+                  <Option value="super_admin">Super Admin</Option>
+                  <Option value="admin">Admin</Option>
+                  <Option value="user">User</Option>
+                </Select>
 
-              <Select
-                placeholder="Filter by position"
-                value={positionFilter}
-                onChange={setPositionFilter}
-                style={{ width: 220, height: 40 }}
-                allowClear
-                loading={positionsLoading}
-              >
-                {positions.map((position) => (
-                  <Option key={position.id} value={position.title}>
-                    {position.title}
-                  </Option>
-                ))}
-              </Select>
+                <Select
+                  placeholder="Filter by position"
+                  value={positionFilter}
+                  onChange={setPositionFilter}
+                  style={{ width: 220, height: 40 }}
+                  allowClear
+                  loading={positionsLoading}
+                >
+                  {positions.map((position) => (
+                    <Option key={position.id} value={position.title}>
+                      {position.title}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={handleClearFilters}
+                  style={{
+                    height: 40,
+                    borderRadius: 8,
+                    fontWeight: 500,
+                    color: 'var(--text-slate-600)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-slate-200)'
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -904,7 +932,7 @@ export default function MembersPage() {
           .ant-input, .ant-input-number, .ant-select-selector, .ant-picker, .ant-input-affix-wrapper {
             border-radius: 8px !important;
             border-color: var(--border-slate-200) !important;
-            background: var(--bg-pure-white) !important;
+            background: var(--bg-secondary) !important;
             color: var(--text-slate-900) !important;
           }
           .ant-input:focus, .ant-input-number:focus, .ant-select-selector:focus {

@@ -92,7 +92,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <Layout style={{ height: "100vh", overflow: "hidden" }}>
+    <Layout style={{ height: "100vh", overflow: "hidden", background: 'var(--bg-pure-white)' }}>
       <TopNav
         activeModule={activeModule}
         onModuleChange={(module) => setActiveModule(module)}

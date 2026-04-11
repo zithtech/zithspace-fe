@@ -272,13 +272,6 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
 
     // Initialize editor
     const editor = useCreateBlockNote({
-        uploadFile: async (file) => {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-            });
-        },
         initialContent: undefined, // We'll handle content updates via useEffect
     });
 

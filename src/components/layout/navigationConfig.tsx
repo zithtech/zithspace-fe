@@ -367,6 +367,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+      {
+        key: "leads",
+        label: "Leads",
+        icon: <FolderOpenOutlined />,
+        path: "/leads",
+        
+      },
     ],
   },
   {

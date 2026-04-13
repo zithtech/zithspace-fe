@@ -505,6 +505,9 @@ export default function GovernmentHolidaysPage() {
                 value={modalCountry}
                 onChange={setModalCountry}
                 showSearch
+                filterOption={(input, option) =>
+                  String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                }
                 options={Country.getAllCountries().map(c => ({ label: c.name, value: c.isoCode }))}
               />
             </div>

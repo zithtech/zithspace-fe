@@ -18,6 +18,7 @@ import {
   List,
   Space,
   DatePicker,
+  App,
 } from 'antd';
 import {
   DashboardOutlined,
@@ -63,11 +64,11 @@ interface PresentEmployee {
 
 export default function AttendanceDashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { notification } = App.useApp();
   const router = useRouter();
   const { canReadAttendance } = usePermission();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
   const [presentEmployees, setPresentEmployees] = useState<PresentEmployee[]>([]);
   const [dateFilter, setDateFilter] = useState<'week' | 'month' | 'custom'>('week');
@@ -90,7 +91,11 @@ export default function AttendanceDashboardPage() {
       setPresentEmployees(employees as any);
     } catch (err: any) {
       console.error('Failed to fetch dashboard data:', err);
-      setError('Failed to load dashboard data');
+      notification.error({
+        message: 'Dashboard Error',
+        description: 'Failed to load dashboard data',
+        placement: 'topRight'
+      });
     } finally {
       setLoading(false);
     }
@@ -178,8 +183,6 @@ export default function AttendanceDashboardPage() {
             </Space>
           </Card>
         </div>
-
-        {error && <Alert message={error} type="error" showIcon closable style={{ marginBottom: 24, borderRadius: '8px' }} />}
 
         {/* Statistics Grid */}
         <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>

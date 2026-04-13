@@ -32,6 +32,7 @@ const { Title, Text } = Typography;
 export default function ExitTypePage() {
   const [form] = Form.useForm();
   const [exitTypes, setExitTypes] = useState<ExitType[]>([]);
+  const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingType, setEditingType] = useState<ExitType | null>(null);
@@ -215,6 +216,11 @@ export default function ExitTypePage() {
     },
   ];
 
+  const filteredExitTypes = exitTypes.filter(type => 
+    (type.name || '').toLowerCase().includes(searchText.toLowerCase()) || 
+    (type.code || '').toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <div style={{ padding: '8px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -223,6 +229,9 @@ export default function ExitTypePage() {
             placeholder="Search types..." 
             prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
             style={{ width: 280, borderRadius: 10, height: 40 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
           />
         </div>
         <Button
@@ -237,7 +246,7 @@ export default function ExitTypePage() {
 
       <Table
         columns={columns}
-        dataSource={exitTypes}
+        dataSource={filteredExitTypes}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10, position: ["bottomRight"] }}

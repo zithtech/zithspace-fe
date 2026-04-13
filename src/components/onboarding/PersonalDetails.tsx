@@ -1,5 +1,6 @@
 import { Form, Input, Select, DatePicker, Row, Col, Checkbox, Card, Divider, Space } from "antd";
 import { UserOutlined, EnvironmentOutlined, PhoneOutlined, IdcardOutlined } from "@ant-design/icons";
+import { Users } from "lucide-react";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import dayjs from "dayjs";
 
@@ -459,9 +460,9 @@ const PersonalDetails = forwardRef(({ data }: any, ref: any) => {
 
       <Row gutter={24}>
         <Col span={12}>
-          {/* Emergency Information */}
+          {/* Relationship & Emergency Contact */}
           <Card
-            title={<Space><PhoneOutlined style={{ color: "var(--premium-blue)" }} /> <span style={{ color: "var(--text-slate-900)" }}>Emergency Information</span></Space>}
+            title={<Space><Users size={18} style={{ color: "#ec4899" }} /> <span>Relationship & Emergency Contact</span></Space>}
             bordered={false}
             style={{ height: "100%", background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-100)", borderRadius: "12px" }}
             styles={{ body: { padding: "24px" } }}

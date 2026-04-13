@@ -25,7 +25,7 @@ const ThemeConfigProvider: React.FC<{ children: React.ReactNode }> = ({
           colorInfo: "#3B82F6",
 
           // Backgrounds & Surface
-          colorBgContainer: theme === "dark" ? "##0B0F1A" : "#ffffff",
+          colorBgContainer: theme === "dark" ? "#0B0F1A" : "#ffffff",
           colorBgLayout: theme === "dark" ? "#0B0F1A" : "#ffffff",
 
           // Borders

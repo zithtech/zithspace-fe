@@ -10,8 +10,11 @@ export interface Attendance {
   date: string;
   clockIn?: string;
   clockOut?: string;
-  status: "present" | "absent" | "late" | "half-day";
+  status: "present" | "absent" | "late" | "half-day" | "wfh";
   workingMinutes?: number;
+  totalWorkMinutes?: number;
+  effectiveWorkMinutes?: number;
+  totalBreakMinutes?: number;
   overtimeMinutes?: number;
   lateMinutes?: number;
   shift?: {
@@ -44,6 +47,7 @@ export interface AttendanceFilters {
   endDate?: string;
   status?: string;
   search?: string; // Search by member name
+  projectId?: string;
 }
 
 export interface AttendanceSummary {
@@ -245,6 +249,27 @@ export class AttendanceService {
         throw new Error(error.message);
       }
       throw new Error("Failed to update attendance record");
+    }
+  }
+
+  /**
+   * Create attendance record (admin only)
+   */
+  static async createAttendance(data: {
+    userId: string;
+    date: string;
+    clockIn?: string;
+    clockOut?: string;
+    status: string;
+    notes?: string;
+  }): Promise<Attendance> {
+    try {
+      return await api.post<Attendance>("/api/attendance", data);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to create attendance record");
     }
   }
 

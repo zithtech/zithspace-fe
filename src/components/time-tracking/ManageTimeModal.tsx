@@ -285,7 +285,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 0 }}
               >
-                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours />
+                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours needConfirm={false} />
               </Form.Item>
             </Col>
 
@@ -296,7 +296,7 @@ export const ManageTimeModal: React.FC<ManageTimeModalProps> = ({ open, onClose,
                 rules={[{ required: true, message: 'Required' }]}
                 style={{ marginBottom: 0 }}
               >
-                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours />
+                <TimePicker style={{ width: '100%' }} format="h:mm A" changeOnBlur use12Hours needConfirm={false} />
               </Form.Item>
             </Col>
 

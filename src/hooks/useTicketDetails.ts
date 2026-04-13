@@ -261,6 +261,29 @@ export const useDeleteAttachment = () => {
   });
 };
 
+/**
+ * Rename attachment mutation
+ * Invalidates: attachments cache only
+ */
+export const useRenameAttachment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      attachmentId,
+      newFileName
+    }: {
+      ticketId: string;
+      attachmentId: string;
+      newFileName: string;
+    }) => TicketService.renameAttachment(ticketId, attachmentId, newFileName),
+    onSuccess: (_, { ticketId }) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket', ticketId, 'attachments'] });
+    },
+  });
+};
+
 // ==================== COMBINED HOOK ====================
 
 /**

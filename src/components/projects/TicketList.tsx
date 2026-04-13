@@ -114,6 +114,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     ticketId: string;
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint";
   } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
 
 
@@ -174,6 +175,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const {
     data: activeSprintData,
     isLoading: activeSprintLoading,
+    isFetching: activeSprintFetching,
     refetch: refetchActive
   } = useTickets(activeSprintParams);
 
@@ -181,6 +183,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const {
     data: backlogData,
     isLoading: backlogLoading,
+    isFetching: backlogFetching,
     refetch: refetchBacklog
   } = useTickets(backlogParams);
 
@@ -341,7 +344,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const {
     data: initialKanbanData,
-    isLoading: isInitialKanbanLoading
+    isLoading: isInitialKanbanLoading,
+    isFetching: isInitialKanbanFetching
   } = useKanbanTickets(initialKanbanParams);
 
   // 2. Background complete load (50 tickets/column = 200 total)
@@ -1055,8 +1059,18 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 <Tooltip title="Reload tickets">
                   <Button
                     icon={<ReloadOutlined />}
-                    onClick={() => { refetchActive(); refetchBacklog(); }}
-                    loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading}
+                    onClick={async () => {
+                      setIsRefreshing(true);
+                      try {
+                        await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                        message.success("Tickets refreshed");
+                      } catch (e) {
+                        message.error("Failed to refresh tickets");
+                      } finally {
+                        setIsRefreshing(false);
+                      }
+                    }}
+                    loading={isRefreshing || activeSprintFetching || backlogFetching || isInitialKanbanFetching || isBackgroundKanbanLoading}
                     type="text"
                     style={{ borderRadius: 6 }}
                   />

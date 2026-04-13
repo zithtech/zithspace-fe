@@ -409,7 +409,7 @@ export default function TrashManagementPage() {
                 options={[
                   { label: "All Projects", value: undefined },
                   ...projects.map((p) => ({
-                    label: p.label,
+                    label: `${p.label} - ${p.code}`,
                     value: p.value,
                   })),
                 ]}

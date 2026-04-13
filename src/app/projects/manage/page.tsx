@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import {
+  App,
   Table,
   Button,
   Input,
@@ -9,7 +10,6 @@ import {
   Space,
   Modal,
   Form,
-  Alert,
   Popconfirm,
   Tag,
   DatePicker,
@@ -68,6 +68,7 @@ interface Member {
 
 const ProjectsManagePage: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const { notification, message: antMessage } = App.useApp();
   const [form] = Form.useForm();
 
   // State management
@@ -76,8 +77,6 @@ const ProjectsManagePage: React.FC = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -238,7 +237,6 @@ const ProjectsManagePage: React.FC = () => {
   // Handle create/edit project
   const handleSubmit = async (values: any) => {
     try {
-      setError("");
       const projectData = {
         ...values,
         startDate: values.startDate.format("YYYY-MM-DD"),
@@ -252,10 +250,18 @@ const ProjectsManagePage: React.FC = () => {
           editingProject.id,
           projectData as UpdateProjectData
         );
-        setSuccess("Project updated successfully");
+        notification.success({
+          message: "Project Updated",
+          description: `Project "${values.name}" has been successfully updated.`,
+          placement: "topRight"
+        });
       } else {
         await ProjectService.createProject(projectData as CreateProjectData);
-        setSuccess("Project created successfully");
+        notification.success({
+          message: "Project Created",
+          description: `Project "${values.name}" has been successfully created.`,
+          placement: "topRight"
+        });
       }
 
       setDrawerVisible(false);
@@ -263,19 +269,30 @@ const ProjectsManagePage: React.FC = () => {
       form.resetFields();
       loadProjects();
     } catch (error: any) {
-      setError(error.message || "Failed to save project");
+      notification.error({
+        message: "Operation Failed",
+        description: error.message || "Failed to save project",
+        placement: "topRight"
+      });
     }
   };
 
   // Handle delete project
   const handleDelete = async (id: string) => {
     try {
-      setError("");
       await ProjectService.deleteProject(id);
-      setSuccess("Project deleted successfully");
+      notification.success({
+        message: "Project Deleted",
+        description: "The project has been permanently removed.",
+        placement: "topRight"
+      });
       loadProjects();
     } catch (error: any) {
-      setError(error.message || "Failed to delete project");
+      notification.error({
+        message: "Deletion Failed",
+        description: error.message || "Failed to delete project",
+        placement: "topRight"
+      });
     }
   };
 
@@ -503,17 +520,6 @@ const ProjectsManagePage: React.FC = () => {
     },
   ];
 
-  // Clear messages
-  useEffect(() => {
-    if (success || error) {
-      const timer = setTimeout(() => {
-        setSuccess("");
-        setError("");
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error]);
-
   // Don't render if no user and not loading
   if (!user && !isLoading) {
     return null;
@@ -722,27 +728,7 @@ const ProjectsManagePage: React.FC = () => {
           </Col>
         </Row>
 
-        {/* Alerts */}
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setError("")}
-          />
-        )}
-        {success && (
-          <Alert
-            message={success}
-            type="success"
-            showIcon
-            closable
-            style={{ marginBottom: 16, fontSize: 13 }}
-            onClose={() => setSuccess("")}
-          />
-        )}
+
 
         {/* Filters & All Projects Section */}
         <div style={{
@@ -804,7 +790,7 @@ const ProjectsManagePage: React.FC = () => {
                 const member = members.find((m) => m.value === option?.value);
                 return member
                   ? String(member.label ?? "").toLowerCase().includes(input.toLowerCase()) ||
-                    String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
+                  String(member.position ?? "").toLowerCase().includes(input.toLowerCase())
                   : false;
               }}
             >
@@ -989,6 +975,27 @@ const ProjectsManagePage: React.FC = () => {
                               handleEdit(project);
                             }}
                           />
+                        )}
+                        {user?.role && RBAC.hasPermission(user.role as any, "projects", "delete") && (
+                          <Popconfirm
+                            title="Delete project?"
+                            description="Are you sure you want to delete this project?"
+                            onConfirm={(e) => {
+                              e?.stopPropagation();
+                              handleDelete(project.id);
+                            }}
+                            okText="Yes"
+                            cancelText="No"
+                            placement="topRight"
+                          >
+                            <Button
+                              type="text"
+                              size="small"
+                              danger
+                              icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </Popconfirm>
                         )}
                         <Button
                           type="text"
@@ -1571,12 +1578,12 @@ const ProjectsManagePage: React.FC = () => {
                   <Button
                     type="primary"
                     icon={<EditOutlined />}
-                    block
                     style={{
                       height: 44,
                       borderRadius: 10,
                       fontWeight: 600,
                       background: "#1677ff",
+                      flex: 1
                     }}
                     onClick={() => {
                       setViewDrawerOpen(false);
@@ -1585,6 +1592,31 @@ const ProjectsManagePage: React.FC = () => {
                   >
                     Edit Details
                   </Button>
+                )}
+                {user?.role && RBAC.hasPermission(user.role as any, "projects", "delete") && (
+                  <Popconfirm
+                    title="Delete project?"
+                    description="Are you sure you want to delete this project?"
+                    onConfirm={() => {
+                      setViewDrawerOpen(false);
+                      handleDelete(viewProject.id);
+                    }}
+                    okText="Yes"
+                    cancelText="No"
+                    placement="topRight"
+                  >
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      style={{
+                        height: 44,
+                        borderRadius: 10,
+                        fontWeight: 600
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </Popconfirm>
                 )}
                 <Button
                   block

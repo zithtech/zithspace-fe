@@ -99,6 +99,13 @@ export default function SprintPlanComponent() {
         type: "sprint_plan",
       });
       setSprintPlans(data?.data || []);
+      if (!loading) { // Only show message if it's a manual refresh
+        api.success({
+          message: "Refreshed",
+          description: "Sprint plans updated successfully",
+          placement: "bottomRight",
+        });
+      }
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
       api.error({

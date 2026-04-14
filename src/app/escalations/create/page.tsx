@@ -36,6 +36,8 @@ import {
 import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/axios';
+import { EscalationServiceV2 } from '@/services/escalationServiceV2';
+import { EscalationSettingsService } from '@/services/escalationSettings';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -54,22 +56,22 @@ interface Member {
 interface Category {
   id: string;
   name: string;
-  description?: string;
-  color?: string;
+  description?: string | null;
+  color?: string | null;
 }
 
 interface Priority {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   weight: number;
-  color?: string;
+  color?: string | null;
 }
 
 interface Status {
   id: string;
   name: string;
-  color?: string;
+  color?: string | null;
   isDefault: boolean;
 }
 
@@ -99,31 +101,33 @@ export default function CreateEscalationPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [statuses, setStatuses] = useState<Status[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [fileList, setFileList] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const resArray = await Promise.all([
+        const [membersRes, categoriesRes, prioritiesRes, projectsRes, statusesRes] = await Promise.all([
           api.get('/api/members/select'),
-          api.get('/api/escalation-settings/categories'),
-          api.get('/api/escalation-settings/priorities'),
+          EscalationSettingsService.getCategories(),
+          EscalationSettingsService.getPriorities(),
           api.get('/api/projects/select'),
-          api.get('/api/escalation-settings/statuses')
+          EscalationSettingsService.getStatuses()
         ]);
 
-        const [membersRes, categoriesRes, prioritiesRes, projectsRes, statusesRes] = resArray;
-
+        // Members and Projects fallbacks for safety
         setMembers(membersRes || []);
-        setCategories((categoriesRes || []).filter((c: any) => c.isActive));
-        setPriorities((prioritiesRes || []).filter((p: any) => p.isActive).sort((a: any, b: any) => b.weight - a.weight));
         setProjects(projectsRes || []);
 
-        const activeStatuses = (statusesRes || []).filter((s: any) => s.isActive);
+        // Categories, Priorities, and Statuses are explicitly typed Service arrays natively
+        setCategories(categoriesRes.filter(c => c.isActive));
+        setPriorities(prioritiesRes.filter(p => p.isActive));
+
+        const activeStatuses = statusesRes.filter(s => s.isActive);
         setStatuses(activeStatuses);
 
         // Pre-select default status
-        const defaultStatus = activeStatuses.find((s: any) => s.isDefault);
+        const defaultStatus = activeStatuses.find(s => s.isDefault);
         if (defaultStatus) {
           form.setFieldsValue({ statusId: defaultStatus.id });
         }
@@ -163,6 +167,21 @@ export default function CreateEscalationPage() {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
+      const filePromises = fileList.map((fileItem) => {
+        return new Promise<{ fileName: string, fileBase64: string }>((resolve, reject) => {
+          const file = fileItem.originFileObj || fileItem;
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve({
+            fileName: file.name,
+            fileBase64: reader.result as string
+          });
+          reader.onerror = error => reject(error);
+        });
+      });
+
+      const attachments = await Promise.all(filePromises);
+
       const payload = {
         subject: values.subject,
         description: values.description,
@@ -172,10 +191,10 @@ export default function CreateEscalationPage() {
         statusId: values.statusId,
         targetMemberIds: values.targetUsers,
         ticketIds: values.ticketIds || [],
-        attachments: [],
+        attachments: attachments,
       };
 
-      await api.post('/api/escalations', payload);
+      await EscalationServiceV2.createEscalation(payload);
       message.success('Escalation created successfully!');
       router.push('/escalations');
     } catch (error) {
@@ -509,6 +528,9 @@ export default function CreateEscalationPage() {
                       <Upload.Dragger
                         multiple
                         listType="picture"
+                        fileList={fileList}
+                        onChange={({ fileList: newFileList }) => setFileList(newFileList)}
+                        beforeUpload={() => false}
                         style={{
                           borderRadius: 16,
                           border: '2px dashed var(--border-slate-200)',

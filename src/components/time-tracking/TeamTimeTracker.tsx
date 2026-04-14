@@ -114,20 +114,43 @@ const TimeEntryEditModal: React.FC<TimeEntryEditModalProps> = ({ open, onClose, 
             <div style={{ flex: 1 }}>
               <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>Original Start</Text>
               <div style={{ background: 'var(--bg-table-header)', padding: '8px 12px', borderRadius: 8, color: 'var(--text-slate-600)', fontWeight: 600, border: '1px solid var(--border-slate-100)' }}>
-                {dayjs(entry?.start).format("h:mm:ss A")}
+                {dayjs(entry?.start).format("HH:mm:ss")}
               </div>
             </div>
             <div style={{ flex: 1 }}>
               <Text type="secondary" style={{ display: 'block', fontSize: 12, marginBottom: 6 }}>New End Time</Text>
-              <TimePicker
-                value={endTime}
-                onChange={(time) => setEndTime(time)}
-                format="h:mm:ss A"
-                use12Hours
-                style={{ width: '100%', height: 40, borderRadius: 8 }}
-                allowClear={false}
-                placeholder="Select end time"
-              />
+                <TimePicker
+                  value={endTime}
+                  onChange={(time) => {
+                    if (!time) {
+                      setEndTime(null);
+                      return;
+                    }
+                    if (entry && entry.start) {
+                      // Change the date safely using ISO string format
+                      const isoDate = dayjs(entry.start).format('YYYY-MM-DD');
+                      const isoTime = time.format('HH:mm:ss');
+
+                      // Combine into a standard local ISO format
+                      let correctedTime = dayjs(`${isoDate}T${isoTime}`);
+
+                      // If the selected time is earlier than the start time, 
+                      // assume the session continued past midnight into the next day.
+                      if (correctedTime.isBefore(dayjs(entry.start))) {
+                        correctedTime = correctedTime.add(1, 'day');
+                      }
+
+                      setEndTime(correctedTime);
+                    } else {
+                      setEndTime(time);
+                    }
+                  }}
+                  format="HH:mm:ss"
+                  style={{ width: '100%', height: 40, borderRadius: 8 }}
+                  allowClear={false}
+                  placeholder="Select end time"
+                  needConfirm={false}
+                />
             </div>
           </div>
 
@@ -649,16 +672,28 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
                     <div style={{ marginBottom: 0 }}>
                       {session.ticket?.title ? (
-                        <Link href={`/tickets/${session.ticketId}`}>
-                          <div style={{ display: 'flex', gap: 6, cursor: 'pointer' }}>
-                            {session.ticket.ticketNumber && (
-                              <Text strong style={{ fontSize: 13, color: 'var(--premium-blue)', whiteSpace: 'nowrap' }}>
-                                [{session.ticket.ticketNumber}]
-                              </Text>
-                            )}
-                            <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.ticket.title}</Text>
-                          </div>
-                        </Link>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <Link href={`/tickets/${session.ticketId}`}>
+                            <div style={{ display: 'flex', gap: 6, cursor: 'pointer' }}>
+                              {session.ticket.ticketNumber && (
+                                <Text strong style={{ fontSize: 13, color: 'var(--premium-blue)', whiteSpace: 'nowrap' }}>
+                                  [{session.ticket.ticketNumber}]
+                                </Text>
+                              )}
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.ticket.title}</Text>
+                            </div>
+                          </Link>
+                          {session.ticket.estimateHours !== undefined ? (
+                            <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                              EST: {(() => {
+                                const mins = Math.round(Number(session.ticket.estimateHours) * 60);
+                                const h = Math.floor(mins / 60);
+                                const m = mins % 60;
+                                return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+                              })()}
+                            </Tag>
+                          ) : null}
+                        </div>
                       ) : (
                         <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{session.description || "No description provided"}</Text>
                       )}
@@ -856,16 +891,16 @@ export const TeamTimeTracker: React.FC<TeamTimeTrackerProps> = ({ refreshKey }) 
 
           <Button
             onClick={handleClearFilters}
-            style={{ 
-              fontWeight: 500, 
-              height: 38, 
-              borderRadius: 10, 
-              display: 'flex', 
-              alignItems: 'center', 
+            style={{
+              fontWeight: 500,
+              height: 38,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
               gap: 4,
               background: 'var(--bg-pure-white)',
               border: '1px solid var(--border-slate-200)',
-              color: 'var(--text-leave)' 
+              color: 'var(--text-leave)'
             }}
           >
             Clear

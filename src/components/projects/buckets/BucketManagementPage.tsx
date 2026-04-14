@@ -268,6 +268,7 @@ export default function BucketManagementPage() {
                 styles={{ 
                   popup: { root: { borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" } }
                 }}
+                optionLabelProp="label"
               >
                 <Option value={null}>
                   <Space>
@@ -276,10 +277,10 @@ export default function BucketManagementPage() {
                   </Space>
                 </Option>
                 {projects?.map((project: any) => (
-                  <Option key={project.value} value={project.value}>
+                  <Option key={project.value} value={project.value} label={`${project.label} - ${project.code}`}>
                     <Space>
                       <Badge status="processing" color="#1677ff" />
-                      {project.label}
+                      {project.label} - <small style={{ color: '#8c8c8c' }}>{project.code}</small>
                     </Space>
                   </Option>
                 ))}

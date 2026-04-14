@@ -125,6 +125,14 @@ export default function ReleasePlanComponent() {
         type: activeTab,
       });
       setReleasePlans(data?.data || []);
+      if (!loading) { // Only show message if it's a manual refresh
+        api.success({
+          message: "Refreshed",
+          description: "Plans updated successfully",
+          placement: "bottomRight",
+          duration: 3,
+        });
+      }
     } catch (error) {
       console.error("Failed to load release plans:", error);
       api.error({

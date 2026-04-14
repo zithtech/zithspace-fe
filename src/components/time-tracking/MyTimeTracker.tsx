@@ -216,11 +216,11 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
 
   const processLogsToSessions = (logs: TimeTrackingEntry['logs'], startTime: string, endTime?: string | null) => {
     const sessions: any[] = [];
-  
+
     if (logs && logs.length > 0) {
       const sortedLogs = [...logs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       let current: any = null;
-  
+
       for (const log of sortedLogs) {
         if (log.action === 'STARTED' || log.action === 'RESUMED') {
           current = { id: log.id, start: log.createdAt, end: null, endAction: null };
@@ -231,7 +231,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
           current = null;
         }
       }
-  
+
       if (current) {
         if (endTime && !current.end) {
           current.end = endTime;
@@ -242,7 +242,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         }
       }
     }
-  
+
     // Fallback handles legacy/manual entries.
     if (sessions.length === 0 && startTime && endTime) {
       return [{
@@ -253,7 +253,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
         isManual: true
       }];
     }
-  
+
     return sessions.reverse();
   };
 
@@ -285,7 +285,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                   <ClockCircleOutlined style={{ color: '#1677ff', fontSize: 14 }} />
                   <Text strong style={{ fontSize: 12, color: 'var(--text-slate-600)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Activity Timeline</Text>
                 </div>
-        
+
                 <div style={{ position: 'relative', paddingLeft: 24 }}>
                   {/* Vertical Line */}
                   <div style={{
@@ -297,7 +297,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                     background: 'linear-gradient(to bottom, #1677ff, var(--border-slate-100))',
                     borderRadius: 1
                   }} />
-        
+
                   {sessions.map((session, idx) => {
                     const sessionIsLive = !session.end && isLive;
                     return (
@@ -315,11 +315,11 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                           boxShadow: '0 0 0 1px var(--border-slate-200)',
                           zIndex: 2
                         }} />
-        
-                        <div style={{ 
-                          padding: '12px 16px', 
-                          background: 'var(--bg-secondary)', 
-                          borderRadius: 12, 
+
+                        <div style={{
+                          padding: '12px 16px',
+                          background: 'var(--bg-secondary)',
+                          borderRadius: 12,
                           border: '1px solid var(--border-slate-200)',
                           transition: 'all 0.2s ease'
                         }}>
@@ -333,26 +333,40 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                                   {sessionIsLive ? 'LIVE' : session.endAction === 'PAUSED' ? 'PAUSED' : 'STOPPED'}
                                 </Tag>
                               </div>
-        
+
                               <div style={{ marginBottom: 0 }}>
                                 {record.ticket?.title ? (
-                                  <Link href={`/tickets/${record.ticketId}`}>
-                                    <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)', cursor: 'pointer' }}>{record.ticket.title}</Text>
-                                  </Link>
+                                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <Link href={`/tickets/${record.ticketId}`}>
+                                      <div style={{ display: 'flex', gap: 6, cursor: 'pointer' }}>
+                                        <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.ticket.title}</Text>
+                                      </div>
+                                    </Link>
+                                    {record.ticket.estimateHours !== undefined ? (
+                                      <Tag color="cyan" style={{ border: 'none', borderRadius: 4, margin: 0, padding: '0 6px', fontSize: 10, fontWeight: 700 }}>
+                                        EST: {(() => {
+                                          const mins = Math.round(Number(record.ticket.estimateHours) * 60);
+                                          const h = Math.floor(mins / 60);
+                                          const m = mins % 60;
+                                          return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+                                        })()}
+                                      </Tag>
+                                    ) : null}
+                                  </div>
                                 ) : (
                                   <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>{record.description || "No description provided"}</Text>
                                 )}
                               </div>
                             </Col>
-        
+
                             <Col style={{ textAlign: 'right' }}>
-                              <div style={{ 
-                                padding: '4px 12px', 
-                                background: sessionIsLive ? '#f0fdf4' : '#fff', 
-                                borderRadius: 8, 
-                                color: sessionIsLive ? '#16a34a' : '#475569', 
-                                fontWeight: 700, 
-                                fontSize: 13, 
+                              <div style={{
+                                padding: '4px 12px',
+                                background: sessionIsLive ? '#f0fdf4' : '#fff',
+                                borderRadius: 8,
+                                color: sessionIsLive ? '#16a34a' : '#475569',
+                                fontWeight: 700,
+                                fontSize: 13,
                                 fontFamily: 'monospace',
                                 border: '1px solid ' + (sessionIsLive ? '#bcf0da' : '#e2e8f0')
                               }}>
@@ -372,7 +386,7 @@ export function MyTimeTracker({ selectedDate, refreshKey, onTotalChange }: { sel
                       </div>
                     );
                   })}
-        
+
                   {sessions.length === 0 && (
                     <div style={{ color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No activity recorded for this period.</div>
                   )}

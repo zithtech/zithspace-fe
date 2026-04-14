@@ -424,7 +424,13 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                 )}
                 <Button 
                   icon={<ReloadOutlined />} 
-                  onClick={() => refetchTickets()}
+                  onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+                    queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+                    refetchTickets();
+                    antdMessage.info("Refreshing bucket tickets...");
+                  }}
+                  loading={ticketsLoading || bucketLoading}
                   style={{ height: 44, width: 44, borderRadius: 10 }}
                 />
               </Space>

@@ -13,7 +13,9 @@ export interface TimeTrackingEntry {
   status: "RUNNING" | "STOPPED" | "PAUSED" | "MANUAL_UPDATED";
   logs?: Array<{ id: string; action: string; createdAt: string }>;
   project?: { id: string; name: string; code?: string };
-  ticket?: { id: string; title: string; ticketNumber?: string };
+  ticket?: {
+    estimateHours: undefined; id: string; title: string; ticketNumber?: string
+  };
   user?: { id: string; name: string; workEmail: string };
   createdAt: string;
   updatedAt: string;

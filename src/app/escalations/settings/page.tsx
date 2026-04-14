@@ -16,7 +16,7 @@ import {
   Select,
   Row,
   Col,
-  message,
+  notification,
   Popconfirm,
   Tooltip,
   ColorPicker,
@@ -31,7 +31,10 @@ import {
   UpSquareOutlined,
   BgColorsOutlined,
   InfoCircleOutlined,
-  CheckSquareOutlined
+  CheckSquareOutlined,
+  CheckCircleFilled,
+  ExclamationCircleFilled,
+  CloseCircleFilled
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { EscalationSettingsService } from '@/services/escalationSettings';
@@ -68,6 +71,18 @@ export default function EscalationSettingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [form] = Form.useForm();
+  const [notify, contextHolder] = notification.useNotification();
+
+  const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
+    notify[type]({
+      message: <span className="premium-notif-title">{title}</span>,
+      description: <span className="premium-notif-desc">{description}</span>,
+      icon: type === 'success' ? <CheckCircleFilled style={{ color: '#10B981' }} /> : <CloseCircleFilled style={{ color: '#EF4444' }} />,
+      className: 'premium-notification',
+      placement: 'topRight',
+      duration: 4,
+    });
+  };
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -75,7 +90,7 @@ export default function EscalationSettingsPage() {
       const data = await EscalationSettingsService.getCategories();
       setCategories(data);
     } catch (error: any) {
-      message.error('Failed to fetch categories: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch categories: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +102,7 @@ export default function EscalationSettingsPage() {
       const data = await EscalationSettingsService.getPriorities();
       setPriorities(data);
     } catch (error: any) {
-      message.error('Failed to fetch priorities: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch priorities: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -99,7 +114,7 @@ export default function EscalationSettingsPage() {
       const data = await EscalationSettingsService.getStatuses();
       setStatuses(data);
     } catch (error: any) {
-      message.error('Failed to fetch statuses: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch statuses: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -139,15 +154,24 @@ export default function EscalationSettingsPage() {
       if (isCategory) {
         if (editingItem) await EscalationSettingsService.updateCategory(editingItem.id, payload);
         else await EscalationSettingsService.createCategory(payload);
-        message.success(`Category ${editingItem ? 'updated' : 'created'} successfully`);
+        notifyPremium('success', 
+          `Category ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation category has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
       } else if (isPriority) {
         if (editingItem) await EscalationSettingsService.updatePriority(editingItem.id, payload);
         else await EscalationSettingsService.createPriority(payload);
-        message.success(`Priority ${editingItem ? 'updated' : 'created'} successfully`);
+        notifyPremium('success', 
+          `Priority ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation priority level has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
       } else if (isStatus) {
         if (editingItem) await EscalationSettingsService.updateStatus(editingItem.id, payload);
         else await EscalationSettingsService.createStatus(payload);
-        message.success(`Status ${editingItem ? 'updated' : 'created'} successfully`);
+        notifyPremium('success', 
+          `Status ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation status state has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
       }
 
       setIsModalOpen(false);
@@ -156,25 +180,25 @@ export default function EscalationSettingsPage() {
       else if (isPriority) fetchPriorities();
       else fetchStatuses();
     } catch (error: any) {
-      message.error('Failed to save: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Save Failed', 'Failed to save: ' + (error.message || 'Unknown error'));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       if (activeTab === '1') {
-        await EscalationSettingsService.deleteCategory(id);
+        await EscalationSettingsService.deactivateCategory(id);
         fetchCategories();
       } else if (activeTab === '2') {
-        await EscalationSettingsService.deletePriority(id);
+        await EscalationSettingsService.deactivatePriority(id);
         fetchPriorities();
       } else if (activeTab === '3') {
-        await EscalationSettingsService.deleteStatus(id);
+        await EscalationSettingsService.deactivateStatus(id);
         fetchStatuses();
       }
-      message.success('Item deleted successfully');
+      notifyPremium('success', 'Deactivated Successfully', 'The item has been successfully retired from escalation settings.');
     } catch (error: any) {
-      message.error('Delete failed: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Deactivation Failed', 'Failed to deactivate: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -215,8 +239,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this category?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this category?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -261,8 +285,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this priority?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this priority?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -318,8 +342,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this status?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this status?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -330,6 +354,7 @@ export default function EscalationSettingsPage() {
 
   return (
     <MainLayout>
+      {contextHolder}
       <div style={{ padding: '16px 40px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 

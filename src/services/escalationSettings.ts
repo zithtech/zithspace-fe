@@ -68,6 +68,10 @@ export class EscalationSettingsService {
         });
     }
 
+    static async deactivateCategory(id: string): Promise<any> {
+        return await api.patch(`/api/escalation-categories/${id}/deactivate`);
+    }
+
     static async deleteCategory(id: string): Promise<any> {
         return await api.delete(`/api/escalation-categories/${id}`);
     }
@@ -98,6 +102,10 @@ export class EscalationSettingsService {
             visualColor: data.color,
             status: data.isActive
         });
+    }
+
+    static async deactivatePriority(id: string): Promise<any> {
+        return await api.patch(`/api/escalation-priorities/${id}/deactivate`);
     }
 
     static async deletePriority(id: string): Promise<any> {
@@ -134,6 +142,10 @@ export class EscalationSettingsService {
             isFinal: data.isFinal,
             isDefault: data.isDefault
         });
+    }
+
+    static async deactivateStatus(id: string): Promise<any> {
+        return await api.patch(`/api/escalation-statuses/${id}/deactivate`);
     }
 
     static async deleteStatus(id: string): Promise<any> {

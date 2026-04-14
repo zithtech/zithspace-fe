@@ -17,7 +17,7 @@ import {
   Row,
   Col,
   Select,
-  message,
+  notification,
   Popconfirm
 } from 'antd';
 import {
@@ -36,7 +36,9 @@ import {
   FileTextOutlined,
   HistoryOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled
 } from '@ant-design/icons';
 import { Drawer, Divider, Descriptions } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
@@ -68,6 +70,18 @@ export default function EscalationListPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
   const [statuses, setStatuses] = useState<any[]>([]);
+  const [notify, contextHolder] = notification.useNotification();
+
+  const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
+    notify[type]({
+      message: <span className="premium-notif-title">{title}</span>,
+      description: <span className="premium-notif-desc">{description}</span>,
+      icon: type === 'success' ? <CheckCircleFilled style={{ color: '#10B981' }} /> : <CloseCircleFilled style={{ color: '#EF4444' }} />,
+      className: 'premium-notification',
+      placement: 'topRight',
+      duration: 4,
+    });
+  };
 
   const fetchEscalations = async () => {
     setLoading(true);
@@ -97,12 +111,12 @@ export default function EscalationListPage() {
     setUpdating(true);
     try {
       await EscalationServiceV2.updateEscalation(selectedEscalation.id, { statusId: tempStatus } as any);
-      message.success('Escalation status updated successfully');
+      notifyPremium('success', 'Status Updated', 'The escalation status has been successfully updated.');
       setDrawerVisible(false);
       fetchEscalations();
     } catch (error) {
       console.error('Failed to update status:', error);
-      message.error('Failed to update escalation status');
+      notifyPremium('error', 'Update Failed', 'Failed to update escalation status. Please try again.');
     } finally {
       setUpdating(false);
     }
@@ -112,14 +126,14 @@ export default function EscalationListPage() {
     setDeleting(id);
     try {
       await EscalationServiceV2.deleteEscalation(id);
-      message.success('Escalation deleted successfully');
+      notifyPremium('success', 'Escalation Deleted', 'The escalation record has been permanently removed.');
       setEscalations(prev => prev.filter(e => e.id !== id));
       if (selectedEscalation?.id === id) {
         setDrawerVisible(false);
       }
     } catch (error) {
       console.error('Failed to delete escalation:', error);
-      message.error('Failed to delete escalation');
+      notifyPremium('error', 'Delete Failed', 'Failed to delete escalation. Please try again.');
     } finally {
       setDeleting(null);
     }
@@ -362,6 +376,7 @@ export default function EscalationListPage() {
 
   return (
     <MainLayout>
+      {contextHolder}
       <div style={{ padding: '24px 10px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           {/* Header */}

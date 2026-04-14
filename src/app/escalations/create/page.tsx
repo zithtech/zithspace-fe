@@ -12,7 +12,7 @@ import {
   Divider,
   Alert,
   Upload,
-  message,
+  notification,
   Avatar,
   Row,
   Col,
@@ -31,7 +31,9 @@ import {
   ProjectOutlined,
   ThunderboltOutlined,
   SafetyOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
@@ -95,6 +97,19 @@ export default function CreateEscalationPage() {
   const [form] = Form.useForm();
 
   const [loading, setLoading] = useState(false);
+  const [notify, contextHolder] = notification.useNotification();
+
+  const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
+    notify[type]({
+      message: <span className="premium-notif-title">{title}</span>,
+      description: <span className="premium-notif-desc">{description}</span>,
+      icon: type === 'success' ? <CheckCircleFilled style={{ color: '#10B981' }} /> : <CloseCircleFilled style={{ color: '#EF4444' }} />,
+      className: 'premium-notification',
+      placement: 'topRight',
+      duration: 4,
+    });
+  };
+
   const [members, setMembers] = useState<Member[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [priorities, setPriorities] = useState<Priority[]>([]);
@@ -133,7 +148,7 @@ export default function CreateEscalationPage() {
         }
       } catch (error) {
         console.error('Failed to fetch escalation context data:', error);
-        message.error('Failed to load some form data. Please try again.');
+        notifyPremium('error', 'Load Failed', 'Failed to load some form data. Please refresh and try again.');
       } finally {
         setLoading(false);
       }
@@ -195,11 +210,11 @@ export default function CreateEscalationPage() {
       };
 
       await EscalationServiceV2.createEscalation(payload);
-      message.success('Escalation created successfully!');
+      notifyPremium('success', 'Escalation Created', 'The manual escalation has been successfully posted to technical leadership.');
       router.push('/escalations');
     } catch (error) {
       console.error('Failed to create escalation:', error);
-      message.error('Failed to create escalation. Please try again.');
+      notifyPremium('error', 'Submission Failed', 'Failed to create escalation. Please check your inputs and try again.');
     } finally {
       setLoading(false);
     }
@@ -207,6 +222,7 @@ export default function CreateEscalationPage() {
 
   return (
     <MainLayout>
+      {contextHolder}
       <div style={{ padding: '16px 40px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         <Spin spinning={loading} indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} tip="Initializing Form...">
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>

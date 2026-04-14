@@ -1190,3 +1190,56 @@ body {
 .fadeIn {
   animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+
+/* Premium Notification Styling */
+.premium-notification {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.02) !important;
+  padding: 16px 20px !important;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .premium-notification {
+  background: rgba(19, 27, 45, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.premium-notif-title {
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  font-size: 15px !important;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.premium-notif-desc {
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  line-height: 1.5;
+}
+
+.premium-notification .ant-notification-notice-message {
+  padding-inline-start: 12px !important;
+}
+
+.premium-notification .ant-notification-notice-description {
+  padding-inline-start: 12px !important;
+}
+
+.premium-notification .ant-notification-notice-close {
+  top: 16px !important;
+  right: 16px !important;
+  color: var(--text-secondary);
+}
+
+.premium-notification .ant-notification-notice-icon {
+  font-size: 24px !important;
+  margin-top: 2px;
+}

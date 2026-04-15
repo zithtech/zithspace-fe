@@ -50,8 +50,10 @@ import {
   CheckCircleOutlined,
   ScheduleOutlined,
   AliyunOutlined,
-  AlertOutlined
+  AlertOutlined,
+  FileExcelOutlined
 } from "@ant-design/icons";
+
 import { IoSettingsOutline } from "react-icons/io5";
 import { BsPersonWorkspace } from "react-icons/bs";
 import { ImProfile } from "react-icons/im";
@@ -119,7 +121,8 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     key: "WORK",
     label: "WORK",
     icon: <ProjectOutlined />,
-    pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates", "/escalations"],
+    pathPrefixes: ["/projects", "/documenthub", "/timesheet", "/daily-updates", "/escalations", "/excel-document"],
+
     defaultPath: "/projects/select",
     requiredAnyPermission: [
       Permissions.PROJECT_READ,
@@ -367,6 +370,13 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+      {
+        key: "/excel-document",
+        label: "Excel Document",
+        icon: <FileExcelOutlined />,
+        path: "/excel-document",
+      },
+
     ],
   },
   {

@@ -58,8 +58,8 @@ export default function CommentsSection({
   return (
     <div style={{ marginTop: 16 }}>
       <Typography.Title level={5} style={{ fontSize: 13, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Text strong style={{ fontSize: 13, color: '#595959' }}>Conversation</Text>
-        <span style={{ fontSize: 12, color: '#bfbfbf', fontWeight: 400 }}>• {comments.length} messages</span>
+        <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>Conversation</Text>
+        <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>• {comments.length} messages</span>
       </Typography.Title>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -129,10 +129,10 @@ export default function CommentsSection({
                             transition: 'all 0.2s'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>{userName}</Text>
-                              <Text type="secondary" style={{ fontSize: 11, color: '#8c8c8c' }}>{dayjs(comment?.timestamp).fromNow()}</Text>
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>{userName}</Text>
+                              <Text type="secondary" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{dayjs(comment?.timestamp).fromNow()}</Text>
                             </div>
-                            <Paragraph style={{ margin: 0, fontSize: 13, color: '#595959', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                            <Paragraph style={{ margin: 0, fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                               {comment?.comment}
                             </Paragraph>
                           </div>

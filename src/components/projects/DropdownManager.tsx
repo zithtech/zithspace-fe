@@ -73,7 +73,14 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     try {
       setDataLoading(true);
       const options = await SettingsService.getDropdownOptions();
-      setDropdownOptions(options);
+      
+      // Sort each category by order
+      const sortedOptions: Record<string, DropdownOption[]> = {};
+      Object.keys(options).forEach(type => {
+        sortedOptions[type] = [...options[type]].sort((a, b) => (a.order || 0) - (b.order || 0));
+      });
+      
+      setDropdownOptions(sortedOptions);
     } catch (error) {
       console.error('Error loading dropdown options:', error);
       message.error('Failed to load dropdown options');
@@ -128,30 +135,307 @@ export default function DropdownManager({ onDataChange }: DropdownManagerProps) 
     }
   };
 
-  const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
-    try {
-      setLoading(true);
-      const currentOptions = dropdownOptions[option.type] || [];
-      const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+  // const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  //   try {
+  //     setLoading(true);
+  //     const currentOptions = dropdownOptions[option.type] || [];
+  //     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
       
-      if (direction === 'up' && currentIndex > 0) {
-        const newOrder = currentOptions[currentIndex - 1].order;
-        await SettingsService.updateDropdownOption(option.id, { order: newOrder });
-      } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
-        const newOrder = currentOptions[currentIndex + 1].order;
-        await SettingsService.updateDropdownOption(option.id, { order: newOrder });
-      }
+  //     if (direction === 'up' && currentIndex > 0) {
+  //       const newOrder = currentOptions[currentIndex - 1].order;
+  //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
+  //     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+  //       const newOrder = currentOptions[currentIndex + 1].order;
+  //       await SettingsService.updateDropdownOption(option.id, { order: newOrder });
+  //     }
       
-      message.success('Sequence updated');
-      await loadDropdownOptions();
+  //     message.success('Sequence updated');
+  //     await loadDropdownOptions();
+  //     onDataChange?.();
+  //   } catch (error) {
+  //     console.error('Error updating order:', error);
+  //     message.error('Failed to update sequence');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
+
+
+
+// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+//   try {
+//     setLoading(true);
+//     const currentOptions = [...(dropdownOptions[option.type] || [])];
+//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+    
+//     if (direction === 'up' && currentIndex > 0) {
+//       const prevOption = currentOptions[currentIndex - 1];
+      
+//       // ✅ Store the orders properly
+//       const currentOrder = option.order;
+//       const prevOrder = prevOption.order;
+      
+//       console.log('Swapping orders:', { currentOrder, prevOrder }); // Debug
+      
+//       // Swap orders - current gets prev's order, prev gets current's order
+//       await SettingsService.updateDropdownOption(option.id, { 
+//         order: prevOrder,  // Current item gets PREV item's order
+//         value: option.value,
+//         label: option.label,
+//         isActive: option.isActive,
+//         description: option.description,
+//         color: option.color
+//       });
+//      const result1 = await SettingsService.updateDropdownOption(option.id, { 
+//   order: prevOrder,
+//   value: option.value,
+//   label: option.label,
+//   isActive: option.isActive,
+//   description: option.description,
+//   color: option.color
+// });
+// console.log('RESULT 1 - New order:', result1.order); // 👈 ADD THIS
+      
+//       await SettingsService.updateDropdownOption(prevOption.id, { 
+//         order: currentOrder,  // PREV item gets CURRENT item's order
+//         value: prevOption.value,
+//         label: prevOption.label,
+//         isActive: prevOption.isActive,
+//         description: prevOption.description,
+//         color: prevOption.color
+//       });
+//       const result2 = await SettingsService.updateDropdownOption(prevOption.id, { 
+//   order: currentOrder,
+//   value: prevOption.value,
+//   label: prevOption.label,
+//   isActive: prevOption.isActive,
+//   description: prevOption.description,
+//   color: prevOption.color
+// });
+// console.log('RESULT 2 - New order:', result2.order); // 👈 ADD THIS
+      
+//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+//       const nextOption = currentOptions[currentIndex + 1];
+      
+//       // ✅ Store the orders properly
+//       const currentOrder = option.order;
+//       const nextOrder = nextOption.order;
+      
+//       console.log('Swapping orders:', { currentOrder, nextOrder }); // Debug
+      
+//       // Swap orders - current gets next's order, next gets current's order
+//       await SettingsService.updateDropdownOption(option.id, { 
+//         order: nextOrder,  // Current item gets NEXT item's order
+//         value: option.value,
+//         label: option.label,
+//         isActive: option.isActive,
+//         description: option.description,
+//         color: option.color
+//       });
+      
+//       await SettingsService.updateDropdownOption(nextOption.id, { 
+//         order: currentOrder,  // NEXT item gets CURRENT item's order
+//         value: nextOption.value,
+//         label: nextOption.label,
+//         isActive: nextOption.isActive,
+//         description: nextOption.description,
+//         color: nextOption.color
+//       });
+//     }
+    
+//     // ✅ Force refresh to see changes
+//     await loadDropdownOptions();
+//     message.success('Order updated successfully');
+    
+//   } catch (error) {
+//     console.error('Error:', error);
+//     message.error('Failed to update order');
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+
+
+
+// const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+//   try {
+//     setLoading(true);
+//     const currentOptions = [...(dropdownOptions[option.type] || [])];
+//     const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+    
+//     if (direction === 'up' && currentIndex > 0) {
+//       const prevOption = currentOptions[currentIndex - 1];
+      
+//       // Swap orders - Update BOTH items
+//       await SettingsService.updateDropdownOption(option.id, { 
+//         order: prevOption.order,
+//         value: option.value,
+//         label: option.label,
+//         isActive: option.isActive
+//       });
+      
+//       await SettingsService.updateDropdownOption(prevOption.id, { 
+//         order: option.order,
+//         value: prevOption.value,
+//         label: prevOption.label,
+//         isActive: prevOption.isActive
+//       });
+      
+//       // Update UI immediately
+//       const newOptions = [...currentOptions];
+//       newOptions[currentIndex - 1] = { ...newOptions[currentIndex - 1], order: option.order };
+//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: prevOption.order };
+      
+//       setDropdownOptions({
+//         ...dropdownOptions,
+//         [option.type]: newOptions
+//       });
+      
+//       message.success('Order updated');
+      
+//     } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+//       const nextOption = currentOptions[currentIndex + 1];
+      
+//       await SettingsService.updateDropdownOption(option.id, { 
+//         order: nextOption.order,
+//         value: option.value,
+//         label: option.label,
+//         isActive: option.isActive
+//       });
+      
+//       await SettingsService.updateDropdownOption(nextOption.id, { 
+//         order: option.order,
+//         value: nextOption.value,
+//         label: nextOption.label,
+//         isActive: nextOption.isActive
+//       });
+      
+//       // Update UI immediately
+//       const newOptions = [...currentOptions];
+//       newOptions[currentIndex] = { ...newOptions[currentIndex], order: nextOption.order };
+//       newOptions[currentIndex + 1] = { ...newOptions[currentIndex + 1], order: option.order };
+      
+//       setDropdownOptions({
+//         ...dropdownOptions,
+//         [option.type]: newOptions
+//       });
+      
+//       message.success('Order updated');
+//     }
+    
+//     // Refresh from database in background
+//     setTimeout(async () => {
+//       await loadDropdownOptions();
+//     }, 500);
+    
+//   } catch (error) {
+//     console.error('Error:', error);
+//     message.error('Failed to update order');
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+
+
+
+
+const handleMoveOrder = async (option: DropdownOption, direction: 'up' | 'down') => {
+  try {
+    setLoading(true);
+    const currentOptions = [...(dropdownOptions[option.type] || [])];
+    const currentIndex = currentOptions.findIndex(opt => opt.id === option.id);
+    
+    if (direction === 'up' && currentIndex > 0) {
+      const prevOption = currentOptions[currentIndex - 1];
+      
+      // Swap the 'order' values
+      const currentOrder = option.order;
+      const prevOrder = prevOption.order;
+
+      // Update backend using the specialized reorder endpoint
+      await SettingsService.reorderDropdownOptions([
+        { id: option.id, order: prevOrder, value: option.value, label: option.label },
+        { id: prevOption.id, order: currentOrder, value: prevOption.value, label: prevOption.label }
+      ]);
+      
+      // Update local state - swap items in array AND update their order property
+      const newOptions = [...currentOptions];
+      const updatedCurrent = { ...option, order: prevOrder };
+      const updatedPrev = { ...prevOption, order: currentOrder };
+      
+      newOptions[currentIndex] = updatedPrev;
+      newOptions[currentIndex - 1] = updatedCurrent;
+      
+      // Ensure the final list is still sorted
+      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      setDropdownOptions(prev => ({
+        ...prev,
+        [option.type]: sorted
+      }));
+      
       onDataChange?.();
-    } catch (error) {
-      console.error('Error updating order:', error);
-      message.error('Failed to update sequence');
-    } finally {
-      setLoading(false);
+      message.success('Sequence updated');
+      
+    } else if (direction === 'down' && currentIndex < currentOptions.length - 1) {
+      const nextOption = currentOptions[currentIndex + 1];
+      
+      const currentOrder = option.order;
+      const nextOrder = nextOption.order;
+
+      // Update backend
+      await SettingsService.reorderDropdownOptions([
+        { id: option.id, order: nextOrder, value: option.value, label: option.label },
+        { id: nextOption.id, order: currentOrder, value: nextOption.value, label: nextOption.label }
+      ]);
+      
+      // Update local state
+      const newOptions = [...currentOptions];
+      const updatedCurrent = { ...option, order: nextOrder };
+      const updatedNext = { ...nextOption, order: currentOrder };
+      
+      newOptions[currentIndex] = updatedNext;
+      newOptions[currentIndex + 1] = updatedCurrent;
+      
+      // Re-sort
+      const sorted = newOptions.sort((a, b) => (a.order || 0) - (b.order || 0));
+      
+      setDropdownOptions(prev => ({
+        ...prev,
+        [option.type]: sorted
+      }));
+      
+      onDataChange?.();
+      message.success('Sequence updated');
     }
-  };
+  } catch (error) {
+    console.error('Error reordering:', error);
+    message.error('Failed to update sequence');
+    // Reload to original state if error
+    await loadDropdownOptions();
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const handleSubmit = async (values: any) => {
     try {

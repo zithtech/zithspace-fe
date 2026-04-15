@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from 'react';
-import { List, Avatar, Typography } from 'antd';
+import { List, Avatar, Typography, theme } from 'antd';
 import { useChatStore } from '@/store/chatStore';
 
 const { Text } = Typography;
@@ -11,6 +11,7 @@ interface MessageListProps {
 }
 
 export default function MessageList({ channelId }: MessageListProps) {
+    const { token } = theme.useToken();
     // Use specific selector to ensure React re-renders on changes
     const channelMessages = useChatStore((state) => state.messages[channelId] || []);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -51,7 +52,7 @@ export default function MessageList({ channelId }: MessageListProps) {
                                 </div>
                             }
                             description={
-                                <div style={{ color: '#1d1c1d', fontSize: 15, lineHeight: '1.46668' }}>
+                                <div style={{ color: token.colorText, fontSize: 15, lineHeight: '1.46668' }}>
                                     {msg.content}
                                 </div>
                             }
@@ -61,7 +62,7 @@ export default function MessageList({ channelId }: MessageListProps) {
             />
             <style jsx global>{`
                 .message-item:hover {
-                    background-color: #f8f8f8;
+                    background-color: ${token.colorFillAlter};
                 }
             `}</style>
             <div ref={bottomRef} />

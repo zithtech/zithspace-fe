@@ -57,7 +57,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
         }
     };
 
-    const selectedOption = options.find(opt => opt.value === value);
+    const selectedOption = options.find(opt => opt.value?.toLowerCase() === value?.toLowerCase());
     const hasValue = !!value;
 
     if (isEditing) {
@@ -145,7 +145,7 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
 
             <style jsx global>{`
         .editable-field-hover:hover {
-          background-color: #fafafa;
+          background-color: rgba(144, 144, 144, 0.08);
         }
         .editable-field-hover:hover .edit-icon {
           opacity: 0.5 !important;

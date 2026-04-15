@@ -86,20 +86,31 @@ export default function SprintPlanComponent() {
   const [sprintCompletionModalOpen, setSprintCompletionModalOpen] = useState(false);
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
 
+  // Table Filters state
+  const [tableFilters, setTableFilters] = useState({
+    search: "",
+    projectId: "",
+    status: "",
+  });
+
   useEffect(() => {
     loadData();
     loadProjects();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (filtersOverride?: any) => {
     try {
       setLoading(true);
+      const activeFilters = filtersOverride || tableFilters;
       // Only fetch sprint_plan type
       const data = await ReleasePlanService.getReleasePlans({
         type: "sprint_plan",
+        search: activeFilters.search || undefined,
+        projectId: activeFilters.projectId || undefined,
+        status: activeFilters.status || undefined,
       });
       setSprintPlans(data?.data || []);
-      if (!loading) { // Only show message if it's a manual refresh
+      if (!loading && !activeFilters.search && !activeFilters.projectId && !activeFilters.status) { // Only show message if it's a manual refresh without filters
         api.success({
           message: "Refreshed",
           description: "Sprint plans updated successfully",
@@ -118,9 +129,22 @@ export default function SprintPlanComponent() {
     }
   };
 
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        loadData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [tableFilters.search]);
+
+  // Immediate load for status/project
+  useEffect(() => {
+      loadData();
+  }, [tableFilters.projectId, tableFilters.status]);
+
   const loadProjects = async () => {
     try {
-      const projectsData = await ProjectService.getUserProjects();
+      const projectsData = await ProjectService.getProjectsForSelect();
       setProjects(projectsData || []);
     } catch (error) {
       console.error("Failed to load projects:", error);
@@ -388,6 +412,25 @@ export default function SprintPlanComponent() {
       ),
     },
     {
+      title: "Project",
+      key: "project",
+      width: 180,
+      render: (_: any, record: ReleasePlan) => {
+        const project = typeof record.project === 'object' ? record.project : null;
+        return (
+          <div style={{ padding: '4px 0' }}>
+            {project ? (
+              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)', display: 'block' }}>
+                {project.name}
+              </Text>
+            ) : (
+              <Text type="secondary" style={{ fontSize: 12 }}>{typeof record.project === 'string' ? record.project : 'N/A'}</Text>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       title: "Health & Progress",
       dataIndex: "progress",
       key: "progress",
@@ -398,7 +441,7 @@ export default function SprintPlanComponent() {
             percent={progress || 0}
             size="small"
             strokeColor={progress === 100 ? '#52c41a' : '#1677ff'}
-            trailColor="#f0f0f0"
+            trailColor="var(--bg-secondary)"
           />
           <Space size={4} style={{ cursor: "pointer", color: "#1677ff", fontSize: 12 }} onClick={() => handleViewTickets(record)}>
             <CheckCircleOutlined style={{ fontSize: 11 }} />
@@ -425,7 +468,7 @@ export default function SprintPlanComponent() {
       render: (_: any, record: ReleasePlan) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Space size={6}>
-            <CalendarOutlined style={{ color: '#8c8c8c', fontSize: 12 }} />
+            <CalendarOutlined style={{ color: 'var(--text-secondary)', fontSize: 12 }} />
             <Text style={{ fontSize: 12 }}>
               {record.startDate ? dayjs(record.startDate).format("MMM D") : "TBD"} - {record.endDate ? dayjs(record.endDate).format("MMM D") : "TBD"}
             </Text>
@@ -517,7 +560,7 @@ export default function SprintPlanComponent() {
         padding: "24px 0",
         marginBottom: 32,
         borderBottom: "1px solid var(--border-color)",
-        background: "var(--bg-pure-white)",
+        background: "var(--bg-primary)",
         position: "sticky",
         top: 0,
         zIndex: 10,
@@ -572,9 +615,9 @@ export default function SprintPlanComponent() {
       {!loading && sprintPlans.length > 0 && (
         <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-secondary)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-secondary)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <RocketOutlined style={{ fontSize: 20, color: "#1890ff" }} />
                 </div>
                 <div>
@@ -585,9 +628,9 @@ export default function SprintPlanComponent() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-secondary)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-secondary)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <PieChartOutlined style={{ fontSize: 20, color: "#fa8c16" }} />
                 </div>
                 <div>
@@ -598,9 +641,9 @@ export default function SprintPlanComponent() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-secondary)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-secondary)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <HistoryOutlined style={{ fontSize: 20, color: "#52c41a" }} />
                 </div>
                 <div>
@@ -611,9 +654,9 @@ export default function SprintPlanComponent() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-secondary)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-secondary)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <BulbOutlined style={{ fontSize: 20, color: "#722ed1" }} />
                 </div>
                 <div>
@@ -626,6 +669,56 @@ export default function SprintPlanComponent() {
         </Row>
       )}
 
+      {/* Filters Section */}
+      <div style={{ marginBottom: 20 }}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={8} md={6}>
+            <Input
+              placeholder="Search sprint name..."
+              prefix={<ProjectOutlined style={{ color: '#bfbfbf' }} />}
+              value={tableFilters.search}
+              onChange={(e) => setTableFilters(prev => ({ ...prev, search: e.target.value }))}
+              style={{ borderRadius: 8, height: 40 }}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={8} md={6}>
+            <Select
+              placeholder="Filter by Project"
+              style={{ width: '100%', minHeight: 40 }}
+              allowClear
+              value={tableFilters.projectId || undefined}
+              onChange={(val) => setTableFilters(prev => ({ ...prev, projectId: val || "" }))}
+              options={projects}
+            />
+          </Col>
+          <Col xs={24} sm={8} md={6}>
+            <Select
+              placeholder="Filter by Status"
+              style={{ width: '100%', minHeight: 40 }}
+              allowClear
+              value={tableFilters.status || undefined}
+              onChange={(val) => setTableFilters(prev => ({ ...prev, status: val || "" }))}
+            >
+              <Option value="planning">PLANNING</Option>
+              <Option value="active">ACTIVE</Option>
+              <Option value="completed">COMPLETED</Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={24} md={6} style={{ textAlign: 'right' }}>
+             <Space>
+                <Button 
+                    icon={<ReloadOutlined />} 
+                    onClick={() => {
+                        setTableFilters({ search: "", projectId: "", status: "" });
+                        loadData({ search: "", projectId: "", status: "" });
+                    }} 
+                />
+             </Space>
+          </Col>
+        </Row>
+      </div>
+
       {/* Main Content Table */}
       <Card
         bodyStyle={{ padding: 0 }}
@@ -634,7 +727,7 @@ export default function SprintPlanComponent() {
           overflow: "hidden",
           border: "1px solid var(--border-color)",
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
-          background: "var(--bg-pure-white)"
+          background: "var(--bg-secondary)"
         }}
       >
         <Table
@@ -652,7 +745,7 @@ export default function SprintPlanComponent() {
           locale={{
             emptyText: (
               <Empty
-                image={<CalendarOutlined style={{ fontSize: 48, color: '#f0f0f0' }} />}
+                image={<CalendarOutlined style={{ fontSize: 48, color: 'var(--border-color)' }} />}
                 description={
                   <div style={{ padding: '20px 0' }}>
                     <Text type="secondary" style={{ display: "block", fontSize: 16, fontWeight: 500 }}>No sprint plans found</Text>
@@ -810,7 +903,7 @@ export default function SprintPlanComponent() {
                   return (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Space>
-                        <Tag style={{ background: '#f5f5f5', border: 'none', color: '#1677ff', fontWeight: 600 }}>{t.ticketNumber}</Tag>
+                        <Tag style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: '#1677ff', fontWeight: 600 }}>{t.ticketNumber}</Tag>
                         <Text ellipsis style={{ maxWidth: 280 }}>{t.title}</Text>
                       </Space>
                       <Tag color={getStatusColor(t.status)} style={{ fontSize: 9 }}>{t.status.toUpperCase()}</Tag>
@@ -854,7 +947,7 @@ export default function SprintPlanComponent() {
       >
         {drawerSprintPlan && (
           <div>
-            <div style={{ background: 'var(--bg-pure-white)', padding: 24, borderRadius: 16, marginBottom: 24, border: '1px solid var(--border-color)' }}>
+            <div style={{ background: 'var(--bg-secondary)', padding: 24, borderRadius: 16, marginBottom: 24, border: '1px solid var(--border-color)' }}>
               <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                 <Col><Text strong style={{ fontSize: 16 }}>Overall Completion</Text></Col>
                 <Col><Title level={4} style={{ margin: 0, color: '#1677ff' }}>{drawerSprintPlan?.progress || 0}%</Title></Col>
@@ -884,7 +977,7 @@ export default function SprintPlanComponent() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: '#fff',
+                    background: 'var(--bg-pure-white)',
                     transition: 'all 0.3s'
                   }}
                   className="drawer-ticket-item"

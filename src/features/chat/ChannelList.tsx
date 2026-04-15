@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Typography, Tooltip } from 'antd';
+import { Typography, Tooltip, theme } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/chatStore';
 import { useAuth } from '@/context/AuthContext';
@@ -19,6 +19,7 @@ export default function ChannelList() {
     const router = useRouter();
     const { user } = useAuth();
     const { channels, activeChannelId } = useChatStore();
+    const { token } = theme.useToken();
     const [channelsExpanded, setChannelsExpanded] = useState(true);
     const [dmsExpanded, setDmsExpanded] = useState(true);
 
@@ -49,22 +50,22 @@ export default function ChannelList() {
                 style={{
                     padding: '8px 16px 8px 24px',
                     cursor: 'pointer',
-                    backgroundColor: isActive ? '#e6f7ff' : 'transparent',
-                    color: isActive ? '#1677ff' : '#1d1c1d',
+                    backgroundColor: isActive ? token.colorPrimaryBg : 'transparent',
+                    color: isActive ? token.colorPrimary : token.colorText,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
                     fontSize: 14,
                     borderRadius: 0,
-                    borderRight: isActive ? '2px solid #1677ff' : '2px solid transparent'
+                    borderRight: isActive ? `2px solid ${token.colorPrimary}` : '2px solid transparent'
                 }}
                 className="channel-item"
             >
                 {showHash && channel.type === 'CHANNEL' && (
-                    <NumberOutlined style={{ fontSize: 14, color: '#8c8c8c' }} />
+                    <NumberOutlined style={{ fontSize: 14, color: token.colorTextSecondary }} />
                 )}
                 {showHash && channel.type === 'GROUP' && (
-                    <LockOutlined style={{ fontSize: 14, color: '#8c8c8c' }} />
+                    <LockOutlined style={{ fontSize: 14, color: token.colorTextSecondary }} />
                 )}
                 {channel.type === 'DM' && (
                     <div style={{
@@ -115,18 +116,18 @@ export default function ChannelList() {
                 onClick={onToggle}
             >
                 {expanded ? (
-                    <CaretDownOutlined style={{ fontSize: 10, color: '#8c8c8c' }} />
+                    <CaretDownOutlined style={{ fontSize: 10, color: token.colorTextSecondary }} />
                 ) : (
-                    <CaretRightOutlined style={{ fontSize: 10, color: '#8c8c8c' }} />
+                    <CaretRightOutlined style={{ fontSize: 10, color: token.colorTextSecondary }} />
                 )}
-                <Text strong style={{ color: '#595959', fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <Text strong style={{ color: token.colorTextSecondary, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {title}
                 </Text>
             </div>
             {onAdd && (
                 <Tooltip title={`Add ${title.toLowerCase()}`}>
                     <PlusOutlined
-                        style={{ color: '#8c8c8c', fontSize: 12, cursor: 'pointer' }}
+                        style={{ color: token.colorTextSecondary, fontSize: 12, cursor: 'pointer' }}
                         onClick={(e) => { e.stopPropagation(); onAdd(); }}
                     />
                 </Tooltip>
@@ -150,7 +151,7 @@ export default function ChannelList() {
                     {publicChannels.length === 0 && privateGroups.length === 0 && (
                         <Text
                             style={{
-                                color: '#8c8c8c',
+                                color: token.colorTextTertiary,
                                 padding: '8px 24px',
                                 display: 'block',
                                 fontSize: 13
@@ -175,7 +176,7 @@ export default function ChannelList() {
                     {dms.length === 0 && (
                         <Text
                             style={{
-                                color: '#8c8c8c',
+                                color: token.colorTextTertiary,
                                 padding: '8px 24px',
                                 display: 'block',
                                 fontSize: 13
@@ -189,10 +190,10 @@ export default function ChannelList() {
 
             <style jsx global>{`
                 .channel-item:hover {
-                    background-color: #f5f5f5 !important;
+                    background-color: ${token.colorFillTertiary} !important;
                 }
                 .section-header:hover {
-                    background-color: #fafafa;
+                    background-color: ${token.colorFillAlter};
                 }
             `}</style>
         </div>

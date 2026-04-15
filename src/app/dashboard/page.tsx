@@ -696,8 +696,12 @@ function DashboardContent() {
 
   return (
     <MainLayout>
-      <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
-        <div style={{ padding: 20 }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
           {/* ✅ UPDATED HEADER WITH SEGMENT SWITCHER */}
           <Row
             justify="space-between"
@@ -1295,11 +1299,13 @@ function DashboardContent() {
                         {/* Apply Leave Card */}
                         <Card
                           hoverable
+                          bordered
                           style={{
                             borderRadius: 14,
-                            border: '1px solid #f0f0f0',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                            overflow: 'hidden'
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            boxShadow: "none",
+                            overflow: 'hidden',
+                            background: token.colorBgContainer
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
                           onClick={() => router.push("/apply-leave")}
@@ -1318,7 +1324,7 @@ function DashboardContent() {
                               <FormOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
                             </div>
                             <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 14, fontWeight: 700 }}>Apply Leave</Title>
+                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Apply Leave</Title>
                               <Text type="secondary" style={{ fontSize: 11 }}>Request time off easily</Text>
                             </div>
                             <Button
@@ -1343,11 +1349,13 @@ function DashboardContent() {
                         {/* Apply Reimbursement Card */}
                         <Card
                           hoverable
+                          bordered
                           style={{
                             borderRadius: 14,
-                            border: '1px solid #f0f0f0',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                            overflow: 'hidden'
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            boxShadow: "none",
+                            overflow: 'hidden',
+                            background: token.colorBgContainer
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
                           onClick={() => router.push("/reimburseCreate")}
@@ -1366,7 +1374,7 @@ function DashboardContent() {
                               <WalletOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
                             </div>
                             <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 14, fontWeight: 700 }}>Reimbursement</Title>
+                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Reimbursement</Title>
                               <Text type="secondary" style={{ fontSize: 11 }}>Submit expense claims</Text>
                             </div>
                             <Button
@@ -1391,11 +1399,13 @@ function DashboardContent() {
                         {/* Submit Timesheet Card */}
                         <Card
                           hoverable
+                          bordered
                           style={{
                             borderRadius: 14,
-                            border: '1px solid #f0f0f0',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                            overflow: 'hidden'
+                            border: `1px solid ${token.colorBorderSecondary}`,
+                            boxShadow: "none",
+                            overflow: 'hidden',
+                            background: token.colorBgContainer
                           }}
                           styles={{ body: { padding: '12px 16px' } }}
                           onClick={() => router.push("/timesheet/submit")}
@@ -1414,7 +1424,7 @@ function DashboardContent() {
                               <ClockCircleOutlined style={{ fontSize: 18, color: token.colorTextSecondary }} />
                             </div>
                             <div style={{ flex: 1 }}>
-                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 14, fontWeight: 700 }}>Submit Timesheet</Title>
+                              <Title level={5} style={{ margin: 0, color: token.colorText, fontSize: 13, fontWeight: 700 }}>Submit Timesheet</Title>
                               <Text type="secondary" style={{ fontSize: 11 }}>Log your daily hours</Text>
                             </div>
                             <Button
@@ -1477,81 +1487,81 @@ function DashboardContent() {
                           className="no-scrollbar"
                           style={{ padding: '0 4px' }}
                           renderItem={(item: any) => (
-                            <List.Item
-                              onClick={() => router.push(`/tickets/${item.id}`)}
-                              style={{
-                                padding: "12px 14px",
-                                cursor: "pointer",
-                                borderBottom: "1px solid #f0f0f0",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px",
-                                borderRadius: '12px',
-                                margin: '4px 0'
-                              }}
-                              className="ticket-list-item"
-                            >
-                              {/* Priority Bar Indicator */}
-                              <div
-                                style={{
-                                  width: "4px",
-                                  height: "36px",
-                                  borderRadius: "2px",
-                                  background: getPriorityColor(item.priority),
-                                  flexShrink: 0,
-                                }}
-                              />
-
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    marginBottom: 3,
-                                  }}
-                                >
-                                  <Space size={8}>
-                                    <Text
-                                      type="secondary"
-                                      style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
-                                    >
-                                      {item.ticketNumber}
-                                    </Text>
-                                    <Tag
-                                      style={{
-                                        fontSize: 9,
-                                        margin: 0,
-                                        borderRadius: "4px",
-                                        background: token.colorFillAlter,
-                                        border: "none",
-                                        color: token.colorTextSecondary
-                                      }}
-                                    >
-                                      {typeof item.project === "string"
-                                        ? item.project
-                                        : item.project?.code ||
-                                        item.project?.name}
-                                    </Tag>
-                                  </Space>
-                                  <Text type="secondary" style={{ fontSize: 10, color: '#bfbfbf' }}>
-                                    {formatTimeAgo(item.createdAt)}
-                                  </Text>
-                                </div>
-
-                                <Text
-                                  strong
-                                  ellipsis={{ tooltip: item.title }}
-                                  style={{
-                                    fontSize: 13,
-                                    display: "block",
-                                    color: "#262626",
-                                    lineHeight: 1.3,
-                                    marginBottom: 6
-                                  }}
-                                >
-                                  {item.title}
-                                </Text>
+                             <List.Item
+                               onClick={() => router.push(`/tickets/${item.id}`)}
+                               style={{
+                                 padding: "12px 14px",
+                                 cursor: "pointer",
+                                 borderBottom: `1px solid ${token.colorBorderSecondary}`,
+                                 display: "flex",
+                                 alignItems: "center",
+                                 gap: "12px",
+                                 borderRadius: '12px',
+                                 margin: '4px 0'
+                               }}
+                               className="ticket-list-item"
+                             >
+                               {/* Priority Bar Indicator */}
+                               <div
+                                 style={{
+                                   width: "4px",
+                                   height: "36px",
+                                   borderRadius: "2px",
+                                   background: getPriorityColor(item.priority),
+                                   flexShrink: 0,
+                                 }}
+                               />
+ 
+                               <div style={{ flex: 1, minWidth: 0 }}>
+                                 <div
+                                   style={{
+                                     display: "flex",
+                                     justifyContent: "space-between",
+                                     alignItems: "center",
+                                     marginBottom: 3,
+                                   }}
+                                 >
+                                   <Space size={8}>
+                                     <Text
+                                       type="secondary"
+                                       style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2px' }}
+                                     >
+                                       {item.ticketNumber}
+                                     </Text>
+                                     <Tag
+                                       style={{
+                                         fontSize: 9,
+                                         margin: 0,
+                                         borderRadius: "4px",
+                                         background: token.colorFillAlter,
+                                         border: "none",
+                                         color: token.colorTextSecondary
+                                       }}
+                                     >
+                                       {typeof item.project === "string"
+                                         ? item.project
+                                         : item.project?.code ||
+                                         item.project?.name}
+                                     </Tag>
+                                   </Space>
+                                   <Text type="secondary" style={{ fontSize: 10, color: token.colorTextDescription }}>
+                                     {formatTimeAgo(item.createdAt)}
+                                   </Text>
+                                 </div>
+ 
+                                 <Text
+                                   strong
+                                   ellipsis={{ tooltip: item.title }}
+                                   style={{
+                                     fontSize: 13,
+                                     display: "block",
+                                     color: token.colorText,
+                                     lineHeight: 1.3,
+                                     marginBottom: 6
+                                   }}
+                                 >
+                                   {item.title}
+                                 </Text>
 
                                 <div
                                   style={{
@@ -1617,9 +1627,8 @@ function DashboardContent() {
           {/* ✅ ORGANIZATION SEGMENT */}
           {activeSegment === "organization" && <Organization />}
         </div>
-      </div>
-    </MainLayout>
-  );
+      </MainLayout>
+    );
 }
 
 export default function DashboardPage() {

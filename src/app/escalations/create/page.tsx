@@ -188,7 +188,12 @@ export default function CreateEscalationPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px 40px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "16px 24px 24px 24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         <Spin spinning={loading} indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} tip="Initializing Form...">
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             {/* Top Navigation Bar */}

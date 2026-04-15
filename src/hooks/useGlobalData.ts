@@ -8,10 +8,24 @@ import DocumentHubService from "@/services/documentHub";
 // Query keys for global data
 export const globalDataKeys = {
   projects: ["global", "projects"] as const,
+  allProjects: ["global", "allProjects"] as const,
   members: ["global", "members"] as const,
   ticketConfig: ["global", "ticketConfig"] as const,
   tickets: ["global", "userTicketsByProject"],
   documentHub: ["documentHub"],
+};
+
+/**
+ * Hook to fetch and cache all available projects (for selection)
+ */
+export const useAllProjects = (options?: { enabled?: boolean }) => {
+  return useQuery<{ value: string; label: string; code: string }[]>({
+    queryKey: globalDataKeys.allProjects,
+    queryFn: () => ProjectService.getProjectsForSelect(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
 };
 
 /**

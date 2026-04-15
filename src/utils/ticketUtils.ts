@@ -15,6 +15,8 @@ export const getStatusColor = (status: string) => {
       return "blue";
     case "not_started":
       return "default";
+    case "pause":
+      return "orange";
     default:
       return "default";
   }
@@ -103,6 +105,7 @@ export const STATUS_OPTIONS = [
   { label: "In Review", value: "in_review" },
   { label: "Completed", value: "completed" },
   { label: "Live", value: "live" },
+  { label: "Pause", value: "pause" },
 ];
 
 export const PRIORITY_OPTIONS = [

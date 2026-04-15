@@ -54,12 +54,16 @@ export default function ProjectsPage() {
   if (authLoading || statsLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: '100px 0', textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Orchestrating your workspace">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spin size="large" tip="Orchestrating your workspace" />
         </div>
       </MainLayout>
     );
@@ -97,7 +101,13 @@ export default function ProjectsPage() {
 
   return (
     <MainLayout>
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "32px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
         {/* Premium Header */}
         <div style={{ marginBottom: 40 }}>
           <Space align="center" size={16}>
@@ -388,6 +398,7 @@ export default function ProjectsPage() {
           </Col>
         </Row>
       </div>
-    </MainLayout>
+    </div>
+  </MainLayout>
   );
 }

@@ -764,7 +764,7 @@ import TicketService from "@/services/ticketService";
 import DailyUpdateService from "@/services/dailyUpdateService";
 import { TimeTrackingService } from "@/services/timeTracking.service";
 import { ProjectService } from "@/services/projectService";
-import { EscalationService, Escalation } from "@/services/escalationService";
+import { EscalationServiceV2 } from "@/services/escalationServiceV2";
 import dayjs from "dayjs";
 
 interface PerformanceFilters {
@@ -865,14 +865,12 @@ export const usePerformance = (filters: PerformanceFilters) => {
         return { data: [] };
       }),
 
-      EscalationService.getEscalations({
-        userId: userId,
-        startDate,
-        endDate,
-      }).catch((err: any) => {
-        console.error("Error fetching escalations:", err);
-        return { success: false, data: [] };
-      })
+      EscalationServiceV2.getAllEscalations()
+        .then(data => ({ success: true, data }))
+        .catch((err: any) => {
+          console.error("Error fetching escalations:", err);
+          return { success: false, data: [] };
+        })
     ]);
 
 

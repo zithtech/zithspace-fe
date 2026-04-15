@@ -112,9 +112,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
           className="fade-in"
           style={{
             margin: 0,
-            // padding: "10px",
-            paddingLeft: "16px",
-            paddingRight: "16px",
+            paddingLeft: "8px",
+            paddingRight: "8px",
             // background: "#f5f5f5",
             background: 'var(--bg-pure-white)',
             marginLeft: collapsed ? 65 : 200,

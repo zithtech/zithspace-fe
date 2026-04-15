@@ -53,10 +53,9 @@ import {
 import { usePerformance } from "@/hooks/userPerformance";
 import { usePositions } from "@/hooks/usePositions";
 import { useQuery } from "@tanstack/react-query";
-import { EscalationService } from "@/services/escalationService";
+import { EscalationServiceV2 } from "@/services/escalationServiceV2";
 import {
   BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -172,7 +171,7 @@ export default function PerformanceManagePage() {
   // Fetch full escalation details when one is selected
   const { data: fullEscalation, isLoading: loadingDetails } = useQuery({
     queryKey: ['escalation', selectedEscalationId],
-    queryFn: () => selectedEscalationId ? EscalationService.getEscalationById(selectedEscalationId) : null,
+    queryFn: () => selectedEscalationId ? EscalationServiceV2.getEscalationById(selectedEscalationId) : null,
     enabled: !!selectedEscalationId,
   });
 

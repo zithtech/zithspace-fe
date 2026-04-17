@@ -111,7 +111,7 @@ const LeaveConfigListContent = ({
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <Text strong style={{ color: "var(--text-slate-500)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.025em" }}>Current Rules</Text>
+        <Text strong style={{ color: "#334155", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.025em" }}>Current Rules</Text>
         <Button
           type="link"
           icon={<Plus size={14} />}
@@ -315,6 +315,27 @@ export default function LeavePolicyPage() {
     return Object.values(acc);
   }, [dataSource]);
 
+  const getSubOriginLabel = (origin: string, subOriginId?: string) => {
+    let label = subOriginId || "";
+    if (origin === "User") label = members.find(m => String(m.value) === String(subOriginId))?.label as string || label;
+    else if (origin === "Grade") label = grades.find(g => String(g.id) === String(subOriginId))?.name || label;
+    else if (origin === "Department") label = departments.find(d => String(d.id) === String(subOriginId))?.name || label;
+    else if (origin === "Sub-department") label = subDepartments.find(sd => String(sd.id) === String(subOriginId))?.name || label;
+    else if (origin === "Position") label = positions.find(p => String(p.id) === String(subOriginId))?.title || label;
+    return String(label);
+  };
+
+  const filteredDataSource = useMemo(() => {
+    if (!searchText) return uniqueDataSource;
+    const lowerSearch = searchText.toLowerCase();
+
+    return uniqueDataSource.filter((item) => {
+      const label = getSubOriginLabel(item.position, item.subOriginId);
+      return item.position.toLowerCase().includes(lowerSearch) ||
+        label.toLowerCase().includes(lowerSearch);
+    });
+  }, [uniqueDataSource, searchText, members, grades, departments, subDepartments, positions]);
+
   const columns: ColumnsType<PositionRecord> = [
     {
       title: "Origin & Category",
@@ -322,12 +343,7 @@ export default function LeavePolicyPage() {
       key: "position",
       width: "30%",
       render: (origin: string, record: PositionRecord) => {
-        let label = record.subOriginId;
-        if (origin === "User") label = members.find(m => m.value === record.subOriginId)?.label || label;
-        else if (origin === "Grade") label = grades.find(g => g.id === record.subOriginId)?.name || label;
-        else if (origin === "Department") label = departments.find(d => d.id === record.subOriginId)?.name || label;
-        else if (origin === "Sub-department") label = subDepartments.find(sd => sd.id === record.subOriginId)?.name || label;
-        else if (origin === "Position") label = positions.find(p => p.id === record.subOriginId)?.title || label;
+        const label = getSubOriginLabel(origin, record.subOriginId);
 
         const Icon = origin === "User" ? User : origin === "Department" ? Building2 : origin === "Position" ? Briefcase : origin === "Grade" ? GraduationCap : Layers;
 
@@ -553,7 +569,7 @@ export default function LeavePolicyPage() {
               </Card>
             ) : (
               <Row gutter={[24, 24]}>
-                {uniqueDataSource.map((item, idx) => (
+                {filteredDataSource.map((item, idx) => (
                   <Col xs={24} sm={12} lg={8} key={idx}>
                     <Card
                       hoverable

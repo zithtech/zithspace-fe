@@ -54,7 +54,7 @@ function TreeNode({
     onToggleExpand: (id: string) => void
     onAddNode: (parentId: string, type: 'file' | 'folder') => void
     onRenameNode: (id: string, newTitle: string) => void
-    onDeleteDocument: (id: string, type: 'file' | 'folder', documentId?: string) => void
+    onDeleteDocument: (id: string, type: 'file' | 'folder' | 'section', documentId?: string) => void
 }) {
     const hasChildren = item.children && item.children.length > 0
     const isExpanded = expandedIds.has(item.id)
@@ -105,7 +105,7 @@ function TreeNode({
             danger: true,
             onClick: (e) => {
                 e.domEvent.stopPropagation();
-                onDeleteDocument(item.id, item.type as 'file' | 'folder', item.documentId || undefined);
+                onDeleteDocument(item.id, item.type as 'file' | 'folder' | 'section', item.documentId || undefined);
             }
         }
     ];
@@ -127,9 +127,7 @@ function TreeNode({
                     if (hasChildren) {
                         onToggleExpand(item.id)
                     }
-                    if (item.type === 'file') {
-                        onSelect(item.id)
-                    }
+                    onSelect(item.id)
                 }}
                 onDoubleClick={(e) => {
                     e.stopPropagation();
@@ -175,19 +173,21 @@ function TreeNode({
                             className="h-6 text-xs"
                         />
                     ) : (
-                        <span className={`truncate ${item.type === 'section' ? 'text-xs font-semibold text-slate-500 uppercase tracking-wider' : ''}`} style={{ color: item.type === 'section' ? 'var(--text-slate-400)' : 'inherit' }}>
-                            {item.title}
-                        </span>
+                        <Tooltip title={item.title} placement="right" mouseEnterDelay={0.5}>
+                            <span className={`truncate min-w-0 ${item.type === 'section' ? 'text-xs font-semibold text-gray-500 uppercase tracking-wider' : ''}`}>
+                                {item.title}
+                            </span>
+                        </Tooltip>
                     )}
                 </div>
 
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                     <Dropdown menu={{ items: menuItems }} trigger={['click']}>
                         <div
-                            className="p-1 hover:bg-gray-300 rounded"
+                            className="p-1 hover:bg-gray-300 rounded flex items-center justify-center"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <Plus className="w-3 h-3 text-gray-500" />
+                            <Plus className="w-4 h-4 text-gray-500 shrink-0" />
                         </div>
                     </Dropdown>
                 </div>
@@ -231,6 +231,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
+    const [selectedTreeNodeId, setSelectedTreeNodeId] = useState<string | null>(null);
 
     // Add Node State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -242,7 +243,17 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const [messageApi, contextHolder] = message.useMessage();
     const [modal, modalContextHolder] = Modal.useModal();
 
-    const { data: documentHub, isLoading: documentHubLoading } = useDocumentHub(documentId)
+    // Hub Rename State
+    const [isEditingHubName, setIsEditingHubName] = useState(false);
+    const [hubName, setHubName] = useState('');
+
+    const { data: documentHub, isLoading: documentHubLoading, refetch: refetchHub } = useDocumentHub(documentId)
+
+    useEffect(() => {
+        if (documentHub?.name) {
+            setHubName(documentHub.name);
+        }
+    }, [documentHub?.name]);
 
     // Fetch selected document content
     const { data: documentContent, isLoading: isDocumentLoading, refetch: refetchDocument } = useQuery({
@@ -275,6 +286,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 const firstFile = documentHub.treeNodes.find(n => n.type === 'file' && n.documentId);
                 if (firstFile && firstFile.documentId) {
                     setSelectedDoc(firstFile.documentId);
+                    setSelectedTreeNodeId(firstFile.id);
                 }
             }
         }
@@ -403,8 +415,14 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             form.resetFields();
 
             // Invalidate query to refetch tree
-            // Note: Using the same key construction as in useGlobalData
-            queryClient.invalidateQueries({ queryKey: [...globalDataKeys.tickets, documentId] });
+            const ticketsKey = [...globalDataKeys.tickets, documentId];
+            const hubKey = [...globalDataKeys.documentHub, documentId];
+            console.log('Invalidating and refetching Document Hub tree with keys:', { ticketsKey, hubKey });
+
+            queryClient.invalidateQueries({ queryKey: ticketsKey });
+            queryClient.refetchQueries({ queryKey: ticketsKey });
+            queryClient.invalidateQueries({ queryKey: hubKey });
+            queryClient.refetchQueries({ queryKey: hubKey });
 
             // If we added to a parent, ensure it's expanded
             if (addNodeParentId) {
@@ -479,6 +497,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const handleNodeSelect = (treeNodeId: string) => {
         confirmAction(() => {
             const node = documentHub?.treeNodes?.find((n: DocumentTreeNode) => n.id === treeNodeId);
+            setSelectedTreeNodeId(treeNodeId);
             if (node && node.type === 'file' && node.documentId) {
                 setSelectedDoc(node.documentId);
                 setPreviewVersion(null); // Reset preview when switching docs
@@ -486,15 +505,49 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         });
     };
 
-    const selectedTreeNodeId = useMemo(() => {
-        return documentHub?.treeNodes?.find((n: DocumentTreeNode) => n.documentId === selectedDoc)?.id || '';
-    }, [documentHub?.treeNodes, selectedDoc]);
+    const selectedNode = useMemo(() => {
+        return documentHub?.treeNodes?.find((n: DocumentTreeNode) => n.id === selectedTreeNodeId);
+    }, [documentHub?.treeNodes, selectedTreeNodeId]);
+
+    const handleRenameHub = async () => {
+        if (!isEditingHubName) return; // Prevent double-trigger from both onBlur and onPressEnter
+
+        if (!hubName.trim() || hubName === documentHub?.name) {
+            setIsEditingHubName(false);
+            setHubName(documentHub?.name || '');
+            return;
+        }
+
+        try {
+            await DocumentHubService.updateDocumentHub(documentId, { name: hubName });
+            messageApi.success('Document Hub renamed successfully');
+            const ticketsKey = [...globalDataKeys.tickets, documentId];
+            const hubKey = [...globalDataKeys.documentHub, documentId];
+            console.log('Invalidating and refetching Document Hub tree after rename with keys:', { ticketsKey, hubKey });
+
+            queryClient.invalidateQueries({ queryKey: ticketsKey });
+            queryClient.refetchQueries({ queryKey: ticketsKey });
+            queryClient.invalidateQueries({ queryKey: hubKey });
+            queryClient.refetchQueries({ queryKey: hubKey });
+            setIsEditingHubName(false);
+        } catch (error) {
+            console.error(error);
+            messageApi.error('Failed to rename Document Hub');
+        }
+    };
 
     const handleRenameNode = async (id: string, newTitle: string) => {
         try {
             await DocumentHubService.updateTreeNode(id, { title: newTitle });
             messageApi.success('Renamed successfully');
-            queryClient.invalidateQueries({ queryKey: [...globalDataKeys.tickets, documentId] });
+            const ticketsKey = [...globalDataKeys.tickets, documentId];
+            const hubKey = [...globalDataKeys.documentHub, documentId];
+            console.log('Invalidating and refetching Document Hub tree after node rename with keys:', { ticketsKey, hubKey });
+
+            queryClient.invalidateQueries({ queryKey: ticketsKey });
+            queryClient.refetchQueries({ queryKey: ticketsKey });
+            queryClient.invalidateQueries({ queryKey: hubKey });
+            queryClient.refetchQueries({ queryKey: hubKey });
             // Also refetch document if it's the currently selected one
             if (selectedTreeNodeId === id) {
                 refetchDocument();
@@ -505,7 +558,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         }
     };
 
-    const handleDeleteDocument = async (id: string, type: 'file' | 'folder', docId?: string) => {
+    const handleDeleteDocument = async (id: string, type: 'file' | 'folder' | 'section', docId?: string) => {
         // For now only files (documents) deleting are implemented in backend fully as described
         // Folders are just nodes, but documents are separate entities.
         // My implementation of deleteDocument expects a documentId (not treeNodeId).
@@ -518,16 +571,26 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 okType: 'danger',
                 onOk: async () => {
                     try {
-                        await DocumentHubService.deleteDocument(docId);
-                        messageApi.success('Document deleted');
-                        // Invalidate document hub to refresh tree (removes deleted node)
-                        queryClient.invalidateQueries({ queryKey: [...globalDataKeys.tickets, documentId] });
-                        // Invalidate the individual document cache
-                        queryClient.removeQueries({ queryKey: ['document', docId] });
-                        // Invalidate document history cache
-                        queryClient.removeQueries({ queryKey: ['documentHistory', docId] });
-                        if (selectedDoc === docId) {
-                            setSelectedDoc('api-ref');
+                        if (docId) {
+                            await DocumentHubService.deleteDocument(docId);
+                            messageApi.success('Document deleted');
+                            // Invalidate document hub to refresh tree (removes deleted node)
+                            const ticketsKey = [...globalDataKeys.tickets, documentId];
+                            const hubKey = [...globalDataKeys.documentHub, documentId];
+                            console.log('Invalidating and refetching Document Hub tree after file deletion with keys:', { ticketsKey, hubKey });
+
+                            queryClient.invalidateQueries({ queryKey: ticketsKey });
+                            queryClient.refetchQueries({ queryKey: ticketsKey });
+                            queryClient.invalidateQueries({ queryKey: hubKey });
+                            queryClient.refetchQueries({ queryKey: hubKey });
+
+                            // Invalidate the individual document cache
+                            queryClient.removeQueries({ queryKey: ['document', docId] });
+                            // Invalidate document history cache
+                            queryClient.removeQueries({ queryKey: ['documentHistory', docId] });
+                            if (selectedDoc === docId) {
+                                setSelectedDoc('api-ref');
+                            }
                         }
                     } catch (error) {
                         console.error(error);
@@ -535,8 +598,30 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     }
                 }
             });
-        } else {
-            messageApi.warning('Deleting folders is not yet supported in this version.');
+        } else if (type === 'folder' || type === 'section') {
+            modal.confirm({
+                title: `Delete ${type.charAt(0).toUpperCase() + type.slice(1)}`,
+                content: `Are you sure you want to delete this ${type} and all its contents?`,
+                okText: 'Delete',
+                okType: 'danger',
+                onOk: async () => {
+                    try {
+                        await DocumentHubService.deleteTreeNode(id);
+                        messageApi.success(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted`);
+                        const ticketsKey = [...globalDataKeys.tickets, documentId];
+                        const hubKey = [...globalDataKeys.documentHub, documentId];
+                        console.log('Invalidating and refetching Document Hub tree after node deletion with keys:', { ticketsKey, hubKey });
+
+                        queryClient.invalidateQueries({ queryKey: ticketsKey });
+                        queryClient.refetchQueries({ queryKey: ticketsKey });
+                        queryClient.invalidateQueries({ queryKey: hubKey });
+                        queryClient.refetchQueries({ queryKey: hubKey });
+                    } catch (error) {
+                        console.error(error);
+                        messageApi.error(`Failed to delete ${type}`);
+                    }
+                }
+            });
         }
     };
 
@@ -553,10 +638,31 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         style={{ borderRightColor: 'var(--border-slate-200)', background: 'var(--bg-secondary)' }}
                     >
                         {/* Sidebar Header */}
-                        <div className="flex items-center justify-between py-[4px] px-[8px] border-b border-slate-200 h-[40px]" style={{ borderBottomColor: 'var(--border-slate-200)' }}>
-                            <h1 className="text-sm font-semibold text-slate-900 truncate" style={{ color: 'var(--text-slate-900)' }}>
-                                {documentHub?.name}
-                            </h1>
+                        <div className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200 h-[40px] group/header">
+                            {isEditingHubName ? (
+                                <Input
+                                    size="small"
+                                    value={hubName}
+                                    onChange={(e) => setHubName(e.target.value)}
+                                    onBlur={handleRenameHub}
+                                    onPressEnter={handleRenameHub}
+                                    autoFocus
+                                    className="text-sm font-semibold"
+                                />
+                            ) : (
+                                <div className="flex items-center justify-between w-full min-w-0 overflow-hidden">
+                                    <Tooltip title={documentHub?.name} placement="right" mouseEnterDelay={0.5}>
+                                        <h1 className="text-sm font-semibold text-gray-900 truncate flex-1 min-w-0">
+                                            {documentHub?.name}
+                                        </h1>
+                                    </Tooltip>
+                                    <EditOutlined
+                                        className="text-gray-400 hover:text-gray-600 cursor-pointer opacity-0 group-hover/header:opacity-100 transition-opacity ml-2 shrink-0"
+                                        style={{ fontSize: 16 }}
+                                        onClick={() => setIsEditingHubName(true)}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {!collapsed && (
@@ -582,7 +688,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                         <TreeNode
                                             key={item.id}
                                             item={item}
-                                            selectedId={selectedTreeNodeId}
+                                            selectedId={selectedTreeNodeId || ''}
                                             onSelect={handleNodeSelect}
                                             expandedIds={expandedIds}
                                             onToggleExpand={toggleExpand}
@@ -654,9 +760,11 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                     <PanelLeftClose className="w-5 h-5" />
                                 )}
                             </button>
-                            <h2 className="text-xl font-semibold text-slate-900" style={{ color: 'var(--text-slate-900)' }}>
-                                {documentContent?.title || 'Select a document'}
-                            </h2>
+                            <Tooltip title={documentContent?.title} mouseEnterDelay={0.5}>
+                                <h2 className="text-xl font-semibold text-gray-900 truncate max-w-[400px]">
+                                    {documentContent?.title || 'Select a document'}
+                                </h2>
+                            </Tooltip>
                         </div>
                         <div className="flex items-center gap-2">
                             {selectedDoc && selectedDoc !== 'api-ref' && (
@@ -702,11 +810,19 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onClick={() => setIsShareOpen(true)}
                                         />
                                     </Tooltip>
-                                    <Tooltip title="Delete Document">
+                                    <Tooltip title={`Delete ${selectedNode?.type || 'item'}`}>
                                         <Button
                                             danger
                                             icon={<Trash className="w-4 h-4" />}
-                                            onClick={() => handleDeleteDocument(selectedDoc, 'file', selectedDoc)}
+                                            onClick={() => {
+                                                if (selectedNode) {
+                                                    handleDeleteDocument(
+                                                        selectedNode.id,
+                                                        selectedNode.type as any,
+                                                        selectedNode.documentId || undefined
+                                                    );
+                                                }
+                                            }}
                                         />
                                     </Tooltip>
                                     <div className="h-6 w-px bg-slate-200 mx-2" style={{ backgroundColor: 'var(--border-slate-200)' }} />

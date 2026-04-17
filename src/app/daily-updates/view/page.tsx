@@ -392,9 +392,13 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                       style={{ width: "100%" }}
                       value={selectedProject}
                       onChange={setSelectedProject}
+                      showSearch
                       allowClear
                       options={projects}
                       size="middle"
+                      filterOption={(input, option) =>
+                        String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
                     />
                   </div>
                   <div style={{ flex: "1 1 200px" }}>
@@ -410,6 +414,9 @@ function ViewDailyUpdatesContent({ user }: { user: any }) {
                       allowClear
                       options={uniqueUsers}
                       size="middle"
+                      filterOption={(input, option) =>
+                        String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                      }
                     />
                   </div>
                   <div style={{ flex: "1 1 120px" }}>

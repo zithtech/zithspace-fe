@@ -121,7 +121,16 @@ export default function EmployeeExitManagementPage() {
       ]);
 
       if (results[0].status === 'fulfilled') setRequests(results[0].value);
-      if (results[1].status === 'fulfilled') setEmployees(Array.isArray(results[1].value) ? results[1].value : []);
+      if (results[1].status === 'fulfilled') {
+        const rawEmployees = Array.isArray(results[1].value) ? results[1].value : [];
+        const formatted = rawEmployees.map((emp: any) => ({
+          ...emp,
+          // Use employeeId as the selection value to prevent mismatch with backend
+          value: emp.employeeId || emp.value,
+          label: emp.label
+        }));
+        setEmployees(formatted);
+      }
       if (results[2].status === 'fulfilled') setExitTypes(results[2].value);
       if (results[3].status === 'fulfilled') setReasons(results[3].value);
       if (results[4].status === 'fulfilled') setPositions(results[4].value);
@@ -182,6 +191,7 @@ export default function EmployeeExitManagementPage() {
     try {
       setDetailsLoading(true);
       console.log('Fetching details for employee:', employeeId);
+      console.log('Fetching details for employee selection (Value):', employeeId);
       const data = await EmployeeService.getWorkDetailByEmployee(employeeId);
       console.log('Employee work details received:', data);
 
@@ -276,6 +286,7 @@ export default function EmployeeExitManagementPage() {
         explanation: values.explanation || null,
       };
 
+      console.log('Final payload before submission:', payload);
       await EmployeeExitService.createExitRequest(payload);
       notificationApi.success({ message: 'Success', description: 'Exit request submitted successfully' });
       setDrawerVisible(false);

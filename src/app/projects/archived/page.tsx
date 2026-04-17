@@ -59,9 +59,10 @@ export default function ArchivedTicketsPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Use useTickets hook with archivedOnly flag to show ONLY archived tickets
-  const { data: ticketsData, isLoading, refetch } = useTickets({
+  const { data: ticketsData, isLoading, refetch, isFetching } = useTickets({
     archivedOnly: true,
     projectId: selectedProject,
     search: searchText,
@@ -72,20 +73,33 @@ export default function ArchivedTicketsPage() {
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
+  const loadStats = async () => {
+    setStatsLoading(true);
+    try {
+      const stats = await TicketService.getDashboardStats();
+      setDashboardStats(stats);
+    } catch (error) {
+      console.error("Failed to load dashboard stats:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadStats = async () => {
-      setStatsLoading(true);
-      try {
-        const stats = await TicketService.getDashboardStats();
-        setDashboardStats(stats);
-      } catch (error) {
-        console.error("Failed to load dashboard stats:", error);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
     loadStats();
   }, []);
+
+  const handleReload = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refetch(), loadStats()]);
+      message.success("Archived tickets refreshed");
+    } catch (e) {
+      message.error("Failed to refresh archived tickets");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const totalArchived = ticketsData?.pagination?.total || 0;
 
@@ -94,7 +108,7 @@ export default function ArchivedTicketsPage() {
     if (!dashboardStats?.projectStats || !projects) return [];
 
     return projects.map((p: any) => {
-      const stats = dashboardStats.projectStats.find((s: any) => s.id === p.id);
+      const stats = dashboardStats.projectStats.find((s: any) => s.id === p.value);
       // Try both lowercase and uppercase 'completed'/'archived'
       const archivedCount = stats?.statuses?.reduce((acc: number, s: any) => {
         const statusStr = s.status?.toLowerCase() || '';
@@ -105,9 +119,9 @@ export default function ArchivedTicketsPage() {
       }, 0) || 0;
 
       return {
-        id: p.id,
+        id: p.value,
         code: p.code,
-        name: p.name,
+        name: p.label,
         count: archivedCount
       };
     }).filter(p => p.count > 0).sort((a, b) => b.count - a.count).slice(0, 10); // Show up to 10
@@ -310,7 +324,8 @@ export default function ArchivedTicketsPage() {
                 )}
                 <Button
                   icon={<ReloadOutlined />}
-                  onClick={() => refetch()}
+                  onClick={handleReload}
+                  loading={isRefreshing || isFetching || statsLoading}
                   style={{ height: 40, borderRadius: 8 }}
                 />
               </Space>
@@ -350,7 +365,9 @@ export default function ArchivedTicketsPage() {
                       {selectedProject === p.id && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1677ff' }} />}
                     </div>
                     <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{p.count}</Title>
-                    <Text ellipsis style={{ fontSize: 11, color: '#bfbfbf', display: 'block', marginTop: -2 }}>{p.name}</Text>
+                    <Text ellipsis style={{ fontSize: 11, color: '#bfbfbf', display: 'block', marginTop: -2 }}>
+                      {p.name} - <small>{p.code}</small>
+                    </Text>
                   </Space>
                 </Card>
               </div>
@@ -359,41 +376,44 @@ export default function ArchivedTicketsPage() {
         </div>
 
         {/* Filters Row */}
-        <Card styles={{ body: { padding: 16 } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", marginBottom: 24 }}>
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} md={12} lg={8}>
-              <Input
-                placeholder="Search by title or ticket #..."
-                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                style={{ borderRadius: 8 }}
-                allowClear
-                size="large"
-              />
+        <Card styles={{ body: { padding: 20 } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", marginBottom: 24 }}>
+          <Row gutter={[16, 16]} align="bottom">
+            <Col xs={24} md={12} lg={12}>
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Text strong style={{ fontSize: 13 }}>Search Tickets</Text>
+                <Input
+                  placeholder="Filter by Project Code, Ticket ID, or Title..."
+                  prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ borderRadius: 8 }}
+                  allowClear
+                  size="large"
+                />
+              </Space>
             </Col>
-            <Col xs={24} md={12} lg={6}>
-              <Select
-                placeholder="All Projects"
-                style={{ width: '100%' }}
-                value={selectedProject}
-                onChange={setSelectedProject}
-                allowClear
-                size="large"
-                suffixIcon={<ProjectOutlined />}
-                styles={{ popup: { root: { borderRadius: 8 } } }}
-              >
-                {projects?.map((project: any) => (
-                  <Option key={project.id} value={project.id}>
-                    <Space>
-                      <Tag style={{ borderRadius: 4 }}>{project.code}</Tag>
-                      <span>{project.name}</span>
-                    </Space>
-                  </Option>
-                ))}
-              </Select>
+            <Col xs={24} md={8} lg={7}>
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Text strong style={{ fontSize: 13 }}>Project</Text>
+                <Select
+                  placeholder="All Projects"
+                  style={{ width: '100%' }}
+                  value={selectedProject}
+                  onChange={setSelectedProject}
+                  allowClear
+                  size="large"
+                  suffixIcon={<ProjectOutlined />}
+                  optionLabelProp="label"
+                >
+                  {projects?.map((project: any) => (
+                    <Option key={project.value} value={project.value} label={`${project.label} - ${project.code}`}>
+                      <Text style={{ fontSize: 13 }}>{project.label} - <Text type="secondary" style={{ fontSize: 12 }}>{project.code}</Text></Text>
+                    </Option>
+                  ))}
+                </Select>
+              </Space>
             </Col>
-            <Col flex="auto" style={{ textAlign: 'right' }}>
+            <Col flex="auto" style={{ textAlign: 'right', paddingBottom: 10 }}>
               <Text type="secondary" style={{ fontSize: 13 }}>
                 Showing <b>{tickets.length}</b> of <b>{totalArchived}</b> archived tickets
               </Text>

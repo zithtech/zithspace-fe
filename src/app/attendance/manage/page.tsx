@@ -22,6 +22,7 @@ import {
   Modal,
   TimePicker,
   Popconfirm,
+  App,
 } from 'antd';
 import {
   TeamOutlined,
@@ -38,6 +39,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { AttendanceService, Attendance, AttendanceFilters } from '@/services/attendanceService';
 import { MembersService, Member } from '@/services/membersService';
+import { ProjectService } from '@/services/projectService';
 import { usePermission } from '@/hooks/usePermission';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
@@ -57,13 +59,12 @@ interface ExtendedAttendance extends Attendance {
 
 export default function ManageAttendancePage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { notification } = App.useApp();
   const router = useRouter();
   const { canManageAttendance } = usePermission();
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -76,7 +77,12 @@ export default function ManageAttendancePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [memberFilter, setMemberFilter] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>([
+    dayjs().startOf('day'),
+    dayjs().endOf('day'),
+  ]);
+  const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
+  const [projects, setProjects] = useState<any[]>([]);
 
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -101,19 +107,26 @@ export default function ManageAttendancePage() {
         endDate: dateRange?.[1]?.toISOString(),
         search: searchTerm,
         member: memberFilter,
+        projectId: projectFilter,
       };
 
-      const [attendanceRes, membersRes] = await Promise.all([
+      const [attendanceRes, membersRes, projectsRes] = await Promise.all([
         AttendanceService.getAttendance(filters),
         MembersService.getMembers({ limit: 100 }),
+        ProjectService.getProjectsForSelect(),
       ]);
 
       setAttendanceRecords(attendanceRes.data);
       setPagination(prev => ({ ...prev, total: attendanceRes.pagination.total }));
       setMembers(membersRes.data);
+      setProjects(projectsRes);
     } catch (err: any) {
       console.error('Failed to fetch data:', err);
-      setError('Failed to load attendance management data');
+      notification.error({
+        message: 'Load Error',
+        description: 'Failed to load attendance management data',
+        placement: 'topRight'
+      });
     } finally {
       setLoading(false);
     }
@@ -123,7 +136,7 @@ export default function ManageAttendancePage() {
     if (user && canManageAttendance) {
       fetchData();
     }
-  }, [user, canManageAttendance, pagination.current, pagination.pageSize, searchTerm, statusFilter, memberFilter, dateRange]);
+  }, [user, canManageAttendance, pagination.current, pagination.pageSize, searchTerm, statusFilter, memberFilter, dateRange, projectFilter]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -152,12 +165,56 @@ export default function ManageAttendancePage() {
   const handleUpdate = async (values: any, isEdit: boolean) => {
     try {
       setActionLoading(true);
-      // Actual API calls would go here
-      setSuccess(`Attendance record ${isEdit ? 'updated' : 'added'} successfully!`);
+      
+      const selectedDate = dayjs(values.date);
+      const clockInTime = values.clockIn ? dayjs(values.clockIn) : null;
+      const clockOutTime = values.clockOut ? dayjs(values.clockOut) : null;
+
+      // Combine selected date with selected times to get correct ISO strings
+      const formattedClockIn = clockInTime
+        ? selectedDate.hour(clockInTime.hour()).minute(clockInTime.minute()).second(0).toISOString()
+        : undefined;
+
+      const formattedClockOut = clockOutTime
+        ? selectedDate.hour(clockOutTime.hour()).minute(clockOutTime.minute()).second(0).toISOString()
+        : undefined;
+
+      const payload = {
+        date: selectedDate.toISOString(),
+        status: values.status,
+        clockIn: formattedClockIn,
+        clockOut: formattedClockOut,
+        notes: values.notes,
+        userId: values.member,
+      };
+
+      if (isEdit && editingRecord) {
+        await AttendanceService.updateAttendance(editingRecord.id, payload);
+        notification.success({
+          message: 'Update Successful',
+          description: 'Attendance record updated successfully!',
+          placement: 'topRight'
+        });
+      } else {
+        await AttendanceService.createAttendance(payload as any);
+        notification.success({
+          message: 'Record Created',
+          description: 'Attendance record added successfully!',
+          placement: 'topRight'
+        });
+      }
+
       isEdit ? setIsEditModalVisible(false) : setIsAddModalVisible(false);
+      addForm.resetFields();
+      editForm.resetFields();
       fetchData();
     } catch (err: any) {
-      setError(err?.message || `Failed to ${isEdit ? 'update' : 'add'} record`);
+      console.error('Update failed:', err);
+      notification.error({
+        message: 'Action Failed',
+        description: err?.message || `Failed to ${isEdit ? 'update' : 'add'} record`,
+        placement: 'topRight'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -166,11 +223,20 @@ export default function ManageAttendancePage() {
   const handleDelete = async (id: string) => {
     try {
       setActionLoading(true);
-      // Actual API call would go here
-      setSuccess('Attendance record deleted successfully!');
+      await AttendanceService.deleteAttendance(id);
+      notification.success({
+        message: 'Record Deleted',
+        description: 'Attendance record deleted successfully!',
+        placement: 'topRight'
+      });
       fetchData();
     } catch (err: any) {
-      setError(err?.message || 'Failed to delete record');
+      console.error('Delete failed:', err);
+      notification.error({
+        message: 'Delete Failed',
+        description: err?.message || 'Failed to delete record',
+        placement: 'topRight'
+      });
     } finally {
       setActionLoading(false);
     }
@@ -246,6 +312,7 @@ export default function ManageAttendancePage() {
                 date: dayjs(record.date),
                 clockIn: record.clockIn ? dayjs(record.clockIn) : null,
                 clockOut: record.clockOut ? dayjs(record.clockOut) : null,
+                status: record.status,
               });
               setIsEditModalVisible(true);
             }}
@@ -293,9 +360,6 @@ export default function ManageAttendancePage() {
           </Button>
         </div>
 
-        {error && <Alert message={error} type="error" showIcon closable style={{ marginBottom: 24 }} />}
-        {success && <Alert message={success} type="success" showIcon closable style={{ marginBottom: 24 }} />}
-
         {/* Filters Panel */}
         <Card
           style={{ marginBottom: '24px', borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', background: 'var(--bg-pure-white)' }}
@@ -326,7 +390,23 @@ export default function ManageAttendancePage() {
                 <Option value="absent">Absent</Option>
               </Select>
             </Col>
-            <Col xs={12} sm={6} lg={6}>
+            <Col xs={12} sm={6} lg={4}>
+              <Select
+                placeholder="Project"
+                style={{ width: '100%' }}
+                dropdownStyle={{ borderRadius: '8px' }}
+                value={projectFilter}
+                onChange={setProjectFilter}
+                allowClear
+                showSearch
+                optionFilterProp="children"
+              >
+                {projects.map(p => (
+                  <Option key={p.value} value={p.value}>{p.label}</Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={12} sm={6} lg={4}>
               {/* <Select
                 placeholder="Team Member"
                 style={{ width: '100%' }}
@@ -358,7 +438,7 @@ export default function ManageAttendancePage() {
                 ))}
               </Select>
             </Col>
-            <Col xs={24} lg={8}>
+            <Col xs={24} lg={6}>
               <RangePicker
                 style={{ width: '100%', borderRadius: '8px' }}
                 value={dateRange}
@@ -383,6 +463,13 @@ export default function ManageAttendancePage() {
               showSizeChanger: true,
               size: 'default',
               style: { padding: '16px 24px' }
+            }}
+            onChange={(newPagination) => {
+              setPagination({
+                ...pagination,
+                current: newPagination.current || 1,
+                pageSize: newPagination.pageSize || 10,
+              });
             }}
             size="middle"
             scroll={{ x: 900 }}
@@ -484,12 +571,14 @@ export default function ManageAttendancePage() {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="clockIn" label="Clock In" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="09:00" />
+                    <TimePicker format="HH:mm" popupClassName="my-timepicker-popup"
+                      style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="09:00" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item name="clockOut" label="Clock Out" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="18:00" />
+                    <TimePicker format="HH:mm" popupClassName="my-timepicker-popup"
+                      style={{ width: '100%', height: '36px', borderRadius: '6px' }} placeholder="18:00" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -583,12 +672,16 @@ export default function ManageAttendancePage() {
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="clockIn" label="Clock In" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
+                    <TimePicker format="HH:mm" onChange={(time) => {
+                      console.log(time); // immediate value
+                    }} style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item name="clockOut" label="Clock Out" style={{ marginBottom: 0 }}>
-                    <TimePicker format="HH:mm" style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
+                    <TimePicker format="HH:mm" needConfirm={false} onChange={(time) => {
+                      console.log(time); // immediate value
+                    }} style={{ width: '100%', height: '36px', borderRadius: '6px' }} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -642,6 +735,9 @@ export default function ManageAttendancePage() {
           .ant-table-pagination.ant-pagination {
             border-top: 1px solid var(--border-slate-100) !important;
           }
+            .my-timepicker-popup .ant-picker-footer {
+  display: none !important;
+}
         `}</style>
       </div>
     </MainLayout>

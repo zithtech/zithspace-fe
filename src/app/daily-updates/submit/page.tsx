@@ -1061,11 +1061,13 @@ function SubmitDailyUpdateContent() {
                               placeholder="00-00-00 00:00"
                               value={update.startTime ? dayjs(update.startTime) : null}
                               onChange={(value) => handleTimeChange(projectIndex, "startTime", value)}
+                              needConfirm={false}
                               disabledDate={(current) => {
                                 if (isMissedUpdate) {
                                   if (missedDate) return !current.isSame(missedDate, "day");
                                   return current && (current.isSame(dayjs(), "day") || current.isAfter(dayjs(), "day") || current.isBefore(dayjs().subtract(3, "day"), "day"));
                                 }
+
                                 return current && current.isBefore(dayjs(), "day");
                               }}
                               style={{ width: "100%" }}
@@ -1078,6 +1080,7 @@ function SubmitDailyUpdateContent() {
                               format="DD-MM-YYYY HH:mm"
                               placeholder="00-00-00 00:00"
                               value={update.endTime ? dayjs(update.endTime) : null}
+                              needConfirm={false}
                               onChange={(value) => handleTimeChange(projectIndex, "endTime", value)}
                               disabledDate={(current) => {
                                 if (isMissedUpdate) {

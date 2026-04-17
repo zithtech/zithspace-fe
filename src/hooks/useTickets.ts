@@ -423,14 +423,18 @@ export const useUpdateTicket = () => {
 
         const inSprint = !!savedTicket.sprintPlanId;
         const inBacklog = !savedTicket.sprintPlanId;
+        const archived = !!savedTicket.isArchived;
 
-        if (isBacklogList && inSprint) {
+        if (isBacklogList && (inSprint || archived)) {
           newData = newData.filter(t => t.id !== savedTicket.id);
         }
-        else if (isActiveSprintList && inBacklog) {
+        else if (isActiveSprintList && (inBacklog || archived)) {
           newData = newData.filter(t => t.id !== savedTicket.id);
         }
-        else if ((isBacklogList && inBacklog) || (isActiveSprintList && inSprint)) {
+        else if (listParams.archivedOnly && !archived) {
+          newData = newData.filter(t => t.id !== savedTicket.id);
+        }
+        else if ((isBacklogList && inBacklog && !archived) || (isActiveSprintList && inSprint && !archived) || (listParams.archivedOnly && archived)) {
           const exists = newData.find(t => t.id === savedTicket.id);
           if (exists) {
             newData = newData.map((ticket: Ticket) =>

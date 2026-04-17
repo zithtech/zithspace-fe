@@ -208,17 +208,17 @@ export default function TopNav({
     <div
       style={{
         width: isModal ? "100%" : 300,
-        backgroundColor: "white",
+        backgroundColor: "var(--bg-pure-white)",
         boxShadow: isModal ? "none" : "0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px 0 rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03)",
         borderRadius: isModal ? 0 : 8,
-        border: isModal ? "none" : "1px solid #f0f0f0",
+        border: isModal ? "none" : "1px solid var(--border-color)",
         overflow: "hidden",
       }}
     >
       <div
         style={{
           padding: "12px 16px",
-          borderBottom: "1px solid #f0f0f0",
+          borderBottom: "1px solid var(--border-color)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -264,7 +264,7 @@ export default function TopNav({
                   style={{ color: "#8c8c8c", fontSize: 16 }}
                 />
                 <Text
-                  style={{ fontSize: 13, color: "#262626" }}
+                  style={{ fontSize: 13, color: "var(--text-primary)" }}
                   ellipsis
                 >
                   {item.name}
@@ -304,8 +304,8 @@ export default function TopNav({
       <div
         style={{
           padding: "8px 16px",
-          borderTop: "1px solid #f0f0f0",
-          background: "#fafafa",
+          borderTop: "1px solid var(--border-color)",
+          background: "var(--bg-slate-50)",
         }}
       >
         {isAddMode ? (
@@ -363,7 +363,7 @@ export default function TopNav({
       className="glass-panel"
       style={{
         padding: isMobile ? "0 16px" : "0 24px 0 0",
-        borderBottom: "1px solid var(--border-color) !important",
+        borderBottom: "1px solid var(--border-color)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",

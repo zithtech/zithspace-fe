@@ -12,6 +12,8 @@ interface AttachmentsSectionProps {
   isEditing: boolean;
   onUpload: (file: string, fileName: string) => Promise<void>;
   onDelete: (attachmentId: string) => Promise<void>;
+  onRename?: (attachmentId: string, newFileName: string) => Promise<void>;
+  currentUserId?: string;
 }
 
 export default function AttachmentsSection({
@@ -20,6 +22,8 @@ export default function AttachmentsSection({
   isEditing,
   onUpload,
   onDelete,
+  onRename,
+  currentUserId,
 }: AttachmentsSectionProps) {
   const handleUpload = async (file: string, fileName: string) => {
     try {
@@ -38,6 +42,17 @@ export default function AttachmentsSection({
     } catch (error) {
       console.error("Failed to delete attachment:", error);
       message.error("Failed to delete attachment");
+    }
+  };
+
+  const handleRename = async (attachmentId: string, newFileName: string) => {
+    if (!onRename) return;
+    try {
+      await onRename(attachmentId, newFileName);
+      message.success("Attachment renamed successfully");
+    } catch (error) {
+      console.error("Failed to rename attachment:", error);
+      message.error("Failed to rename attachment");
     }
   };
 
@@ -66,6 +81,8 @@ export default function AttachmentsSection({
         <AttachmentList
           attachments={attachments}
           onDelete={handleDelete}
+          onRename={handleRename}
+          currentUserId={currentUserId}
           loading={isLoading}
         />
       </div>

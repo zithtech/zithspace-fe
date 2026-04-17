@@ -129,6 +129,9 @@ export interface Ticket {
   endDate?: string;
   releasePlanId?: string; // Mapped from backend
   sprintPlanId?: string; // Mapped from backend
+  demoPlanId?: string;
+  bucketId?: string;
+  isArchived?: boolean;
   parentId?: string; // Hierarchy support (Subtask)
   metadata?: {
     platform?: string;
@@ -862,6 +865,28 @@ class TicketService {
       console.error("Error deleting attachment:", error);
       const errorMessage =
         error.response?.data?.error || "Failed to delete attachment";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Rename attachment
+   */
+  static async renameAttachment(
+    ticketId: string,
+    attachmentId: string,
+    newFileName: string,
+  ): Promise<any> {
+    try {
+      const response = await apiClient.put(
+        `/api/tickets/${ticketId}/attachments/${attachmentId}`,
+        { newFileName },
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error renaming attachment:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to rename attachment";
       throw new Error(errorMessage);
     }
   }

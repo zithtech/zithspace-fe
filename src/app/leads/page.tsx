@@ -25,7 +25,12 @@ import {
   X,
   ExternalLink,
   AlertCircle,
-  Eye
+  Eye,
+  Filter,
+  RefreshCw,
+  ShieldCheck,
+  Zap,
+  Sparkles
 } from "lucide-react";
 import {
   Card,
@@ -48,37 +53,62 @@ import {
   DatePicker,
   Avatar,
   Empty,
-  Spin
+  Spin,
+  Tabs
 } from "antd";
 import dayjs from "dayjs";
 import { useLeads } from "@/hooks/useLeads";
+import { useLeadSettings } from "@/hooks/useLeadSettings";
 import { Lead } from "@/services/leadService";
+import {
+  ClockCircleOutlined,
+  PhoneOutlined,
+  MailOutlined,
+  UserOutlined,
+  FileOutlined,
+  CalendarOutlined,
+  MessageOutlined,
+  VideoCameraOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  TeamOutlined,
+  SendOutlined,
+  LinkOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 
 const { TextArea } = Input;
 const { Text, Title } = Typography;
 
 export default function LeadsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const [isViewDrawerVisible, setIsViewDrawerVisible] = useState(false);
-  const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [filterAction, setFilterAction] = useState<string | null>(null);
+  const [filterPlatform, setFilterPlatform] = useState<string | null>(null);
+  const [filterDateRange, setFilterDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   // Use the custom hook for backend connectivity
-  const { leads, loading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();
+  const { leads, loading: leadsLoading, error, fetchLeads, createLead, updateLead, deleteLead } = useLeads();
+  const { statuses: configStatuses, actions: configActions, fetchStatuses, fetchActions, loading: settingsLoading } = useLeadSettings();
+
+  const loading = leadsLoading || settingsLoading;
 
   const handleView = (record: Lead) => {
-    setViewingLead(record);
-    setIsViewDrawerVisible(true);
+    router.push(`/leads/view/${record.id}`);
   };
 
-  // Load leads on component mount
+  // Load leads and settings on component mount
   useEffect(() => {
     fetchLeads();
-  }, [fetchLeads]);
+    fetchStatuses();
+    fetchActions();
+  }, [fetchLeads, fetchStatuses, fetchActions]);
 
   // Handle errors from the hook
   useEffect(() => {
@@ -90,75 +120,138 @@ export default function LeadsPage() {
     }
   }, [error, api]);
 
+  const handleStatusChange = async (leadId: string, newStatus: string) => {
+    try {
+      await updateLead(leadId, { status: newStatus });
+      api.success({ message: 'Status Updated', placement: 'topRight' });
+    } catch (error) {
+      api.error({ message: 'Failed to update status', placement: 'topRight' });
+    }
+  };
+
+  const handleActionChange = async (leadId: string, newAction: string) => {
+    try {
+      await updateLead(leadId, { actions: newAction });
+      api.success({ message: 'Action Updated', placement: 'topRight' });
+    } catch (error) {
+      api.error({ message: 'Failed to update action', placement: 'topRight' });
+    }
+  };
+
+  const renderActionIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'phone': return <PhoneOutlined />;
+      case 'mail': return <MailOutlined />;
+      case 'clock': return <ClockCircleOutlined />;
+      case 'user': return <UserOutlined />;
+      case 'file': return <FileOutlined />;
+      case 'calendar': return <CalendarOutlined />;
+      case 'message': return <MessageOutlined />;
+      case 'video': return <VideoCameraOutlined />;
+      case 'check': return <CheckCircleOutlined />;
+      case 'close': return <CloseCircleOutlined />;
+      case 'team': return <TeamOutlined />;
+      case 'send': return <SendOutlined />;
+      case 'link': return <LinkOutlined />;
+      default: return null;
+    }
+  };
+
   const columns = [
     {
-      title: "Lead Information",
+      title: "Lead Title",
       dataIndex: "title",
       key: "title",
-      width: "30%",
       render: (text: string, record: Lead) => (
-        <Space size={12}>
-          <div style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            background: "var(--bg-blue-50)",
-            color: "var(--premium-blue)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            <Briefcase size={20} />
-          </div>
-          <div>
-            <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
-            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.client_name} • {record.client_location || 'Unknown'}</Text>
-          </div>
-        </Space>
+        <div>
+          <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
+          <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.client_name}</Text>
+        </div>
       ),
     },
     {
-      title: "Skills",
-      dataIndex: "skills",
-      key: "skills",
-      render: (skills: string[]) => (
-        <Space size={[0, 4]} wrap>
-          {(skills || []).map(skill => (
-            <Tag key={skill} color="blue" style={{ borderRadius: 4, margin: 0, fontSize: 11 }}>{skill}</Tag>
-          ))}
-        </Space>
-      ),
-    },
-    {
-      title: "Duration / Rate",
-      key: "rate",
-      render: (record: Lead) => (
-        <Space direction="vertical" size={0}>
-          <Text style={{ fontSize: 13, color: "var(--text-slate-700)" }}>{record.duration || 'N/A'}</Text>
-          <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>${record.hour_based_amount}/hr</Text>
-        </Space>
+      title: "Platform",
+      dataIndex: "platform",
+      key: "platform",
+      width: 120,
+      render: (platform: string) => (
+        <Tag color={
+          platform === 'Upwork' ? 'green' :
+            platform === 'LinkedIn' ? 'blue' :
+              platform === 'Freelancer' ? 'cyan' :
+                platform === 'Fiverr' ? 'orange' : 'default'
+        } style={{ borderRadius: 6 }}>
+          {platform || 'Upwork'}
+        </Tag>
       ),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => (
-        <Tag
-          style={{ borderRadius: 20, padding: "0 10px", fontWeight: 600, border: 0 }}
-          color={status === "Open" ? "success" : status === "In Progress" ? "processing" : "default"}
+      width: 160,
+      render: (status: string, record: Lead) => (
+        <Select
+          value={status}
+          style={{ width: '100%' }}
+          bordered={false}
+          className="status-select"
+          onChange={(value) => handleStatusChange(record.id, value)}
+          dropdownMatchSelectWidth={false}
         >
-          {(status || 'Unknown').toUpperCase()}
-        </Tag>
+          {configStatuses.map(s => (
+            <Select.Option key={s.id} value={s.name}>
+              <Tag style={{ 
+                backgroundColor: `${s.color}15`, 
+                color: s.color, 
+                border: `1px solid ${s.color}30`,
+                fontWeight: 700,
+                borderRadius: 6,
+                padding: "2px 10px",
+                fontSize: 11,
+                letterSpacing: "0.02em",
+                margin: 0
+              }}>
+                {s.name.toUpperCase()}
+              </Tag>
+            </Select.Option>
+          ))}
+        </Select>
+      ),
+    },
+    {
+      title: "Action",
+      dataIndex: "actions_item",
+      key: "action",
+      width: 180,
+      render: (action: string, record: Lead) => (
+        <Select
+          value={action}
+          placeholder="Select Action"
+          style={{ width: '100%' }}
+          bordered={false}
+          onChange={(value) => handleActionChange(record.id, value)}
+          allowClear
+        >
+          {configActions.map(a => (
+            <Select.Option key={a.id} value={a.name}>
+              <Space>
+                {renderActionIcon(a.icon)}
+                <span style={{ color: a.color }}>{a.name}</span>
+              </Space>
+            </Select.Option>
+          ))}
+        </Select>
       ),
     },
     {
       title: "Actions",
       key: "table-actions",
       align: "right" as const,
+      width: 100,
       render: (_: unknown, record: Lead) => (
         <Space size={4}>
-          <Tooltip title="View Details">
+          <Tooltip title="View All Details">
             <Button
               type="text"
               icon={<Eye size={18} style={{ color: "var(--text-slate-400)" }} />}
@@ -211,11 +304,24 @@ export default function LeadsPage() {
       estOrProjectDuration: record.est_project_duration,
       status: record.status,
       actions: record.actions_item,
-      timeline: record.timeline_start && record.timeline_end 
-        ? [dayjs(record.timeline_start), dayjs(record.timeline_end)] 
+      timeline: record.timeline_start && record.timeline_end
+        ? [dayjs(record.timeline_start), dayjs(record.timeline_end)]
         : null,
       postedOn: record.posted_on ? dayjs(record.posted_on) : null,
-      documents: record.documents,
+      documents: Array.isArray(record.documents) 
+        ? record.documents.map(doc => 
+            typeof doc === 'string' ? { name: doc, url: doc } : doc
+          )
+        : record.documents,
+      platform: ['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : 'Other',
+      customPlatform: !['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : '',
+      experienceLevel: record.experience_level,
+      jobType: record.job_type,
+      clientRating: record.client_rating,
+      clientSpend: record.client_spend,
+      clientPaymentVerified: record.client_payment_verified,
+      clientPhoneVerified: record.client_phone_verified,
+      ai_summary: record.ai_summary,
     });
     setIsDrawerVisible(true);
   };
@@ -234,14 +340,21 @@ export default function LeadsPage() {
 
   const handleSaveLead = async (values: any) => {
     try {
+      // Map custom platform if 'Other' is selected
+      const finalValues = { ...values };
+      if (values.platform === 'Other') {
+        finalValues.platform = values.customPlatform;
+      }
+      delete finalValues.customPlatform;
+
       if (editingKey) {
-        await updateLead(editingKey, values);
+        await updateLead(editingKey, finalValues);
         api.success({
           message: "Lead Updated",
           description: "Details have been synchronized with the server.",
         });
       } else {
-        await createLead(values);
+        await createLead(finalValues);
         api.success({
           message: "Lead Created",
           description: "New project lead added to the system.",
@@ -256,11 +369,33 @@ export default function LeadsPage() {
   };
 
   const filteredLeads = useMemo(() => {
-    return leads.filter(item => 
-      item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.client_name.toLowerCase().includes(searchText.toLowerCase())
-    );
-  }, [leads, searchText]);
+    return leads.filter(item => {
+      // Search matching
+      const matchesSearch = !searchText ||
+        item.title.toLowerCase().includes(searchText.toLowerCase()) ||
+        item.client_name.toLowerCase().includes(searchText.toLowerCase());
+
+      // Status matching
+      const matchesStatus = !filterStatus || item.status === filterStatus;
+
+      // Action matching
+      const matchesAction = !filterAction || item.actions_item === filterAction;
+
+      // Platform matching
+      const matchesPlatform = !filterPlatform || item.platform === filterPlatform;
+
+      // Date Range matching
+      let matchesDateRange = true;
+      if (filterDateRange && item.posted_on) {
+        const postedOn = dayjs(item.posted_on);
+        const [start, end] = filterDateRange;
+        // Set to start/end of day for accurate comparison
+        matchesDateRange = postedOn.isAfter(start.startOf('day')) && postedOn.isBefore(end.endOf('day'));
+      }
+
+      return matchesSearch && matchesStatus && matchesAction && matchesPlatform && matchesDateRange;
+    });
+  }, [leads, searchText, filterStatus, filterAction, filterPlatform, filterDateRange]);
 
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
     <Card
@@ -290,7 +425,7 @@ export default function LeadsPage() {
         <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
-          background: "var(--bg-secondary)",
+          background: "var(--bg-primary)",
           minHeight: "calc(100vh - 64px)"
         }}>
           {contextHolder}
@@ -329,6 +464,11 @@ export default function LeadsPage() {
                 onClick={() => {
                   setEditingKey(null);
                   form.resetFields();
+                  form.setFieldsValue({ platform: 'Upwork', customPlatform: '' });
+                  const defaultStatus = configStatuses.find(s => s.is_default);
+                  if (defaultStatus) {
+                    form.setFieldsValue({ status: defaultStatus.name });
+                  }
                   setIsDrawerVisible(true);
                 }}
               >
@@ -337,20 +477,121 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+          <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={8}>
               <StatCard label="Total Leads" value={leads.length} icon={Layers} color="#3b82f6" />
             </Col>
-            <Col xs={24} sm={8}>
-              <StatCard label="Open Leads" value={leads.filter(d => d.status === "Open").length} icon={CheckCircle2} color="#10b981" />
-            </Col>
-            <Col xs={24} sm={8}>
-              <StatCard label="In Progress" value={leads.filter(d => d.status === "In Progress").length} icon={Clock} color="#f59e0b" />
-            </Col>
           </Row>
 
-          <Card 
-            bodyStyle={{ padding: 0 }} 
+          {/* Filter Bar Section */}
+          <Card
+            bodyStyle={{ padding: "12px 20px" }}
+            style={{
+              marginBottom: 32,
+              borderRadius: 16,
+              border: "1px solid var(--border-slate-200)",
+              background: "var(--bg-pure-white)",
+              boxShadow: "0 2px 4px 0 rgb(0 0 0 / 0.05)"
+            }}
+          >
+            <Row gutter={[16, 16]} align="middle">
+              <Col>
+                <Space size={8} style={{ color: "var(--text-slate-500)", fontWeight: 600 }}>
+                  <Filter size={18} />
+                  <span>Filters</span>
+                </Space>
+              </Col>
+              <Col flex="auto">
+                <Row gutter={12}>
+                  <Col span={5}>
+                    <Select
+                      placeholder="Filter by Status"
+                      style={{ width: '100%' }}
+                      allowClear
+                      value={filterStatus}
+                      onChange={setFilterStatus}
+                      dropdownStyle={{ borderRadius: 8 }}
+                    >
+                      {configStatuses.map(s => (
+                        <Select.Option key={s.id} value={s.name}>
+                          <Tag style={{ 
+                            backgroundColor: `${s.color}15`, 
+                            color: s.color, 
+                            border: `1px solid ${s.color}30`,
+                            fontWeight: 700,
+                            borderRadius: 6,
+                            padding: "2px 10px",
+                            fontSize: 10,
+                            margin: 0
+                          }}>
+                            {s.name.toUpperCase()}
+                          </Tag>
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Col>
+                  <Col span={5}>
+                    <Select
+                      placeholder="Filter by Platform"
+                      style={{ width: '100%' }}
+                      allowClear
+                      value={filterPlatform}
+                      onChange={setFilterPlatform}
+                    >
+                      <Select.Option value="Upwork">Upwork</Select.Option>
+                      <Select.Option value="LinkedIn">LinkedIn</Select.Option>
+                      <Select.Option value="Freelancer">Freelancer</Select.Option>
+                      <Select.Option value="Fiverr">Fiverr</Select.Option>
+                    </Select>
+                  </Col>
+                  <Col span={5}>
+                    <Select
+                      placeholder="Filter by Action"
+                      style={{ width: '100%' }}
+                      allowClear
+                      value={filterAction}
+                      onChange={setFilterAction}
+                    >
+                      {configActions.map(a => (
+                        <Select.Option key={a.id} value={a.name}>
+                          <Space>
+                            {renderActionIcon(a.icon)}
+                            {a.name}
+                          </Space>
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Col>
+                  <Col span={6}>
+                    <DatePicker.RangePicker
+                      style={{ width: '100%' }}
+                      value={filterDateRange}
+                      onChange={(dates) => setFilterDateRange(dates as any)}
+                    />
+                  </Col>
+                  <Col span={3}>
+                    <Button
+                      icon={<RefreshCw size={14} />}
+                      onClick={() => {
+                        setFilterStatus(null);
+                        setFilterAction(null);
+                        setFilterPlatform(null);
+                        setFilterDateRange(null);
+                        setSearchText("");
+                      }}
+                      block
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    >
+                      Clear
+                    </Button>
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
+          </Card>
+
+          <Card
+            bodyStyle={{ padding: 0 }}
             style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden" }}
           >
             {loading && leads.length === 0 ? (
@@ -434,6 +675,36 @@ export default function LeadsPage() {
                   </Form.Item>
                 </Col>
               </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="clientRating" label={<Text strong style={{ fontSize: 13 }}>Client Rating</Text>}>
+                    <Input placeholder="e.g. 4.9/5" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="clientSpend" label={<Text strong style={{ fontSize: 13 }}>Total Spend</Text>}>
+                    <Input placeholder="e.g. $10k+" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="clientPaymentVerified" label={<Text strong style={{ fontSize: 13 }}>Payment Verified</Text>}>
+                    <Select>
+                      <Select.Option value={true}>Verified</Select.Option>
+                      <Select.Option value={false}>Not Verified</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="clientPhoneVerified" label={<Text strong style={{ fontSize: 13 }}>Phone Verified</Text>}>
+                    <Select>
+                      <Select.Option value={true}>Verified</Select.Option>
+                      <Select.Option value={false}>Not Verified</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
             </div>
 
             <Divider />
@@ -446,8 +717,8 @@ export default function LeadsPage() {
               <Form.Item name="title" label={<Text strong style={{ fontSize: 13 }}>Job Title</Text>} rules={[{ required: true }]}>
                 <Input placeholder="e.g. Senior Frontend Engineer" />
               </Form.Item>
-              <Form.Item name="summary" label={<Text strong style={{ fontSize: 13 }}>Job Summary</Text>}>
-                <TextArea rows={3} placeholder="Briefly describe the role..." />
+              <Form.Item name="ai_summary" label={<Space><Sparkles size={14} color="var(--premium-blue)" /> <Text strong style={{ fontSize: 13 }}>AI Intelligence Summary</Text></Space>}>
+                <TextArea rows={4} placeholder="AI generated insights will appear here..." style={{ background: 'var(--bg-blue-50)', border: '1px solid var(--border-blue-100)' }} />
               </Form.Item>
               <Row gutter={16}>
                 <Col span={24}>
@@ -469,13 +740,52 @@ export default function LeadsPage() {
                 </Col>
                 <Col span={8}>
                   <Form.Item name="estOrProjectDuration" label={<Text strong style={{ fontSize: 13 }}>Project Type</Text>}>
-                    <Select>
-                      <Select.Option value="Short Term">Short Term</Select.Option>
-                      <Select.Option value="Long Term">Long Term</Select.Option>
-                      <Select.Option value="Fixed Price">Fixed Price</Select.Option>
+                    <Input placeholder="e.g. Fixed Price" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="experienceLevel" label={<Text strong style={{ fontSize: 13 }}>Experience Level</Text>}>
+                    <Input placeholder="e.g. Expert" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="jobType" label={<Text strong style={{ fontSize: 13 }}>Job Type</Text>}>
+                    <Input placeholder="e.g. Hourly" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider />
+
+            {/* Timeline & Meta Section */}
+            <div style={{ marginBottom: 32 }}>
+              <Title level={5} style={{ marginBottom: 16, color: "var(--premium-blue)", display: 'flex', alignItems: 'center', gap: 8 }}>
+                <LinkIcon size={18} /> Platform & Link
+              </Title>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="platform" label={<Text strong style={{ fontSize: 13 }}>Platform</Text>} initialValue="Upwork">
+                    <Select placeholder="Select Platform">
+                      <Select.Option value="Upwork">Upwork</Select.Option>
+                      <Select.Option value="LinkedIn">LinkedIn</Select.Option>
+                      <Select.Option value="Freelancer">Freelancer</Select.Option>
+                      <Select.Option value="Fiverr">Fiverr</Select.Option>
+                      <Select.Option value="Other">Other</Select.Option>
                     </Select>
                   </Form.Item>
                 </Col>
+                <Form.Item noStyle dependencies={['platform']}>
+                  {({ getFieldValue }) => getFieldValue('platform') === 'Other' && (
+                    <Col span={12}>
+                      <Form.Item name="customPlatform" label={<Text strong style={{ fontSize: 13 }}>Custom Platform Name</Text>} rules={[{ required: true }]}>
+                        <Input placeholder="Enter platform name" />
+                      </Form.Item>
+                    </Col>
+                  )}
+                </Form.Item>
               </Row>
               <Form.Item name="jobLink" label={<Text strong style={{ fontSize: 13 }}>Job Link</Text>}>
                 <Input prefix={<LinkIcon size={14} style={{ color: 'var(--text-slate-400)' }} />} placeholder="https://..." />
@@ -491,12 +801,16 @@ export default function LeadsPage() {
               </Title>
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item name="status" label={<Text strong style={{ fontSize: 13 }}>Current Status</Text>} initialValue="Open">
-                    <Select>
-                      <Select.Option value="Open">Open</Select.Option>
-                      <Select.Option value="In Progress">In Progress</Select.Option>
-                      <Select.Option value="Closed">Closed</Select.Option>
-                      <Select.Option value="Paused">Paused</Select.Option>
+                  <Form.Item name="status" label={<Text strong style={{ fontSize: 13 }}>Current Status</Text>}>
+                    <Select placeholder="Select Status">
+                      {configStatuses.map(s => (
+                        <Select.Option key={s.id} value={s.name}>
+                          <Space>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: s.color }} />
+                            {s.name}
+                          </Space>
+                        </Select.Option>
+                      ))}
                     </Select>
                   </Form.Item>
                 </Col>
@@ -514,7 +828,16 @@ export default function LeadsPage() {
                 </Col>
                 <Col span={12}>
                   <Form.Item name="actions" label={<Text strong style={{ fontSize: 13 }}>Next Action Items</Text>}>
-                    <Input placeholder="e.g. Schedule interview" />
+                    <Select placeholder="Select Action" allowClear>
+                      {configActions.map(a => (
+                        <Select.Option key={a.id} value={a.name}>
+                          <Space>
+                            {renderActionIcon(a.icon)}
+                            <span style={{ color: a.color }}>{a.name}</span>
+                          </Space>
+                        </Select.Option>
+                      ))}
+                    </Select>
                   </Form.Item>
                 </Col>
               </Row>
@@ -557,185 +880,6 @@ export default function LeadsPage() {
           </Form>
         </Drawer>
 
-        {/* View Lead Drawer */}
-        <Drawer
-          title={
-            <Space size={12}>
-              <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: "flex" }}>
-                <Eye size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>Lead Details</div>
-                <div style={{ fontSize: 12, color: "var(--text-slate-500)" }}>View complete profile and requirements</div>
-              </div>
-            </Space>
-          }
-          width={640}
-          open={isViewDrawerVisible}
-          onClose={() => setIsViewDrawerVisible(false)}
-        >
-          {viewingLead && (
-            <div style={{ paddingBottom: 40 }}>
-              {/* Header Status */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-                <Tag 
-                  color={viewingLead.status === "Open" ? "success" : viewingLead.status === "In Progress" ? "processing" : "default"}
-                  style={{ borderRadius: 20, padding: "4px 12px", border: 0, fontWeight: 600 }}
-                >
-                  {viewingLead.status?.toUpperCase()}
-                </Tag>
-                <Text style={{ fontSize: 12, color: 'var(--text-slate-400)' }}>
-                  Posted on: {viewingLead.posted_on ? dayjs(viewingLead.posted_on).format('MMM DD, YYYY') : 'N/A'}
-                </Text>
-              </div>
-
-              {/* Client Section */}
-              <div style={{ marginBottom: 40 }}>
-                <Title level={5} style={{ marginBottom: 20, color: "var(--premium-blue)", fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Client Information
-                </Title>
-                <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)', background: 'var(--bg-slate-50)' }}>
-                  <Row gutter={[24, 20]}>
-                    <Col span={12}>
-                      <Space direction="vertical" size={2}>
-                        <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>Client Name</Text>
-                        <Text strong style={{ fontSize: 14 }}>{viewingLead.client_name}</Text>
-                      </Space>
-                    </Col>
-                    <Col span={12}>
-                      <Space direction="vertical" size={2}>
-                        <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>Email Address</Text>
-                        <Space size={4}>
-                          <Mail size={12} />
-                          <Text style={{ fontSize: 14 }}>{viewingLead.client_mail}</Text>
-                        </Space>
-                      </Space>
-                    </Col>
-                    <Col span={12}>
-                      <Space direction="vertical" size={2}>
-                        <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>Phone Number</Text>
-                        <Space size={4}>
-                          <Phone size={12} />
-                          <Text style={{ fontSize: 14 }}>{viewingLead.client_phone || 'N/A'}</Text>
-                        </Space>
-                      </Space>
-                    </Col>
-                    <Col span={12}>
-                      <Space direction="vertical" size={2}>
-                        <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>Location</Text>
-                        <Space size={4}>
-                          <MapPin size={12} />
-                          <Text style={{ fontSize: 14 }}>{viewingLead.client_location || 'N/A'}</Text>
-                        </Space>
-                      </Space>
-                    </Col>
-                  </Row>
-                </Card>
-              </div>
-
-              {/* Job Section */}
-              <div style={{ marginBottom: 40 }}>
-                <Title level={5} style={{ marginBottom: 20, color: "var(--premium-blue)", fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Job Specification
-                </Title>
-                <div style={{ marginBottom: 24 }}>
-                  <Title level={4} style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 700 }}>{viewingLead.title}</Title>
-                  <Text style={{ fontSize: 14, color: 'var(--text-slate-600)', lineHeight: '1.6' }}>{viewingLead.summary || 'No summary provided.'}</Text>
-                </div>
-
-                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                  <Col span={8}>
-                    <Card bodyStyle={{ padding: 12 }} style={{ borderRadius: 10, textAlign: 'center', border: '1px solid var(--border-slate-100)' }}>
-                      <Text type="secondary" style={{ display: 'block', fontSize: 11 }}>Duration</Text>
-                      <Text strong>{viewingLead.duration || 'N/A'}</Text>
-                    </Card>
-                  </Col>
-                  <Col span={8}>
-                    <Card bodyStyle={{ padding: 12 }} style={{ borderRadius: 10, textAlign: 'center', border: '1px solid var(--border-slate-100)' }}>
-                      <Text type="secondary" style={{ display: 'block', fontSize: 11 }}>Hourly Rate</Text>
-                      <Text strong color="var(--premium-blue)">${viewingLead.hour_based_amount || 0}/hr</Text>
-                    </Card>
-                  </Col>
-                  <Col span={8}>
-                    <Card bodyStyle={{ padding: 12 }} style={{ borderRadius: 10, textAlign: 'center', border: '1px solid var(--border-slate-100)' }}>
-                      <Text type="secondary" style={{ display: 'block', fontSize: 11 }}>Project Type</Text>
-                      <Text strong>{viewingLead.est_project_duration || 'N/A'}</Text>
-                    </Card>
-                  </Col>
-                </Row>
-
-                <div style={{ marginBottom: 24 }}>
-                  <Text type="secondary" style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', marginBottom: 8 }}>Required Skills</Text>
-                  <Space wrap size={[8, 8]}>
-                    {(viewingLead.skills || []).map(skill => (
-                      <Tag key={skill} style={{ borderRadius: 4, margin: 0, padding: '4px 12px', background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', border: 0 }}>{skill}</Tag>
-                    ))}
-                  </Space>
-                </div>
-
-                {viewingLead.job_link && (
-                  <Button 
-                    type="link" 
-                    icon={<LinkIcon size={14} />} 
-                    href={viewingLead.job_link} 
-                    target="_blank" 
-                    style={{ padding: 0, height: 'auto', color: 'var(--premium-blue)' }}
-                  >
-                    View Original Job Post
-                  </Button>
-                )}
-              </div>
-
-              {/* Timeline & Meta */}
-              <div style={{ marginBottom: 40 }}>
-                <Title level={5} style={{ marginBottom: 20, color: "var(--premium-blue)", fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Timeline & Actions
-                </Title>
-                <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 12, border: '1px solid var(--border-slate-100)' }}>
-                  <Space direction="vertical" size={24} style={{ width: '100%' }}>
-                    <div>
-                      <Text type="secondary" style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', marginBottom: 8 }}>Project Timeline</Text>
-                      {viewingLead.timeline_start ? (
-                        <Space size={12}>
-                          <Calendar size={14} style={{ color: 'var(--text-slate-400)' }} />
-                          <Text>{dayjs(viewingLead.timeline_start).format('MMM DD, YYYY')} — {dayjs(viewingLead.timeline_end).format('MMM DD, YYYY')}</Text>
-                        </Space>
-                      ) : <Text>No timeline set</Text>}
-                    </div>
-                    <div>
-                      <Text type="secondary" style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', marginBottom: 8 }}>Next Action Item</Text>
-                      <Space size={12}>
-                        <CheckCircle2 size={14} style={{ color: 'var(--premium-green)' }} />
-                        <Text strong>{viewingLead.actions_item || 'No actions defined'}</Text>
-                      </Space>
-                    </div>
-                  </Space>
-                </Card>
-              </div>
-
-              {/* Documents */}
-              {viewingLead.documents && viewingLead.documents.length > 0 && (
-                <div>
-                  <Title level={5} style={{ marginBottom: 20, color: "var(--premium-blue)", fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Documents
-                  </Title>
-                  <Space direction="vertical" style={{ width: '100%' }} size={12}>
-                    {viewingLead.documents.map((doc: any, idx: number) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: 12, background: 'var(--bg-slate-50)', borderRadius: 8 }}>
-                        <Space>
-                          <FileText size={16} style={{ color: 'var(--text-slate-400)' }} />
-                          <Text>{doc.name}</Text>
-                        </Space>
-                        <Button type="link" size="small" href={doc.url} target="_blank" icon={<ExternalLink size={14} />}>View</Button>
-                      </div>
-                    ))}
-                  </Space>
-                </div>
-              )}
-            </div>
-          )}
-        </Drawer>
-
         <style dangerouslySetInnerHTML={{
           __html: `
           .action-btn:hover {
@@ -757,6 +901,30 @@ export default function LeadsPage() {
           .ant-input:focus, .ant-input-focused {
             border-color: var(--premium-blue) !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .premium-tabs .ant-tabs-nav {
+            margin-bottom: 24px !important;
+          }
+          .premium-tabs .ant-tabs-tab {
+            padding: 12px 0 !important;
+            margin-right: 40px !important;
+          }
+          .premium-tabs .ant-tabs-tab-btn {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: var(--text-slate-500) !important;
+          }
+          .premium-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+            color: var(--premium-blue) !important;
+          }
+          .premium-tabs .ant-tabs-ink-bar {
+            background: var(--premium-blue) !important;
+            height: 3px !important;
+            border-radius: 3px 3px 0 0 !important;
           }
         `}} />
       </MainLayout>

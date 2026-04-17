@@ -3,6 +3,7 @@ import LeadService, { Lead } from "../services/leadService";
 
 export const useLeads = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,6 +16,20 @@ export const useLeads = () => {
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to fetch leads");
       console.error("Fetch leads error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchLeadById = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await LeadService.getById(id);
+      setLead(data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to fetch lead");
+      console.error("Fetch lead error:", err);
     } finally {
       setLoading(false);
     }
@@ -71,9 +86,11 @@ export const useLeads = () => {
 
   return {
     leads,
+    lead,
     loading,
     error,
     fetchLeads,
+    fetchLeadById,
     createLead,
     updateLead,
     deleteLead

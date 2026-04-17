@@ -31,16 +31,16 @@ import {
   Checkbox,
   Drawer,
 } from "antd";
-import { 
-  Settings2, 
-  Plus, 
-  Search, 
-  User, 
-  Trash2, 
-  Maximize2, 
-  Edit2, 
-  History, 
-  ArrowUpCircle, 
+import {
+  Settings2,
+  Plus,
+  Search,
+  User,
+  Trash2,
+  Maximize2,
+  Edit2,
+  History,
+  ArrowUpCircle,
   ArrowDownCircle,
   Calendar,
   AlertCircle,
@@ -64,11 +64,11 @@ import {
 const { Text, Title } = Typography;
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
-  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}><Icon size={24} /></div>
     </div>
@@ -280,21 +280,21 @@ export default function LeaveAdjustmentPage() {
         a.employee.localeCompare(b.employee),
       render: (text: string) => (
         <Space size={12}>
-          <div style={{ 
-            width: 36, 
-            height: 36, 
-            borderRadius: "50%", 
-            background: "#f1f5f9", 
-            display: "flex", 
-            alignItems: "center", 
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "var(--bg-slate-50)",
+            display: "flex",
+            alignItems: "center",
             justifyContent: "center",
-            color: "#64748b",
+            color: "var(--text-slate-400)",
             fontSize: 14,
             fontWeight: 600
           }}>
             {text.charAt(0)}
           </div>
-          <Text strong style={{ color: "#1e293b" }}>{text}</Text>
+          <Text strong style={{ color: "var(--text-slate-900)" }}>{text}</Text>
         </Space>
       ),
     },
@@ -303,7 +303,7 @@ export default function LeaveAdjustmentPage() {
       dataIndex: "leaveType",
       key: "leaveType",
       width: 140,
-      render: (text: string) => <Tag style={{ borderRadius: 6, background: "#f8fafc", border: "1px solid #f1f5f9", color: "#64748b" }}>{text}</Tag>
+      render: (text: string) => <Tag style={{ borderRadius: 6, background: "var(--bg-slate-50)", border: "1px solid var(--border-slate-100)", color: "var(--text-slate-500)" }}>{text}</Tag>
     },
     {
       title: "Type",
@@ -328,12 +328,12 @@ export default function LeaveAdjustmentPage() {
         const unit = record.unit || "Days";
         const displayUnit = amount === 1 ? unit.slice(0, -1) : unit;
         return (
-          <div style={{ 
-            display: "flex", 
-            alignItems: "center", 
+          <div style={{
+            display: "flex",
+            alignItems: "center",
             gap: 8,
             fontWeight: 600,
-            color: record.type === "Credit" ? "#10b981" : "#ef4444" 
+            color: record.type === "Credit" ? "#10b981" : "#ef4444"
           }}>
             {record.type === "Credit" ? <ArrowUpCircle size={14} /> : <ArrowDownCircle size={14} />}
             {amount} {displayUnit}
@@ -363,22 +363,22 @@ export default function LeaveAdjustmentPage() {
       width: 180,
       render: (text: string) => (
         <Space size={10}>
-          <div style={{ 
-            width: 28, 
-            height: 28, 
-            borderRadius: "50%", 
-            background: "#eff6ff", 
-            display: "flex", 
-            alignItems: "center", 
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            background: "var(--bg-blue-50)",
+            display: "flex",
+            alignItems: "center",
             justifyContent: "center",
-            color: "#3b82f6",
+            color: "var(--premium-blue)",
             fontSize: 12,
             fontWeight: 600,
-            border: "1px solid #dbeafe"
+            border: "1px solid var(--border-slate-100)"
           }}>
             {text[0]}
           </div>
-          <Text style={{ color: "#475569", fontSize: 13 }}>{text}</Text>
+          <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>{text}</Text>
         </Space>
       ),
     },
@@ -407,11 +407,11 @@ export default function LeaveAdjustmentPage() {
               cancelText="No"
               okButtonProps={{ danger: true }}
             >
-              <Button 
-                type="text" 
-                size="small" 
-                danger 
-                icon={<Trash2 size={16} />} 
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<Trash2 size={16} />}
                 style={{ borderRadius: 6 }}
               />
             </Popconfirm>
@@ -427,7 +427,7 @@ export default function LeaveAdjustmentPage() {
         <div style={{
           margin: "0 -24px",
           padding: "24px 32px",
-          background: "#ffffff",
+          background: "var(--bg-secondary)",
           minHeight: "calc(100vh - 64px)"
         }}>
           {contextHolder}
@@ -437,27 +437,27 @@ export default function LeaveAdjustmentPage() {
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
             <div style={{ flex: 1 }}>
               <Space size={14} align="center">
-                <div style={{ background: "#f0f9ff", padding: 12, borderRadius: 14, color: "#0ea5e9", display: "flex" }}>
+                <div style={{ background: "var(--bg-blue-50)", padding: 12, borderRadius: 14, color: "var(--premium-blue)", display: "flex" }}>
                   <History size={28} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Leave Adjustments</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Handle special cases, comp-offs, and manual leave corrections.</Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Leave Adjustments</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Handle special cases, comp-offs, and manual leave corrections.</Text>
                 </div>
               </Space>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Input 
-                placeholder="Search adjustments..." 
-                prefix={<Search size={16} color="#94a3b8" />}
-                style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid #e2e8f0" }}
+              <Input
+                placeholder="Search adjustments..."
+                prefix={<Search size={16} color="var(--text-slate-400)" />}
+                style={{ width: 280, borderRadius: 12, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
                 onChange={e => setSearchText(e.target.value)}
               />
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<Plus size={18} />} 
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600 }}
+              <Button
+                type="primary"
+                size="large"
+                icon={<Plus size={18} />}
+                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
                 onClick={() => {
                   setEditingKey(null);
                   form.resetFields();
@@ -486,7 +486,8 @@ export default function LeaveAdjustmentPage() {
             bordered={false}
             style={{
               borderRadius: 16,
-              border: "1px solid #f1f5f9",
+              border: "1px solid var(--border-slate-100)",
+              background: "var(--bg-pure-white)",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
               overflow: "hidden"
             }}
@@ -512,14 +513,14 @@ export default function LeaveAdjustmentPage() {
           <Drawer
             title={
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ background: "#f0f9ff", padding: 8, borderRadius: 10, color: "#0ea5e9" }}>
+                <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)" }}>
                   <Clock size={20} />
                 </div>
                 <div>
-                  <Text strong style={{ fontSize: 18, color: "#1e293b", display: "block" }}>
+                  <Text strong style={{ fontSize: 18, color: "var(--text-slate-900)", display: "block" }}>
                     {editingKey ? "Edit Adjustment" : "New Leave Adjustment"}
                   </Text>
-                  <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
+                  <Text style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>
                     {editingKey ? "Modify existing leave correction" : "Create a manual leave credit or debit"}
                   </Text>
                 </div>
@@ -534,6 +535,9 @@ export default function LeaveAdjustmentPage() {
             }}
             width={480}
             destroyOnClose
+            headerStyle={{ background: "var(--bg-pure-white)", borderBottom: "1px solid var(--border-slate-100)" }}
+            bodyStyle={{ background: "var(--bg-pure-white)" }}
+            footerStyle={{ background: "var(--bg-pure-white)", borderTop: "1px solid var(--border-slate-100)" }}
             footer={
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "10px 0" }}>
                 {editingKey && (
@@ -656,8 +660,8 @@ export default function LeaveAdjustmentPage() {
 
                 <Col span={24}>
                   <Form.Item name="isTaken" valuePropName="checked" initialValue={false}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "#f8fafc", borderRadius: 8 }}>
-                      <span style={{ fontWeight: 500, color: "#475569" }}>Is Leave Already Taken?</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "var(--bg-slate-50)", borderRadius: 8 }}>
+                      <span style={{ fontWeight: 500, color: "var(--text-slate-500)" }}>Is Leave Already Taken?</span>
                       <Switch />
                     </div>
                   </Form.Item>
@@ -674,31 +678,36 @@ export default function LeaveAdjustmentPage() {
             </Form>
           </Drawer>
         </div>
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .history-table-row:hover {
-            background-color: #f8fafc !important;
+            background-color: var(--bg-slate-50) !important;
           }
           .ant-table-thead > tr > th {
-            background-color: #f1f5f9 !important;
-            color: #475569 !important;
+            background-color: var(--bg-slate-50) !important;
+            color: var(--text-slate-500) !important;
             font-weight: 600 !important;
             padding: 12px 16px !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
           }
           .ant-table-tbody > tr > td {
             padding: 12px 16px !important;
-            border-bottom: 1px solid #f1f5f9 !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
+            color: var(--text-slate-900) !important;
           }
           .ant-drawer-header {
             padding: 24px !important;
-            border-bottom: 1px solid #f1f5f9 !important;
+            border-bottom: 1px solid var(--border-slate-100) !important;
           }
           .ant-drawer-body {
             padding: 24px !important;
           }
           .ant-drawer-footer {
             padding: 16px 24px !important;
-            border-top: 1px solid #f1f5f9 !important;
+            border-top: 1px solid var(--border-slate-100) !important;
           }
+          .ant-pagination-item a { color: var(--text-slate-500) !important; }
+          .ant-pagination-item-active { background: var(--bg-pure-white) !important; border-color: var(--premium-blue) !important; }
         `}} />
       </MainLayout>
     </ProtectedRoute>

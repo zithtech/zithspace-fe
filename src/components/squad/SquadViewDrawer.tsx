@@ -29,8 +29,8 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
       key: 'name',
       render: (text: string) => (
         <Space>
-          <Avatar size="small" icon={<UserOutlined />} />
-          <Text>{text}</Text>
+          <Avatar size="small" icon={<UserOutlined />} style={{ background: 'var(--bg-secondary)', color: 'var(--text-slate-600)' }} />
+          <Text style={{ color: 'var(--text-slate-900)' }}>{text}</Text>
         </Space>
       ),
     },
@@ -49,7 +49,7 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
         title: 'Designation',
         dataIndex: ['member', 'position', 'title'],
         key: 'designation',
-        render: (text: string) => <Text type="secondary">{text || '-'}</Text>,
+        render: (text: string) => <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>{text || '-'}</Text>,
     }
   ];
 
@@ -64,7 +64,7 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
       title={
         <Space size={12}>
           <div style={{ 
-            backgroundColor: '#e6f7ff', 
+            backgroundColor: 'var(--bg-blue-50)', 
             width: '40px', 
             height: '40px', 
             borderRadius: '10px', 
@@ -72,11 +72,11 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
             alignItems: 'center', 
             justifyContent: 'center' 
           }}>
-            <TeamOutlined style={{ fontSize: '20px', color: '#1890ff' }} />
+            <TeamOutlined style={{ fontSize: '20px', color: 'var(--premium-blue)' }} />
           </div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 600 }}>{squad.squadName}</div>
-            <div style={{ fontSize: '12px', color: '#8c8c8c', fontWeight: 400 }}>{squad.squadCode}</div>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-slate-900)' }}>{squad.squadName}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-slate-400)', fontWeight: 400 }}>{squad.squadCode}</div>
           </div>
         </Space>
       }
@@ -90,8 +90,8 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
       }
     >
       <div style={{ marginBottom: '24px' }}>
-        <Title level={5}>Members Summary</Title>
-        <Text type="secondary">Total number of members in the squad: {squad.squadMembers?.length || 0}</Text>
+        <Title level={5} style={{ color: 'var(--text-slate-900)' }}>Members Summary</Title>
+        <Text type="secondary" style={{ color: 'var(--text-slate-400)' }}>Total number of members in the squad: {squad.squadMembers?.length || 0}</Text>
       </div>
 
       <Divider />
@@ -101,6 +101,7 @@ const SquadViewDrawer: React.FC<SquadViewDrawerProps> = ({ visible, onClose, squ
         columns={columns} 
         pagination={false} 
         rowKey="id"
+        className="premium-table"
       />
     </Drawer>
   );

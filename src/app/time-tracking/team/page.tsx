@@ -23,50 +23,50 @@ export default function TeamTimePage() {
 
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "24px 32px", 
-        background: "#ffffff", 
-        minHeight: "calc(100vh - 64px)" 
+      <div style={{
+        margin: "0 -24px",
+        padding: "24px 32px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)"
       }}>
         {/* Header Section */}
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: 'wrap', gap: 20 }}>
           <div style={{ flex: 1 }}>
             <Space size={12} align="center">
-              <div style={{ 
-                background: "#eff6ff", 
-                padding: 10, 
-                borderRadius: 12, 
-                color: "#2563eb",
+              <div style={{
+                background: "var(--bg-blue-50)",
+                padding: 10,
+                borderRadius: 12,
+                color: "var(--text-blue-600)",
                 display: "flex"
               }}>
                 <TeamOutlined style={{ fontSize: 24 }} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Team View</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Monitor team productivity, work sessions, and daily capacity in real-time.</Text>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Team View</Title>
+                <Text style={{ color: "var(--text-slate-600)", fontSize: 15 }}>Monitor team productivity, work sessions, and daily capacity in real-time.</Text>
               </div>
             </Space>
           </div>
-          
+
           <Space size={12} style={{ alignItems: 'center' }}>
-            <Button 
-              size="large" 
-              onClick={() => setIsManageModalOpen(true)} 
-              style={{ height: 44, borderRadius: 10, fontWeight: 500, padding: '0 20px' }}
+            <Button
+              size="large"
+              onClick={() => setIsManageModalOpen(true)}
+              style={{ height: 44, borderRadius: 10, fontWeight: 500, padding: '0 20px', background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
             >
               Manage Time
             </Button>
-            <Button 
-              size="large" 
-              type="primary" 
-              onClick={() => setPopoverOpen(true)} 
-              style={{ 
-                height: 44, 
-                borderRadius: 10, 
-                fontWeight: 600, 
-                padding: '0 24px', 
-                background: '#1677ff', 
+            <Button
+              size="large"
+              type="primary"
+              onClick={() => setPopoverOpen(true)}
+              style={{
+                height: 44,
+                borderRadius: 10,
+                fontWeight: 600,
+                padding: '0 24px',
+                background: '#1677ff',
                 border: 'none',
                 display: 'flex',
                 alignItems: 'center'

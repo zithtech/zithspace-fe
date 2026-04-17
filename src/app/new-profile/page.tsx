@@ -98,17 +98,17 @@ const NewProfilePage = () => {
   const employment = profile?.employment;
 
   const color = {
-    primary: "#1677ff",
-    primaryLight: "#e6f4ff",
+    primary: "var(--premium-blue)",
+    primaryLight: "var(--bg-blue-50)",
     primaryHover: "#0958d9",
-    border: "#d9d9d9",
-    borderLight: "#f0f0f0",
-    bg: "#f5f5f5",
-    bgCard: "#ffffff",
-    text: "#262626",
-    textSecondary: "#595959",
-    textMuted: "#8c8c8c",
-    textLight: "#bfbfbf",
+    border: "var(--border-slate-200)",
+    borderLight: "var(--border-slate-100)",
+    bg: "var(--bg-secondary)",
+    bgCard: "var(--bg-pure-white)",
+    text: "var(--text-slate-900)",
+    textSecondary: "var(--text-slate-500)",
+    textMuted: "var(--text-slate-400)",
+    textLight: "var(--text-slate-300)",
     danger: "#ff4d4f",
     green: "#52c41a",
     purple: "#722ed1",
@@ -142,8 +142,8 @@ const NewProfilePage = () => {
           justifyContent: "space-between",
           padding: "10px 14px", // 👈 Reduced padding
           borderRadius: "8px", // 👈 Smaller radius
-          background: "#ffffff",
-          border: "1px solid #f0f0f0",
+          background: "var(--bg-pure-white)",
+          border: `1px solid ${color.borderLight}`,
           cursor: "pointer",
           transition: "all 0.2s ease",
           boxShadow: "none",
@@ -157,11 +157,12 @@ const NewProfilePage = () => {
               width: "24px", // 👈 Reduced
               height: "24px", // 👈 Reduced
               borderRadius: "6px",
-              background: "#e6f0ff",
+              background: "var(--bg-blue-50)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "13px", // 👈 Smaller icon
+              color: "var(--premium-blue)",
             }}
           >
             {icon}
@@ -182,11 +183,11 @@ const NewProfilePage = () => {
         <span
           style={{
             fontSize: "12px", // 👈 Reduced
-            background: "#f9f9f9",
+            background: "var(--bg-slate-50)",
             padding: "2px 6px", // 👈 Reduced
             borderRadius: "4px",
             fontWeight: 600,
-            color: "#262626",
+            color: "var(--text-slate-900)",
           }}
         >
           {value}
@@ -277,7 +278,7 @@ const NewProfilePage = () => {
           position: "relative",
           height: "100vh",
           width: "100%",
-          background: "#ffffff",
+          background: "var(--bg-secondary)",
           overflow: "hidden",
         }}
       >
@@ -289,8 +290,8 @@ const NewProfilePage = () => {
             width: "300px", // 👈 Fixed width for sidebar feel but within flow
             flexShrink: 0,
             height: "100vh",
-            background: "white",
-            borderRight: "1px solid #f0f0f0",
+            background: "var(--bg-pure-white)",
+            borderRight: `1px solid ${color.borderLight}`,
             gap: "10px",
             alignItems: "center",
           }}
@@ -493,7 +494,7 @@ const NewProfilePage = () => {
           style={{
             display: "flex",
             flexDirection: "column",
-            background: "white",
+            background: "var(--bg-pure-white)",
             flex: 1, // 👈 Take remaining space
             height: "100vh",
             padding: "20px",
@@ -530,6 +531,7 @@ const NewProfilePage = () => {
             <Tabs
               activeKey={selectedTab}
               onChange={(key) => setSelectedTab(key)}
+              className="themed-profile-tabs"
               items={[
                 {
                   key: "personal",
@@ -591,6 +593,21 @@ const NewProfilePage = () => {
             />
           </div>
         </div>
+        <style jsx global>{`
+          .themed-profile-tabs .ant-tabs-nav::before {
+            border-bottom: 1px solid var(--border-slate-100) !important;
+          }
+          .themed-profile-tabs .ant-tabs-tab-btn {
+            color: var(--text-slate-500) !important;
+            font-weight: 600 !important;
+          }
+          .themed-profile-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+            color: var(--premium-blue) !important;
+          }
+          .themed-profile-tabs .ant-tabs-ink-bar {
+            background: var(--premium-blue) !important;
+          }
+        `}</style>
       </div>{" "}
     </MainLayout>
   );

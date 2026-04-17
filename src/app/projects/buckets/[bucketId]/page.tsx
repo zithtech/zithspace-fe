@@ -265,15 +265,15 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
   return (
     <MainLayout>
-      <div style={{ padding: '0 32px 32px', background: '#ffffff', minHeight: '100vh' }}>
+      <div style={{ padding: '0 32px 32px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
         
         {/* Breadcrumbs & Simple Navigation */}
         <div style={{ padding: '20px 0 0' }}>
           <Breadcrumb 
-            separator={<span style={{ color: '#d9d9d9' }}>/</span>}
+            separator={<span style={{ color: 'var(--border-color)' }}>/</span>}
             items={[
-              { title: <Link href="/projects/buckets" style={{ color: '#8c8c8c' }}>Buckets</Link> },
-              { title: <span style={{ color: '#262626', fontWeight: 500 }}>{bucket?.name}</span> },
+              { title: <Link href="/projects/buckets" style={{ color: 'var(--text-secondary)' }}>Buckets</Link> },
+              { title: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{bucket?.name}</span> },
             ]}
           />
         </div>
@@ -282,7 +282,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
         <div style={{ 
           padding: '24px 0', 
           marginBottom: 32, 
-          borderBottom: '1px solid #f0f0f0' 
+          borderBottom: '1px solid var(--border-color)' 
         }}>
           <Row justify="space-between" align="bottom" gutter={[24, 24]}>
             <Col>
@@ -305,8 +305,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                   <Space size="middle" style={{ marginTop: 4 }}>
                     {bucket?.project ? (
                       <Space size={6}>
-                        <ProjectOutlined style={{ color: '#8c8c8c' }} />
-                        <Text type="secondary" strong>{bucket.project.name}</Text>
+                        <ProjectOutlined style={{ color: 'var(--text-secondary)' }} />
+                        <Text type="secondary" strong style={{ color: 'var(--text-secondary)' }}>{bucket.project.name}</Text>
                         <Tag color="blue" style={{ borderRadius: 4, fontSize: 10, marginLeft: 4 }}>
                           {bucket.project.code}
                         </Tag>
@@ -314,10 +314,10 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                     ) : (
                       <Tag color="purple">CROSS-PROJECT BUCKET</Tag>
                     )}
-                    <span style={{ color: '#d9d9d9' }}>|</span>
+                    <span style={{ color: 'var(--border-color)' }}>|</span>
                     <Space size={6}>
-                      <FileTextOutlined style={{ color: '#8c8c8c' }} />
-                      <Text type="secondary">{tickets.length} Tickets</Text>
+                      <FileTextOutlined style={{ color: 'var(--text-secondary)' }} />
+                      <Text type="secondary" style={{ color: 'var(--text-secondary)' }}>{tickets.length} Tickets</Text>
                     </Space>
                   </Space>
                 </div>
@@ -365,10 +365,10 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
               <Space size="middle">
                 {selectedRowKeys.length > 0 && (
                   <div style={{ 
-                    background: '#f0f7ff', 
+                    background: 'var(--bg-pure-white)', 
                     padding: '4px 8px 4px 16px', 
                     borderRadius: 12, 
-                    border: '1px solid #bae7ff',
+                    border: '1px solid var(--border-color)',
                     display: 'flex',
                     alignItems: 'center'
                   }}>
@@ -424,7 +424,13 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
                 )}
                 <Button 
                   icon={<ReloadOutlined />} 
-                  onClick={() => refetchTickets()}
+                  onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+                    queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+                    refetchTickets();
+                    antdMessage.info("Refreshing bucket tickets...");
+                  }}
+                  loading={ticketsLoading || bucketLoading}
                   style={{ height: 44, width: 44, borderRadius: 10 }}
                 />
               </Space>
@@ -438,7 +444,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
           style={{ 
             borderRadius: 16, 
             overflow: 'hidden', 
-            border: '1px solid #f0f0f0',
+            border: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-pure-white)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
           }}
         >
@@ -480,19 +487,23 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
       <style jsx global>{`
         .premium-table .ant-table-thead > tr > th {
-          background: #fafafa;
+          background: var(--bg-pure-white);
           font-weight: 600;
-          color: #595959;
-          font-size: 12px;
+          color: var(--text-secondary);
+          font-size: 11px;
           text-transform: uppercase;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.05em;
           padding: 16px;
+          border-bottom: 1px solid var(--border-color);
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px;
+          background: var(--bg-pure-white);
+          border-bottom: 1px solid var(--border-color);
         }
         .premium-table .ant-table-tbody > tr:hover > td {
-          background: #fcfcfc !important;
+          background: var(--bg-pure-white) !important;
+          filter: brightness(0.98);
         }
         .premium-select-popup .ant-select-item {
           border-radius: 6px;

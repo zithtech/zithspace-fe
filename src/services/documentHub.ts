@@ -109,6 +109,21 @@ class DocumentHubService {
     }
   }
 
+  static async updateDocumentHub(
+    id: string,
+    data: { name: string }
+  ): Promise<DocumentHub> {
+    try {
+      const response = await apiClient.patch(`/api/documenthub/${id}`, data);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error updating document hub:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to update document hub";
+      throw new Error(errorMessage);
+    }
+  }
+
   static async createTreeNode(data: {
     documentHubId: string;
     parentId?: string | null;
@@ -187,6 +202,17 @@ class DocumentHubService {
     }
   }
 
+  static async deleteTreeNode(nodeId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/node/${nodeId}`);
+    } catch (error: any) {
+      console.error("Error deleting tree node:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to delete tree node";
+      throw new Error(errorMessage);
+    }
+  }
+
   static async restoreDocumentHub(id: string): Promise<void> {
     try {
       await apiClient.post(`/api/documenthub/${id}/restore`);
@@ -214,7 +240,7 @@ class DocumentHubService {
     }
   }
 
-  static async getTrash(type?: 'hub' | 'document'): Promise<{ hubs: DocumentHub[], documents: any[] }> {
+  static async getTrash(type?: 'hub' | 'document' | 'folder'): Promise<{ hubs: DocumentHub[], documents: any[], folders: any[] }> {
     try {
       const response = await apiClient.get('/api/documenthub/trash', {
         params: { type }
@@ -223,6 +249,16 @@ class DocumentHubService {
     } catch (error: any) {
       console.error("Error getting trash:", error);
       throw error;
+    }
+  }
+
+  static async restoreTreeNode(id: string, data: { documentHubId: string, parentId?: string | null }): Promise<void> {
+    try {
+      await apiClient.post(`/api/documenthub/node/${id}/restore`, data);
+    } catch (error: any) {
+      console.error("Error restoring tree node:", error);
+      const errorMessage = error.response?.data?.error || "Failed to restore folder/section";
+      throw new Error(errorMessage);
     }
   }
 

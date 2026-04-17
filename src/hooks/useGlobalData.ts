@@ -11,6 +11,7 @@ export const globalDataKeys = {
   members: ["global", "members"] as const,
   ticketConfig: ["global", "ticketConfig"] as const,
   tickets: ["global", "userTicketsByProject"],
+  documentHub: ["documentHub"],
 };
 
 /**
@@ -48,7 +49,7 @@ export const useDocumentHub = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery({
-    queryKey: [...globalDataKeys.tickets, documentId],
+    queryKey: [...globalDataKeys.documentHub, documentId],
     queryFn: () => DocumentHubService.getDocumentHub(documentId as string),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)

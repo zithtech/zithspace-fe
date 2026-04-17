@@ -60,14 +60,15 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
     styles={{ body: { padding: "16px 20px" } }}
     style={{
       borderRadius: 12,
-      border: "1px solid #f1f5f9",
-      boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
+      border: "1px solid var(--border-slate-100)",
+      boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      background: "var(--bg-pure-white)"
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{
         color: color,
@@ -120,7 +121,16 @@ export default function EmployeeExitManagementPage() {
       ]);
 
       if (results[0].status === 'fulfilled') setRequests(results[0].value);
-      if (results[1].status === 'fulfilled') setEmployees(Array.isArray(results[1].value) ? results[1].value : []);
+      if (results[1].status === 'fulfilled') {
+        const rawEmployees = Array.isArray(results[1].value) ? results[1].value : [];
+        const formatted = rawEmployees.map((emp: any) => ({
+          ...emp,
+          // Use employeeId as the selection value to prevent mismatch with backend
+          value: emp.employeeId || emp.value,
+          label: emp.label
+        }));
+        setEmployees(formatted);
+      }
       if (results[2].status === 'fulfilled') setExitTypes(results[2].value);
       if (results[3].status === 'fulfilled') setReasons(results[3].value);
       if (results[4].status === 'fulfilled') setPositions(results[4].value);
@@ -181,6 +191,7 @@ export default function EmployeeExitManagementPage() {
     try {
       setDetailsLoading(true);
       console.log('Fetching details for employee:', employeeId);
+      console.log('Fetching details for employee selection (Value):', employeeId);
       const data = await EmployeeService.getWorkDetailByEmployee(employeeId);
       console.log('Employee work details received:', data);
 
@@ -275,6 +286,7 @@ export default function EmployeeExitManagementPage() {
         explanation: values.explanation || null,
       };
 
+      console.log('Final payload before submission:', payload);
       await EmployeeExitService.createExitRequest(payload);
       notificationApi.success({ message: 'Success', description: 'Exit request submitted successfully' });
       setDrawerVisible(false);
@@ -302,22 +314,22 @@ export default function EmployeeExitManagementPage() {
             width: 36,
             height: 36,
             borderRadius: '10px',
-            background: '#f0f4ff',
-            color: '#2563eb',
+            background: 'var(--bg-blue-50)',
+            color: 'var(--premium-blue)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 600,
             fontSize: 14,
-            border: '1px solid #e0e7ff'
+            border: '1px solid var(--border-slate-100)'
           }}>
             {record.employee?.first_name?.[0].toUpperCase()}{record.employee?.last_name?.[0].toUpperCase()}
           </div>
           <div>
-            <Text strong style={{ display: 'block', color: '#1e293b', fontSize: 14 }}>
+            <Text strong style={{ display: 'block', color: 'var(--text-slate-900)', fontSize: 14 }}>
               {`${record.employee?.first_name} ${record.employee?.last_name}`}
             </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.employee?.employee_code}</Text>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>{record.employee?.employee_code}</Text>
           </div>
         </Space>
       ),
@@ -327,7 +339,7 @@ export default function EmployeeExitManagementPage() {
       dataIndex: 'departmentId',
       key: 'department',
       render: (id: string) => (
-        <Tag color="default" style={{ borderRadius: 6, border: "1px solid #e2e8f0", background: "#f8fafc", color: "#475569" }}>
+        <Tag color="default" style={{ borderRadius: 6, border: "1px solid var(--border-slate-100)", background: "var(--bg-slate-50)", color: "var(--text-slate-500)" }}>
           {departments.find(d => d.id === id)?.name || 'N/A'}
         </Tag>
       ),
@@ -347,8 +359,8 @@ export default function EmployeeExitManagementPage() {
       key: 'lwd',
       render: (date: string) => (
         <Space size={8}>
-          <Calendar size={14} color="#64748b" />
-          <Text style={{ fontSize: 13, color: "#1e293b" }}>{dayjs(date).format('MMM DD, YYYY')}</Text>
+          <Calendar size={14} style={{ color: "var(--text-slate-500)" }} />
+          <Text style={{ fontSize: 13, color: "var(--text-slate-900)" }}>{dayjs(date).format('MMM DD, YYYY')}</Text>
         </Space>
       ),
     },
@@ -381,7 +393,7 @@ export default function EmployeeExitManagementPage() {
           <Tooltip title="View Details">
             <Button
               type="text"
-              icon={<Eye size={18} style={{ color: "#64748b" }} />}
+              icon={<Eye size={18} style={{ color: "var(--text-slate-500)" }} />}
               onClick={() => router.push(`/employee-exit/management/${record.id}`)}
               className="action-btn"
             />
@@ -412,34 +424,34 @@ export default function EmployeeExitManagementPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "var(--bg-secondary)", minHeight: "calc(100vh - 64px)" }}>
           {notificationContextHolder}
 
           {/* Header */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
               <Space size={12} align="center">
-                <div style={{ background: "#eff6ff", padding: 10, borderRadius: 12, color: "#2563eb", display: "flex" }}>
+                <div style={{ background: "var(--bg-blue-50)", padding: 10, borderRadius: 12, color: "var(--premium-blue)", display: "flex" }}>
                   <ClipboardList size={24} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Exit Management</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Monitor and process employee exit requests and notice periods.</Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Exit Management</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Monitor and process employee exit requests and notice periods.</Text>
                 </div>
               </Space>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
               <Input
                 placeholder="Search employees..."
-                prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
-                style={{ width: 280, borderRadius: 10, height: 44 }}
+                prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
+                style={{ width: 280, borderRadius: 10, height: 44, background: "var(--bg-pure-white)", border: "1px solid var(--border-slate-200)", color: "var(--text-slate-900)" }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
               <Button
                 type="primary"
                 size="large"
                 icon={<Plus size={18} />}
-                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center" }}
+                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
                 onClick={handleCreateNew}
               >
                 New Exit Request
@@ -464,7 +476,7 @@ export default function EmployeeExitManagementPage() {
           </Row>
 
           {/* Content Table */}
-          <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden", boxShadow: "none" }}>
+          <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", background: "var(--bg-pure-white)", boxShadow: "var(--shadow-premium-sm)" }}>
             <Table
               columns={columns}
               dataSource={filteredRequests}
@@ -481,20 +493,20 @@ export default function EmployeeExitManagementPage() {
           title={
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{
-                background: "#eff6ff",
+                background: "var(--bg-blue-50)",
                 padding: 10,
                 borderRadius: 12,
-                color: "#2563eb",
+                color: "var(--premium-blue)",
                 display: "flex",
-                boxShadow: "0 0 0 1px #dbeafe"
+                boxShadow: "0 0 0 1px var(--border-slate-100)"
               }}>
                 {viewMode ? <Eye size={20} /> : <Plus size={20} />}
               </div>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#0f172a", lineHeight: 1.2 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)", lineHeight: 1.2 }}>
                   {viewMode ? "Exit Details" : "New Exit Request"}
                 </div>
-                <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: "var(--text-slate-500)", marginTop: 2 }}>
                   {viewMode ? "Review employee exit information" : "Initiate a new employee exit process"}
                 </div>
               </div>
@@ -506,7 +518,7 @@ export default function EmployeeExitManagementPage() {
           className="exit-drawer"
           styles={{ body: { padding: "0 0 24px 0" } }}
           footer={!viewMode && (
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "16px 24px" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "16px 24px", background: "var(--bg-secondary)", borderTop: "1px solid var(--border-slate-100)" }}>
               <Button
                 onClick={() => setDrawerVisible(false)}
                 style={{ borderRadius: 8, height: 40, padding: "0 20px" }}
@@ -517,7 +529,7 @@ export default function EmployeeExitManagementPage() {
                 type="primary"
                 loading={loading}
                 onClick={handleSubmit}
-                style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600 }}
+                style={{ borderRadius: 8, height: 40, padding: "0 24px", fontWeight: 600, background: "var(--premium-blue)" }}
               >
                 Submit Exit Request
               </Button>
@@ -529,20 +541,20 @@ export default function EmployeeExitManagementPage() {
             layout="vertical"
             disabled={viewMode}
             requiredMark={false}
-            style={{ padding: "0" }}
+            style={{ padding: "0", background: "var(--bg-pure-white)" }}
           >
             {/* Section: Employee */}
-            <div style={{ padding: "24px 32px", borderBottom: "1px solid #f1f5f9" }}>
+            <div style={{ padding: "24px 32px", borderBottom: "1px solid var(--border-slate-100)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                <div style={{ width: 4, height: 16, background: "#2563eb", borderRadius: 2 }} />
-                <Text strong style={{ fontSize: 15, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                <div style={{ width: 4, height: 16, background: "var(--premium-blue)", borderRadius: 2 }} />
+                <Text strong style={{ fontSize: 15, color: "var(--text-slate-900)", textTransform: "uppercase", letterSpacing: "0.025em" }}>
                   Employee Information
                 </Text>
               </div>
 
               <Form.Item
                 name="employeeId"
-                label={<Text style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>Select Employee</Text>}
+                label={<Text style={{ fontSize: 13, color: "var(--text-slate-500)", fontWeight: 500 }}>Select Employee</Text>}
                 rules={[{ required: true, message: 'Please select an employee' }]}
               >
                 <Select
@@ -578,10 +590,10 @@ export default function EmployeeExitManagementPage() {
             </div>
 
             {/* Section: Timeline */}
-            <div style={{ padding: "24px 32px", borderBottom: "1px solid #f1f5f9", background: "#fbfcfd" }}>
+            <div style={{ padding: "24px 32px", borderBottom: "1px solid var(--border-slate-100)", background: "var(--bg-secondary)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                <div style={{ width: 4, height: 16, background: "#2563eb", borderRadius: 2 }} />
-                <Text strong style={{ fontSize: 15, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                <div style={{ width: 4, height: 16, background: "var(--premium-blue)", borderRadius: 2 }} />
+                <Text strong style={{ fontSize: 15, color: "var(--text-slate-900)", textTransform: "uppercase", letterSpacing: "0.025em" }}>
                   Exit Timeline
                 </Text>
               </div>
@@ -636,8 +648,8 @@ export default function EmployeeExitManagementPage() {
             {/* Section: Details */}
             <div style={{ padding: "24px 32px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                <div style={{ width: 4, height: 16, background: "#2563eb", borderRadius: 2 }} />
-                <Text strong style={{ fontSize: 15, color: "#1e293b", textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                <div style={{ width: 4, height: 16, background: "var(--premium-blue)", borderRadius: 2 }} />
+                <Text strong style={{ fontSize: 15, color: "var(--text-slate-900)", textTransform: "uppercase", letterSpacing: "0.025em" }}>
                   Additional Details
                 </Text>
               </div>
@@ -657,15 +669,15 @@ export default function EmployeeExitManagementPage() {
                 <TextArea rows={4} style={{ borderRadius: 8, padding: "12px" }} placeholder="Provide detailed explanation..." />
               </Form.Item>
 
-              <div style={{ background: "#f8fafc", padding: "20px 24px", borderRadius: 12, border: "1px solid #f1f5f9", marginTop: 8 }}>
-                <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "#475569", fontWeight: 600 }}>Policy Overrides</Title>
+              <div style={{ background: "var(--bg-secondary)", padding: "20px 24px", borderRadius: 12, border: "1px solid var(--border-slate-100)", marginTop: 8 }}>
+                <Title level={5} style={{ marginBottom: 20, fontSize: 14, color: "var(--text-slate-500)", fontWeight: 600 }}>Policy Overrides</Title>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <Form.Item name="waiveNoticePeriod" valuePropName="checked" noStyle>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
-                        <Text strong style={{ display: "block", color: "#334155" }}>Waive Notice Period</Text>
-                        <Text style={{ fontSize: 12, color: "#64748b" }}>Skip the required notice period for this employee</Text>
+                        <Text strong style={{ display: "block", color: "var(--text-slate-900)" }}>Waive Notice Period</Text>
+                        <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Skip the required notice period for this employee</Text>
                       </div>
                       <Switch />
                     </div>
@@ -676,8 +688,8 @@ export default function EmployeeExitManagementPage() {
                   <Form.Item name="buyoutRequired" valuePropName="checked" noStyle>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
-                        <Text strong style={{ display: "block", color: "#334155" }}>Notice Buyout</Text>
-                        <Text style={{ fontSize: 12, color: "#64748b" }}>Allow employee to pay for unserved notice period</Text>
+                        <Text strong style={{ display: "block", color: "var(--text-slate-900)" }}>Notice Buyout</Text>
+                        <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Allow employee to pay for unserved notice period</Text>
                       </div>
                       <Switch onChange={setBuyoutEnabled} />
                     </div>
@@ -698,15 +710,15 @@ export default function EmployeeExitManagementPage() {
 
         <style dangerouslySetInnerHTML={{
           __html: `
-          .action-btn:hover { background: #f1f5f9 !important; color: #2563eb !important; }
+          .action-btn:hover { background: var(--bg-secondary) !important; color: var(--premium-blue) !important; }
           .ant-table-thead > tr > th { 
-            background: #f8fafc !important; color: #64748b !important; 
+            background: var(--bg-secondary) !important; color: var(--text-slate-500) !important; 
             font-weight: 600 !important; text-transform: uppercase !important; 
             font-size: 11px !important; letter-spacing: 0.05em !important; 
           }
-          .ant-table-row:hover > td { background: #f8fafc !important; }
+          .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
           .ant-input:focus, .ant-select-focused .ant-select-selector { 
-            border-color: #3b82f6 !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; 
+            border-color: var(--premium-blue) !important; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important; 
           }
         `}} />
       </MainLayout>

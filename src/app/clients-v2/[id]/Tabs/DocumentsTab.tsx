@@ -14,6 +14,8 @@ import {
   notification,
   Card,
   Tooltip,
+  Row,
+  Col,
 } from "antd";
 import {
   Upload as UploadIcon,
@@ -111,7 +113,7 @@ export default function DocumentsTab({
       key: "version",
       render: (v: number) => (
         <Tag style={{ borderRadius: 6, fontWeight: 600, border: 0, background: "#f1f5f9", color: "#64748b" }}>
-            REV {v || 1}
+          REV {v || 1}
         </Tag>
       ),
     },
@@ -121,7 +123,7 @@ export default function DocumentsTab({
       key: "createdAt",
       render: (date: string) => (
         <div style={{ fontSize: 13, color: "#64748b" }}>
-            {new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          {new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </div>
       ),
     },
@@ -170,12 +172,12 @@ export default function DocumentsTab({
             okButtonProps={{ danger: true }}
           >
             <Tooltip title="Delete Archive">
-                <Button
-                    type="text"
-                    danger
-                    className="premium-action-btn"
-                    icon={<Trash2 size={16} />}
-                />
+              <Button
+                type="text"
+                danger
+                className="premium-action-btn"
+                icon={<Trash2 size={16} />}
+              />
             </Tooltip>
           </Popconfirm>
         </Space>
@@ -242,7 +244,7 @@ export default function DocumentsTab({
         setUploading(false);
       }
     } catch (err: any) {
-        // Validation handled by AntD
+      // Validation handled by AntD
     }
   };
 
@@ -279,28 +281,34 @@ export default function DocumentsTab({
   return (
     <div style={{ animation: "fadeIn 0.3s ease-in-out" }}>
       {contextHolder}
-      <Card 
-        style={{ 
-            borderRadius: 16, 
-            border: "1px solid #f1f5f9",
-            background: "#fff"
+      <Card
+        style={{
+          borderRadius: 16,
+          border: "1px solid #f1f5f9",
+          background: "#fff"
         }}
         bodyStyle={{ padding: "0" }}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Document Repository</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Centralized storage for all MSA, SOW, NDAs, and legal annexures</div>
-          </div>
-          <Button
-            type="primary"
-            size="large"
-            icon={<FilePlus size={18} />}
-            onClick={() => setIsUploadModalVisible(true)}
-            style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
-          >
-            Archive Document
-          </Button>
+        <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9" }}>
+          <Row justify="space-between" align="middle" gutter={[16, 16]}>
+            <Col xs={24} md={18}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#1e293b" }}>Document Repository</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Centralized storage for all MSA, SOW, NDAs, and legal annexures</div>
+              </div>
+            </Col>
+            <Col xs={24} md={6} style={{ textAlign: "right" }}>
+              <Button
+                type="primary"
+                size="large"
+                icon={<FilePlus size={18} />}
+                onClick={() => setIsUploadModalVisible(true)}
+                style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", width: "100%", justifyContent: "center" }}
+              >
+                Archive Document
+              </Button>
+            </Col>
+          </Row>
         </div>
 
         <Table
@@ -309,6 +317,7 @@ export default function DocumentsTab({
           rowKey="id"
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           className="premium-table"
+          scroll={{ x: "max-content" }}
           locale={{ emptyText: <div style={{ padding: "40px 0", color: "#64748b" }}>No document archives available</div> }}
         />
       </Card>
@@ -318,7 +327,7 @@ export default function DocumentsTab({
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6", display: "flex" }}>
-                <UploadIcon size={20} />
+              <UploadIcon size={20} />
             </div>
             <span style={{ fontWeight: 700, fontSize: 18 }}>Archive New Document</span>
           </div>
@@ -335,82 +344,82 @@ export default function DocumentsTab({
         className="premium-modal"
       >
         <div style={{ padding: "8px 0" }}>
-            <Form form={form} layout="vertical">
+          <Form form={form} layout="vertical">
             <Form.Item
-                name="category"
-                label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Primary Category</span>}
-                rules={[{ required: true, message: "Selection required" }]}
+              name="category"
+              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Primary Category</span>}
+              rules={[{ required: true, message: "Selection required" }]}
             >
-                <Select
-                    placeholder="E.g. Legal, Sales"
-                    onChange={handleCategoryChange}
-                    style={{ borderRadius: 8, height: 40 }}
-                >
+              <Select
+                placeholder="E.g. Legal, Sales"
+                onChange={handleCategoryChange}
+                style={{ borderRadius: 8, height: 40 }}
+              >
                 {Object.keys(DOCUMENT_CATEGORIES).map((cat) => (
-                    <Option key={cat} value={cat}>
+                  <Option key={cat} value={cat}>
                     {cat}
-                    </Option>
+                  </Option>
                 ))}
-                </Select>
+              </Select>
             </Form.Item>
 
             <Form.Item
-                name="documentType"
-                label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Document Subtype</span>}
-                rules={[{ required: true, message: "Selection required" }]}
+              name="documentType"
+              label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Document Subtype</span>}
+              rules={[{ required: true, message: "Selection required" }]}
             >
-                <Select
-                    placeholder="Select specific type..."
-                    disabled={!selectedCategory}
-                    style={{ borderRadius: 8, height: 40 }}
-                >
+              <Select
+                placeholder="Select specific type..."
+                disabled={!selectedCategory}
+                style={{ borderRadius: 8, height: 40 }}
+              >
                 {selectedCategory &&
-                    DOCUMENT_CATEGORIES[selectedCategory].map((type) => (
+                  DOCUMENT_CATEGORIES[selectedCategory].map((type) => (
                     <Option key={type} value={type}>
-                        {type}
+                      {type}
                     </Option>
-                    ))}
-                </Select>
+                  ))}
+              </Select>
             </Form.Item>
 
-            <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Target File</span>} required>
-                <Upload.Dragger
-                    fileList={fileList}
-                    beforeUpload={(file) => {
-                        setFileList([{ ...file, originFileObj: file }]);
-                        return false;
-                    }}
-                    onRemove={() => setFileList([])}
-                    maxCount={1}
-                    style={{ borderRadius: 12, background: "#f8fafc", border: "1px dashed #cbd5e1" }}
-                >
-                    <div style={{ padding: "20px 0" }}>
-                        <p className="ant-upload-drag-icon" style={{ display: "flex", justifyContent: "center", color: "#3b82f6" }}>
-                            <FilePlus size={32} />
-                        </p>
-                        <p style={{ fontSize: 14, color: "#1e293b", fontWeight: 600 }}>Click or drag to upload</p>
-                        <p style={{ fontSize: 12, color: "#64748b" }}>Support for PDF, DOCX, and JPG formats</p>
-                    </div>
-                </Upload.Dragger>
+            <Form.Item label={<span style={{ fontWeight: 600, fontSize: 12, color: "#475569" }}>Target Files</span>} required>
+              <Upload.Dragger
+                fileList={fileList}
+                beforeUpload={(file) => {
+                  setFileList([{ ...file, originFileObj: file }]);
+                  return false;
+                }}
+                onRemove={() => setFileList([])}
+                maxCount={1}
+                style={{ borderRadius: 12, background: "#f8fafc", border: "1px dashed #cbd5e1" }}
+              >
+                <div style={{ padding: "20px 0" }}>
+                  <p className="ant-upload-drag-icon" style={{ display: "flex", justifyContent: "center", color: "#3b82f6" }}>
+                    <FilePlus size={32} />
+                  </p>
+                  <p style={{ fontSize: 14, color: "#1e293b", fontWeight: 600 }}>Click or drag to upload</p>
+                  <p style={{ fontSize: 12, color: "#64748b" }}>Support for PDF, DOCX, and JPG formats</p>
+                </div>
+              </Upload.Dragger>
             </Form.Item>
 
             <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-                <Button 
-                    onClick={() => setIsUploadModalVisible(false)}
-                    style={{ borderRadius: 8, height: 40 }}
-                >
-                    Cancel
-                </Button>
-                <Button 
-                    type="primary" 
-                    onClick={handleUpload}
-                    loading={uploading}
-                    style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
-                >
-                    Start Ingestion
-                </Button>
+              <Button
+                onClick={() => setIsUploadModalVisible(false)}
+                style={{ borderRadius: 8, height: 40 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                onClick={handleUpload}
+                loading={uploading}
+                style={{ borderRadius: 8, height: 40, fontWeight: 600, padding: "0 24px" }}
+              >
+                Start Ingestion
+              </Button>
             </div>
-            </Form>
+          </Form>
         </div>
       </Modal>
 
@@ -419,7 +428,7 @@ export default function DocumentsTab({
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ background: "#f0fdf4", padding: 8, borderRadius: 8, color: "#16a34a", display: "flex" }}>
-                <Eye size={20} />
+              <Eye size={20} />
             </div>
             <span style={{ fontWeight: 700, fontSize: 18, color: "#0f172a" }}>Archive Preview: {viewingDocument?.fileName}</span>
           </div>
@@ -459,7 +468,8 @@ export default function DocumentsTab({
         )}
       </Modal>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .premium-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
           color: #64748b !important;
@@ -469,6 +479,13 @@ export default function DocumentsTab({
           letter-spacing: 0.05em !important;
           padding: 16px 24px !important;
           border-bottom: 1px solid #f1f5f9 !important;
+          white-space: nowrap !important;
+        }
+        @media (max-width: 576px) {
+          .premium-table .ant-table-thead > tr > th,
+          .premium-table .ant-table-tbody > tr > td {
+            padding: 12px 16px !important;
+          }
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px 24px !important;

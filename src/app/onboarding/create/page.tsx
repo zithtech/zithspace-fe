@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { Steps, Button, Form, Spin, message } from "antd";
 import PersonalDetails from "@/components/onboarding/PersonalDetails";
@@ -11,19 +11,17 @@ import BankPayroll from "@/components/onboarding/BankPayroll";
 import EmployeHistory from "@/components/onboarding/EmployeeHistory";
 import Assets from "@/components/onboarding/Assets";
 import { useEmployeeOnboarding } from "@/hooks/use-onboarding";
-
-// icons
-import { BsFillPersonLinesFill } from "react-icons/bs";
-import { BiSolidBank } from "react-icons/bi";
-import { MdOutlineDocumentScanner } from "react-icons/md";
-import { BsPersonHeart } from "react-icons/bs";
+import { EmployeeOnboardingService } from "@/services/onboardingService";
 
 const { Step } = Steps;
 
-const Onboarding = () => {
+const OnboardingContent = () => {
   const { isLoading: authLoading } = useAuth();
   const { canCreateOnboarding } = usePermission();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+  const isEdit = !!id;
 
   // Route guard
   useEffect(() => {
@@ -33,6 +31,7 @@ const Onboarding = () => {
   }, [authLoading, canCreateOnboarding, router]);
 
   const [current, setCurrent] = useState(0);
+  const [dataLoading, setDataLoading] = useState(false);
 
   const [allData, setAllData] = useState<any>({
     personal: {},
@@ -53,19 +52,54 @@ const Onboarding = () => {
 
   const refs = [personalRef, employmentRef, bankRef, historyRef, assetsRef];
 
-  const { createOnboarding, loading: submitting }: any =
+  const { createOnboarding, updateOnboarding, loading: submitting }: any =
     useEmployeeOnboarding();
 
-  // Loading & permission check
-  if (authLoading) {
+  // Load existing data for edit mode
+  useEffect(() => {
+    if (id) {
+      const fetchExisting = async () => {
+        setDataLoading(true);
+        try {
+          const res = await EmployeeOnboardingService.getEmployeeById(id);
+          let employeeData = null;
+
+          if (res?.data?.success) employeeData = res.data.data;
+          else if (res?.success) employeeData = res.data;
+          else if (res?.data) employeeData = res.data;
+          else employeeData = res;
+
+          if (employeeData) {
+            setAllData({
+              personal: employeeData.personalDetails || employeeData.personal || {},
+              employment: employeeData.employment || {},
+              bank: employeeData.bankAndPayroll || employeeData.bank || {},
+              history: employeeData.previousCompanyDetails || employeeData.history || [],
+              assets: employeeData.assets || [],
+            });
+            // Update resetKey to force re-render of components with new data
+            setResetKey(prev => prev + 1);
+          }
+        } catch (err) {
+          console.error("Failed to fetch existing data:", err);
+          message.error("Failed to load employee data for editing");
+        } finally {
+          setDataLoading(false);
+        }
+      };
+      fetchExisting();
+    }
+  }, [id]);
+
+  if (authLoading || dataLoading) {
     return (
       <MainLayout>
         <div style={{ padding: 24, textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+          <div style={{ padding: 100, textAlign: 'center' }}>
+            <Spin size="large" tip="Loading">
+              <div style={{ padding: 20 }} />
+            </Spin>
+          </div>
         </div>
       </MainLayout>
     );
@@ -75,20 +109,12 @@ const Onboarding = () => {
     return null;
   }
 
-  /* =====================================================
-      CONTINUE → Save current step data into allData, then go Next
-  ====================================================== */
   const next = async () => {
     try {
       const currentRef = refs[current];
-
-      // Perform validation if current step has a validate method
       if (currentRef?.current?.validate) {
         const isValid = await currentRef.current.validate();
-        if (!isValid) {
-          console.log("Validation Failed for current step");
-          return;
-        }
+        if (!isValid) return;
       }
 
       if (currentRef?.current?.getData) {
@@ -97,11 +123,6 @@ const Onboarding = () => {
           ...prev,
           [stepKeys[current]]: stepData,
         }));
-
-        console.log(
-          `${stepKeys[current].toUpperCase()} STEP DATA 👉`,
-          stepData,
-        );
       }
       setCurrent((prev) => prev + 1);
     } catch (error) {
@@ -109,12 +130,7 @@ const Onboarding = () => {
     }
   };
 
-  /* =====================================================
-      PREVIOUS → Save current step data first, then go back
-      This ensures edits on current step are not lost when going back
-  ====================================================== */
   const prev = () => {
-    // Save the current step's data before going back
     const currentRef = refs[current];
     if (currentRef?.current?.getData) {
       const stepData = currentRef.current.getData();
@@ -126,41 +142,23 @@ const Onboarding = () => {
     setCurrent((prev) => prev - 1);
   };
 
-  /* =====================================================
-      SKIP → Just move to Next without saving
-  ====================================================== */
-  const skipStep = () => {
-    if (current < 4) {
-      setCurrent((prev) => prev + 1);
-    }
-  };
-
-  /* =====================================================
-      SAVE & SKIP → Partial Save + Next
-  ====================================================== */
   const saveAndSkip = async () => {
     try {
       const currentRef = refs[current];
-
       let updatedData = { ...allData };
 
       if (currentRef?.current?.getData) {
         const stepData = currentRef.current.getData();
-
         updatedData = {
           ...updatedData,
           [stepKeys[current]]: stepData,
         };
-
         setAllData(updatedData);
       }
 
-      // Build Partial Payload (only filled steps)
       const partialPayload: any = {};
-
       stepKeys.forEach((key) => {
         const value = updatedData[key];
-
         if (
           (Array.isArray(value) && value.length > 0) ||
           (!Array.isArray(value) && value && Object.keys(value).length > 0)
@@ -169,27 +167,21 @@ const Onboarding = () => {
         }
       });
 
-      console.log("💾 SAVE & SKIP PARTIAL PAYLOAD 👉", partialPayload);
+      if (isEdit && id) {
+        await updateOnboarding(id, partialPayload);
+        message.success("Progress saved successfully");
+      } else {
+        await createOnboarding(partialPayload);
+        message.success("Profile created and saved as draft");
+      }
 
-      await createOnboarding(partialPayload);
-
-      setAllData({
-        personal: {},
-        employment: {},
-        bank: {},
-        history: [],
-        assets: [],
-      });
-      setResetKey((prev) => prev + 1);
-      setCurrent(0);
+      if (current < 4) setCurrent(prev => prev + 1);
+      else router.push("/onboarding/onboarded");
     } catch (error) {
-      console.log("❌ Save & Skip Failed:", error);
+      console.log("Save & Skip Failed:", error);
     }
   };
 
-  /* =====================================================
-      SUBMIT → Collect last step data + submit everything
-  ====================================================== */
   const submitAll = async () => {
     try {
       const currentRef = refs[current];
@@ -197,51 +189,59 @@ const Onboarding = () => {
 
       if (currentRef?.current?.getData) {
         const finalStepData = currentRef.current.getData();
-
         finalData = {
           ...finalData,
           [stepKeys[current]]: finalStepData,
         };
       }
 
-      console.log("🔥 FINAL SUBMIT PAYLOAD 👉", finalData);
+      const backendMap: any = {
+        personal: "personal",
+        employment: "employment",
+        bank: "bank",
+        history: "history",
+        assets: "assets",
+      };
 
-      await createOnboarding(finalData);
-      message.success("Onboarding Process Completed");
-      setAllData({
-        personal: {},
-        employment: {},
-        bank: {},
-        history: [],
-        assets: [],
+      const finalPayload: any = {};
+      Object.keys(finalData).forEach(key => {
+        finalPayload[backendMap[key] || key] = finalData[key];
       });
-      setResetKey((prev) => prev + 1);
-      setCurrent(0);
+
+      if (isEdit && id) {
+        await updateOnboarding(id, finalPayload);
+        message.success("Employee onboarding updated successfully");
+      } else {
+        await createOnboarding(finalPayload);
+        message.success("Employee onboarding process completed");
+      }
+
+      router.push("/onboarding/onboarded");
     } catch (error) {
-      console.log("❌ Submit Failed", error);
+      console.log("Submit Failed", error);
     }
   };
 
   return (
     <MainLayout>
-      <div style={{ width: "100%", minHeight: "100vh", background: "white", paddingBottom: "80px" }}>
-        <div style={{ 
-          padding: "16px 24px", 
-          borderBottom: "1px solid #f0f0f0",
-          background: "white",
+      <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg-secondary)", paddingBottom: "80px" }}>
+        <div style={{
+          padding: "16px 24px",
+          borderBottom: "1px solid var(--border-slate-100)",
+          background: "var(--bg-pure-white)",
         }}>
-          <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0 }}>
+          <h1 style={{ fontSize: "20px", fontWeight: "600", margin: 0, color: "var(--text-slate-900)" }}>
             Employee Onboarding
           </h1>
         </div>
 
-        <div style={{ 
+        <div style={{
           padding: "20px 24px",
-          background: "white",
+          background: "var(--bg-pure-white)",
           position: "sticky",
           top: 0,
           zIndex: 100,
-          borderBottom: "1px solid #f1f5f9",
+          borderBottom: "1px solid var(--border-slate-100)",
           boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
         }}>
           <Steps current={current} size="small" style={{ marginBottom: 0 }}>
@@ -266,17 +266,14 @@ const Onboarding = () => {
         </div>
 
         <div style={{ display: current === 1 ? "block" : "none" }}>
-          <EmploymentDetails ref={employmentRef} data={allData.employment} />
+          <EmploymentDetails key={`e-${resetKey}`} ref={employmentRef} data={allData.employment} />
         </div>
-
         <div style={{ display: current === 2 ? "block" : "none" }}>
-          <BankPayroll ref={bankRef} data={allData.bank} />
+          <BankPayroll key={`b-${resetKey}`} ref={bankRef} data={allData.bank} />
         </div>
-
         <div style={{ display: current === 3 ? "block" : "none" }}>
-          <EmployeHistory ref={historyRef} data={allData.history} />
+          <EmployeHistory key={`h-${resetKey}`} ref={historyRef} data={allData.history} />
         </div>
-
         <div style={{ display: current === 4 ? "block" : "none" }}>
           <Assets ref={assetsRef} data={allData.assets} />
         </div> */}
@@ -331,8 +328,8 @@ const Onboarding = () => {
             display: "flex",
             justifyContent: "space-between",
             padding: "16px 24px",
-            background: "#fff",
-            borderTop: "1px solid #f0f0f0",
+            background: "var(--bg-pure-white)",
+            borderTop: "1px solid var(--border-slate-100)",
             zIndex: 1000,
             marginTop: "20px",
           }}
@@ -344,22 +341,54 @@ const Onboarding = () => {
               <>
                 <Button onClick={saveAndSkip}>Save & Skip</Button>
 
-                <Button type="primary" onClick={next} loading={submitting}>
+                <Button type="primary" onClick={next} loading={submitting} style={{ background: "var(--premium-blue)" }}>
                   Continue
                 </Button>
               </>
             )}
 
             {current === 4 && (
-              <Button type="primary" onClick={submitAll}>
+              <Button type="primary" onClick={submitAll} style={{ background: "var(--premium-blue)" }}>
                 Submit
               </Button>
             )}
           </div>
         </div>
       </div>
+
+      <div style={{
+        position: "fixed",
+        bottom: 0,
+        right: 0,
+        left: 280, // Offset for sidebar
+        display: "flex",
+        justifyContent: "space-between",
+        padding: "16px 24px",
+        background: "#fff",
+        borderTop: "1px solid #f0f0f0",
+        zIndex: 1000,
+      }}>
+        <div>{current > 0 && <Button onClick={prev}>Previous</Button>}</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {current < 4 && (
+            <>
+              <Button onClick={saveAndSkip} loading={submitting}>Save & Next</Button>
+              <Button type="primary" onClick={next} loading={submitting}>Continue</Button>
+            </>
+          )}
+          {current === 4 && <Button type="primary" onClick={submitAll} loading={submitting}>{isEdit ? "Update Profile" : "Submit Process"}</Button>}
+        </div>
+      </div>
     </MainLayout>
   );
 };
+
+const Onboarding = () => (
+  <MainLayout>
+    <Suspense fallback={<div style={{ padding: 100, textAlign: 'center' }}><Spin size="large" /></div>}>
+      <OnboardingContent />
+    </Suspense>
+  </MainLayout>
+);
 
 export default Onboarding;

@@ -1,28 +1,28 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Table, 
-  Card, 
-  Button, 
-  Space, 
-  message, 
-  Tag, 
-  Typography, 
-  Avatar, 
-  Row, 
-  Col, 
+import {
+  Table,
+  Card,
+  Button,
+  Space,
+  message,
+  Tag,
+  Typography,
+  Avatar,
+  Row,
+  Col,
   Tooltip,
   Input,
   Popconfirm
 } from "antd";
-import { 
-  CheckCircle2, 
-  Clock, 
-  Users, 
-  Search, 
-  XCircle, 
-  Check, 
+import {
+  CheckCircle2,
+  Clock,
+  Users,
+  Search,
+  XCircle,
+  Check,
   X,
   Calendar,
   User,
@@ -40,11 +40,11 @@ import dayjs from "dayjs";
 const { Text, Title } = Typography;
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
-  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
+  <Card bodyStyle={{ padding: 20 }} style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-        <div style={{ fontSize: 28, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+        <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
       </div>
       <div style={{ color, background: `${color}12`, padding: 12, borderRadius: 12 }}>
         <Icon size={24} />
@@ -104,13 +104,13 @@ export default function LeaveApprovalsPage() {
       key: "employee",
       render: (_: any, record: any) => (
         <Space size={12}>
-          <Avatar 
-            src={record.employee.profile_pic} 
-            icon={<User size={16} />} 
-            style={{ backgroundColor: "#f1f5f9", color: "#64748b" }} 
+          <Avatar
+            src={record.employee.profile_pic}
+            icon={<User size={16} />}
+            style={{ backgroundColor: "var(--bg-slate-50)", color: "var(--text-slate-400)" }}
           />
           <div>
-            <Text strong style={{ color: "#1e293b", display: "block" }}>
+            <Text strong style={{ color: "var(--text-slate-900)", display: "block" }}>
               {record.employee.first_name} {record.employee.last_name}
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -125,7 +125,7 @@ export default function LeaveApprovalsPage() {
       dataIndex: ["leaveType", "name"],
       key: "leaveType",
       render: (name: string) => (
-        <Tag style={{ borderRadius: 6, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>
+        <Tag style={{ borderRadius: 6, background: "var(--bg-slate-50)", border: "1px solid var(--border-slate-100)", color: "var(--text-slate-500)" }}>
           {name}
         </Tag>
       ),
@@ -135,12 +135,12 @@ export default function LeaveApprovalsPage() {
       key: "duration",
       render: (_: any, record: any) => (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-100)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
           </div>
-          <ArrowRight size={14} color="#94a3b8" />
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
+          <ArrowRight size={14} color="var(--text-slate-400)" />
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-100)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
           </div>
         </div>
       )
@@ -151,7 +151,7 @@ export default function LeaveApprovalsPage() {
       render: (_: any, record: any) => {
         const units = Number(record.totalUnits) || 0;
         return (
-          <Tag style={{ borderRadius: 20, background: "#eff6ff", border: "1px solid #dbeafe", color: "#1d4ed8", fontWeight: 600, padding: "0 12px" }}>
+          <Tag style={{ borderRadius: 20, background: "var(--bg-blue-50)", border: "1px solid var(--border-slate-100)", color: "var(--premium-blue)", fontWeight: 600, padding: "0 12px" }}>
             {units} {units === 1 ? 'Day' : 'Days'}
           </Tag>
         );
@@ -164,7 +164,7 @@ export default function LeaveApprovalsPage() {
       width: 200,
       render: (text: string) => (
         <Tooltip title={text}>
-          <Text style={{ color: "#64748b", maxWidth: 180 }} ellipsis>{text || "No reason provided"}</Text>
+          <Text style={{ color: "var(--text-slate-500)", maxWidth: 180 }} ellipsis>{text || "No reason provided"}</Text>
         </Tooltip>
       ),
     },
@@ -176,12 +176,12 @@ export default function LeaveApprovalsPage() {
         const color = status === "PENDING" ? "#f59e0b" : status === "APPROVED" ? "#10b981" : "#ef4444";
         const icon = status === "PENDING" ? <Clock size={14} /> : status === "APPROVED" ? <Check size={14} /> : <X size={14} />;
         return (
-          <Tag 
+          <Tag
             icon={icon}
-            style={{ 
-              borderRadius: 6, 
-              background: `${color}12`, 
-              color: color, 
+            style={{
+              borderRadius: 6,
+              background: `${color}12`,
+              color: color,
               border: `1px solid ${color}30`,
               display: "inline-flex",
               alignItems: "center",
@@ -208,10 +208,10 @@ export default function LeaveApprovalsPage() {
             cancelText="Cancel"
             okButtonProps={{ style: { background: "#10b981", borderColor: "#10b981" } }}
           >
-            <Button 
-              type="text" 
-              size="small" 
-              style={{ color: "#10b981", background: "#10b98112", borderRadius: 6, fontWeight: 600 }}
+            <Button
+              type="text"
+              size="small"
+              style={{ color: "#10b981", background: "var(--bg-green-50)", borderRadius: 6, fontWeight: 600 }}
               icon={<Check size={14} />}
             >
               Approve
@@ -225,11 +225,11 @@ export default function LeaveApprovalsPage() {
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
           >
-            <Button 
-              type="text" 
-              size="small" 
-              danger 
-              style={{ background: "#ef444412", borderRadius: 6, fontWeight: 600 }}
+            <Button
+              type="text"
+              size="small"
+              danger
+              style={{ background: "var(--bg-red-50)", borderRadius: 6, fontWeight: 600 }}
               icon={<X size={14} />}
             >
               Reject
@@ -243,26 +243,26 @@ export default function LeaveApprovalsPage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
-          
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "var(--bg-secondary)", minHeight: "calc(100vh - 64px)" }}>
+
           {/* Header Section */}
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
             <div style={{ flex: 1 }}>
               <Space size={14} align="center">
-                <div style={{ background: "#f0fdf4", padding: 12, borderRadius: 14, color: "#16a34a", display: "flex" }}>
+                <div style={{ background: "var(--bg-green-50)", padding: 12, borderRadius: 14, color: "var(--text-holiday)", display: "flex" }}>
                   <CheckCircle2 size={28} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Leave Approvals</Title>
-                  <Text style={{ color: "#64748b", fontSize: 15 }}>Review and manage pending leave applications from your team.</Text>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Leave Approvals</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Review and manage pending leave applications from your team.</Text>
                 </div>
               </Space>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <Input 
-                placeholder="Search by employee or leave type..." 
-                prefix={<Search size={16} color="#94a3b8" />}
-                style={{ width: 320, borderRadius: 12, height: 44, border: "1px solid #e2e8f0" }}
+              <Input
+                placeholder="Search by employee or leave type..."
+                prefix={<Search size={16} color="var(--text-slate-400)" />}
+                style={{ width: 320, borderRadius: 12, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
                 onChange={e => setSearchText(e.target.value)}
                 allowClear
               />
@@ -272,34 +272,34 @@ export default function LeaveApprovalsPage() {
           {/* Metrics */}
           <Row gutter={[24, 24]} style={{ marginBottom: 20 }}>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Pending Approvals" 
-                value={approvals.filter(a => a.status === 'PENDING').length} 
-                icon={Clock} 
-                color="#f59e0b" 
+              <StatCard
+                label="Pending Approvals"
+                value={approvals.filter(a => a.status === 'PENDING').length}
+                icon={Clock}
+                color="#f59e0b"
               />
             </Col>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Approval Velocity" 
-                value="98%" 
-                icon={CheckCircle2} 
-                color="#10b981" 
+              <StatCard
+                label="Approval Velocity"
+                value="98%"
+                icon={CheckCircle2}
+                color="#10b981"
               />
             </Col>
             <Col xs={24} sm={8}>
-              <StatCard 
-                label="Team on Leave" 
-                value={approvals.filter(a => a.status === 'APPROVED').length} 
-                icon={Users} 
-                color="#7c3aed" 
+              <StatCard
+                label="Team on Leave"
+                value={approvals.filter(a => a.status === 'APPROVED').length}
+                icon={Users}
+                color="#7c3aed"
               />
             </Col>
           </Row>
 
           <Card
             bordered={false}
-            style={{ borderRadius: 16, border: "1px solid #f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
+            style={{ borderRadius: 16, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", overflow: "hidden" }}
             bodyStyle={{ padding: "0" }}
           >
             <Table
@@ -314,22 +314,26 @@ export default function LeaveApprovalsPage() {
             />
           </Card>
 
-          <style dangerouslySetInnerHTML={{ __html: `
+          <style dangerouslySetInnerHTML={{
+            __html: `
             .history-table-row:hover {
-              background-color: #f8fafc !important;
+              background-color: var(--bg-slate-50) !important;
             }
             .ant-table-thead > tr > th {
-              background-color: #f1f5f9 !important;
-              color: #475569 !important;
+              background-color: var(--bg-slate-50) !important;
+              color: var(--text-slate-500) !important;
               font-weight: 600 !important;
               padding: 12px 16px !important;
-              border-bottom: 2px solid #e2e8f0 !important;
+              border-bottom: 1px solid var(--border-slate-100) !important;
             }
             .ant-table-tbody > tr > td {
               padding: 14px 16px !important;
-              border-bottom: 1px solid #f1f5f9 !important;
+              border-bottom: 1px solid var(--border-slate-100) !important;
+              color: var(--text-slate-900) !important;
             }
-            .ant-btn-text:hover { background-color: rgba(0,0,0,0.05) !important; }
+            .ant-btn-text:hover { background-color: var(--bg-secondary) !important; }
+            .ant-pagination-item a { color: var(--text-slate-500) !important; }
+            .ant-pagination-item-active { background: var(--bg-pure-white) !important; border-color: var(--premium-blue) !important; }
           `}} />
         </div>
       </MainLayout>

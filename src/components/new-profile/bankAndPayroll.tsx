@@ -28,11 +28,11 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
       bordered
       style={{
         borderRadius: 8,
-        background: "#ffffff",
+        background: "var(--bg-pure-white)",
         padding: "16px 20px",
         maxWidth: 1000,
         boxShadow: "none",
-        border: "1px solid #f0f0f0",
+        border: "1px solid var(--border-slate-100)",
       }}
     >
       {/* 🔹 Title */}
@@ -42,19 +42,19 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
             width: 32,
             height: 32,
             borderRadius: 6,
-            background: "#e6f0ff",
+            background: "var(--bg-blue-50)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             marginRight: 10,
-            color: "#1677ff",
+            color: "var(--premium-blue)",
             fontWeight: 600,
           }}
         >
           <PiBankLight />
         </div>
 
-        <span style={{ fontSize: 20, fontWeight: 600 }}>
+        <span style={{ fontSize: 20, fontWeight: 600, color: "var(--text-slate-900)" }}>
           Financial Information
         </span>
       </div>
@@ -103,10 +103,10 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
       </Row>
 
       {/* 🔹 Divider */}
-      <div style={{ borderTop: "1px solid #f0f0f0", margin: "24px 0" }} />
+      <div style={{ borderTop: "1px solid var(--border-slate-100)", margin: "24px 0" }} />
 
       {/* 🔹 Statutory Details */}
-      <div style={{ marginBottom: 16, fontWeight: 500 }}>Statutory Details</div>
+      <div style={{ marginBottom: 16, fontWeight: 500, color: "var(--text-slate-900)" }}>Statutory Details</div>
 
       <Row gutter={[24, 16]}>
         <Col span={8}>
@@ -128,14 +128,23 @@ const bankAndPayroll = ({ profile, employment }: BankAndPayrollProps) => {
 const labelStyle = {
   display: "block",
   fontSize: 13,
-  color: "#555",
+  color: "var(--text-slate-500)",
   marginBottom: 6,
 };
 
 const ViewBox = ({ label, value }: { label: string; value: string }) => (
   <div>
     <label style={labelStyle}>{label}</label>
-    <Input style={{ fontWeight: 600 }} value={value} readOnly />
+    <Input 
+       style={{ 
+         fontWeight: 600, 
+         background: 'var(--bg-pure-white)', 
+         borderColor: 'var(--border-slate-100)',
+         color: 'var(--text-slate-900)'
+       }} 
+       value={value} 
+       readOnly 
+    />
   </div>
 );
 

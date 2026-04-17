@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 const { Sider } = Layout;
 
@@ -15,6 +16,7 @@ interface SideNavProps {
 }
 
 export default function SideNav({ activeModule, collapsed, onCollapse }: SideNavProps) {
+    const { theme } = useTheme();
     const router = useRouter();
     const pathname = usePathname();
     const [openKeys, setOpenKeys] = useState<string[]>([]);
@@ -139,11 +141,12 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             collapsible
             collapsed={collapsed}
             width={200}
-            collapsedWidth={65} // Icons only mode width
-            theme="light"
+            collapsedWidth={65}
+            theme={theme as "light" | "dark"}
+            className="glass-panel"
             style={{
-                background: "#fff",
-                borderRight: "1px solid #f0f0f0",
+                background: "transparent",
+                borderRight: "1px solid var(--border-color) !important",
                 position: "fixed",
                 left: 0,
                 top: 64,
@@ -158,7 +161,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
             {/* Collapse Toggle Button at Top */}
             <div style={{
                 padding: '12px 8px',
-                borderBottom: '1px solid #f0f0f0',
+                borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 justifyContent: collapsed ? 'center' : 'flex-end',
                 flexShrink: 0,
@@ -191,7 +194,7 @@ export default function SideNav({ activeModule, collapsed, onCollapse }: SideNav
                         background: 'transparent',
                     }}
                     items={menuItems}
-                    theme="light"
+                    theme={theme as "light" | "dark"}
                 />
             </div>
         </Sider>

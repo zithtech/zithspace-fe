@@ -32,6 +32,7 @@ const { Title, Text } = Typography;
 export default function ReasonForExitPage() {
   const [form] = Form.useForm();
   const [reasons, setReasons] = useState<ReasonForExit[]>([]);
+  const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingReason, setEditingReason] = useState<ReasonForExit | null>(null);
@@ -138,8 +139,8 @@ export default function ReasonForExitPage() {
             width: 36, 
             height: 36, 
             borderRadius: 10, 
-            background: "#eff6ff", 
-            color: "#2563eb",
+            background: "var(--bg-blue-50)", 
+            color: "var(--premium-blue)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -149,8 +150,8 @@ export default function ReasonForExitPage() {
             <MessageSquare size={18} />
           </div>
           <div>
-            <Text strong style={{ display: "block", color: "#1e293b", fontSize: 14 }}>{text}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>ID: {record.id.slice(0, 8)}</Text>
+            <Text strong style={{ display: "block", color: "var(--text-slate-900)", fontSize: 14 }}>{text}</Text>
+            <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>ID: {record.id.slice(0, 8)}</Text>
           </div>
         </Space>
       ),
@@ -160,7 +161,7 @@ export default function ReasonForExitPage() {
       dataIndex: 'code',
       key: 'code',
       render: (code: string) => (
-        <Tag style={{ borderRadius: 6, background: "#f8fafc", color: "#64748b", border: "1px solid #e2e8f0", fontWeight: 500 }}>
+        <Tag style={{ borderRadius: 6, background: "var(--bg-slate-50)", color: "var(--text-slate-500)", border: "1px solid var(--border-slate-100)", fontWeight: 500 }}>
           {code}
         </Tag>
       )
@@ -189,7 +190,7 @@ export default function ReasonForExitPage() {
           <Tooltip title="Edit Reason">
             <Button
               type="text"
-              icon={<Edit size={18} style={{ color: '#64748b' }} />}
+              icon={<Edit size={18} style={{ color: 'var(--text-slate-400)' }} />}
               onClick={() => handleEdit(record)}
               className="action-btn"
             />
@@ -215,6 +216,11 @@ export default function ReasonForExitPage() {
     },
   ];
 
+  const filteredReasons = reasons.filter(reason => 
+    (reason.name || '').toLowerCase().includes(searchText.toLowerCase()) || 
+    (reason.code || '').toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <div style={{ padding: '8px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -223,13 +229,16 @@ export default function ReasonForExitPage() {
             placeholder="Search reasons..." 
             prefix={<Search size={16} style={{ color: "#94a3b8" }} />}
             style={{ width: 280, borderRadius: 10, height: 40 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
           />
         </div>
         <Button
           type="primary"
           icon={<Plus size={18} />}
           onClick={handleAdd}
-          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center" }}
+          style={{ borderRadius: 10, height: 40, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
         >
           Add Reason
         </Button>
@@ -237,25 +246,25 @@ export default function ReasonForExitPage() {
 
       <Table
         columns={columns}
-        dataSource={reasons}
+        dataSource={filteredReasons}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10, position: ["bottomRight"] }}
         size="middle"
-        style={{ background: "#fff", borderRadius: 16, border: "1px solid #f1f5f9", overflow: "hidden" }}
+        style={{ background: "var(--bg-pure-white)", borderRadius: 16, border: "1px solid var(--border-slate-100)", overflow: "hidden", boxShadow: "var(--shadow-premium-sm)" }}
       />
 
       <Drawer
         title={
           <Space size={12}>
-            <div style={{ background: "#eff6ff", padding: 8, borderRadius: 10, color: "#2563eb", display: "flex" }}>
+            <div style={{ background: "var(--bg-blue-50)", padding: 8, borderRadius: 10, color: "var(--premium-blue)", display: "flex" }}>
               <Settings2 size={20} />
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#1e293b" }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-slate-900)" }}>
                 {editingReason ? "Edit Reason" : "Create Reason"}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 400, color: "#64748b" }}>
+              <div style={{ fontSize: 12, fontWeight: 400, color: "var(--text-slate-500)" }}>
                 Define specific reasons for employee exits
               </div>
             </div>
@@ -284,9 +293,10 @@ export default function ReasonForExitPage() {
           layout="vertical"
           requiredMark={false}
           initialValues={{ is_active: true }}
+          style={{ background: "var(--bg-pure-white)" }}
         >
           <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16, color: "#334155" }}>Identity Details</Title>
+            <Title level={5} style={{ marginBottom: 16, color: "var(--text-slate-900)" }}>Identity Details</Title>
             <Form.Item
               name="name"
               label={<Text strong style={{ fontSize: 13 }}>Exit Reason</Text>}
@@ -306,20 +316,20 @@ export default function ReasonForExitPage() {
               <Input 
                 placeholder="Auto-gen" 
                 readOnly 
-                style={{ backgroundColor: '#f8fafc' }}
+                style={{ backgroundColor: 'var(--bg-secondary)' }}
               />
             </Form.Item>
           </div>
 
           <Divider />
 
-          <div style={{ background: "#f8fafc", padding: 20, borderRadius: 12, border: "1px solid #f1f5f9" }}>
+          <div style={{ background: "var(--bg-secondary)", padding: 20, borderRadius: 12, border: "1px solid var(--border-slate-100)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", gap: 12 }}>
-                <div style={{ color: "#3b82f6" }}><ShieldCheck size={20} /></div>
+                <div style={{ color: "var(--premium-blue)" }}><ShieldCheck size={20} /></div>
                 <div>
-                  <Text strong style={{ fontSize: 14, display: "block", color: "#1e293b" }}>Operational Status</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Inactive reasons won't be selectable by employees.</Text>
+                  <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-slate-900)" }}>Operational Status</Text>
+                  <Text style={{ fontSize: 12, color: "var(--text-slate-500)" }}>Inactive reasons won't be selectable by employees.</Text>
                 </div>
               </div>
               <Form.Item name="is_active" valuePropName="checked" noStyle>
@@ -331,19 +341,19 @@ export default function ReasonForExitPage() {
       </Drawer>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .action-btn:hover { background: #f1f5f9 !important; color: #2563eb !important; }
+        .action-btn:hover { background: var(--bg-secondary) !important; color: var(--premium-blue) !important; }
         .action-btn-danger:hover { background: #fff1f2 !important; }
         .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--bg-secondary) !important;
+          color: var(--text-slate-500) !important;
           font-weight: 600 !important;
           text-transform: uppercase !important;
           font-size: 11px !important;
           letter-spacing: 0.05em !important;
         }
-        .ant-table-row:hover > td { background: #f8fafc !important; }
-        .config-drawer .ant-drawer-header { border-bottom: 1px solid #f1f5f9 !important; padding: 24px !important; }
-        .config-drawer .ant-drawer-footer { border-top: 1px solid #f1f5f9 !important; padding: 16px 24px !important; }
+        .ant-table-row:hover > td { background: var(--bg-secondary) !important; }
+        .config-drawer .ant-drawer-header { border-bottom: 1px solid var(--border-slate-100) !important; padding: 24px !important; }
+        .config-drawer .ant-drawer-footer { border-top: 1px solid var(--border-slate-100) !important; padding: 16px 24px !important; }
       `}} />
     </div>
   );

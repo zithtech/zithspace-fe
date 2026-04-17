@@ -164,15 +164,15 @@ const DealDetailsPage = () => {
   ];
 
   const premiumCardStyle = {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-pure-white)',
     borderRadius: '12px',
-    border: '1px solid #f0f0f0',
+    border: '1px solid var(--border-slate-100)',
     boxShadow: 'none',
   };
 
   return (
     <MainLayout>
-      <div style={{ padding: '16px', minHeight: '100vh', background: '#ffffff' }}>
+      <div style={{ padding: '16px', minHeight: '100vh', background: 'var(--bg-pure-white)' }}>
         {/* Breadcrumbs */}
         <Breadcrumb style={{ marginBottom: '16px' }}>
           <Breadcrumb.Item>
@@ -203,7 +203,7 @@ const DealDetailsPage = () => {
                 Back to Pipeline
               </Button>
               <Space align="center" size="middle">
-                <Title level={2} style={{ margin: 0, background: 'linear-gradient(to right, #1890ff, #001529)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <Title level={2} style={{ margin: 0, color: 'var(--premium-blue)' }}>
                   {deal.title}
                 </Title>
                 <Tag 
@@ -226,8 +226,8 @@ const DealDetailsPage = () => {
           
           <Space size="large">
             <div style={{ textAlign: 'right', marginRight: '24px' }}>
-              <div style={{ fontSize: '12px', color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Value</div>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1890ff' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-slate-400)', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Value</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--premium-blue)' }}>
                 {deal.currency} {deal.estimatedValue?.toLocaleString()}
               </div>
             </div>
@@ -286,21 +286,21 @@ const DealDetailsPage = () => {
                 items={items} 
                 size="large" 
                 style={{ marginTop: 8 }}
-                tabBarStyle={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}
+                tabBarStyle={{ borderBottom: '1px solid var(--border-slate-100)' }}
               />
             </div>
           </Content>
           
           <Sider width={320} style={{ background: 'transparent', marginLeft: '24px' }}>
             <Card 
-              title={<Space><RocketOutlined style={{ color: '#1677ff' }} /> Deal Summary</Space>} 
+              title={<Space><RocketOutlined style={{ color: 'var(--premium-blue)' }} /> Deal Summary</Space>} 
               variant="borderless" 
               style={{ ...premiumCardStyle, height: 'fit-content' }}
-              styles={{ header: { borderBottom: '1px solid #f0f0f0' }, body: { padding: '16px' } }}
+              styles={{ header: { borderBottom: '1px solid var(--border-slate-100)' }, body: { padding: '16px' } }}
             >
               <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                <div style={{ backgroundColor: 'rgba(24, 144, 255, 0.05)', padding: '16px', borderRadius: '12px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Assigned Team</Text>
+                <div style={{ backgroundColor: 'var(--bg-blue-50)', padding: '16px', borderRadius: '12px' }}>
+                  <Text style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-slate-500)' }}>Assigned Team</Text>
                   
                   <div style={{ marginTop: 12 }}>
                     <Space direction="vertical" size="small" style={{ width: '100%' }}>
@@ -330,18 +330,17 @@ const DealDetailsPage = () => {
                 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Win Probability</Text>
-                    <Text strong style={{ color: deal.probability && deal.probability > 70 ? '#52c41a' : (deal.probability && deal.probability > 30 ? '#1890ff' : '#faad14') }}>
+                    <Text style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-slate-500)' }}>Win Probability</Text>
+                    <Text strong style={{ color: deal.probability && deal.probability > 70 ? 'var(--text-holiday)' : (deal.probability && deal.probability > 30 ? 'var(--premium-blue)' : 'var(--text-slate-700)') }}>
                       {deal.probability || 0}%
                     </Text>
                   </div>
-                  <div style={{ width: '100%', height: 10, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 5 }}>
+                  <div style={{ width: '100%', height: 10, backgroundColor: 'var(--bg-slate-50)', borderRadius: 5 }}>
                     <div style={{ 
                       width: `${deal.probability || 0}%`, 
                       height: '100%', 
-                      background: 'linear-gradient(90deg, #1890ff 0%, #69c0ff 100%)',
+                      background: 'var(--premium-blue)',
                       borderRadius: 5,
-                      boxShadow: '0 2px 4px rgba(24, 144, 255, 0.2)'
                     }} />
                   </div>
                 </div>
@@ -365,10 +364,10 @@ const DealDetailsPage = () => {
             </Card>
 
             <Card 
-              title="Quick Actions" 
+              title={<Text strong style={{ color: 'var(--text-slate-900)' }}>Quick Actions</Text>} 
               variant="borderless" 
               style={{ ...premiumCardStyle, marginTop: '16px' }}
-              styles={{ header: { borderBottom: '1px solid #f0f0f0' }, body: { padding: '16px' } }}
+              styles={{ header: { borderBottom: '1px solid var(--border-slate-100)' }, body: { padding: '16px' } }}
             >
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Button block shape="round" type="default" style={{ transition: 'all 0.3s' }}>Schedule Meeting</Button>

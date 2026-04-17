@@ -104,7 +104,7 @@ function CreateClientV2Content() {
             left: 0,
             width: "100%",
             height: "100%",
-            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backgroundColor: "var(--mask-bg)",
             backdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
@@ -129,34 +129,29 @@ function CreateClientV2Content() {
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            paddingBottom: 20,
-            justifyContent: "space-between",
             position: "sticky",
             top: -20,
-            paddingTop: 20,
-            marginTop: -20,
             zIndex: 1000,
-            backgroundColor: "var(--premium-white)",
+            backgroundColor: "var(--bg-pure-white)",
             gap: 16,
             boxShadow: "none",
             margin: "0 -24px 24px -24px",
             padding: "20px 24px",
-            borderBottom: "1px solid #e8e8e8",
+            borderBottom: "1px solid var(--border-slate-100)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <Button
               icon={<ArrowLeftOutlined />}
               onClick={() => router.back()}
+              style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}
             />
-            <UserAddOutlined style={{ fontSize: 28, color: "#1677ff" }} />
+            <UserAddOutlined style={{ fontSize: 28, color: "var(--premium-blue)" }} />
             <div>
-              <Title level={2} style={{ margin: 0 }}>
+              <Title level={2} style={{ margin: 0, color: "var(--text-slate-900)" }}>
                 {isEditMode ? "Edit Client" : "Create New Client"}
               </Title>
-              <Text type="secondary">
+              <Text style={{ color: "var(--text-slate-500)" }}>
                 {isEditMode
                   ? "Update the client's details below."
                   : "Fill in the details below to create a new client profile."}
@@ -170,7 +165,7 @@ function CreateClientV2Content() {
               gap: 16,
             }}
           >
-            <Button onClick={() => router.back()}>Cancel</Button>
+            <Button onClick={() => router.back()} style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-color)", color: "var(--text-primary)" }}>Cancel</Button>
 
             <Button
               type="primary"
@@ -193,11 +188,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Basic Details</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Core information about the company.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"
@@ -207,7 +199,7 @@ function CreateClientV2Content() {
                 }}
               >
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item
                       name="companyName"
                       label="Company Name"
@@ -216,12 +208,12 @@ function CreateClientV2Content() {
                       <Input placeholder="Enter company name" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="legalName" label="Legal Name">
                       <Input placeholder="Enter legal business name" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item
                       name="clientType"
                       label="Client Type"
@@ -235,12 +227,12 @@ function CreateClientV2Content() {
                       </Select>
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="industry" label="Industry">
                       <Input placeholder="e.g. Technology, Healthcare" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="companySize" label="Company Size">
                       <Select placeholder="Select size">
                         <Option value="1-10">1-10</Option>
@@ -250,7 +242,7 @@ function CreateClientV2Content() {
                       </Select>
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item
                       name="yearOfIncorporation"
                       label="Year of Incorporation"
@@ -258,7 +250,7 @@ function CreateClientV2Content() {
                       <Input placeholder="YYYY" type="number" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="country" label="Country">
                       <Input
                         placeholder="Country"
@@ -276,7 +268,7 @@ function CreateClientV2Content() {
                       />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="website" label="Website">
                       <Input placeholder="https://..." />
                     </Form.Item>
@@ -287,11 +279,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Compliance & Finance</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Tax, registration, and financial details.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"
@@ -301,12 +290,12 @@ function CreateClientV2Content() {
                 }}
               >
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="gstVatTaxId" label="GST / VAT / Tax ID">
                       <Input placeholder="Tax ID" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item
                       name="registrationNumber"
                       label="Registration Number"
@@ -314,17 +303,17 @@ function CreateClientV2Content() {
                       <Input placeholder="Company Registration No." />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="pan" label="PAN (India)">
                       <Input />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="dunsNumber" label="DUNS Number">
                       <Input />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="defaultCurrency" label="Default Currency">
                       <Select showSearch allowClear>
                         <Option value="USD">USD</Option>
@@ -334,12 +323,12 @@ function CreateClientV2Content() {
                       </Select>
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="contractValue" label="Contract Value">
                       <InputNumber type="number" style={{ width: "100%" }} />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="paymentTerms" label="Payment Terms">
                       <Select placeholder="e.g. Net 30">
                         <Option value="Net 15">Net 15</Option>
@@ -349,7 +338,7 @@ function CreateClientV2Content() {
                       </Select>
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="creditLimit" label="Credit Limit">
                       <InputNumber type="number" style={{ width: "100%" }} />
                     </Form.Item>
@@ -362,11 +351,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Operational Details</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Client status, risk, and billing contacts.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"
@@ -376,7 +362,7 @@ function CreateClientV2Content() {
                 }}
               >
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="status" label="Client Status">
                       <Select>
                         <Option value="Prospect">Prospect</Option>
@@ -385,7 +371,7 @@ function CreateClientV2Content() {
                       </Select>
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="riskLevel" label="Risk Level">
                       <Select placeholder="Select risk">
                         <Option value="Low">Low</Option>
@@ -394,17 +380,17 @@ function CreateClientV2Content() {
                       </Select>
                     </Form.Item>
                   </Col>
-                  <Col span={24}>
+                  <Col xs={24}>
                     <Form.Item name="clientSegment" label="Client Segment">
                       <Input placeholder="e.g. Enterprise, SMB" />
                     </Form.Item>
                   </Col>
-                  <Col span={24}>
+                  <Col xs={24}>
                     <Form.Item name="billingAddress" label="Billing Address">
                       <Input.TextArea rows={2} />
                     </Form.Item>
                   </Col>
-                  <Col span={24}>
+                  <Col xs={24}>
                     <Form.Item
                       name="billingContactEmail"
                       label="Billing Contact Email"
@@ -418,11 +404,8 @@ function CreateClientV2Content() {
             <Col xs={24} md={12}>
               <Card
                 title={
-                  <div>
+                  <div style={{ color: "var(--text-slate-900)" }}>
                     <div>Banking Information</div>
-                    {/* <Text type="secondary" style={{ fontSize: 12 }}>
-                      Client's primary bank account for payments.
-                    </Text> */}
                   </div>
                 }
                 className="premium-card"
@@ -432,7 +415,7 @@ function CreateClientV2Content() {
                 }}
               >
                 <Row gutter={16}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="bankName" label="Bank Name">
                       <Input onKeyDown={(e) => {
                         if (
@@ -447,17 +430,17 @@ function CreateClientV2Content() {
                       }} />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="bankAccountNumber" label="Account Number">
                       <Input type="number" />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item name="ifscSwift" label="IFSC / SWIFT Code">
                       <Input />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     {/* <Form.Item
                       name="currencyOfPayment"
                       label="Currency of Payment"
@@ -481,7 +464,7 @@ function CreateClientV2Content() {
                       </Select>
                     </Form.Item>
                   </Col>
-                  <Col span={24}>
+                  <Col xs={24}>
                     <Form.Item
                       name="preferredPaymentMode"
                       label="Preferred Payment Mode"

@@ -116,7 +116,7 @@ export default function BucketManagementPage() {
             <FolderOutlined style={{ fontSize: 18, color: record.color || "#1677ff" }} />
           </div>
           <div>
-            <Text strong style={{ fontSize: 14, display: "block", color: "#1a1a1a" }}>{text}</Text>
+            <Text strong style={{ fontSize: 14, display: "block", color: "var(--text-primary)" }}>{text}</Text>
             {record.isShared && (
               <Tag color="purple" style={{ margin: 0, fontSize: 10, borderRadius: 4, transform: "scale(0.9)", transformOrigin: "left center" }}>
                 SHARED
@@ -133,7 +133,7 @@ export default function BucketManagementPage() {
       render: (project: any) => project ? (
         <Space size={6}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1677ff" }} />
-          <Text style={{ fontSize: 13, color: "#595959" }}>{project.name}</Text>
+          <Text style={{ fontSize: 13, color: "var(--text-secondary)" }}>{project.name}</Text>
         </Space>
       ) : (
         <Tag color="default" style={{ borderRadius: 4, fontSize: 11, fontWeight: 500 }}>CROSS-PROJECT</Tag>
@@ -215,13 +215,13 @@ export default function BucketManagementPage() {
   ];
 
   return (
-    <div style={{ padding: "0 32px 32px", background: "#ffffff", minHeight: "100vh" }}>
+    <div style={{ padding: "0 32px 32px", background: "var(--bg-pure-white)", minHeight: "100vh" }}>
       {contextHolder}
 
       {/* Header Section */}
       <div style={{ 
         padding: "24px 0 32px", 
-        background: "#fff",
+        background: "var(--bg-pure-white)",
         position: "sticky",
         top: 0,
         zIndex: 10,
@@ -242,7 +242,7 @@ export default function BucketManagementPage() {
                 <FolderOpenOutlined style={{ fontSize: 24, color: "#fff" }} />
               </div>
               <Space direction="vertical" size={0}>
-                <Title level={3} style={{ margin: 0, fontWeight: 800, letterSpacing: "-0.03em", color: "#1a1a1a" }}>
+                <Title level={3} style={{ margin: 0, fontWeight: 800, letterSpacing: "-0.03em", color: "var(--text-primary)" }}>
                   Buckets
                 </Title>
                 <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
@@ -268,6 +268,7 @@ export default function BucketManagementPage() {
                 styles={{ 
                   popup: { root: { borderRadius: 12, boxShadow: "0 6px 16px rgba(0,0,0,0.08)" } }
                 }}
+                optionLabelProp="label"
               >
                 <Option value={null}>
                   <Space>
@@ -276,10 +277,10 @@ export default function BucketManagementPage() {
                   </Space>
                 </Option>
                 {projects?.map((project: any) => (
-                  <Option key={project.value} value={project.value}>
+                  <Option key={project.value} value={project.value} label={`${project.label} - ${project.code}`}>
                     <Space>
                       <Badge status="processing" color="#1677ff" />
-                      {project.label}
+                      {project.label} - <small style={{ color: '#8c8c8c' }}>{project.code}</small>
                     </Space>
                   </Option>
                 ))}
@@ -296,7 +297,7 @@ export default function BucketManagementPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: "#fff"
+                    background: "var(--bg-pure-white)"
                   }}
                 />
               </Tooltip>
@@ -324,7 +325,7 @@ export default function BucketManagementPage() {
       {!isLoading && buckets.length > 0 && (
         <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ 
                   width: 48, 
@@ -345,7 +346,7 @@ export default function BucketManagementPage() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ 
                   width: 48, 
@@ -368,7 +369,7 @@ export default function BucketManagementPage() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ 
                   width: 48, 
@@ -391,7 +392,7 @@ export default function BucketManagementPage() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                 <div style={{ 
                   width: 48, 
@@ -422,7 +423,8 @@ export default function BucketManagementPage() {
         style={{ 
           borderRadius: 20, 
           overflow: "hidden", 
-          border: "1px solid #f0f0f0",
+          border: "1px solid var(--border-color)",
+          backgroundColor: "var(--bg-pure-white)",
           boxShadow: "0 4px 20px rgba(0,0,0,0.03)"
         }}
       >
@@ -431,6 +433,7 @@ export default function BucketManagementPage() {
           columns={columns}
           loading={isLoading}
           rowKey="id"
+          className="premium-table"
           pagination={{
             pageSize: 10,
             showSizeChanger: true,

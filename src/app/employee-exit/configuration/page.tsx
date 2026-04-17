@@ -25,7 +25,7 @@ export default function EmployeeExitConfigurationPage() {
       <div style={{ 
         margin: "0 -24px", 
         padding: "24px 32px", 
-        background: "#ffffff", 
+        background: "var(--bg-secondary)", 
         minHeight: "calc(100vh - 64px)" 
       }}>
         {/* Header Section */}
@@ -33,17 +33,17 @@ export default function EmployeeExitConfigurationPage() {
           <div style={{ flex: 1 }}>
             <Space size={12} align="center">
               <div style={{ 
-                background: "#eff6ff", 
+                background: "var(--bg-blue-50)", 
                 padding: 10, 
                 borderRadius: 12, 
-                color: "#2563eb",
+                color: "var(--premium-blue)",
                 display: "flex"
               }}>
                 <Settings2 size={24} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Exit Configuration</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Configure policies, workflows, and taxonomies for employee offboarding.</Text>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Exit Configuration</Title>
+                <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Configure policies, workflows, and taxonomies for employee offboarding.</Text>
               </div>
             </Space>
           </div>
@@ -54,7 +54,7 @@ export default function EmployeeExitConfigurationPage() {
           onChange={setActiveTab} 
           size="middle" 
           tabBarGutter={32}
-          tabBarStyle={{ marginBottom: 24, borderBottom: "1px solid #f1f5f9" }}
+          tabBarStyle={{ marginBottom: 24, borderBottom: "1px solid var(--border-slate-100)" }}
         >
           <Tabs.TabPane 
             tab={
@@ -111,10 +111,10 @@ export default function EmployeeExitConfigurationPage() {
             transition: all 0.2s ease !important;
           }
           .ant-tabs-tab-active .ant-tabs-tab-btn {
-            color: #2563eb !important;
+            color: var(--premium-blue) !important;
           }
           .ant-tabs-ink-bar {
-            background: #2563eb !important;
+            background: var(--premium-blue) !important;
             height: 3px !important;
             border-radius: 3px 3px 0 0;
           }

@@ -14,7 +14,7 @@ export const calculateNetDuration = (entries: TimeTrackingEntry[], sessionWindow
   const now = nowMs || new Date().getTime();
 
   // Sort by startTime to identify simultaneous groups
-  const sorted = [...entries].sort((a, b) => 
+  const sorted = [...entries].sort((a, b) =>
     new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
 
@@ -33,7 +33,7 @@ export const calculateNetDuration = (entries: TimeTrackingEntry[], sessionWindow
     for (let j = i + 1; j < sorted.length; j++) {
       const other = sorted[j];
       const otherStart = new Date(other.startTime).getTime();
-      
+
       if (Math.abs(otherStart - baseStart) < sessionWindowMs) {
         group.push(other);
         processedIds.add(other.id);
@@ -52,19 +52,19 @@ export const calculateNetDuration = (entries: TimeTrackingEntry[], sessionWindow
     const runningEntries = group.filter(e => e.status === 'RUNNING' && e.logs && e.logs.length > 0);
     if (runningEntries.length > 0) {
       let maxLiveSeconds = 0;
-      
+
       runningEntries.forEach(re => {
         const lastLog = [...(re.logs || [])].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
-        
+
         if (lastLog && (lastLog.action === 'STARTED' || lastLog.action === 'RESUMED')) {
           const start = new Date(lastLog.createdAt).getTime();
           const live = Math.max(0, Math.floor((now - start) / 1000));
           if (live > maxLiveSeconds) maxLiveSeconds = live;
         }
       });
-      
+
       totalNetSeconds += maxLiveSeconds;
     }
   }

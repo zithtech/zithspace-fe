@@ -99,6 +99,13 @@ export default function SprintPlanComponent() {
         type: "sprint_plan",
       });
       setSprintPlans(data?.data || []);
+      if (!loading) { // Only show message if it's a manual refresh
+        api.success({
+          message: "Refreshed",
+          description: "Sprint plans updated successfully",
+          placement: "bottomRight",
+        });
+      }
     } catch (error) {
       console.error("Failed to load sprint plans:", error);
       api.error({
@@ -502,15 +509,15 @@ export default function SprintPlanComponent() {
   ];
 
   return (
-    <div style={{ padding: "0 32px 32px", background: "#ffffff", minHeight: "100vh" }}>
+    <div style={{ padding: "0 32px 32px", background: "var(--bg-pure-white)", minHeight: "100vh" }}>
       {contextHolder}
 
       {/* Header Section */}
       <div style={{
         padding: "24px 0",
         marginBottom: 32,
-        borderBottom: "1px solid #f0f0f0",
-        background: "#fff",
+        borderBottom: "1px solid var(--border-color)",
+        background: "var(--bg-pure-white)",
         position: "sticky",
         top: 0,
         zIndex: 10,
@@ -522,7 +529,8 @@ export default function SprintPlanComponent() {
                 width: 44,
                 height: 44,
                 borderRadius: 12,
-                background: "#e6f7ff",
+                background: "var(--bg-pure-white)",
+                border: "1px solid var(--border-color)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center"
@@ -564,9 +572,9 @@ export default function SprintPlanComponent() {
       {!loading && sprintPlans.length > 0 && (
         <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#e6f7ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <RocketOutlined style={{ fontSize: 20, color: "#1890ff" }} />
                 </div>
                 <div>
@@ -577,9 +585,9 @@ export default function SprintPlanComponent() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#fff7e6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <PieChartOutlined style={{ fontSize: 20, color: "#fa8c16" }} />
                 </div>
                 <div>
@@ -590,9 +598,9 @@ export default function SprintPlanComponent() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f6ffed", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <HistoryOutlined style={{ fontSize: 20, color: "#52c41a" }} />
                 </div>
                 <div>
@@ -603,9 +611,9 @@ export default function SprintPlanComponent() {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid #f0f0f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <Card bodyStyle={{ padding: "20px 24px" }} style={{ borderRadius: 16, border: "1px solid var(--border-color)", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", background: "var(--bg-pure-white)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f9f0ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <BulbOutlined style={{ fontSize: 20, color: "#722ed1" }} />
                 </div>
                 <div>
@@ -624,8 +632,9 @@ export default function SprintPlanComponent() {
         style={{
           borderRadius: 16,
           overflow: "hidden",
-          border: "1px solid #f0f0f0",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+          border: "1px solid var(--border-color)",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
+          background: "var(--bg-pure-white)"
         }}
       >
         <Table
@@ -689,7 +698,7 @@ export default function SprintPlanComponent() {
           </Space>
         }
         styles={{
-          header: { borderBottom: '1px solid #f0f0f0', padding: '16px 24px' },
+          header: { borderBottom: '1px solid var(--border-color)', padding: '16px 24px' },
           body: { padding: "32px 24px" },
           mask: { backdropFilter: 'blur(4px)', background: 'rgba(0,0,0,0.1)' }
         }}
@@ -739,7 +748,7 @@ export default function SprintPlanComponent() {
               <Text strong style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#8c8c8c' }}>Timeline & Schedule</Text>
             </div>
 
-            <div style={{ background: '#fafafa', padding: 20, borderRadius: 12, border: '1px solid #f0f0f0' }}>
+            <div style={{ background: 'var(--bg-pure-white)', padding: 20, borderRadius: 12, border: '1px solid var(--border-color)' }}>
               <Row gutter={16}>
                 <Col span={24} style={{ marginBottom: 16 }}>
                   <Form.Item label="Pre-set Duration" style={{ margin: 0 }}>
@@ -845,7 +854,7 @@ export default function SprintPlanComponent() {
       >
         {drawerSprintPlan && (
           <div>
-            <div style={{ background: '#fafafa', padding: 24, borderRadius: 16, marginBottom: 24 }}>
+            <div style={{ background: 'var(--bg-pure-white)', padding: 24, borderRadius: 16, marginBottom: 24, border: '1px solid var(--border-color)' }}>
               <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                 <Col><Text strong style={{ fontSize: 16 }}>Overall Completion</Text></Col>
                 <Col><Title level={4} style={{ margin: 0, color: '#1677ff' }}>{drawerSprintPlan?.progress || 0}%</Title></Col>
@@ -870,7 +879,7 @@ export default function SprintPlanComponent() {
                   style={{
                     padding: '12px 16px',
                     borderRadius: 12,
-                    border: '1px solid #f0f0f0',
+                    border: '1px solid var(--border-color)',
                     marginBottom: 12,
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -920,20 +929,22 @@ export default function SprintPlanComponent() {
 
       <style jsx global>{`
         .premium-table .ant-table-thead > tr > th {
-          background: #fafafa;
+          background: var(--bg-pure-white);
           font-weight: 600;
-          color: #595959;
-          font-size: 12px;
+          color: var(--text-secondary);
+          font-size: 11px;
           text-transform: uppercase;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.05em;
           padding: 16px;
+          border-bottom: 1px solid var(--border-color);
         }
         .premium-table .ant-table-tbody > tr > td {
           padding: 16px;
+          border-bottom: 1px solid var(--border-color);
         }
         .drawer-ticket-item:hover {
-          background: #fcfcfc !important;
-          border-color: #bae7ff !important;
+          background: var(--bg-pure-white) !important;
+          filter: brightness(0.98);
         }
       `}</style>
     </div>

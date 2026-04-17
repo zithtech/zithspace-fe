@@ -38,7 +38,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, deals, onDealClick }
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#f4f5f7",
+        backgroundColor: "var(--bg-secondary)",
         borderRadius: "12px",
         border: isOver ? `2px dashed ${stage.color}` : "2px solid transparent",
         transition: "all 0.2s ease",
@@ -55,11 +55,11 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, deals, onDealClick }
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
           <Space size={8}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: stage.color }} />
-            <Text strong style={{ margin: 0, fontSize: "13px", color: '#595959', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <Text strong style={{ margin: 0, fontSize: "13px", color: 'var(--text-slate-600)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {stage.name}
             </Text>
           </Space>
-          <Badge count={deals.length} overflowCount={999} style={{ backgroundColor: "#e8eaed", color: "#595959", fontWeight: 600, boxShadow: 'none' }} />
+          <Badge count={deals.length} overflowCount={999} style={{ backgroundColor: "var(--bg-slate-50)", color: "var(--text-slate-500)", fontWeight: 600, boxShadow: 'none', border: '1px solid var(--border-slate-100)' }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingLeft: "16px" }}>
           <Space size={4}>
@@ -67,7 +67,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, deals, onDealClick }
               {currency} {totalValue.toLocaleString()}
             </Text>
             <Tooltip title={`Probability: ${stage.probability}%`}>
-              <InfoCircleOutlined style={{ fontSize: "12px", color: "#bfbfbf" }} />
+              <InfoCircleOutlined style={{ fontSize: "12px", color: "var(--text-slate-400)" }} />
             </Tooltip>
           </Space>
         </div>
@@ -88,8 +88,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, deals, onDealClick }
           strategy={verticalListSortingStrategy}
         >
           {deals.length === 0 && !isOver && (
-            <div style={{ textAlign: "center", padding: "32px 16px", color: "#bfbfbf" }}>
-              <Text type="secondary" italic style={{ fontSize: "12px" }}>
+            <div style={{ textAlign: "center", padding: "32px 16px", color: "var(--text-slate-400)" }}>
+              <Text italic style={{ fontSize: "12px", color: 'var(--text-slate-500)' }}>
                 No deals in this stage
               </Text>
             </div>

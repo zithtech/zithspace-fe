@@ -114,6 +114,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     ticketId: string;
     field: "status" | "assignee" | "title" | "priority" | "type" | "storyPoint";
   } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
 
 
@@ -174,6 +175,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const {
     data: activeSprintData,
     isLoading: activeSprintLoading,
+    isFetching: activeSprintFetching,
     refetch: refetchActive
   } = useTickets(activeSprintParams);
 
@@ -181,6 +183,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   const {
     data: backlogData,
     isLoading: backlogLoading,
+    isFetching: backlogFetching,
     refetch: refetchBacklog
   } = useTickets(backlogParams);
 
@@ -341,7 +344,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
   const {
     data: initialKanbanData,
-    isLoading: isInitialKanbanLoading
+    isLoading: isInitialKanbanLoading,
+    isFetching: isInitialKanbanFetching
   } = useKanbanTickets(initialKanbanParams);
 
   // 2. Background complete load (50 tickets/column = 200 total)
@@ -932,7 +936,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
             <Title level={3}>Tickets</Title>
           </Col>
         </Row>
-        <Card>
+        <Card style={{ border: '1px solid var(--border-color)', background: 'var(--bg-pure-white)' }}>
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
@@ -953,7 +957,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   }
 
   return (
-    <div style={{ backgroundColor: '#ffffff', minHeight: '100%', padding: '16px 24px' }}>
+    <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: '100%', padding: '16px 24px' }}>
       {contextHolder}
       {notifyContextHolder}
 
@@ -962,11 +966,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: 'var(--bg-pure-white)',
         backdropFilter: 'blur(8px)',
         margin: '0 -24px 20px -24px',
         padding: '16px 24px',
-        borderBottom: '1px solid #f0f0f0'
+        borderBottom: '1px solid var(--border-color)'
       }}>
         <Row justify="space-between" align="middle">
           <Col flex="1">
@@ -978,13 +982,14 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   icon={<ArrowLeftOutlined style={{ fontSize: 13, color: '#8c8c8c' }} />}
                   onClick={() => router.push('/projects/select?select=true')}
                   style={{
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: 'var(--bg-pure-white)',
                     borderRadius: 6,
                     width: 28,
                     height: 28,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    border: '1px solid var(--border-color)'
                   }}
                 />
                 <Button
@@ -1034,8 +1039,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 style={{
                   width: 240,
                   borderRadius: 8,
-                  backgroundColor: '#f9f9f9',
-                  border: '1px solid #f0f0f0',
+                  backgroundColor: 'var(--bg-pure-white)',
+                  border: '1px solid var(--border-color)',
                   height: 36
                 }}
                 value={filters.search}
@@ -1050,12 +1055,22 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           <Col>
             <Space size={8}>
               {/* Action Group */}
-              <div style={{ backgroundColor: '#f5f5f5', padding: '4px', borderRadius: 8, display: 'flex' }}>
+              <div style={{ backgroundColor: 'var(--bg-pure-white)', padding: '4px', borderRadius: 8, display: 'flex', border: '1px solid var(--border-color)' }}>
                 <Tooltip title="Reload tickets">
                   <Button
                     icon={<ReloadOutlined />}
-                    onClick={() => { refetchActive(); refetchBacklog(); }}
-                    loading={(activeSprintLoading || backlogLoading) && !activeSprintLoading}
+                    onClick={async () => {
+                      setIsRefreshing(true);
+                      try {
+                        await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                        message.success("Tickets refreshed");
+                      } catch (e) {
+                        message.error("Failed to refresh tickets");
+                      } finally {
+                        setIsRefreshing(false);
+                      }
+                    }}
+                    loading={isRefreshing || activeSprintFetching || backlogFetching || isInitialKanbanFetching || isBackgroundKanbanLoading}
                     type="text"
                     style={{ borderRadius: 6 }}
                   />
@@ -1079,7 +1094,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     type="text"
                     style={{
                       borderRadius: 6,
-                      backgroundColor: activeFilterCount > 0 ? '#e6f4ff' : 'transparent',
+                      backgroundColor: activeFilterCount > 0 ? 'var(--bg-pure-white)' : 'transparent',
+                      border: activeFilterCount > 0 ? '1px solid var(--border-color)' : '1px solid var(--border-color)',
                       color: activeFilterCount > 0 ? '#1677ff' : '#595959'
                     }}
                   >
@@ -1103,12 +1119,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <div style={{ display: 'flex', gap: 8 }}>
                 {/* View Mode Switcher */}
                 <div style={{
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: 'var(--bg-pure-white)',
                   padding: '2px',
                   borderRadius: 10,
                   display: 'flex',
                   alignItems: 'center',
-                  border: '1px solid #f0f0f0'
+                  border: '1px solid var(--border-color)'
                 }}>
                   <Radio.Group
                     value={viewMode}
@@ -1156,12 +1172,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
                 {(viewMode === 'board' || viewMode === 'list') && (
                   <div style={{
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: 'var(--bg-pure-white)',
                     padding: '2px',
                     borderRadius: 10,
                     display: 'flex',
                     alignItems: 'center',
-                    border: '1px solid #f0f0f0'
+                    border: '1px solid var(--border-color)'
                   }}>
                     <Radio.Group
                       value={kanbanScope}
@@ -1300,7 +1316,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                       </Space>
                     </div>
                   }
-                  style={{ marginBottom: 20 }}
+                  style={{ marginBottom: 20, border: '1px solid var(--border-color)', background: 'var(--bg-pure-white)' }}
                   styles={{ body: { padding: 10 } }} // Remove padding to flush table with card
                 >
                   <Table
@@ -1310,7 +1326,8 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                     loading={activeSprintLoading}
                     pagination={false}
                     scroll={{ x: 1200 }}
-
+                    className="premium-table"
+                    size="middle"
                   />
                 </Card>
               </div>
@@ -1336,12 +1353,15 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 </div>
               }
               styles={{ body: { padding: 10 } }}
+              style={{ border: '1px solid var(--border-color)', background: 'var(--bg-pure-white)' }}
             >
               <Table
                 columns={getColumns('backlog')}
                 dataSource={backlogTickets}
                 rowKey="id"
                 loading={backlogLoading}
+                className="premium-table"
+                size="middle"
                 pagination={{
                   current: pagination.current,
                   pageSize: pagination.pageSize,
@@ -1385,10 +1405,11 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                   top: 70,
                   right: 20,
                   zIndex: 1000,
-                  background: '#fff',
+                  background: 'var(--bg-pure-white)',
                   padding: '8px 16px',
                   borderRadius: '4px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  border: '1px solid var(--border-color)'
                 }}>
                   <Space>
                     <ReloadOutlined spin />
@@ -1410,7 +1431,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               />
             </>
           ) : (
-            <Card>
+            <Card style={{ border: '1px solid var(--border-color)', background: 'var(--bg-pure-white)' }}>
               <Empty description="No tickets found" />
             </Card>
           )}

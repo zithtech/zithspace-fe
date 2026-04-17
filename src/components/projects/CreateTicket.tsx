@@ -282,21 +282,22 @@ export default function CreateTicket() {
       display: "flex", 
       flexDirection: "column", 
       overflow: "hidden",
-      padding: "16px 24px 0"
+      padding: "16px 24px 0",
+      background: "var(--bg-pure-white)"
     }}>
       {/* Premium Sticky Header Card */}
       <div style={{
         position: "sticky",
         top: 0,
         zIndex: 1000,
-        background: "rgba(255, 255, 255, 0.8)",
+        background: "var(--bg-pure-white)",
         backdropFilter: "blur(15px)",
         padding: "16px 24px",
         margin: "0 0 12px 0", // Reduced margin to bring content closer
         borderRadius: "0 0 12px 12px",
-        borderBottom: "1px solid #f0f0f0",
-        borderLeft: "1px solid #f0f0f0",
-        borderRight: "1px solid #f0f0f0",
+        borderBottom: "1px solid var(--border-color)",
+        borderLeft: "1px solid var(--border-color)",
+        borderRight: "1px solid var(--border-color)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -386,10 +387,10 @@ export default function CreateTicket() {
               top: 0, 
               zIndex: 900,
               padding: "20px 24px", 
-              background: "rgba(255, 255, 255, 0.95)", 
+              background: "var(--bg-pure-white)", 
               backdropFilter: "blur(10px)",
               borderRadius: 12, 
-              border: "1px solid #f0f0f0",
+              border: "1px solid var(--border-color)",
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)",
               marginBottom: 16 // Add margin manually since it's out of Space
             }}>
@@ -424,10 +425,10 @@ export default function CreateTicket() {
                   </Space>
                 }
                 styles={{ 
-                  header: { borderBottom: "1px solid #f0f0f0", padding: "0 24px" },
+                  header: { borderBottom: "1px solid var(--border-color)", padding: "0 24px" },
                   body: { padding: 24 }
                 }}
-                style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+                style={{ borderRadius: 12, border: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}
               >
                 <Form.Item
                   name="title"
@@ -530,10 +531,10 @@ export default function CreateTicket() {
                   </Space>
                 }
                 styles={{ 
-                  header: { borderBottom: "1px solid #f0f0f0", padding: "0 24px" },
+                  header: { borderBottom: "1px solid var(--border-color)", padding: "0 24px" },
                   body: { padding: 24 }
                 }}
-                style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+                style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
               >
                 <Row gutter={20}>
                   <Col xs={24} md={8}>
@@ -630,10 +631,10 @@ export default function CreateTicket() {
                   </Space>
                 }
                 styles={{ 
-                  header: { borderBottom: "1px solid #f0f0f0", padding: "0 24px" },
+                  header: { borderBottom: "1px solid var(--border-color)", padding: "0 24px" },
                   body: { padding: 24 }
                 }}
-                style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+                style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
               >
                 <Row gutter={20}>
                   <Col xs={24} md={12}>
@@ -774,10 +775,10 @@ export default function CreateTicket() {
                 </Space>
               }
               styles={{ 
-                header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
+                header: { borderBottom: "1px solid var(--border-color)", padding: "0 20px" },
                 body: { padding: 20 }
               }}
-              style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+              style={{ borderRadius: 12, border: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}
             >
               {!selectedProject ? (
                 <div style={{ textAlign: "center", padding: "12px 0" }}>
@@ -794,9 +795,9 @@ export default function CreateTicket() {
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div style={{ 
                         padding: "12px", 
-                        background: activeSprint.status?.toUpperCase() === "ACTIVE" ? "#e6f4ff" : "#fffbe6", 
+                        background: "var(--bg-pure-white)", 
                         borderRadius: 8, 
-                        border: activeSprint.status?.toUpperCase() === "ACTIVE" ? "1px solid #91caff" : "1px solid #ffe58f" 
+                        border: "1px solid var(--border-color)" 
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
@@ -811,12 +812,12 @@ export default function CreateTicket() {
                         </div>
                       </div>
                       
-                      <Row gutter={0} style={{ border: "1px solid #f0f0f0", borderRadius: 8, overflow: "hidden" }}>
-                        <Col span={12} style={{ padding: "8px 12px", borderRight: "1px solid #f0f0f0", background: "#fafafa" }}>
+                      <Row gutter={0} style={{ border: "1px solid var(--border-color)", borderRadius: 8, overflow: "hidden" }}>
+                        <Col span={12} style={{ padding: "8px 12px", borderRight: "1px solid var(--border-color)", background: "var(--bg-pure-white)" }}>
                           <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Start Date</Text>
                           <Text strong style={{ fontSize: 12 }}>{activeSprint.startDate ? dayjs(activeSprint.startDate).format("MMM DD, YYYY") : "Pending"}</Text>
                         </Col>
-                        <Col span={12} style={{ padding: "8px 12px", background: "#fafafa" }}>
+                        <Col span={12} style={{ padding: "8px 12px", background: "var(--bg-pure-white)" }}>
                           <Text type="secondary" style={{ fontSize: 10, display: "block", textTransform: "uppercase", letterSpacing: "0.02em" }}>Deadline</Text>
                           <Text strong style={{ fontSize: 12 }}>{activeSprint.releaseDate ? dayjs(activeSprint.releaseDate).format("MMM DD, YYYY") : "No Date"}</Text>
                         </Col>
@@ -854,7 +855,7 @@ export default function CreateTicket() {
                 header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
                 body: { padding: "16px 20px" }
               }}
-              style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+               style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
             >
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div>
@@ -884,7 +885,7 @@ export default function CreateTicket() {
                 header: { borderBottom: "1px solid #f0f0f0", padding: "0 20px" },
                 body: { padding: "12px 20px" }
               }}
-              style={{ borderRadius: 12, border: "1px solid #f0f0f0" }}
+               style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)" }}
             >
               <List
                 size="small"

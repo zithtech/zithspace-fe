@@ -17,17 +17,17 @@ import {
   notification,
   Progress,
 } from "antd";
-import { 
-  Clock, 
-  Calendar, 
-  ClipboardList, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
-  Trash2, 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus, 
+import {
+  Clock,
+  Calendar,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
   History,
   Info,
   ArrowRight
@@ -68,7 +68,7 @@ export default function LeavePage() {
   const [leaveTypeId, setLeaveTypeId] = useState("");
   const [dates, setDates] = useState<any>(null);
   const [reason, setReason] = useState("");
-  
+
   // Carousel state
   const [startIndex, setStartIndex] = useState(0);
   const visibleCount = 4; // Show 4 cards at a time on Desktop
@@ -134,19 +134,19 @@ export default function LeavePage() {
       title: "Leave Type",
       dataIndex: ["leaveType", "name"],
       key: "leaveType",
-      render: (text: string) => <Text strong style={{ color: "#1e293b" }}>{text}</Text>,
+      render: (text: string) => <Text strong style={{ color: "var(--text-slate-900)" }}>{text}</Text>,
     },
     {
       title: "Duration",
       key: "duration",
       render: (_: any, record: LeaveRequest) => (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-100)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.fromDate).format("MMM DD")}</Text>
           </div>
-          <ArrowRight size={14} color="#94a3b8" />
-          <div style={{ padding: "4px 8px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-            <Text style={{ fontSize: 13, color: "#475569" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
+          <ArrowRight size={14} color="var(--text-slate-400)" />
+          <div style={{ padding: "4px 8px", background: "var(--bg-slate-50)", borderRadius: 8, border: "1px solid var(--border-slate-100)" }}>
+            <Text style={{ fontSize: 13, color: "var(--text-slate-500)" }}>{dayjs(record.toDate).format("MMM DD, YYYY")}</Text>
           </div>
         </div>
       )
@@ -164,17 +164,17 @@ export default function LeavePage() {
       key: "status",
       render: (status: string) => {
         const configs: any = {
-          APPROVED: { color: "#10b981", bg: "#ecfdf5", icon: <CheckCircle2 size={12} /> },
-          REJECTED: { color: "#ef4444", bg: "#fef2f2", icon: <XCircle size={12} /> },
-          PENDING: { color: "#f59e0b", bg: "#fffbeb", icon: <Clock size={12} /> },
-          CANCELLED: { color: "#64748b", bg: "#f1f5f9", icon: <AlertCircle size={12} /> },
+          APPROVED: { color: "var(--text-holiday)", bg: "var(--bg-green-50)", icon: <CheckCircle2 size={12} /> },
+          REJECTED: { color: "var(--text-red-600)", bg: "var(--bg-red-50)", icon: <XCircle size={12} /> },
+          PENDING: { color: "var(--text-slate-900)", bg: "var(--bg-slate-50)", icon: <Clock size={12} /> },
+          CANCELLED: { color: "var(--text-slate-400)", bg: "var(--bg-secondary)", icon: <AlertCircle size={12} /> },
         };
         const config = configs[status] || configs.PENDING;
         return (
-          <Tag style={{ 
-            borderRadius: 20, 
-            background: config.bg, 
-            color: config.color, 
+          <Tag style={{
+            borderRadius: 20,
+            background: config.bg,
+            color: config.color,
             border: `1px solid ${config.color}20`,
             display: "inline-flex",
             alignItems: "center",
@@ -192,7 +192,7 @@ export default function LeavePage() {
       key: "cancel",
       render: (_: any, record: LeaveRequest) => record.status === "PENDING" && (
         <Popconfirm title="Withdraw leave?" onConfirm={() => handleWithdraw(record.id)}>
-          <Button type="text" danger size="small" icon={<Trash2 size={14} />} style={{ background: "#fef2f2", borderRadius: 6 }}>
+          <Button type="text" danger size="small" icon={<Trash2 size={14} />} style={{ background: "var(--bg-red-50)", borderRadius: 6 }}>
             Withdraw
           </Button>
         </Popconfirm>
@@ -211,17 +211,17 @@ export default function LeavePage() {
   return (
     <ProtectedRoute>
       <MainLayout>
-        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "#ffffff", minHeight: "calc(100vh - 64px)" }}>
+        <div style={{ margin: "0 -24px", padding: "24px 32px", background: "var(--bg-secondary)", minHeight: "calc(100vh - 64px)" }}>
           {contextHolder}
 
           <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Space align="center" size={16}>
-              <div style={{ background: "#eff6ff", width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
+              <div style={{ background: "var(--bg-blue-50)", width: 48, height: 48, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--premium-blue)" }}>
                 <Clock size={28} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Apply Leave</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Submit and track your leave requests and balances.</Text>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Apply Leave</Title>
+                <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Submit and track your leave requests and balances.</Text>
               </div>
             </Space>
           </div>
@@ -230,88 +230,88 @@ export default function LeavePage() {
           <div style={{ marginBottom: 32, position: "relative", padding: "0 40px" }}>
             {filteredBalances.length > visibleCount && (
               <>
-                <Button 
-                  icon={<ChevronLeft size={20} />} 
-                  onClick={handleBackward} 
+                <Button
+                  icon={<ChevronLeft size={20} />}
+                  onClick={handleBackward}
                   disabled={startIndex === 0}
-                  style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10, height: 44, width: 44, borderRadius: 22, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                  style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10, height: 44, width: 44, borderRadius: 22, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", color: "var(--text-slate-400)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                 />
-                <Button 
-                  icon={<ChevronRight size={20} />} 
-                  onClick={handleForward} 
+                <Button
+                  icon={<ChevronRight size={20} />}
+                  onClick={handleForward}
                   disabled={startIndex >= filteredBalances.length - visibleCount}
-                  style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10, height: 44, width: 44, borderRadius: 22, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                  style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10, height: 44, width: 44, borderRadius: 22, border: "1px solid var(--border-slate-100)", background: "var(--bg-pure-white)", color: "var(--text-slate-400)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                 />
               </>
             )}
-            
+
             <Row gutter={[16, 16]} style={{ overflow: "hidden", flexWrap: "nowrap" }}>
               {filteredBalances
                 .slice(startIndex, startIndex + visibleCount)
                 .map((balance) => {
-                const used = balance.total - balance.balance;
-                const percent = balance.total > 0 ? (used / balance.total) * 100 : 0;
-                return (
-                  <Col key={balance.leaveTypeId} style={{ flex: "0 0 25%", minWidth: 0 }}>
-                    <Card
-                      bordered={true}
-                      style={{ borderRadius: 16, borderColor: "#f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)", overflow: "hidden" }}
-                      bodyStyle={{ padding: "16px 20px" }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={{ fontSize: 13, fontWeight: 600, color: "#64748b", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {balance.leaveTypeName}
-                          </Text>
-                          <div style={{ marginTop: 4 }}>
-                            <span style={{ fontSize: 22, fontWeight: 700, color: "#1e293b" }}>{balance.balance}</span>
-                            <span style={{ fontSize: 12, color: "#94a3b8", marginLeft: 4 }}>/ {balance.total}</span>
+                  const used = balance.total - balance.balance;
+                  const percent = balance.total > 0 ? (used / balance.total) * 100 : 0;
+                  return (
+                    <Col key={balance.leaveTypeId} style={{ flex: "0 0 25%", minWidth: 0 }}>
+                      <Card
+                        bordered={true}
+                        style={{ borderRadius: 16, borderColor: "var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)", overflow: "hidden" }}
+                        bodyStyle={{ padding: "16px 20px" }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={{ fontSize: 13, fontWeight: 600, color: "var(--text-slate-500)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {balance.leaveTypeName}
+                            </Text>
+                            <div style={{ marginTop: 4 }}>
+                              <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text-slate-900)" }}>{balance.balance}</span>
+                              <span style={{ fontSize: 12, color: "var(--text-slate-400)", marginLeft: 4 }}>/ {balance.total}</span>
+                            </div>
+                          </div>
+                          <div style={{ background: "var(--bg-blue-50)", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--premium-blue)", flexShrink: 0 }}>
+                            <ClipboardList size={16} />
                           </div>
                         </div>
-                        <div style={{ background: "#f1f7ff", width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb", flexShrink: 0 }}>
-                          <ClipboardList size={16} />
+
+                        <Progress
+                          percent={Number(percent.toFixed(1))}
+                          strokeColor="var(--premium-blue)"
+                          trailColor="var(--bg-slate-50)"
+                          showInfo={false}
+                          size="small"
+                          strokeWidth={6}
+                          style={{ marginBottom: 6 }}
+                        />
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 500 }}>
+                          <Text style={{ color: "var(--text-slate-400)" }}>Used: <span style={{ color: "var(--text-slate-900)" }}>{used}</span></Text>
+                          <Text style={{ color: "var(--premium-blue)" }}>{Math.round(percent)}%</Text>
                         </div>
-                      </div>
-                      
-                      <Progress
-                        percent={Number(percent.toFixed(1))}
-                        strokeColor="#2563eb"
-                        trailColor="#f1f5f9"
-                        showInfo={false}
-                        size="small"
-                        strokeWidth={6}
-                        style={{ marginBottom: 6 }}
-                      />
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 500 }}>
-                        <Text type="secondary">Used: <span style={{ color: "#1e293b" }}>{used}</span></Text>
-                        <Text style={{ color: "#2563eb" }}>{Math.round(percent)}%</Text>
-                      </div>
-                    </Card>
-                  </Col>
-                );
-              })}
+                      </Card>
+                    </Col>
+                  );
+                })}
             </Row>
           </div>
 
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={8}>
-              <Card 
+              <Card
                 title={
                   <Space size={10} align="center">
-                    <div style={{ background: "#eff6ff", height: 32, width: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
+                    <div style={{ background: "var(--bg-blue-50)", height: 32, width: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--premium-blue)" }}>
                       <Plus size={18} />
                     </div>
-                    <span style={{ fontWeight: 600, fontSize: 16, color: "#1e293b" }}>New Application</span>
+                    <span style={{ fontWeight: 600, fontSize: 16, color: "var(--text-slate-900)" }}>New Application</span>
                   </Space>
-                } 
+                }
                 bordered={true}
-                style={{ borderRadius: 16, borderColor: "#f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", height: "100%" }}
-                headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "16px 24px" }}
+                style={{ borderRadius: 16, borderColor: "var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", height: "100%" }}
+                headStyle={{ borderBottom: "1px solid var(--border-slate-100)", padding: "16px 24px" }}
                 bodyStyle={{ padding: "24px" }}
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <div>
-                    <Text strong style={{ color: "#475569", display: "block", marginBottom: 8, fontSize: 13 }}>Leave Type</Text>
+                    <Text strong style={{ color: "var(--text-slate-500)", display: "block", marginBottom: 8, fontSize: 13 }}>Leave Type</Text>
                     <Select
                       style={{ width: "100%" }}
                       size="large"
@@ -320,11 +320,12 @@ export default function LeavePage() {
                       value={leaveTypeId || undefined}
                       onChange={setLeaveTypeId}
                       className="premium-select"
+                      dropdownStyle={{ background: "var(--bg-pure-white)" }}
                       options={currentLeaveBalances.map((lb: LeaveBalance) => {
                         const isLOP = lb.leaveTypeId === "lop" || lb.leaveTypeName.toLowerCase().includes("loss of pay");
                         return {
-                          label: isLOP 
-                            ? lb.leaveTypeName 
+                          label: isLOP
+                            ? lb.leaveTypeName
                             : `${lb.leaveTypeName} (${lb.balance || 0}/${lb.total || 0})`,
                           value: lb.leaveTypeId,
                           disabled: !isLOP && (!lb.balance || lb.balance <= 0),
@@ -334,25 +335,25 @@ export default function LeavePage() {
                   </div>
 
                   <div>
-                    <Text strong style={{ color: "#475569", display: "block", marginBottom: 8, fontSize: 13 }}>Select Dates</Text>
+                    <Text strong style={{ color: "var(--text-slate-500)", display: "block", marginBottom: 8, fontSize: 13 }}>Select Dates</Text>
                     <RangePicker
-                      style={{ width: "100%" }}
+                      style={{ width: "100%", background: "var(--bg-pure-white)", borderColor: "var(--border-slate-200)", borderRadius: 12 }}
                       size="large"
                       value={dates}
                       onChange={setDates}
-                      className="premium-select"
+                      className="premium-select themed-picker"
                       disabledDate={(current) => current && current < dayjs().startOf("day") || isDateBooked(current)}
                     />
                   </div>
 
                   <div>
-                    <Text strong style={{ color: "#475569", display: "block", marginBottom: 8, fontSize: 13 }}>Reason</Text>
+                    <Text strong style={{ color: "var(--text-slate-500)", display: "block", marginBottom: 8, fontSize: 13 }}>Reason</Text>
                     <TextArea
                       rows={4}
                       placeholder="Give a brief reason for your leave request..."
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      style={{ resize: "none", borderRadius: 12, border: "1px solid #e2e8f0" }}
+                      style={{ resize: "none", borderRadius: 12, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)", color: "var(--text-slate-900)" }}
                     />
                   </div>
 
@@ -364,7 +365,7 @@ export default function LeavePage() {
                       onClick={handleApply}
                       loading={submitting}
                       disabled={!leaveTypeId || !dates}
-                      style={{ height: 48, borderRadius: 12, fontWeight: 600 }}
+                      style={{ height: 48, borderRadius: 12, fontWeight: 600, background: "var(--premium-blue)" }}
                       icon={<CheckCircle2 size={18} />}
                     >
                       Submit Application
@@ -375,18 +376,18 @@ export default function LeavePage() {
             </Col>
 
             <Col xs={24} lg={16}>
-              <Card 
+              <Card
                 title={
                   <Space size={10} align="center">
-                    <div style={{ background: "#f0fdf4", height: 32, width: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                    <div style={{ background: "var(--bg-green-50)", height: 32, width: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-holiday)" }}>
                       <History size={18} />
                     </div>
-                    <span style={{ fontWeight: 600, fontSize: 16, color: "#1e293b" }}>Request History</span>
+                    <span style={{ fontWeight: 600, fontSize: 16, color: "var(--text-slate-900)" }}>Request History</span>
                   </Space>
                 }
                 bordered={true}
-                style={{ borderRadius: 16, borderColor: "#f1f5f9", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", height: "100%" }}
-                headStyle={{ borderBottom: "1px solid #f1f5f9", padding: "16px 24px" }}
+                style={{ borderRadius: 16, borderColor: "var(--border-slate-100)", background: "var(--bg-pure-white)", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", height: "100%" }}
+                headStyle={{ borderBottom: "1px solid var(--border-slate-100)", padding: "16px 24px" }}
                 bodyStyle={{ padding: "0" }}
               >
                 <Table
@@ -401,18 +402,22 @@ export default function LeavePage() {
             </Col>
           </Row>
 
-          <style dangerouslySetInnerHTML={{__html: `
-            .history-table-row:hover { background-color: #f8fafc !important; }
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            .history-table-row:hover { background-color: var(--bg-slate-50) !important; }
             .ant-table-thead > tr > th {
-              background-color: #f1f5f9 !important;
-              color: #475569 !important;
+              background-color: var(--bg-slate-50) !important;
+              color: var(--text-slate-500) !important;
               font-weight: 600 !important;
               padding: 16px 24px !important;
-              border-bottom: 2px solid #e2e8f0 !important;
+              border-bottom: 1px solid var(--border-slate-100) !important;
             }
-            .ant-table-tbody > tr > td { padding: 16px 24px !important; border-bottom: 1px solid #f1f5f9 !important; }
-            .premium-select { height: 44px !important; border-radius: 12px !important; }
-            .premium-select .ant-select-selector { border-radius: 12px !important; height: 44px !important; display: flex !important; alignItems: center !important; }
+            .ant-table-tbody > tr > td { padding: 16px 24px !important; border-bottom: 1px solid var(--border-slate-100) !important; color: var(--text-slate-900) !important; }
+            .premium-select .ant-select-selector { border-radius: 12px !important; height: 44px !important; display: flex !important; alignItems: center !important; background: var(--bg-pure-white) !important; border-color: var(--border-slate-200) !important; color: var(--text-slate-900) !important; }
+            .themed-picker .ant-picker-input > input { color: var(--text-slate-900) !important; }
+            .themed-picker .ant-picker-range-separator { color: var(--text-slate-400) !important; }
+            .ant-pagination-item a { color: var(--text-slate-500) !important; }
+            .ant-pagination-item-active { background: var(--bg-pure-white) !important; border-color: var(--premium-blue) !important; }
           `}} />
         </div>
       </MainLayout>

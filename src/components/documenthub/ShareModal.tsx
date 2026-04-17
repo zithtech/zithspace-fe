@@ -20,8 +20,9 @@ const { Text, Title, Paragraph } = Typography;
 interface ShareModalProps {
     open: boolean;
     onClose: () => void;
-    documentId: string;
-    documentTitle: string;
+    entityId: string;
+    entityTitle: string;
+    entityType: 'document' | 'hub';
     currentVisibility?: string;
     currentShareToken?: string | null;
 }
@@ -31,19 +32,10 @@ const visibilityOptions = [
         value: 'private',
         icon: <LockOutlined />,
         label: 'Private',
-        description: 'Only you can access this document',
+        description: 'Only you can access this',
         bgColor: 'var(--bg-slate-50)',
         activeColor: 'var(--text-slate-600)',
         borderColor: 'var(--border-slate-200)',
-    },
-    {
-        value: 'internal',
-        icon: <TeamOutlined />,
-        label: 'Internal',
-        description: 'All workspace members can view',
-        bgColor: 'var(--bg-blue-50)',
-        activeColor: 'var(--premium-blue)',
-        borderColor: 'var(--border-blue-200)',
     },
     {
         value: 'public',
@@ -59,8 +51,9 @@ const visibilityOptions = [
 const ShareModal: React.FC<ShareModalProps> = ({
     open,
     onClose,
-    documentId,
-    documentTitle,
+    entityId,
+    entityTitle,
+    entityType,
     currentVisibility = 'private',
     currentShareToken = null,
 }) => {
@@ -82,10 +75,19 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
         setIsUpdating(true);
         try {
-            const result = await DocumentHubService.shareDocument(
-                documentId,
-                newVisibility as 'private' | 'public'
-            );
+            let result;
+            if (entityType === 'document') {
+                result = await DocumentHubService.shareDocument(
+                    entityId,
+                    newVisibility as 'private' | 'public'
+                );
+            } else {
+                result = await DocumentHubService.shareDocumentHub(
+                    entityId,
+                    newVisibility as 'private' | 'public'
+                );
+            }
+            
             setVisibility(newVisibility);
             setShareToken(result.shareToken || null);
             messageApi.success(`Visibility updated to ${newVisibility}`);
@@ -100,7 +102,12 @@ const ShareModal: React.FC<ShareModalProps> = ({
     const handleRevokeShare = async () => {
         setIsUpdating(true);
         try {
-            await DocumentHubService.revokeShare(documentId);
+            if (entityType === 'document') {
+                await DocumentHubService.revokeShare(entityId);
+            } else {
+                await DocumentHubService.revokeHubShare(entityId);
+            }
+            
             setVisibility('private');
             setShareToken(null);
             messageApi.success('Sharing access revoked');
@@ -114,7 +121,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
     const getShareUrl = () => {
         if (!shareToken) return '';
-        return `${window.location.origin}/public/document/${shareToken}`;
+        const path = entityType === 'document' ? 'document' : 'document/hub';
+        return `${window.location.origin}/public/${path}/${shareToken}`;
     };
 
     const handleCopyLink = async () => {
@@ -138,7 +146,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
                         <ShareAltOutlined className="text-lg" />
                     </div>
                     <div>
-                        <Title level={5} className="!mb-0 text-gray-800" style={{ color: 'var(--text-slate-900)' }}>Share Document</Title>
+                        <Title level={5} className="!mb-0 text-gray-800" style={{ color: 'var(--text-slate-900)' }}>
+                            Share {entityType === 'document' ? 'Document' : 'Document Hub'}
+                        </Title>
                         <Text type="secondary" className="text-[11px] font-normal uppercase tracking-wider" style={{ color: 'var(--text-slate-400)' }}>Configure Access Settings</Text>
                     </div>
                 </div>
@@ -182,8 +192,10 @@ const ShareModal: React.FC<ShareModalProps> = ({
                             <LinkOutlined className="text-base" />
                         </div>
                         <div className="min-w-0">
-                            <Text type="secondary" className="text-[10px] block leading-none mb-1" style={{ color: 'var(--text-slate-400)' }}>Editing Document</Text>
-                            <Text strong className="text-[13px] block truncate text-gray-800 leading-tight" style={{ color: 'var(--text-slate-900)' }}>{documentTitle}</Text>
+                            <Text type="secondary" className="text-[10px] block leading-none mb-1" style={{ color: 'var(--text-slate-400)' }}>
+                                {entityType === 'document' ? 'Editing Document' : 'Document Hub'}
+                            </Text>
+                            <Text strong className="text-[13px] block truncate text-gray-800 leading-tight" style={{ color: 'var(--text-slate-900)' }}>{entityTitle}</Text>
                         </div>
                     </div>
                 </div>
@@ -191,7 +203,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 <div className="mb-4">
                     <div className="flex items-center justify-between mb-3">
                         <Text strong className="text-[12px] text-gray-700" style={{ color: 'var(--text-slate-700)' }}>Select Visibility</Text>
-                        <Tooltip title="Visibility controls who can see this document">
+                        <Tooltip title="Visibility controls who can see this content">
                             <Text type="secondary" className="text-[10px] cursor-help font-medium" style={{ color: 'var(--text-slate-400)' }}>Settings Guide</Text>
                         </Tooltip>
                     </div>
@@ -291,19 +303,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
                     </div>
                 )}
 
-                {/* {visibility === 'internal' && (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                        <Divider className="!my-4" />
-                        <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100/60 flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-blue-500 flex-shrink-0 shadow-sm border border-blue-50">
-                                <TeamOutlined className="text-xs" />
-                            </div>
-                            <Text className="text-[11px] text-blue-700 font-medium">
-                                Internal access is active. Workspace members can view this document.
-                            </Text>
-                        </div>
-                    </div>
-                )} */}
+
             </div>
 
             <style jsx global>{`

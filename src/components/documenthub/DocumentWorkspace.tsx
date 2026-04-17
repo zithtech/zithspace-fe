@@ -915,8 +915,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             <ShareModal
                 open={isShareOpen}
                 onClose={() => setIsShareOpen(false)}
-                documentId={selectedDoc}
-                documentTitle={documentContent?.title || ''}
+                entityId={selectedDoc}
+                entityTitle={documentContent?.title || ''}
+                entityType="document"
                 currentVisibility={documentContent?.visibility || 'private'}
                 currentShareToken={documentContent?.shareToken || null}
             />

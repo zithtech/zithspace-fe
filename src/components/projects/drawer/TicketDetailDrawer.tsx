@@ -247,8 +247,9 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       color: getTaskLevelColor(l.value),
     })) || [];
 
-  const statuses = STATUS_OPTIONS.map(s => ({
-    ...s,
+  const statuses = (ticketConfig?.statuses || STATUS_OPTIONS).map(s => ({
+    label: s.label,
+    value: s.value,
     color: getStatusColor(s.value)
   }));
 
@@ -383,16 +384,16 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
             <Space split={<Divider type="vertical" style={{ margin: 0, height: 12, borderColor: '#d9d9d9' }} />} size={16} align="center">
               <Space size={4}>
                 <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Created by</Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: '#262626' }}>{ticket?.createdBy?.name || 'System'}</Text>
+                <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{ticket?.createdBy?.name || 'System'}</Text>
                 <Text type="secondary" style={{ fontSize: 11, margin: '0 4px 0 2px' }}>on</Text>
-                <Text style={{ fontSize: 12, color: '#8c8c8c' }}>{ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
+                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
               </Space>
 
               <Space size={4}>
                 <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Updated by</Text>
-                <Text style={{ fontSize: 12, fontWeight: 500, color: '#262626' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
+                <Text style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{(ticket as any)?.updatedBy?.name || ticket?.createdBy?.name || 'System'}</Text>
                 <Text type="secondary" style={{ fontSize: 11, margin: '0 4px 0 2px' }}>on</Text>
-                <Text style={{ fontSize: 12, color: '#8c8c8c' }}>{ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
+                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{ticket?.updatedAt ? dayjs(ticket.updatedAt).format('MMM D, YYYY HH:mm') : '-'}</Text>
               </Space>
             </Space>
           </div>
@@ -775,17 +776,13 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Status & Transitions */}
-              <div style={{
-                border: '1px solid var(--border-color)',
-                borderRadius: 14,
-                overflow: 'hidden',
-                backgroundColor: 'var(--bg-pure-white)',
-                padding: '12px 16px', // Compacted from 20px
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12, // Compacted from 16
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
-              }}>
+              <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{
+                  padding: '12px 16px', // Compacted from 20px
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12, // Compacted from 16
+                }}>
                 {/* Current Status Block */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Text strong style={{ fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</Text>
@@ -814,8 +811,8 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   })()} className="status-badge-premium">
                     <div style={{ flex: 1 }}>
                       <EditableSelect
-                        value={ticket.status}
-                        options={STATUS_OPTIONS}
+                        value={ticket.status?.toLowerCase()}
+                        options={statuses}
                         onSave={(val) => handleUpdate("status", val)}
                         mode="text"
                         plain
@@ -825,12 +822,14 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                     {(() => {
                       const s = ticket.status;
                       const iconStyle = { fontSize: 20, color: 'inherit' };
-                      if (s === "in_progress") return <PlayCircleOutlined style={iconStyle} />;
+                      if (s === "not_started") return <PlayCircleOutlined style={iconStyle} />;
+                      if (s === "in_progress") return <SyncOutlined spin style={iconStyle} />;
                       if (s === "completed" || s === "live") return <CheckCircleOutlined style={iconStyle} />;
                       if (s === "in_testing") return <BugOutlined style={iconStyle} />;
                       if (s === "in_review") return <SyncOutlined style={iconStyle} />;
                       if (s === "dev_complete") return <RocketOutlined style={iconStyle} />;
-                      return <PauseCircleOutlined style={iconStyle} />;
+                      if (s === "pause") return <PauseCircleOutlined style={iconStyle} />;
+                      return <PlayCircleOutlined style={iconStyle} />;
                     })()}
                   </div>
                 </div>
@@ -842,9 +841,9 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   </Text>
 
                   <div style={{ width: '100%' }}>
-                    {ticket.status === 'not_started' && (
+                    {ticket.status.toLowerCase() === 'not_started' && (
                       <Button
-                        size="middle" // Compacted from large
+                        size="large"
                         type="primary"
                         icon={<PlayCircleOutlined />}
                         onClick={() => handleUpdate('status', 'in_progress')}
@@ -853,15 +852,37 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         Start Sprint
                       </Button>
                     )}
-                    {ticket.status === 'in_progress' && (
+                    {ticket.status.toLowerCase() === 'in_progress' && (
+                      <Space direction="vertical" style={{ width: '100%' }} size={10}>
+                        <Button
+                          size="large"
+                          type="primary"
+                          icon={<RocketOutlined />}
+                          onClick={() => handleUpdate('status', 'dev_complete')}
+                          style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2', boxShadow: '0 4px 12px rgba(19, 194, 194, 0.2)' }}
+                        >
+                          Finish Development
+                        </Button>
+                        <Button
+                          size="large"
+                          type="default"
+                          icon={<PauseCircleOutlined />}
+                          onClick={() => handleUpdate('status', 'pause')}
+                          style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, border: '1px solid #fa8c16', color: '#fa8c16' }}
+                        >
+                          Pause
+                        </Button>
+                      </Space>
+                    )}
+                    {ticket.status.toLowerCase() === 'pause' && (
                       <Button
                         size="large"
                         type="primary"
-                        icon={<RocketOutlined />}
-                        onClick={() => handleUpdate('status', 'dev_complete')}
-                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#13c2c2', borderColor: '#13c2c2', boxShadow: '0 4px 12px rgba(19, 194, 194, 0.2)' }}
+                        icon={<PlayCircleOutlined />}
+                        onClick={() => handleUpdate('status', 'in_progress')}
+                        style={{ fontSize: 13, borderRadius: 10, width: '100%', height: 40, fontWeight: 600, backgroundColor: '#1890ff', borderColor: '#1890ff', boxShadow: '0 4px 12px rgba(24, 144, 255, 0.2)' }}
                       >
-                        Finish Development
+                        Resume Sprint
                       </Button>
                     )}
                     {ticket.status === 'dev_complete' && (
@@ -914,16 +935,17 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                   </div>
                 </div>
               </div>
-              {/* Collapsible Sections */}
-              <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            </div>
+
+            {/* Collapsible Sections */}
+            <div className="sidebar-collapse-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Core Details Card */}
-                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', backgroundColor: 'var(--bg-pure-white)' }}>
-                  <Collapse
-                    defaultActiveKey={["details"]}
-                    ghost
-                    expandIconPosition="end"
-                    style={{ backgroundColor: 'transparent' }}
-                    items={[
+                <Collapse
+                  defaultActiveKey={["details"]}
+                  ghost
+                  expandIconPosition="end"
+                  style={{ backgroundColor: 'transparent' }}
+                  items={[
                       {
                         key: "details",
                         label: (
@@ -1045,16 +1067,14 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       }
                     ]}
                   />
-                </div>
-
+                
                 {/* Planning & Estimates Card */}
-                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', backgroundColor: 'var(--bg-pure-white)' }}>
-                  <Collapse
-                    defaultActiveKey={["planning"]}
-                    ghost
-                    expandIconPosition="end"
-                    style={{ backgroundColor: 'transparent' }}
-                    items={[
+                <Collapse
+                  defaultActiveKey={["planning"]}
+                  ghost
+                  expandIconPosition="end"
+                  style={{ backgroundColor: 'transparent' }}
+                  items={[
                       {
                         key: "planning",
                         label: (
@@ -1138,15 +1158,13 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       }
                     ]}
                   />
-                </div>
-
+                
                 {/* Time Tracking Card */}
-                <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden', backgroundColor: 'var(--bg-pure-white)' }}>
-                  <Collapse
-                    ghost
-                    expandIconPosition="end"
-                    style={{ backgroundColor: 'transparent' }}
-                    items={[
+                <Collapse
+                  ghost
+                  expandIconPosition="end"
+                  style={{ backgroundColor: 'transparent' }}
+                  items={[
                       {
                         key: "time-tracking",
                         label: (
@@ -1163,7 +1181,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                               }}>
                                 <FieldTimeOutlined style={{ color: '#fa8c16', fontSize: 14 }} />
                               </div>
-                              <Text strong style={{ fontSize: 13, color: '#262626' }}>Time Tracked</Text>
+                              <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>Time Tracked</Text>
                               {timeEntries.length > 0 && (
                                 <Badge
                                   count={(() => {
@@ -1208,7 +1226,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                           }}>
                                             {entry.user.name.charAt(0).toUpperCase()}
                                           </div>
-                                          <Text style={{ fontSize: 12, fontWeight: 600, color: '#262626' }}>
+                                          <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                                             {entry.user.name}
                                           </Text>
                                         </div>
@@ -1216,10 +1234,10 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                                       {/* Date / time / duration row */}
                                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                          <div style={{ fontSize: 12, color: '#595959', fontWeight: 500 }}>
+                                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
                                             {dayjs(entry.startTime).format('MMM D, YYYY')}
                                           </div>
-                                          <div style={{ fontSize: 11, color: '#8c8c8c' }}>
+                                          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                                             {dayjs(entry.startTime).format('h:mm A')}
                                             {entry.endTime ? ` – ${dayjs(entry.endTime).format('h:mm A')}` : ''}
                                           </div>
@@ -1251,7 +1269,6 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       }
                     ]}
                   />
-                </div>
               </div>
 
 
@@ -1262,12 +1279,12 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
       <style jsx global>{`
         .parent-ticket-badge:hover {
-          background-color: var(--bg-pure-white) !important;
+          background-color: rgba(144, 144, 144, 0.1) !important;
           color: #1890ff !important;
           transform: translateY(-1px);
         }
         .description-viewer:hover {
-          background-color: var(--bg-pure-white) !important;
+          background-color: rgba(144, 144, 144, 0.05) !important;
           border-color: #1890ff !important;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
         }
@@ -1342,7 +1359,7 @@ export const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         }
         .status-badge-premium:hover {
           filter: brightness(0.98);
-          background-color: var(--bg-pure-white) !important;
+          background-color: rgba(144, 144, 144, 0.08) !important;
           box-shadow: 0 6px 16px rgba(0,0,0,0.06) !important;
           transform: translateY(-1px);
         }

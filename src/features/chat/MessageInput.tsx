@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Input, Button, Tooltip } from 'antd';
+import { Input, Button, Tooltip, theme } from 'antd';
 import {
     SendOutlined,
     PaperClipOutlined,
@@ -20,6 +20,7 @@ interface MessageInputProps {
 }
 
 export default function MessageInput({ channelId }: MessageInputProps) {
+    const { token } = theme.useToken();
     const [content, setContent] = useState('');
     const [sending, setSending] = useState(false);
     const { channels, addMessage } = useChatStore();
@@ -80,11 +81,11 @@ export default function MessageInput({ channelId }: MessageInputProps) {
     };
 
     return (
-        <div style={{ padding: '12px 20px 20px', background: '#fafafa' }}>
+        <div style={{ padding: '12px 20px 20px', background: token.colorBgLayout }}>
             <div style={{
-                border: '1px solid #d9d9d9',
+                border: `1px solid ${token.colorBorder}`,
                 borderRadius: 8,
-                backgroundColor: '#fff',
+                backgroundColor: token.colorBgContainer,
                 overflow: 'hidden',
                 transition: 'border-color 0.2s'
             }}
@@ -111,7 +112,7 @@ export default function MessageInput({ channelId }: MessageInputProps) {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '8px 12px',
-                    borderTop: '1px solid #f0f0f0'
+                    borderTop: `1px solid ${token.colorBorderSecondary}`
                 }}>
                     <div style={{ display: 'flex', gap: 4 }}>
                         <Tooltip title="Bold">
@@ -138,7 +139,7 @@ export default function MessageInput({ channelId }: MessageInputProps) {
 
             <style jsx global>{`
                 .message-input-container:focus-within {
-                    border-color: #1677ff !important;
+                    border-color: ${token.colorPrimary} !important;
                 }
             `}</style>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, List, Button, Typography, Spin, message, Empty } from 'antd';
+import { Modal, List, Button, Typography, Spin, message, Empty, theme } from 'antd';
 import { NumberOutlined, TeamOutlined } from '@ant-design/icons';
 import { channelService, PublicChannel } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
@@ -17,6 +17,7 @@ interface BrowseChannelsModalProps {
 export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsModalProps) {
     const router = useRouter();
     const { channels, setChannels } = useChatStore();
+    const { token } = theme.useToken();
     const [publicChannels, setPublicChannels] = useState<PublicChannel[]>([]);
     const [loading, setLoading] = useState(true);
     const [joiningId, setJoiningId] = useState<string | null>(null);
@@ -110,8 +111,8 @@ export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsMod
                             ]}
                         >
                             <List.Item.Meta
-                                avatar={<NumberOutlined style={{ fontSize: 20, color: '#8c8c8c' }} />}
-                                title={<Text strong>{channel.name}</Text>}
+                                avatar={<NumberOutlined style={{ fontSize: 20, color: token.colorTextSecondary }} />}
+                                title={<Text strong style={{ color: token.colorText }}>{channel.name}</Text>}
                                 description={
                                     <div>
                                         {channel.description && (
@@ -120,7 +121,7 @@ export default function BrowseChannelsModal({ open, onClose }: BrowseChannelsMod
                                             </Text>
                                         )}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                                            <TeamOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
+                                            <TeamOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
                                             <Text type="secondary" style={{ fontSize: 12 }}>
                                                 {channel.memberCount} member{channel.memberCount !== 1 ? 's' : ''}
                                             </Text>

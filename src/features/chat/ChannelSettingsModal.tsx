@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, List, Button, Typography, Spin, message, Avatar, Input, Empty } from 'antd';
+import { Modal, List, Button, Typography, Spin, message, Avatar, Input, Empty, theme } from 'antd';
 import { UserOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import { channelService } from '@/services/channelService';
 import { userService, User } from '@/services/userService';
@@ -17,6 +17,7 @@ interface ChannelSettingsModalProps {
 }
 
 export default function ChannelSettingsModal({ open, onClose, channelId }: ChannelSettingsModalProps) {
+    const { token } = theme.useToken();
     const { user } = useAuth();
     const { channels } = useChatStore();
     const channel = channels.find(c => c.id === channelId);
@@ -82,7 +83,7 @@ export default function ChannelSettingsModal({ open, onClose, channelId }: Chann
 
     return (
         <Modal
-            title={<Title level={5} style={{ margin: 0 }}>Channel Settings: #{channel?.name}</Title>}
+            title={<Title level={5} style={{ margin: 0, color: token.colorText }}>Channel Settings: #{channel?.name}</Title>}
             open={open}
             onCancel={onClose}
             footer={null}
@@ -117,7 +118,7 @@ export default function ChannelSettingsModal({ open, onClose, channelId }: Chann
                                         {member.user?.name?.[0]}
                                     </Avatar>
                                 }
-                                title={member.user?.name || 'Unknown User'}
+                                title={<Text style={{ color: token.colorText }}>{member.user?.name || 'Unknown User'}</Text>}
                                 description={member.role}
                             />
                         </List.Item>
@@ -157,7 +158,7 @@ export default function ChannelSettingsModal({ open, onClose, channelId }: Chann
                                                 {user.name?.[0]}
                                             </Avatar>
                                         }
-                                        title={user.name}
+                                        title={<Text style={{ color: token.colorText }}>{user.name}</Text>}
                                         description={user.workEmail || user.email}
                                     />
                                 </List.Item>
@@ -166,7 +167,7 @@ export default function ChannelSettingsModal({ open, onClose, channelId }: Chann
                     ) : searchQuery ? (
                         <Empty description="No users found" />
                     ) : (
-                        <div style={{ textAlign: 'center', color: '#8c8c8c', padding: 20 }}>
+                        <div style={{ textAlign: 'center', color: token.colorTextSecondary, padding: 20 }}>
                             Type to search for people to add
                         </div>
                     )}

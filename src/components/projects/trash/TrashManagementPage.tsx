@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Card,
   Table,
@@ -15,7 +15,6 @@ import {
   Alert,
   Input,
   Select,
-  Divider,
   Row,
   Col,
   Avatar,
@@ -41,10 +40,8 @@ import {
 import { useUserProjects } from "@/hooks/useGlobalData";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import duration from "dayjs/plugin/duration";
 
 dayjs.extend(relativeTime);
-dayjs.extend(duration);
 
 const { Title, Text } = Typography;
 
@@ -59,9 +56,7 @@ export default function TrashManagementPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [searchQuery, setSearchQuery] = useState("");
-  const [projectFilter, setProjectFilter] = useState<string | undefined>(
-    undefined
-  );
+  const [projectFilter, setProjectFilter] = useState<string | undefined>(undefined);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const {
@@ -84,8 +79,7 @@ export default function TrashManagementPage() {
   const bulkDelete = useBulkPermanentlyDelete();
   const emptyTrash = useEmptyTrash();
 
-  // Stats calculation
-  const stats = React.useMemo(() => {
+  const stats = useMemo(() => {
     const tickets = trashData?.tickets || [];
     const purgingSoon = tickets.filter(t => {
       const days = calculateDaysRemaining(t.deletedAt || t.createdAt);
@@ -102,8 +96,7 @@ export default function TrashManagementPage() {
     try {
       await restoreTicket.mutateAsync([ticketId]);
       refetch();
-    } catch (error: any) {
-      // Error already handled by the hook
+    } catch (error) {
       console.error("Error restoring ticket:", error);
     }
   };
@@ -112,8 +105,7 @@ export default function TrashManagementPage() {
     try {
       await permanentlyDelete.mutateAsync([ticketId]);
       refetch();
-    } catch (error: any) {
-      // Error already handled by the hook
+    } catch (error) {
       console.error("Error permanently deleting ticket:", error);
     }
   };
@@ -123,13 +115,11 @@ export default function TrashManagementPage() {
       message.warning("Please select tickets to restore");
       return;
     }
-
     try {
       await bulkRestore.mutateAsync(selectedRowKeys as string[]);
       setSelectedRowKeys([]);
       refetch();
-    } catch (error: any) {
-      // Error already handled by the hook
+    } catch (error) {
       console.error("Error bulk restoring tickets:", error);
     }
   };
@@ -139,13 +129,11 @@ export default function TrashManagementPage() {
       message.warning("Please select tickets to delete");
       return;
     }
-
     try {
       await bulkDelete.mutateAsync(selectedRowKeys as string[]);
       setSelectedRowKeys([]);
       refetch();
-    } catch (error: any) {
-      // Error already handled by the hook
+    } catch (error) {
       console.error("Error bulk deleting tickets:", error);
     }
   };
@@ -155,23 +143,10 @@ export default function TrashManagementPage() {
       await emptyTrash.mutateAsync(false);
       setSelectedRowKeys([]);
       refetch();
-    } catch (error: any) {
-      // Error already handled by the hook
+    } catch (error) {
       console.error("Error emptying trash:", error);
     }
   };
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedRowKeys);
-    },
-    getCheckboxProps: (record: any) => ({
-      name: record.ticketNumber,
-    }),
-  };
-
-
 
   const columns = [
     {
@@ -204,10 +179,7 @@ export default function TrashManagementPage() {
       width: 180,
       render: (_: any, record: any) => (
         <Space>
-          <Avatar
-            size="small"
-            style={{ backgroundColor: "#87d068" }}
-          >
+          <Avatar size="small" style={{ backgroundColor: "#87d068" }}>
             {record.deletedBy?.name?.charAt(0) || "U"}
           </Avatar>
           <div>
@@ -222,9 +194,7 @@ export default function TrashManagementPage() {
       key: "purge",
       width: 150,
       render: (_: any, record: any) => {
-        const daysRemaining = calculateDaysRemaining(
-          record.deletedAt || record.createdAt
-        );
+        const daysRemaining = calculateDaysRemaining(record.deletedAt || record.createdAt);
         const isUrgent = daysRemaining <= 2;
         return (
           <Tooltip title={`Permanently purged in approx. ${daysRemaining} days`}>
@@ -297,190 +267,125 @@ export default function TrashManagementPage() {
   return (
     <div style={{ padding: "0", background: "var(--bg-pure-white)", minHeight: "100%" }}>
       <Space direction="vertical" size={24} style={{ width: "100%" }}>
-        {/* Premium Header - Reduced Height */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           background: "var(--bg-pure-white)",
           padding: "16px 0",
-          borderRadius: 0,
           position: "sticky",
           top: 0,
           zIndex: 10,
           borderBottom: "1px solid var(--border-color)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Avatar
-              size={40}
-              icon={<DeleteOutlined />}
-              style={{ backgroundColor: "#ff4d4f", boxShadow: "0 4px 12px rgba(255, 77, 79, 0.2)" }}
-            />
+            <Avatar size={40} icon={<DeleteOutlined />} style={{ backgroundColor: "#ff4d4f", boxShadow: "0 4px 12px rgba(255, 77, 79, 0.2)" }} />
             <div>
               <Title level={4} style={{ margin: 0 }}>Trash Repository</Title>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                Recover deleted items or purge them permanently
-              </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>Recover deleted items or purge them permanently</Text>
             </div>
           </div>
-          <Space size={12}>
-            <Popconfirm
-              title="Empty Trash"
-              description="This will permanently delete ALL tickets in trash. This action cannot be undone."
-              onConfirm={handleEmptyTrash}
-              okText="Confirm Purge"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true, size: "middle" }}
+          <Popconfirm
+            title="Empty Trash"
+            description="Permanently delete ALL tickets? This cannot be undone."
+            onConfirm={handleEmptyTrash}
+            okText="Confirm Purge"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              danger
+              icon={<ClearOutlined />}
+              loading={emptyTrash.isPending}
+              disabled={!trashData?.tickets?.length}
+              style={{ borderRadius: 8, height: 40, fontWeight: 600 }}
             >
-              <Button
-                danger
-                size="middle"
-                icon={<ClearOutlined />}
-                loading={emptyTrash.isPending}
-                disabled={!trashData?.tickets?.length}
-                style={{ borderRadius: 8, height: 40, fontWeight: 600 }}
-              >
-                Empty Trash
-              </Button>
-            </Popconfirm>
-          </Space>
+              Empty Trash
+            </Button>
+          </Popconfirm>
         </div>
 
-        {/* Summary Stats Row - Reduced Card Heights */}
-        <Row gutter={[16, 16]} style={{ display: 'flex' }}>
-          <Col xs={24} sm={12} md={6} style={{ display: 'flex' }}>
-            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Card style={{ borderRadius: 12, border: "1px solid var(--border-color)" }}>
               <Space direction="vertical" size={2}>
-                <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}>Total Deleted</Text>
-                <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{stats.total}</Title>
+                <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase" }}>Total Deleted</Text>
+                <Title level={3} style={{ margin: 0 }}>{stats.total}</Title>
               </Space>
             </Card>
           </Col>
-          <Col xs={24} sm={12} md={6} style={{ display: 'flex' }}>
-            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "none", width: "100%", display: 'flex', flexDirection: 'column' }}>
+          <Col xs={24} sm={12} md={6}>
+            <Card style={{ borderRadius: 12, border: "1px solid var(--border-color)" }}>
               <Space direction="vertical" size={2}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Space size={6}>
                   <WarningOutlined style={{ color: stats.purgingSoon > 0 ? "#faad14" : "#52c41a", fontSize: 12 }} />
-                  <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.5px" }}>Purging Soon</Text>
-                </div>
-                <Title level={3} style={{ margin: 0, fontWeight: 700, color: stats.purgingSoon > 0 ? "#faad14" : "inherit" }}>
+                  <Text type="secondary" style={{ fontSize: 11, textTransform: "uppercase" }}>Purging Soon</Text>
+                </Space>
+                <Title level={3} style={{ margin: 0, color: stats.purgingSoon > 0 ? "#faad14" : "inherit" }}>
                   {stats.purgingSoon} <span style={{ fontSize: 13, fontWeight: 400, color: "#8c8c8c" }}>(&le; 48h)</span>
                 </Title>
               </Space>
             </Card>
           </Col>
-          <Col xs={24} sm={12} md={12} style={{ display: 'flex' }}>
-            <Card styles={{ body: { padding: "16px 20px" } }} style={{ borderRadius: 12, border: "1px solid rgba(250, 173, 20, 0.2)", backgroundColor: "rgba(250, 173, 20, 0.1)", boxShadow: "none", width: "100%", display: 'flex', alignItems: 'center' }}>
+          <Col xs={24} md={12}>
+            <Card style={{ borderRadius: 12, border: "1px solid rgba(250, 173, 20, 0.2)", background: "rgba(250, 173, 20, 0.1)" }}>
               <Space size={12}>
                 <InfoCircleOutlined style={{ color: "#faad14", fontSize: 20 }} />
                 <div>
-                  <Text strong style={{ display: "block", color: "var(--text-primary)", fontSize: 13 }}>Automatic Maintenance Active</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Items in trash are automatically purged after 7 days to keep your workspace clean.
-                  </Text>
+                  <Text strong style={{ fontSize: 13 }}>Maintenance Active</Text>
+                  <Text type="secondary" style={{ fontSize: 12, display: "block" }}>Items are automatically purged after 7 days.</Text>
                 </div>
               </Space>
             </Card>
           </Col>
         </Row>
 
-        {/* Filters Row */}
-        <Card styles={{ body: { padding: "16px 24px" } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "none" }}>
-          <Row gutter={16} align="middle">
+        <Card style={{ borderRadius: 12, border: "1px solid var(--border-color)" }}>
+          <Row gutter={16}>
             <Col flex="auto">
               <Input
-                placeholder="Search by ticket number or title..."
+                placeholder="Search..."
                 prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
                 size="large"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ borderRadius: 8, height: 45 }}
                 allowClear
               />
             </Col>
-            <Col span={6}>
+            <Col span={8}>
               <Select
-                placeholder="Filter by Project"
+                placeholder="Filter Project"
                 size="large"
-                style={{ width: "100%", height: 45 }}
+                style={{ width: "100%" }}
                 value={projectFilter}
                 onChange={setProjectFilter}
                 allowClear
-                options={[
-                  { label: "All Projects", value: undefined },
-                  ...projects.map((p) => ({
-                    label: `${p.label} - ${p.code}`,
-                    value: p.value,
-                  })),
-                ]}
+                options={projects.map((p) => ({ label: `${p.label} - ${p.code}`, value: p.value }))}
                 suffixIcon={<ProjectOutlined />}
               />
             </Col>
           </Row>
         </Card>
 
-        {/* Bulk Actions Alert */}
         {selectedRowKeys.length > 0 && (
           <Alert
             message={
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Text strong>{selectedRowKeys.length} ticket(s) selected for processing</Text>
+                <Text strong>{selectedRowKeys.length} items selected</Text>
                 <Space size={16}>
-                  <Popconfirm
-                    title="Bulk Restore"
-                    description={`Restore ${selectedRowKeys.length} ticket(s) from trash?`}
-                    onConfirm={handleBulkRestore}
-                    okText="Restore"
-                    cancelText="Cancel"
-                  >
-                    <Button
-                      type="primary"
-                      size="small"
-                      icon={<UndoOutlined />}
-                      loading={bulkRestore.isPending}
-                      style={{ borderRadius: 6, backgroundColor: "#52c41a", border: "none" }}
-                    >
-                      Bulk Restore
-                    </Button>
-                  </Popconfirm>
-                  <Popconfirm
-                    title="Bulk Delete"
-                    description={`Permanently delete ${selectedRowKeys.length} ticket(s)? This cannot be undone.`}
-                    onConfirm={handleBulkDelete}
-                    okText="Delete Permanently"
-                    cancelText="Cancel"
-                    okButtonProps={{ danger: true }}
-                  >
-                    <Button
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      loading={bulkDelete.isPending}
-                      style={{ borderRadius: 6 }}
-                    >
-                      Bulk Purge
-                    </Button>
-                  </Popconfirm>
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={() => setSelectedRowKeys([])}
-                  >
-                    Clear
-                  </Button>
+                  <Button type="primary" size="small" icon={<UndoOutlined />} onClick={handleBulkRestore} loading={bulkRestore.isPending}>Restore</Button>
+                  <Button danger size="small" icon={<DeleteOutlined />} onClick={handleBulkDelete} loading={bulkDelete.isPending}>Purge</Button>
                 </Space>
               </div>
             }
             type="info"
             showIcon
-            style={{ borderRadius: 8, padding: "12px 20px" }}
           />
         )}
 
-        {/* Results Table */}
-        <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 12, border: "1px solid var(--border-color)", backgroundColor: "var(--bg-pure-white)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden" }}>
+        <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 12, overflow: "hidden", border: "1px solid var(--border-color)" }}>
           <Table
-            rowSelection={rowSelection}
+            rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
             columns={columns}
             dataSource={trashData?.tickets || []}
             rowKey="id"
@@ -489,26 +394,10 @@ export default function TrashManagementPage() {
               current: page,
               pageSize: limit,
               total: trashData?.pagination.total || 0,
-              showSizeChanger: false,
-              showTotal: (total) => <Text type="secondary">Total {total} removed items</Text>,
-              onChange: (newPage) => setPage(newPage),
-              style: { padding: "16px 24px" }
+              onChange: (p) => setPage(p),
+              showTotal: (total) => `Total ${total} items`
             }}
-            locale={{
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <Space direction="vertical" size="small">
-                      <Text style={{ fontSize: 16, fontWeight: 600 }}>Trash is clear</Text>
-                      <Text type="secondary">Deleted items will stay here for 7 days before being purged.</Text>
-                    </Space>
-                  }
-                  style={{ padding: "40px 0" }}
-                />
-              ),
-            }}
-            scroll={{ x: 1200 }}
+            scroll={{ x: 1000 }}
           />
         </Card>
       </Space>

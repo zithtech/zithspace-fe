@@ -121,27 +121,27 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
         <div
           style={{
             padding: "16px 24px",
-            borderBottom: "1px solid #f0f0f0",
-            background: "linear-gradient(to right, #ffffff, #f9fbff)",
+            borderBottom: "1px solid var(--border-color)",
+            background: "var(--bg-secondary)",
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Space size={12}>
-              <div 
-                style={{ 
-                  width: 40, 
-                  height: 40, 
-                  borderRadius: 10, 
-                  background: 'rgba(24, 144, 255, 0.1)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: 'rgba(24, 144, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 <RocketOutlined style={{ fontSize: 22, color: "#1890ff" }} />
               </div>
               <Space direction="vertical" size={0}>
-                <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>
+                <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
                   Sprint Completion
                 </Title>
                 <Text type="secondary" style={{ fontSize: 13 }}>
@@ -154,7 +154,10 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
                 <Tag color="blue" style={{ borderRadius: 6, padding: '2px 10px', fontWeight: 500 }}>
                   {summary.sprint.project.code}
                 </Tag>
-                <Tag 
+                <Tag color="blue" style={{ borderRadius: 6, padding: '2px 10px', fontWeight: 500 }}>
+                  {summary.sprint.project.name}
+                </Tag>
+                <Tag
                   color={summary.sprint.status === "active" ? "processing" : "default"}
                   style={{ borderRadius: 6, padding: '2px 10px', textTransform: 'capitalize' }}
                 >
@@ -174,51 +177,58 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
         body: { padding: 0, height: "calc(85vh - 120px)", overflow: "hidden" },
       }}
       footer={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '16px 24px', background: '#ffffff', borderTop: '1px solid #f0f0f0' }}>
-          <Space size={32}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f0f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1890ff' }}>
-                <FileTextOutlined style={{ fontSize: 18 }} />
-              </div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: 'calc(100% - 48px)',
+            margin: '0 24px 24px 24px',
+            padding: '16px 24px',
+            background: 'var(--bg-blue-50)',
+            borderRadius: 16,
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 4px 12px rgba(24, 144, 255, 0.05)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FileTextOutlined style={{ color: '#1890ff', fontSize: 16 }} />
               <div>
-                <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Total Tickets</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary?.statistics.totalTickets || 0}</div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{summary?.statistics.totalTickets || 0}</span>
+                <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Total Tickets</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#52c41a' }}>
-                <TrophyOutlined style={{ fontSize: 18 }} />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <TrophyOutlined style={{ color: '#52c41a', fontSize: 16 }} />
               <div>
-                <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Resolved Points</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary?.statistics.completedPoints || 0}</div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{summary?.statistics.completedPoints || 0}</span>
+                <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Resolved Points</span>
               </div>
             </div>
 
-            {summary && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: summary.statistics.pendingTickets > 0 ? '#fffbe6' : '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: summary.statistics.pendingTickets > 0 ? '#faad14' : '#52c41a' }}>
-                  <ClockCircleOutlined style={{ fontSize: 18 }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>Pending</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{summary.statistics.pendingTickets}</div>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <ClockCircleOutlined style={{ color: summary?.statistics.pendingTickets && summary.statistics.pendingTickets > 0 ? '#faad14' : '#52c41a', fontSize: 16 }} />
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{summary?.statistics.pendingTickets || 0}</span>
+                <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Pending</span>
               </div>
-            )}
-          </Space>
+            </div>
+          </div>
 
-          <Space size={12}>
-            <Button 
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Button
               onClick={onClose}
-              style={{ 
-                borderRadius: 8, 
-                height: 40, 
+              style={{
+                borderRadius: 10,
+                height: 40,
                 padding: '0 24px',
                 fontWeight: 600,
-                border: '1px solid #d9d9d9',
-                color: '#595959'
+                fontSize: 13,
+                border: '1px solid var(--border-blue-200)',
+                color: '#1890ff',
+                background: 'rgba(255, 255, 255, 0.8)',
               }}
             >
               Cancel
@@ -228,23 +238,24 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
               onClick={handleCompleteSprint}
               loading={completeSprint.isPending}
               disabled={(summary?.statistics.pendingTickets ?? 0) > 0}
-              style={{ 
-                borderRadius: 8, 
-                height: 40, 
-                padding: '0 32px',
+              style={{
+                borderRadius: 10,
+                height: 40,
+                padding: '0 28px',
                 fontWeight: 700,
-                background: summary?.statistics.pendingTickets === 0 ? 'linear-gradient(90deg, #1890ff, #096dd9)' : undefined,
+                fontSize: 13,
+                background: summary?.statistics.pendingTickets === 0 ? 'linear-gradient(135deg, #1890ff 0%, #0050b3 100%)' : undefined,
                 border: 'none',
-                boxShadow: summary?.statistics.pendingTickets === 0 ? '0 4px 12px rgba(24, 144, 255, 0.3)' : undefined,
+                boxShadow: summary?.statistics.pendingTickets === 0 ? '0 6px 12px rgba(24, 144, 255, 0.2)' : undefined,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8
+                gap: 8,
               }}
             >
               <span>Complete Sprint</span>
-              <ArrowRightOutlined />
+              <ArrowRightOutlined style={{ fontSize: 14 }} />
             </Button>
-          </Space>
+          </div>
         </div>
       }
     >

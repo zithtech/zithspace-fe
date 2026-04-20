@@ -164,8 +164,16 @@ const DocumentHubPage = (props: Props) => {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spin size="large" tip="Orchestrating technical repository..." />
         </div>
       </MainLayout>
     );
@@ -260,7 +268,14 @@ const DocumentHubPage = (props: Props) => {
     <MainLayout>
       {contextHolder}
       {modalContextHolder}
-      <div className="h-[calc(100vh-64px)] flex flex-col px-2 pt-4 pb-2">
+      <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px 16px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: "flex",
+          flexDirection: "column"
+      }}>
         <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-semibold text-slate-800 flex items-center gap-2" style={{ color: 'var(--text-slate-900)' }}>

@@ -40,7 +40,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     opacity: isDragging ? 0.6 : 1,
     cursor: 'grab',
     marginBottom: 12,
-    backgroundColor: 'white',
+    backgroundColor: 'var(--bg-pure-white)',
     borderRadius: 12,
     ...shadowStyle,
   };
@@ -113,7 +113,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             <Text style={{ 
               fontSize: 13, 
               fontWeight: 500, 
-              color: '#262626',
+              color: 'var(--text-primary)',
               lineHeight: '1.5',
               display: '-webkit-box',
               WebkitLineClamp: 2,
@@ -197,13 +197,13 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             <div style={{ 
                 display: 'inline-flex',
                 alignItems: 'center',
-                backgroundColor: '#f5f5f5',
+                backgroundColor: 'var(--bg-secondary)',
                 borderRadius: 4,
                 padding: '0 6px',
                 height: 20,
                 fontSize: 10,
                 fontWeight: 600,
-                color: '#595959',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer'
             }}>
                 {ticket.storyPoint !== undefined && ticket.storyPoint !== null ? `${ticket.storyPoint} SP` : '- SP'}
@@ -244,7 +244,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             {ticket.assignee ? (
               <Avatar size="small" style={{ backgroundColor: '#1677ff', fontSize: 12 }}>{ticket.assignee.name?.[0]?.toUpperCase()}</Avatar>
             ) : (
-               <Avatar size="small" style={{ backgroundColor: '#f0f0f0', fontSize: 12, border: '1px dashed #d9d9d9' }} >+</Avatar>
+               <Avatar size="small" style={{ backgroundColor: 'var(--bg-secondary)', fontSize: 12, border: '1px dashed var(--border-color)' }} >+</Avatar>
             )}
         </div>
       );
@@ -284,7 +284,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
         style={{ 
           borderRadius: 12, 
           cursor: editingField ? 'default' : 'grab',
-          border: '1px solid #f0f0f0',
+          border: '1px solid var(--border-color)',
           transition: 'all 0.2s ease',
         }}
         className="kanban-card-premium"
@@ -358,10 +358,10 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             </Space>
             
             <div style={{ 
-              backgroundColor: '#f9f9f9', 
+              backgroundColor: 'var(--bg-secondary)', 
               padding: '2px', 
               borderRadius: '50%', 
-              border: '1px solid #f0f0f0' 
+              border: '1px solid var(--border-color)' 
             }}>
               {renderAssignee()}
             </div>

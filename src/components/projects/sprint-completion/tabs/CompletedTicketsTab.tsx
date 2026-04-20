@@ -75,10 +75,10 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
       width: 100,
       render: (type) => (
         <Tag color={
-          type === 'Bug' ? 'red' : 
-          type === 'Feature' ? 'blue' : 
-          type === 'Enhancement' ? 'cyan' : 
-          'default'
+          type === 'Bug' ? 'red' :
+            type === 'Feature' ? 'blue' :
+              type === 'Enhancement' ? 'cyan' :
+                'default'
         }>
           {type}
         </Tag>
@@ -88,13 +88,13 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
-      width: 100,
+      width: 120,
       render: (priority) => (
         <Tag color={
-          priority === 'HIGH' ? 'red' : 
-          priority === 'MEDIUM' ? 'orange' : 
-          priority === 'LOW' ? 'blue' :
-          'default'
+          priority === 'HIGH' ? 'red' :
+            priority === 'MEDIUM' ? 'orange' :
+              priority === 'LOW' ? 'blue' :
+                'default'
         }>
           {priority}
         </Tag>
@@ -104,13 +104,13 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
       title: "Points",
       dataIndex: "storyPoint",
       key: "storyPoint",
-      width: 80,
+      width: 100,
       align: "center",
       render: (points) => (
-        <Badge 
-          count={points} 
-          showZero 
-          style={{ backgroundColor: '#1890ff' }} 
+        <Badge
+          count={points}
+          showZero
+          style={{ backgroundColor: '#1890ff' }}
         />
       ),
     },
@@ -143,11 +143,11 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
           <Text type="secondary">{dayjs(date).fromNow()}</Text>
         </Tooltip>
       ),
-    },
+    }
   ];
 
   return (
-    <div style={{ padding: '24px 32px', height: "calc(85vh - 220px)", overflow: "auto", background: '#ffffff' }}>
+    <div className="no-scrollbar" style={{ padding: '8px 20px 16px 20px', height: "calc(85vh - 220px)", overflow: "auto", background: 'var(--bg-pure-white)' }}>
       {tickets.length === 0 ? (
         <div style={{ padding: '100px 0', textAlign: 'center' }}>
           <Empty
@@ -158,83 +158,83 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
       ) : (
         <>
           {/* Summary Header */}
-          <Card 
-            bordered={false} 
-            style={{ 
-              marginBottom: 20, 
-              borderRadius: 16, 
+          <Card
+            bordered={false}
+            style={{
+              marginBottom: 12,
+              borderRadius: 12,
               boxShadow: '0 4px 15px rgba(0, 0, 0, 0.03)',
-              background: '#ffffff',
-              border: '1px solid #f0f0f0'
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)'
             }}
-            styles={{ body: { padding: '16px 24px' } }}
+            styles={{ body: { padding: '10px 16px' } }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Space size={48}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ 
-                    width: 44, 
-                    height: 44, 
-                    borderRadius: 12, 
-                    background: 'rgba(24, 144, 255, 0.1)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
+              <Space size={24}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: 'rgba(24, 144, 255, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     color: '#1890ff'
                   }}>
-                    <CheckCircleOutlined style={{ fontSize: 22 }} />
+                    <CheckCircleOutlined style={{ fontSize: 18 }} />
                   </div>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Resolved</Text>
+                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Resolved</Text>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                      <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{tickets.length}</Title>
-                      <Text type="secondary" style={{ fontSize: 13 }}>Tickets</Text>
+                      <Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{tickets.length}</Title>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Tickets</Text>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ 
-                    width: 44, 
-                    height: 44, 
-                    borderRadius: 12, 
-                    background: 'rgba(24, 144, 255, 0.1)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: 'rgba(24, 144, 255, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     color: '#1890ff'
                   }}>
-                    <TrophyOutlined style={{ fontSize: 22 }} />
+                    <TrophyOutlined style={{ fontSize: 18 }} />
                   </div>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Velocity</Text>
+                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Velocity</Text>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                      <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{totalPoints}</Title>
-                      <Text type="secondary" style={{ fontSize: 13 }}>Points</Text>
+                      <Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{totalPoints}</Title>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Points</Text>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ 
-                    width: 44, 
-                    height: 44, 
-                    borderRadius: 12, 
-                    background: 'rgba(24, 144, 255, 0.1)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: 'rgba(24, 144, 255, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     color: '#1890ff'
                   }}>
-                    <UserOutlined style={{ fontSize: 22 }} />
+                    <UserOutlined style={{ fontSize: 18 }} />
                   </div>
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Squad</Text>
+                    <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Squad</Text>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                      <Title level={4} style={{ margin: 0, fontWeight: 700 }}>
+                      <Title level={5} style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
                         {new Set(tickets.map(t => t.assignee?.id).filter(Boolean)).size}
                       </Title>
-                      <Text type="secondary" style={{ fontSize: 13 }}>Contributors</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Contributors</Text>
                     </div>
                   </div>
                 </div>
@@ -249,7 +249,7 @@ export const CompletedTicketsTab: React.FC<CompletedTicketsTabProps> = ({
           </Card>
 
           {/* Tickets Table */}
-          <div style={{ background: '#ffffff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)', border: '1px solid #f0f0f0' }}>
+          <div style={{ background: 'var(--bg-pure-white)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)', border: '1px solid var(--border-color)' }}>
             <Table
               columns={columns}
               dataSource={tickets}

@@ -373,6 +373,25 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
           },
         ],
       },
+      {
+        key: "leads-group",
+        label: "Lead Management",
+        icon: <FolderOpenOutlined />,
+        children: [
+          {
+            key: "/leads",
+            label: "Leads",
+            icon: <UnorderedListOutlined />,
+            path: "/leads",
+          },
+          {
+            key: "/leads/settings",
+            label: "Settings",
+            icon: <SettingOutlined />,
+            path: "/leads/settings",
+          },
+        ],
+      },
     ],
   },
   {

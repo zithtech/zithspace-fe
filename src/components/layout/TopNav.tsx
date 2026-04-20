@@ -18,6 +18,7 @@ import {
   RightOutlined,
   PlusOutlined,
   MoreOutlined,
+  DeploymentUnitOutlined
 } from '@ant-design/icons';
 
 interface ShortcutItem {
@@ -495,6 +496,12 @@ export default function TopNav({
               icon={<CalendarOutlined />}
               onClick={() => router.push('/calendar')}
             />
+            <Button
+              type="text"
+              icon={<DeploymentUnitOutlined />}
+              onClick={() => router.push('/skills')}
+            />
+
             <Button
               type="text"
               icon={<MessageOutlined />}

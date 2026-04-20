@@ -17,7 +17,7 @@ import {
   Row,
   Col,
   Select,
-  message,
+  notification,
   Popconfirm
 } from 'antd';
 import {
@@ -36,13 +36,17 @@ import {
   FileTextOutlined,
   HistoryOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled
 } from '@ant-design/icons';
 import { Drawer, Divider, Descriptions } from 'antd';
 import MainLayout from '@/components/layout/MainLayout';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/axios';
 import { useAuth } from '@/context/AuthContext';
+import { EscalationServiceV2 } from '@/services/escalationServiceV2';
+import { EscalationSettingsService } from '@/services/escalationSettings';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -66,14 +70,28 @@ export default function EscalationListPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [tempStatus, setTempStatus] = useState<string>('');
   const [statuses, setStatuses] = useState<any[]>([]);
+  const [notify, contextHolder] = notification.useNotification();
+
+  const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
+    notify[type]({
+      message: <span className="premium-notif-title">{title}</span>,
+      description: <span className="premium-notif-desc">{description}</span>,
+      icon: type === 'success' ? <CheckCircleFilled style={{ color: '#10B981' }} /> : <CloseCircleFilled style={{ color: '#EF4444' }} />,
+      className: 'premium-notification',
+      placement: 'topRight',
+      duration: 4,
+    });
+  };
 
   const fetchEscalations = async () => {
     setLoading(true);
     try {
       const [escData, statusData] = await Promise.all([
-        api.get('/api/escalations'),
-        api.get('/api/escalation-settings/statuses')
+        EscalationServiceV2.getAllEscalations(),
+        EscalationSettingsService.getStatuses()
       ]);
+      console.log("Escalations Data:", escData);
+      console.log("Statuses Data:", statusData);
       setEscalations(escData || []);
       setStatuses(statusData || []);
     } catch (error) {
@@ -89,16 +107,16 @@ export default function EscalationListPage() {
 
   const handleUpdateStatus = async () => {
     if (!selectedEscalation || !tempStatus) return;
-    
+
     setUpdating(true);
     try {
-      await api.patch(`/api/escalations/${selectedEscalation.id}/status`, { statusId: tempStatus });
-      message.success('Escalation status updated successfully');
+      await EscalationServiceV2.updateEscalation(selectedEscalation.id, { statusId: tempStatus } as any);
+      notifyPremium('success', 'Status Updated', 'The escalation status has been successfully updated.');
       setDrawerVisible(false);
       fetchEscalations();
     } catch (error) {
       console.error('Failed to update status:', error);
-      message.error('Failed to update escalation status');
+      notifyPremium('error', 'Update Failed', 'Failed to update escalation status. Please try again.');
     } finally {
       setUpdating(false);
     }
@@ -107,15 +125,15 @@ export default function EscalationListPage() {
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      await api.delete(`/api/escalations/${id}`);
-      message.success('Escalation deleted successfully');
+      await EscalationServiceV2.deleteEscalation(id);
+      notifyPremium('success', 'Escalation Deleted', 'The escalation record has been permanently removed.');
       setEscalations(prev => prev.filter(e => e.id !== id));
       if (selectedEscalation?.id === id) {
         setDrawerVisible(false);
       }
     } catch (error) {
       console.error('Failed to delete escalation:', error);
-      message.error('Failed to delete escalation');
+      notifyPremium('error', 'Delete Failed', 'Failed to delete escalation. Please try again.');
     } finally {
       setDeleting(null);
     }
@@ -134,38 +152,42 @@ export default function EscalationListPage() {
 
   const filteredEscalations = escalations.filter(e => {
     // Search filter
-    const matchesSearch = 
-      e.subject.toLowerCase().includes(searchText.toLowerCase()) ||
-      e.category?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-      e.project?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-      e.targetMembers?.some((m: any) => m.user?.name?.toLowerCase().includes(searchText.toLowerCase()));
+    const subject = e.subject || e.short_summary || '';
+    const catName = e.category?.name || e.category_name || '';
+    const projName = e.project?.name || e.project_name || '';
+    const members = e.targetMembers || [];
+
+    const matchesSearch =
+      subject.toLowerCase().includes(searchText.toLowerCase()) ||
+      catName.toLowerCase().includes(searchText.toLowerCase()) ||
+      projName.toLowerCase().includes(searchText.toLowerCase()) ||
+      members.some((m: any) => (m.user?.name || '').toLowerCase().includes(searchText.toLowerCase()));
 
     if (!matchesSearch) return false;
 
-    // Tab filter
+    // Tab filter (Tab 2: My involvement, Tab 3: Raised by me)
     if (activeTab === '2') {
-      // My Escalations (Escalated Member)
-      return e.targetMembers?.some((m: any) => m.user?.id === user?.id);
+      return members.some((m: any) => m.user?.id === user?.id);
     } else if (activeTab === '3') {
-      // Raised by Me
-      return e.createdBy?.id === user?.id;
+      return (e.createdBy?.id || e.created_by_id) === user?.id;
     }
 
-    // Tab 1: All Escalations (no involvement filter)
     return true;
   });
 
   const getStatusBadge = (record: any) => {
-    const status = record.escalationStatus;
-    if (!status) {
-      return <Badge status="default" text={record.status || 'Unknown'} />;
+    const name = record.status_name || record.escalationStatus?.name || record.status;
+    const color = record.status_color || record.escalationStatus?.color || BLUE_PRIMARY;
+
+    if (!name) {
+      return <Badge status="default" text="Unknown" />;
     }
-    
+
     return (
-      <Badge 
-        color={status.color || BLUE_PRIMARY} 
-        text={status.name} 
-        style={{ fontWeight: 500 }} 
+      <Badge
+        color={color}
+        text={name}
+        style={{ fontWeight: 500 }}
       />
     );
   };
@@ -183,7 +205,7 @@ export default function EscalationListPage() {
         }}
         bordered={false}
       >
-        {cat?.name || 'General'}
+        {cat?.name || cat?.category_name || 'General'}
       </Tag>
     );
   };
@@ -195,8 +217,8 @@ export default function EscalationListPage() {
       key: 'subject',
       render: (text: string, record: any) => (
         <Space direction="vertical" size={2}>
-          <Text strong style={{ fontSize: 14 }}>{text}</Text>
-          {getCategoryTag(record.category)}
+          <Text strong style={{ fontSize: 14 }}>{text || record.short_summary || 'No Subject'}</Text>
+          {getCategoryTag(record.category || { name: record.category_name })}
         </Space>
       ),
     },
@@ -204,20 +226,23 @@ export default function EscalationListPage() {
       title: 'Target Team Members',
       dataIndex: 'targetMembers',
       key: 'targetMembers',
-      render: (members: any[]) => {
-        if (members?.length === 1) {
+      render: (members: any[], record: any) => {
+        const list = members || record.targetMembers || [];
+        if (list.length === 0) return <Text type="secondary" style={{ fontSize: 12 }}>—</Text>;
+
+        if (list.length === 1) {
           return (
             <Space>
               <Avatar size="small" style={{ backgroundColor: BLUE_PRIMARY }}>
-                {members[0].user?.name?.charAt(0)}
+                {list[0].user?.name?.charAt(0)}
               </Avatar>
-              <Text style={{ fontSize: 13 }}>{members[0].user?.name}</Text>
+              <Text style={{ fontSize: 13 }}>{list[0].user?.name}</Text>
             </Space>
           );
         }
         return (
           <Avatar.Group maxCount={3} size="small" maxStyle={{ color: 'var(--text-slate-900)', backgroundColor: 'var(--bg-secondary)' }}>
-            {members?.map((m, idx) => (
+            {list.map((m: any, idx: number) => (
               <Tooltip title={m.user?.name} key={idx}>
                 <Avatar style={{ backgroundColor: BLUE_PRIMARY }}>
                   {m.user?.name?.charAt(0)}
@@ -249,7 +274,7 @@ export default function EscalationListPage() {
       title: 'Priority',
       dataIndex: 'priority',
       key: 'priority',
-      render: (priority: any) => getPriorityTag(priority),
+      render: (priority: any, record: any) => getPriorityTag(priority || { name: record.priority_name }),
     },
     {
       title: 'Status',
@@ -271,10 +296,10 @@ export default function EscalationListPage() {
       title: 'Raised Date',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => (
-        <Tooltip title={dayjs(date).format('YYYY-MM-DD HH:mm:ss')}>
+      render: (date: string, record: any) => (
+        <Tooltip title={dayjs(date || record.created_at).format('YYYY-MM-DD HH:mm:ss')}>
           <Text style={{ fontSize: 13, color: 'var(--text-slate-400)' }}>
-            {dayjs(date).format('MMM D, YYYY')}
+            {dayjs(date || record.created_at).format('MMM D, YYYY')}
           </Text>
         </Tooltip>
       ),
@@ -288,11 +313,11 @@ export default function EscalationListPage() {
             <Button
               type="text"
               icon={<EditOutlined style={{ color: BLUE_PRIMARY }} />}
-              onClick={() => { 
-                setSelectedEscalation(record); 
+              onClick={() => {
+                setSelectedEscalation(record);
                 setTempStatus(record.statusId || record.status);
                 setIsEditing(true);
-                setDrawerVisible(true); 
+                setDrawerVisible(true);
               }}
             />
           </Tooltip>
@@ -319,29 +344,33 @@ export default function EscalationListPage() {
   ];
 
   const stats = [
-    { 
-      label: 'Active Escalations', 
-      value: escalations.filter(e => !e.escalationStatus?.isFinal).length, 
-      icon: <ExclamationCircleOutlined />, 
-      color: BLUE_PRIMARY 
+    {
+      label: 'Active Escalations',
+      value: escalations.length,
+      icon: <ExclamationCircleOutlined />,
+      color: BLUE_PRIMARY
     },
-    { 
-      label: 'High Priority', 
-      value: escalations.filter(e => (e.priority?.weight || 0) >= 80).length, 
-      icon: <BugOutlined />, 
-      color: '#ef4444' 
+    {
+      label: 'High Priority',
+      value: escalations.filter(e => {
+        const weight = e.priority_weight || e.priority?.weight || 0;
+        const name = (e.priority_name || e.priority?.name || '').toLowerCase();
+        return weight >= 80 || name === 'high' || name === 'urgent';
+      }).length,
+      icon: <BugOutlined />,
+      color: '#ef4444'
     },
-    { 
-      label: 'Pending Reviews', 
-      value: escalations.filter(e => e.escalationStatus?.isDefault).length, 
-      icon: <ClockCircleOutlined />, 
-      color: '#f59e0b' 
+    {
+      label: 'Pending Reviews',
+      value: escalations.filter(e => e.escalationStatus?.isDefault).length,
+      icon: <ClockCircleOutlined />,
+      color: '#f59e0b'
     },
-    { 
-      label: 'Total Resolved', 
-      value: escalations.filter(e => e.escalationStatus?.isFinal).length, 
-      icon: <CheckCircleOutlined />, 
-      color: '#10b981' 
+    {
+      label: 'Total Resolved',
+      value: escalations.filter(e => e.escalationStatus?.isFinal).length,
+      icon: <CheckCircleOutlined />,
+      color: '#10b981'
     },
   ];
 
@@ -397,14 +426,14 @@ export default function EscalationListPage() {
             ))}
           </div>
 
-          <Tabs 
-            activeKey={activeTab} 
+          <Tabs
+            activeKey={activeTab}
             onChange={setActiveTab}
             items={[
               { key: '1', label: <span style={{ color: activeTab === '1' ? 'var(--premium-blue)' : 'var(--text-slate-600)' }}>All Escalations</span> },
               { key: '2', label: <span style={{ color: activeTab === '2' ? 'var(--premium-blue)' : 'var(--text-slate-600)' }}>My Escalations</span> },
               { key: '3', label: <span style={{ color: activeTab === '3' ? 'var(--premium-blue)' : 'var(--text-slate-600)' }}>Raised by Me</span> },
-            ]} 
+            ]}
           />
 
           {/* Filter Bar */}
@@ -460,7 +489,7 @@ export default function EscalationListPage() {
                 <Title level={4} style={{ margin: 0, color: 'var(--text-slate-900)' }}>Escalation Details</Title>
               </div>
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-slate-400)' }}>
-                ID: {selectedEscalation?.id?.split('-')[0].toUpperCase()} • Raised on {dayjs(selectedEscalation?.createdAt).format('MMM D, YYYY at HH:mm')}
+                ID: {selectedEscalation?.id?.split('-')[0].toUpperCase()} • Raised on {dayjs(selectedEscalation?.created_at || selectedEscalation?.createdAt).format('MMM D, YYYY at HH:mm')}
               </Text>
             </Space>
           }
@@ -475,8 +504,8 @@ export default function EscalationListPage() {
               {isEditing ? (
                 <>
                   <Button onClick={() => setIsEditing(false)}>Cancel</Button>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     loading={updating}
                     onClick={handleUpdateStatus}
                     style={{ background: BLUE_PRIMARY }}
@@ -487,8 +516,8 @@ export default function EscalationListPage() {
               ) : (
                 <>
                   <Button onClick={() => setDrawerVisible(false)}>Close</Button>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     onClick={() => setIsEditing(true)}
                     style={{ background: BLUE_PRIMARY }}
                   >
@@ -509,7 +538,7 @@ export default function EscalationListPage() {
                   <Space direction="vertical" size={12} style={{ width: '100%' }}>
                     <div>
                       <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-400)' }}>Subject</Text>
-                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700, color: 'var(--text-slate-900)' }}>{selectedEscalation.subject}</Title>
+                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700, color: 'var(--text-slate-900)' }}>{selectedEscalation.subject || selectedEscalation.short_summary}</Title>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ flex: 1 }}>
@@ -537,7 +566,7 @@ export default function EscalationListPage() {
                       </div>
                       <div>
                         <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>Priority</Text>
-                        <div style={{ marginTop: 4 }}>{getPriorityTag(selectedEscalation.priority)}</div>
+                        <div style={{ marginTop: 4 }}>{getPriorityTag(selectedEscalation.priority || { name: selectedEscalation.priority_name })}</div>
                       </div>
                     </div>
                   </Space>
@@ -550,7 +579,7 @@ export default function EscalationListPage() {
                       <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-slate-400)' }}>
                         <ProjectOutlined /> Category
                       </Text>
-                      {getCategoryTag(selectedEscalation.category)}
+                      {getCategoryTag(selectedEscalation.category || { name: selectedEscalation.category_name })}
                     </Space>
                   </Col>
                   <Col span={12}>
@@ -581,7 +610,7 @@ export default function EscalationListPage() {
                     color: 'var(--text-slate-700)',
                     whiteSpace: 'pre-wrap'
                   }}>
-                    {selectedEscalation.description}
+                    {selectedEscalation.description || selectedEscalation.detailed_description}
                   </div>
                 </div>
 
@@ -590,7 +619,7 @@ export default function EscalationListPage() {
                   <div>
                     <Space align="center" style={{ marginBottom: 10 }}>
                       <BugOutlined style={{ color: BLUE_PRIMARY, fontSize: 13 }} />
-                      <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Linked Development Tickets</Text>
+                      <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-slate-400)' }}>Linked Development Tickets</Text>
                     </Space>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {selectedEscalation.tickets.map((t: any, idx: number) => (
@@ -647,14 +676,14 @@ export default function EscalationListPage() {
                     </Avatar>
                     <div>
                       <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>Raised By</Text>
-                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{selectedEscalation.createdBy?.name}</Text>
+                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{selectedEscalation.createdBy?.name || 'System / Not found'}</Text>
                     </div>
                   </Space>
                   <Space size={10}>
                     <HistoryOutlined style={{ color: 'var(--text-slate-400)', fontSize: 14 }} />
                     <div>
                       <Text type="secondary" style={{ fontSize: 10, display: 'block', color: 'var(--text-slate-400)' }}>Last Updated</Text>
-                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{dayjs(selectedEscalation.updatedAt).fromNow()}</Text>
+                      <Text strong style={{ fontSize: 12, color: 'var(--text-slate-900)' }}>{dayjs(selectedEscalation.updatedAt || selectedEscalation.updated_at).fromNow()}</Text>
                     </div>
                   </Space>
                 </div>

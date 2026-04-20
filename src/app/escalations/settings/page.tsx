@@ -1,22 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Button, 
-  Table, 
-  Tag, 
-  Space, 
-  Card, 
-  Tabs, 
-  Modal, 
-  Form, 
-  Input, 
+import {
+  Typography,
+  Button,
+  Table,
+  Tag,
+  Space,
+  Card,
+  Tabs,
+  Modal,
+  Form,
+  Input,
   InputNumber,
   Select,
   Row,
   Col,
-  message, 
+  notification,
   Popconfirm,
   Tooltip,
   ColorPicker,
@@ -31,10 +31,13 @@ import {
   UpSquareOutlined,
   BgColorsOutlined,
   InfoCircleOutlined,
-  CheckSquareOutlined
+  CheckSquareOutlined,
+  CheckCircleFilled,
+  ExclamationCircleFilled,
+  CloseCircleFilled
 } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
-import { api } from '@/lib/axios';
+import { EscalationSettingsService } from '@/services/escalationSettings';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -63,19 +66,31 @@ export default function EscalationSettingsPage() {
   const [priorities, setPriorities] = useState<EscalationPriority[]>([]);
   const [statuses, setStatuses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [form] = Form.useForm();
+  const [notify, contextHolder] = notification.useNotification();
+
+  const notifyPremium = (type: 'success' | 'error', title: string, description: string) => {
+    notify[type]({
+      message: <span className="premium-notif-title">{title}</span>,
+      description: <span className="premium-notif-desc">{description}</span>,
+      icon: type === 'success' ? <CheckCircleFilled style={{ color: '#10B981' }} /> : <CloseCircleFilled style={{ color: '#EF4444' }} />,
+      className: 'premium-notification',
+      placement: 'topRight',
+      duration: 4,
+    });
+  };
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const data = await api.get<EscalationCategory[]>('/api/escalation-settings/categories');
+      const data = await EscalationSettingsService.getCategories();
       setCategories(data);
     } catch (error: any) {
-      message.error('Failed to fetch categories: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch categories: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -84,10 +99,10 @@ export default function EscalationSettingsPage() {
   const fetchPriorities = async () => {
     setLoading(true);
     try {
-      const data = await api.get<EscalationPriority[]>('/api/escalation-settings/priorities');
+      const data = await EscalationSettingsService.getPriorities();
       setPriorities(data);
     } catch (error: any) {
-      message.error('Failed to fetch priorities: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch priorities: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -96,10 +111,10 @@ export default function EscalationSettingsPage() {
   const fetchStatuses = async () => {
     setLoading(true);
     try {
-      const data = await api.get<any[]>('/api/escalation-settings/statuses');
+      const data = await EscalationSettingsService.getStatuses();
       setStatuses(data);
     } catch (error: any) {
-      message.error('Failed to fetch statuses: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Fetch Failed', 'Failed to fetch statuses: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -126,47 +141,64 @@ export default function EscalationSettingsPage() {
   };
 
   const handleSave = async (values: any) => {
-    let endpoint = 'categories';
-    if (activeTab === '2') endpoint = 'priorities';
-    if (activeTab === '3') endpoint = 'statuses';
-    
     const isCategory = activeTab === '1';
     const isPriority = activeTab === '2';
     const isStatus = activeTab === '3';
-    
+
     // Convert color to hex string if it's from AntD ColorPicker
     const colorValue = typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || values.color;
 
+    const payload = { ...values, color: colorValue };
+
     try {
-      if (editingItem) {
-        await api.put(`/api/escalation-settings/${endpoint}/${editingItem.id}`, { ...values, color: colorValue });
-        message.success(`${isCategory ? 'Category' : isPriority ? 'Priority' : 'Status'} updated successfully`);
-      } else {
-        await api.post(`/api/escalation-settings/${endpoint}`, { ...values, color: colorValue });
-        message.success(`${isCategory ? 'Category' : isPriority ? 'Priority' : 'Status'} created successfully`);
+      if (isCategory) {
+        if (editingItem) await EscalationSettingsService.updateCategory(editingItem.id, payload);
+        else await EscalationSettingsService.createCategory(payload);
+        notifyPremium('success', 
+          `Category ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation category has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
+      } else if (isPriority) {
+        if (editingItem) await EscalationSettingsService.updatePriority(editingItem.id, payload);
+        else await EscalationSettingsService.createPriority(payload);
+        notifyPremium('success', 
+          `Priority ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation priority level has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
+      } else if (isStatus) {
+        if (editingItem) await EscalationSettingsService.updateStatus(editingItem.id, payload);
+        else await EscalationSettingsService.createStatus(payload);
+        notifyPremium('success', 
+          `Status ${editingItem ? 'Updated' : 'Created'}`, 
+          `The escalation status state has been successfully ${editingItem ? 'modified' : 'added'}.`
+        );
       }
+
       setIsModalOpen(false);
+
       if (isCategory) fetchCategories();
       else if (isPriority) fetchPriorities();
       else fetchStatuses();
     } catch (error: any) {
-      message.error('Failed to save: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Save Failed', 'Failed to save: ' + (error.message || 'Unknown error'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    let endpoint = 'categories';
-    if (activeTab === '2') endpoint = 'priorities';
-    if (activeTab === '3') endpoint = 'statuses';
-
     try {
-      await api.delete(`/api/escalation-settings/${endpoint}/${id}`);
-      message.success('Item deleted successfully');
-      if (activeTab === '1') fetchCategories();
-      else if (activeTab === '2') fetchPriorities();
-      else fetchStatuses();
+      if (activeTab === '1') {
+        await EscalationSettingsService.deactivateCategory(id);
+        fetchCategories();
+      } else if (activeTab === '2') {
+        await EscalationSettingsService.deactivatePriority(id);
+        fetchPriorities();
+      } else if (activeTab === '3') {
+        await EscalationSettingsService.deactivateStatus(id);
+        fetchStatuses();
+      }
+      notifyPremium('success', 'Deactivated Successfully', 'The item has been successfully retired from escalation settings.');
     } catch (error: any) {
-      message.error('Delete failed: ' + (error.message || 'Unknown error'));
+      notifyPremium('error', 'Deactivation Failed', 'Failed to deactivate: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -207,8 +239,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this category?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this category?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -253,8 +285,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this priority?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this priority?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -310,8 +342,8 @@ export default function EscalationSettingsPage() {
           <Tooltip title="Edit">
             <Button type="text" icon={<EditOutlined />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
-          <Popconfirm title="Are you sure you want to delete this status?" onConfirm={() => handleDelete(record.id)}>
-            <Tooltip title="Delete">
+          <Popconfirm title="Are you sure you want to retire this status?" onConfirm={() => handleDelete(record.id)}>
+            <Tooltip title="Retire">
               <Button type="text" danger icon={<DeleteOutlined />} />
             </Tooltip>
           </Popconfirm>
@@ -329,12 +361,12 @@ export default function EscalationSettingsPage() {
         minHeight: "calc(100vh - 64px)" 
       }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          
+
           {/* Header */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: 24,
             paddingBottom: 16,
             borderBottom: '1px solid var(--border-slate-100)'
@@ -343,14 +375,14 @@ export default function EscalationSettingsPage() {
               <Title level={2} style={{ margin: 0, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-slate-900)' }}>Escalation Settings</Title>
               <Text type="secondary" style={{ fontSize: 14, color: 'var(--text-slate-400)' }}>Manage master data for categories, priorities, and statuses.</Text>
             </Space>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              size="large" 
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              size="large"
               onClick={() => handleOpenModal()}
-              style={{ 
-                borderRadius: 10, 
-                background: BLUE_PRIMARY, 
+              style={{
+                borderRadius: 10,
+                background: BLUE_PRIMARY,
                 fontWeight: 600,
                 height: 44,
                 padding: '0 24px',
@@ -361,18 +393,18 @@ export default function EscalationSettingsPage() {
             </Button>
           </div>
 
-          <Card 
-            style={{ 
-              borderRadius: 20, 
-              border: '1px solid var(--border-slate-200)', 
+          <Card
+            style={{
+              borderRadius: 20,
+              border: '1px solid var(--border-slate-200)',
               background: 'var(--bg-pure-white)',
               boxShadow: 'var(--card-shadow)',
-              overflow: 'hidden' 
-            }} 
+              overflow: 'hidden'
+            }}
             bodyStyle={{ padding: 0 }}
           >
-            <Tabs 
-              activeKey={activeTab} 
+            <Tabs
+              activeKey={activeTab}
               onChange={setActiveTab}
               style={{ padding: '0 24px' }}
               items={[
@@ -381,9 +413,9 @@ export default function EscalationSettingsPage() {
                   label: <Space><BlockOutlined /> Categories</Space>,
                   children: (
                     <div style={{ padding: '24px 0' }}>
-                      <Table 
-                        dataSource={categories} 
-                        columns={categoryColumns} 
+                      <Table
+                        dataSource={categories}
+                        columns={categoryColumns}
                         loading={loading}
                         rowKey="id"
                         pagination={false}
@@ -397,9 +429,9 @@ export default function EscalationSettingsPage() {
                   label: <Space><UpSquareOutlined /> Priorities</Space>,
                   children: (
                     <div style={{ padding: '24px 0' }}>
-                      <Table 
-                        dataSource={priorities} 
-                        columns={priorityColumns} 
+                      <Table
+                        dataSource={priorities}
+                        columns={priorityColumns}
                         loading={loading}
                         rowKey="id"
                         pagination={false}
@@ -413,9 +445,9 @@ export default function EscalationSettingsPage() {
                   label: <Space><CheckSquareOutlined /> Statuses</Space>,
                   children: (
                     <div style={{ padding: '24px 0' }}>
-                      <Table 
-                        dataSource={statuses} 
-                        columns={statusColumns} 
+                      <Table
+                        dataSource={statuses}
+                        columns={statusColumns}
                         loading={loading}
                         rowKey="id"
                         pagination={false}
@@ -501,8 +533,8 @@ export default function EscalationSettingsPage() {
           </Modal>
 
         </div>
-        
-         <style jsx global>{`
+
+        <style jsx global>{`
           .premium-table .ant-table-thead > tr > th {
             background: var(--bg-slate-50);
             color: var(--text-slate-600);

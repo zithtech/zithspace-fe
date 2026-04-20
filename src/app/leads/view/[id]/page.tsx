@@ -15,6 +15,7 @@ import {
   Breadcrumb,
   Empty,
   Tooltip,
+  Drawer,
 } from "antd";
 import {
   ArrowLeft,
@@ -61,6 +62,8 @@ export default function LeadProfilePage() {
   const { lead, loading, error, fetchLeadById } = useLeads();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("1");
+  const [isAnalysing, setIsAnalysing] = useState(false);
+
 
   useEffect(() => {
     if (params.id) {
@@ -153,6 +156,26 @@ export default function LeadProfilePage() {
                       </Space>
                     </div>
                   </div>
+                </Space>
+              </Col>
+              <Col>
+                <Space>
+                  <Button 
+                    className="secondary-action-btn"
+                    icon={<RotateCcw size={14} />}
+                    onClick={() => fetchLeadById(params.id as string)}
+                  >
+                    Refresh Intel
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    icon={<Zap size={16} />} 
+                    className="primary-action-btn"
+                    onClick={() => setIsAnalysing(true)}
+                    style={{ background: 'var(--premium-blue)', borderRadius: 10, height: 44 }}
+                  >
+                    PROPOSE SOLUTIONS
+                  </Button>
                 </Space>
               </Col>
             </Row>
@@ -668,6 +691,93 @@ export default function LeadProfilePage() {
               </Col>
             </Row>
           </div>
+
+          <Drawer
+            title={
+              <Space>
+                <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: 8, borderRadius: 8, color: 'var(--premium-blue)', display: 'flex' }}>
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <Title level={4} style={{ margin: 0, fontSize: 16 }}>Project Intelligence Extraction</Title>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Verified metrics for proposal generation</Text>
+                </div>
+              </Space>
+            }
+            placement="right"
+            width={500}
+            onClose={() => setIsAnalysing(false)}
+            open={isAnalysing}
+            footer={
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                <Button onClick={() => setIsAnalysing(false)} style={{ borderRadius: 8 }}>Dismiss</Button>
+                <Button 
+                  type="primary" 
+                  size="large"
+                  icon={<Zap size={16} />}
+                  onClick={() => router.push(`/proposals/builder?leadId=${lead.id}`)}
+                  style={{ background: 'var(--premium-blue)', borderRadius: 10, height: 44, padding: '0 24px' }}
+                >
+                  CONFIRM & GENERATE
+                </Button>
+              </div>
+            }
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <Card style={{ borderRadius: 16, border: '1px solid var(--border-premium)', background: 'rgba(59, 130, 246, 0.02)' }}>
+                <Space direction="vertical" size={20} style={{ width: '100%' }}>
+                  <div className="data-field">
+                    <Text style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>ESTIMATED BUDGET</Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                      <Title style={{ margin: 0, color: 'var(--premium-blue)', fontSize: 32 }} level={1}>
+                        {lead.budget || 'Not specified'}
+                      </Title>
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                      This represents the total budget range provided in the job listing.
+                    </Text>
+                  </div>
+
+                  <Divider style={{ margin: '4px 0' }} />
+
+                  <div className="data-field">
+                    <Text style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>TECHNICAL TIMELINE</Text>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <Clock size={16} color="var(--text-main)" />
+                      <Text style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-main)' }}>
+                        {lead.duration || lead.est_project_duration || 'Dynamic Schedule'}
+                      </Text>
+                    </div>
+                  </div>
+
+                  <Divider style={{ margin: '4px 0' }} />
+
+                  <div className="data-field">
+                    <Text style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>PROJECT WORKLOAD ANALYSIS</Text>
+                    <div style={{ 
+                      marginTop: 12, 
+                      padding: 16, 
+                      background: 'var(--card-bg)', 
+                      borderRadius: 12, 
+                      border: '1px solid var(--border-premium)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                    }}>
+                      <Text style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-main)' }}>
+                        {lead.ai_summary || lead.summary || 'Awaiting intelligence synthesis...'}
+                      </Text>
+                    </div>
+                  </div>
+                </Space>
+              </Card>
+
+              <div style={{ display: 'flex', gap: 12, background: 'rgba(245, 158, 11, 0.05)', padding: 16, borderRadius: 12, border: '1px solid rgba(245, 158, 11, 0.1)' }}>
+                <AlertCircle size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                <Text style={{ fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                  <strong>Intelligence Verification:</strong> The values above are pre-extracted from the lead metadata. Upon confirmation, they will form the structural foundation of your new proposal blocks.
+                </Text>
+              </div>
+            </div>
+          </Drawer>
 
           <style dangerouslySetInnerHTML={{
             __html: `

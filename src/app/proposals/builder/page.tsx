@@ -86,7 +86,7 @@ function BuilderContent() {
 
           if (Array.isArray(fetchedBlocks)) {
             // Sort by TYPE_ORDER to ensure Cover is first, Executive Summary second, etc.
-            const sortedBlocks = [...fetchedBlocks].sort((a, b) => 
+            const sortedBlocks = [...fetchedBlocks].sort((a, b) =>
               (TYPE_ORDER[a.type] || 99) - (TYPE_ORDER[b.type] || 99)
             );
 

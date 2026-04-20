@@ -201,9 +201,9 @@ export default function LeadsPage() {
         >
           {configStatuses.map(s => (
             <Select.Option key={s.id} value={s.name}>
-              <Tag style={{ 
-                backgroundColor: `${s.color}15`, 
-                color: s.color, 
+              <Tag style={{
+                backgroundColor: `${s.color}15`,
+                color: s.color,
                 border: `1px solid ${s.color}30`,
                 fontWeight: 700,
                 borderRadius: 6,
@@ -308,10 +308,10 @@ export default function LeadsPage() {
         ? [dayjs(record.timeline_start), dayjs(record.timeline_end)]
         : null,
       postedOn: record.posted_on ? dayjs(record.posted_on) : null,
-      documents: Array.isArray(record.documents) 
-        ? record.documents.map(doc => 
-            typeof doc === 'string' ? { name: doc, url: doc } : doc
-          )
+      documents: Array.isArray(record.documents)
+        ? record.documents.map(doc =>
+          typeof doc === 'string' ? { name: doc, url: doc } : doc
+        )
         : record.documents,
       platform: ['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : 'Other',
       customPlatform: !['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : '',
@@ -514,9 +514,9 @@ export default function LeadsPage() {
                     >
                       {configStatuses.map(s => (
                         <Select.Option key={s.id} value={s.name}>
-                          <Tag style={{ 
-                            backgroundColor: `${s.color}15`, 
-                            color: s.color, 
+                          <Tag style={{
+                            backgroundColor: `${s.color}15`,
+                            color: s.color,
                             border: `1px solid ${s.color}30`,
                             fontWeight: 700,
                             borderRadius: 6,

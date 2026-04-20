@@ -1,9 +1,9 @@
 import { Typography, Table, Form, Input, InputNumber, Button, Space, Divider, Select, Row, Col, Tag, Switch, Tooltip } from 'antd';
-import { 
-  PlusOutlined, 
-  DeleteOutlined, 
-  CreditCardOutlined, 
-  CalendarOutlined, 
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  CreditCardOutlined,
+  CalendarOutlined,
   InfoCircleOutlined,
   DollarOutlined,
   PercentageOutlined,
@@ -13,6 +13,7 @@ import {
   FileTextOutlined
 } from '@ant-design/icons';
 import { nanoid } from 'nanoid';
+import React from 'react';
 
 const { Title, Text } = Typography;
 
@@ -24,7 +25,7 @@ interface PricingBlockProps {
 
 export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
   const items = data.items || [];
-  
+
   const subtotal = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
   const discountAmount = data.discount || 0;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
@@ -38,8 +39,8 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
       key: 'name',
       render: (text: string, record: any) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{text}</div>
-          <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{record.description}</div>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{text}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{record.description}</div>
         </div>
       )
     },
@@ -75,7 +76,7 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
     <div style={{ padding: '24px 0' }}>
       {data.title && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-          <Title level={2} style={{ margin: 0, color: '#0f172a' }}>
+          <Title level={2} style={{ margin: 0, color: 'var(--text-primary)' }}>
             {data.title}
           </Title>
           {data.feeStructure && (
@@ -85,38 +86,38 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
           )}
         </div>
       )}
-      
-      <Table 
-        dataSource={items} 
-        columns={columns} 
-        pagination={false} 
+
+      <Table
+        dataSource={items}
+        columns={columns}
+        pagination={false}
         rowKey="id"
         bordered={false}
         size="middle"
       />
-      
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
         <div style={{ width: '300px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-            <Text>Subtotal</Text>
-            <Text>{data.currency === 'USD' ? '$' : data.currency + ' '}{subtotal.toLocaleString()}</Text>
+            <Text style={{ color: 'var(--text-secondary)' }}>Subtotal</Text>
+            <Text style={{ color: 'var(--text-primary)' }}>{data.currency === 'USD' ? '$' : data.currency + ' '}{subtotal.toLocaleString()}</Text>
           </div>
           {(data.discount || 0) > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', color: '#16a34a' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', color: '#10b981' }}>
               <Text style={{ color: 'inherit' }}>Discount</Text>
               <Text style={{ color: 'inherit' }}>-{data.currency === 'USD' ? '$' : data.currency + ' '}{discountAmount.toLocaleString()}</Text>
             </div>
           )}
           {(data.taxRate || 0) > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-              <Text>Tax ({data.taxRate}%)</Text>
-              <Text>{data.currency === 'USD' ? '$' : data.currency + ' '}{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+              <Text style={{ color: 'var(--text-secondary)' }}>Tax ({data.taxRate}%)</Text>
+              <Text style={{ color: 'var(--text-primary)' }}>{data.currency === 'USD' ? '$' : data.currency + ' '}{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
             </div>
           )}
-          <Divider style={{ margin: '8px 0' }} />
+          <Divider style={{ margin: '8px 0', borderColor: 'var(--border-color)' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
-            <Text strong style={{ fontSize: '1.25rem' }}>Total</Text>
-            <Text strong style={{ fontSize: '1.25rem', color: '#2563eb' }}>
+            <Text strong style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>Total</Text>
+            <Text strong style={{ fontSize: '1.25rem', color: 'var(--premium-blue)' }}>
               {data.currency === 'USD' ? '$' : data.currency + ' '}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Text>
           </div>
@@ -125,15 +126,15 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
 
       {/* Payment Terms & Schedule */}
       {(data.paymentSchedule || data.paymentMethods) && (
-        <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ marginTop: '48px', paddingTop: '32px', borderTop: '1px solid var(--border-color)' }}>
           <Row gutter={48}>
             <Col span={14}>
               {data.paymentSchedule && (
                 <div>
-                  <Text strong style={{ display: 'block', color: '#0f172a', fontSize: '1.05rem', marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
-                    <CalendarOutlined style={{ marginRight: '8px', color: '#3b82f6' }} /> Payment Schedule
+                  <Text strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem', marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
+                    <CalendarOutlined style={{ marginRight: '8px', color: 'var(--premium-blue)' }} /> Payment Schedule
                   </Text>
-                  <ul style={{ margin: 0, paddingLeft: '24px', color: '#475569', lineHeight: 1.8 }}>
+                  <ul style={{ margin: 0, paddingLeft: '24px', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                     {data.paymentSchedule.split('\n').filter((t: string) => t.trim().length > 0).map((t: string, i: number) => (
                       <li key={i}>{t}</li>
                     ))}
@@ -144,21 +145,30 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
             <Col span={10}>
               {data.paymentMethods && (
                 <div>
-                  <Text strong style={{ display: 'block', color: '#0f172a', fontSize: '1.05rem', marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
+                  <Text strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem', marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
                     <CreditCardOutlined style={{ marginRight: '8px', color: '#10b981' }} /> Accepted Methods
                   </Text>
-                  <div style={{ color: '#475569', lineHeight: 1.6, background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6, background: 'var(--bg-primary)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     {data.paymentMethods}
                   </div>
                 </div>
               )}
             </Col>
           </Row>
-          
-          <div style={{ marginTop: '24px', padding: '16px', background: data.taxesIncluded ? '#f0fdf4' : '#fff7ed', borderRadius: '8px', border: `1px solid ${data.taxesIncluded ? '#bbf7d0' : '#ffedd5'}`, display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <InfoCircleOutlined style={{ fontSize: '18px', color: data.taxesIncluded ? '#16a34a' : '#ea580c' }} />
-            <Text style={{ color: data.taxesIncluded ? '#15803d' : '#c2410c', fontSize: '0.95rem' }}>
-               Please observe the payment terms. <span style={{ fontWeight: 700, backgroundColor: data.taxesIncluded ? '#dcfce7' : '#fed7aa', padding: '4px 8px', borderRadius: '4px', margin: '0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Taxes are {data.taxesIncluded ? 'Included' : 'Excluded'}</span> from the final prices listed above.
+
+          <div style={{
+            marginTop: '24px',
+            padding: '16px',
+            background: data.taxesIncluded ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+            borderRadius: '8px',
+            border: `1px solid ${data.taxesIncluded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <InfoCircleOutlined style={{ fontSize: '18px', color: data.taxesIncluded ? '#10b981' : '#f59e0b' }} />
+            <Text style={{ color: data.taxesIncluded ? '#10b981' : '#f59e0b', fontSize: '0.95rem' }}>
+              Please observe the payment terms. <span style={{ fontWeight: 700, background: 'rgba(59, 130, 246, 0.1)', color: 'var(--premium-blue)', padding: '4px 8px', borderRadius: '4px', margin: '0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Taxes are {data.taxesIncluded ? 'Included' : 'Excluded'}</span> from the final prices listed above.
             </Text>
           </div>
 
@@ -169,23 +179,30 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
 };
 
 export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => void }> = ({ data, onUpdate }) => {
-  const labelStyle: React.CSSProperties = { fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05rem', marginBottom: '6px', display: 'block' };
-  const inputStyle: React.CSSProperties = { borderRadius: '8px', background: '#ffffff', border: '1px solid #e2e8f0' };
+  const [form] = Form.useForm();
+
+  React.useEffect(() => {
+    form.setFieldsValue(data);
+  }, [data, form]);
+
+  const labelStyle: React.CSSProperties = { fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05rem', marginBottom: '6px', display: 'block' };
+  const inputStyle: React.CSSProperties = { borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' };
 
   return (
-    <Form layout="vertical" onValuesChange={(_, allValues) => onUpdate({ ...data, ...allValues })} initialValues={data}>
+    <Form form={form} layout="vertical" onValuesChange={(_, allValues) => onUpdate({ ...data, ...allValues })} initialValues={data}>
+
       {/* Section Header */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <WalletOutlined style={{ color: '#3b82f6' }} />
-          <Text strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>Global Pricing Configuration</Text>
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Global Pricing Configuration</Text>
         </div>
-        
-        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+
+        <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <Form.Item label={<span style={labelStyle}>Section Title</span>} name="title">
-            <Input prefix={<FileTextOutlined style={{ color: '#cbd5e1' }} />} placeholder="e.g. Pricing & Investment" variant="filled" style={inputStyle} />
+            <Input prefix={<FileTextOutlined style={{ color: 'var(--border-color)' }} />} placeholder="e.g. Pricing & Investment" variant="filled" style={inputStyle} />
           </Form.Item>
-          
+
           <Row gutter={12}>
             <Col span={16}>
               <Form.Item label={<span style={labelStyle}>Fee Structure</span>} name="feeStructure">
@@ -217,45 +234,45 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
           </Row>
         </div>
       </div>
-      
+
       {/* Line Items Section */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <ShoppingOutlined style={{ color: '#10b981' }} />
-          <Text strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>Service Line Items</Text>
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Service Line Items</Text>
         </div>
-        
+
         <Form.List name="items">
           {(fields, { add, remove }) => (
             <>
               {fields.map(({ key, name, ...restField }) => (
-                <div key={key} style={{ 
-                  background: '#ffffff', 
-                  padding: '16px', 
-                  marginBottom: '16px', 
-                  borderRadius: '12px', 
-                  border: '1px solid #e2e8f0', 
+                <div key={key} style={{
+                  background: 'var(--bg-secondary)',
+                  padding: '16px',
+                  marginBottom: '16px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
                   boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                  position: 'relative' 
+                  position: 'relative'
                 }}>
                   <Tooltip title="Remove Item">
-                    <Button 
-                      type="text" 
-                      danger 
-                      icon={<DeleteOutlined />} 
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
                       onClick={() => remove(name)}
                       style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
                     />
                   </Tooltip>
-                  
+
                   <Form.Item {...restField} name={[name, 'name']} label={<span style={labelStyle}>Item Name</span>} style={{ marginBottom: 12 }}>
                     <Input prefix={<TagOutlined style={{ color: '#cbd5e1' }} />} placeholder="e.g. Web Design & Strategy" variant="filled" style={inputStyle} />
                   </Form.Item>
-                  
+
                   <Form.Item {...restField} name={[name, 'description']} label={<span style={labelStyle}>Description</span>} style={{ marginBottom: 12 }}>
-                    <Input.TextArea prefix={<FileTextOutlined style={{ color: '#cbd5e1' }} />} rows={2} placeholder="What does this include?" variant="filled" style={inputStyle} />
+                    <Input.TextArea rows={2} placeholder="What does this include?" variant="filled" style={inputStyle} />
                   </Form.Item>
-                  
+
                   <Row gutter={12}>
                     <Col span={8}>
                       <Form.Item {...restField} name={[name, 'quantity']} label={<span style={labelStyle}>Qty</span>} style={{ marginBottom: 0 }}>
@@ -282,31 +299,31 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <CalendarOutlined style={{ color: '#f59e0b' }} />
-          <Text strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>Payment & Terms</Text>
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Payment & Terms</Text>
         </div>
 
-        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <Form.Item label={<span style={labelStyle}>Payment Schedule (One per line)</span>} name="paymentSchedule">
-            <Input.TextArea prefix={<CalendarOutlined style={{ color: '#cbd5e1' }} />} rows={3} placeholder="40% Deposit upon signing&#10;60% On completion" variant="filled" style={inputStyle} />
+            <Input.TextArea rows={3} placeholder="40% Deposit upon signing&#10;60% On completion" variant="filled" style={inputStyle} />
           </Form.Item>
 
           <Form.Item label={<span style={labelStyle}>Payment Methods</span>} name="paymentMethods">
             <Input prefix={<CreditCardOutlined style={{ color: '#cbd5e1' }} />} placeholder="e.g. Bank Transfer, Stripe" variant="filled" style={inputStyle} />
           </Form.Item>
-          
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            padding: '12px', 
-            background: data.taxesIncluded ? '#f0fdf4' : '#fff7ed', 
-            borderRadius: '8px', 
-            border: `1px solid ${data.taxesIncluded ? '#bbf7d0' : '#ffedd5'}`,
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px',
+            background: data.taxesIncluded ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+            borderRadius: '8px',
+            border: `1px solid ${data.taxesIncluded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
             marginTop: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <InfoCircleOutlined style={{ color: data.taxesIncluded ? '#16a34a' : '#ea580c' }} />
-              <Text style={{ fontSize: '0.8rem', color: data.taxesIncluded ? '#15803d' : '#c2410c' }}>Tax Inclusion Status</Text>
+              <InfoCircleOutlined style={{ color: data.taxesIncluded ? '#10b981' : '#f59e0b' }} />
+              <Text style={{ fontSize: '0.8rem', color: data.taxesIncluded ? '#10b981' : '#f59e0b' }}>Tax Inclusion Status</Text>
             </div>
             <Form.Item name="taxesIncluded" valuePropName="checked" style={{ marginBottom: 0 }}>
               <Switch size="small" checkedChildren="INC" unCheckedChildren="EX" />

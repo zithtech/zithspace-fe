@@ -1,10 +1,11 @@
-import { Typography, Form, Input, Button, Divider, DatePicker, Timeline, Tooltip, Row, Col } from 'antd';
-import { 
-  PlusOutlined, 
-  DeleteOutlined, 
-  InfoCircleOutlined, 
-  ClockCircleOutlined, 
-  FlagOutlined, 
+import React from 'react';
+import { Typography, Form, Input, Button, DatePicker, Timeline, Tooltip, Row, Col } from 'antd';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  InfoCircleOutlined,
+  ClockCircleOutlined,
+  FlagOutlined,
   RocketOutlined,
   CalendarOutlined,
   EditOutlined,
@@ -12,6 +13,8 @@ import {
 } from '@ant-design/icons';
 import { nanoid } from 'nanoid';
 import dayjs from 'dayjs';
+import TiptapEditor from '@/components/common/TiptapEditor';
+import TiptapViewer from '@/components/common/TiptapViewer';
 
 const { Title, Text } = Typography;
 
@@ -25,12 +28,12 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
   return (
     <div style={{ padding: '32px 0' }}>
       {data.title && (
-        <Title level={2} style={{ marginBottom: '40px', color: '#0f172a', fontWeight: 700 }}>
+        <Title level={2} style={{ marginBottom: '40px', color: 'var(--text-primary)', fontWeight: 700 }}>
           {data.title}
         </Title>
       )}
 
-      <div style={{ padding: '24px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+      <div style={{ padding: '24px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--box-shadow)' }}>
         <Timeline
           mode="left"
           items={[
@@ -40,10 +43,10 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
               color: 'green',
               children: (
                 <div style={{ paddingBottom: '24px' }}>
-                  <Text style={{ display: 'block', color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>
+                  <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>
                     Project Kickoff
                   </Text>
-                  <Text strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
+                  <Text strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
                     {data.startDate ? dayjs(data.startDate).format('MMMM D, YYYY') : 'TBD'}
                   </Text>
                 </div>
@@ -58,21 +61,21 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
                   <Text style={{ display: 'block', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.05em' }}>
                     Phase {index + 1}
                   </Text>
-                  <Text strong style={{ display: 'block', fontSize: '1.1rem', color: '#1e293b', marginBottom: '8px' }}>
+                  <Text strong style={{ display: 'block', fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '8px' }}>
                     {phase.title || 'Untitled Phase'}
                   </Text>
-                  <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', display: 'inline-flex', flexDirection: 'column', gap: '4px', borderLeft: '3px solid #cbd5e1' }}>
-                    <Text style={{ color: '#475569', fontSize: '0.95rem' }}>
-                      <span style={{ fontWeight: 600, color: '#334155' }}>Deadline:</span> {phase.deadline ? dayjs(phase.deadline).format('MMMM D, YYYY') : 'TBD'}
+                  <div style={{ background: 'var(--bg-primary)', padding: '12px 16px', borderRadius: '8px', display: 'inline-flex', flexDirection: 'column', gap: '4px', borderLeft: '3px solid var(--border-color)' }}>
+                    <Text style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Deadline:</span> {phase.deadline ? dayjs(phase.deadline).format('MMMM D, YYYY') : 'TBD'}
                     </Text>
                     {phase.reviewPeriod && (
-                      <Text style={{ color: '#475569', fontSize: '0.95rem' }}>
-                        <span style={{ fontWeight: 600, color: '#334155' }}>Review Period:</span> {phase.reviewPeriod}
+                      <Text style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Review Period:</span> {phase.reviewPeriod}
                       </Text>
                     )}
                     {phase.description && (
-                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
-                        <Text style={{ color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.5, display: 'block' }}>
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                        <Text style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.5, display: 'block' }}>
                           {phase.description}
                         </Text>
                       </div>
@@ -87,10 +90,10 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
               color: '#6366f1',
               children: (
                 <div>
-                  <Text style={{ display: 'block', color: '#64748b', fontSize: '0.9rem', marginBottom: '4px' }}>
+                  <Text style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '4px' }}>
                     Final Launch / Delivery
                   </Text>
-                  <Text strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
+                  <Text strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
                     {data.finalDate ? dayjs(data.finalDate).format('MMMM D, YYYY') : 'TBD'}
                   </Text>
                 </div>
@@ -102,57 +105,57 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
 
       {/* Dependency Notes */}
       {data.dependencyNotes && (
-        <div style={{ marginTop: '24px', padding: '16px', background: '#fffbeb', borderRadius: '8px', borderLeft: '4px solid #f59e0b', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <InfoCircleOutlined style={{ color: '#d97706', fontSize: '18px', marginTop: '2px' }} />
+        <div style={{
+          marginTop: '24px',
+          padding: '24px',
+          background: 'rgba(253, 230, 138, 0.1)',
+          borderRadius: '12px',
+          border: '1px solid rgba(253, 230, 138, 0.3)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '16px'
+        }}>
+          <InfoCircleOutlined style={{ color: '#d97706', fontSize: '20px', marginTop: '2px' }} />
           <div>
-            <Text strong style={{ display: 'block', color: '#92400e', marginBottom: '4px' }}>Important Note</Text>
-            <Text style={{ color: '#b45309', lineHeight: 1.5 }}>
-              {data.dependencyNotes}
-            </Text>
+            <Text strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '8px', fontSize: '1rem' }}>Timeline Constraints & Dependencies</Text>
+            <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <TiptapViewer content={data.dependencyNotes} />
+            </div>
           </div>
         </div>
       )}
     </div>
+
   );
 };
 
 export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => void }> = ({ data, onUpdate }) => {
-  const labelStyle: React.CSSProperties = { fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05rem', marginBottom: '6px', display: 'block' };
-  const inputStyle: React.CSSProperties = { borderRadius: '8px', background: '#ffffff', border: '1px solid #e2e8f0' };
+  const labelStyle: React.CSSProperties = { fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05rem', marginBottom: '6px', display: 'block' };
+  const inputStyle: React.CSSProperties = { borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' };
+
+  const handleUpdate = (changed: any) => {
+    onUpdate({ ...data, ...changed });
+  };
 
   return (
-    <Form 
-      layout="vertical" 
-      initialValues={{
-        ...data,
-        startDate: data.startDate ? dayjs(data.startDate) : null,
-        finalDate: data.finalDate ? dayjs(data.finalDate) : null,
-        phases: (data.phases || []).map((p: any) => ({ ...p, deadline: p.deadline ? dayjs(p.deadline) : null }))
-      }} 
-      onValuesChange={(_, allValues) => {
-        const serialized = {
-          ...data,
-          ...allValues,
-          startDate: allValues.startDate ? allValues.startDate.toISOString().split('T')[0] : null,
-          finalDate: allValues.finalDate ? allValues.finalDate.toISOString().split('T')[0] : null,
-          phases: (allValues.phases || []).map((p: any) => ({
-            ...p,
-            deadline: p.deadline ? p.deadline.toISOString().split('T')[0] : null
-          }))
-        };
-        onUpdate(serialized);
-      }}
-    >
+    <Form layout="vertical">
       {/* Timeline Header */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <HistoryOutlined style={{ color: '#3b82f6' }} />
           <Text strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>Section Definition</Text>
         </div>
-        
-        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <Form.Item label={<span style={labelStyle}>Section Title</span>} name="title" style={{ marginBottom: 0 }}>
-            <Input prefix={<EditOutlined style={{ color: '#cbd5e1' }} />} placeholder="e.g. Project Timeline" variant="filled" style={inputStyle} />
+
+        <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <Form.Item label={<span style={labelStyle}>Section Title</span>} style={{ marginBottom: 0 }}>
+            <Input
+              prefix={<EditOutlined style={{ color: 'var(--border-color)' }} />}
+              placeholder="e.g. Project Timeline"
+              variant="filled"
+              style={inputStyle}
+              value={data.title}
+              onChange={(e) => handleUpdate({ title: e.target.value })}
+            />
           </Form.Item>
         </div>
       </div>
@@ -161,19 +164,29 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <FlagOutlined style={{ color: '#10b981' }} />
-          <Text strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>Key Milestones</Text>
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Key Milestones</Text>
         </div>
-        
-        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+
+        <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <Row gutter={12}>
             <Col span={12}>
-              <Form.Item label={<span style={labelStyle}>Kickoff Date</span>} name="startDate" style={{ marginBottom: 0 }}>
-                <DatePicker prefix={<FlagOutlined style={{ color: '#cbd5e1' }} />} style={{ ...inputStyle, width: '100%' }} variant="filled" />
+              <Form.Item label={<span style={labelStyle}>Kickoff Date</span>} style={{ marginBottom: 0 }}>
+                <DatePicker
+                  style={{ ...inputStyle, width: '100%' }}
+                  variant="filled"
+                  value={data.startDate ? dayjs(data.startDate) : null}
+                  onChange={(date) => handleUpdate({ startDate: date ? date.format('YYYY-MM-DD') : null })}
+                />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label={<span style={labelStyle}>Final Delivery</span>} name="finalDate" style={{ marginBottom: 0 }}>
-                <DatePicker prefix={<RocketOutlined style={{ color: '#cbd5e1' }} />} style={{ ...inputStyle, width: '100%' }} variant="filled" />
+              <Form.Item label={<span style={labelStyle}>Final Delivery</span>} style={{ marginBottom: 0 }}>
+                <DatePicker
+                  style={{ ...inputStyle, width: '100%' }}
+                  variant="filled"
+                  value={data.finalDate ? dayjs(data.finalDate) : null}
+                  onChange={(date) => handleUpdate({ finalDate: date ? date.format('YYYY-MM-DD') : null })}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -184,69 +197,104 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <ClockCircleOutlined style={{ color: '#6366f1' }} />
-          <Text strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>Project Phases</Text>
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Project Phases</Text>
         </div>
-        
-        <Form.List name="phases">
-          {(fields, { add, remove }) => (
-            <>
-              {fields.map(({ key, name, ...restField }) => (
-                <div key={key} style={{ 
-                  background: '#ffffff', 
-                  padding: '16px', 
-                  marginBottom: '16px', 
-                  borderRadius: '12px', 
-                  border: '1px solid #e2e8f0', 
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                  position: 'relative' 
-                }}>
-                  <Tooltip title="Remove Phase">
-                    <Button 
-                      type="text" 
-                      danger 
-                      icon={<DeleteOutlined />} 
-                      onClick={() => remove(name)}
-                      style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {(data.phases || []).map((phase: any, index: number) => (
+            <div key={phase.id} style={{
+              background: 'var(--bg-secondary)',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)',
+              position: 'relative'
+            }}>
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => {
+                  const newPhases = [...data.phases];
+                  newPhases.splice(index, 1);
+                  handleUpdate({ phases: newPhases });
+                }}
+                style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+              />
+
+              <Form.Item label={<span style={labelStyle}>Phase Name</span>} style={{ marginBottom: 12 }}>
+                <Input
+                  placeholder="e.g. Design & Prototype"
+                  variant="filled"
+                  style={inputStyle}
+                  value={phase.title}
+                  onChange={(e) => {
+                    const newPhases = [...data.phases];
+                    newPhases[index] = { ...phase, title: e.target.value };
+                    handleUpdate({ phases: newPhases });
+                  }}
+                />
+              </Form.Item>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item label={<span style={labelStyle}>Deadline</span>} style={{ marginBottom: 0 }}>
+                    <DatePicker
+                      style={{ ...inputStyle, width: '100%' }}
+                      variant="filled"
+                      value={phase.deadline ? dayjs(phase.deadline) : null}
+                      onChange={(date) => {
+                        const newPhases = [...data.phases];
+                        newPhases[index] = { ...phase, deadline: date ? date.format('YYYY-MM-DD') : null };
+                        handleUpdate({ phases: newPhases });
+                      }}
                     />
-                  </Tooltip>
-                  
-                  <Form.Item {...restField} name={[name, 'title']} label={<span style={labelStyle}>Phase Name</span>} style={{ marginBottom: 12 }}>
-                    <Input prefix={<EditOutlined style={{ color: '#cbd5e1' }} />} placeholder="e.g. Design & Prototype" variant="filled" style={inputStyle} />
                   </Form.Item>
-                  
-                  <Row gutter={12}>
-                    <Col span={12}>
-                      <Form.Item {...restField} name={[name, 'deadline']} label={<span style={labelStyle}>Deadline</span>} style={{ marginBottom: 0 }}>
-                        <DatePicker prefix={<CalendarOutlined style={{ color: '#cbd5e1' }} />} style={{ ...inputStyle, width: '100%' }} variant="filled" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item {...restField} name={[name, 'reviewPeriod']} label={<span style={labelStyle}>Review Period</span>} style={{ marginBottom: 0 }}>
-                        <Input prefix={<ClockCircleOutlined style={{ color: '#cbd5e1' }} />} placeholder="e.g. 3 Days" variant="filled" style={inputStyle} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-              ))}
-              <Button type="dashed" onClick={() => add({ id: nanoid(), title: '', reviewPeriod: '', description: '' })} block icon={<PlusOutlined />} style={{ borderRadius: '12px', height: '40px' }}>
-                Add Phase Deadline
-              </Button>
-            </>
-          )}
-        </Form.List>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label={<span style={labelStyle}>Review Period</span>} style={{ marginBottom: 0 }}>
+                    <Input
+                      placeholder="e.g. 3 Days"
+                      variant="filled"
+                      style={inputStyle}
+                      value={phase.reviewPeriod}
+                      onChange={(e) => {
+                        const newPhases = [...data.phases];
+                        newPhases[index] = { ...phase, reviewPeriod: e.target.value };
+                        handleUpdate({ phases: newPhases });
+                      }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+          ))}
+          <Button
+            type="dashed"
+            onClick={() => handleUpdate({ phases: [...(data.phases || []), { id: nanoid(), title: '', reviewPeriod: '', deadline: null, description: '' }] })}
+            block icon={<PlusOutlined />}
+            style={{ borderRadius: '12px', height: '40px', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+          >
+            Add Phase Deadline
+          </Button>
+        </div>
       </div>
 
       {/* Conditions */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <InfoCircleOutlined style={{ color: '#f59e0b' }} />
-          <Text strong style={{ fontSize: '0.85rem', color: '#1e293b' }}>Timeline Constraints</Text>
+          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Timeline Constraints</Text>
         </div>
 
-        <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-          <Form.Item label={<span style={labelStyle}>Dependency Notes</span>} name="dependencyNotes" style={{ marginBottom: 0 }}>
-            <Input.TextArea rows={3} placeholder="Explain how client feedback delays affect the schedule..." variant="filled" style={inputStyle} />
-          </Form.Item>
+        <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <div style={{ marginBottom: '8px' }}>
+            <span style={labelStyle}>Dependency Notes</span>
+            <TiptapEditor
+              content={data.dependencyNotes || ''}
+              onChange={(html) => handleUpdate({ dependencyNotes: html })}
+              minHeight={150}
+            />
+          </div>
         </div>
       </div>
     </Form>

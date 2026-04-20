@@ -15,6 +15,7 @@ export const BlockRenderer: React.FC<{ type: BlockType; data: any }> = ({ type, 
     case 'signature': return <SignatureBlock data={data} />;
     case 'scope': return <ScopeBlock data={data} />;
     case 'timeline': return <TimelineBlock data={data} />;
+    case 'section': return <TextBlock data={data} />;
     default: return null;
   }
 };
@@ -27,6 +28,7 @@ export const BlockSettingsRenderer: React.FC<{ type: BlockType; data: any; onUpd
     case 'signature': return <SignatureBlockSettings data={data} onUpdate={onUpdate} />;
     case 'scope': return <ScopeBlockSettings data={data} onUpdate={onUpdate} />;
     case 'timeline': return <TimelineBlockSettings data={data} onUpdate={onUpdate} />;
+    case 'section': return <TextBlockSettings data={data} onUpdate={onUpdate} />;
     default: return null;
   }
 };

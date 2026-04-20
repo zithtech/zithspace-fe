@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 
-export type BlockType = 'cover' | 'text' | 'pricing' | 'signature' | 'scope' | 'timeline';
+export type BlockType = 'cover' | 'text' | 'pricing' | 'signature' | 'scope' | 'timeline' | 'section';
 
 export interface ProposalBlock {
   id: string;
@@ -44,6 +44,11 @@ const getDefaultDataForType = (type: BlockType) => {
       return { 
         heading: 'Executive Summary',
         content: 'Write your proposal content here. Explain the objectives, scope, and timeline.' 
+      };
+    case 'section':
+      return { 
+        heading: 'New Section Label',
+        content: 'Type your custom content here. You can add as many sections as you like.' 
       };
     case 'pricing':
       return { 
@@ -110,6 +115,17 @@ export const useProposalStore = create<ProposalState>((set) => ({
   selectedBlockId: null,
   
   addBlock: (type, index) => set((state) => {
+    // Unique blocks should only have one instance
+    const uniqueTypes: BlockType[] = ['cover', 'pricing', 'signature', 'timeline', 'scope'];
+    
+    if (uniqueTypes.includes(type)) {
+      const existingBlock = state.blocks.find(b => b.type === type);
+      if (existingBlock) {
+        // Just select the existing one instead of adding a new one
+        return { selectedBlockId: existingBlock.id };
+      }
+    }
+
     const newBlock: ProposalBlock = {
       id: nanoid(),
       type,
@@ -123,6 +139,7 @@ export const useProposalStore = create<ProposalState>((set) => ({
     }
     return { blocks: newBlocks, selectedBlockId: newBlock.id };
   }),
+
   
   removeBlock: (id) => set((state) => ({
     blocks: state.blocks.filter((b) => b.id !== id),

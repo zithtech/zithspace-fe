@@ -192,7 +192,7 @@ export default function OverviewPage() {
     <ProtectedRoute>
       <MainLayout>
         <div style={{ padding: "24px 32px", background: "#ffffff", height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          
+
           {/* Header Section */}
           <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flex: "0 0 auto" }}>
             <div style={{ flex: 1 }}>
@@ -207,9 +207,9 @@ export default function OverviewPage() {
               </Space>
             </div>
             <div>
-               <Tag style={{ borderRadius: 6, padding: "4px 12px", border: "1px solid #e2e8f0", background: "#f8fafc", color: "#475569", fontWeight: 600 }}>
-                  {grades.length} GRADE LEVELS
-               </Tag>
+              <Tag style={{ borderRadius: 6, padding: "4px 12px", border: "1px solid #e2e8f0", background: "#f8fafc", color: "#475569", fontWeight: 600 }}>
+                {grades.length} GRADE LEVELS
+              </Tag>
             </div>
           </div>
 
@@ -218,86 +218,86 @@ export default function OverviewPage() {
             <Col span={8} style={{ height: "100%", overflow: "hidden", paddingRight: 12, paddingBottom: 24, display: "flex", flexDirection: "column" }}>
               <div className="hierarchy-viz-card" style={{ borderRadius: 20, padding: "32px 0 32px 32px", height: "100%", display: "flex", flexDirection: "column" }}>
                 <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid #f1f5f9", paddingRight: 32, flex: "0 0 auto" }}>
-                   <Text strong style={{ fontSize: 15, color: "#1e293b" }}>Grade Distribution</Text>
-                   <div style={{ fontSize: 11, color: "#64748b" }}>Overview of {grades.length} organizational levels</div>
+                  <Text strong style={{ fontSize: 15, color: "#1e293b" }}>Grade Distribution</Text>
+                  <div style={{ fontSize: 11, color: "#64748b" }}>Overview of {grades.length} organizational levels</div>
                 </div>
                 <div className="custom-scrollbar" style={{ flex: 1, overflowY: "auto", paddingRight: 32 }}>
                   <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                  {gradesLoading || positionsLoading ? (
-                     Array.from({ length: 4 }).map((_, i) => <Card key={i} loading style={{ borderRadius: 12, border: "1px solid #f1f5f9" }} />)
-                  ) : (
-                    grades.map((item) => {
-                      const active = activeStep === item.key;
-                      const stats = getGradeStats(item.key);
-                      return (
-                        <div
-                          key={item.key}
-                          onClick={() => setActiveStep(item.key)}
-                          className={`grade-selector-card ${active ? "active" : ""}`}
-                          style={{
-                            cursor: "pointer",
-                            padding: "16px 20px",
-                            borderRadius: 16,
-                            border: active ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                            background: active ? "#eff6ff" : "#ffffff",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: 8,
-                            position: "relative",
-                            transition: "all 0.3s ease"
-                          }}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <Text strong style={{ 
-                              display: "block", 
-                              color: active ? "#1e40af" : "#1e293b", 
-                              fontSize: 15,
-                              marginBottom: 2
-                            }}>
-                              {item.name}
-                            </Text>
-                            <Space size={4}>
-                              <Tag style={{ 
-                                margin: 0, 
-                                fontSize: 9, 
-                                fontWeight: 700,
-                                background: active ? "#dbeafe" : "#f1f5f9",
-                                color: active ? "#1e40af" : "#64748b",
-                                border: "none",
-                                borderRadius: 4
+                    {gradesLoading || positionsLoading ? (
+                      Array.from({ length: 4 }).map((_, i) => <Card key={i} loading style={{ borderRadius: 12, border: "1px solid #f1f5f9" }} />)
+                    ) : (
+                      grades.map((item) => {
+                        const active = activeStep === item.key;
+                        const stats = getGradeStats(item.key);
+                        return (
+                          <div
+                            key={item.key}
+                            onClick={() => setActiveStep(item.key)}
+                            className={`grade-selector-card ${active ? "active" : ""}`}
+                            style={{
+                              cursor: "pointer",
+                              padding: "16px 20px",
+                              borderRadius: 16,
+                              border: active ? "1px solid #2563eb" : "1px solid #e2e8f0",
+                              background: active ? "#eff6ff" : "#ffffff",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginBottom: 8,
+                              position: "relative",
+                              transition: "all 0.3s ease"
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <Text strong style={{
+                                display: "block",
+                                color: active ? "#1e40af" : "#1e293b",
+                                fontSize: 15,
+                                marginBottom: 2
                               }}>
-                                {item.code}
-                              </Tag>
-                            </Space>
-                          </div>
-                          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                             <div className="selector-stat-group">
+                                {item.name}
+                              </Text>
+                              <Space size={4}>
+                                <Tag style={{
+                                  margin: 0,
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  background: active ? "#dbeafe" : "#f1f5f9",
+                                  color: active ? "#1e40af" : "#64748b",
+                                  border: "none",
+                                  borderRadius: 4
+                                }}>
+                                  {item.code}
+                                </Tag>
+                              </Space>
+                            </div>
+                            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                              <div className="selector-stat-group">
                                 <div className={`selector-stat-value ${active ? "active" : ""}`}>{stats.positions}</div>
                                 <div className="selector-stat-label">POS</div>
-                             </div>
-                             <div className="selector-stat-group">
+                              </div>
+                              <div className="selector-stat-group">
                                 <div className={`selector-stat-value ${active ? "active" : ""}`}>{stats.departments}</div>
                                 <div className="selector-stat-label">DEPT</div>
-                             </div>
-                             <div className="selector-stat-group">
+                              </div>
+                              <div className="selector-stat-group">
                                 <div className={`selector-stat-value ${active ? "active" : ""}`}>{stats.subDepartments}</div>
                                 <div className="selector-stat-label">SUB</div>
-                             </div>
+                              </div>
+                            </div>
+                            {active && <div style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 12,
+                              bottom: 12,
+                              width: 4,
+                              background: "#2563eb",
+                              borderRadius: "0 4px 4px 0"
+                            }} />}
                           </div>
-                          {active && <div style={{ 
-                            position: "absolute", 
-                            left: 0, 
-                            top: 12, 
-                            bottom: 12, 
-                            width: 4, 
-                            background: "#2563eb", 
-                            borderRadius: "0 4px 4px 0" 
-                          }} />}
-                        </div>
-                      );
-                    })
-                  )}
+                        );
+                      })
+                    )}
                   </Space>
                 </div>
               </div>
@@ -307,32 +307,32 @@ export default function OverviewPage() {
             <Col span={16} style={{ height: "100%", overflow: "hidden", paddingLeft: 12, paddingBottom: 24, display: "flex", flexDirection: "column" }}>
               {selectedGrade ? (
                 <div className="hierarchy-viz-card" style={{ borderRadius: 20, padding: "32px 0 32px 32px", height: "100%", display: "flex", flexDirection: "column" }}>
-                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid #f1f5f9", paddingRight: 32, flex: "0 0 auto" }}>
-                      <Space size={12}>
-                        <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
-                          <ShieldCheck size={20} />
-                        </div>
-                        <div>
-                          <Text strong style={{ fontSize: 15, color: "#1e293b" }}>Hierarchy Visualization</Text>
-                          <div style={{ fontSize: 11, color: "#64748b" }}>Deep structural mapping for <Text strong style={{ color: "#1677ff" }}>{selectedGrade.name}</Text></div>
-                        </div>
-                      </Space>
-                      <div style={{ display: "flex", gap: 16 }}>
-                         <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#00b8d4" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>DEPT</Text></Space>
-                         <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#ff9800" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>SUB-DEPT</Text></Space>
-                         <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#9c27b0" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>POSITION</Text></Space>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid #f1f5f9", paddingRight: 32, flex: "0 0 auto" }}>
+                    <Space size={12}>
+                      <div style={{ background: "rgba(22, 119, 255, 0.08)", padding: 8, borderRadius: 10, color: "#1677ff", display: "flex" }}>
+                        <ShieldCheck size={20} />
                       </div>
-                   </div>
-                   <div className="hierarchy-container custom-scrollbar" style={{ flex: 1, overflowY: "auto", paddingRight: 32 }}>
-                     <Tree
-                       showLine={{ showLeafIcon: false }}
-                       expandedKeys={expandedKeys}
-                       onExpand={(keys) => setExpandedKeys(keys)}
-                       treeData={treeData}
-                       switcherIcon={<div style={{ color: "#94a3b8", fontSize: 12 }}>▼</div>}
-                       style={{ background: 'transparent' }}
-                     />
-                   </div>
+                      <div>
+                        <Text strong style={{ fontSize: 15, color: "#1e293b" }}>Hierarchy Visualization</Text>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>Deep structural mapping for <Text strong style={{ color: "#1677ff" }}>{selectedGrade.name}</Text></div>
+                      </div>
+                    </Space>
+                    <div style={{ display: "flex", gap: 16 }}>
+                      <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#00b8d4" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>DEPT</Text></Space>
+                      <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#ff9800" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>SUB-DEPT</Text></Space>
+                      <Space size={6}><div style={{ width: 8, height: 8, borderRadius: 2, background: "#9c27b0" }} /><Text style={{ fontSize: 10, color: "#64748b" }}>POSITION</Text></Space>
+                    </div>
+                  </div>
+                  <div className="hierarchy-container custom-scrollbar" style={{ flex: 1, overflowY: "auto", paddingRight: 32 }}>
+                    <Tree
+                      showLine={{ showLeafIcon: false }}
+                      expandedKeys={expandedKeys}
+                      onExpand={(keys) => setExpandedKeys(keys)}
+                      treeData={treeData}
+                      switcherIcon={<div style={{ color: "#94a3b8", fontSize: 12 }}>▼</div>}
+                      style={{ background: 'transparent' }}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div style={{ border: "1px dashed #e2e8f0", borderRadius: 16, height: 400, display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column", gap: 12 }}>
@@ -344,7 +344,8 @@ export default function OverviewPage() {
           </Row>
         </div>
 
-         <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .org-node { 
             display: flex; 
             align-items: center; 

@@ -76,7 +76,7 @@ export const DrawerField: React.FC<DrawerFieldProps> = ({
 
                 <style jsx>{`
                     .drawer-field.interactive:hover {
-                        background-color: var(--bg-pure-white);
+                        background-color: rgba(144, 144, 144, 0.08);
                     }
                     .drawer-field:hover .field-action {
                         opacity: 1;

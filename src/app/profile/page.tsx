@@ -204,7 +204,7 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="min-h-[calc(100vh-64px)]" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <div className="min-h-[calc(100vh-64px)]" style={{ backgroundColor: 'var(--bg-secondary)', margin: "0 -24px" }}>
         {/* Banner Area - Compacted */}
         <div className="h-24 bg-gradient-to-r from-[#1e40af] to-[#3730a3] relative overflow-hidden flex items-center px-10">
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mt-[-20px]" />

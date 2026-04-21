@@ -82,10 +82,10 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
             return (
                 <div style={{
                     fontSize: 13,
-                    color: '#595959',
+                    color: 'var(--text-secondary)',
                     fontStyle: 'italic',
                     padding: '8px 12px',
-                    backgroundColor: '#fafafa',
+                    backgroundColor: 'var(--bg-secondary)',
                     borderRadius: '0 8px 8px 8px',
                     borderLeft: '3px solid #1890ff',
                     marginTop: 6,
@@ -107,16 +107,16 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                             const restParts = rest.split(' to ');
                             if (restParts.length === 2) {
                                 return (
-                                    <div key={idx} style={{ fontSize: 13, color: '#595959', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <Text strong style={{ fontSize: 12 }}>{field}:</Text>
+                                    <div key={idx} style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <Text strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>{field}:</Text>
                                         <Text delete type="secondary" style={{ fontSize: 12 }}>{restParts[0]}</Text>
-                                        <Text style={{ fontSize: 12, color: '#8c8c8c' }}>→</Text>
-                                        <Text style={{ fontSize: 12, color: '#262626', fontWeight: 500 }}>{restParts[1]}</Text>
+                                        <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>→</Text>
+                                        <Text style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{restParts[1]}</Text>
                                     </div>
                                 );
                             }
                         }
-                        return <div key={idx} style={{ fontSize: 13, color: '#595959' }}>• {change}</div>;
+                        return <div key={idx} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>• {change}</div>;
                     })}
                 </div>
             )
@@ -128,8 +128,8 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                     {Object.entries(details).map(([key, value]: [string, any], idx) => {
                         if (key === 'changes' || key === 'status' && action === 'Ticket Created') return null;
                         return (
-                            <div key={idx} style={{ fontSize: 12, color: '#8c8c8c' }}>
-                                <span style={{ textTransform: 'capitalize' }}>{key}</span>: <span style={{ color: '#595959' }}>{String(value)}</span>
+                            <div key={idx} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                                <span style={{ textTransform: 'capitalize' }}>{key}</span>: <span style={{ color: 'var(--text-primary)' }}>{String(value)}</span>
                             </div>
                         )
                     })}
@@ -150,7 +150,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                 <div style={{
                     paddingBottom: index === activities.length - 1 ? 8 : 24,
                     opacity: isLatest ? 1 : 0.85,
-                    borderBottom: '1px solid #f9f9f9',
+                    borderBottom: '1px solid var(--border-color)',
                     marginBottom: 16
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
@@ -168,7 +168,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                             </Avatar>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <Text strong style={{ fontSize: 13, color: '#262626' }}>
+                                    <Text strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>
                                         {activity.performedBy?.name || 'System'}
                                     </Text>
                                     <Text type="secondary" style={{ fontSize: 12 }}>
@@ -201,7 +201,7 @@ const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ ticketId }) => {
                 }
                 .activity-timeline-premium .ant-timeline-item-tail {
                     left: 14px !important;
-                    border-inline-start: 1.5px solid #f0f0f0 !important;
+                    border-inline-start: 1.5px solid var(--border-color) !important;
                 }
                 .activity-timeline-premium .ant-timeline-item-head {
                     left: 14px !important;

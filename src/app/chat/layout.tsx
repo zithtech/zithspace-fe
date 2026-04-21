@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Layout, Button, Typography, Tooltip, Spin, message } from 'antd';
+import { Layout, Button, Typography, Tooltip, Spin, message, theme } from 'antd';
 import { PlusOutlined, EditOutlined, AppstoreOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import ChannelList from '@/features/chat/ChannelList';
 import BrowseChannelsModal from '@/features/chat/BrowseChannelsModal';
@@ -18,6 +18,7 @@ const { Title } = Typography;
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const { setChannels, channels } = useChatStore();
+    const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
     const [browseOpen, setBrowseOpen] = useState(false);
 
@@ -57,8 +58,8 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                 <Sider
                     width={280}
                     style={{
-                        background: '#fff',
-                        borderRight: '1px solid #f0f0f0',
+                        background: token.colorBgContainer,
+                        borderRight: `1px solid ${token.colorBorderSecondary}`,
                         display: 'flex',
                         flexDirection: 'column'
                     }}
@@ -66,12 +67,12 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                     {/* Header */}
                     <div style={{
                         padding: '16px',
-                        borderBottom: '1px solid #f0f0f0',
+                        borderBottom: `1px solid ${token.colorBorderSecondary}`,
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center'
                     }}>
-                        <Title level={5} style={{ margin: 0, color: '#1d1c1d' }}>
+                        <Title level={5} style={{ margin: 0, color: token.colorText }}>
                             ZithConnect
                         </Title>
                         <div style={{ display: 'flex', gap: 4 }}>
@@ -149,7 +150,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                 </Sider>
 
                 {/* Main content area */}
-                <Layout style={{ background: '#fff' }}>
+                <Layout style={{ background: token.colorBgContainer }}>
                     {children}
                 </Layout>
             </Layout>

@@ -238,7 +238,7 @@ export default function ProjectsPage() {
                       hoverable 
                       bordered={false}
                       style={{ borderRadius: 16, background: "var(--bg-pure-white)", border: "1px solid var(--border-color)", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
-                      onClick={() => router.push(`/projects/${project.id}/tickets`)}
+                      onClick={() => router.push(`/projects/${project.id}/overview`)}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                         <Space direction="vertical" size={2}>

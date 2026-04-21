@@ -822,8 +822,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               setEditingField({ ticketId: record.id, field: "assignee" })
             }
           >
-            <Avatar size="small" style={{ backgroundColor: "#1677ff" }}>
-              {name.charAt(0)}
+            <Avatar
+              size="small"
+              style={{ backgroundColor: "#1677ff" }}
+              src={typeof assignee === 'object' ? assignee?.avatarUrl : undefined}
+            >
+              {!(typeof assignee === 'object' && assignee?.avatarUrl) && name.charAt(0)}
             </Avatar>
             <Text>{name}</Text>
           </Space>

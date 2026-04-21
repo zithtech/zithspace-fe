@@ -13,7 +13,7 @@ interface KanbanColumnProps {
   title: string;
   tickets: Ticket[];
   projects: Array<{ value: string; label: string; code: string }>;
-  members: Array<{ value: string; label: string; position: string }>;
+  members: Array<{ value: string; label: string; position: string; avatarUrl?: string | null }>;
   onTicketUpdate: (ticketId: string, updates: Partial<Ticket> & { assigneeId?: string }) => void;
   activeSprint?: any;
   kanbanScope?: 'active' | 'backlog';

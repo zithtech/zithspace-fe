@@ -38,9 +38,9 @@ import {
   UserOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useRouter } from "next/navigation";
 import {
   ProjectService,
   Project,
@@ -52,6 +52,7 @@ import { MembersService } from "@/services/membersService";
 import { useAuth } from "@/context/AuthContext";
 import { RBAC } from "@/lib/rbac";
 import MainLayout from "@/components/layout/MainLayout";
+import { ColumnsType } from "antd/es/table";
 
 // Extend dayjs with relativeTime plugin
 dayjs.extend(relativeTime);
@@ -70,6 +71,7 @@ const ProjectsManagePage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { notification, message: antMessage } = App.useApp();
   const [form] = Form.useForm();
+  const router = useRouter();
 
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
@@ -85,9 +87,6 @@ const ProjectsManagePage: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
-  // View Project Drawer (READ-ONLY)
-  const [viewProject, setViewProject] = useState<Project | null>(null);
-  const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState<ProjectsFilters>({
@@ -348,7 +347,7 @@ const ProjectsManagePage: React.FC = () => {
       title: "Project",
       key: "project",
       width: 250,
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space size={12}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
@@ -370,7 +369,7 @@ const ProjectsManagePage: React.FC = () => {
       dataIndex: "status",
       key: "status",
       width: 140,
-      render: (status) => (
+      render: (status: any) => (
         <Tag
           color={getStatusColor(status)}
           style={{
@@ -391,7 +390,7 @@ const ProjectsManagePage: React.FC = () => {
       title: "Project Manager",
       key: "projectManager",
       width: 200,
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space size={8}>
           <Avatar
             size="small"
@@ -412,7 +411,7 @@ const ProjectsManagePage: React.FC = () => {
       title: "Team",
       key: "teamMembers",
       width: 130,
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space size={4}>
           <TeamOutlined style={{ color: "#8c8c8c" }} />
           <Text style={{ fontSize: 13 }}>{record?.members?.length || 0} members</Text>
@@ -424,7 +423,7 @@ const ProjectsManagePage: React.FC = () => {
       dataIndex: "defaultPriority",
       key: "defaultPriority",
       width: 120,
-      render: (priority) => (
+      render: (priority: any) => (
         <Tag
           color={getPriorityColor(priority)}
           style={{
@@ -445,7 +444,7 @@ const ProjectsManagePage: React.FC = () => {
       title: "Dates",
       key: "dates",
       width: 180,
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <div style={{ fontSize: 12 }}>
           <div style={{ marginBottom: 2 }}>
             <CalendarOutlined style={{ marginRight: 6, color: "var(--primary-color)", fontSize: 11 }} />
@@ -465,7 +464,7 @@ const ProjectsManagePage: React.FC = () => {
       key: "actions",
       width: 120,
       fixed: "right",
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space>
           <Tooltip title="View">
             <Button
@@ -474,7 +473,7 @@ const ProjectsManagePage: React.FC = () => {
               icon={<EyeOutlined style={{ fontSize: 15 }} />}
               onClick={(e) => {
                 e.stopPropagation();
-                openViewDrawer(record);
+                router.push(`/projects/${record.id}/overview`);
               }}
             />
           </Tooltip>
@@ -548,10 +547,6 @@ const ProjectsManagePage: React.FC = () => {
     );
   }
 
-  const openViewDrawer = (project: Project) => {
-    setViewProject(project);
-    setViewDrawerOpen(true);
-  };
 
   return (
     <MainLayout>
@@ -844,7 +839,7 @@ const ProjectsManagePage: React.FC = () => {
                   <Col xs={24} sm={12} lg={8} xl={8} key={project.id}>
                     <Card
                       hoverable
-                      onClick={() => openViewDrawer(project)}
+                      onClick={() => router.push(`/projects/${project.id}/overview`)}
                       style={{
                         ...glassStyle,
                         height: "100%",
@@ -1003,7 +998,7 @@ const ProjectsManagePage: React.FC = () => {
                           icon={<ArrowRightOutlined style={{ fontSize: 14 }} />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            openViewDrawer(project);
+                            router.push(`/projects/${project.id}/overview`);
                           }}
                         />
                       </div>
@@ -1033,7 +1028,7 @@ const ProjectsManagePage: React.FC = () => {
               onChange={handleTableChange}
               onRow={(record) => ({
                 onClick: () => {
-                  openViewDrawer(record);
+                  router.push(`/projects/${record.id}/overview`);
                 },
               })}
             />
@@ -1283,354 +1278,19 @@ const ProjectsManagePage: React.FC = () => {
             </div>
           </div>
         </Drawer>
-
-        {/* View Drawer (Slider) */}
-        <Drawer
-          open={viewDrawerOpen}
-          onClose={() => {
-            setViewDrawerOpen(false);
-            setViewProject(null);
-          }}
-          width={580}
-          closable={false}
-          styles={{
-            body: { padding: 0 },
-            header: { display: "none" }
-          }}
+        {/* <Button
+          block
+          style={{ height: 44, borderRadius: 10, fontWeight: 600 }}
+          onClick={() => setViewDrawerOpen(false)}
         >
-          {viewProject && (
-            <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--bg-pure-white)" }}>
-              {/* Drawer Header - Compact & Premium */}
-              <div style={{
-                padding: "24px 24px",
-                background: "var(--bg-pure-white)",
-                borderBottom: "1px solid var(--border-color)",
-                position: "relative",
-                zIndex: 5
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Space size={16} align="center">
-                    <div style={{
-                      width: 50,
-                      height: 50,
-                      borderRadius: 12,
-                      background: "linear-gradient(135deg, #1677ff 0%, #0958d9 100%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      fontSize: 20,
-                      fontWeight: 700,
-                      boxShadow: "0 4px 10px rgba(22, 119, 255, 0.25)"
-                    }}>
-                      {viewProject.name?.[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: "-0.4px" }}>{viewProject.name}</Title>
-                      <Space size={6} style={{ marginTop: 2 }}>
-                        <Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>{viewProject.code}</Text>
-                        <Tag
-                          color={getStatusColor(viewProject.status)}
-                          style={{
-                            borderRadius: 6,
-                            padding: "0px 8px",
-                            fontWeight: 700,
-                            fontSize: 9,
-                            textTransform: "uppercase",
-                            border: "none",
-                            margin: 0,
-                            height: 18,
-                            lineHeight: "18px"
-                          }}
-                        >
-                          {viewProject.status.replace("-", " ")}
-                        </Tag>
-                      </Space>
-                    </div>
-                  </Space>
-                  <Button
-                    type="text"
-                    shape="circle"
-                    size="small"
-                    icon={<PlusOutlined style={{ transform: "rotate(45deg)", fontSize: 16 }} />}
-                    onClick={() => setViewDrawerOpen(false)}
-                    style={{ color: "#bfbfbf", background: "rgba(0,0,0,0.02)" }}
-                  />
-                </div>
-
-                {/* Compact Progress Line */}
-                {viewProject.totalTickets > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <Text style={{ fontSize: 10, color: "#8c8c8c", textTransform: "uppercase", fontWeight: 600 }}>Project Velocity</Text>
-                      <Text strong style={{ fontSize: 11, color: "#1677ff" }}>
-                        {Math.round((viewProject.completedTickets / viewProject.totalTickets) * 100)}%
-                      </Text>
-                    </div>
-                    <Progress
-                      percent={Math.round((viewProject.completedTickets / viewProject.totalTickets) * 100)}
-                      showInfo={false}
-                      strokeColor="#1677ff"
-                      strokeWidth={4}
-                      style={{ margin: 0 }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Drawer Content - High Density */}
-              <div style={{ padding: "20px 24px", flex: 1, overflowY: "auto" }}>
-                {/* Information Grid - Tighter */}
-                <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
-                  <Col span={12}>
-                    <div style={{
-                      padding: "12px",
-                      background: "transparent",
-                      borderRadius: 10,
-                      border: "1px solid rgba(0,0,0,0.03)",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.01)"
-                    }}>
-                      <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 4, textTransform: "uppercase", fontWeight: 600, color: "#bfbfbf" }}>
-                        Priority
-                      </Text>
-                      <Space size={6}>
-                        <div style={{
-                          width: 6, height: 6, borderRadius: "50%",
-                          background: getPriorityColor(viewProject.defaultPriority) === 'red' ? '#ff4d4f' :
-                            getPriorityColor(viewProject.defaultPriority) === 'orange' ? '#faad14' : '#52c41a',
-                        }} />
-                        <Text strong style={{ fontSize: 13, textTransform: "capitalize" }}>{viewProject.defaultPriority}</Text>
-                      </Space>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{
-                      padding: "12px",
-                      background: "transparent",
-                      borderRadius: 10,
-                      border: "1px solid rgba(0,0,0,0.03)",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.01)"
-                    }}>
-                      <Text type="secondary" style={{ fontSize: 9, display: "block", marginBottom: 4, textTransform: "uppercase", fontWeight: 600, color: "#bfbfbf" }}>
-                        Team
-                      </Text>
-                      <Space size={6}>
-                        <TeamOutlined style={{ color: "#1677ff", fontSize: 13 }} />
-                        <Text strong style={{ fontSize: 13 }}>{viewProject.members?.length || 0} Members</Text>
-                      </Space>
-                    </div>
-                  </Col>
-                </Row>
-
-                {/* Section: Overview - More compact */}
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                    <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Description</Title>
-                  </div>
-                  <div style={{
-                    padding: "0 2px",
-                    lineHeight: 1.6
-                  }}>
-                    <Typography.Paragraph type="secondary" style={{ fontSize: 13, margin: 0, color: "var(--text-secondary)" }}>
-                      {viewProject.description || "No description provided."}
-                    </Typography.Paragraph>
-                  </div>
-                </div>
-
-                <Divider style={{ margin: "20px 0", opacity: 0.6 }} />
-
-                {/* Section: Timeline - Row layout */}
-                <div style={{ marginBottom: 24 }}>
-                  <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Timeline</Title>
-                  <div style={{
-                    display: "flex",
-                    background: "var(--bg-secondary)",
-                    padding: "12px",
-                    borderRadius: 12,
-                    gap: 12
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase", marginBottom: 2 }}>Started</Text>
-                      <Text strong style={{ fontSize: 12 }}>{dayjs(viewProject.startDate).format("MMM DD, YYYY")}</Text>
-                    </div>
-                    <div style={{ width: 1, background: "#e8e8e8" }} />
-                    <div style={{ flex: 1 }}>
-                      <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase", marginBottom: 2 }}>Target</Text>
-                      <Text strong style={{ fontSize: 12 }}>
-                        {viewProject.endDate ? dayjs(viewProject.endDate).format("MMM DD, YYYY") : "No limit"}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section: Team */}
-                <div style={{ marginBottom: 24 }}>
-                  <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Leadership & Collaboration</Title>
-
-                  {/* Manager - More modern/refined */}
-                  <div style={{
-                    padding: "12px 16px",
-                    background: "var(--bg-secondary)",
-                    borderRadius: 14,
-                    border: "1px solid var(--border-color)",
-                    marginBottom: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-                  }}>
-                    <Avatar size={40} style={{ backgroundColor: "#fa8c16", marginRight: 12, fontSize: 14 }}>
-                      {viewProject.projectManager?.name.charAt(0)}
-                    </Avatar>
-                    <div style={{ flex: 1 }}>
-                      <Text strong style={{ display: "block", fontSize: 13 }}>{viewProject.projectManager?.name}</Text>
-                      <Text type="secondary" style={{ fontSize: 11 }}>Project Manager</Text>
-                    </div>
-                    <Tag color="orange" style={{ border: "none", fontWeight: 700, borderRadius: 5, fontSize: 9, margin: 0 }}>LEAD</Tag>
-                  </div>
-
-                  {/* Members - Compact Grid */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    {viewProject.members?.map((member: any) => (
-                      <div
-                        key={member.id || member.user?.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "8px 12px",
-                          background: "transparent",
-                          borderRadius: 10,
-                          border: "1px solid rgba(0,0,0,0.02)"
-                        }}
-                      >
-                        <Avatar size={28} style={{ backgroundColor: "#52c41a", fontSize: 10 }}>
-                          {(member.user?.name || member.name || "U").charAt(0)}
-                        </Avatar>
-                        <div style={{ minWidth: 0 }}>
-                          <Text strong style={{ fontSize: 12, display: "block" }} ellipsis>{member.user?.name || member.name}</Text>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Section: Repositories */}
-                {viewProject.repositories && viewProject.repositories.length > 0 && (
-                  <div style={{ marginBottom: 24 }}>
-                    <Title level={5} style={{ margin: 0, fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Resources</Title>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {viewProject.repositories.map((repo: any, idx: number) => (
-                        <div key={idx} style={{
-                          padding: "8px 12px",
-                          background: "rgba(22, 119, 255, 0.1)",
-                          borderRadius: 10,
-                          border: "1px solid rgba(22, 119, 255, 0.2)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8
-                        }}>
-                          <ProjectOutlined style={{ color: "#1677ff", fontSize: 12 }} />
-                          <Text strong style={{ fontSize: 11, color: "#0958d9" }}>{repo.name}</Text>
-                          <ArrowRightOutlined style={{ fontSize: 10, color: "#1677ff", cursor: "pointer" }} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Compact Metadata Footer */}
-                <div style={{
-                  marginTop: 32,
-                  padding: "12px 16px",
-                  background: "var(--bg-secondary)",
-                  borderRadius: 12,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: 12
-                }}>
-                  <div>
-                    <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase" }}>Created</Text>
-                    <Text style={{ fontSize: 11 }}>{dayjs(viewProject.createdAt).format("MMM DD, YYYY")}</Text>
-                  </div>
-                  <div>
-                    <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase" }}>Last Activity</Text>
-                    <Text style={{ fontSize: 11 }}>{dayjs(viewProject.updatedAt).fromNow()}</Text>
-                  </div>
-                  {viewProject.createdBy && (
-                    <div>
-                      <Text type="secondary" style={{ fontSize: 9, display: "block", textTransform: "uppercase" }}>Author</Text>
-                      <Text style={{ fontSize: 11 }}>{viewProject.createdBy.name}</Text>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Drawer Action Bar - Compact */}
-              <div style={{
-                padding: "20px 24px",
-                borderTop: "1px solid rgba(0,0,0,0.05)",
-                background: "transparent",
-                display: "flex",
-                gap: 12
-              }}>
-                {user?.role && RBAC.hasPermission(user.role as any, "projects", "update") && (
-                  <Button
-                    type="primary"
-                    icon={<EditOutlined />}
-                    style={{
-                      height: 44,
-                      borderRadius: 10,
-                      fontWeight: 600,
-                      background: "#1677ff",
-                      flex: 1
-                    }}
-                    onClick={() => {
-                      setViewDrawerOpen(false);
-                      handleEdit(viewProject);
-                    }}
-                  >
-                    Edit Details
-                  </Button>
-                )}
-                {user?.role && RBAC.hasPermission(user.role as any, "projects", "delete") && (
-                  <Popconfirm
-                    title="Delete project?"
-                    description="Are you sure you want to delete this project?"
-                    onConfirm={() => {
-                      setViewDrawerOpen(false);
-                      handleDelete(viewProject.id);
-                    }}
-                    okText="Yes"
-                    cancelText="No"
-                    placement="topRight"
-                  >
-                    <Button
-                      danger
-                      icon={<DeleteOutlined />}
-                      style={{
-                        height: 44,
-                        borderRadius: 10,
-                        fontWeight: 600
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </Popconfirm>
-                )}
-                <Button
-                  block
-                  style={{ height: 44, borderRadius: 10, fontWeight: 600 }}
-                  onClick={() => setViewDrawerOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </Drawer>
+          Close
+        </Button> */}
       </div>
-    </MainLayout>
+
+
+
+
+    </MainLayout >
   );
 };
 

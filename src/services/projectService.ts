@@ -362,6 +362,18 @@ export class ProjectService {
       throw new Error("Failed to fetch project members");
     }
   }
-
+  /**
+   * Get project overview data (aggregated stats, sprints, team, activities)
+   */
+  static async getProjectOverview(projectId: string): Promise<any> {
+    try {
+      return await api.get(`/api/projects/${projectId}/overview`);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw new Error(error.message);
+      }
+      throw new Error("Failed to fetch project overview");
+    }
+  }
 
 }

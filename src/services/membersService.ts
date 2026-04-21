@@ -17,6 +17,7 @@ export interface Member {
     position: string;
   } | null;
   isActive: boolean;
+  avatarUrl?: string | null;
   lastLoginAt?: string; // Added field from backend
   createdAt: string;
   updatedAt: string;
@@ -219,17 +220,13 @@ export class MembersService {
 
 
 
-
-
-
-
-
-static async getMembersForSelect(filters?: { role?: string; position?: string }): Promise<Array<{ 
+  static async getMembersForSelect(filters?: { role?: string; position?: string }): Promise<Array<{ 
     value: string; 
     label: string; 
     email: string;
     position: string;
     role: string;
+    avatarUrl?: string | null;
   }>> {
     try {
       console.log("🔍 [API] getMembersForSelect called with filters:", filters);

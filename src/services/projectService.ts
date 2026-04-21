@@ -14,6 +14,7 @@ export interface Project {
     name: string;
     workEmail: string; // Changed from email
     position: string;
+    avatarUrl: string;
   };
   members: Array<{
     // Changed from teamMembers
@@ -22,6 +23,7 @@ export interface Project {
       name: string;
       workEmail: string; // Changed from email
       position: string;
+      // avatarUrl: string;
     };
   }>;
   repositories: Array<{

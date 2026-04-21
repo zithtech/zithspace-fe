@@ -20,57 +20,56 @@ export const CombinedSummaryCard: React.FC<CombinedSummaryCardProps> = ({
   sprintSummary,
   ticketSummary,
 }) => {
-  const SummaryPart = ({ title, stats, icon, color }: { title: string, stats: SummaryStats, icon: React.ReactNode, color: string }) => (
+  const SummaryPart = ({ title, stats, icon }: { title: string, stats: SummaryStats, icon: React.ReactNode }) => (
     <div className="w-full">
-      <Row justify="space-between" align="middle" className="mb-6">
+      <Row justify="space-between" align="middle" className="mb-4">
         <Col>
-          <Space size="middle">
+          <Space>
             <div style={{ 
-              width: 40, 
-              height: 40, 
-              borderRadius: '10px', 
+              width: 32, 
+              height: 32, 
+              borderRadius: '8px', 
               background: 'var(--bg-slate-50)', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              color: color,
-              fontSize: '20px',
-              border: '1px solid var(--border-color)',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+              color: 'var(--text-primary)',
+              fontSize: '16px',
+              border: '1px solid var(--border-color)'
             }}>
               {icon}
             </div>
-            <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: 'var(--text-secondary)', letterSpacing: '0.08em', fontWeight: 600 }}>
+            <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
               {title}
             </Text>
           </Space>
         </Col>
         <Col>
-          <Title level={2} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>{stats.total}</Title>
+          <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>{stats.total}</Title>
         </Col>
       </Row>
       
-      <div className="space-y-3">
-        <Row justify="space-between" align="middle" style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
+      <div className="space-y-2">
+        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
           <Space size="small">
-            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '14px' }} />
-            <Text style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Completed</Text>
+            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
+            <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Completed</Text>
           </Space>
-          <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{stats.completed}</Text>
+          <Text strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{stats.completed}</Text>
         </Row>
-        <Row justify="space-between" align="middle" style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
+        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
           <Space size="small">
-            <ClockCircleOutlined style={{ color: '#faad14', fontSize: '14px' }} />
-            <Text style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>In Progress</Text>
+            <ClockCircleOutlined style={{ color: '#faad14', fontSize: '12px' }} />
+            <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>In Progress</Text>
           </Space>
-          <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{stats.inProgress}</Text>
+          <Text strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{stats.inProgress}</Text>
         </Row>
-        <Row justify="space-between" align="middle" style={{ padding: '8px 0' }}>
+        <Row justify="space-between" align="middle" style={{ padding: '6px 0' }}>
           <Space size="small">
-            <InfoCircleOutlined style={{ color: 'var(--text-secondary)', fontSize: '14px' }} />
-            <Text style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Not Started</Text>
+            <InfoCircleOutlined style={{ color: 'var(--text-slate-400)', fontSize: '12px' }} />
+            <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Not Started</Text>
           </Space>
-          <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{stats.notStarted}</Text>
+          <Text strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{stats.notStarted}</Text>
         </Row>
       </div>
     </div>
@@ -78,19 +77,19 @@ export const CombinedSummaryCard: React.FC<CombinedSummaryCardProps> = ({
 
   return (
     <Card 
-      className="rounded-xl border-[var(--border-color)] h-full bg-[var(--bg-secondary)]" 
+      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] h-full" 
       bordered={false} 
-      styles={{ body: { padding: '32px' } }}
+      bodyStyle={{ padding: '24px' }}
     >
-      <Row gutter={64} align="top">
+      <Row gutter={48} align="top">
         <Col span={11}>
-          <SummaryPart title="Sprint Summary" stats={sprintSummary} icon={<AppstoreOutlined />} color="#1677ff" />
+          <SummaryPart title="Sprint Summary" stats={sprintSummary} icon={<AppstoreOutlined />} />
         </Col>
-        <Col span={2} className="flex justify-center" style={{ display: 'flex', alignItems: 'center' }}>
-          <Divider type="vertical" style={{ height: '160px', borderColor: 'var(--border-color)' }} />
+        <Col span={2} className="flex justify-center">
+          <Divider type="vertical" style={{ height: '140px', borderLeft: '1px solid var(--border-color)' }} />
         </Col>
         <Col span={11}>
-          <SummaryPart title="Ticket Summary" stats={ticketSummary} icon={<BarChartOutlined />} color="#722ed1" />
+          <SummaryPart title="Ticket Summary" stats={ticketSummary} icon={<BarChartOutlined />} />
         </Col>
       </Row>
     </Card>

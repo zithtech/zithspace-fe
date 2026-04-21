@@ -90,6 +90,7 @@ const ProjectOverviewPage = () => {
           <Col xs={24} lg={9}>
             <ProjectInfoCard
               projectHead={project.projectHead}
+              avatarUrl={project.projectHeadAvatar}
               teamCount={project.teamCount}
               description={project.description}
             />

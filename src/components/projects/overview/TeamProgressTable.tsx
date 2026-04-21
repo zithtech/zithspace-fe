@@ -24,12 +24,12 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
     <Card
       title="TEAM PROGRESS"
       bordered={false}
-      className="h-full rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]"
-      styles={{ 
+      className="h-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)]"
+      styles={{
         header: { borderBottom: '1px solid var(--border-color)', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', padding: '0 24px' },
         body: { padding: '0 24px' }
       }}
-      extra={<Text type="secondary" style={{ fontSize: '11px', cursor: 'pointer' }}>Sort ↑↓</Text>}
+      extra={<Text type="secondary" style={{ fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>Sort ↑↓</Text>}
     >
       <List
         dataSource={members}
@@ -39,12 +39,12 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
               <Row justify="space-between" align="middle" className="mb-3">
                 <Col>
                   <Space size="middle">
-                    <Avatar 
-                      size="middle" 
+                    <Avatar
+                      //size="middle" 
                       src={item.avatarUrl}
-                      style={{ 
-                        backgroundColor: 'rgba(56, 233, 77, 0.1)', 
-                        color: '#38e94d', 
+                      style={{
+                        backgroundColor: 'rgba(56, 233, 77, 0.1)',
+                        color: '#38e94d',
                         fontSize: '12px',
                         border: '1px solid rgba(56, 233, 77, 0.2)',
                         fontWeight: 600
@@ -54,7 +54,7 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
                     </Avatar>
                     <div>
                       <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)', display: 'block' }}>{item.name || "Unknown Member"}</Text>
-                      <Text type="secondary" style={{ fontSize: '11px' }}>Contributor</Text>
+                      <Text type="secondary" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Contributor</Text>
                     </div>
                   </Space>
                 </Col>
@@ -63,11 +63,11 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
                   <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 500 }}>CONTRIBUTION</div>
                 </Col>
               </Row>
-              <Progress 
-                percent={item.contribution || 0} 
-                showInfo={false} 
-                size="small" 
-                strokeColor="#38e94d" 
+              <Progress
+                percent={item.contribution || 0}
+                showInfo={false}
+                size="small"
+                strokeColor="#38e94d"
                 trailColor="rgba(0,0,0,0.05)"
                 strokeWidth={6}
               />

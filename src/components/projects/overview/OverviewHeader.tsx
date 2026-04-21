@@ -42,7 +42,7 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
               <Space align="center" size="small">
                 <Title level={4} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>{name}</Title>
                 {code && (
-                  <Text type="secondary" style={{ fontSize: '13px', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 500, border: '1px solid var(--border-color)' }}>
+                  <Text type="secondary" style={{ fontSize: '13px', background: 'var(--bg-slate-50)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 500 }}>
                     {code}
                   </Text>
                 )}
@@ -60,12 +60,12 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
                 </Tag>
               </Space>
               <div className="mt-1">
-                <Space size="large" style={{ fontSize: '12px' }}>
+                <Space size="large" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                   <span>
-                    <Text type="secondary">Duration:</Text> <Text style={{ color: 'var(--text-primary)' }}>{dayjs(startDate).format("MMM D, YYYY")} — {endDate ? dayjs(endDate).format("MMM D, YYYY") : "Ongoing"}</Text>
+                    <Text type="secondary">Duration:</Text> {dayjs(startDate).format("MMM D, YYYY")} — {endDate ? dayjs(endDate).format("MMM D, YYYY") : "Ongoing"}
                   </span>
                   <span>
-                    <Text type="secondary">Type:</Text> <Text style={{ color: 'var(--text-primary)' }}>Internal Project</Text>
+                    <Text type="secondary">Type:</Text> Internal Project
                   </span>
                 </Space>
               </div>

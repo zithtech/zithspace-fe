@@ -1,105 +1,100 @@
 import React from "react";
-import { Card, Typography, Avatar, Space } from "antd";
+import { Card, Typography, Row, Col, Avatar, Space, Tag } from "antd";
+import { UserOutlined, TeamOutlined, ProfileOutlined } from "@ant-design/icons";
 
 const { Text, Title, Paragraph } = Typography;
 
 interface ProjectInfoCardProps {
   projectHead: string;
-  projectHeadAvatar?: string | null;
+  avatarUrl?: string; // Added avatarUrl
   teamCount: number;
   description: string | null;
 }
 
 export const ProjectInfoCard: React.FC<ProjectInfoCardProps> = ({
   projectHead,
-  projectHeadAvatar,
+  avatarUrl,
   teamCount,
   description,
 }) => {
   return (
     <Card 
-      className="rounded-xl border-[var(--border-color)] h-full bg-[var(--bg-secondary)]" 
+      className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)] h-full" 
       bordered={false} 
-      styles={{ body: { padding: '24px' } }}
+      bodyStyle={{ padding: '20px' }}
     >
-      <Title level={5} style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', marginBottom: '24px' }}>
-        PROJECT INFO
-      </Title>
-
-      <div className="space-y-6">
-        <div>
-          <Text type="secondary" style={{ fontSize: '11px', display: 'block', marginBottom: '10px', fontWeight: 500 }}>PROJECT HEAD</Text>
-          <div style={{ 
-            background: 'var(--bg-slate-50)', 
-            padding: '16px', 
-            borderRadius: '12px',
-            border: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <Space align="center" size="middle">
+      <div className="space-y-4">
+        {/* Top Header Section */}
+        <Row gutter={16}>
+          <Col span={14}>
+            <div className="mb-1">
+              <Text strong style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <UserOutlined className="mr-1" /> Team Head
+              </Text>
+            </div>
+            <Space align="center">
               <Avatar 
-                size="large"
-                src={projectHeadAvatar}
+                src={avatarUrl}
                 style={{ 
-                  backgroundColor: 'var(--bg-secondary)', 
-                  color: 'var(--primary-color)', 
-                  border: '1px solid var(--border-color)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                  backgroundColor: 'rgba(24, 144, 255, 0.1)', 
+                  color: '#1890ff', 
+                  border: '1px solid rgba(24, 144, 255, 0.2)' 
                 }}
               >
-                {projectHead.substring(0, 1).toUpperCase()}
+                {!avatarUrl && projectHead.substring(0, 1).toUpperCase()}
               </Avatar>
-              <div>
-                <Text strong style={{ fontSize: '15px', color: 'var(--text-primary)', display: 'block' }}>{projectHead}</Text>
-                <Text type="secondary" style={{ fontSize: '12px' }}>Project Manager</Text>
-              </div>
+              <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{projectHead}</Text>
             </Space>
-          </div>
-        </div>
+          </Col>
+          <Col span={10}>
+            <div className="mb-1">
+              <Text strong style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <TeamOutlined className="mr-1" /> Members
+              </Text>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Title level={4} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>{teamCount}</Title>
+              <Tag style={{ 
+                marginLeft: '8px', 
+                border: 'none', 
+                background: 'var(--bg-slate-50)', 
+                color: 'var(--text-secondary)',
+                fontSize: '10px', 
+                borderRadius: '4px' 
+              }}>ACTIVE</Tag>
+            </div>
+          </Col>
+        </Row>
 
+        <Divider style={{ margin: '12px 0' }} />
+
+        {/* Description Section */}
         <div>
-          <Text type="secondary" style={{ fontSize: '11px', display: 'block', marginBottom: '10px', fontWeight: 500 }}>DESCRIPTION</Text>
+          <div className="mb-2">
+            <Text strong style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <ProfileOutlined className="mr-1" /> Project Description
+            </Text>
+          </div>
           <div style={{ 
-            minHeight: '100px',
             background: 'var(--bg-slate-50)', 
-            padding: '16px', 
-            borderRadius: '12px',
+            padding: '12px', 
+            borderRadius: '8px', 
             border: '1px solid var(--border-color)',
+            minHeight: '80px'
           }}>
-            <Paragraph
-              ellipsis={{ rows: 4, expandable: true, symbol: 'View More' }}
-              style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.7', margin: 0 }}
+            <Paragraph 
+              ellipsis={{ rows: 3, expandable: true, symbol: 'more' }} 
+              style={{ fontSize: '13px', margin: 0, color: 'var(--text-slate-700)' }}
             >
               {description || "No description provided for this project."}
             </Paragraph>
-          </div>
-        </div>
-
-        <div style={{ 
-          paddingTop: '20px', 
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <Text type="secondary" style={{ fontSize: '11px', display: 'block', marginBottom: '4px', fontWeight: 500 }}>TEAM SIZE</Text>
-            <Text strong style={{ fontSize: '18px', color: 'var(--text-primary)' }}>{teamCount} Members</Text>
-          </div>
-          <div style={{ 
-            padding: '4px 12px', 
-            background: 'rgba(82, 196, 26, 0.1)', 
-            color: '#52c41a', 
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 700
-          }}>
-            ACTIVE
           </div>
         </div>
       </div>
     </Card>
   );
 };
+
+const Divider = ({ style }: { style?: React.CSSProperties }) => (
+  <div style={{ borderBottom: '1px solid var(--border-color)', ...style }} />
+);

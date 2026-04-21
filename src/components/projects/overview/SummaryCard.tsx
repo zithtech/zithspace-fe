@@ -22,7 +22,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   icon,
 }) => {
   return (
-    <Card className="rounded-xl border border-gray-100" bordered={false}>
+    <Card className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)]" bordered={false}>
       <Row justify="space-between" align="middle" className="mb-3">
         <Col>
           <Space>
@@ -30,46 +30,47 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
               width: 32,
               height: 32,
               borderRadius: '8px',
-              background: '#f6f8fa',
+              background: 'var(--bg-slate-50)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#555',
-              fontSize: '16px'
+              color: 'var(--text-primary)',
+              fontSize: '16px',
+              border: '1px solid var(--border-color)'
             }}>
               {icon}
             </div>
-            <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: '#8c8c8c', letterSpacing: '0.05em' }}>
+            <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
               {title}
             </Text>
           </Space>
         </Col>
         <Col>
-          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{total}</Title>
+          <Title level={3} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>{total}</Title>
         </Col>
       </Row>
 
       <div className="space-y-2">
-        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid #f9f9f9' }}>
+        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
           <Space size="small">
             <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
-            <Text type="secondary" style={{ fontSize: '13px' }}>Completed</Text>
+            <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Completed</Text>
           </Space>
-          <Text strong style={{ fontSize: '13px' }}>{completed}</Text>
+          <Text strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{completed}</Text>
         </Row>
-        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid #f9f9f9' }}>
+        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid var(--border-color)' }}>
           <Space size="small">
             <ClockCircleOutlined style={{ color: '#faad14', fontSize: '12px' }} />
-            <Text type="secondary" style={{ fontSize: '13px' }}>In Progress</Text>
+            <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>In Progress</Text>
           </Space>
-          <Text strong style={{ fontSize: '13px' }}>{inProgress}</Text>
+          <Text strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{inProgress}</Text>
         </Row>
         <Row justify="space-between" align="middle" style={{ padding: '6px 0' }}>
           <Space size="small">
-            <InfoCircleOutlined style={{ color: '#bfbfbf', fontSize: '12px' }} />
-            <Text type="secondary" style={{ fontSize: '13px' }}>Not Started</Text>
+            <InfoCircleOutlined style={{ color: 'var(--text-slate-400)', fontSize: '12px' }} />
+            <Text type="secondary" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Not Started</Text>
           </Space>
-          <Text strong style={{ fontSize: '13px' }}>{notStarted}</Text>
+          <Text strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{notStarted}</Text>
         </Row>
       </div>
     </Card>

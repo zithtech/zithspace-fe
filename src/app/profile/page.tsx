@@ -308,12 +308,12 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="min-h-[calc(100vh-64px)]" style={{ backgroundColor: '#f8fafc' }}>
+      <div className="min-h-[calc(100vh-64px)] bg-[var(--bg-primary)]">
         {/* Premium SaaS Banner - Mesh Gradient Design */}
         <div
           className="h-44 relative overflow-hidden flex items-center px-10 transition-all duration-500"
           style={{
-            background: 'linear-gradient(135deg, #1c2c50ff 0%, #1e293b 50%, #0f172a 100%)',
+            background: 'linear-gradient(135deg, #1c2c50 0%, #1e293b 50%, #0f172a 100%)',
           }}
         >
           {/* Animated Mesh Gradients */}
@@ -387,20 +387,19 @@ export default function ProfilePage() {
             {/* Left Column: Compact Settings Nav */}
             <div className="w-full lg:w-[240px] space-y-4">
               <div
-                className="rounded-xl p-1 shadow-sm"
-                style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-100)' }}
+                className="rounded-xl p-1 shadow-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
               >
-                <div className="px-4 py-2" style={{ borderBottom: '1px solid var(--border-slate-50)' }}>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Settings</span>
+                <div className="px-4 py-2 border-b border-[var(--border-color)]">
+                  <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-tight">Settings</span>
                 </div>
                 <div className="p-1 space-y-0.5">
                   <SidebarItem id="profile" icon={User} label="Profile Details" />
                   <SidebarItem id="security" icon={Shield} label="Security" />
                 </div>
-                <div className="mt-2 pt-1 p-1" style={{ borderTop: '1px solid var(--border-slate-100)' }}>
+                <div className="mt-2 pt-1 p-1 border-t border-[var(--border-color)]">
                   <button
                     onClick={() => logout()}
-                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-rose-500 hover:bg-rose-50 transition-all duration-200 text-[12px] font-bold"
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-all duration-200 text-[12px] font-bold"
                   >
                     <LogOut size={16} />
                     <span>Sign Out</span>
@@ -409,9 +408,9 @@ export default function ProfilePage() {
               </div>
 
               {/* Help Widget */}
-              <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100">
-                <h4 className="text-[10px] font-bold text-blue-900 uppercase tracking-wider mb-1">Help Center</h4>
-                <p className="text-[9px] text-blue-700/70 leading-relaxed mb-2">Need professional role or permission updates?</p>
+              <div className="p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                <h4 className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">Help Center</h4>
+                <p className="text-[9px] text-[var(--text-secondary)] leading-relaxed mb-2">Need professional role or permission updates?</p>
                 <button className="text-[10px] font-bold text-blue-600 hover:underline">Contact Admin</button>
               </div>
             </div>
@@ -436,18 +435,18 @@ export default function ProfilePage() {
 
               {/* Main Container */}
               <div
-                className="rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col min-h-[480px] bg-white border border-slate-100/80"
+                className="rounded-2xl shadow-xl shadow-black/5 overflow-hidden flex flex-col min-h-[480px] bg-[var(--bg-secondary)] border border-[var(--border-color)]"
               >
                 {/* Profile Strength Meter - SaaS Touch */}
-                <div className="px-6 py-3 bg-slate-50 border-bottom border-slate-100 flex items-center justify-between">
+                <div className="px-6 py-3 bg-[var(--bg-slate-50)] border-b border-[var(--border-color)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-1.5 bg-blue-500 rounded-lg text-white shadow-sm">
                       <CheckCircle2 size={12} strokeWidth={3} />
                     </div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Workspace Readiness</span>
+                    <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest">Workspace Readiness</span>
                   </div>
                   <div className="flex items-center gap-4 flex-1 max-w-[200px] ml-10">
-                    <div className="h-1.5 flex-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-1.5 flex-1 bg-[var(--border-color)] rounded-full overflow-hidden">
                       <div className="h-full bg-blue-600 rounded-full w-[85%] animate-pulse" />
                     </div>
                     <span className="text-[10px] font-black text-blue-600">85%</span>
@@ -457,41 +456,41 @@ export default function ProfilePage() {
                   <div className="flex flex-col h-full animate-in fade-in duration-500">
                     {/* Information Bento Section - Enhanced Premium Style */}
                     <div
-                      className="grid grid-cols-3 relative z-0"
-                      style={{ borderBottom: '1px solid var(--border-slate-100)', background: 'linear-gradient(to right, #ffffff, #f8fafc)' }}
+                      className="grid grid-cols-3 relative z-0 border-b border-[var(--border-color)]"
+                      style={{ background: 'var(--bg-secondary)' }}
                     >
-                      <div className="p-5 transition-all group cursor-default hover:bg-blue-50/30" style={{ borderRight: '1px solid var(--border-slate-100)' }}>
+                      <div className="p-5 transition-all group cursor-default hover:bg-blue-500/5 border-r border-[var(--border-color)]">
                         <div className="flex items-center gap-3 mb-2.5">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-sm" style={{ background: 'white', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-sm bg-[var(--bg-secondary)] border border-blue-500/10">
                             <Briefcase size={14} strokeWidth={2.5} />
                           </div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Position</span>
+                          <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.15em]">Position</span>
                         </div>
-                        <p className="font-black text-[15px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
+                        <p className="font-black text-[15px] tracking-tight truncate leading-none text-[var(--text-primary)]">
                           {userProfile?.position?.title || 'N/A'}
                         </p>
                       </div>
 
-                      <div className="p-5 transition-all group cursor-default hover:bg-indigo-50/30" style={{ borderRight: '1px solid var(--border-slate-100)' }}>
+                      <div className="p-5 transition-all group cursor-default hover:bg-indigo-500/5 border-r border-[var(--border-color)]">
                         <div className="flex items-center gap-3 mb-2.5">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform shadow-sm" style={{ background: 'white', border: '1px solid rgba(79, 70, 229, 0.1)' }}>
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform shadow-sm bg-[var(--bg-secondary)] border border-indigo-500/10">
                             <Calendar size={14} strokeWidth={2.5} />
                           </div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Joined</span>
+                          <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.15em]">Joined</span>
                         </div>
-                        <p className="font-black text-[15px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
+                        <p className="font-black text-[15px] tracking-tight truncate leading-none text-[var(--text-primary)]">
                           {userProfile?.createdAt ? dayjs(userProfile.createdAt).format('MMM D, YYYY') : 'N/A'}
                         </p>
                       </div>
 
-                      <div className="p-5 transition-all group cursor-default hover:bg-emerald-50/30">
+                      <div className="p-5 transition-all group cursor-default hover:bg-emerald-500/5">
                         <div className="flex items-center gap-3 mb-2.5">
-                          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-sm" style={{ background: 'white', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-sm bg-[var(--bg-secondary)] border border-emerald-500/10">
                             <User size={14} strokeWidth={2.5} />
                           </div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Direct Lead</span>
+                          <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.15em]">Direct Lead</span>
                         </div>
-                        <p className="font-black text-[15px] tracking-tight truncate leading-none" style={{ color: 'var(--text-slate-900)' }}>
+                        <p className="font-black text-[15px] tracking-tight truncate leading-none text-[var(--text-primary)]">
                           {userProfile?.reportsTo?.name || 'N/A'}
                         </p>
                       </div>
@@ -509,56 +508,56 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                           <Form.Item
                             name="name"
-                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><User size={12} /> Full Name</span>}
+                            label={<span className="text-[var(--text-secondary)] font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><User size={12} /> Full Name</span>}
                             rules={[{ required: true, message: 'Required' }]}
                             className="mb-1"
                           >
-                            <Input className="rounded-lg py-1.5 focus:ring-0 border-slate-200 text-sm font-semibold h-9" />
+                            <Input className="rounded-lg py-1.5 focus:ring-0 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm font-semibold h-9" />
                           </Form.Item>
 
                           <Form.Item
                             name="phone"
-                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Phone size={12} /> Phone Number</span>}
+                            label={<span className="text-[var(--text-secondary)] font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Phone size={12} /> Phone Number</span>}
                             className="mb-1"
                           >
-                            <Input className="rounded-lg py-1.5 focus:ring-0 border-slate-200 text-sm font-semibold h-9" />
+                            <Input className="rounded-lg py-1.5 focus:ring-0 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm font-semibold h-9" />
                           </Form.Item>
 
                           <Form.Item
                             name="workEmail"
-                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Mail size={12} /> Work Email</span>}
+                            label={<span className="text-[var(--text-secondary)] font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Mail size={12} /> Work Email</span>}
                             className="mb-1"
                           >
-                            <Input disabled className="rounded-lg py-1.5 h-9 bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed text-sm font-bold" />
+                            <Input disabled className="rounded-lg py-1.5 h-9 bg-[var(--bg-slate-50)] text-[var(--text-secondary)] border-[var(--border-color)] cursor-not-allowed text-sm font-bold" />
                           </Form.Item>
 
                           <Form.Item
                             name="personalEmail"
-                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Mail size={12} /> Personal Email</span>}
+                            label={<span className="text-[var(--text-secondary)] font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Mail size={12} /> Personal Email</span>}
                             className="mb-1"
                           >
-                            <Input className="rounded-lg py-1.5 focus:ring-0 border-slate-200 text-sm font-semibold h-9" />
+                            <Input className="rounded-lg py-1.5 focus:ring-0 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-sm font-semibold h-9" />
                           </Form.Item>
 
                           <Form.Item
                             name="dateOfBirth"
-                            label={<span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Calendar size={12} /> Date of Birth</span>}
+                            label={<span className="text-[var(--text-secondary)] font-bold text-[11px] uppercase tracking-wider flex items-center gap-2"><Calendar size={12} /> Date of Birth</span>}
                             className="mb-1"
                           >
-                            <Input type="date" className="rounded-lg py-1.5 focus:ring-0 text-sm font-semibold h-9" style={{ border: '1px solid var(--border-slate-100)', background: 'var(--bg-secondary)', color: 'var(--text-slate-900)' }} />
+                            <Input type="date" className="rounded-lg py-1.5 focus:ring-0 text-sm font-semibold h-9 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)]" />
                           </Form.Item>
                         </div>
 
-                        <div className="mt-8 pt-6 flex items-center justify-between" style={{ borderTop: '1px dotted var(--border-slate-200)' }}>
+                        <div className="mt-8 pt-6 flex items-center justify-between border-t border-dotted border-[var(--border-color)]">
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Authorization</span>
-                            <p className="text-[11px] text-slate-400 font-medium italic">Some security updates require admin approval.</p>
+                            <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-1">Authorization</span>
+                            <p className="text-[11px] text-[var(--text-secondary)] font-medium italic">Some security updates require admin approval.</p>
                           </div>
                           <Button
                             type="primary"
                             htmlType="submit"
                             loading={profileLoading}
-                            className="h-11 px-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 border-0 font-black text-xs shadow-xl shadow-blue-200/50 transition-all duration-300 hover:scale-[1.05] active:scale-[0.98]"
+                            className="h-11 px-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 border-0 font-black text-xs shadow-xl shadow-blue-500/20 transition-all duration-300 hover:scale-[1.05] active:scale-[0.98]"
                           >
                             Save Profile Changes
                           </Button>
@@ -567,14 +566,14 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-8 flex items-center justify-center h-full animate-in fade-in duration-500" style={{ background: 'var(--bg-pure-white)' }}>
+                  <div className="p-8 flex items-center justify-center h-full animate-in fade-in duration-500 bg-[var(--bg-secondary)]">
                     <div className="max-w-xs w-full">
                       <div className="text-center mb-6">
-                        <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
                           <KeyRound size={20} />
                         </div>
-                        <h3 className="text-sm font-bold uppercase tracking-tight" style={{ color: 'var(--text-slate-900)' }}>Access Control</h3>
-                        <p className="text-slate-400 text-[11px] mt-1">Choose a unique, high-strength password.</p>
+                        <h3 className="text-sm font-bold uppercase tracking-tight text-[var(--text-primary)]">Access Control</h3>
+                        <p className="text-[var(--text-secondary)] text-[11px] mt-1">Choose a unique, high-strength password.</p>
                       </div>
 
                       <Form
@@ -586,36 +585,36 @@ export default function ProfilePage() {
                       >
                         <Form.Item
                           name="currentPassword"
-                          label={<span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">Current Key</span>}
+                          label={<span className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-wider">Current Key</span>}
                           rules={[{ required: true, message: 'Required' }]}
                           className="mb-2"
                         >
-                          <Input.Password className="rounded-lg py-1.5 h-9 border-slate-200" />
+                          <Input.Password className="rounded-lg py-1.5 h-9 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)]" />
                         </Form.Item>
 
                         <Form.Item
                           name="newPassword"
-                          label={<span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">New Password</span>}
+                          label={<span className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-wider">New Password</span>}
                           rules={[{ required: true, message: 'Required' }]}
                           className="mb-2"
                         >
-                          <Input.Password className="rounded-lg py-1.5 h-9 border-slate-200" />
+                          <Input.Password className="rounded-lg py-1.5 h-9 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)]" />
                         </Form.Item>
 
                         <Form.Item
                           name="confirmPassword"
-                          label={<span className="text-slate-500 font-bold text-[10px] uppercase tracking-wider">Verify Key</span>}
+                          label={<span className="text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-wider">Verify Key</span>}
                           rules={[{ required: true, message: 'Required' }]}
                           className="mb-2"
                         >
-                          <Input.Password className="rounded-lg py-1.5 h-9 border-slate-200" />
+                          <Input.Password className="rounded-lg py-1.5 h-9 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)]" />
                         </Form.Item>
 
                         <Button
                           type="primary"
                           htmlType="submit"
                           loading={passwordLoading}
-                          className="w-full h-10 rounded-lg bg-slate-900 hover:bg-slate-800 border-0 font-bold text-xs mt-2"
+                          className="w-full h-10 rounded-lg bg-[var(--text-slate-900)] hover:bg-[var(--text-slate-700)] border-0 font-bold text-xs mt-2 text-white"
                         >
                           Update Security Key
                         </Button>
@@ -629,7 +628,7 @@ export default function ProfilePage() {
         </div>
         {/* Image Editor Modal */}
         <Modal
-          title={<span className="text-lg font-bold flex items-center gap-2"><div className="p-2 bg-blue-50 rounded-lg text-blue-600"><Camera size={18} /></div> Edit Profile Photo</span>}
+          title={<span className="text-lg font-bold flex items-center gap-2"><div className="p-2 bg-blue-500/10 rounded-lg text-blue-600"><Camera size={18} /></div> Edit Profile Photo</span>}
           open={isEditorOpen}
           onCancel={() => setIsEditorOpen(false)}
           footer={[
@@ -674,7 +673,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-x-12 gap-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-2">
                       <Maximize2 size={12} /> Zoom
                     </span>
                     <span className="text-xs font-bold text-blue-600">{zoom.toFixed(1)}x</span>
@@ -691,7 +690,7 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-2">
                       <Sun size={12} /> Brightness
                     </span>
                     <span className="text-xs font-bold text-blue-600">{brightness}%</span>
@@ -707,8 +706,8 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Flips & Orientation</span>
+              <div className="flex items-center justify-between pt-4 border-t border-[var(--border-color)]">
+                <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Flips & Orientation</span>
                 <div className="flex gap-2">
                   <Tooltip title="Flip Horizontal">
                     <Button
@@ -747,16 +746,16 @@ export default function ProfilePage() {
         <style jsx global>{`
           .ant-form-item-label > label {
             font-weight: 700 !important;
-            color: #64748b !important;
+            color: var(--text-secondary) !important;
             font-size: 10px !important;
             text-transform: uppercase;
             letter-spacing: 0.05em;
           }
           .ant-input, .ant-input-password, .ant-input-affix-wrapper {
             border-radius: 10px !important;
-            border-color: #e2e8f0 !important;
-            background: #ffffff !important;
-            color: #0f172a !important;
+            border-color: var(--border-color) !important;
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
             padding: 8px 12px !important;
           }
           .ant-input:focus, .ant-input-affix-wrapper-focused {
@@ -764,8 +763,8 @@ export default function ProfilePage() {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
           }
            .ant-input:disabled {
-            background-color: #f8fafc !important;
-            color: #94a3b8 !important;
+            background-color: var(--bg-slate-50) !important;
+            color: var(--text-secondary) !important;
             font-weight: 600;
           }
           .react-easy-crop_Container {
@@ -776,6 +775,19 @@ export default function ProfilePage() {
           }
           .ant-slider-handle::after {
             box-shadow: 0 0 0 2px #3b82f6 !important;
+          }
+          .ant-modal-content {
+            background-color: var(--bg-secondary) !important;
+          }
+          .ant-modal-header {
+            background-color: var(--bg-secondary) !important;
+            border-bottom-color: var(--border-color) !important;
+          }
+          .ant-modal-title {
+            color: var(--text-primary) !important;
+          }
+          .ant-modal-footer {
+            border-top-color: var(--border-color) !important;
           }
         `}</style>
       </div>

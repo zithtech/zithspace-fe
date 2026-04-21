@@ -53,7 +53,7 @@ import {
 import { usePerformance } from "@/hooks/userPerformance";
 import { usePositions } from "@/hooks/usePositions";
 import { useQuery } from "@tanstack/react-query";
-import { EscalationService } from "@/services/escalationService";
+import { EscalationServiceV2 } from "@/services/escalationServiceV2";
 import {
   BarChart,
   Bar,
@@ -172,7 +172,7 @@ export default function PerformanceManagePage() {
   // Fetch full escalation details when one is selected
   const { data: fullEscalation, isLoading: loadingDetails } = useQuery({
     queryKey: ['escalation', selectedEscalationId],
-    queryFn: () => selectedEscalationId ? EscalationService.getEscalationById(selectedEscalationId) : null,
+    queryFn: () => selectedEscalationId ? EscalationServiceV2.getEscalationById(selectedEscalationId) : null,
     enabled: !!selectedEscalationId,
   });
 
@@ -680,7 +680,16 @@ export default function PerformanceManagePage() {
               >
                 {members.map((member) => (
                   <Option key={member.value} value={member.value} label={member.label}>
-                    {member.label}
+                    <Space>
+                      <Avatar 
+                        size="small" 
+                        src={member.avatarUrl}
+                        style={{ backgroundColor: "#2563eb", fontSize: 10 }}
+                      >
+                        {member.label?.charAt(0)}
+                      </Avatar>
+                      {member.label}
+                    </Space>
                   </Option>
                 ))}
               </Select>
@@ -927,13 +936,15 @@ export default function PerformanceManagePage() {
                       <div style={{ position: "relative", display: "inline-block", marginBottom: 10 }}>
                         <Avatar
                           size={72}
-                          icon={<UserOutlined />}
+                          src={selectedUserDetails.avatarUrl}
                           style={{
                             backgroundColor: "#f8fafc",
                             color: "#3b82f6",
                             border: "1px solid #e2e8f0",
                           }}
-                        />
+                        >
+                          {selectedUserDetails.label?.charAt(0)}
+                        </Avatar>
                         <div style={{
                           position: "absolute",
                           bottom: 5,
@@ -1212,10 +1223,10 @@ export default function PerformanceManagePage() {
                     }
                     extra={
                       <Space>
-                        <Button 
-                          type="primary" 
-                          size="small" 
-                          icon={<AreaChartOutlined />} 
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<AreaChartOutlined />}
                           style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
                           onClick={() => setBreakdownVisible(true)}
                         >
@@ -1375,10 +1386,10 @@ export default function PerformanceManagePage() {
                       </Space>
                     }
                     extra={
-                      <Button 
-                        type="primary" 
-                        size="small" 
-                        icon={<AreaChartOutlined />} 
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<AreaChartOutlined />}
                         style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
                         onClick={() => setDailyBreakdownVisible(true)}
                       >
@@ -1512,11 +1523,11 @@ export default function PerformanceManagePage() {
                       </Space>
                     }
                     extra={
-                      <Button 
-                        type="primary" 
-                        size="small" 
+                      <Button
+                        type="primary"
+                        size="small"
                         danger
-                        icon={<AreaChartOutlined />} 
+                        icon={<AreaChartOutlined />}
                         style={{ borderRadius: "6px", fontSize: "11px", fontWeight: 600 }}
                         onClick={() => setEscalationBreakdownVisible(true)}
                       >
@@ -1781,7 +1792,7 @@ export default function PerformanceManagePage() {
                       <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Linked Development Tickets</Text>
                     </Space>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {fullEscalation.tickets.map((t, idx) => (
+                      {fullEscalation.tickets.map((t: any, idx: any) => (
                         <Tag key={idx} color="blue" style={{ borderRadius: 4, margin: 0, padding: '4px 8px', border: '1px solid #bae6fd' }}>
                           <Space size={4}>
                             <Text strong style={{ fontSize: 11, color: '#0369a1' }}>{t.ticket?.ticketNumber}</Text>
@@ -1798,7 +1809,7 @@ export default function PerformanceManagePage() {
                     <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Target Team Members</Text>
                   </Space>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {fullEscalation.targetMembers?.map((m, idx) => (
+                    {fullEscalation.targetMembers?.map((m: any, idx: any) => (
                       <div key={idx} style={{
                         padding: '4px 10px 4px 4px',
                         background: '#fff',
@@ -1809,7 +1820,11 @@ export default function PerformanceManagePage() {
                         gap: 8,
                         boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                       }}>
-                        <Avatar size={24} style={{ backgroundColor: "#2563eb", fontSize: 10 }}>
+                        <Avatar
+                          size={24}
+                          src={m.user?.avatarUrl}
+                          style={{ backgroundColor: "#2563eb", fontSize: 10 }}
+                        >
                           {m.user?.name?.charAt(0)}
                         </Avatar>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1824,7 +1839,11 @@ export default function PerformanceManagePage() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f1f5f9', borderRadius: 10 }}>
                   <Space size={10}>
-                    <Avatar size="small" style={{ backgroundColor: '#64748b' }}>
+                    <Avatar
+                      size="small"
+                      src={fullEscalation?.createdBy?.avatarUrl}
+                      style={{ backgroundColor: '#64748b' }}
+                    >
                       {fullEscalation?.createdBy?.name?.charAt(0)}
                     </Avatar>
                     <div>
@@ -1891,7 +1910,7 @@ export default function PerformanceManagePage() {
                     const incompleteCount = ticketSummary.total - ticketSummary.completed;
                     const incompletePercent = Math.round((incompleteCount / ticketSummary.total) * 100);
                     const totalReduction = incompletePercent * 2; // User's requested formula (since weight is 50%, 1% incomplete = 2% reduction of completion max)
-                    
+
                     return (
                       <div style={{ color: "#ef4444", marginBottom: 4, fontWeight: 500 }}>
                         • {incompleteCount} tickets not completed ({incompletePercent}% of total).
@@ -1957,8 +1976,8 @@ export default function PerformanceManagePage() {
             <div style={{ background: "#fef2f2", padding: "16px", borderRadius: "12px", border: "1px solid #fee2e2" }}>
               <Text strong style={{ fontSize: 13, color: "#991b1b", display: "block", marginBottom: 8 }}>Score Calculation Note</Text>
               <Text style={{ fontSize: 11, color: "#b91c1c", display: "block" }}>
-                The <b>Ticket Score</b> is the weighted sum of above metrics. 
-                Penalties for missed EODs and Escalations are subtracted 
+                The <b>Ticket Score</b> is the weighted sum of above metrics.
+                Penalties for missed EODs and Escalations are subtracted
                 separately from this score to reach the final 0-100 Performance Score.
               </Text>
             </div>
@@ -2047,7 +2066,7 @@ export default function PerformanceManagePage() {
                       ...(performanceData?.dailyUpdates?.missedEOD || []).map((m: any) => ({ ...m, type: 'EOD' }))
                     ].sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix()).map((missed, idx) => (
                       <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #f1f5f9" }}>
-                         <Space size={8}>
+                        <Space size={8}>
                           <Tag color={missed.type === 'BOD' ? "cyan" : "orange"} style={{ borderRadius: 4, fontSize: 10, margin: 0 }}>{missed.type}</Tag>
                           <Text strong style={{ fontSize: 12 }}>{dayjs(missed.date).format('MMM DD, YYYY')}</Text>
                         </Space>
@@ -2104,13 +2123,13 @@ export default function PerformanceManagePage() {
                   <div style={{ marginBottom: 4 }}>
                     <Text strong style={{ color: "#e11d48" }}>{performanceData?.escalations?.summary?.total ?? 0}</Text> escalations recorded in this period.
                   </div>
-                  { (performanceData?.escalations?.summary?.total ?? 0) > 0 && (
+                  {(performanceData?.escalations?.summary?.total ?? 0) > 0 && (
                     <div style={{ color: "#e11d48", fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: "1px dashed #fca5a5" }}>
                       • Penalty Calculation:
                       <div style={{ fontSize: 13, marginTop: 2 }}>
                         {performanceData?.escalations?.summary?.total ?? 0} × 2.5 = {(performanceData?.escalations?.summary?.total ?? 0) * 2.5} point reduction
                       </div>
-                      { ((performanceData?.escalations?.summary?.total ?? 0) * 2.5) > 25 && (
+                      {((performanceData?.escalations?.summary?.total ?? 0) * 2.5) > 25 && (
                         <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4, fontWeight: 500 }}>
                           (Capped at maximum penalty of -25 points)
                         </div>
@@ -2125,8 +2144,8 @@ export default function PerformanceManagePage() {
               <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #f1f5f9" }}>
                 <Text strong style={{ fontSize: 13, color: "#475569", display: "block", marginBottom: 8 }}>Impact on Professionalism</Text>
                 <Text style={{ fontSize: 11, color: "#64748b", display: "block", lineHeight: "1.6" }}>
-                  Escalations represent missed expectations or process deviations. 
-                  Each escalation negatively impacts the weighted performance score 
+                  Escalations represent missed expectations or process deviations.
+                  Each escalation negatively impacts the weighted performance score
                   to ensure high quality of ticket execution and collaboration.
                 </Text>
               </div>

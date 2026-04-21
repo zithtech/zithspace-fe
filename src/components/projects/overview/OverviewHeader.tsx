@@ -22,16 +22,16 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
   progress,
 }) => {
   return (
-    <div className="mb-4 p-5 bg-white rounded-xl border border-gray-100">
+    <div className="mb-4 p-5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
       <Row justify="space-between" align="middle">
         <Col>
           <Space align="center" size="large">
             <Avatar 
               size={56} 
               style={{ 
-                backgroundColor: '#f6f8fa', 
-                color: '#1f1f1f',
-                border: '1px solid #eee',
+                backgroundColor: 'var(--bg-slate-50)', 
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
                 fontSize: '20px',
                 fontWeight: 600
               }}
@@ -40,9 +40,9 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
             </Avatar>
             <div>
               <Space align="center" size="small">
-                <Title level={4} style={{ margin: 0, fontWeight: 700 }}>{name}</Title>
+                <Title level={4} style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>{name}</Title>
                 {code && (
-                  <Text type="secondary" style={{ fontSize: '13px', background: '#f5f5f5', padding: '2px 8px', borderRadius: '4px', fontWeight: 500 }}>
+                  <Text type="secondary" style={{ fontSize: '13px', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 500, border: '1px solid var(--border-color)' }}>
                     {code}
                   </Text>
                 )}
@@ -60,12 +60,12 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
                 </Tag>
               </Space>
               <div className="mt-1">
-                <Space size="large" style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                <Space size="large" style={{ fontSize: '12px' }}>
                   <span>
-                    <Text type="secondary">Duration:</Text> {dayjs(startDate).format("MMM D, YYYY")} — {endDate ? dayjs(endDate).format("MMM D, YYYY") : "Ongoing"}
+                    <Text type="secondary">Duration:</Text> <Text style={{ color: 'var(--text-primary)' }}>{dayjs(startDate).format("MMM D, YYYY")} — {endDate ? dayjs(endDate).format("MMM D, YYYY") : "Ongoing"}</Text>
                   </span>
                   <span>
-                    <Text type="secondary">Type:</Text> Internal Project
+                    <Text type="secondary">Type:</Text> <Text style={{ color: 'var(--text-primary)' }}>Internal Project</Text>
                   </span>
                 </Space>
               </div>
@@ -75,7 +75,7 @@ export const OverviewHeader: React.FC<OverviewHeaderProps> = ({
         <Col span={6}>
           <div style={{ textAlign: 'right' }}>
             <div className="mb-1">
-              <Text strong style={{ fontSize: '14px' }}>{progress}% Overall Progress</Text>
+              <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{progress}% Overall Progress</Text>
             </div>
             <Progress 
               percent={progress} 

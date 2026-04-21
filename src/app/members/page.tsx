@@ -39,6 +39,7 @@ import {
 } from "@/services/membersService";
 import { SettingsService, Shift } from "@/services/settingsService";
 import { ApiError } from "@/lib/axios";
+import { Avatar, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { usePermission } from "@/hooks/usePermission";
 import { usePositions } from "@/hooks/usePositions";
@@ -329,27 +330,23 @@ export default function MembersPage() {
       width: 180,
       render: (text: string, record: Member) => (
         <Space>
-          <div
+          <Avatar 
+            size={32}
+            src={record.avatarUrl}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
               background:
                 record.role === "super_admin"
                   ? "#ff4d4f"
                   : record.role === "admin"
                     ? "#faad14"
                     : "#52c41a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               color: "#fff",
               fontSize: 12,
               fontWeight: 600,
             }}
           >
             {text.charAt(0).toUpperCase()}
-          </div>
+          </Avatar>
           <div>
             <Text strong style={{ fontSize: 13, color: 'var(--text-slate-900)' }}>
               {text}

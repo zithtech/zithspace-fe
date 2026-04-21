@@ -20,71 +20,77 @@ export const CombinedSummaryCard: React.FC<CombinedSummaryCardProps> = ({
   sprintSummary,
   ticketSummary,
 }) => {
-  const SummaryPart = ({ title, stats, icon }: { title: string, stats: SummaryStats, icon: React.ReactNode }) => (
+  const SummaryPart = ({ title, stats, icon, color }: { title: string, stats: SummaryStats, icon: React.ReactNode, color: string }) => (
     <div className="w-full">
-      <Row justify="space-between" align="middle" className="mb-4">
+      <Row justify="space-between" align="middle" className="mb-6">
         <Col>
-          <Space>
+          <Space size="middle">
             <div style={{ 
-              width: 32, 
-              height: 32, 
-              borderRadius: '8px', 
-              background: '#f6f8fa', 
+              width: 40, 
+              height: 40, 
+              borderRadius: '10px', 
+              background: 'var(--bg-slate-50)', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              color: '#555',
-              fontSize: '16px'
+              color: color,
+              fontSize: '20px',
+              border: '1px solid var(--border-color)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
             }}>
               {icon}
             </div>
-            <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: '#8c8c8c', letterSpacing: '0.05em' }}>
+            <Text strong style={{ textTransform: 'uppercase', fontSize: '11px', color: 'var(--text-secondary)', letterSpacing: '0.08em', fontWeight: 600 }}>
               {title}
             </Text>
           </Space>
         </Col>
         <Col>
-          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>{stats.total}</Title>
+          <Title level={2} style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>{stats.total}</Title>
         </Col>
       </Row>
       
-      <div className="space-y-2">
-        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid #f9f9f9' }}>
+      <div className="space-y-3">
+        <Row justify="space-between" align="middle" style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
           <Space size="small">
-            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
-            <Text type="secondary" style={{ fontSize: '13px' }}>Completed</Text>
+            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '14px' }} />
+            <Text style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Completed</Text>
           </Space>
-          <Text strong style={{ fontSize: '13px' }}>{stats.completed}</Text>
+          <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{stats.completed}</Text>
         </Row>
-        <Row justify="space-between" align="middle" style={{ padding: '6px 0', borderBottom: '1px solid #f9f9f9' }}>
+        <Row justify="space-between" align="middle" style={{ padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
           <Space size="small">
-            <ClockCircleOutlined style={{ color: '#faad14', fontSize: '12px' }} />
-            <Text type="secondary" style={{ fontSize: '13px' }}>In Progress</Text>
+            <ClockCircleOutlined style={{ color: '#faad14', fontSize: '14px' }} />
+            <Text style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>In Progress</Text>
           </Space>
-          <Text strong style={{ fontSize: '13px' }}>{stats.inProgress}</Text>
+          <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{stats.inProgress}</Text>
         </Row>
-        <Row justify="space-between" align="middle" style={{ padding: '6px 0' }}>
+        <Row justify="space-between" align="middle" style={{ padding: '8px 0' }}>
           <Space size="small">
-            <InfoCircleOutlined style={{ color: '#bfbfbf', fontSize: '12px' }} />
-            <Text type="secondary" style={{ fontSize: '13px' }}>Not Started</Text>
+            <InfoCircleOutlined style={{ color: 'var(--text-secondary)', fontSize: '14px' }} />
+            <Text style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Not Started</Text>
           </Space>
-          <Text strong style={{ fontSize: '13px' }}>{stats.notStarted}</Text>
+          <Text strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{stats.notStarted}</Text>
         </Row>
       </div>
     </div>
   );
 
   return (
-    <Card className="rounded-xl border border-gray-100 h-full" bordered={false} bodyStyle={{ padding: '24px' }}>
-      <Row gutter={48} align="top">
+    <Card 
+      className="rounded-xl border-[var(--border-color)] h-full bg-[var(--bg-secondary)]" 
+      bordered={false} 
+      styles={{ body: { padding: '32px' } }}
+    >
+      <Row gutter={64} align="top">
         <Col span={11}>
-          <SummaryPart title="Sprint Summary" stats={sprintSummary} icon={<AppstoreOutlined />} />
+          <SummaryPart title="Sprint Summary" stats={sprintSummary} icon={<AppstoreOutlined />} color="#1677ff" />
         </Col>
-        <Col span={2} className="flex justify-center">
-          <Divider type="vertical" style={{ height: '140px', borderLeft: '1px solid #f0f0f0' }} />
+        <Col span={2} className="flex justify-center" style={{ display: 'flex', alignItems: 'center' }}>
+          <Divider type="vertical" style={{ height: '160px', borderColor: 'var(--border-color)' }} />
         </Col>
         <Col span={11}>
-          <SummaryPart title="Ticket Summary" stats={ticketSummary} icon={<BarChartOutlined />} />
+          <SummaryPart title="Ticket Summary" stats={ticketSummary} icon={<BarChartOutlined />} color="#722ed1" />
         </Col>
       </Row>
     </Card>

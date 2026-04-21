@@ -206,9 +206,10 @@ export default function TrashManagementPage() {
         <Space>
           <Avatar
             size="small"
+            src={record.deletedBy?.avatarUrl}
             style={{ backgroundColor: "#87d068" }}
           >
-            {record.deletedBy?.name?.charAt(0) || "U"}
+            {record.deletedBy?.name?.charAt(0)}
           </Avatar>
           <div>
             <Text strong style={{ fontSize: 13, display: "block" }}>{record.deletedBy?.name || "System"}</Text>

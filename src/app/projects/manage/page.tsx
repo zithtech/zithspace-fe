@@ -321,6 +321,7 @@ const ProjectsManagePage: React.FC = () => {
 
   // Status color mapping
   const getStatusColor = (status: string) => {
+    const normalizedStatus = (status || "").toLowerCase();
     const colors = {
       planning: "blue",
       active: "green",
@@ -328,17 +329,18 @@ const ProjectsManagePage: React.FC = () => {
       completed: "purple",
       cancelled: "red",
     };
-    return colors[status as keyof typeof colors] || "default";
+    return colors[normalizedStatus as keyof typeof colors] || "default";
   };
 
   // Priority color mapping
   const getPriorityColor = (priority: string) => {
+    const normalizedPriority = (priority || "").toLowerCase();
     const colors = {
       high: "red",
       medium: "orange",
       low: "green",
     };
-    return colors[priority as keyof typeof colors] || "default";
+    return colors[normalizedPriority as keyof typeof colors] || "default";
   };
 
   // Table columns
@@ -358,8 +360,8 @@ const ProjectsManagePage: React.FC = () => {
             <ProjectOutlined style={{ color: "#1677ff", fontSize: 16 }} />
           </div>
           <div>
-            <Text strong style={{ fontSize: 14 }}>{record.name}</Text>
-            <div style={{ fontSize: 12, color: "#8c8c8c" }}>{record.code}</div>
+            <Text strong style={{ fontSize: 14, color: "var(--text-primary)" }}>{record.name}</Text>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{record.code}</div>
           </div>
         </Space>
       ),
@@ -394,13 +396,14 @@ const ProjectsManagePage: React.FC = () => {
         <Space size={8}>
           <Avatar
             size="small"
+            src={record?.projectManager?.avatarUrl}
             style={{ backgroundColor: "rgba(245, 106, 0, 0.2)", border: "1px solid var(--border-color)" }}
           >
-            {record?.projectManager?.name.charAt(0)}
+            {record?.projectManager?.name?.charAt(0) || "U"}
           </Avatar>
           <div>
-            <div style={{ fontWeight: 500, fontSize: 13 }}>{record?.projectManager?.name}</div>
-            <div style={{ fontSize: 11, color: "#8c8c8c" }}>
+            <div style={{ fontWeight: 500, fontSize: 13, color: "var(--text-primary)" }}>{record?.projectManager?.name}</div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
               {renderPosition(record.projectManager?.position)}
             </div>
           </div>
@@ -413,8 +416,8 @@ const ProjectsManagePage: React.FC = () => {
       width: 130,
       render: (_: any, record: any) => (
         <Space size={4}>
-          <TeamOutlined style={{ color: "#8c8c8c" }} />
-          <Text style={{ fontSize: 13 }}>{record?.members?.length || 0} members</Text>
+          <TeamOutlined style={{ color: "var(--text-secondary)" }} />
+          <Text style={{ fontSize: 13, color: "var(--text-secondary)" }}>{record?.members?.length || 0} members</Text>
         </Space>
       ),
     },
@@ -452,8 +455,8 @@ const ProjectsManagePage: React.FC = () => {
           </div>
           {record.endDate && (
             <div>
-              <CalendarOutlined style={{ marginRight: 6, color: "#8c8c8c", fontSize: 11 }} />
-              <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(record?.endDate).format("MMM DD, YYYY")}</Text>
+              <CalendarOutlined style={{ marginRight: 6, color: "var(--text-secondary)", fontSize: 11 }} />
+              <Text type="secondary" style={{ fontSize: 12, color: "var(--text-secondary)" }}>{dayjs(record?.endDate).format("MMM DD, YYYY")}</Text>
             </div>
           )}
         </div>
@@ -738,8 +741,8 @@ const ProjectsManagePage: React.FC = () => {
         }}>
           {/* All Projects Text - Left Aligned */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 4, height: 18, background: "#1677ff", borderRadius: 2 }} />
-            <Text strong style={{ fontSize: 16, color: "#1f1f1f", whiteSpace: "nowrap" }}>
+            <div style={{ width: 4, height: 18, background: "var(--primary-color)", borderRadius: 2 }} />
+            <Text strong style={{ fontSize: 16, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
               All Projects
             </Text>
             <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
@@ -935,16 +938,20 @@ const ProjectsManagePage: React.FC = () => {
                           borderTop: "1px solid #f0f0f0"
                         }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <Avatar size={20} style={{ background: "#f56a00", fontSize: 10 }}>
-                              {project.projectManager?.name.charAt(0)}
+                             <Avatar 
+                              size={20} 
+                              src={project.projectManager?.avatarUrl}
+                              style={{ background: "#f56a00", fontSize: 10 }}
+                            >
+                              {project.projectManager?.name?.charAt(0) || "U"}
                             </Avatar>
-                            <Text style={{ fontSize: 12, fontWeight: 500 }}>
-                              {project.projectManager?.name.split(' ')[0]}
+                            <Text style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>
+                              {project.projectManager?.name?.split(' ')[0] || "Unknown"}
                             </Text>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <TeamOutlined style={{ color: "#8c8c8c", fontSize: 11 }} />
-                            <Text type="secondary" style={{ fontSize: 11 }}>
+                            <TeamOutlined style={{ color: "var(--text-secondary)", fontSize: 11 }} />
+                            <Text type="secondary" style={{ fontSize: 11, color: "var(--text-secondary)" }}>
                               {memberCount} members
                             </Text>
                           </div>

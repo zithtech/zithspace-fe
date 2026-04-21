@@ -11,29 +11,41 @@ interface TimeStatsBarProps {
 
 export const TimeStatsBar: React.FC<TimeStatsBarProps> = ({ hoursLogged, daysWorked }) => {
   return (
-    <div className="my-4 p-4 bg-white rounded-xl border border-gray-100">
-      <Row gutter={48} align="middle">
+    <div className="my-4 p-5 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)]">
+      <Row gutter={64} align="middle">
         <Col>
           <Space size="middle">
-            <div style={{ padding: '8px', borderRadius: '8px', background: '#e6f7ff', display: 'flex' }}>
-              <ClockCircleOutlined style={{ color: '#1890ff', fontSize: '16px' }} />
+            <div style={{ 
+              padding: '10px', 
+              borderRadius: '10px', 
+              background: 'rgba(24, 144, 255, 0.1)', 
+              display: 'flex',
+              border: '1px solid rgba(24, 144, 255, 0.2)'
+            }}>
+              <ClockCircleOutlined style={{ color: '#1890ff', fontSize: '20px' }} />
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase' }}>Hours Logged</div>
-              <Text strong style={{ fontSize: '18px' }}>{hoursLogged}h</Text>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Hours Logged</div>
+              <Text strong style={{ fontSize: '20px', color: 'var(--text-primary)' }}>{hoursLogged}h</Text>
             </div>
           </Space>
         </Col>
         <Col>
           <Space size="middle">
-            <div style={{ padding: '8px', borderRadius: '8px', background: '#f6ffed', display: 'flex' }}>
-              <CalendarOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
+            <div style={{ 
+              padding: '10px', 
+              borderRadius: '10px', 
+              background: 'rgba(82, 196, 26, 0.1)', 
+              display: 'flex',
+              border: '1px solid rgba(82, 196, 26, 0.2)'
+            }}>
+              <CalendarOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase' }}>Days Worked</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Days Worked</div>
               <Space align="baseline">
-                <Text strong style={{ fontSize: '18px' }}>{daysWorked}d</Text>
-                <Text type="secondary" style={{ fontSize: '11px' }}>(6h/day)</Text>
+                <Text strong style={{ fontSize: '20px', color: 'var(--text-primary)' }}>{daysWorked}d</Text>
+                <Text type="secondary" style={{ fontSize: '11px', fontStyle: 'italic' }}>(6h/day)</Text>
               </Space>
             </div>
           </Space>

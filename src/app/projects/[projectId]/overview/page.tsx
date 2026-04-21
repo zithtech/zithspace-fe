@@ -68,7 +68,7 @@ const ProjectOverviewPage = () => {
 
   return (
     <MainLayout>
-      <div className="p-4 bg-gray-50/50 min-h-screen">
+      <div className="p-4 bg-[var(--bg-primary)] min-h-screen">
         {/* Header */}
         <OverviewHeader
           name={project.name}

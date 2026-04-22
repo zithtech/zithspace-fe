@@ -23,21 +23,21 @@ export interface Lead {
   documents: { name: string; url: string }[];
   created_at: string;
   updated_at: string;
-  
+
   // Job Metadata
   external_job_id?: string;
   experience_level?: string;
   job_type?: string;
   budget?: string;
   hourly_rate?: string;
-  
+
   // Client Quality Data
   client_rating?: string;
   client_spend?: string;
   client_jobs_posted?: string;
   client_payment_verified?: boolean;
   client_phone_verified?: boolean;
-  
+
   // AI & Proposal Data
   ai_score?: number;
   proposal_text?: string;
@@ -69,21 +69,21 @@ export interface LeadPayload {
   timeline?: [any, any] | null;
   postedOn?: any;
   documents?: { name: string; url: string }[];
-  
+
   // Job Metadata
   externalJobId?: string;
   experienceLevel?: string;
   jobType?: string;
   budget?: string;
   hourlyRate?: string;
-  
+
   // Client Quality Data
   clientRating?: string;
   clientSpend?: string;
   clientJobsPosted?: string;
   clientPaymentVerified?: boolean;
   clientPhoneVerified?: boolean;
-  
+
   // AI & Proposal Data
   aiScore?: number;
   proposalText?: string;
@@ -151,6 +151,30 @@ export class LeadService {
       await api.delete(`/api/leads/${id}`);
     } catch (error) {
       console.error('Failed to delete lead:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Perform AI Analysis for Lead
+   */
+  static async analyze(id: string): Promise<any> {
+    try {
+      return await api.post<any>(`/api/leads/${id}/analyze`);
+    } catch (error) {
+      console.error('Failed to analyze lead:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Onboard a lead to a project
+   */
+  static async onboard(id: string): Promise<any> {
+    try {
+      return await api.post<any>(`/api/leads/${id}/onboard`);
+    } catch (error) {
+      console.error('Failed to onboard lead:', error);
       throw error;
     }
   }

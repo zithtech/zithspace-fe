@@ -18,7 +18,8 @@ import {
   Breadcrumb,
   Popconfirm,
   Row,
-  Col
+  Col,
+  Divider
 } from 'antd';
 import {
   PlusOutlined,
@@ -286,13 +287,14 @@ export default function ProposalsListPage() {
       {messageHolder}
 
       <div style={{
+        margin: '0 -24px',
         padding: '16px 24px',
-        minHeight: '100vh',
-        background: token.colorBgLayout
+        minHeight: 'calc(100vh - 64px)',
+        background: 'var(--bg-pure-white)'
       }}>
         {/* Compact Header Section */}
         <div style={{
-          marginBottom: 24,
+          marginBottom: 5,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
@@ -334,6 +336,7 @@ export default function ProposalsListPage() {
             New Proposal
           </Button>
         </div>
+        <Divider style={{ margin: '0 -24px 24px', opacity: 0.6 }} />
 
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           {[

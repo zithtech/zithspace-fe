@@ -7,6 +7,7 @@ import {
   RocketOutlined,
   EditOutlined
 } from '@ant-design/icons';
+import { AIEnhanceButton } from './AIEnhanceButton';
 
 const { Text } = Typography;
 
@@ -63,9 +64,26 @@ export const BlockProperties = () => {
         borderRadius: '12px',
         border: '1px solid var(--border-color)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-          <RocketOutlined style={{ color: 'var(--premium-blue)' }} />
-          <Text strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Branding & Identity</Text>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <RocketOutlined style={{ color: 'var(--premium-blue)' }} />
+            <Text strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Branding & Identity</Text>
+          </div>
+          <AIEnhanceButton
+            originalData={{
+              company: coverBlock?.data?.senderCompany,
+              name: coverBlock?.data?.senderName,
+              contact: coverBlock?.data?.senderContact,
+              email: coverBlock?.data?.senderEmail
+            }}
+            blockType="branding (agency details)"
+            onApply={(newBrand) => handleUpdateBranding({
+              senderCompany: newBrand.company || coverBlock?.data?.senderCompany,
+              senderName: newBrand.name || coverBlock?.data?.senderName,
+              senderContact: newBrand.contact || coverBlock?.data?.senderContact,
+              senderEmail: newBrand.email || coverBlock?.data?.senderEmail
+            })}
+          />
         </div>
 
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '20px' }}>

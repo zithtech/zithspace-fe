@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
+import { AIEnhanceButton } from '../AIEnhanceButton';
 
 const { Title, Text } = Typography;
 
@@ -18,7 +19,7 @@ interface SignatureBlockProps {
 
 export const SignatureBlock: React.FC<SignatureBlockProps> = ({ data }) => {
   return (
-    <div style={{ padding: '40px 0 24px 0', pageBreakInside: 'avoid' }}>
+    <div style={{ padding: '40px', pageBreakInside: 'avoid' }}>
       {data.title && (
         <Title level={2} style={{ marginBottom: '40px', color: 'var(--text-primary)' }}>
           {data.title}
@@ -104,7 +105,19 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <Form.Item label={<span style={labelStyle}>Section Title</span>} style={{ marginBottom: 0 }}>
+          <Form.Item 
+            label={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span style={labelStyle}>Section Title</span>
+                <AIEnhanceButton 
+                  originalData={data.title} 
+                  blockType="signature (title)" 
+                  onApply={(newTitle) => handleUpdate({ title: newTitle })} 
+                />
+              </div>
+            } 
+            style={{ marginBottom: 0 }}
+          >
             <Input
               prefix={<EditOutlined style={{ color: 'var(--border-color)' }} />}
               placeholder="e.g. Agreement & Sign-off"
@@ -126,22 +139,50 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div>
-            <span style={labelStyle}>Intellectual Property (IP)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={labelStyle}>Intellectual Property (IP)</span>
+              <AIEnhanceButton 
+                originalData={data.ipClause} 
+                blockType="legal (IP clause)" 
+                onApply={(newText) => handleUpdate({ ipClause: newText })} 
+              />
+            </div>
             <TiptapEditor content={data.ipClause || ''} onChange={(html) => handleUpdate({ ipClause: html })} minHeight={100} />
           </div>
 
           <div>
-            <span style={labelStyle}>Revision Policy</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={labelStyle}>Revision Policy</span>
+              <AIEnhanceButton 
+                originalData={data.revisionClause} 
+                blockType="legal (Revision Policy)" 
+                onApply={(newText) => handleUpdate({ revisionClause: newText })} 
+              />
+            </div>
             <TiptapEditor content={data.revisionClause || ''} onChange={(html) => handleUpdate({ revisionClause: html })} minHeight={100} />
           </div>
 
           <div>
-            <span style={labelStyle}>Termination Clause</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={labelStyle}>Termination Clause</span>
+              <AIEnhanceButton 
+                originalData={data.terminationClause} 
+                blockType="legal (Termination Clause)" 
+                onApply={(newText) => handleUpdate({ terminationClause: newText })} 
+              />
+            </div>
             <TiptapEditor content={data.terminationClause || ''} onChange={(html) => handleUpdate({ terminationClause: html })} minHeight={100} />
           </div>
 
           <div>
-            <span style={labelStyle}>Confidentiality / NDA</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={labelStyle}>Confidentiality / NDA</span>
+              <AIEnhanceButton 
+                originalData={data.ndaClause} 
+                blockType="legal (NDA clause)" 
+                onApply={(newText) => handleUpdate({ ndaClause: newText })} 
+              />
+            </div>
             <TiptapEditor content={data.ndaClause || ''} onChange={(html) => handleUpdate({ ndaClause: html })} minHeight={100} />
           </div>
         </div>
@@ -156,9 +197,24 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
 
         {/* Your Details */}
         <div style={{ padding: '16px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '16px', boxShadow: 'var(--box-shadow)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></div>
-            <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Your Organization</Text>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></div>
+              <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Your Organization</Text>
+            </div>
+            <AIEnhanceButton 
+              originalData={{ 
+                companyName: data.companyName, 
+                signerTitle: data.companySigner 
+              }} 
+              blockType="signature (company details)" 
+              onApply={(val) => {
+                handleUpdate({ 
+                  companyName: val.companyName || data.companyName, 
+                  companySigner: val.signerTitle || data.companySigner 
+                });
+              }} 
+            />
           </div>
           <Form.Item label={<span style={labelStyle}>Company Name</span>} style={{ marginBottom: 12 }}>
             <Input
@@ -182,9 +238,24 @@ export const SignatureBlockSettings: React.FC<{ data: any, onUpdate: (data: any)
 
         {/* Client Details */}
         <div style={{ padding: '16px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--box-shadow)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
-            <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Client Approval</Text>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
+              <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Client Approval</Text>
+            </div>
+            <AIEnhanceButton 
+              originalData={{ 
+                clientName: data.clientName, 
+                signerTitle: data.clientSigner 
+              }} 
+              blockType="signature (client details)" 
+              onApply={(val) => {
+                handleUpdate({ 
+                  clientName: val.clientName || data.clientName, 
+                  clientSigner: val.signerTitle || data.clientSigner 
+                });
+              }} 
+            />
           </div>
           <Form.Item label={<span style={labelStyle}>Client Name</span>} style={{ marginBottom: 12 }}>
             <Input

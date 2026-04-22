@@ -15,6 +15,7 @@ import { nanoid } from 'nanoid';
 import dayjs from 'dayjs';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
+import { AIEnhanceButton } from '../AIEnhanceButton';
 
 const { Title, Text } = Typography;
 
@@ -26,9 +27,9 @@ export const TimelineBlock: React.FC<TimelineBlockProps> = ({ data }) => {
   const phases = data.phases || [];
 
   return (
-    <div style={{ padding: '32px 0' }}>
+    <div style={{ padding: '16px 0' }}>
       {data.title && (
-        <Title level={2} style={{ marginBottom: '40px', color: 'var(--text-primary)', fontWeight: 700 }}>
+        <Title level={2} style={{ marginBottom: '16px', color: 'var(--text-primary)', fontWeight: 700 }}>
           {data.title}
         </Title>
       )}
@@ -147,7 +148,15 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <Form.Item label={<span style={labelStyle}>Section Title</span>} style={{ marginBottom: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={labelStyle}>Section Details</span>
+            <AIEnhanceButton 
+              originalData={{ title: data.title }} 
+              blockType="timeline (title)" 
+              onApply={(newData) => handleUpdate({ ...data, ...newData })} 
+            />
+          </div>
+          <Form.Item style={{ marginBottom: 0 }}>
             <Input
               prefix={<EditOutlined style={{ color: 'var(--border-color)' }} />}
               placeholder="e.g. Project Timeline"
@@ -162,9 +171,21 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
 
       {/* Project Anchors */}
       <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <FlagOutlined style={{ color: '#10b981' }} />
-          <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Key Milestones</Text>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FlagOutlined style={{ color: '#10b981' }} />
+            <Text strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>Key Milestones</Text>
+          </div>
+          <AIEnhanceButton 
+            originalData={{ kickoff: data.startDate, deadline: data.finalDate }} 
+            blockType="timeline (anchors)" 
+            onApply={(newDates) => {
+              handleUpdate({ 
+                startDate: newDates.kickoff || data.startDate, 
+                finalDate: newDates.deadline || data.finalDate 
+              });
+            }} 
+          />
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
@@ -209,17 +230,31 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
               border: '1px solid var(--border-color)',
               position: 'relative'
             }}>
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => {
-                  const newPhases = [...data.phases];
-                  newPhases.splice(index, 1);
-                  handleUpdate({ phases: newPhases });
-                }}
-                style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>Project Phase</Text>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <AIEnhanceButton 
+                    originalData={phase} 
+                    blockType="timeline (phase)" 
+                    onApply={(newP) => {
+                      const newPhases = [...data.phases];
+                      newPhases[index] = { ...newP, id: phase.id };
+                      handleUpdate({ phases: newPhases });
+                    }} 
+                  />
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => {
+                      const newPhases = [...data.phases];
+                      newPhases.splice(index, 1);
+                      handleUpdate({ phases: newPhases });
+                    }}
+                    style={{ height: '24px', width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
+                </div>
+              </div>
 
               <Form.Item label={<span style={labelStyle}>Phase Name</span>} style={{ marginBottom: 12 }}>
                 <Input
@@ -288,7 +323,14 @@ export const TimelineBlockSettings: React.FC<{ data: any, onUpdate: (data: any) 
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div style={{ marginBottom: '8px' }}>
-            <span style={labelStyle}>Dependency Notes</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 6 }}>
+              <span style={labelStyle}>Dependency Notes</span>
+              <AIEnhanceButton 
+                originalData={data.dependencyNotes} 
+                blockType="timeline (dependencies)" 
+                onApply={(newNotes) => handleUpdate({ dependencyNotes: newNotes })} 
+              />
+            </div>
             <TiptapEditor
               content={data.dependencyNotes || ''}
               onChange={(html) => handleUpdate({ dependencyNotes: html })}

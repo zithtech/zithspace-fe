@@ -322,7 +322,7 @@ export default function ProposalDetailPage() {
             <Row gutter={[48, 32]}>
               {(data.companyName?.trim() || data.companySigner?.trim()) && (
                 <Col xs={24} md={12}>
-                  <div style={{ padding: 16, background: isPreview ? 'transparent' : '#f8fafc', borderRadius: 12, border: isPreview ? 'none' : '1px solid var(--border-color)' }}>
+                  <div style={{ padding: 16, background: isPreview ? 'transparent' : 'var(--bg-primary)', borderRadius: 12, border: isPreview ? 'none' : '1px solid var(--border-color)' }}>
                     <Title level={5} style={{ color: 'var(--text-primary)', marginBottom: 16 }}>For: {data.companyName || 'The Provider'}</Title>
                     <Descriptions column={1}>
                       <Descriptions.Item label={<span style={{ color: 'var(--text-secondary)' }}>Signatory</span>}><Text style={{ color: 'var(--text-primary)' }}>{data.companySigner || 'Authorized Representative'}</Text></Descriptions.Item>
@@ -333,7 +333,7 @@ export default function ProposalDetailPage() {
               )}
               {(data.clientName?.trim() || data.signatoryName?.trim() || data.clientSigner?.trim()) && (
                 <Col xs={24} md={12}>
-                  <div style={{ padding: 16, background: isPreview ? 'transparent' : '#f8fafc', borderRadius: 12, border: isPreview ? 'none' : '1px solid var(--border-color)' }}>
+                  <div style={{ padding: 16, background: isPreview ? 'transparent' : 'var(--bg-primary)', borderRadius: 12, border: isPreview ? 'none' : '1px solid var(--border-color)' }}>
                     <Title level={5} style={{ color: 'var(--text-primary)', marginBottom: 16 }}>For: {data.clientName || 'The Client'}</Title>
                     <Descriptions column={1}>
                       <Descriptions.Item label={<span style={{ color: 'var(--text-secondary)' }}>Signatory</span>}><Text style={{ color: 'var(--text-primary)' }}>{data.signatoryName || data.clientSigner || 'Pending'}</Text></Descriptions.Item>
@@ -367,7 +367,7 @@ export default function ProposalDetailPage() {
                 </div>
               ))}
               {hasValue(data.dependencyNotes) && (
-                <div style={{ marginTop: 24, padding: 16, background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #3b82f6' }}>
+                <div style={{ marginTop: 24, padding: 16, background: 'var(--bg-primary)', borderRadius: 8, borderLeft: '4px solid #3b82f6' }}>
                   <Text strong style={{ display: 'block', marginBottom: 8, fontSize: '12px', color: 'var(--premium-blue)', letterSpacing: '1px' }}>DEPENDENCY NOTES</Text>
                   <TiptapViewer content={data.dependencyNotes} />
                 </div>
@@ -413,7 +413,7 @@ export default function ProposalDetailPage() {
                     </div>
                   )}
                   {hasValue(m.tasks) && (
-                    <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.6', background: '#f8fafc', padding: '16px', borderRadius: '8px', borderLeft: '3px solid #e2e8f0' }}>
+                    <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-secondary)', fontSize: '15px', lineHeight: '1.6', background: 'var(--bg-primary)', padding: '16px', borderRadius: '8px', borderLeft: '3px solid var(--border-color)' }}>
                       {m.tasks}
                     </div>
                   )}
@@ -559,7 +559,7 @@ export default function ProposalDetailPage() {
       label: <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><SnippetsOutlined /> Overview</span>,
       forceRender: true,
       children: (
-        <div id="proposal-document-sheet" style={{ padding: '0', background: 'white' }}>
+        <div id="proposal-document-sheet" style={{ padding: '0', background: 'var(--bg-pure-white)' }}>
           <div
             style={{
               maxWidth: 960,

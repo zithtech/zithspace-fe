@@ -26,10 +26,10 @@ const SortableBlock = ({ id, type, data, isSelected, onClick, onRemove, index }:
 
   const selectionOverlayStyle: React.CSSProperties = {
     position: 'absolute',
-    inset: '-4px', // Slight overlap
-    border: isSelected ? '2px solid #3b82f6' : '1px solid transparent',
-    borderRadius: '12px',
-    boxShadow: isSelected ? '0 0 0 4px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(0,0,0,0.05)' : 'none',
+    inset: isSelected ? '-6px -24px' : '-4px 0', // Significantly wider on sides when selected
+    border: isSelected ? '3px solid #3b82f6' : '1px solid transparent',
+    borderRadius: '16px',
+    boxShadow: isSelected ? '0 0 0 6px rgba(59, 130, 246, 0.15), 0 8px 24px rgba(59, 130, 246, 0.1)' : 'none',
     pointerEvents: 'none',
     zIndex: 10,
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',

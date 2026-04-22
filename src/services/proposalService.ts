@@ -23,5 +23,17 @@ export const ProposalService = {
 
   requestProposalExport: async (id: string) => {
     return api.post(`/api/proposals/${id}/export`);
+  },
+
+  generateFromLead: async (leadId: string) => {
+    return api.post(`/api/proposals/generate-from-lead/${leadId}`);
+  },
+
+  generateContentOnly: async (leadId: string) => {
+    return api.post(`/api/proposals/generate-content-only/${leadId}`);
+  },
+  
+  refineBlock: async (params: { blockId?: string; blockType: string; currentData: any; userPrompt: string }) => {
+    return api.post('/api/proposals/refine-block', params);
   }
 };

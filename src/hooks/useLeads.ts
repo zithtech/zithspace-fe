@@ -93,7 +93,35 @@ export const useLeads = () => {
     fetchLeadById,
     createLead,
     updateLead,
-    deleteLead
+    deleteLead,
+    onboardLead: useCallback(async (id: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await LeadService.onboard(id);
+        return res;
+      } catch (err: any) {
+        const msg = err.response?.data?.error || "Failed to onboard lead";
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    }, []),
+    analyzeLead: useCallback(async (id: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await LeadService.analyze(id);
+        return res;
+      } catch (err: any) {
+        const msg = err.response?.data?.error || "Failed to analyze lead";
+        setError(msg);
+        throw new Error(msg);
+      } finally {
+        setLoading(false);
+      }
+    }, [])
   };
 };
 

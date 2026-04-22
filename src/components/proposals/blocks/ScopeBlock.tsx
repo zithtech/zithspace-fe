@@ -13,6 +13,7 @@ import {
 import { nanoid } from 'nanoid';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
+import { AIEnhanceButton } from '../AIEnhanceButton';
 
 const { Title, Text } = Typography;
 
@@ -24,43 +25,61 @@ export const ScopeBlock: React.FC<ScopeBlockProps> = ({ data }) => {
   const milestones = data.milestones || [];
 
   return (
-    <div style={{ padding: '32px 0' }}>
+    <div style={{ padding: '40px' }}>
       {data.title && (
-        <Title level={2} style={{ marginBottom: '32px', color: 'var(--text-primary)', fontWeight: 700 }}>
+        <Title level={2} style={{ marginBottom: '12px', color: 'var(--text-primary)', fontWeight: 700 }}>
           {data.title}
         </Title>
       )}
 
       {/* Milestones / Phases */}
       {milestones.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
           {milestones.map((m: any, idx: number) => (
-            <Card
-              key={m.id}
-              style={{ borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-              bodyStyle={{ padding: '24px' }}
-            >
-              <Title level={4} style={{ color: 'var(--text-primary)', marginTop: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ background: 'var(--bg-blue-50)', color: 'var(--premium-blue)', padding: '4px 12px', borderRadius: '16px', fontSize: '0.9rem' }}>
+            <div key={m.id}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                <span style={{ 
+                  background: 'var(--bg-blue-50)', 
+                  color: 'var(--premium-blue)', 
+                  padding: '4px 16px', 
+                  borderRadius: '20px', 
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  border: '1px solid rgba(59, 130, 246, 0.1)'
+                }}>
                   Phase {idx + 1}
                 </span>
-                {m.title}
-              </Title>
-
-              <div style={{ marginBottom: '16px' }}>
-                <Text strong style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '8px' }}><CheckCircleOutlined style={{ color: '#10b981', marginRight: '6px' }} /> Deliverables:</Text>
-                <Text style={{ color: 'var(--text-primary)', display: 'block', paddingLeft: '22px' }}>{m.deliverables}</Text>
+                <Title level={4} style={{ color: 'var(--text-primary)', margin: 0, fontWeight: 700 }}>
+                  {m.title}
+                </Title>
               </div>
 
-              <div>
-                <Text strong style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '8px' }}>Task List:</Text>
-                <ul style={{ margin: 0, paddingLeft: '22px', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                  {(m.tasks || '').split('\n').filter((t: string) => t.trim().length > 0).map((t: string, i: number) => (
-                    <li key={i}>{t}</li>
-                  ))}
-                </ul>
+              <div style={{ paddingLeft: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
+                  <CheckCircleOutlined style={{ color: '#10b981', marginTop: '6px', fontSize: '1.2rem' }} />
+                  <div style={{ flex: 1 }}>
+                    <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '8px' }}>Major Deliverables</Text>
+                    <Text style={{ color: 'var(--text-secondary)', display: 'block', lineHeight: 1.8, fontSize: '1rem' }}>{m.deliverables}</Text>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', paddingLeft: '4px' }}>
+                  <UnorderedListOutlined style={{ color: 'var(--premium-blue)', marginTop: '4px', fontSize: '1.1rem' }} />
+                  <div style={{ flex: 1 }}>
+                    <Text strong style={{ display: 'block', color: 'var(--text-primary)', fontSize: '0.95rem', marginBottom: '12px' }}>Detailed Tasks</Text>
+                    <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '0.95rem' }}>
+                      {(m.tasks || '').split('\n').filter((t: string) => t.trim().length > 0).map((t: string, i: number) => (
+                        <li key={i} style={{ marginBottom: '8px' }}>{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
-            </Card>
+
+              {idx < milestones.length - 1 && <Divider style={{ margin: '40px 0', borderColor: 'var(--border-color)', opacity: 0.6 }} />}
+            </div>
           ))}
         </div>
       )}
@@ -106,7 +125,15 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <Form.Item label={<span style={labelStyle}>Section Title</span>} style={{ marginBottom: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={labelStyle}>Section Details</span>
+            <AIEnhanceButton 
+              originalData={{ title: data.title }} 
+              blockType="scope (title)" 
+              onApply={(newData) => handleUpdate({ ...data, ...newData })} 
+            />
+          </div>
+          <Form.Item style={{ marginBottom: 0 }}>
             <Input
               prefix={<FileTextOutlined style={{ color: '#cbd5e1' }} />}
               placeholder="e.g. Scope of Work"
@@ -135,17 +162,31 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
               border: '1px solid var(--border-color)',
               position: 'relative'
             }}>
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => {
-                  const newMilestones = [...data.milestones];
-                  newMilestones.splice(index, 1);
-                  handleUpdate({ milestones: newMilestones });
-                }}
-                style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>Milestone Phase</Text>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <AIEnhanceButton 
+                    originalData={m} 
+                    blockType="scope (milestone)" 
+                    onApply={(newM) => {
+                      const newMilestones = [...data.milestones];
+                      newMilestones[index] = { ...newM, id: m.id };
+                      handleUpdate({ milestones: newMilestones });
+                    }} 
+                  />
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => {
+                      const newMilestones = [...data.milestones];
+                      newMilestones.splice(index, 1);
+                      handleUpdate({ milestones: newMilestones });
+                    }}
+                    style={{ height: '24px', width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  />
+                </div>
+              </div>
 
               <Form.Item label={<span style={labelStyle}>Phase Name</span>} style={{ marginBottom: 12 }}>
                 <Input
@@ -220,6 +261,18 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={labelStyle}>Boundary Details</span>
+                    <AIEnhanceButton 
+                      originalData={term} 
+                      blockType="scope (boundary)" 
+                      onApply={(newTerm) => {
+                        const newTerms = [...data.terms];
+                        newTerms[index] = { ...newTerm, id: term.id };
+                        handleUpdate({ terms: newTerms });
+                      }} 
+                    />
+                  </div>
                   <Input
                     placeholder="e.g. Exclusions"
                     value={term.title}
@@ -228,7 +281,7 @@ export const ScopeBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
                       newTerms[index] = { ...term, title: e.target.value };
                       handleUpdate({ terms: newTerms });
                     }}
-                    style={{ ...inputStyle, flex: 1 }}
+                    style={{ ...inputStyle, flex: 1, marginBottom: 8 }}
                   />
                   <ColorPicker
                     value={term.color || '#64748b'}

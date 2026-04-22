@@ -15,13 +15,14 @@ import { useProposalStore, BlockType } from '@/store/proposalStore';
 import { BlockPalette } from '@/components/proposals/BlockPalette';
 import { BlockProperties } from '@/components/proposals/BlockProperties';
 import { EditorCanvas } from '@/components/proposals/EditorCanvas';
-import { Typography, Row, Col, Layout, Button, message, Drawer, Space, Dropdown, Segmented } from 'antd';
+import { Typography, Row, Col, Layout, Button, message, Drawer, Space, Dropdown, Segmented, Progress } from 'antd';
 import type { MenuProps } from 'antd';
 import { SaveOutlined, EyeOutlined, DownloadOutlined, FilePdfOutlined, FileWordOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import MainLayout from '@/components/layout/MainLayout';
 import { ProposalService } from '@/services/proposalService';
 import { useTheme } from '@/context/ThemeContext';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Sparkles } from 'lucide-react';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -43,6 +44,10 @@ function BuilderContent() {
   const [propertiesWidth, setPropertiesWidth] = useState(440);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const resizingPane = useRef<'left' | 'right' | 'palette-right' | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genProgress, setGenProgress] = useState(0);
+  const [genStep, setGenStep] = useState('');
+  const [showGenOverlay, setShowGenOverlay] = useState(false);
 
   const isInitialized = useRef(false);
 
@@ -63,9 +68,58 @@ function BuilderContent() {
       };
 
       if (!proposalId) {
-        // PRE-POPULATE NEW PROPOSAL WITH DEFAULT TEMPLATE IN ORDER
+        // 1. CHECK IF WE HAVE PENDING AI DATA (from Lead Dashboard)
+        const pendingData = sessionStorage.getItem('pending_proposal_data');
+        if (pendingData) {
+          try {
+            const parsed = JSON.parse(pendingData);
+            if (parsed.blocks) {
+              // START AI GENERATION SIMULATION
+              setShowGenOverlay(true);
+              setIsGenerating(true);
+              
+              const steps = [
+                { label: 'Analyzing Lead Intelligence...', duration: 800 },
+                { label: 'Synthesizing Cover Design...', duration: 1000 },
+                { label: 'Structuring Scope of Work...', duration: 1200 },
+                { label: 'Drafting Executive Summary...', duration: 900 },
+                { label: 'Finalizing Financial Proposal...', duration: 1100 },
+                { label: 'Reviewing Proposal Accuracy...', duration: 600 }
+              ];
+
+              let currentProgress = 0;
+              for (let i = 0; i < steps.length; i++) {
+                setGenStep(steps[i].label);
+                const stepIncrement = 100 / steps.length;
+                
+                // Animate progress within step
+                const subSteps = 10;
+                for (let j = 0; j < subSteps; j++) {
+                  await new Promise(r => setTimeout(r, steps[i].duration / subSteps));
+                  currentProgress += stepIncrement / subSteps;
+                  setGenProgress(Math.min(Math.round(currentProgress), 99));
+                }
+              }
+
+              setBlocks(parsed.blocks);
+              setGenProgress(100);
+              setGenStep('Proposal Ready!');
+              
+              setTimeout(() => {
+                setIsGenerating(false);
+                setTimeout(() => setShowGenOverlay(false), 500); // Wait for fade out
+                sessionStorage.removeItem('pending_proposal_data');
+                messageApi.success({ content: 'AI Proposal Draft Prepared!', key: 'load_data' });
+              }, 800);
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to parse pending AI data:', e);
+          }
+        }
+
+        // 2. DEFAULT TEMPLATE FOR NEW PROPOSAL
         const defaultTemplateTypes: BlockType[] = ['cover', 'text', 'scope', 'timeline', 'pricing', 'signature', 'section'];
-        // Use a slight delay to ensure store is ready and avoided strict-mode double-run
         setBlocks([]);
         defaultTemplateTypes.forEach((t) => addBlock(t));
         return;
@@ -73,8 +127,9 @@ function BuilderContent() {
 
       try {
         const response: any = await ProposalService.getProposalById(proposalId);
-        if (response) {
-          let fetchedBlocks = response.blocks_data || [];
+        const proposal = response?.data || response;
+        if (proposal) {
+          let fetchedBlocks = proposal.blocks_data || [];
           if (typeof fetchedBlocks === 'string') {
             try {
               fetchedBlocks = JSON.parse(fetchedBlocks);
@@ -558,6 +613,61 @@ function BuilderContent() {
           title="Proposal Preview Slider"
         />
       </Drawer>
+
+      {/* AI GENERATION OVERLAY */}
+      {showGenOverlay && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(255, 255, 255, 0.98)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'opacity 0.5s ease',
+          opacity: isGenerating ? 1 : 0,
+          pointerEvents: isGenerating ? 'all' : 'none',
+          backdropFilter: 'blur(8px)'
+        }}>
+          <div style={{ width: '400px', textAlign: 'center' }}>
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ 
+                width: '80px', height: '80px', borderRadius: '20px', background: 'var(--premium-blue)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', 
+                margin: '0 auto 24px auto', boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
+                animation: 'pulse 2s infinite'
+              }}>
+                <Sparkles size={40} style={{ margin: 'auto' }} />
+              </div>
+              <Title level={2} style={{ margin: 0, fontWeight: 800, color: '#1e293b' }}>Crafting Your Proposal</Title>
+              <Text type="secondary" style={{ fontSize: '16px' }}>AI is synthesizing your winning bid...</Text>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+              <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text strong style={{ color: 'var(--premium-blue)', fontSize: '13px' }}>{genStep}</Text>
+                <Text type="secondary" style={{ fontSize: '12px' }}>{genProgress}%</Text>
+              </div>
+              <Progress 
+                percent={genProgress} 
+                showInfo={false} 
+                strokeColor={{ '0%': '#3b82f6', '100%': '#60a5fa' }}
+                strokeWidth={10}
+                status="active"
+              />
+            </div>
+            
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes pulse {
+                0% { transform: scale(1); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3); }
+                50% { transform: scale(1.05); box-shadow: 0 12px 32px rgba(59, 130, 246, 0.5); }
+                100% { transform: scale(1); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3); }
+              }
+            `}} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

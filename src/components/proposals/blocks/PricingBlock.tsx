@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons';
 import { nanoid } from 'nanoid';
 import React from 'react';
+import { AIEnhanceButton } from '../AIEnhanceButton';
 
 const { Title, Text } = Typography;
 
@@ -73,9 +74,9 @@ export const PricingBlock: React.FC<PricingBlockProps> = ({ data }) => {
   ];
 
   return (
-    <div style={{ padding: '24px 0' }}>
+    <div style={{ padding: '40px' }}>
       {data.title && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
           <Title level={2} style={{ margin: 0, color: 'var(--text-primary)' }}>
             {data.title}
           </Title>
@@ -199,7 +200,21 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <Form.Item label={<span style={labelStyle}>Section Title</span>} name="title">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={labelStyle}>Section Details</span>
+            <AIEnhanceButton 
+              originalData={{ 
+                title: data.title, 
+                feeStructure: data.feeStructure, 
+                currency: data.currency, 
+                taxRate: data.taxRate, 
+                discount: data.discount 
+              }} 
+              blockType="pricing (global settings)" 
+              onApply={(newData) => onUpdate({ ...data, ...newData })} 
+            />
+          </div>
+          <Form.Item name="title" style={{ marginBottom: 12 }}>
             <Input prefix={<FileTextOutlined style={{ color: 'var(--border-color)' }} />} placeholder="e.g. Pricing & Investment" variant="filled" style={inputStyle} />
           </Form.Item>
 
@@ -255,15 +270,29 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
                   boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
                   position: 'relative'
                 }}>
-                  <Tooltip title="Remove Item">
-                    <Button
-                      type="text"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={() => remove(name)}
-                      style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
-                    />
-                  </Tooltip>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <Text strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>Service Item</Text>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <AIEnhanceButton 
+                        originalData={data.items[name]} 
+                        blockType="pricing (item)" 
+                        onApply={(newItem) => {
+                          const newItems = [...data.items];
+                          newItems[name] = { ...newItem, id: data.items[name].id };
+                          onUpdate({ ...data, items: newItems });
+                        }} 
+                      />
+                      <Tooltip title="Remove Item">
+                        <Button
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => remove(name)}
+                          style={{ height: '24px', width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        />
+                      </Tooltip>
+                    </div>
+                  </div>
 
                   <Form.Item {...restField} name={[name, 'name']} label={<span style={labelStyle}>Item Name</span>} style={{ marginBottom: 12 }}>
                     <Input prefix={<TagOutlined style={{ color: '#cbd5e1' }} />} placeholder="e.g. Web Design & Strategy" variant="filled" style={inputStyle} />
@@ -303,7 +332,19 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <Form.Item label={<span style={labelStyle}>Payment Schedule (One per line)</span>} name="paymentSchedule">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={labelStyle}>Terms & Schedules</span>
+            <AIEnhanceButton 
+              originalData={{ 
+                paymentSchedule: data.paymentSchedule, 
+                paymentMethods: data.paymentMethods,
+                taxesIncluded: data.taxesIncluded
+              }} 
+              blockType="pricing (terms)" 
+              onApply={(newTerms) => onUpdate({ ...data, ...newTerms })} 
+            />
+          </div>
+          <Form.Item name="paymentSchedule" style={{ marginBottom: 12 }}>
             <Input.TextArea rows={3} placeholder="40% Deposit upon signing&#10;60% On completion" variant="filled" style={inputStyle} />
           </Form.Item>
 
@@ -315,7 +356,7 @@ export const PricingBlockSettings: React.FC<{ data: any, onUpdate: (data: any) =
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '12px',
+            padding: '40px',
             background: data.taxesIncluded ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
             borderRadius: '8px',
             border: `1px solid ${data.taxesIncluded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,

@@ -16,6 +16,7 @@ import dayjs from 'dayjs';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
 import React from 'react';
+import { AIEnhanceButton } from '../AIEnhanceButton';
 
 const { Title, Text } = Typography;
 
@@ -30,13 +31,13 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      padding: '28px 32px',
+      padding: '40px',
       background: 'var(--bg-secondary)',
       borderRadius: '8px',
       border: '1px solid var(--border-color)',
     }}>
       {/* Header: Identity & Logo */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
           {data.logoUrl && (
             <img
@@ -59,9 +60,9 @@ export const CoverBlock: React.FC<CoverBlockProps> = ({ data }) => {
       </div>
 
       {/* Main Identity */}
-      <div style={{ marginBottom: '32px' }}>
+      <div style={{ marginBottom: '24px' }}>
         <Text style={{ color: 'var(--premium-blue)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Proposal For</Text>
-        <Title level={1} style={{ margin: '4px 0 12px 0', fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+        <Title level={1} style={{ margin: '4px 0 8px 0', fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
           {data.title || 'Proposal Title'}
         </Title>
         <Text style={{ fontSize: '1rem', color: 'var(--text-secondary)', maxWidth: '600px', display: 'block', lineHeight: 1.5 }}>
@@ -154,7 +155,15 @@ export const CoverBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => 
         </div>
 
         <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <Form.Item label={<span style={labelStyle}>Proposal Title</span>} name="title">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={labelStyle}>Section Details</span>
+            <AIEnhanceButton 
+              originalData={{ title: data.title, projectSummary: data.projectSummary }} 
+              blockType="cover (identity)" 
+              onApply={(newData) => onUpdate({ ...data, ...newData })} 
+            />
+          </div>
+          <Form.Item name="title" style={{ marginBottom: 16 }}>
             <Input prefix={<EditOutlined style={{ color: 'var(--border-color)' }} />} placeholder="e.g., E-commerce Redesign" variant="filled" style={inputStyle} />
           </Form.Item>
           <div style={{ marginBottom: 0 }}>

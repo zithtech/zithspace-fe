@@ -30,7 +30,8 @@ import {
   RefreshCw,
   ShieldCheck,
   Zap,
-  Sparkles
+  Sparkles,
+  MoreVertical
 } from "lucide-react";
 import {
   Card,
@@ -54,7 +55,10 @@ import {
   Avatar,
   Empty,
   Spin,
-  Tabs
+  Tabs,
+  Dropdown,
+  Modal,
+  type MenuProps
 } from "antd";
 import dayjs from "dayjs";
 import { useLeads } from "@/hooks/useLeads";
@@ -85,6 +89,7 @@ export default function LeadsPage() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [api, contextHolder] = notification.useNotification();
+  const [modal, modalContextHolder] = Modal.useModal();
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -245,46 +250,89 @@ export default function LeadsPage() {
       ),
     },
     {
+      title: "Bidiq",
+      key: "bidiq",
+      width: 100,
+      align: "center" as const,
+      render: (_: unknown, record: Lead) => (
+        <Button
+          type="link"
+          icon={<Zap size={16} />}
+          onClick={() => router.push(`/leads/bidiq/${record.id}`)}
+          style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "4px",
+            color: "var(--premium-blue)",
+            fontWeight: 700,
+            fontSize: 13,
+            padding: 0
+          }}
+        >
+          Bidiq
+        </Button>
+      ),
+    },
+    {
       title: "Actions",
       key: "table-actions",
       align: "right" as const,
-      width: 100,
-      render: (_: unknown, record: Lead) => (
-        <Space size={4}>
-          <Tooltip title="View All Details">
-            <Button
-              type="text"
-              icon={<Eye size={18} style={{ color: "var(--text-slate-400)" }} />}
-              onClick={() => handleView(record)}
+      width: 80,
+      render: (_: unknown, record: Lead) => {
+        const menuItems: MenuProps['items'] = [
+          {
+            key: 'view',
+            label: 'View Details',
+            icon: <Eye size={16} />,
+          },
+          {
+            key: 'edit',
+            label: 'Edit Lead',
+            icon: <Settings2 size={16} />,
+          },
+          {
+            type: 'divider',
+          },
+          {
+            key: 'delete',
+            label: 'Delete Lead',
+            danger: true,
+            icon: <Trash2 size={16} />,
+          }
+        ];
+
+        return (
+          <Dropdown 
+            menu={{ 
+              items: menuItems,
+              onClick: ({ key, domEvent }) => {
+                domEvent.stopPropagation();
+                if (key === 'view') handleView(record);
+                if (key === 'edit') handleEdit(record);
+                if (key === 'delete') {
+                  modal.confirm({
+                    title: "Are you sure you want to delete this lead?",
+                    content: "This action cannot be undone.",
+                    okText: "Delete",
+                    cancelText: "Cancel",
+                    okButtonProps: { danger: true },
+                    onOk: () => handleDelete(record.id)
+                  });
+                }
+              }
+            }} 
+            trigger={['click']} 
+            placement="bottomRight"
+          >
+            <Button 
+              type="text" 
+              icon={<MoreVertical size={20} style={{ color: "var(--text-slate-400)" }} />} 
               className="action-btn"
+              onClick={(e) => e.stopPropagation()}
             />
-          </Tooltip>
-          <Tooltip title="Edit Lead">
-            <Button
-              type="text"
-              icon={<Settings2 size={18} style={{ color: "var(--text-slate-400)" }} />}
-              onClick={() => handleEdit(record)}
-              className="action-btn"
-            />
-          </Tooltip>
-          <Tooltip title="Delete Lead">
-            <Popconfirm
-              title="Delete this lead?"
-              onConfirm={() => handleDelete(record.id)}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <Button
-                danger
-                type="text"
-                icon={<Trash2 size={18} />}
-                className="action-btn-danger"
-              />
-            </Popconfirm>
-          </Tooltip>
-        </Space>
-      ),
+          </Dropdown>
+        );
+      },
     },
   ];
 
@@ -317,6 +365,7 @@ export default function LeadsPage() {
       customPlatform: !['Upwork', 'LinkedIn', 'Freelancer', 'Fiverr'].includes(record.platform || '') ? record.platform : '',
       experienceLevel: record.experience_level,
       jobType: record.job_type,
+      budget: record.budget,
       clientRating: record.client_rating,
       clientSpend: record.client_spend,
       clientPaymentVerified: record.client_payment_verified,
@@ -399,9 +448,9 @@ export default function LeadsPage() {
 
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
     <Card
-      bodyStyle={{ padding: "16px 20px" }}
+      bodyStyle={{ padding: "10px 16px" }}
       style={{
-        borderRadius: 12,
+        borderRadius: 10,
         border: "1px solid var(--border-slate-100)",
         background: "var(--bg-pure-white)",
         boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)"
@@ -409,11 +458,11 @@ export default function LeadsPage() {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "var(--text-slate-500)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--text-slate-500)", fontSize: 12, fontWeight: 500 }}>{label}</Text>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-slate-900)", marginTop: 2 }}>{value}</div>
         </div>
-        <div style={{ color: color, background: `${color}15`, padding: 10, borderRadius: 12 }}>
-          <Icon size={20} />
+        <div style={{ color: color, background: `${color}15`, padding: 8, borderRadius: 10 }}>
+          <Icon size={18} />
         </div>
       </div>
     </Card>
@@ -424,28 +473,29 @@ export default function LeadsPage() {
       <MainLayout>
         <div style={{
           margin: "0 -24px",
-          padding: "24px 32px",
-          background: "var(--bg-primary)",
+          padding: "16px 24px",
+          background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)"
         }}>
           {contextHolder}
+          {modalContextHolder}
 
           {/* Header Section */}
-          <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div style={{ flex: 1 }}>
-              <Space size={12} align="center">
+              <Space size={10} align="center">
                 <div style={{
                   background: "var(--bg-blue-50)",
-                  padding: 10,
-                  borderRadius: 12,
+                  padding: 8,
+                  borderRadius: 10,
                   color: "var(--premium-blue)",
                   display: "flex"
                 }}>
-                  <Layers size={24} />
+                  <Layers size={18} />
                 </div>
                 <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Leads Management</Title>
-                  <Text style={{ color: "var(--text-slate-500)", fontSize: 15 }}>Track project leads, client details, and job specifications.</Text>
+                  <Title level={4} style={{ margin: 0, fontWeight: 700, color: "var(--text-slate-900)" }}>Leads Management</Title>
+                  <Text style={{ color: "var(--text-slate-500)", fontSize: 13 }}>Track project leads and specifications.</Text>
                 </div>
               </Space>
             </div>
@@ -453,14 +503,14 @@ export default function LeadsPage() {
               <Input
                 placeholder="Search leads..."
                 prefix={<Search size={16} style={{ color: "var(--text-slate-400)" }} />}
-                style={{ width: 280, borderRadius: 10, height: 44, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)" }}
+                style={{ width: 240, borderRadius: 8, height: 36, border: "1px solid var(--border-slate-200)", background: "var(--bg-pure-white)" }}
                 onChange={(e) => setSearchText(e.target.value)}
               />
               <Button
                 type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                style={{ borderRadius: 10, height: 44, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
+                size="middle"
+                icon={<Plus size={16} />}
+                style={{ borderRadius: 8, height: 36, fontWeight: 600, display: "flex", alignItems: "center", background: "var(--premium-blue)" }}
                 onClick={() => {
                   setEditingKey(null);
                   form.resetFields();
@@ -477,18 +527,18 @@ export default function LeadsPage() {
             </div>
           </div>
 
-          <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={8}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={6}>
               <StatCard label="Total Leads" value={leads.length} icon={Layers} color="#3b82f6" />
             </Col>
           </Row>
 
           {/* Filter Bar Section */}
           <Card
-            bodyStyle={{ padding: "12px 20px" }}
+            bodyStyle={{ padding: "8px 16px" }}
             style={{
-              marginBottom: 32,
-              borderRadius: 16,
+              marginBottom: 16,
+              borderRadius: 12,
               border: "1px solid var(--border-slate-200)",
               background: "var(--bg-pure-white)",
               boxShadow: "0 2px 4px 0 rgb(0 0 0 / 0.05)"
@@ -733,14 +783,19 @@ export default function LeadsPage() {
                     <Input placeholder="e.g. 3 Months" />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
-                  <Form.Item name="hourBasedAmount" label={<Text strong style={{ fontSize: 13 }}>Hourly Rate ($)</Text>}>
+                <Col span={6}>
+                  <Form.Item name="hourBasedAmount" label={<Text strong style={{ fontSize: 13 }}>Hourly ($)</Text>}>
                     <InputNumber style={{ width: '100%' }} min={0} prefix={<DollarSign size={14} />} />
                   </Form.Item>
                 </Col>
-                <Col span={8}>
-                  <Form.Item name="estOrProjectDuration" label={<Text strong style={{ fontSize: 13 }}>Project Type</Text>}>
-                    <Input placeholder="e.g. Fixed Price" />
+                <Col span={6}>
+                  <Form.Item name="budget" label={<Text strong style={{ fontSize: 13 }}>Budget ($)</Text>}>
+                    <Input placeholder="e.g. 5000" prefix={<DollarSign size={14} />} />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="estOrProjectDuration" label={<Text strong style={{ fontSize: 13 }}>Type</Text>}>
+                    <Input placeholder="Fixed/Hourly" />
                   </Form.Item>
                 </Col>
               </Row>

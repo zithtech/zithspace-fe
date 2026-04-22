@@ -3,6 +3,7 @@ import { Typography, Form, Input } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import TiptapEditor from '@/components/common/TiptapEditor';
 import TiptapViewer from '@/components/common/TiptapViewer';
+import { AIEnhanceButton } from '../AIEnhanceButton';
 
 const { Title } = Typography;
 
@@ -14,13 +15,13 @@ interface TextBlockProps {
 
 export const TextBlock: React.FC<TextBlockProps> = ({ data }) => {
   return (
-    <div style={{ padding: '24px 0' }}>
+    <div style={{ padding: '40px' }}>
       {data.heading && (
-        <Title level={2} style={{ marginBottom: '16px', color: 'var(--text-primary)', fontWeight: 700 }}>
+        <Title level={2} style={{ marginBottom: '8px', color: 'var(--text-primary)', fontWeight: 700 }}>
           {data.heading}
         </Title>
       )}
-      <div style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+      <div style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
         <TiptapViewer content={data.content || ''} />
       </div>
     </div>
@@ -34,7 +35,18 @@ export const TextBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => v
   return (
     <Form layout="vertical">
       <div style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-        <Form.Item label={<span style={labelStyle}>Section Heading</span>}>
+        <Form.Item 
+          label={
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <span style={labelStyle}>Section Heading</span>
+              <AIEnhanceButton 
+                originalData={data.heading} 
+                blockType="text (heading)" 
+                onApply={(newHeading) => onUpdate({ ...data, heading: newHeading })} 
+              />
+            </div>
+          }
+        >
           <Input 
             prefix={<EditOutlined style={{ color: 'var(--border-color)' }} />} 
             placeholder="e.g. Project Background" 
@@ -45,7 +57,14 @@ export const TextBlockSettings: React.FC<{ data: any, onUpdate: (data: any) => v
           />
         </Form.Item>
         <div style={{ marginBottom: '8px' }}>
-          <span style={labelStyle}>Main Content</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 6 }}>
+            <span style={labelStyle}>Main Content</span>
+            <AIEnhanceButton 
+              originalData={data.content} 
+              blockType="text (content)" 
+              onApply={(newContent) => onUpdate({ ...data, content: newContent })} 
+            />
+          </div>
           <TiptapEditor 
             content={data.content || ''} 
             onChange={(html) => onUpdate({ ...data, content: html })}

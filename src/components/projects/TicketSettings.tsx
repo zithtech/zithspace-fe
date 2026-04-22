@@ -19,12 +19,20 @@ import {
   SafetyCertificateOutlined,
   DeploymentUnitOutlined
 } from '@ant-design/icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { globalDataKeys } from '@/hooks/useGlobalData';
 import DropdownManager from './DropdownManager';
 
 const { Title, Paragraph, Text } = Typography;
 
 export default function TicketSettings() {
   const [activeTab, setActiveTab] = useState('overview');
+  const queryClient = useQueryClient();
+
+  // Handle data changes from DropdownManager
+  const handleDataChange = () => {
+    queryClient.invalidateQueries({ queryKey: globalDataKeys.ticketConfig });
+  };
 
   const settingsFeatures = [
     { title: 'Lookup Mapping', icon: <DatabaseOutlined />, color: '#1677ff' },
@@ -267,7 +275,7 @@ export default function TicketSettings() {
 
       {/* Content Area */}
       <div className="no-scrollbar" style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {activeTab === 'overview' ? renderOverviewTab() : <DropdownManager />}
+        {activeTab === 'overview' ? renderOverviewTab() : <DropdownManager onDataChange={handleDataChange} />}
       </div>
 
       <style jsx global>{`

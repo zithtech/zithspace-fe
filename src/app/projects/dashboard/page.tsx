@@ -24,12 +24,16 @@ export default function ProjectsDashboardPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading dashboard">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spin size="large" tip="Orchestrating ticket dashboard..." />
         </div>
       </MainLayout>
     );
@@ -42,7 +46,12 @@ export default function ProjectsDashboardPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: 20 }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "0 24px 24px 24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         <TicketDashboard />
       </div>
     </MainLayout>

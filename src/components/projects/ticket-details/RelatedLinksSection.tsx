@@ -318,7 +318,7 @@ export default function RelatedLinksSection({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="link-title"
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 13, color: '#262626', lineHeight: 1.4 }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 13, color: '#1890ff', lineHeight: 1.4 }}
                         >
                           <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                             {link.description || link.title || "Untitled Link"}

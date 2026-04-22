@@ -32,7 +32,13 @@ export default function ProjectsCreatePage() {
 
   return (
     <MainLayout>
-      <div style={{ height: "100%", overflow: "hidden" }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "0 24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)",
+        overflow: "hidden" 
+      }}>
         <CreateTicket />
       </div>
     </MainLayout>

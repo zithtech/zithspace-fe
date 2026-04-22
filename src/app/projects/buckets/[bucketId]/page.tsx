@@ -252,12 +252,16 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   if (authLoading || bucketLoading) {
     return (
       <MainLayout>
-        <div style={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ padding: 100, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading bucket details">
-            <div style={{ padding: 20 }} />
-          </Spin>
-        </div>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spin size="large" tip="Orchestrating bucket inventory..." />
         </div>
       </MainLayout>
     );
@@ -265,7 +269,12 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
   return (
     <MainLayout>
-      <div style={{ padding: '0 32px 32px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "0 24px 24px 24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         
         {/* Breadcrumbs & Simple Navigation */}
         <div style={{ padding: '20px 0 0' }}>

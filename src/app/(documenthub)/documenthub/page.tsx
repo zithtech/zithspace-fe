@@ -21,8 +21,13 @@ import {
   TagOutlined,
   DeleteOutlined,
   RestOutlined,
+  ShareAltOutlined,
+  LockOutlined,
   FileTextOutlined,
+  GlobalOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
+import ShareModal from "@/components/documenthub/ShareModal";
 import {
   Button,
   Col,
@@ -52,7 +57,7 @@ const { RangePicker } = DatePicker;
 type Props = {};
 const DocumentHubPage = (props: Props) => {
   const router = useRouter();
-  const { isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { canReadDocument, canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
 
   // Route guard
@@ -81,6 +86,15 @@ const DocumentHubPage = (props: Props) => {
   const [trashVisible, setTrashVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [modal, modalContextHolder] = Modal.useModal();
+
+  // Share Modal State
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedHubForShare, setSelectedHubForShare] = useState<{
+    id: string;
+    title: string;
+    visibility: string;
+    shareToken: string | null;
+  } | null>(null);
 
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
   const { data: tickets = [], isLoading: ticketsLoading } =
@@ -137,6 +151,17 @@ const DocumentHubPage = (props: Props) => {
     });
   };
 
+  const handleShareHub = (e: React.MouseEvent, hub: any) => {
+    e.stopPropagation();
+    setSelectedHubForShare({
+      id: hub.id,
+      title: hub.name,
+      visibility: hub.visibility || 'private',
+      shareToken: hub.shareToken || null
+    });
+    setShareModalOpen(true);
+  };
+
   const filteredHubs = documentHubs.filter((hub) => {
     const matchesSearch = hub.name
       .toLowerCase()
@@ -164,8 +189,16 @@ const DocumentHubPage = (props: Props) => {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Spin size="large" tip="Loading..." />
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spin size="large" tip="Orchestrating technical repository..." />
         </div>
       </MainLayout>
     );
@@ -243,15 +276,61 @@ const DocumentHubPage = (props: Props) => {
         new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
     },
     {
+      title: "Visibility",
+      dataIndex: "visibility",
+      key: "visibility",
+      width: 130,
+      render: (visibility, record) => {
+        const isOwner = user?.id === record.createdById;
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Select
+              size="small"
+              value={visibility || 'private'}
+              disabled={!isOwner}
+              style={{ width: 100 }}
+              bordered={false}
+              className="visibility-select"
+              onChange={async (value) => {
+                try {
+                  if (value === 'public') {
+                    await DocumentHubService.shareDocumentHub(record.id, 'public');
+                  } else {
+                    await DocumentHubService.revokeHubShare(record.id);
+                  }
+                  messageApi.success(`Hub is now ${value}`);
+                  refetch();
+                } catch (error) {
+                  console.error(error);
+                  messageApi.error("Failed to update visibility");
+                }
+              }}
+              options={[
+                { value: 'private', label: <Space><LockOutlined /> Private</Space> },
+                { value: 'public', label: <Space><GlobalOutlined /> Public</Space> },
+              ]}
+            />
+          </div>
+        );
+      }
+    },
+    {
       title: "Actions",
       key: "actions",
       render: (text, record) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={(e) => handleDeleteHub(e, record.id, record.name)}
-        />
+        <Space onClick={(e) => e.stopPropagation()}>
+          <Button
+            type="text"
+            icon={<ShareAltOutlined className="text-blue-500" />}
+            onClick={(e) => handleShareHub(e, record)}
+          />
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={(e) => handleDeleteHub(e, record.id, record.name)}
+          />
+        </Space>
       ),
     },
   ];
@@ -260,7 +339,14 @@ const DocumentHubPage = (props: Props) => {
     <MainLayout>
       {contextHolder}
       {modalContextHolder}
-      <div className="h-[calc(100vh-64px)] flex flex-col px-2 pt-4 pb-2">
+      <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px 16px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: "flex",
+          flexDirection: "column"
+      }}>
         <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-semibold text-slate-800 flex items-center gap-2" style={{ color: 'var(--text-slate-900)' }}>
@@ -298,6 +384,7 @@ const DocumentHubPage = (props: Props) => {
               documentHubs={documentHubs}
               isLoading={hubsLoading}
               onHubClick={(id) => router.push(`/documenthub/${id}`)}
+              onShareHub={handleShareHub}
             />
           </div>
 
@@ -500,6 +587,22 @@ const DocumentHubPage = (props: Props) => {
           </div>
         </Form>
       </Modal>
+
+      {selectedHubForShare && (
+        <ShareModal
+          open={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setSelectedHubForShare(null);
+            refetch(); // Refresh to get updated sharing state
+          }}
+          entityId={selectedHubForShare.id}
+          entityTitle={selectedHubForShare.title}
+          entityType="hub"
+          currentVisibility={selectedHubForShare.visibility}
+          currentShareToken={selectedHubForShare.shareToken}
+        />
+      )}
 
       <TrashDrawer open={trashVisible} onClose={() => setTrashVisible(false)} />
     </MainLayout>

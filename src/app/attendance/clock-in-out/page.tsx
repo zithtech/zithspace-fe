@@ -176,7 +176,12 @@ export default function ClockInOutPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: 'var(--bg-secondary)', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         {/* Header */}
         <div style={{ marginBottom: '24px' }}>
           <Space align="center" size={16}>

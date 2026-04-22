@@ -51,24 +51,24 @@ const { TextArea } = Input;
 
 /** Human-readable label per permission resource. */
 const RESOURCE_LABELS: Record<string, string> = {
-  user:         "Users / Members",
-  project:      "Projects",
-  ticket:       "Tickets",
-  attendance:   "Attendance",
-  leave:        "Leaves",
-  shift:        "Shifts",
-  invoice:      "Invoices",
-  transaction:  "Transactions",
-  client:       "Clients",
-  settings:     "Settings",
-  role:         "Roles & RBAC",
-  report:       "Reports",
-  reimbursement:"Reimbursement",
-  salary:       "Payroll / Salary",
-  document:     "Documents",
-  onboarding:   "Onboarding",
-  timesheet:    "Timesheet",
-  org:          "Org Structure",
+  user: "Users / Members",
+  project: "Projects",
+  ticket: "Tickets",
+  attendance: "Attendance",
+  leave: "Leaves",
+  shift: "Shifts",
+  invoice: "Invoices",
+  transaction: "Transactions",
+  client: "Clients",
+  settings: "Settings",
+  role: "Roles & RBAC",
+  report: "Reports",
+  reimbursement: "Reimbursement",
+  salary: "Payroll / Salary",
+  document: "Documents",
+  onboarding: "Onboarding",
+  timesheet: "Timesheet",
+  org: "Org Structure",
   daily_update: "Daily Updates",
 };
 
@@ -480,7 +480,12 @@ export default function RolesPage() {
 
   return (
     <MainLayout>
-      <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        backgroundColor: 'var(--bg-pure-white)', 
+        minHeight: 'calc(100vh - 64px)' 
+      }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <Space
@@ -573,9 +578,9 @@ export default function RolesPage() {
         {/* Roles Table Container */}
         <Card
           bordered={false}
-          style={{ 
-            marginBottom: 16, 
-            borderRadius: 12, 
+          style={{
+            marginBottom: 16,
+            borderRadius: 12,
             border: '1px solid var(--border-slate-100)',
             boxShadow: 'none',
             background: 'var(--bg-pure-white)'
@@ -690,9 +695,9 @@ export default function RolesPage() {
           }}
           extra={
             canUpdateRole && (
-              <Button 
-                type="primary" 
-                loading={drawerSaving} 
+              <Button
+                type="primary"
+                loading={drawerSaving}
                 onClick={handleSavePermissions}
                 style={{ borderRadius: 6 }}
               >
@@ -725,9 +730,9 @@ export default function RolesPage() {
                 }}
               >
                 <Text style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-slate-900)' }}>
-                  <Badge 
-                    count={selectedPermIds.length} 
-                    style={{ backgroundColor: 'var(--premium-blue)', marginRight: 8 }} 
+                  <Badge
+                    count={selectedPermIds.length}
+                    style={{ backgroundColor: 'var(--premium-blue)', marginRight: 8 }}
                   />
                   Permissions Selected
                 </Text>
@@ -764,11 +769,11 @@ export default function RolesPage() {
                   const someInGroup = selectedCount > 0 && !allInGroup;
 
                   return (
-                    <div 
-                      key={resource} 
-                      style={{ 
-                        marginBottom: 16, 
-                        border: '1px solid var(--border-slate-100)', 
+                    <div
+                      key={resource}
+                      style={{
+                        marginBottom: 16,
+                        border: '1px solid var(--border-slate-100)',
                         borderRadius: 10,
                         overflow: 'hidden',
                         background: 'var(--bg-pure-white)'
@@ -859,10 +864,10 @@ export default function RolesPage() {
             <div>
               {/* Add member section */}
               {canAssignRole && (
-                <div style={{ 
-                  marginBottom: 24, 
-                  padding: 16, 
-                  background: 'var(--bg-slate-50)', 
+                <div style={{
+                  marginBottom: 24,
+                  padding: 16,
+                  background: 'var(--bg-slate-50)',
                   borderRadius: 10,
                   border: '1px solid var(--border-slate-100)'
                 }}>
@@ -902,19 +907,19 @@ export default function RolesPage() {
                 <Text strong style={{ fontSize: 14, color: 'var(--text-slate-900)' }}>
                   Current Members
                 </Text>
-                <Badge 
-                  count={roleMembers.length} 
-                  showZero 
+                <Badge
+                  count={roleMembers.length}
+                  showZero
                   overflowCount={999}
                   style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-slate-500)', boxShadow: 'none' }}
                 />
               </div>
 
               {roleMembers.length === 0 ? (
-                <div style={{ 
-                  textAlign: "center", 
-                  padding: "48px 0", 
-                  background: 'var(--bg-slate-50)', 
+                <div style={{
+                  textAlign: "center",
+                  padding: "48px 0",
+                  background: 'var(--bg-slate-50)',
                   borderRadius: 10,
                   border: '1px dashed var(--border-slate-200)'
                 }}>
@@ -933,31 +938,31 @@ export default function RolesPage() {
                         actions={
                           canAssignRole
                             ? [
-                                <Popconfirm
-                                  key="remove"
-                                  title="Remove from role?"
-                                  description={`Are you sure you want to remove ${entry.user.name} from this role?`}
-                                  onConfirm={() => handleRemoveMember(entry.user.id)}
-                                  okText="Remove"
-                                  okButtonProps={{ danger: true }}
-                                >
-                                  <Button
-                                    type="text"
-                                    icon={<MinusCircleOutlined />}
-                                    size="small"
-                                    danger
-                                    className="hover-danger-bg"
-                                  />
-                                </Popconfirm>,
-                              ]
+                              <Popconfirm
+                                key="remove"
+                                title="Remove from role?"
+                                description={`Are you sure you want to remove ${entry.user.name} from this role?`}
+                                onConfirm={() => handleRemoveMember(entry.user.id)}
+                                okText="Remove"
+                                okButtonProps={{ danger: true }}
+                              >
+                                <Button
+                                  type="text"
+                                  icon={<MinusCircleOutlined />}
+                                  size="small"
+                                  danger
+                                  className="hover-danger-bg"
+                                />
+                              </Popconfirm>,
+                            ]
                             : []
                         }
                       >
                         <List.Item.Meta
                           avatar={
-                            <Avatar 
-                              style={{ backgroundColor: 'var(--premium-blue)' }} 
-                              icon={<UserOutlined />} 
+                            <Avatar
+                              style={{ backgroundColor: 'var(--premium-blue)' }}
+                              icon={<UserOutlined />}
                               size={40}
                             />
                           }

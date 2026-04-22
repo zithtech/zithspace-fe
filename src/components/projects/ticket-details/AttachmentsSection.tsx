@@ -59,10 +59,10 @@ export default function AttachmentsSection({
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Typography.Title level={5} style={{ fontSize: 13, margin: 0, color: '#595959' }}>
+        <Typography.Title level={5} style={{ fontSize: 13, margin: 0, color: 'var(--text-primary)' }}>
           Attachments
           {attachments.length > 0 && (
-            <span style={{ fontSize: 12, color: '#bfbfbf', fontWeight: 400, marginLeft: 6 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400, marginLeft: 6 }}>
               • {attachments.length} files
             </span>
           )}

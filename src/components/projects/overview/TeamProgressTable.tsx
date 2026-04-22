@@ -24,10 +24,11 @@ export const TeamProgressTable: React.FC<TeamProgressTableProps> = ({ members = 
     <Card
       title="TEAM PROGRESS"
       bordered={false}
-      className="h-full rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)]"
+      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] flex flex-col"
+      style={{ height: '600px' }}
       styles={{
-        header: { borderBottom: '1px solid var(--border-color)', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', padding: '0 24px' },
-        body: { padding: '0 24px' }
+        header: { borderBottom: '1px solid var(--border-color)', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', padding: '0 24px', flexShrink: 0 },
+        body: { padding: '0 24px', overflowY: 'auto', flex: 1 }
       }}
       extra={<Text type="secondary" style={{ fontSize: '11px', cursor: 'pointer', color: 'var(--text-secondary)' }}>Sort ↑↓</Text>}
     >

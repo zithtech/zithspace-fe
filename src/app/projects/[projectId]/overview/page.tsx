@@ -69,15 +69,17 @@ const ProjectOverviewPage = () => {
   return (
     <MainLayout>
       <div className="p-4 bg-[var(--bg-primary)] min-h-screen">
-        {/* Header */}
-        <OverviewHeader
-          name={project.name}
-          code={project.code}
-          status={project.status}
-          startDate={project.startDate}
-          endDate={project.endDate}
-          progress={projectProgress}
-        />
+        {/* Header - Sticky */}
+        <div className="sticky top-0 z-[100] mb-4 bg-[var(--bg-primary)] pt-1">
+          <OverviewHeader
+            name={project.name}
+            code={project.code}
+            status={project.status}
+            startDate={project.startDate}
+            endDate={project.endDate}
+            progress={projectProgress}
+          />
+        </div>
 
         {/* Summary & Project Info Row */}
         <Row gutter={[16, 16]}>
@@ -115,11 +117,11 @@ const ProjectOverviewPage = () => {
             <TeamProgressTable members={team} />
           </Col>
 
-          {/* Right Column: Insights & Activity */}
+          {/* Right Column: Activity & Insights */}
           <Col xs={24} lg={8}>
             <div className="space-y-4">
-              <InsightsPanel insights={insights} />
               <RecentActivitiesPanel activities={activities} />
+              <InsightsPanel insights={insights} />
             </div>
           </Col>
         </Row>

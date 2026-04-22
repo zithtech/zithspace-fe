@@ -13,8 +13,12 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ insights }) => {
     <Card 
       title="INSIGHTS" 
       bordered={false} 
-      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] mb-4" 
-      headStyle={{ borderBottom: 'none', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}
+      className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] flex flex-col" 
+      style={{ height: '292px' }}
+      styles={{
+        header: { borderBottom: 'none', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em', flexShrink: 0 },
+        body: { overflowY: 'auto', flex: 1, paddingTop: 0 }
+      }}
     >
       <List
         dataSource={insights}

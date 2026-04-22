@@ -28,10 +28,10 @@ interface GeneralSettingsProps {
 
 const SectionTitle = ({ icon: Icon, title }: any) => (
   <div className="flex items-center gap-3 mb-4">
-    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+    <div className="p-2 bg-[var(--customers-header-icon-bg)] text-[var(--customers-header-icon-color)] rounded-lg">
       <Icon size={18} />
     </div>
-    <h3 className="text-sm font-bold text-slate-800 m-0 uppercase tracking-wider">{title}</h3>
+    <h3 className="text-sm font-bold text-[var(--text-primary)] m-0 uppercase tracking-wider">{title}</h3>
   </div>
 );
 
@@ -173,7 +173,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
   };
 
   return (
-    <div className="bg-white">
+    <div className="bg-transparent">
       <Form
         form={form}
         layout="vertical"
@@ -190,10 +190,10 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
               <Col span={24}>
                 <Form.Item
                   name="companyName"
-                  label={<span className="text-slate-500 font-medium">Company Name</span>}
+                  label={<span className="text-[var(--text-secondary)] font-medium">Company Name</span>}
                   rules={[{ required: true, message: "Company name is required" }]}
                 >
-                  <Input size="large" placeholder="Enter company name" className="rounded-xl border-slate-200" />
+                  <Input size="large" placeholder="Enter company name" className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" />
                 </Form.Item>
               </Col>
             </Row>
@@ -204,38 +204,51 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             <SectionTitle icon={MapPin} title="Business Address" />
             <Row gutter={[16, 0]}>
               <Col span={8}>
-                <Form.Item name={["address", "plot_no"]} label={<span className="text-slate-500 font-medium">Plot No</span>}>
-                  <Input placeholder="Plot #" className="rounded-xl" />
+                <Form.Item name={["address", "plot_no"]} label={<span className="text-[var(--text-secondary)] font-medium">Plot No</span>}>
+                  <Input placeholder="Plot #" className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" />
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name={["address", "floor_no"]} label={<span className="text-slate-500 font-medium">Floor No</span>}>
-                  <Input placeholder="Floor #" className="rounded-xl" />
+                <Form.Item name={["address", "floor_no"]} label={<span className="text-[var(--text-secondary)] font-medium">Floor No</span>}>
+                  <Input placeholder="Floor #" className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" />
                 </Form.Item>
               </Col>
               <Col span={8}>
-                <Form.Item name={["address", "building_name"]} label={<span className="text-slate-500 font-medium">Building</span>}>
-                  <Input placeholder="Building Name" className="rounded-xl" />
+                <Form.Item name={["address", "building_name"]} label={<span className="text-[var(--text-secondary)] font-medium">Building</span>}>
+                  <Input placeholder="Building Name" className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name={["address", "street"]} label={<span className="text-slate-500 font-medium">Street / Area</span>}>
-                  <Input placeholder="Street name and locality" className="rounded-xl" />
+                <Form.Item name={["address", "street"]} label={<span className="text-[var(--text-secondary)] font-medium">Street / Area</span>}>
+                  <Input placeholder="Street name and locality" className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name={["address", "city"]} label={<span className="text-slate-500 font-medium">City</span>}>
-                  <Input placeholder="City" className="rounded-xl" />
+                <Form.Item name={["address", "city"]} label={<span className="text-[var(--text-secondary)] font-medium">City</span>}>
+                  <Input placeholder="City" className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name={["address", "pincode"]} label={<span className="text-slate-500 font-medium">Pincode</span>}>
-                  <Input placeholder="######" className="rounded-xl" />
+                <Form.Item 
+                  name={["address", "pincode"]} 
+                  label={<span className="text-[var(--text-secondary)] font-medium">Pincode</span>}
+                  rules={[
+                    { pattern: /^[0-9]{6}$/, message: "Must be 6 digits" }
+                  ]}
+                >
+                  <Input 
+                    placeholder="######" 
+                    className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" 
+                    maxLength={6}
+                    onInput={(e: any) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name={["address", "country"]} label={<span className="text-slate-500 font-medium">Country</span>}>
-                  <Input placeholder="Enter country" className="rounded-xl" />
+                <Form.Item name={["address", "country"]} label={<span className="text-[var(--text-secondary)] font-medium">Country</span>}>
+                  <Input placeholder="Enter country" className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)]" />
                 </Form.Item>
               </Col>
             </Row>
@@ -247,9 +260,9 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             <SectionTitle icon={Palette} title="Branding" />
             <Row gutter={[16, 0]}>
               <Col span={24}>
-                <div className="flex gap-4 mb-6 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
+                <div className="flex gap-4 mb-6 bg-[var(--bg-slate-50)] p-4 rounded-2xl border border-dashed border-[var(--border-color)]">
                   <div className="flex-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Logo</p>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase mb-2">Logo</p>
                     <Upload
                       listType="picture-card"
                       fileList={logoFileList}
@@ -259,7 +272,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                       className="logo-uploader"
                     >
                       {logoFileList.length === 0 && (
-                        <div className="flex flex-col items-center gap-1 text-slate-400">
+                        <div className="flex flex-col items-center gap-1 text-[var(--text-secondary)]">
                           <ImageIcon size={20} />
                           <span className="text-[10px]">Upload</span>
                         </div>
@@ -267,7 +280,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                     </Upload>
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Signature</p>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase mb-2">Signature</p>
                     <Upload
                       listType="picture-card"
                       fileList={signatureFileList}
@@ -276,7 +289,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                       maxCount={1}
                     >
                       {signatureFileList.length === 0 && (
-                        <div className="flex flex-col items-center gap-1 text-slate-400">
+                        <div className="flex flex-col items-center gap-1 text-[var(--text-secondary)]">
                           <PenTool size={20} />
                           <span className="text-[10px]">Sign</span>
                         </div>
@@ -286,7 +299,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                 </div>
               </Col>
               <Col span={24}>
-                <Form.Item label={<span className="text-slate-500 font-medium">Brand Primary Color</span>} style={{ marginBottom: 0 }}>
+                <Form.Item label={<span className="text-[var(--text-secondary)] font-medium">Brand Primary Color</span>} style={{ marginBottom: 0 }}>
                   <div className="flex gap-3 items-center">
                     <Form.Item name="primaryColor" noStyle>
                       <Input 
@@ -295,7 +308,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                         className="rounded-lg cursor-pointer overflow-hidden" 
                       />
                     </Form.Item>
-                    <Input value={primaryColor} readOnly className="rounded-xl border-slate-200 font-mono text-sm" />
+                    <Input value={primaryColor} readOnly className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)] font-mono text-sm" />
                   </div>
                 </Form.Item>
               </Col>
@@ -307,7 +320,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
             <SectionTitle icon={Globe} title="Regional & Tax" />
             <Row gutter={[16, 0]}>
               <Col span={12}>
-                <Form.Item name="currency" label={<span className="text-slate-500 font-medium">Currency</span>} rules={[{ required: true }]}>
+                <Form.Item name="currency" label={<span className="text-[var(--text-secondary)] font-medium">Currency</span>} rules={[{ required: true }]}>
                   <Select size="large" className="rounded-xl">
                     {currencyOptions.map((c) => (
                       <Option key={c.value} value={c.value}>
@@ -321,7 +334,7 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="dateFormat" label={<span className="text-slate-500 font-medium">Date Format</span>} rules={[{ required: true }]}>
+                <Form.Item name="dateFormat" label={<span className="text-[var(--text-secondary)] font-medium">Date Format</span>} rules={[{ required: true }]}>
                   <Select size="large" className="rounded-xl">
                     <Option value={DateFormat.MM_DD_YYYY}>MM/DD/YYYY</Option>
                     <Option value={DateFormat.DD_MM_YYYY}>DD/MM/YYYY</Option>
@@ -330,13 +343,39 @@ const GeneralSettings: FC<GeneralSettingsProps> = ({
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="gstin" label={<span className="text-slate-500 font-medium">GSTIN</span>}>
-                  <Input placeholder="Optional" className="rounded-xl" />
+                <Form.Item 
+                  name="gstin" 
+                  label={<span className="text-[var(--text-secondary)] font-medium">GSTIN</span>}
+                  rules={[
+                    { pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, message: "Invalid GSTIN format (e.g. 29ABCDE1234F1Z5)" }
+                  ]}
+                >
+                  <Input 
+                    placeholder="15-digit Alpha-numeric" 
+                    className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)] font-mono" 
+                    maxLength={15}
+                    onInput={(e: any) => {
+                      e.target.value = e.target.value.toUpperCase();
+                    }}
+                  />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="pan" label={<span className="text-slate-500 font-medium">PAN</span>}>
-                  <Input placeholder="Optional" className="rounded-xl" />
+                <Form.Item 
+                  name="pan" 
+                  label={<span className="text-[var(--text-secondary)] font-medium">PAN</span>}
+                  rules={[
+                    { pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, message: "Invalid PAN format (e.g. ABCDE1234F)" }
+                  ]}
+                >
+                  <Input 
+                    placeholder="10-digit Alpha-numeric" 
+                    className="rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)] font-mono" 
+                    maxLength={10}
+                    onInput={(e: any) => {
+                      e.target.value = e.target.value.toUpperCase();
+                    }}
+                  />
                 </Form.Item>
               </Col>
             </Row>

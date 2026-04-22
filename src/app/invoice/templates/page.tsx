@@ -2,13 +2,13 @@
 
 import React, { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { 
-  Space, 
-  Typography, 
-  Button, 
-  Card, 
-  Tag, 
-  Empty, 
+import {
+  Space,
+  Typography,
+  Button,
+  Card,
+  Tag,
+  Empty,
   Skeleton,
   Input,
   Tooltip,
@@ -20,25 +20,30 @@ import {
   Modal,
   Table,
   Segmented,
-  message
+  message,
+  Badge
 } from "antd";
 import type { MenuProps } from "antd";
-import { 
-  Plus, 
-  Settings, 
-  Edit3, 
-  Trash2, 
-  Search, 
-  FileText, 
-  Layers, 
-  LayoutGrid, 
-  List, 
-  MoreVertical, 
+import {
+  Plus,
+  Settings,
+  Edit3,
+  Trash2,
+  Search,
+  FileText,
+  Layers,
+  LayoutGrid,
+  List,
+  MoreVertical,
   Copy,
   PlusCircle,
   LucideIcon,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Check,
+  Star,
+  CheckCircle,
+  FileText as FileIcon
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useInvoiceTemplates, useDeleteInvoiceTemplate } from "@/hooks/useInvoiceTemplates";
@@ -77,50 +82,65 @@ export default function InvoiceTemplatePage() {
 
   const confirmDelete = async () => {
     if (!templateToDelete) return;
-    
+
     try {
       await deleteMutation.mutateAsync(templateToDelete.id);
       messageApi.success("Template deleted successfully");
       setDeleteModalVisible(false);
       setTemplateToDelete(null);
     } catch (error: any) {
-      messageApi.error(error.message || "Failed to delete template");
+      console.error("Delete template error:", error);
+
+      // Check if it's a foreign key constraint violation
+      if (error?.code === '23001' || error?.message?.includes('foreign key constraint')) {
+        messageApi.error(
+          "Cannot delete template: This template is being used by existing invoices. Please delete or reassign those invoices first.",
+          6
+        );
+      } else {
+        messageApi.error(error?.message || "Failed to delete template");
+      }
     }
   };
 
-  const filteredTemplates = templates?.filter(t => 
+  const filteredTemplates = templates?.filter(t =>
     t.name.toLowerCase().includes(searchText.toLowerCase()) ||
     t.billingType.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const totalTemplates = filteredTemplates?.length || 0;
   const defaultTemplates = filteredTemplates?.filter(t => t.isDefault).length || 0;
+  const activeTemplates = filteredTemplates?.filter(t => t.isActive).length || 0;
+  const inactiveTemplates = filteredTemplates?.filter(t => !t.isActive).length || 0;
 
-  const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: any, icon: LucideIcon, color: string }) => (
-    <Card 
-      styles={{ body: { padding: "12px 16px" } }} 
-      style={{ 
-        borderRadius: 16, 
-        border: "1px solid #f1f5f9", 
-        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        height: "100%"
+  const StatCard = ({ label, value, icon: Icon, color }: { label: string, value: any, icon: any, color: string }) => (
+    <Card
+      styles={{ body: { padding: "12px 18px" } }}
+      style={{
+        borderRadius: 18,
+        border: "1px solid var(--border-slate-100)",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+        height: "100%",
+        background: "var(--customers-card-bg)",
+        overflow: "hidden"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, display: "block", marginBottom: 2 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>{value}</div>
         </div>
-        <div style={{ 
-          color, 
-          background: `${color}12`, 
-          padding: 12, 
+        <div style={{
+          color,
+          background: `${color}15`,
+          padding: 10,
           borderRadius: 12,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center"
+          justifyContent: "center",
+          boxShadow: `0 0 16px ${color}10`
         }}>
-          <Icon size={24} />
+          <Icon size={20} strokeWidth={2.5} />
         </div>
       </div>
     </Card>
@@ -134,17 +154,17 @@ export default function InvoiceTemplatePage() {
       key: "name",
       render: (value: string, record: InvoiceTemplate) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-500 text-xs font-bold shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--customers-avatar-bg)', color: 'var(--customers-avatar-text)' }}>
             <FileText size={16} />
           </div>
           <div>
-            <div className="font-bold text-slate-800 flex items-center gap-2">
+            <div className="font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
               {value}
               {record.isDefault && (
                 <CheckCircle2 size={14} className="text-blue-500" />
               )}
             </div>
-            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{record.billingType}</div>
+            <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{record.billingType}</div>
           </div>
         </div>
       ),
@@ -154,8 +174,8 @@ export default function InvoiceTemplatePage() {
       dataIndex: "fields",
       key: "fields",
       render: (_: any, record: InvoiceTemplate) => (
-        <div className="flex items-center gap-1.5 font-medium text-slate-600">
-          <Layers size={14} className="text-slate-400" />
+        <div className="flex items-center gap-1.5 font-medium" style={{ color: 'var(--text-secondary)' }}>
+          <Layers size={14} style={{ color: 'var(--text-slate-400)' }} />
           {record._count?.fields || 0} Custom Fields
         </div>
       ),
@@ -164,7 +184,7 @@ export default function InvoiceTemplatePage() {
       title: "DESCRIPTION",
       dataIndex: "description",
       key: "description",
-      render: (value: string) => <Text style={{ color: "#64748b" }}>{value || "—"}</Text>,
+      render: (value: string) => <Text style={{ color: "var(--text-secondary)" }}>{value || "—"}</Text>,
       ellipsis: true,
     },
     {
@@ -172,7 +192,7 @@ export default function InvoiceTemplatePage() {
       dataIndex: "billingType",
       key: "billingType",
       render: (value: string) => (
-        <Tag className="rounded-md border-none px-2 font-semibold bg-slate-100 text-slate-600">
+        <Tag className="rounded-md border-none px-2 font-semibold" style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-secondary)' }}>
           {value.toUpperCase()}
         </Tag>
       ),
@@ -183,11 +203,11 @@ export default function InvoiceTemplatePage() {
       key: "isDefault",
       render: (isDefault: boolean) => (
         isDefault ? (
-          <Tag className="rounded-md border-none px-2 font-bold bg-blue-50 text-blue-600">
+          <Tag className="rounded-md border-none px-2 font-bold" style={{ backgroundColor: 'var(--customers-avatar-bg)', color: 'var(--customers-avatar-text)' }}>
             DEFAULT
           </Tag>
         ) : (
-          <Tag className="rounded-md border-none px-2 font-medium bg-slate-50 text-slate-400">
+          <Tag className="rounded-md border-none px-2 font-medium" style={{ backgroundColor: 'var(--bg-slate-50)', color: 'var(--text-slate-400)' }}>
             ACTIVE
           </Tag>
         )
@@ -212,7 +232,7 @@ export default function InvoiceTemplatePage() {
             disabled: true
           },
           {
-             type: 'divider'
+            type: 'divider'
           },
           {
             key: "delete",
@@ -222,10 +242,10 @@ export default function InvoiceTemplatePage() {
             onClick: () => handleDelete(record),
           },
         ];
-        
+
         return (
           <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-            <Button type="text" icon={<MoreVertical size={18} className="text-slate-400" />} />
+            <Button type="text" icon={<MoreVertical size={18} style={{ color: 'var(--text-slate-400)' }} />} />
           </Dropdown>
         );
       },
@@ -236,43 +256,43 @@ export default function InvoiceTemplatePage() {
     <MainLayout>
       {contextHolder}
       <div style={{
-          margin: "0 -24px",
-          padding: "24px 32px",
-          background: "#ffffff",
-          minHeight: "calc(100vh - 64px)"
+        margin: "0 -24px",
+        padding: "7px 32px 20px 32px",
+        background: "var(--customers-page-bg)",
+        minHeight: "calc(100vh - 64px)"
       }}>
         {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
           <div style={{ flex: 1 }}>
-            <Space size={14} align="center">
-              <div style={{ background: "#f1f5f9", padding: 12, borderRadius: 14, color: "#334155", display: "flex" }}>
-                <Layers size={28} />
+            <Space size={8} align="center">
+              <div style={{ background: "var(--customers-header-icon-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-header-icon-color)", display: "flex" }}>
+                <Layers size={18} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Invoice Templates</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Design and manage structures for your professional invoices.</Text>
+                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Invoice Templates</Title>
+                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Design and manage structures for professional invoices.</Text>
               </div>
             </Space>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: 'center' }}>
+          <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
             <Segmented
               disabled={isLoading}
               options={[
-                { 
-                  value: "card", 
+                {
+                  value: "card",
                   label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px' }}>
-                      <LayoutGrid size={16} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                      <LayoutGrid size={14} />
                     </div>
-                  ) 
+                  )
                 },
-                { 
-                  value: "table", 
+                {
+                  value: "table",
                   label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px' }}>
-                      <List size={16} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                      <List size={14} />
                     </div>
-                  ) 
+                  )
                 },
               ]}
               value={viewMode}
@@ -281,36 +301,44 @@ export default function InvoiceTemplatePage() {
             />
             <Input
               placeholder="Search templates..."
-              prefix={<Search size={16} className="text-slate-400 mr-1" />}
+              prefix={<Search size={16} className="text-slate-400 mr-2" />}
               allowClear
-              size="large"
+              size="middle"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 280, borderRadius: 12, height: 44 }}
+              style={{ width: 260, borderRadius: 8, height: 38, backgroundColor: "var(--bg-slate-50)" }}
             />
             <Button
               type="primary"
-              size="large"
-              icon={<Plus size={18} />}
+              size="middle"
+              icon={<Plus size={16} />}
               onClick={handleCreate}
-              style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "#2563eb", border: "none" }}
+              style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "var(--customers-header-icon-color)", border: "none" }}
             >
               Add Template
             </Button>
           </div>
         </div>
 
+        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+
         {/* ================= STATS ================= */}
         <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} md={6}>
-            <StatCard label="Total Templates" value={isLoading ? "..." : totalTemplates} icon={FileText} color="#3b82f6" />
+            <StatCard label="Total Templates" value={isLoading ? "..." : totalTemplates} icon={Layers} color="var(--customers-header-icon-color)" />
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <StatCard label="Default Templates" value={isLoading ? "..." : defaultTemplates} icon={CheckCircle2} color="#10b981" />
+            <StatCard label="Active Templates" value={isLoading ? "..." : activeTemplates} icon={CheckCircle} color="#10b981" />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <StatCard label="Inactive Templates" value={isLoading ? "..." : inactiveTemplates} icon={AlertCircle} color="#f43f5e" />
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <StatCard label="Primary Templates" value={isLoading ? "..." : defaultTemplates} icon={Star} color="#f59e0b" />
           </Col>
         </Row>
 
-        <Divider style={{ marginTop: "0", borderTop: "1px solid #f1f5f9" }} />
+
 
         {/* ================= CONTENT ================= */}
         {isLoading ? (
@@ -324,44 +352,54 @@ export default function InvoiceTemplatePage() {
             ))}
           </Row>
         ) : !filteredTemplates || filteredTemplates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-             <div className="size-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
-                <FileText size={32} className="text-slate-200" />
-             </div>
-             <Title level={4} style={{ color: "#64748b" }}>{searchText ? "No results found" : "No templates here yet"}</Title>
-             <Text style={{ color: "#94a3b8" }} className="mb-6">{searchText ? "Try a different search term" : "Create your first professional invoice template to get started."}</Text>
-             {!searchText && (
-               <Button type="primary" size="large" onClick={handleCreate} style={{ borderRadius: 12, height: 44 }}>
-                 Create Template
-               </Button>
-             )}
+          <div className="flex flex-col items-center justify-center py-20 rounded-2xl border border-dashed" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
+            <div className="size-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+              <FileText size={32} style={{ color: 'var(--text-slate-400)' }} />
+            </div>
+            <Title level={4} style={{ color: "var(--text-secondary)" }}>{searchText ? "No results found" : "No templates here yet"}</Title>
+            <Text style={{ color: "var(--text-slate-400)" }} className="mb-6">{searchText ? "Try a different search term" : "Create your first professional invoice template to get started."}</Text>
+            {!searchText && (
+              <Button type="primary" size="large" onClick={handleCreate} style={{ borderRadius: 12, height: 44 }}>
+                Create Template
+              </Button>
+            )}
           </div>
         ) : viewMode === "card" ? (
           <Row gutter={[24, 24]}>
             {filteredTemplates.map((template) => (
               <Col xs={24} sm={12} md={8} lg={6} key={template.id}>
-                <Card 
-                  hoverable 
-                  className="shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden" 
-                  style={{ 
+                <Card
+                  className="template-card transition-all duration-300"
+                  style={{
                     borderRadius: 20,
-                    border: template.isDefault ? "2px solid #3b82f6" : "1px solid #f1f5f9",
-                    height: '100%'
+                    border: template.isDefault ? "1.5px solid var(--customers-header-icon-color)" : "1.5px solid var(--border-slate-100)",
+                    height: '100%',
+                    background: "linear-gradient(135deg, var(--bg-pure-white) 0%, var(--bg-slate-50) 100%)",
+                    boxShadow: template.isDefault ? "0 8px 16px -4px var(--customers-header-icon-color)15, 0 0 0 1px var(--customers-header-icon-color)05" : "0 4px 6px -2px var(--border-slate-200)30",
+                    cursor: 'pointer'
                   }}
-                  bodyStyle={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column' }}
+                  styles={{ body: { padding: "24px", height: '100%', display: 'flex', flexDirection: 'column' } }}
                   onClick={() => router.push(`/invoice/newinvoice?templateId=${template.id}`)}
                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div style={{ background: template.isDefault ? "#eff6ff" : "#f8fafc", padding: 12, borderRadius: 14, color: template.isDefault ? "#3b82f6" : "#64748b", display: "flex" }}>
-                       <FileText size={20} />
+                  <div className="flex justify-between items-start mb-6">
+                    <div style={{ 
+                      background: template.isDefault ? "var(--customers-header-icon-bg)" : "var(--bg-blue-50)", 
+                      padding: 12, 
+                      borderRadius: 16, 
+                      color: template.isDefault ? "var(--customers-header-icon-color)" : "var(--text-sky-500)",
+                      display: "flex",
+                      boxShadow: template.isDefault ? "0 0 0 4px var(--customers-header-icon-color)10" : "0 0 0 4px var(--bg-blue-50)40",
+                      position: 'relative'
+                    }}>
+                      <FileText size={22} strokeWidth={2.5} />
                     </div>
                     <Dropdown
-                      menu={{ 
+                      menu={{
                         items: [
                           {
                             key: "edit",
                             icon: <Edit3 size={14} />,
-                            label: "Edit",
+                            label: "Edit Template",
                             onClick: (e) => { e.domEvent.stopPropagation(); handleEdit(template); }
                           },
                           {
@@ -371,84 +409,103 @@ export default function InvoiceTemplatePage() {
                             label: "Delete",
                             onClick: (e) => { e.domEvent.stopPropagation(); handleDelete(template); }
                           },
-                        ] 
+                        ]
                       }}
                       trigger={["click"]}
                     >
-                      <Button style={{ border: 'none', background: 'transparent' }} icon={<MoreVertical size={18} className="text-slate-400" />} onClick={(e) => e.stopPropagation()} />
+                      <Button 
+                        style={{ border: 'none', background: 'transparent' }} 
+                        icon={<MoreVertical size={20} style={{ color: 'var(--text-slate-400)' }} />} 
+                        onClick={(e) => e.stopPropagation()} 
+                      />
                     </Dropdown>
                   </div>
 
-                  <div className="mb-2">
-                    <Title level={5} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>{template.name}</Title>
-                    <Text style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.025em" }}>{template.billingType}</Text>
+                  <div className="mb-5">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Title level={5} style={{ margin: 0, fontWeight: 800, color: "var(--text-primary)", fontSize: "16px", letterSpacing: '-0.02em' }}>{template.name}</Title>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full w-fit" style={{ backgroundColor: "var(--bg-blue-50)", border: '1px solid var(--bg-blue-100)' }}>
+                      <div className="size-1.5 rounded-full" style={{ backgroundColor: 'var(--text-sky-500)' }} />
+                      <Text style={{ color: "var(--text-sky-600)", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        {template.billingType}
+                      </Text>
+                    </div>
                   </div>
 
                   <div className="flex-1">
-                    <Text className="line-clamp-2 text-slate-500 text-sm italic" style={{ display: 'block', height: 40 }}>
-                      {template.description || "Design your ideal billing structure."}
+                    <Text className="line-clamp-2 text-sm leading-relaxed" style={{ display: 'block', minHeight: 40, color: 'var(--text-secondary)', fontWeight: 400 }}>
+                      {template.description || "Professionally structured billing layout for efficient invoicing."}
                     </Text>
                   </div>
 
-                  <Divider className="my-3" style={{ borderColor: "#f1f5f9" }} />
+                  <Divider className="my-5" style={{ borderColor: "var(--border-slate-100)" }} />
 
                   <div>
-                     <div className="flex items-center justify-between mb-2 text-xs font-bold text-slate-400 uppercase">
-                        <span>Fields ({template._count?.fields || 0})</span>
-                        <Tooltip title="View fields">
-                           <Layers size={14} />
-                        </Tooltip>
-                     </div>
-                      <div className="flex flex-wrap gap-2">
-                        {template.fields?.length ? (
-                          template.fields.map(f => (
-                            <Tag key={f.id} className="rounded-md border-none px-2 font-medium bg-slate-50 text-slate-600 m-0">
-                              {f.fieldLabel}
-                            </Tag>
-                          ))
-                        ) : (
-                          <Text type="secondary" italic className="text-[11px]">Basic billing fields</Text>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-slate-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Structure ({template._count?.fields || 0})
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 opacity-80">
+                      {template.fields?.length ? (
+                        template.fields.slice(0, 3).map(f => (
+                          <Tag key={f.id} className="rounded-md border-none px-2 font-bold m-0" style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-secondary)', fontSize: 10 }}>
+                            {f.fieldLabel}
+                          </Tag>
+                        ))
+                      ) : (
+                        <Text type="secondary" italic className="text-[11px]">System default fields</Text>
+                      )}
+                      {(template.fields?.length || 0) > 3 && (
+                        <Tag className="rounded-md border-none px-2 font-bold m-0" style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-secondary)', fontSize: 10 }}>
+                          +{(template.fields?.length || 0) - 3}
+                        </Tag>
+                      )}
+                    </div>
                   </div>
 
                   {template.isDefault && (
-                    <div className="mt-4">
-                       <Tag className="rounded-full bg-blue-600 border-none px-3 py-0.5 text-white font-bold text-[10px]">
-                          PRIMARY TEMPLATE
-                       </Tag>
+                    <div className="mt-5 pt-1 border-t border-slate-50">
+                      <Space size={4}>
+                        <Check size={12} style={{ color: "var(--customers-header-icon-color)" }} strokeWidth={3} />
+                        <span style={{ color: 'var(--customers-header-icon-color)', fontWeight: 800, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Primary Template
+                        </span>
+                      </Space>
                     </div>
                   )}
                 </Card>
               </Col>
             ))}
             <Col xs={24} sm={12} md={8} lg={6}>
-               <Card 
-                  className="flex items-center justify-center bg-slate-50 border-dashed border-2 border-slate-200 cursor-pointer hover:border-slate-300 hover:bg-slate-100 transition-all duration-300"
-                  style={{ borderRadius: 20, height: '100%', minHeight: 280 }}
-                  onClick={handleCreate}
-               >
-                  <div className="text-center">
-                     <div className="size-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3 text-slate-400">
-                        <PlusCircle size={24} />
-                     </div>
-                     <Text strong className="text-slate-500">Add New Template</Text>
+              <Card
+                className="flex items-center justify-center border-dashed border-2 cursor-pointer hover:bg-slate-50/50 transition-all duration-300"
+                style={{ borderRadius: 20, height: '100%', minHeight: 310, borderColor: 'var(--border-slate-200)', backgroundColor: 'var(--bg-slate-50/20)' }}
+                onClick={handleCreate}
+              >
+                <div className="text-center">
+                  <div className="size-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--bg-blue-50/50)', color: 'var(--text-sky-400)' }}>
+                    <PlusCircle size={28} strokeWidth={2} />
                   </div>
-               </Card>
+                  <Text strong style={{ color: 'var(--text-slate-400)', fontSize: 14 }}>Create Template</Text>
+                  <div className="text-[10px] mt-1 opacity-50 text-slate-400">Design custom billing structure</div>
+                </div>
+              </Card>
             </Col>
           </Row>
         ) : (
-          <Card 
-            bordered={false} 
-            className="shadow-sm border border-slate-100 overflow-hidden" 
-            style={{ borderRadius: 20 }}
+          <Card
+            bordered={false}
+            className="shadow-sm border overflow-hidden"
+            style={{ borderRadius: 20, borderColor: 'var(--border-color)', backgroundColor: 'var(--customers-card-bg)' }}
             styles={{ body: { padding: 0 } }}
           >
             <Table
               rowKey="id"
               columns={columns}
               dataSource={filteredTemplates}
-              pagination={{ 
+              pagination={{
                 pageSize: 10,
                 style: { padding: "16px 24px" }
               }}
@@ -462,23 +519,37 @@ export default function InvoiceTemplatePage() {
         )}
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .template-card:hover { 
+          border-color: var(--customers-header-icon-color) !important;
+          box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.12) !important;
+        }
         .templates-table .ant-table-thead > tr > th {
-          background-color: #f8fafc !important;
-          color: #64748b !important;
+          background-color: var(--bg-table-header) !important;
+          color: var(--text-secondary) !important;
           font-weight: 700 !important;
           font-size: 11px !important;
           padding: 8px 16px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
-          border-bottom: 2px solid #f1f5f9 !important;
+          border-bottom: 2px solid var(--border-color) !important;
         }
         .templates-table .ant-table-tbody > tr > td {
-          padding: 8px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          padding: 12px 16px !important;
+          border-bottom: 1px solid var(--border-color) !important;
         }
-        .ant-segmented { background: #f1f5f9 !important; }
-        .ant-segmented-item-selected { background: #fff !important; border-radius: 9px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important; }
+        .templates-table .ant-table-row:hover > td {
+          background-color: var(--bg-blue-50) !important;
+        }
+        .ant-segmented { background: var(--bg-slate-100) !important; padding: 4px !important; border-radius: 12px !important; }
+        .ant-segmented-item { border-radius: 9px !important; transition: all 0.3s !important; }
+        .ant-segmented-item-selected { 
+          background: white !important; 
+          border-radius: 9px !important; 
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; 
+          color: var(--customers-header-icon-color) !important;
+        }
       `}} />
 
       {/* Create/Edit Drawer */}
@@ -491,29 +562,71 @@ export default function InvoiceTemplatePage() {
       {/* Delete Confirmation Modal */}
       <Modal
         open={deleteModalVisible}
-        title={
-          <div className="flex items-center gap-2 text-red-600">
-             <AlertCircle size={20} />
-             <span>Delete Template</span>
-          </div>
-        }
-        okText="Delete Permanently"
-        okType="danger"
-        cancelText="Cancel"
-        confirmLoading={deleteMutation.isPending}
-        onOk={confirmDelete}
         onCancel={() => {
           setDeleteModalVisible(false);
           setTemplateToDelete(null);
         }}
+        footer={null}
+        width={440}
         centered
-        style={{ borderRadius: 16 }}
+        closable={false}
+        styles={{
+          body: { padding: 0, overflow: 'hidden', borderRadius: '24px' },
+          mask: { backdropFilter: 'blur(8px)', background: 'rgba(15, 23, 42, 0.6)' },
+          content: { borderRadius: '24px', padding: 0, backgroundColor: 'var(--customers-modal-bg)' }
+        }}
+        className="overflow-hidden"
       >
-        <p className="py-4 text-slate-600">
-          Are you sure you want to delete the template <strong>"{templateToDelete?.name}"</strong>? 
-          This will affect any draft invoices currently using this template. 
-          <span className="block mt-2 font-bold text-red-500">This action cannot be undone.</span>
-        </p>
+        <div className="relative">
+          {/* Decorative Background Header */}
+          <div className="h-32 flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(to bottom, var(--customers-delete-header-bg), var(--customers-modal-bg))' }}>
+            {/* Icon Container */}
+            <div className="w-20 h-20 rounded-[20px] flex items-center justify-center border relative z-10 bottom-[-24px]" style={{ backgroundColor: 'var(--customers-modal-bg)', borderColor: 'var(--customers-delete-icon-bg)' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center border" style={{ backgroundColor: 'var(--customers-delete-icon-bg)', color: 'var(--customers-delete-icon-color)', borderColor: 'var(--customers-delete-icon-bg)' }}>
+                <Trash2 size={28} strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+
+          <div className="px-8 pt-10 pb-8 text-center flex flex-col items-center">
+            <h3 className="text-2xl font-extrabold mb-3 tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Delete Template permanently?
+            </h3>
+
+            <p className="text-[14px] leading-relaxed mb-6 font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Are you absolutely sure? This action will permanently erase template, including:
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-2 mb-8 w-full">
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><FileIcon size={14} style={{ color: 'var(--customers-header-icon-color)' }} /> Template Data</span>
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Edit3 size={14} style={{ color: '#f59e0b' }} /> Layout Design</span>
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Settings size={14} style={{ color: '#10b981' }} /> Configuration</span>
+            </div>
+
+            <div className="flex w-full gap-4">
+              <Button
+                size="large"
+                className="flex-1 rounded-[16px] h-14 font-bold border-none transition-colors" style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-secondary)' }}
+                onClick={() => {
+                  setDeleteModalVisible(false);
+                  setTemplateToDelete(null);
+                }}
+              >
+                Keep Template
+              </Button>
+              <Button
+                size="large"
+                danger
+                type="primary"
+                loading={deleteMutation.isPending}
+                className="flex-1 rounded-[16px] h-14 font-bold border-none shadow-sm transition-all" style={{ backgroundColor: '#ef4444' }}
+                onClick={confirmDelete}
+              >
+                Yes, Delete
+              </Button>
+            </div>
+          </div>
+        </div>
       </Modal>
     </MainLayout>
   );

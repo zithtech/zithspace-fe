@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 import { currencyOptions } from "@/utils/currencyOptions";
 import { useInvoice, useDownloadInvoice, useInvoicePaymentHistory } from "@/hooks/useInvoices";
 import { useSettingsProfile } from "@/hooks/useInvoiceSettings";
+import { useTheme } from "@/context/ThemeContext";
 
 import { DownloadOutlined } from "@ant-design/icons";
 
@@ -96,6 +97,8 @@ export default function ViewInvoicePage() {
   const params = useParams();
   const { canReadInvoice } = usePermission();
   const { isLoading: authLoading } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const invoice_number =
     (params as any)?.invoice_number ||
@@ -195,7 +198,7 @@ export default function ViewInvoicePage() {
   });
 
   const columnLabels = (invoice.metadata as any)?.columnLabels || {};
-  
+
   const columnDefinitions: Record<string, any> = {
     itemName: {
       title: columnLabels.itemName || "Item",
@@ -220,9 +223,9 @@ export default function ViewInvoicePage() {
       key: "projectId",
       width: 120,
       render: (val: any, record: any) => {
-          // Prioritize record.projectName, then extraFields.projectName, then val.label, then val itself
-          const projectName = record.projectName || record.extraFields?.projectName || val?.label || (typeof val === 'string' ? val : null);
-return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCase()}</Tag> : "-";
+        // Prioritize record.projectName, then extraFields.projectName, then val.label, then val itself
+        const projectName = record.projectName || record.extraFields?.projectName || val?.label || (typeof val === 'string' ? val : null);
+        return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCase()}</Tag> : "-";
       }
     },
     quantity: {
@@ -271,7 +274,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
 
   // Robustly ensure all required columns are present if they have data
   const finalColumnOrder = [...rawColumnOrder];
-  
+
   // Note: We no longer forcibly re-add projectId or taxRate here.
   // The rawColumnOrder already provides a standard default if metadata is missing.
   // If metadata is present, we should respect the user's choice to hide these columns.
@@ -296,7 +299,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
         return [columnDefinitions.taxRate];
       }
       if (normalizedKey === 'projectId' && !hasProject) return [];
-      
+
       const def = columnDefinitions[normalizedKey];
       if (def) {
         return [def];
@@ -352,16 +355,16 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
   const minorAmount = Math.round((grandTotal - majorAmount) * 100);
   const majorWord = majorAmount === 1 ? currency?.label : `${currency?.label}s`;
   const minorWord = minorAmount === 1 ? currency?.minor : `${currency?.minor}s`;
-  const totalInWords = `${numberToWords(majorAmount)} ${majorWord}${
-    minorAmount ? ` and ${numberToWords(minorAmount)} ${minorWord}` : ""
-  } Only`;
+  const totalInWords = `${numberToWords(majorAmount)} ${majorWord}${minorAmount ? ` and ${numberToWords(minorAmount)} ${minorWord}` : ""
+    } Only`;
 
   return (
     <div
       style={{
         height: "calc(100vh - 64px)",
         overflowY: "auto",
-        padding: "24px 16px",
+        padding: "16px 16px 27px 16px",
+        backgroundColor: "var(--invoice-view-bg)"
       }}
     >
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
@@ -401,11 +404,13 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
         <Card
           id="invoice"
           style={{
-            border: "1px solid #e8e8e8",
+            backgroundColor: "var(--invoice-paper-bg)",
+            border: `1px solid var(--invoice-paper-border)`,
             borderRadius: 8,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+            boxShadow: isDark ? "none" : "0 2px 8px rgba(0,0,0,0.06)",
             width: "85%",
             margin: "0 auto",
+            color: "var(--text-primary)"
           }}
         >
           {/* Header with Invoice Title and Logo */}
@@ -417,7 +422,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                   INVOICE
                 </Title>
               </div>
-              
+
               {/* Invoice Number and Dates - All together */}
               <div>
                 <div style={{ display: "flex", marginBottom: 2, lineHeight: 1.5 }}>
@@ -442,10 +447,10 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
             {/* Right side - Logo with company name underneath */}
             {settings?.general?.companyLogo && (
               <div style={{ textAlign: "right" }}>
-                <img 
-                  src={settings.general.companyLogo} 
-                  alt="Logo" 
-                  style={{ height: 80, width: "auto", objectFit: "contain", marginBottom: 4 }} 
+                <img
+                  src={settings.general.companyLogo}
+                  alt="Logo"
+                  style={{ height: 80, width: "auto", objectFit: "contain", marginBottom: 4 }}
                 />
                 {settings?.general?.companyName && (
                   <div style={{ fontSize: "14px", fontWeight: "bold", color: settings?.general?.primaryColor || "#1890ff", textAlign: "center" }}>
@@ -460,12 +465,12 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
           <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
             {/* Billed By (Company Info) */}
             <div style={{ flex: 1, display: "flex" }}>
-              <Card 
-                size="small" 
-                style={{ 
-                  width: "100%", 
-                  backgroundColor: "#f9f9f9",
-                  border: "1px solid #e8e8e8",
+              <Card
+                size="small"
+                style={{
+                  width: "100%",
+                  backgroundColor: "var(--invoice-section-bg)",
+                  border: "1px solid var(--invoice-section-border)",
                   borderRadius: 8
                 }}
                 bodyStyle={{ padding: "12px" }}
@@ -487,7 +492,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                       settings.general.address.country,
                     ].filter(Boolean).join(", ") : "---"}
                   </div>
-                  
+
                   {/* Tax related fields with labels */}
                   {settings?.general?.taxId && (
                     <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
@@ -513,12 +518,12 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
 
             {/* Billed To (Customer Info) */}
             <div style={{ flex: 1, display: "flex" }}>
-              <Card 
-                size="small" 
-                style={{ 
-                  width: "100%", 
-                  backgroundColor: "#f9f9f9",
-                  border: "1px solid #e8e8e8",
+              <Card
+                size="small"
+                style={{
+                  width: "100%",
+                  backgroundColor: "var(--invoice-section-bg)",
+                  border: "1px solid var(--invoice-section-border)",
                   borderRadius: 8
                 }}
                 bodyStyle={{ padding: "12px" }}
@@ -538,7 +543,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                   <div style={{ fontSize: "12px", color: "#555", marginBottom: 4 }}>
                     {customer?.email || ""}
                   </div>
-                  
+
                   {/* Tax related fields with labels */}
                   {customer?.gstin && (
                     <div style={{ marginTop: 6, fontSize: "11px", color: "#666" }}>
@@ -601,7 +606,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                       {columns.map((_, idx) => {
                         const effectivePct = subtotal > 0 ? ((taxTotal / 2) / subtotal) * 100 : 0;
                         const rateLabel = ` (${effectivePct.toFixed(2)}%)`;
-                        
+
                         if (idx === ITEM_COL) {
                           return (
                             <Table.Summary.Cell key={idx} index={idx} align="right">
@@ -670,8 +675,8 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                 {/* GRAND TOTAL */}
                 <Table.Summary.Row
                   style={{
-                    backgroundColor: "#fafafa",
-                    borderTop: "2px solid #000",
+                    backgroundColor: "var(--invoice-total-row-bg)",
+                    borderTop: `2px solid var(--invoice-total-row-border)`,
                   }}
                 >
                   {columns.map((_, idx) => {
@@ -710,10 +715,11 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
             style={{
               marginTop: 12,
               padding: "10px 14px",
-              backgroundColor: "#fafafa",
+              backgroundColor: "var(--invoice-section-bg)",
               borderRadius: 6,
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--invoice-section-border)",
               fontSize: 13,
+              color: "var(--text-primary)"
             }}
           >
             <Text strong>Amount in Words:</Text> <Text>{totalInWords}</Text>
@@ -740,8 +746,8 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                 <Card
                   size="small"
                   style={{
-                    backgroundColor: "#fafafa",
-                    border: "1px solid #e8e8e8",
+                    backgroundColor: "var(--invoice-section-bg)",
+                    border: "1px solid var(--invoice-section-border)",
                     borderRadius: 6,
                   }}
                   bodyStyle={{ padding: "12px" }}
@@ -815,11 +821,11 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
 
                   <div
                     style={{
-                      backgroundColor: "#fafafa",
+                      backgroundColor: "var(--invoice-section-bg)",
                       padding: 12,
                       borderRadius: 6,
                       display: "inline-block",
-                      border: "1px solid #e8e8e8",
+                      border: "1px solid var(--invoice-section-border)",
                     }}
                   >
                     <img
@@ -859,8 +865,8 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                   <Card
                     size="small"
                     style={{
-                      backgroundColor: "#fafafa",
-                      border: "1px solid #e8e8e8",
+                      backgroundColor: "var(--invoice-section-bg)",
+                      border: "1px solid var(--invoice-section-border)",
                       borderRadius: 6,
                       minHeight: 120,
                     }}
@@ -880,8 +886,8 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                   <Card
                     size="small"
                     style={{
-                      backgroundColor: "#fafafa",
-                      border: "1px solid #e8e8e8",
+                      backgroundColor: "var(--invoice-section-bg)",
+                      border: "1px solid var(--invoice-section-border)",
                       borderRadius: 6,
                       minHeight: 120,
                     }}
@@ -919,7 +925,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
               <span
                 style={{
                   fontSize: 13,
-                  color: "#374151",
+                  color: "var(--text-secondary)",
                 }}
               >
                 Crafted with ease using
@@ -965,7 +971,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
-                      color: "#111827",
+                      color: "var(--text-primary)",
                     }}
                   >
                     Invoice
@@ -978,7 +984,7 @@ return projectName ? <Tag color="blue">{projectName.replace(/_/g, ' ').toUpperCa
               style={{
                 marginTop: 2,
                 fontSize: 12,
-                color: "#6b7280",
+                color: "var(--text-secondary)",
               }}
             >
               Visit{" "}

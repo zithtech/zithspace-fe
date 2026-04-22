@@ -41,6 +41,8 @@ export interface DocumentHub {
     workEmail: string;
     position?: string;
   };
+  visibility: string;
+  shareToken?: string;
   treeNodes?: DocumentTreeNode[];
 }
 
@@ -262,7 +264,7 @@ class DocumentHubService {
     }
   }
 
-  static async shareDocument(id: string, visibility: 'private' | 'internal' | 'public'): Promise<any> {
+  static async shareDocument(id: string, visibility: 'private' | 'public'): Promise<any> {
     try {
       const response = await apiClient.put(`/api/documenthub/document/${id}/share`, { visibility });
       return response.data.data;
@@ -287,6 +289,45 @@ class DocumentHubService {
       return response.data.data;
     } catch (error: any) {
       console.error("Error getting public document:", error);
+      throw error;
+    }
+  }
+
+  static async shareDocumentHub(id: string, visibility: 'private' | 'public'): Promise<any> {
+    try {
+      const response = await apiClient.put(`/api/documenthub/${id}/share`, { visibility });
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error sharing document hub:", error);
+      throw error;
+    }
+  }
+
+  static async revokeHubShare(id: string): Promise<void> {
+    try {
+      await apiClient.delete(`/api/documenthub/${id}/share`);
+    } catch (error: any) {
+      console.error("Error revoking hub share:", error);
+      throw error;
+    }
+  }
+
+  static async getPublicDocumentHub(token: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/public/document/hub/${token}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting public document hub:", error);
+      throw error;
+    }
+  }
+
+  static async getPublicHubDocumentContent(token: string, documentId: string): Promise<any> {
+    try {
+      const response = await apiClient.get(`/api/public/document/hub/${token}/document/${documentId}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error("Error getting public hub document content:", error);
       throw error;
     }
   }

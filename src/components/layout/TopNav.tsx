@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal } from 'antd';
+import { Layout, Menu, Button, Space, Typography, Dropdown, Avatar, Divider, Badge, Grid, Input, Tooltip, Empty, Modal, theme } from 'antd';
 import {
   BellOutlined,
   MailOutlined,
@@ -56,6 +56,7 @@ export default function TopNav({
 }: TopNavProps) {
   const router = useRouter();
   const { hasPermission, hasAnyPermission } = useAuth();
+  const { token } = theme.useToken();
   const { isPopoverOpen, setPopoverOpen } = useTimeTrackerStore();
   const screens = useBreakpoint();
   const isCustomBreakpoint = useIsBreakpoint("max", 1214); // true when width <= 1213
@@ -507,16 +508,29 @@ export default function TopNav({
               icon={<MessageOutlined />}
               onClick={() => router.push('/chat')}
             />
-            <div>
+            <div className="novu-inbox-wrapper">
               <Inbox
                 applicationIdentifier="67g_5lVLFWvd"
                 subscriberId={user?.id}
                 socketUrl="wss://socket.novu.co"
                 appearance={{
                   variables: {
-                    colorPrimary: "#DD2450",
-                    colorForeground: "#0E121B",
+                    colorPrimary: "#3B82F6",
+                    colorForeground: token.colorText,
+                    colorBackground: token.colorBgElevated,
+                    colorCounter: "#EF4444",
+                    colorCounterForeground: "#FFFFFF",
                   },
+                  elements: {
+                    notification: {
+                      background: token.colorBgElevated,
+                    },
+                    popoverContent: {
+                      background: token.colorBgElevated,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                      color: token.colorText,
+                    },
+                  }
                 }}
               />
             </div>
@@ -555,9 +569,19 @@ export default function TopNav({
               socketUrl="wss://socket.novu.co"
               appearance={{
                 variables: {
-                  colorPrimary: "#DD2450",
-                  colorForeground: "#0E121B",
+                  colorPrimary: "#3B82F6",
+                  colorForeground: token.colorText,
+                  colorBackground: token.colorBgElevated,
+                  colorCounter: "#EF4444",
+                  colorCounterForeground: "#FFFFFF",
                 },
+                elements: {
+                  popoverContent: {
+                    background: token.colorBgElevated,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                    color: token.colorText,
+                  },
+                }
               }}
             />
             <Dropdown

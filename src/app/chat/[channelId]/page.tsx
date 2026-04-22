@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Layout, Typography, Button, Spin, message } from 'antd';
+import { Layout, Typography, Button, Spin, message, theme } from 'antd';
 import {
     VideoCameraOutlined,
     PhoneOutlined,
@@ -28,6 +28,7 @@ export default function ChannelPage() {
     const { user } = useAuth();
     const channelId = params.channelId as string;
     const { setActiveChannel, setMessages, channels } = useChatStore();
+    const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
     const [connected, setConnected] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -87,11 +88,11 @@ export default function ChannelPage() {
     };
 
     return (
-        <Layout style={{ height: '100%', background: '#fff' }}>
+        <Layout style={{ height: '100%', background: token.colorBgContainer }}>
             {/* Channel header */}
             <Header style={{
-                background: '#fff',
-                borderBottom: '1px solid #f0f0f0',
+                background: token.colorBgContainer,
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
                 padding: '0 20px',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -100,11 +101,11 @@ export default function ChannelPage() {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {channel?.type === 'DM' ? (
-                        <UserOutlined style={{ fontSize: 16, color: '#595959' }} />
+                        <UserOutlined style={{ fontSize: 16, color: token.colorTextSecondary }} />
                     ) : (
-                        <NumberOutlined style={{ fontSize: 16, color: '#595959' }} />
+                        <NumberOutlined style={{ fontSize: 16, color: token.colorTextSecondary }} />
                     )}
-                    <Text strong style={{ fontSize: 16, color: '#1d1c1d' }}>
+                    <Text strong style={{ fontSize: 16, color: token.colorText }}>
                         {getChannelDisplayName()}
                     </Text>
                     {/* Connection status indicator - green dot when connected */}
@@ -143,7 +144,7 @@ export default function ChannelPage() {
             <Content style={{
                 display: 'flex',
                 flexDirection: 'column',
-                background: '#fafafa',
+                background: token.colorBgLayout,
                 overflow: 'hidden'
             }}>
                 {loading ? (

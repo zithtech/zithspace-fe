@@ -267,7 +267,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
   const hasPendingTickets = pendingTickets.length > 0;
 
   return (
-    <div style={{ padding: '24px 32px', height: "calc(85vh - 220px)", overflow: "auto", background: '#ffffff' }}>
+    <div style={{ padding: '8px 20px 16px 20px', height: "calc(85vh - 220px)", overflow: "auto", background: 'var(--bg-pure-white)' }}>
       {!hasPendingTickets ? (
         <div style={{ padding: '100px 0', textAlign: 'center' }}>
           <Empty
@@ -281,20 +281,20 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
           {(summary.availableDestinations.sprints.length === 0 ||
             summary.availableDestinations.buckets.length === 0) && (
             <Alert
-              message="Limited Resolution Options"
+              message={<Text strong style={{ fontSize: 13, color: '#d48806' }}>Limited Resolution Options</Text>}
               description={
-                <Space direction="vertical" size={2}>
+                <Space direction="vertical" size={0}>
                   {summary.availableDestinations.sprints.length === 0 && (
-                    <Text style={{ fontSize: 13 }}>• No upcoming sprints available. You can move tickets to Backlog or Trash.</Text>
+                    <Text style={{ fontSize: 12 }}>• No upcoming sprints available. You can move tickets to Backlog or Trash.</Text>
                   ) || null}
                   {summary.availableDestinations.buckets.length === 0 && (
-                    <Text style={{ fontSize: 13 }}>• No buckets found. Create a bucket in the Buckets page to organize tickets.</Text>
+                    <Text style={{ fontSize: 12 }}>• No buckets found. Create a bucket in the Buckets page to organize tickets.</Text>
                   ) || null}
                 </Space>
               }
               type="warning"
               showIcon
-              style={{ marginBottom: 24, borderRadius: 12 }}
+              style={{ marginBottom: 12, borderRadius: 10, padding: '6px 12px' }}
             />
           )}
 
@@ -302,17 +302,17 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
           <Card 
             bordered={false} 
             style={{ 
-              marginBottom: 24, 
+              marginBottom: 12, 
               borderRadius: 16, 
               boxShadow: '0 4px 15px rgba(0, 0, 0, 0.04)',
-              background: '#ffffff',
-              border: '1px solid #f0f0f0'
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)'
             }}
-            styles={{ body: { padding: '16px 24px' } }}
+            styles={{ body: { padding: '10px 16px' } }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: 'wrap', gap: 16 }}>
               <Space direction="vertical" size={0}>
-                <Text strong style={{ fontSize: 15, color: '#1a1a1a' }}>Resolve Pending Tickets</Text>
+                <Text strong style={{ fontSize: 15, color: 'var(--text-primary)' }}>Resolve Pending Tickets</Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   Selected <strong>{selectedRowKeys.length}</strong> of {summary.tickets.pending.length} tickets
                 </Text>
@@ -349,7 +349,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                           {sprint.version}
                         </Option>
                       ))}
-                      <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 8 }}>
+                      <Option value="__create_new__" style={{ borderTop: '1px solid var(--border-color)', marginTop: 4, paddingTop: 8 }}>
                         <PlusOutlined style={{ marginRight: 8 }} />
                         Create New Sprint
                       </Option>
@@ -373,7 +373,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
                           {bucket.name}
                         </Option>
                       ))}
-                      <Option value="__create_new__" style={{ borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 8 }}>
+                      <Option value="__create_new__" style={{ borderTop: '1px solid var(--border-color)', marginTop: 4, paddingTop: 8 }}>
                         <PlusOutlined style={{ marginRight: 8 }} />
                         Create New Bucket
                       </Option>
@@ -426,8 +426,8 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
               style={{ 
                 marginBottom: 20, 
                 padding: '12px 20px', 
-                background: '#e6f7ff', 
-                border: '1px solid #91d5ff', 
+                background: 'var(--bg-blue-50)', 
+                border: '1px solid var(--border-blue-200)', 
                 borderRadius: 12,
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -456,7 +456,7 @@ export const PendingTicketsTab: React.FC<PendingTicketsTabProps> = ({
           )}
 
           {/* Tickets Table */}
-          <div style={{ background: '#ffffff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)', border: '1px solid #f0f0f0' }}>
+          <div style={{ background: 'var(--bg-pure-white)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.02)', border: '1px solid var(--border-color)' }}>
             <Table
               columns={columns}
               dataSource={summary.tickets.pending}

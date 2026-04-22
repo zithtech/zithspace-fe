@@ -710,7 +710,13 @@ export default function SettingsPage() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ padding: 24, textAlign: 'center' }}>
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          textAlign: 'center' 
+        }}>
           <div style={{ padding: 100, textAlign: 'center' }}>
             <Spin size="large" tip="Loading">
               <div style={{ padding: 20 }} />
@@ -1241,7 +1247,8 @@ export default function SettingsPage() {
     <MainLayout>
       {contextHolder}
       <div style={{
-        padding: "0 24px",
+        margin: "0 -24px",
+        padding: "0 32px",
         height: "calc(100vh - 64px)",
         background: "var(--bg-pure-white)",
         display: "flex",

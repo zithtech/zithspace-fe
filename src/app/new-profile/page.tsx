@@ -277,7 +277,8 @@ const NewProfilePage = () => {
           gap: "12px",
           position: "relative",
           height: "100vh",
-          width: "100%",
+          width: "calc(100% + 48px)",
+          margin: "0 -24px",
           background: "var(--bg-secondary)",
           overflow: "hidden",
         }}

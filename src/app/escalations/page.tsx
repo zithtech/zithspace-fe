@@ -376,8 +376,12 @@ export default function EscalationListPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
-      <div style={{ padding: '24px 10px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>

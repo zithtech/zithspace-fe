@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Typography, Input, Avatar, List, Spin } from 'antd';
+import { Typography, Input, Avatar, List, Spin, theme } from 'antd';
 import { useRouter } from 'next/navigation';
 import { channelService } from '@/services/channelService';
 import { useChatStore } from '@/store/chatStore';
@@ -16,6 +16,7 @@ interface Member {
 }
 
 export default function NewChatPage() {
+    const { token } = theme.useToken();
     const router = useRouter();
     const { setChannels, channels } = useChatStore();
     const [searchTerm, setSearchTerm] = useState('');
@@ -76,14 +77,14 @@ export default function NewChatPage() {
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            background: '#fff'
+            background: token.colorBgContainer
         }}>
             {/* Header */}
             <div style={{
                 padding: '16px 20px',
-                borderBottom: '1px solid #f0f0f0'
+                borderBottom: `1px solid ${token.colorBorderSecondary}`
             }}>
-                <Title level={5} style={{ margin: 0, marginBottom: 16 }}>New Message</Title>
+                <Title level={5} style={{ margin: 0, marginBottom: 16, color: token.colorText }}>New Message</Title>
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -145,7 +146,7 @@ export default function NewChatPage() {
 
             <style jsx global>{`
                 .user-item:hover {
-                    background-color: #f5f5f5;
+                    background-color: ${token.colorFillAlter};
                 }
             `}</style>
         </div>

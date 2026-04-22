@@ -22,7 +22,8 @@ import {
   Tag,
   Segmented,
   Table,
-  Spin
+  Spin,
+  Badge
 } from "antd";
 import {
   UserPlus,
@@ -43,13 +44,17 @@ import {
   Eye,
   AlertCircle,
   ShieldCheck,
-  Ban
+  Ban,
+  Check,
+  Import
 } from "lucide-react";
 import type { MenuProps } from "antd";
 
-import CustomerModal from "@/components/customer/CustomerModal";
+import CustomerDrawer from "@/components/customer/CustomerDrawer";
 import CustomerViewDrawer from "@/components/invoice/CustomerViewDrawer";
+import ClientImportModal from "@/components/customer/ClientImportModal";
 import { Customer as ServiceCustomer } from "@/services/customersService";
+import { ClientV2 } from "@/services/clientV2Service";
 import {
   useCustomers,
   useCreateCustomer,
@@ -68,29 +73,32 @@ export default function InvoiceproCustomerPage() {
   /* ================= ATTRACTIVE METRIC CARDS ================= */
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
     <Card
-      styles={{ body: { padding: "12px 16px" } }}
+      styles={{ body: { padding: "12px 18px" } }}
       style={{
-        borderRadius: 16,
-        border: "1px solid #f1f5f9",
-        boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        height: "100%"
+        borderRadius: 18,
+        border: "1px solid var(--border-slate-100)",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+        height: "100%",
+        background: "var(--customers-card-bg)",
+        overflow: "hidden"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b", marginTop: 4 }}>{value}</div>
+          <Text style={{ color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, display: "block", marginBottom: 2 }}>{label}</Text>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>{value}</div>
         </div>
         <div style={{
           color,
-          background: `${color}12`,
-          padding: 12,
+          background: `${color}15`,
+          padding: 10,
           borderRadius: 12,
           display: "flex",
           alignItems: "center",
-          justifyContent: "center"
+          justifyContent: "center",
+          boxShadow: `0 0 16px ${color}10`
         }}>
-          <Icon size={24} />
+          <Icon size={20} strokeWidth={2.5} />
         </div>
       </div>
     </Card>
@@ -103,8 +111,15 @@ export default function InvoiceproCustomerPage() {
     }
   }, [authLoading, canReadInvoice, router]);
 
-  const { data: customersData, isLoading } = useCustomers();
+  const { data: customersData, isLoading, refetch } = useCustomers();
   const customers = customersData?.data || [];
+
+  // Debug: Log customer data changes
+  useEffect(() => {
+    console.log("Customers data updated:", customers);
+    console.log("Customers with email:", customers.filter(c => c.email));
+    console.log("Customers with tax info:", customers.filter(c => c.taxId || c.gstin || c.pan));
+  }, [customers]);
 
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
@@ -125,6 +140,9 @@ export default function InvoiceproCustomerPage() {
   const [viewDrawerVisible, setViewDrawerVisible] = useState(false);
   const [selectedCustomerForView, setSelectedCustomerForView] = useState<ServiceCustomer | null>(null);
 
+  // Client Import Modal State
+  const [isClientImportModalOpen, setIsClientImportModalOpen] = useState(false);
+
 
 
 
@@ -137,6 +155,8 @@ export default function InvoiceproCustomerPage() {
   const updating = updateCustomer.status === "pending";
 
   const totalCustomers = customers.length;
+  const activeCustomersCount = customers.filter(c => c.isActive).length;
+  const inactiveCustomersCount = customers.filter(c => !c.isActive).length;
 
 
 
@@ -200,10 +220,10 @@ export default function InvoiceproCustomerPage() {
       key: "companyName",
       render: (value: string) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 text-xs font-bold shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--customers-avatar-bg)', color: 'var(--customers-avatar-text)' }}>
             {value?.charAt(0)}
           </div>
-          <Typography.Text strong style={{ color: "#1e293b" }}>{value || "-"}</Typography.Text>
+          <Typography.Text strong style={{ color: "var(--text-primary)" }}>{value || "-"}</Typography.Text>
         </div>
       ),
     },
@@ -211,13 +231,13 @@ export default function InvoiceproCustomerPage() {
       title: "Contact Info",
       key: "contact",
       render: (_: any, record: ServiceCustomer) => (
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <Mail size={12} className="text-slate-400" />
-            <span>{record.email || "-"}</span>
+        <div>
+          <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-slate-50)' }}><Mail size={14} style={{ color: 'var(--text-slate-400)' }} /></div>
+            <span className="truncate">{record.email || "-"}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-600">
-            <Phone size={12} className="text-slate-400" />
+          <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-slate-50)' }}><Phone size={14} style={{ color: 'var(--text-slate-400)' }} /></div>
             <span>{record.phone || "-"}</span>
           </div>
         </div>
@@ -243,8 +263,8 @@ export default function InvoiceproCustomerPage() {
       title: "Location",
       key: "location",
       render: (_: any, record: ServiceCustomer) => (
-        <div className="flex items-center gap-1.5 text-xs text-slate-600">
-          <MapPin size={12} className="text-slate-400" />
+        <div className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <MapPin size={12} style={{ color: 'var(--text-slate-400)' }} />
           <span className="truncate max-w-[120px]">
             {record.city || record.country
               ? `${record.city || ""} ${record.country || ""}`.trim()
@@ -258,8 +278,8 @@ export default function InvoiceproCustomerPage() {
       key: "status",
       width: 100,
       render: (_: any, record: ServiceCustomer) => (
-        <Tag 
-          bordered={false} 
+        <Tag
+          bordered={false}
           color={record.isActive ? "success" : "default"}
           className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider m-0"
         >
@@ -292,9 +312,9 @@ export default function InvoiceproCustomerPage() {
             label: record.isActive ? "Deactivate" : "Activate",
             onClick: async () => {
               try {
-                await updateCustomer.mutateAsync({ 
-                  id: record.id, 
-                  data: { ...record, isActive: !record.isActive } 
+                await updateCustomer.mutateAsync({
+                  id: record.id,
+                  data: { ...record, isActive: !record.isActive }
                 });
                 messageApi.success(`Customer ${record.isActive ? "deactivated" : "activated"} successfully`);
               } catch (error: any) {
@@ -346,12 +366,72 @@ export default function InvoiceproCustomerPage() {
   const confirmDelete = async () => {
     if (!deletingCustomerId) return;
 
-    await deleteCustomer.mutateAsync(deletingCustomerId);
+    try {
+      await deleteCustomer.mutateAsync(deletingCustomerId);
+      messageApi.success("Customer deleted successfully");
+      setIsDeleteModalOpen(false);
+      setDeletingCustomerId(null);
+    } catch (error: any) {
+      console.error("Delete customer error:", error);
 
-    messageApi.success("Customer deleted successfully");
+      // Check if it's a foreign key constraint violation
+      if (error?.code === '23001' || error?.message?.includes('foreign key constraint')) {
+        messageApi.error(
+          "Cannot delete customer: This customer has associated invoices. Please delete or reassign the invoices first.",
+          6
+        );
+      } else {
+        messageApi.error(error?.message || "Failed to delete customer");
+      }
+    }
+  };
 
-    setIsDeleteModalOpen(false);
-    setDeletingCustomerId(null);
+  const handleImportClients = async (clients: ClientV2[]) => {
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const client of clients) {
+        try {
+          // Convert clientV2 to customer format
+          const customerData = {
+            companyName: client.companyName,
+            email: client.billingContactEmail || null,
+            phone: null, // ClientV2 doesn't have phone field
+            address: client.billingAddress || null,
+            city: null, // Could parse from address if needed
+            country: client.country || null,
+            taxId: client.gstVatTaxId || null,
+            gstin: client.gstVatTaxId || client.vatNumber || null,
+            pan: client.pan || null,
+            isActive: client.isActive,
+          };
+
+          console.log(`Importing client ${client.companyName} with data:`, customerData);
+          const result = await createCustomer.mutateAsync(customerData);
+          console.log(`Successfully created customer:`, result);
+          successCount++;
+        } catch (error: any) {
+          console.error(`Failed to import client ${client.companyName}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        messageApi.success(
+          `Successfully imported ${successCount} client${successCount !== 1 ? "s" : ""} as customer${successCount !== 1 ? "s" : ""}`
+        );
+      }
+      
+      if (errorCount > 0) {
+        messageApi.warning(
+          `${errorCount} client${errorCount !== 1 ? "s" : ""} could not be imported`
+        );
+      }
+    } catch (error: any) {
+      console.error("Import clients error:", error);
+      messageApi.error("Failed to import clients");
+    }
   };
 
 
@@ -365,220 +445,236 @@ export default function InvoiceproCustomerPage() {
       {contextHolder}
       <div style={{
         margin: "0 -24px",
-        padding: "24px 32px",
-        background: "#ffffff",
+        padding: "7px 32px 24px 32px",
+        background: "var(--customers-page-bg)",
         minHeight: "calc(100vh - 64px)"
       }}>
         {/* ================= HEADER ================= */}
-        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24 }}>
+        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
           <div style={{ flex: 1 }}>
-            <Space size={14} align="center">
-              <div style={{ background: "#eff6ff", padding: 12, borderRadius: 14, color: "#3b82f6", display: "flex" }}>
-                <Users size={28} />
+            <Space size={8} align="center">
+              <div style={{ background: "var(--customers-header-icon-bg)", padding: "6px 8px", borderRadius: 8, color: "var(--customers-header-icon-color)", display: "flex" }}>
+                <Users size={18} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Customers</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Manage customer details, contact information, and billing profiles.</Text>
+                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Customers</Title>
+                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Manage customer details, contacts, and profiles.</Text>
               </div>
             </Space>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: 'center' }}>
+          <div style={{ display: "flex", gap: 10, alignItems: 'center' }}>
             <Segmented
               options={[
                 {
                   value: "card",
                   label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px' }}>
-                      <LayoutGrid size={16} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                      <LayoutGrid size={14} />
                     </div>
                   )
                 },
                 {
                   value: "table",
                   label: (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px' }}>
-                      <List size={16} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 6px' }}>
+                      <List size={14} />
                     </div>
                   )
                 },
               ]}
               value={viewMode}
               onChange={(value) => setViewMode(value as "card" | "table")}
-              style={{ padding: 4, borderRadius: 10 }}
+              style={{ padding: 2, borderRadius: 8 }}
             />
             <Input.Search
               placeholder="Search customers..."
               allowClear
-              size="large"
+              size="middle"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 260, borderRadius: 12 }}
+              style={{ width: 240, borderRadius: 8 }}
             />
             {canCreateInvoice && (
-              <Button
-                type="primary"
-                size="large"
-                icon={<Plus size={18} />}
-                style={{ borderRadius: 12, height: 44, padding: "0 24px", fontWeight: 600, background: "#2563eb", border: "none" }}
-                onClick={() => {
-                  setEditingCustomer(null);
-                  form.resetFields();
-                  setIsModalOpen(true);
-                }}
-              >
-                Add Customer
-              </Button>
+              <>
+                <Button
+                  size="middle"
+                  icon={<Import size={16} />}
+                  style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600, background: "white", color: "#2563eb", border: "1px solid #2563eb" }}
+                  onClick={() => setIsClientImportModalOpen(true)}
+                >
+                  Import from Client
+                </Button>
+                <Button
+                  type="primary"
+                  size="middle"
+                  icon={<Plus size={16} />}
+                  style={{ borderRadius: 8, height: 38, padding: "0 20px", fontWeight: 600, background: "#2563eb", border: "none" }}
+                  onClick={() => {
+                    setEditingCustomer(null);
+                    form.resetFields();
+                    setIsModalOpen(true);
+                  }}
+                >
+                  Add Customer
+                </Button>
+              </>
             )}
           </div>
         </div>
 
+        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
+
         {/* ================= METRIC STATS ================= */}
-        <Row gutter={[24, 24]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} md={6}>
-            <StatCard label="Total Customers" value={totalCustomers} icon={Users} color="#3b82f6" />
+        <Row gutter={[20, 20]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={8}>
+            <StatCard label="Total Customers" value={isLoading ? "..." : totalCustomers} icon={Users} color="#3b82f6" />
           </Col>
-          {/* We can add more stats here if needed, like active customers, etc. */}
+          <Col xs={24} sm={8}>
+            <StatCard label="Active Clients" value={isLoading ? "..." : activeCustomersCount} icon={ShieldCheck} color="#10b981" />
+          </Col>
+          <Col xs={24} sm={8}>
+            <StatCard label="Inactive Accounts" value={isLoading ? "..." : inactiveCustomersCount} icon={Ban} color="#f43f5e" />
+          </Col>
         </Row>
 
-        <Divider style={{ marginTop: "0" }} />
+
 
 
         {/* ================= CUSTOMERS LIST ================= */}
         <div style={{ marginTop: 8 }}>
           {isLoading ? (
-            <div className="flex justify-center items-center h-64 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="flex justify-center items-center h-64 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
               <Spin indicator={<Users size={32} className="animate-pulse text-blue-500" />} />
             </div>
           ) : customers.length === 0 ? (
-            <div className="text-center py-20 bg-slate-50 rounded-2xl border border-slate-100">
+            <div className="text-center py-20 rounded-2xl border" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)' }}>
               <div className="size-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-6">
                 <Users size={32} className="text-slate-300" />
               </div>
-              <Title level={4} style={{ color: "#64748b" }}>No customers found</Title>
-              <Text style={{ color: "#94a3b8" }}>Get started by adding your first customer.</Text>
+              <Title level={4} style={{ color: "var(--text-secondary)" }}>No customers found</Title>
+              <Text style={{ color: "var(--text-slate-400)" }}>Get started by adding your first customer.</Text>
             </div>
           ) : viewMode === "card" ? (
             <Row gutter={[20, 20]}>
               {filteredCustomers.map((customer) => (
                 <Col xs={24} sm={12} md={8} lg={6} key={customer.id}>
-                  <Card
-                    hoverable
-                    style={{ borderRadius: 16, border: "1px solid #f1f5f9", overflow: 'hidden' }}
-                    styles={{ body: { padding: 20 } }}
-                    className="customer-card shadow-sm hover:shadow-md transition-shadow"
+                  <Badge.Ribbon
+                    text={<span className="flex items-center gap-1.5"><Check size={12} /> Active</span>}
+                    color="#10b981"
+                    style={{ display: customer.isActive ? "flex" : "none", zIndex: 1, padding: "0 10px", borderRadius: "0 8px 0 8px" }}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-lg font-bold">
-                          {customer.companyName?.charAt(0)}
-                        </div>
-                        <div style={{ maxWidth: 140 }}>
-                          <Typography.Text strong className="block text-slate-800 truncate" title={customer.companyName}>
-                            {customer.companyName}
-                          </Typography.Text>
-                          <div className="flex items-center gap-2">
-                            <Typography.Text type="secondary" className="text-xs">
-                              {customer.city}{customer.city && customer.country && ", "}{customer.country}
+                    <Card
+                      hoverable
+                      style={{ borderRadius: 16, border: "1px solid var(--customers-card-border)", overflow: 'hidden', height: '100%', background: 'var(--customers-card-bg)' }}
+                      styles={{ body: { padding: 20, height: '100%', display: 'flex', flexDirection: 'column' } }}
+                      className="customer-card shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold" style={{ backgroundColor: 'var(--customers-avatar-bg)', color: 'var(--customers-avatar-text)' }}>
+                            {customer.companyName?.charAt(0)}
+                          </div>
+                          <div style={{ maxWidth: 140 }}>
+                            <Typography.Text strong className="block truncate" style={{ color: 'var(--text-primary)' }} title={customer.companyName}>
+                              {customer.companyName}
                             </Typography.Text>
-                            <Tag 
-                              bordered={false} 
-                              color={customer.isActive ? "success" : "default"}
-                              style={{ fontSize: '8px', padding: '0 4px', lineHeight: '14px', borderRadius: '4px', margin: 0 }}
-                            >
-                              {customer.isActive ? "ACTIVE" : "INACTIVE"}
-                            </Tag>
+                            <div className="flex items-center gap-2">
+                              <Typography.Text type="secondary" className="text-xs">
+                                {customer.city}{customer.city && customer.country && ", "}{customer.country}
+                              </Typography.Text>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {(canReadInvoice || canUpdateInvoice || canDeleteInvoice) && (
-                        <Dropdown
-                          menu={{
-                            items: [
-                              {
-                                key: "view",
-                                icon: <Eye size={16} />,
-                                label: "View Profile",
-                                onClick: () => {
-                                  setSelectedCustomerForView(customer);
-                                  setViewDrawerVisible(true);
+                        {(canReadInvoice || canUpdateInvoice || canDeleteInvoice) && (
+                          <Dropdown
+                            menu={{
+                              items: [
+                                {
+                                  key: "view",
+                                  icon: <Eye size={16} />,
+                                  label: "View Profile",
+                                  onClick: () => {
+                                    setSelectedCustomerForView(customer);
+                                    setViewDrawerVisible(true);
+                                  },
                                 },
-                              },
-                              { type: 'divider' },
-                              canUpdateInvoice ? {
-                                key: "status_toggle",
-                                icon: customer.isActive ? <Ban size={16} /> : <ShieldCheck size={16} />,
-                                label: customer.isActive ? "Deactivate Account" : "Activate Account",
-                                onClick: async () => {
-                                  try {
-                                    await updateCustomer.mutateAsync({ 
-                                      id: customer.id, 
-                                      data: { companyName: customer.companyName, isActive: !customer.isActive } 
-                                    });
-                                    messageApi.success(`Customer ${customer.isActive ? "deactivated" : "activated"} successfully`);
-                                  } catch (error: any) {
-                                    messageApi.error(error.message || "Operation failed");
-                                  }
-                                },
-                              } : null,
-                              { type: 'divider' },
-                              canUpdateInvoice ? {
-                                key: "edit",
-                                icon: <Edit2 size={16} />,
-                                label: "Edit Customer",
-                                onClick: () => handleEdit(customer),
-                              } : null,
-                              canDeleteInvoice ? {
-                                key: "delete",
-                                danger: true,
-                                icon: <Trash2 size={16} />,
-                                label: "Delete",
-                                onClick: () => {
-                                  setDeletingCustomerId(customer.id);
-                                  setIsDeleteModalOpen(true);
-                                },
-                              } : null,
-                            ].filter(Boolean) as any
-                          }}
-                          trigger={["click"]}
-                        >
-                          <Button type="text" icon={<MoreVertical size={18} className="text-slate-400" />} />
-                        </Dropdown>
-                      )}
-                    </div>
+                                { type: 'divider' },
+                                canUpdateInvoice ? {
+                                  key: "status_toggle",
+                                  icon: customer.isActive ? <Ban size={16} /> : <ShieldCheck size={16} />,
+                                  label: customer.isActive ? "Deactivate Account" : "Activate Account",
+                                  onClick: async () => {
+                                    try {
+                                      await updateCustomer.mutateAsync({
+                                        id: customer.id,
+                                        data: { companyName: customer.companyName, isActive: !customer.isActive }
+                                      });
+                                      messageApi.success(`Customer ${customer.isActive ? "deactivated" : "activated"} successfully`);
+                                    } catch (error: any) {
+                                      messageApi.error(error.message || "Operation failed");
+                                    }
+                                  },
+                                } : null,
+                                { type: 'divider' },
+                                canUpdateInvoice ? {
+                                  key: "edit",
+                                  icon: <Edit2 size={16} />,
+                                  label: "Edit Customer",
+                                  onClick: () => handleEdit(customer),
+                                } : null,
+                                canDeleteInvoice ? {
+                                  key: "delete",
+                                  danger: true,
+                                  icon: <Trash2 size={16} />,
+                                  label: "Delete",
+                                  onClick: () => {
+                                    setDeletingCustomerId(customer.id);
+                                    setIsDeleteModalOpen(true);
+                                  },
+                                } : null,
+                              ].filter(Boolean) as any
+                            }}
+                            trigger={["click"]}
+                          >
+                            <Button type="text" icon={<MoreVertical size={18} className="text-slate-400" />} style={{ marginTop: 4 }} />
+                          </Dropdown>
+                        )}
+                      </div>
 
-                    <div className="mt-5 space-y-2.5">
-                      <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <div className="p-1.5 bg-slate-50 rounded-lg"><Mail size={14} className="text-slate-400" /></div>
-                        <span className="truncate">{customer.email || "--"}</span>
+                      <div className="mt-5 space-y-2.5" style={{ flex: 1 }}>
+                        <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                          <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-slate-50)' }}><Mail size={14} style={{ color: 'var(--text-slate-400)' }} /></div>
+                          <span className="truncate">{customer.email || "--"}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                          <div className="p-1.5 rounded-lg" style={{ backgroundColor: 'var(--bg-slate-50)' }}><Phone size={14} style={{ color: 'var(--text-slate-400)' }} /></div>
+                          <span>{customer.phone || "--"}</span>
+                        </div>
+                        <div className="flex items-start gap-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                          <div className="p-1.5 rounded-lg shrink-0" style={{ backgroundColor: 'var(--bg-slate-50)' }}><MapPin size={14} style={{ color: 'var(--text-slate-400)' }} /></div>
+                          <span className="leading-tight">{customer.address || "--"}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <div className="p-1.5 bg-slate-50 rounded-lg"><Phone size={14} className="text-slate-400" /></div>
-                        <span>{customer.phone || "--"}</span>
-                      </div>
-                      <div className="flex items-start gap-3 text-sm text-slate-600">
-                        <div className="p-1.5 bg-slate-50 rounded-lg shrink-0"><MapPin size={14} className="text-slate-400" /></div>
-                        <span className="leading-tight">{customer.address || "--"}</span>
-                      </div>
-                    </div>
 
-                    <Divider className="my-4 border-slate-100" />
+                      <Divider className="my-4" style={{ borderColor: 'var(--customers-card-border)' }} />
 
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400">Tax ID</span>
-                        <span className="font-medium text-slate-700">{customer.taxId || "--"}</span>
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex justify-between items-center text-xs">
+                          <span style={{ color: 'var(--text-slate-400)' }}>Tax ID</span>
+                          <span className="font-medium" style={{ color: 'var(--text-slate-700)' }}>{customer.taxId || "--"}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span style={{ color: 'var(--text-slate-400)' }}>GSTIN</span>
+                          <span className="font-medium" style={{ color: 'var(--text-slate-700)' }}>{customer.gstin || "--"}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span style={{ color: 'var(--text-slate-400)' }}>PAN</span>
+                          <span className="font-medium" style={{ color: 'var(--text-slate-700)' }}>{customer.pan || "--"}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400">GSTIN</span>
-                        <span className="font-medium text-slate-700">{customer.gstin || "--"}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400">PAN</span>
-                        <span className="font-medium text-slate-700">{customer.pan || "--"}</span>
-                      </div>
-                    </div>
-                  </Card>
+                    </Card>
+                  </Badge.Ribbon>
                 </Col>
               ))}
             </Row>
@@ -587,9 +683,10 @@ export default function InvoiceproCustomerPage() {
               bordered={false}
               style={{
                 borderRadius: 16,
-                border: "1px solid #f1f5f9",
+                border: "1px solid var(--customers-card-border)",
                 boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                overflow: "hidden"
+                overflow: "hidden",
+                background: "var(--customers-card-bg)"
               }}
               styles={{ body: { padding: 0 } }}
             >
@@ -608,7 +705,7 @@ export default function InvoiceproCustomerPage() {
           )}
         </div>
 
-        <CustomerModal
+        <CustomerDrawer
           open={isModalOpen}
           loading={creating || updating}
           customer={editingCustomer}
@@ -624,17 +721,17 @@ export default function InvoiceproCustomerPage() {
       <style dangerouslySetInnerHTML={{
         __html: `
         .customer-table-row:hover {
-          background-color: #f8fafc !important;
+          background-color: var(--customers-table-row-hover) !important;
         }
         .ant-table-thead > tr > th {
-          background-color: #f1f5f9 !important;
-          color: #475569 !important;
+          background-color: var(--customers-table-header-bg) !important;
+          color: var(--customers-table-header-text) !important;
           font-weight: 600 !important;
           padding: 8px 16px !important;
         }
         .ant-table-tbody > tr > td {
           padding: 8px 16px !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--customers-card-border) !important;
         }
         .customer-card {
           transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
@@ -646,35 +743,96 @@ export default function InvoiceproCustomerPage() {
 
       <Modal
         open={isDeleteModalOpen}
-        title={
-          <div className="flex items-center gap-2 text-red-600">
-            <Trash2 size={20} />
-            <span>Delete Customer</span>
-          </div>
-        }
-        okText="Delete"
-        okType="danger"
-        cancelText="Cancel"
-        confirmLoading={deleteCustomer.status === "pending"}
-        onOk={confirmDelete}
         onCancel={() => {
           setIsDeleteModalOpen(false);
           setDeletingCustomerId(null);
         }}
-        style={{ borderRadius: 16 }}
+        footer={null}
+        width={440}
+        centered
+        closable={false}
+        styles={{
+          body: { padding: 0, overflow: 'hidden', borderRadius: '24px' },
+          mask: { backdropFilter: 'blur(8px)', background: 'rgba(15, 23, 42, 0.6)' },
+          content: { borderRadius: '24px', padding: 0, background: 'var(--customers-modal-bg)' }
+        }}
+        className="overflow-hidden"
       >
-        <p className="py-4 text-slate-600">
-          Are you sure you want to delete this customer? This action will remove all customer profiles and cannot be undone.
-        </p>
+        <div className="relative">
+          {/* Decorative Background Header */}
+          <div className="h-32 flex items-center justify-center relative overflow-hidden" style={{ background: 'linear-gradient(to bottom, var(--customers-delete-header-bg), var(--customers-modal-bg))' }}>
+            {/* Icon Container */}
+            <div className="w-20 h-20 rounded-[20px] flex items-center justify-center border relative z-10 bottom-[-24px]" style={{ backgroundColor: 'var(--customers-modal-bg)', borderColor: 'var(--customers-delete-icon-bg)' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center border" style={{ backgroundColor: 'var(--customers-delete-icon-bg)', color: 'var(--customers-delete-icon-color)', borderColor: 'var(--customers-delete-icon-bg)' }}>
+                <Trash2 size={28} strokeWidth={2} />
+              </div>
+            </div>
+          </div>
+
+          <div className="px-8 pt-10 pb-8 text-center flex flex-col items-center">
+            <h3 className="text-2xl font-extrabold mb-3 tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Delete Customer permanently?
+            </h3>
+
+            <p className="text-[14px] leading-relaxed mb-4 font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Are you absolutely sure? This action will permanently erase the customer profile, including:
+            </p>
+
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-800 font-medium leading-tight">
+                  <strong>Important:</strong> If this customer has associated invoices, deletion will fail. You may need to delete or reassign those invoices first.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2 mb-8 w-full">
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Building2 size={14} className="text-blue-500" /> Company Info</span>
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Mail size={14} className="text-amber-500" /> Contact Details</span>
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: 'var(--bg-slate-50)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}><Fingerprint size={14} className="text-emerald-500" /> Tax Identifiers</span>
+            </div>
+
+            <div className="flex w-full gap-4">
+              <Button
+                size="large"
+                className="flex-1 rounded-[16px] h-14 font-bold border-none transition-colors" style={{ backgroundColor: 'var(--bg-slate-100)', color: 'var(--text-secondary)' }}
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeletingCustomerId(null);
+                }}
+              >
+                Keep Customer
+              </Button>
+              <Button
+                size="large"
+                danger
+                type="primary"
+                loading={deleteCustomer.status === "pending"}
+                className="flex-1 rounded-[16px] h-14 font-bold border-none shadow-sm transition-all" style={{ backgroundColor: '#ef4444' }}
+                onClick={confirmDelete}
+              >
+                Yes, Delete
+              </Button>
+            </div>
+          </div>
+        </div>
       </Modal>
 
-      <CustomerViewDrawer 
+      <CustomerViewDrawer
         open={viewDrawerVisible}
         onClose={() => {
           setViewDrawerVisible(false);
           setSelectedCustomerForView(null);
         }}
         customer={selectedCustomerForView}
+      />
+
+      <ClientImportModal
+        open={isClientImportModalOpen}
+        onClose={() => setIsClientImportModalOpen(false)}
+        onImport={handleImportClients}
+        existingCustomers={customers}
       />
 
     </MainLayout>

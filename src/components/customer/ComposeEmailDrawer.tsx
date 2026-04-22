@@ -110,8 +110,8 @@ const onFinish = (values: any) => {
     <Drawer
       title={
         <Space>
-          <MailOutlined className="text-blue-500" />
-          <span>Compose Email - {invoice?.invoiceNumber}</span>
+          <MailOutlined style={{ color: 'var(--text-sky-500)' }} />
+          <span style={{ color: 'var(--text-primary)' }}>Compose Email - {invoice?.invoiceNumber}</span>
         </Space>
       }
       width={720}
@@ -142,7 +142,7 @@ const onFinish = (values: any) => {
           name="to"
           rules={[{ required: true, type: 'email', message: 'Valid email required' }]}
         >
-          <Input prefix={<UserOutlined className="text-gray-400" />} placeholder="recipient@email.com" />
+          <Input prefix={<UserOutlined style={{ color: 'var(--text-secondary)' }} />} placeholder="recipient@email.com" />
         </Form.Item>
 
         <Form.Item
@@ -172,21 +172,29 @@ const onFinish = (values: any) => {
     <strong>Attachment:</strong> Your system will automatically attach the PDF for Invoice {invoice?.invoiceNumber}.
   </Text>
 </div> */}
-<div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-4">
-  <Text type="secondary" className="text-xs">
-    {invoice?.pdfUrl || (invoice?.attachments && invoice.attachments.some((a: any) => a.fileName.toLowerCase().endsWith('.pdf') || a.fileUrl.toLowerCase().endsWith('.pdf'))) ? (
-      <Space>
-        <span className="text-green-600">●</span>
-        <strong>Attachment Ready:</strong> Invoice_{invoice.invoiceNumber}.pdf
-      </Space>
-    ) : (
-      <Space>
-        <span className="text-blue-500">●</span>
-        <strong>Automatic Attachment:</strong> System will generate and attach the latest invoice PDF.
-      </Space>
-    )}
-  </Text>
-</div>
+        <div 
+          style={{ 
+            backgroundColor: 'var(--bg-blue-50)', 
+            borderColor: 'var(--border-blue-200)' 
+          }} 
+          className="p-4 rounded-lg border mt-4"
+        >
+          <Text type="secondary" className="text-xs">
+            {invoice?.pdfUrl || (invoice?.attachments && invoice.attachments.some((a: any) => a.fileName.toLowerCase().endsWith('.pdf') || a.fileUrl.toLowerCase().endsWith('.pdf'))) ? (
+              <Space>
+                <span style={{ color: 'var(--text-holiday)' }}>●</span>
+                <strong style={{ color: 'var(--text-primary)' }}>Attachment Ready:</strong> 
+                <span style={{ color: 'var(--text-secondary)' }}>Invoice_{invoice.invoiceNumber}.pdf</span>
+              </Space>
+            ) : (
+              <Space>
+                <span style={{ color: 'var(--text-sky-500)' }}>●</span>
+                <strong style={{ color: 'var(--text-primary)' }}>Automatic Attachment:</strong> 
+                <span style={{ color: 'var(--text-secondary)' }}>System will generate and attach the latest invoice PDF.</span>
+              </Space>
+            )}
+          </Text>
+        </div>
       </Form>
     </Drawer>
   );

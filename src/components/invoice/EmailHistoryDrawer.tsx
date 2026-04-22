@@ -68,8 +68,8 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
       width: 160,
       render: (text: string) => (
         <Space direction="vertical" size={0}>
-          <Text strong style={{ fontSize: 13 }}>{dayjs(text).format('MMM D, YYYY')}</Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(text).format('hh:mm A')}</Text>
+          <Text strong style={{ fontSize: 13, color: 'var(--dashboard-stat-value)' }}>{dayjs(text).format('MMM D, YYYY')}</Text>
+          <Text style={{ fontSize: 11, color: 'var(--dashboard-stat-label)' }}>{dayjs(text).format('hh:mm A')}</Text>
         </Space>
       )
     },
@@ -79,8 +79,8 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
       key: 'to',
       render: (text: string, record: any) => (
         <Space direction="vertical" size={0}>
-          <Text strong style={{ fontSize: 13 }}>{record.customerName || 'Customer'}</Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>{text}</Text>
+          <Text strong style={{ fontSize: 13, color: 'var(--dashboard-stat-value)' }}>{record.customerName || 'Customer'}</Text>
+          <Text style={{ fontSize: 11, color: 'var(--dashboard-stat-label)' }}>{text}</Text>
         </Space>
       )
     },
@@ -94,13 +94,13 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
             display: 'inline-flex', 
             alignItems: 'center', 
             gap: 6, 
-            background: '#f8fafc', 
+            background: 'var(--history-drawer-expanded-bg)', 
             padding: '4px 10px', 
             borderRadius: 8,
-            border: '1px solid #f1f5f9'
+            border: '1px solid var(--history-drawer-header-border)'
           }}>
             <Mail size={12} className="text-blue-500" />
-            <Text type="secondary" style={{ fontSize: 12, maxWidth: 150 }} ellipsis>{text}</Text>
+            <Text style={{ fontSize: 12, maxWidth: 150, color: 'var(--dashboard-stat-label)' }} ellipsis>{text}</Text>
           </div>
         </Tooltip>
       )
@@ -126,12 +126,12 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingRight: 24 }}>
           <Space size={12}>
-            <div style={{ background: '#eff6ff', padding: 10, borderRadius: 12, color: '#3b82f6' }}>
+            <div style={{ background: 'var(--history-drawer-icon-bg)', padding: 10, borderRadius: 12, color: 'var(--history-drawer-icon-color)' }}>
               <Clock size={20} />
             </div>
             <div>
-              <Title level={5} style={{ margin: 0, fontWeight: 700 }}>Email Communication Logs</Title>
-              <Text type="secondary" style={{ fontSize: 12 }}>History of all sent invoice communications</Text>
+              <Title level={5} style={{ margin: 0, fontWeight: 700, color: 'var(--dashboard-stat-value)' }}>Email Communication Logs</Title>
+              <Text style={{ fontSize: 12, color: 'var(--dashboard-stat-label)' }}>History of all sent invoice communications</Text>
             </div>
           </Space>
           <Button 
@@ -147,8 +147,15 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
       onClose={onClose}
       open={open}
       styles={{
-        header: { borderBottom: '1px solid #f1f5f9', padding: '20px 24px' },
-        body: { padding: '24px' }
+        header: { 
+          borderBottom: '1px solid var(--history-drawer-header-border)', 
+          padding: '20px 24px',
+          background: 'var(--history-drawer-header-bg)'
+        },
+        body: { 
+          padding: '24px',
+          background: 'var(--history-drawer-header-bg)'
+        }
       }}
     >
       {/* Filters Header */}
@@ -193,19 +200,19 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
         }}
         className="email-history-table"
         style={{
-            background: '#ffffff',
+            background: 'var(--history-drawer-header-bg)',
             borderRadius: 16,
         }}
         expandable={{
             expandedRowRender: (record) => (
-                <div style={{ padding: '16px 24px', background: '#f8fafc', borderRadius: 12, border: '1px solid #f1f5f9' }}>
+                <div style={{ padding: '16px 24px', background: 'var(--history-drawer-expanded-bg)', borderRadius: 12, border: '1px solid var(--history-drawer-header-border)' }}>
                     <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
                         <Space direction="vertical" size={4}>
-                            <Text strong style={{ fontSize: 13 }}>Subject</Text>
-                            <Text style={{ color: '#1e293b' }}>{record.subject}</Text>
+                            <Text strong style={{ fontSize: 13, color: 'var(--dashboard-stat-value)' }}>Subject</Text>
+                            <Text style={{ color: 'var(--dashboard-stat-label)' }}>{record.subject}</Text>
                         </Space>
                         {record.hasAttachment && (
-                            <Button size="small" icon={<Download size={14} />} style={{ borderRadius: 8 }}>
+                            <Button size="small" icon={<Download size={14} />} style={{ borderRadius: 8, background: 'var(--history-drawer-header-bg)', color: 'var(--dashboard-stat-label)', border: '1px solid var(--history-drawer-header-border)' }}>
                                 Attachment
                             </Button>
                         )}
@@ -217,19 +224,29 @@ export default function EmailHistoryDrawer({ open, onClose, invoiceId, module = 
 
       <style dangerouslySetInnerHTML={{ __html: `
         .email-history-table .ant-table-thead > tr > th {
-          background: #f8fafc !important;
-          color: #64748b !important;
+          background: var(--history-drawer-table-header-bg) !important;
+          color: var(--history-drawer-table-header-text) !important;
           font-weight: 600 !important;
           font-size: 11px !important;
           text-transform: uppercase !important;
           letter-spacing: 0.05em !important;
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--history-drawer-header-border) !important;
         }
         .email-history-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid #f1f5f9 !important;
+          border-bottom: 1px solid var(--history-drawer-header-border) !important;
+          background: var(--history-drawer-header-bg) !important;
         }
         .email-history-table .ant-table-row:hover > td {
-          background: #f1f5f90a !important;
+          background: var(--history-drawer-row-hover) !important;
+        }
+        .email-history-table .ant-empty-description {
+          color: var(--dashboard-stat-label) !important;
+        }
+        .email-history-table .ant-pagination-item a {
+          color: var(--dashboard-stat-label) !important;
+        }
+        .email-history-table .ant-pagination-item-active a {
+          color: var(--premium-blue) !important;
         }
       `}} />
     </Drawer>

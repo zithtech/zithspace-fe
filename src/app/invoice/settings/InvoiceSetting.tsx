@@ -12,10 +12,10 @@ interface InvoiceSettingProps {
 
 const SectionTitle = ({ icon: Icon, title }: any) => (
   <div className="flex items-center gap-3 mb-4">
-    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+    <div className="p-2 bg-[var(--customers-header-icon-bg)] text-[var(--customers-header-icon-color)] rounded-lg">
       <Icon size={18} />
     </div>
-    <h3 className="text-sm font-bold text-slate-800 m-0 uppercase tracking-wider">{title}</h3>
+    <h3 className="text-sm font-bold text-[var(--text-primary)] m-0 uppercase tracking-wider">{title}</h3>
   </div>
 );
 
@@ -71,7 +71,7 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
   };
 
   return (
-    <div className="bg-white">
+    <div className="bg-transparent">
       <SectionTitle icon={ReceiptText} title="Invoice Numbering" />
       <Form 
         form={form} 
@@ -81,19 +81,19 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
       >
         <div style={{ maxWidth: 500 }}>
           <Form.Item
-            label={<span className="text-slate-500 font-medium">Auto-generation Format</span>}
+            label={<span className="text-[var(--text-secondary)] font-medium">Auto-generation Format</span>}
             name="format"
             rules={[{ required: true, message: "Invoice format is required" }]}
             extra={
-              <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
-                <div className="flex gap-2 items-center text-slate-500 mb-2">
+              <div className="mt-3 p-3 bg-[var(--bg-slate-50)] rounded-xl border border-[var(--border-color)] border-dashed">
+                <div className="flex gap-2 items-center text-[var(--text-secondary)] mb-2">
                   <Info size={14} />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Available Tags</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <code className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-blue-600 font-bold">{`{YYYY}`}</code>
-                  <code className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-blue-600 font-bold">{`{YY}`}</code>
-                  <code className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] text-blue-600 font-bold">{`{###}`}</code>
+                  <code className="px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[10px] text-[var(--customers-header-icon-color)] font-bold">{`{YYYY}`}</code>
+                  <code className="px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[10px] text-[var(--customers-header-icon-color)] font-bold">{`{YY}`}</code>
+                  <code className="px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-[10px] text-[var(--customers-header-icon-color)] font-bold">{`{###}`}</code>
                 </div>
               </div>
             }
@@ -104,7 +104,7 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
               disabled={!editable}
               placeholder="e.g. INV-{YYYY}-{###}"
               style={{ textTransform: 'uppercase' }}
-              className={`rounded-xl border-slate-200 font-mono ${!editable ? 'bg-slate-50 opacity-100 text-slate-500 cursor-not-allowed' : ''}`}
+              className={`rounded-xl border-[var(--border-color)] bg-[var(--bg-secondary)] font-mono ${!editable ? 'bg-[var(--bg-slate-50)] opacity-100 text-[var(--text-secondary)] cursor-not-allowed' : ''}`}
               suffix={
                 !editable ? (
                   <Tooltip title="Unlock to Edit">
@@ -137,13 +137,13 @@ const InvoiceSetting: FC<InvoiceSettingProps> = ({ initialValues, onSave }) => {
           </Form.Item>
 
           {preview && (
-            <div className="mt-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center justify-between">
+            <div className="mt-6 p-4 bg-[var(--bg-blue-50)] rounded-2xl border border-[var(--border-blue-200)] flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Live Preview</p>
-                <p className="text-xl font-mono font-bold text-blue-700 m-0">{preview}</p>
+                <p className="text-[10px] font-bold text-[var(--text-blue-700)] opacity-70 uppercase tracking-widest mb-1">Live Preview</p>
+                <p className="text-xl font-mono font-bold text-[var(--text-blue-700)] m-0">{preview}</p>
               </div>
-              <div className="p-3 bg-white rounded-xl shadow-sm border border-blue-100">
-                <CheckCircle2 className="text-blue-500" size={24} />
+              <div className="p-3 bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-blue-200)]">
+                <CheckCircle2 className="text-[var(--customers-header-icon-color)]" size={24} />
               </div>
             </div>
           )}

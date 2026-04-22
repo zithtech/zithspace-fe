@@ -90,7 +90,7 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
       title={<Text strong className="text-lg">Add Custom Field</Text>}
       onCancel={onCancel}
       footer={[
-        <Button key="cancel" onClick={onCancel} className="px-8 rounded-md h-10">Cancel</Button>,
+        <Button key="cancel" onClick={onCancel} className="px-8 rounded-md h-10 border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)]">Cancel</Button>,
         <Button key="add" type="primary" onClick={() => form.submit()} className="px-8 rounded-md h-10 bg-blue-400 border-none">Add Field</Button>
       ]}
       width={400}
@@ -105,8 +105,8 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
         }}
         className="mt-4"
       >
-        <Form.Item label="FIELD NAME" name="label" rules={[{ required: true, message: 'Please input field name' }]}>
-          <Input placeholder="e.g. Discount Code" className="h-10 rounded-md" />
+        <Form.Item label={<span className="text-[var(--text-primary)]">FIELD NAME</span>} name="label" rules={[{ required: true, message: 'Please input field name' }]}>
+          <Input placeholder="e.g. Discount Code" className="h-10 rounded-md border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)]" />
         </Form.Item>
         
         <Form.Item label="FIELD TYPE" name="fieldType">
@@ -147,14 +147,14 @@ const AddFieldModal = ({ visible, onCancel, onAdd }: any) => {
         )}
 
         <div className="flex justify-between items-center mb-4">
-          <Text className="text-sm font-medium">Required</Text>
+          <Text className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Required</Text>
           <Form.Item name="required" valuePropName="checked" className="mb-0">
             <Switch size="small" />
           </Form.Item>
         </div>
 
         <div className="flex justify-between items-center mb-4">
-          <Text className="text-sm font-medium">Show in Invoice PDF</Text>
+          <Text className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Show in Invoice PDF</Text>
           <Form.Item name="showInPdf" valuePropName="checked" className="mb-0">
             <Switch size="small" />
           </Form.Item>
@@ -222,7 +222,7 @@ const SortableItem = ({
           rules={[{ required: true, message: "" }]}
           style={{ marginBottom: 0 }}
         >
-          <Input placeholder="Item name" size="small" className="font-semibold rounded-lg h-9 text-sm border-slate-200 hover:border-blue-300 focus:border-blue-400 bg-white shadow-sm shadow-black/[0.02]" />
+          <Input placeholder="Item name" size="small" className="font-semibold rounded-lg h-9 text-sm border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.02]" />
         </Form.Item>
       );
     }
@@ -230,12 +230,12 @@ const SortableItem = ({
     if (key === 'description') {
       return (
         <Form.Item name={[name, "description"]} style={{ marginBottom: 0 }}>
-          <Input placeholder="DESCRIPTION" size="small" className="rounded-lg h-9 uppercase text-[10px] font-medium tracking-tight border-slate-200 hover:border-blue-300 focus:border-blue-400 bg-white shadow-sm shadow-black/[0.02]" />
+          <Input placeholder="DESCRIPTION" size="small" className="rounded-lg h-9 uppercase text-[10px] font-medium tracking-tight border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.02]" />
         </Form.Item>
       );
     }
 
-    const inputClass = "w-full rounded-lg h-9 border-slate-200 hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all text-sm bg-white shadow-sm shadow-black/[0.02]";
+    const inputClass = "w-full rounded-lg h-9 border-[var(--border-color)] hover:border-blue-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all text-sm bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm shadow-black/[0.02]";
 
     if (key === 'quantity') {
       return (
@@ -333,20 +333,20 @@ const SortableItem = ({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b border-gray-100/50 transition-all duration-200 ${isDragging ? 'bg-blue-50/30 opacity-60 shadow-lg' : 'hover:bg-slate-50/80 group/row'}`}
+      className={`border-b border-[var(--border-color)] transition-all duration-200 ${isDragging ? 'bg-blue-50/30 opacity-60 shadow-lg' : 'hover:bg-[var(--bg-slate-50)] group/row'}`}
     >
-      <td className="p-2 w-12 align-middle text-center sticky left-0 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors">
+      <td className="p-2 w-12 align-middle text-center sticky left-0 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors">
         <Checkbox 
           checked={isSelected} 
           onChange={(e) => onSelect(id, e.target.checked)} 
           className="scale-90"
         />
       </td>
-      <td className="p-2 w-12 align-middle text-center text-slate-400 font-bold text-[10px] sticky left-12 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-r border-slate-50">
+      <td className="p-2 w-12 align-middle text-center text-[var(--text-secondary)] font-bold text-[10px] sticky left-12 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors border-r border-[var(--border-color)]">
         {index + 1}
       </td>
-      <td className="p-2 w-10 align-middle text-center sticky left-24 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-r border-slate-100/50">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-blue-500 transition-colors">
+      <td className="p-2 w-10 align-middle text-center sticky left-24 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors border-r border-[var(--border-color)]">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-[var(--text-secondary)] hover:text-blue-500 transition-colors">
           <DragOutlined style={{ fontSize: 16 }} />
         </div>
       </td>
@@ -357,10 +357,10 @@ const SortableItem = ({
         </td>
       ))}
 
-      <td className="p-3 align-middle text-right w-36 sticky right-12 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors border-l border-slate-50 font-bold text-slate-700 text-sm">
+      <td className="p-3 align-middle text-right w-36 sticky right-12 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors border-l border-[var(--border-color)] font-bold text-[var(--text-primary)] text-sm">
         {currencySymbol}{lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </td>
-      <td className="p-2 align-middle text-center w-12 sticky right-0 z-10 bg-white group-hover/row:bg-slate-50/80 transition-colors">
+      <td className="p-2 align-middle text-center w-12 sticky right-0 z-10 bg-[var(--bg-secondary)] group-hover/row:bg-[var(--bg-slate-50)] transition-colors">
         <Tooltip title="Remove row">
           <Button
             type="text"
@@ -396,7 +396,7 @@ const SortableHeader = ({ column, onDelete, onSelectAll, isAllSelected, isIndete
     <th 
       ref={setNodeRef} 
       style={style}
-      className={`px-4 py-4 text-left font-bold text-slate-500 text-[10px] uppercase group whitespace-nowrap tracking-widest ${column.width || ''}`}
+      className={`px-4 py-4 text-left font-bold text-[var(--text-secondary)] text-[10px] uppercase group whitespace-nowrap tracking-widest ${column.width || ''}`}
     >
       <div className="flex items-center gap-2">
         <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity text-gray-300">
@@ -759,10 +759,10 @@ export default function DynamicLineItems({
               onDragEnd={(e) => handleDragEnd(e, fields, move)}
             >
               {/* Toolbar Matching Image */}
-              <div className="mb-0 flex justify-between items-center bg-white px-5 py-4 border-b border-slate-100">
+              <div className="mb-0 flex justify-between items-center bg-[var(--bg-secondary)] px-5 py-4 border-b border-[var(--border-color)]">
                 <div className="flex flex-col gap-0.5">
-                  <Text strong className="text-base text-slate-800 tracking-tight">Invoice Line Items</Text>
-                  <Text className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Manage your billing components</Text>
+                  <Text strong className="text-base text-[var(--text-primary)] tracking-tight">Invoice Line Items</Text>
+                  <Text className="text-[10px] text-[var(--text-secondary)] font-medium uppercase tracking-wider">Manage your billing components</Text>
                 </div>
                 <div className="flex gap-2 items-center">
                   <Button
@@ -776,7 +776,7 @@ export default function DynamicLineItems({
                     icon={<CopyOutlined />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDuplicateRows(fields, add)}
-                    className="flex items-center gap-1 font-semibold text-slate-600 rounded-lg border-slate-200 bg-white h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
+                    className="flex items-center gap-1 font-semibold text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
                   >
                     Duplicate
                   </Button>
@@ -785,15 +785,15 @@ export default function DynamicLineItems({
                     icon={<DeleteOutlined />}
                     disabled={selectedRowKeys.length === 0}
                     onClick={() => handleDeleteRows(remove, fields)}
-                    className="flex items-center gap-1 font-semibold bg-white rounded-lg border-red-50 h-9 text-xs hover:bg-red-50 hover:border-red-200 transition-all duration-200"
+                    className="flex items-center gap-1 font-semibold bg-[var(--bg-secondary)] rounded-lg border-red-50 h-9 text-xs hover:bg-red-50 hover:border-red-200 transition-all duration-200"
                   >
                     Delete Row
                   </Button>
-                  <Divider type="vertical" className="h-6 mx-1 border-slate-200" />
+                  <Divider type="vertical" className="h-6 mx-1 border-[var(--border-color)]" />
                   <Button
                     icon={<SettingOutlined />}
                     onClick={() => setShowAddFieldModal(true)}
-                    className="flex items-center gap-1 font-semibold text-slate-600 rounded-lg border-slate-200 bg-white h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
+                    className="flex items-center gap-1 font-semibold text-[var(--text-primary)] rounded-lg border-[var(--border-color)] bg-[var(--bg-secondary)] h-9 text-xs hover:border-slate-300 hover:text-slate-800 transition-all duration-200"
                   >
                     Custom Fields
                   </Button>
@@ -802,12 +802,12 @@ export default function DynamicLineItems({
 
               {/* Template Selector Removed - Now in Header */}
 
-              <div className="overflow-x-auto custom-scrollbar rounded-b-xl border border-slate-200 border-t-0 shadow-sm relative">
-                <table className="w-full border-collapse bg-white min-w-max border-hidden">
+              <div className="overflow-x-auto custom-scrollbar rounded-b-xl border border-[var(--border-color)] border-t-0 shadow-sm relative">
+                <table className="w-full border-collapse bg-[var(--bg-secondary)] min-w-max border-hidden">
                   <thead>
                     <SortableContext items={activeColumns.map(c => c.key)} strategy={horizontalListSortingStrategy}>
-                      <tr className="bg-[#f8fafc]/80 border-b border-slate-200">
-                        <th className="px-5 py-4 w-12 text-center sticky left-0 z-20 bg-[#f8fafc]">
+                    <tr className="bg-[var(--bg-slate-50)] border-b border-[var(--border-color)]">
+                        <th className="px-5 py-4 w-12 text-center sticky left-0 z-20 bg-[var(--bg-slate-50)]">
                           <Checkbox 
                             checked={fields.length > 0 && selectedRowKeys.length === fields.length}
                             indeterminate={selectedRowKeys.length > 0 && selectedRowKeys.length < fields.length}
@@ -815,8 +815,8 @@ export default function DynamicLineItems({
                             className="scale-110"
                           />
                         </th>
-                        <th className="px-3 py-4 w-12 text-center font-bold text-slate-400 text-[9px] uppercase tracking-widest whitespace-nowrap sticky left-12 z-20 bg-[#f8fafc] border-r border-slate-200/50">S.No</th>
-                        <th className="p-3 w-10 sticky left-24 z-20 bg-[#f8fafc] border-r border-slate-200/50"></th>
+                        <th className="px-3 py-4 w-12 text-center font-bold text-[var(--text-secondary)] text-[9px] uppercase tracking-widest whitespace-nowrap sticky left-12 z-20 bg-[var(--bg-slate-50)] border-r border-[var(--border-color)]">S.No</th>
+                        <th className="p-3 w-10 sticky left-24 z-20 bg-[var(--bg-slate-50)] border-r border-[var(--border-color)]"></th>
                         {activeColumns.map(col => (
                           <SortableHeader 
                             key={col.key} 
@@ -824,8 +824,8 @@ export default function DynamicLineItems({
                             onDelete={handleDeleteColumn}
                           />
                         ))}
-                        <th className="px-5 py-4 text-right font-bold text-slate-500 text-[10px] uppercase tracking-widest sticky right-12 z-20 bg-[#f8fafc] border-l border-slate-200/50 w-36">Total</th>
-                        <th className="px-3 py-4 w-12 sticky right-0 z-20 bg-[#f8fafc] text-center font-bold text-slate-500 text-[10px] uppercase tracking-widest">Actions</th>
+                        <th className="px-5 py-4 text-right font-bold text-[var(--text-secondary)] text-[10px] uppercase tracking-widest sticky right-12 z-20 bg-[var(--bg-slate-50)] border-l border-[var(--border-color)] w-36">Total</th>
+                        <th className="px-3 py-4 w-12 sticky right-0 z-20 bg-[var(--bg-slate-50)] text-center font-bold text-[var(--text-secondary)] text-[10px] uppercase tracking-widest">Actions</th>
                       </tr>
                     </SortableContext>
                   </thead>
@@ -891,8 +891,9 @@ export default function DynamicLineItems({
         .dynamic-line-items .ant-input, 
         .dynamic-line-items .ant-input-number,
         .dynamic-line-items .ant-select-selector {
-          border-color: #f1f3f6 !important;
-          background: #ffffff !important;
+          border-color: var(--border-color) !important;
+          background: var(--bg-secondary) !important;
+          color: var(--text-primary) !important;
         }
         .dynamic-line-items .ant-input:focus, 
         .dynamic-line-items .ant-input-number:focus,
@@ -910,16 +911,16 @@ export default function DynamicLineItems({
           width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f8fafc;
+          background: var(--bg-primary);
           border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
+          background: var(--border-color);
           border-radius: 4px;
-          border: 2px solid #f8fafc;
+          border: 2px solid var(--bg-primary);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #cbd5e1;
+          background: var(--text-secondary);
         }
         .table-fixed {
           table-layout: fixed;

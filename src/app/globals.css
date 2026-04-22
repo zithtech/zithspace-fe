@@ -137,6 +137,127 @@ body {
   --bg-purple-50: #f5f3ff;
   --bg-orange-50: #fff7ed;
   --border-green-200: #bbf7d0;
+
+  /* Accounts page specific variables */
+  --accounts-stat-bg: #FFFFFF;
+  --accounts-stat-border: #f1f5f9;
+  --accounts-stat-label: #64748b;
+  --accounts-stat-value: #1e293b;
+  --accounts-stat-sub: #94a3b8;
+  --accounts-card-bg: #FFFFFF;
+  --accounts-card-border: #f1f5f9;
+  --accounts-list-bg: #FFFFFF;
+  --accounts-list-border: #f0f0f0;
+  --accounts-avatar-credit: #10b981;
+  --accounts-avatar-debit: #ef4444;
+  --accounts-invoice-bg: #faf5ff;
+  --accounts-invoice-border: #9333ea;
+  --accounts-invoice-text: #9333ea;
+  --accounts-emerald-bg: #f0fdf4;
+  --accounts-emerald-text: #059669;
+  --accounts-rose-bg: #fef2f2;
+  --accounts-rose-text: #dc2626;
+
+  /* Account settings page specific variables */
+  --settings-card-bg: #FFFFFF;
+  --settings-card-border: #f1f5f9;
+  --settings-text-primary: #1e293b;
+  --settings-text-secondary: #64748b;
+  --settings-text-muted: #94a3b8;
+  --settings-table-header-bg: #f8fafc;
+  --settings-table-header-text: #64748b;
+  --settings-table-header-border: #f1f5f9;
+  --settings-table-row-hover: #f8fafc;
+  --settings-table-border: #f1f5f9;
+  --settings-empty-bg: #f8fafc;
+  --settings-empty-border: #f1f5f9;
+  --settings-empty-icon: #e2e8f0;
+  --settings-empty-title: #64748b;
+  --settings-empty-desc: #94a3b8;
+  --settings-loading-bg: #f8fafc;
+  --settings-loading-border: #f1f5f9;
+
+  /* Invoice customers page specific variables */
+  --customers-page-bg: #ffffff;
+  --customers-card-bg: #FFFFFF;
+  --customers-card-border: #f1f5f9;
+  --customers-stat-bg: #FFFFFF;
+  --customers-stat-border: #f1f5f9;
+  --customers-stat-label: #64748b;
+  --customers-stat-value: #1e293b;
+  --customers-header-bg: #ffffff;
+  --customers-header-icon-bg: #eff6ff;
+  --customers-header-icon-color: #3b82f6;
+  --customers-table-header-bg: #f1f5f9;
+  --customers-table-header-text: #475569;
+  --customers-table-row-hover: #f8fafc;
+  --customers-avatar-bg: #eff6ff;
+  --customers-avatar-text: #3b82f6;
+  --customers-badge-bg: #ffffff;
+  --customers-modal-bg: #ffffff;
+  --customers-delete-header-bg: #fef2f2;
+  --customers-delete-icon-bg: #fef2f2;
+  --customers-delete-icon-color: #ef4444;
+
+  /* CustomerViewDrawer specific variables */
+  --drawer-bg: #ffffff;
+  --drawer-header-bg: #ffffff;
+  --drawer-header-border: #f1f5f9;
+  --drawer-card-bg: #ffffff;
+  --drawer-card-border: #f1f5f9;
+  --drawer-avatar-bg: #eff6ff;
+  --drawer-avatar-text: #3b82f6;
+  --drawer-avatar-border: #dbeafe;
+  --drawer-title-color: #0f172a;
+  --drawer-tag-bg: #f0fdf4;
+  --drawer-tag-text: #16a34a;
+  --drawer-icon-bg-blue: #eff6ff;
+  --drawer-icon-text-blue: #3b82f6;
+  --drawer-icon-bg-emerald: #ecfdf5;
+  --drawer-icon-text-emerald: #059669;
+  --drawer-icon-bg-indigo: #eef2ff;
+  --drawer-icon-text-indigo: #6366f1;
+  --drawer-field-bg: #f8fafc;
+  --drawer-field-border: #f1f5f9;
+  --drawer-label-color: #94a3b8;
+  --drawer-value-color: #334155;
+  --drawer-country-tag-bg: #eff6ff;
+  --drawer-country-tag-text: #2563eb;
+
+  /* Invoice dashboard page specific variables */
+  --dashboard-page-bg: #ffffff;
+  --dashboard-card-bg: #FFFFFF;
+  --dashboard-card-border: #f1f5f9;
+  --dashboard-header-bg: #ffffff;
+  --dashboard-header-icon-bg: #f0f9ff;
+  --dashboard-header-icon-color: #0ea5e9;
+  --dashboard-stat-label: #64748b;
+  --dashboard-stat-value: #1e293b;
+  --dashboard-table-header-bg: #f1f5f9;
+  --dashboard-table-header-text: #475569;
+  --dashboard-table-row-hover: #f8fafc;
+  --dashboard-calendar-today-bg: #e6f7ff;
+  --dashboard-calendar-today-border: #91d5ff;
+  --dashboard-calendar-date-text: #262626;
+
+  /* Email History Drawer specific variables */
+  --history-drawer-header-bg: #ffffff;
+  --history-drawer-header-border: #f1f5f9;
+  --history-drawer-icon-bg: #eff6ff;
+  --history-drawer-icon-color: #3b82f6;
+  --history-drawer-table-header-bg: #f8fafc;
+  --history-drawer-table-header-text: #64748b;
+  --history-drawer-row-hover: rgba(241, 245, 249, 0.04);
+  --history-drawer-expanded-bg: #f8fafc;
+  
+  /* Invoice View page specific variables */
+  --invoice-view-bg: #f7f9fc;
+  --invoice-paper-bg: #ffffff;
+  --invoice-paper-border: #e8e8e8;
+  --invoice-section-bg: #f9f9f9;
+  --invoice-section-border: #e8e8e8;
+  --invoice-total-row-bg: #fafafa;
+  --invoice-total-row-border: #000000;
 }
 
 [data-theme='dark'] {
@@ -171,6 +292,127 @@ body {
   --bg-purple-50: rgba(139, 92, 246, 0.15);
   --bg-orange-50: rgba(249, 115, 22, 0.15);
   --border-green-200: rgba(16, 185, 129, 0.2);
+
+  /* Accounts page specific variables - Dark theme */
+  --accounts-stat-bg: #161B22;
+  --accounts-stat-border: #1F2937;
+  --accounts-stat-label: #94A3B8;
+  --accounts-stat-value: #F1F5F9;
+  --accounts-stat-sub: #64748B;
+  --accounts-card-bg: #161B22;
+  --accounts-card-border: #1F2937;
+  --accounts-list-bg: #161B22;
+  --accounts-list-border: #374151;
+  --accounts-avatar-credit: #10b981;
+  --accounts-avatar-debit: #ef4444;
+  --accounts-invoice-bg: rgba(139, 92, 246, 0.15);
+  --accounts-invoice-border: #9333ea;
+  --accounts-invoice-text: #a78bfa;
+  --accounts-emerald-bg: rgba(16, 185, 129, 0.15);
+  --accounts-emerald-text: #34d399;
+  --accounts-rose-bg: rgba(239, 68, 68, 0.15);
+  --accounts-rose-text: #fb7185;
+
+  /* Account settings page specific variables - Dark theme */
+  --settings-card-bg: #161B22;
+  --settings-card-border: #1F2937;
+  --settings-text-primary: #F1F5F9;
+  --settings-text-secondary: #94A3B8;
+  --settings-text-muted: #64748B;
+  --settings-table-header-bg: #161B22;
+  --settings-table-header-text: #94A3B8;
+  --settings-table-header-border: #1F2937;
+  --settings-table-row-hover: #1F2937;
+  --settings-table-border: #1F2937;
+  --settings-empty-bg: #161B22;
+  --settings-empty-border: #1F2937;
+  --settings-empty-icon: #374151;
+  --settings-empty-title: #94A3B8;
+  --settings-empty-desc: #64748B;
+  --settings-loading-bg: #161B22;
+  --settings-loading-border: #1F2937;
+
+  /* Invoice customers page specific variables - Dark theme */
+  --customers-page-bg: #0B0F1A;
+  --customers-card-bg: #161B22;
+  --customers-card-border: #1F2937;
+  --customers-stat-bg: #161B22;
+  --customers-stat-border: #1F2937;
+  --customers-stat-label: #94A3B8;
+  --customers-stat-value: #F1F5F9;
+  --customers-header-bg: #161B22;
+  --customers-header-icon-bg: rgba(59, 130, 246, 0.15);
+  --customers-header-icon-color: #60A5FA;
+  --customers-table-header-bg: #161B22;
+  --customers-table-header-text: #94A3B8;
+  --customers-table-row-hover: #1F2937;
+  --customers-avatar-bg: rgba(59, 130, 246, 0.15);
+  --customers-avatar-text: #60A5FA;
+  --customers-badge-bg: #0B0F1A;
+  --customers-modal-bg: #161B22;
+  --customers-delete-header-bg: rgba(239, 68, 68, 0.1);
+  --customers-delete-icon-bg: rgba(239, 68, 68, 0.15);
+  --customers-delete-icon-color: #F87171;
+
+  /* CustomerViewDrawer specific variables - Dark theme */
+  --drawer-bg: #0B0F1A;
+  --drawer-header-bg: #161B22;
+  --drawer-header-border: #1F2937;
+  --drawer-card-bg: #161B22;
+  --drawer-card-border: #1F2937;
+  --drawer-avatar-bg: rgba(59, 130, 246, 0.15);
+  --drawer-avatar-text: #60A5FA;
+  --drawer-avatar-border: rgba(59, 130, 246, 0.2);
+  --drawer-title-color: #F1F5F9;
+  --drawer-tag-bg: rgba(16, 185, 129, 0.15);
+  --drawer-tag-text: #34D399;
+  --drawer-icon-bg-blue: rgba(59, 130, 246, 0.15);
+  --drawer-icon-text-blue: #60A5FA;
+  --drawer-icon-bg-emerald: rgba(16, 185, 129, 0.15);
+  --drawer-icon-text-emerald: #34D399;
+  --drawer-icon-bg-indigo: rgba(99, 102, 241, 0.15);
+  --drawer-icon-text-indigo: #818CF8;
+  --drawer-field-bg: rgba(248, 250, 252, 0.1);
+  --drawer-field-border: #1F2937;
+  --drawer-label-color: #94A3B8;
+  --drawer-value-color: #CBD5E1;
+  --drawer-country-tag-bg: rgba(59, 130, 246, 0.15);
+  --drawer-country-tag-text: #60A5FA;
+
+  /* Invoice View page specific variables - Dark theme */
+  --invoice-view-bg: #0B0F1A;
+  --invoice-paper-bg: #161B22;
+  --invoice-paper-border: #1F2937;
+  --invoice-section-bg: #0B0F1A;
+  --invoice-section-border: #1F2937;
+  --invoice-total-row-bg: #0B0F1A;
+  --invoice-total-row-border: #374151;
+
+  /* Invoice dashboard page specific variables - Dark theme */
+  --dashboard-page-bg: #0B0F1A;
+  --dashboard-card-bg: #161B22;
+  --dashboard-card-border: #1F2937;
+  --dashboard-header-bg: #161B22;
+  --dashboard-header-icon-bg: rgba(14, 165, 233, 0.15);
+  --dashboard-header-icon-color: #38BDF8;
+  --dashboard-stat-label: #94A3B8;
+  --dashboard-stat-value: #F1F5F9;
+  --dashboard-table-header-bg: #161B22;
+  --dashboard-table-header-text: #94A3B8;
+  --dashboard-table-row-hover: #1F2937;
+  --dashboard-calendar-today-bg: rgba(24, 144, 255, 0.15);
+  --dashboard-calendar-today-border: #1890ff;
+  --dashboard-calendar-date-text: #E2E8F0;
+
+  /* Email History Drawer specific variables - Dark theme */
+  --history-drawer-header-bg: #161B22;
+  --history-drawer-header-border: #1F2937;
+  --history-drawer-icon-bg: rgba(59, 130, 246, 0.15);
+  --history-drawer-icon-color: #60A5FA;
+  --history-drawer-table-header-bg: #161B22;
+  --history-drawer-table-header-text: #94A3B8;
+  --history-drawer-row-hover: rgba(31, 41, 55, 0.4);
+  --history-drawer-expanded-bg: #0B0F1A;
 }
 
 /* Premium Utilities */
@@ -1242,4 +1484,4 @@ body {
 .premium-notification .ant-notification-notice-icon {
   font-size: 24px !important;
   margin-top: 2px;
-}
+}

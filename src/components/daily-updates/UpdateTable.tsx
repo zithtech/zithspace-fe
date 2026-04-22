@@ -58,6 +58,7 @@ export default function UpdateTable({
         return (
           <Space size={10}>
             <Avatar
+              src={record.update.user?.avatarUrl}
               size={32}
               style={{
                 backgroundColor: updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",

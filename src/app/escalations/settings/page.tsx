@@ -354,8 +354,12 @@ export default function EscalationSettingsPage() {
 
   return (
     <MainLayout>
-      {contextHolder}
-      <div style={{ padding: '16px 40px', background: 'var(--bg-pure-white)', minHeight: '100vh' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
           {/* Header */}

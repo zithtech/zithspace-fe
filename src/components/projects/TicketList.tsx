@@ -30,6 +30,7 @@ import {
   MenuProps,
   Badge,
   Progress,
+  Spin,
 } from "antd";
 import {
   PlusCircleOutlined,
@@ -49,15 +50,18 @@ import {
   CheckCircleOutlined,
   ShareAltOutlined,
   MoreOutlined,
+  ProjectOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { Ticket } from "@/services/ticketService";
 import { ProjectService } from "@/services/projectService";
+// import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from "@/utils/ticketUtils";
+import { SettingsService } from "@/services/settingsService";
 import { useTickets, useKanbanTickets, useUpdateTicket, useDeleteTicket } from "@/hooks/useTickets";
 import { useTicketSocketEvents } from "@/hooks/useTicketSocketEvents";
-import { useUserProjects, useMembers } from "@/hooks/useGlobalData";
+import { useAllProjects, useMembers } from "@/hooks/useGlobalData";
 import { InlineCreateTicket } from "./InlineCreateTicket";
 import { TicketFilters } from "./TicketFilters";
 import { TicketKanban } from './kanban/TicketKanban';
@@ -119,7 +123,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
 
 
   // Use cached global data hooks
-  const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
+  const { data: projects = [], isLoading: projectsLoading } = useAllProjects();
   const { data: members = [], isLoading: membersLoading } = useMembers();
 
   // Pagination state
@@ -128,13 +132,51 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
     pageSize: 10,
   });
 
+
+
+
+
+
+
+  // Add this after all useState declarations
+  const [dbStatusOptions, setDbStatusOptions] = useState<{ label: string; value: string }[]>([]);
+  const [dbPriorityOptions, setDbPriorityOptions] = useState<{ label: string; value: string }[]>([]);
+
+  // Add this useEffect to fetch from database
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const options = await SettingsService.getDropdownOptions();
+
+        // Status options from DB
+        const statusOpts = (options.status || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbStatusOptions(statusOpts);
+
+        // Priority options from DB
+        const priorityOpts = (options.priority || [])
+          .filter(opt => opt.isActive)
+          .sort((a, b) => a.order - b.order)
+          .map(opt => ({ label: opt.label, value: opt.value }));
+        setDbPriorityOptions(priorityOpts);
+
+      } catch (error) {
+        console.error('Error fetching dropdown options:', error);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
   // --- React Query Hooks ---
 
   // Base params (without pagination) for filters
   const baseQueryParams = {
     projectId, // From props, mandatory project context
-    status: filters.status.length > 0 ? filters.status[0] : undefined,
-    priority: filters.priority.length > 0 ? filters.priority[0] : undefined,
+    status: filters.status.length > 0 ? filters.status.join(",") : undefined,
+    priority: filters.priority.length > 0 ? filters.priority.join(",") : undefined,
     assigneeId:
       filters.assignee.length > 0 ? filters.assignee.join(",") : undefined,
     search: filters.search || undefined,
@@ -619,10 +661,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
-              options={STATUS_OPTIONS}
+              // options={STATUS_OPTIONS}
+              options={dbStatusOptions.length > 0 ? dbStatusOptions : STATUS_OPTIONS}
             />
           );
         }
+
 
         return (
           <Tag
@@ -659,7 +703,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               onBlur={() => setEditingField(null)}
               autoFocus
               loading={isUpdating}
-              options={[
+              // options={[
+              //   { label: "High (P1)", value: "P1" },
+              //   { label: "Medium (P2)", value: "P2" },
+              //   { label: "Low (P3)", value: "P3" },
+              // ]}
+              options={dbPriorityOptions.length > 0 ? dbPriorityOptions : [
                 { label: "High (P1)", value: "P1" },
                 { label: "Medium (P2)", value: "P2" },
                 { label: "Low (P3)", value: "P3" },
@@ -961,7 +1010,12 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
   }
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: '100%', padding: '16px 24px' }}>
+    <div style={{
+      backgroundColor: 'var(--bg-pure-white)',
+      minHeight: 'calc(100vh - 64px)',
+      padding: '0 24px 24px 24px',
+      margin: '0 -24px'
+    }}>
       {contextHolder}
       {notifyContextHolder}
 
@@ -973,20 +1027,118 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         backgroundColor: 'var(--bg-pure-white)',
         backdropFilter: 'blur(8px)',
         margin: '0 -24px 20px -24px',
-        padding: '16px 24px',
+        padding: '8.5px 24px',
         borderBottom: '1px solid var(--border-color)'
       }}>
-        <Row justify="space-between" align="middle">
-          <Col flex="1">
-            <Space size={16} align="center" style={{ width: '100%' }}>
-              {/* Project Switcher Group */}
-              <Space size={4} align="center">
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          width: '100%',
+          gap: '12px',
+          rowGap: '12px'
+        }}>
+          {/* Advanced Project Switcher Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            <Dropdown
+              menu={{
+                items: (projects || []).map(p => ({
+                  key: p.value,
+                  label: (
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 12, 
+                      padding: '8px 12px', 
+                      minWidth: 240,
+                      borderRadius: 8,
+                      transition: 'all 0.2s ease',
+                      background: p.value === projectId ? 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)' : 'transparent',
+                      border: p.value === projectId ? '1px solid #667eea30' : '1px solid transparent'
+                    }}>
+                      <div style={{ 
+                        width: 40, 
+                        height: 40, 
+                        borderRadius: 10, 
+                        background: p.value === projectId 
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                          : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: p.value === projectId ? '#fff' : '#64748b',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        boxShadow: p.value === projectId 
+                          ? '0 4px 12px rgba(102, 126, 234, 0.3)' 
+                          : '0 2px 4px rgba(0, 0, 0, 0.05)',
+                        border: p.value === projectId 
+                          ? '1px solid rgba(255, 255, 255, 0.2)' 
+                          : '1px solid rgba(0, 0, 0, 0.05)'
+                      }}>
+                        {p.code?.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ 
+                          fontWeight: p.value === projectId ? 700 : 600, 
+                          fontSize: 14, 
+                          color: 'var(--text-primary)',
+                          marginBottom: 2,
+                          letterSpacing: '-0.01em'
+                        }}>
+                          {p.label}
+                        </div>
+                        <div style={{ 
+                          fontSize: 12, 
+                          color: p.value === projectId ? '#667eea' : 'var(--text-secondary)',
+                          fontWeight: 500
+                        }}>
+                          #{p.code}
+                        </div>
+                      </div>
+                      {p.value === projectId && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: '#10b981',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: 12,
+                          fontSize: 11,
+                          fontWeight: 600
+                        }}>
+                          <CheckCircleOutlined style={{ fontSize: 10 }} />
+                          Current
+                        </div>
+                      )}
+                    </div>
+                  ),
+                  onClick: () => router.push(`/projects/${p.value}/tickets`)
+                })),
+                style: { 
+                  maxHeight: 480, 
+                  overflowY: 'auto',
+                  padding: '8px',
+                  background: 'var(--bg-pure-white)',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  border: '1px solid var(--border-color)'
+                }
+              }}
+              trigger={['click']}
+              placement="bottomLeft"
+                          >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                 <Button
                   type="text"
                   icon={<ArrowLeftOutlined style={{ fontSize: 13, color: '#8c8c8c' }} />}
-                  onClick={() => router.push('/projects/select?select=true')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push('/projects/select?select=true');
+                  }}
                   style={{
-                    backgroundColor: 'var(--bg-pure-white)',
+                    backgroundColor: 'var(--bg-secondary)',
                     borderRadius: 6,
                     width: 28,
                     height: 28,
@@ -999,271 +1151,257 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
                 <Button
                   type="text"
                   size="small"
-                  onClick={() => router.push('/projects/select?select=true')}
-                  style={{
-                    fontSize: 12,
-                    color: '#8c8c8c',
-                    fontWeight: 500,
-                    padding: '0 4px',
-                    height: 28
-                  }}
+                  style={{ fontSize: 12, color: '#8c8c8c', fontWeight: 600, padding: '0 4px', height: 28 }}
                 >
                   Switch Project
                 </Button>
-              </Space>
-
-              <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
-
-              {/* Project Name & Code */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
-                  {projectName}
-                </Title>
-                <Tag
-                  bordered={false}
-                  color="blue"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    borderRadius: 4,
-                    padding: '0 8px',
-                    margin: 0
-                  }}
-                >
-                  {projectCode}
-                </Tag>
               </div>
+            </Dropdown>
+          </div>
 
-              <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid #e8e8e8' }} />
+          <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid var(--border-color)', flexShrink: 0 }} />
 
-              {/* Search Field */}
-              <Input
-                placeholder="Search tickets..."
-                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-                style={{
-                  width: 240,
-                  borderRadius: 8,
-                  backgroundColor: 'var(--bg-pure-white)',
-                  border: '1px solid var(--border-color)',
-                  height: 36
-                }}
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, search: e.target.value }))
+          {/* Project Name & Code */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: 'hidden', flexShrink: 0 }}>
+            <Title level={4} ellipsis={{ tooltip: projectName }} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px', whiteSpace: 'nowrap', flexShrink: 1 }}>
+              {projectName}
+            </Title>
+            <Tag bordered={false} color="blue" style={{ fontSize: 10, fontWeight: 600, borderRadius: 4, padding: '0 6px', margin: 0, flexShrink: 0 }}>
+              {projectCode}
+            </Tag>
+          </div>
+
+          <Divider type="vertical" style={{ height: 20, margin: 0, borderLeft: '1px solid var(--border-color)', flexShrink: 0 }} />
+
+          {/* Search Field */}
+          <Input
+            placeholder="Search..."
+            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+            style={{
+              maxWidth: 200,
+              minWidth: 100,
+              flex: '1 1 auto',
+              borderRadius: 8,
+              backgroundColor: 'var(--bg-pure-white)',
+              border: '1px solid var(--border-color)',
+              height: 34
+            }}
+            value={filters.search}
+            onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+            allowClear
+          />
+
+          {/* Flexible Spacer: Keeps items on left and right until they collide */}
+          <div style={{ flex: '1 1 0px', minWidth: 0 }} />
+
+          {/* Individual Action Items - Direct children of the main wrap container */}
+          {/* Reload Button - Separate icon-only button */}
+          <Tooltip title="Reload tickets">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  await queryClient.invalidateQueries({ queryKey: ['tickets'] });
+                  message.success("Tickets refreshed");
+                } catch (e) {
+                  message.error("Failed to refresh tickets");
+                } finally {
+                  setIsRefreshing(false);
                 }
-                allowClear
-              />
-            </Space>
-          </Col>
+              }}
+              loading={isRefreshing || activeSprintFetching || backlogFetching || isInitialKanbanFetching || isBackgroundKanbanLoading}
+              type="text"
+              style={{ 
+                borderRadius: 8, 
+                height: 34, 
+                width: 34, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                backgroundColor: 'var(--bg-pure-white)',
+                border: '1px solid var(--border-color)',
+                flexShrink: 0
+              }}
+            />
+          </Tooltip>
 
-          <Col>
-            <Space size={8}>
-              {/* Action Group */}
-              <div style={{ backgroundColor: 'var(--bg-pure-white)', padding: '4px', borderRadius: 8, display: 'flex', border: '1px solid var(--border-color)' }}>
-                <Tooltip title="Reload tickets">
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={async () => {
-                      setIsRefreshing(true);
-                      try {
-                        await queryClient.invalidateQueries({ queryKey: ['tickets'] });
-                        message.success("Tickets refreshed");
-                      } catch (e) {
-                        message.error("Failed to refresh tickets");
-                      } finally {
-                        setIsRefreshing(false);
-                      }
-                    }}
-                    loading={isRefreshing || activeSprintFetching || backlogFetching || isInitialKanbanFetching || isBackgroundKanbanLoading}
-                    type="text"
-                    style={{ borderRadius: 6 }}
-                  />
-                </Tooltip>
-                <Popover
-                  content={
-                    <TicketFilters
-                      filters={filters}
-                      onFilterChange={handleFilterChange}
-                      members={members}
-                      onReset={() => setFilters({ status: [], priority: [], assignee: [], search: filters.search })}
-                    />
-                  }
-                  trigger="click"
-                  placement="bottomRight"
-                  open={isFilterPopoverOpen}
-                  onOpenChange={setIsFilterPopoverOpen}
-                >
-                  <Button
-                    icon={<FilterOutlined />}
-                    type="text"
-                    style={{
-                      borderRadius: 6,
-                      backgroundColor: activeFilterCount > 0 ? 'var(--bg-pure-white)' : 'transparent',
-                      border: activeFilterCount > 0 ? '1px solid var(--border-color)' : '1px solid var(--border-color)',
-                      color: activeFilterCount > 0 ? '#1677ff' : '#595959'
-                    }}
-                  >
-                    Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-                  </Button>
-                </Popover>
-              </div>
-
+          {/* Filter Action Group */}
+          <div style={{ backgroundColor: 'var(--bg-pure-white)', padding: '2px', borderRadius: 8, display: 'flex', border: '1px solid var(--border-color)', flexShrink: 0 }}>
+            <Popover
+              content={
+                <TicketFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  members={members}
+                  onReset={() => setFilters({ status: [], priority: [], assignee: [], search: filters.search })}
+                />
+              }
+              trigger="click"
+              placement="bottomRight"
+              open={isFilterPopoverOpen}
+              onOpenChange={setIsFilterPopoverOpen}
+            >
               <Button
-                type="primary"
-                icon={showCreateForm ? <MinusOutlined /> : <PlusOutlined />}
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                style={{ borderRadius: 8, height: 36, fontWeight: 600 }}
+                icon={<FilterOutlined />}
+                type="text"
+                style={{
+                  borderRadius: 6,
+                  height: 28,
+                  backgroundColor: activeFilterCount > 0 ? 'var(--bg-pure-white)' : 'transparent',
+                  color: activeFilterCount > 0 ? '#1677ff' : '#595959',
+                  fontSize: 12
+                }}
               >
-                {showCreateForm ? "Close" : "Create"}
+                Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
               </Button>
+            </Popover>
+          </div>
 
-              <Divider type="vertical" style={{ height: 24, margin: '0 4px' }} />
+          <Button
+            type="primary"
+            icon={showCreateForm ? <MinusOutlined /> : <PlusOutlined />}
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            style={{ borderRadius: 8, height: 32, fontWeight: 600, flexShrink: 0, fontSize: 13 }}
+          >
+            {showCreateForm ? "Close" : "Create"}
+          </Button>
 
-              {/* View & Scope Switchers Row */}
-              <div style={{ display: 'flex', gap: 8 }}>
-                {/* View Mode Switcher */}
-                <div style={{
-                  backgroundColor: 'var(--bg-pure-white)',
-                  padding: '2px',
-                  borderRadius: 10,
-                  display: 'flex',
+          <Divider type="vertical" style={{ height: 20, margin: '0 2px', flexShrink: 0 }} />
+
+          <div style={{
+            backgroundColor: 'var(--bg-secondary)',
+            padding: '4px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            height: '40px',
+            flexShrink: 0,
+            border: '1px solid var(--border-color)'
+          }}>
+            <Radio.Group
+              value={viewMode}
+              onChange={(e) => setViewMode(e.target.value)}
+              buttonStyle="solid"
+            >
+              <Radio.Button
+                value="list"
+                style={{
+                  borderRadius: '8px',
+                  border: 'none',
+                  height: '32px',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  <Radio.Group
-                    value={viewMode}
-                    onChange={(e) => setViewMode(e.target.value)}
-                    buttonStyle="solid"
-                    size="middle"
-                    className="premium-switcher"
-                  >
-                    <Radio.Button
-                      value="list"
-                      style={{
-                        borderRadius: 8,
-                        border: 'none',
-                        height: 32,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '0 12px',
-                        fontSize: 13,
-                        fontWeight: viewMode === 'list' ? 600 : 400,
-                        transition: 'all 0.2s ease',
-                        boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                      }}
-                    >
-                      <BarsOutlined style={{ marginRight: 6 }} /> List
-                    </Radio.Button>
-                    <Radio.Button
-                      value="board"
-                      style={{
-                        borderRadius: 8,
-                        border: 'none',
-                        height: 32,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '0 12px',
-                        fontSize: 13,
-                        fontWeight: viewMode === 'board' ? 600 : 400,
-                        transition: 'all 0.2s ease',
-                        boxShadow: viewMode === 'board' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                      }}
-                    >
-                      <AppstoreOutlined style={{ marginRight: 6 }} /> Board
-                    </Radio.Button>
-                  </Radio.Group>
-                </div>
+                  backgroundColor: viewMode === 'list' ? '#3b82f6' : 'transparent',
+                  color: viewMode === 'list' ? '#fff' : 'var(--text-secondary)',
+                  fontWeight: viewMode === 'list' ? 700 : 500,
+                  fontSize: '13px',
+                  padding: '0 16px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: 'none'
+                }}
+              >
+                <BarsOutlined style={{ marginRight: 8, fontSize: '15px' }} /> List
+              </Radio.Button>
+              <Radio.Button
+                value="board"
+                style={{
+                  borderRadius: '8px',
+                  border: 'none',
+                  height: '32px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  backgroundColor: viewMode === 'board' ? '#3b82f6' : 'transparent',
+                  color: viewMode === 'board' ? '#fff' : 'var(--text-secondary)',
+                  fontWeight: viewMode === 'board' ? 700 : 500,
+                  fontSize: '13px',
+                  padding: '0 16px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: 'none'
+                }}
+              >
+                <AppstoreOutlined style={{ marginRight: 8, fontSize: '15px' }} /> Board
+              </Radio.Button>
+            </Radio.Group>
+          </div>
 
-                {(viewMode === 'board' || viewMode === 'list') && (
-                  <div style={{
-                    backgroundColor: 'var(--bg-pure-white)',
-                    padding: '2px',
-                    borderRadius: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    <Radio.Group
-                      value={kanbanScope}
-                      onChange={(e) => {
-                        const newScope = e.target.value as 'active' | 'backlog';
-                        setKanbanScope(newScope);
-
-                        // If in list view, auto-scroll to the section
-                        if (viewMode === 'list') {
-                          const sectionId = newScope === 'active' ? 'active-section' : 'backlog-section';
-                          const element = document.getElementById(sectionId);
-                          if (element) {
-                            // Find the scrollable container (MainLayout Content area)
-                            const scrollContainer = element.closest('.ant-layout-content');
-                            const headerOffset = 100; // Account for sticky header
-
-                            if (scrollContainer) {
-                              const elementTop = element.getBoundingClientRect().top;
-                              const containerTop = scrollContainer.getBoundingClientRect().top;
-                              const scrollAmount = elementTop - containerTop - headerOffset;
-
-                              scrollContainer.scrollBy({
-                                top: scrollAmount,
-                                behavior: 'smooth'
-                              });
-                            } else {
-                              // Fallback for window scroll
-                              const elementPosition = element.getBoundingClientRect().top;
-                              const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                              window.scrollTo({
-                                top: offsetPosition,
-                                behavior: 'smooth'
-                              });
-                            }
-                          }
-                        }
-                      }}
-                      buttonStyle="solid"
-                      size="middle"
-                      className="premium-switcher"
-                    >
-                      <Radio.Button
-                        value="active"
-                        style={{
-                          borderRadius: 8,
-                          border: 'none',
-                          height: 32,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '0 12px',
-                          fontSize: 13,
-                          fontWeight: kanbanScope === 'active' ? 600 : 400,
-                          transition: 'all 0.2s ease',
-                          boxShadow: kanbanScope === 'active' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                        }}
-                      >
-                        Active
-                      </Radio.Button>
-                      <Radio.Button
-                        value="backlog"
-                        style={{
-                          borderRadius: 8,
-                          border: 'none',
-                          height: 32,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '0 12px',
-                          fontSize: 13,
-                          fontWeight: kanbanScope === 'backlog' ? 600 : 400,
-                          transition: 'all 0.2s ease',
-                          boxShadow: kanbanScope === 'backlog' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
-                        }}
-                      >
-                        Backlog
-                      </Radio.Button>
-                    </Radio.Group>
-                  </div>
-                )}
-              </div>
-            </Space>
-          </Col>
-        </Row>
+          <div style={{
+            backgroundColor: 'var(--bg-secondary)',
+            padding: '4px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            height: '40px',
+            flexShrink: 0,
+            border: '1px solid var(--border-color)'
+          }}>
+            <Radio.Group
+              value={kanbanScope}
+              onChange={(e) => {
+                const newScope = e.target.value as 'active' | 'backlog';
+                setKanbanScope(newScope);
+                if (viewMode === 'list') {
+                  const sectionId = newScope === 'active' ? 'active-section' : 'backlog-section';
+                  const element = document.getElementById(sectionId);
+                  if (element) {
+                    const scrollContainer = element.closest('.ant-layout-content');
+                    const headerOffset = 100;
+                    if (scrollContainer) {
+                      const elementTop = element.getBoundingClientRect().top;
+                      const containerTop = scrollContainer.getBoundingClientRect().top;
+                      const scrollAmount = elementTop - containerTop - headerOffset;
+                      scrollContainer.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+                    } else {
+                      const elementPosition = element.getBoundingClientRect().top;
+                      const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                    }
+                  }
+                }
+              }}
+              buttonStyle="solid"
+            >
+              <Radio.Button
+                value="active"
+                style={{
+                  borderRadius: '8px',
+                  border: 'none',
+                  height: '32px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  backgroundColor: kanbanScope === 'active' ? '#3b82f6' : 'transparent',
+                  color: kanbanScope === 'active' ? '#fff' : 'var(--text-secondary)',
+                  fontWeight: kanbanScope === 'active' ? 700 : 500,
+                  fontSize: '13px',
+                  padding: '0 16px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: 'none'
+                }}
+              >
+                Active
+              </Radio.Button>
+              <Radio.Button
+                value="backlog"
+                style={{
+                  borderRadius: '8px',
+                  border: 'none',
+                  height: '32px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  backgroundColor: kanbanScope === 'backlog' ? '#3b82f6' : 'transparent',
+                  color: kanbanScope === 'backlog' ? '#fff' : 'var(--text-secondary)',
+                  fontWeight: kanbanScope === 'backlog' ? 700 : 500,
+                  fontSize: '13px',
+                  padding: '0 16px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: 'none'
+                }}
+              >
+                Backlog
+              </Radio.Button>
+            </Radio.Group>
+          </div>
+        </div>
       </div>
 
       {/* Inline Creation - Controlled Visibility */}
@@ -1283,7 +1421,9 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
       />
 
       {/* Tickets View (List or Board) */}
-      {viewMode === 'list' ? (
+      {(isRefreshing || activeSprintFetching || backlogFetching || (viewMode === 'list' ? (activeSprintLoading || backlogLoading) : isKanbanLoading)) ? (
+        <TicketSkeleton viewMode={viewMode} />
+      ) : viewMode === 'list' ? (
         <>
           {/* Active Sprint Section */}
           {activeSprint && (
@@ -1292,16 +1432,16 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
               <div id="active-section" style={{ scrollMarginTop: '100px' }}>
                 <Card
                   title={
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <Space size={8}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+                      <Space size={8} wrap>
                         <Text style={{ fontSize: '16px', fontWeight: 600 }}>
                           {/* Backend stores sprint name in 'version' field */}
                           {activeSprint?.version || activeSprint?.name || 'Active Sprint'}
                         </Text>
-                        <Badge count={activeTickets.length} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
+                        <Badge count={activeTickets.length} showZero style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: 'none', fontSize: 11 }} />
                         <Tag color="green" bordered={false} style={{ borderRadius: '4px' }}>RUNNING</Tag>
                       </Space>
-                      <Space>
+                      <Space wrap>
                         {activeSprint?.status === 'active' && (
                           <Button
                             type="primary"
@@ -1341,10 +1481,10 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
           <div id="backlog-section" style={{ scrollMarginTop: '100px' }}>
             <Card
               title={
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <Space size={8}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+                  <Space size={8} wrap>
                     <Text style={{ fontSize: '16px', fontWeight: 600 }}>Backlog</Text>
-                    <Badge count={totalBacklog} showZero style={{ backgroundColor: '#f0f0f0', color: '#8c8c8c', border: 'none', fontSize: 11 }} />
+                    <Badge count={totalBacklog} showZero style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: 'none', fontSize: 11 }} />
                   </Space>
                   <Button
                     type="primary"
@@ -1399,9 +1539,7 @@ export default function TicketList({ projectId, projectName, projectCode }: Tick
         </>
       ) : (
         <>
-          {isKanbanLoading ? (
-            <TicketSkeleton viewMode="board" />
-          ) : kanbanData ? (
+          {kanbanData ? (
             <>
               {isKanbanFetching && (
                 <div style={{

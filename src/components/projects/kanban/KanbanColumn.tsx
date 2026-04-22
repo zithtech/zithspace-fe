@@ -37,14 +37,14 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
     <div style={{ 
         flex: 1, 
         minWidth: 300, 
-        backgroundColor: '#f8f9fa', 
+        backgroundColor: 'var(--bg-secondary)', 
         borderRadius: 12, 
         padding: '16px 12px',
         display: 'flex',
         flexDirection: 'column',
         maxHeight: '100%',
         minHeight: '100%',
-        border: '1px solid #f0f0f0'
+        border: '1px solid var(--border-color)'
     }}>
       <div style={{ 
         display: 'flex', 
@@ -65,7 +65,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
               textTransform: 'uppercase', 
               fontSize: 11, 
               letterSpacing: '0.5px',
-              color: '#434343' 
+              color: 'var(--text-primary)' 
             }}>
               {title}
             </Text>
@@ -73,9 +73,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
               count={tickets.length} 
               showZero 
               style={{ 
-                backgroundColor: '#ffffff', 
-                color: '#8c8c8c',
-                border: '1px solid #f0f0f0',
+                backgroundColor: 'var(--bg-pure-white)', 
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
                 fontSize: 10,
                 fontWeight: 600,
                 boxShadow: 'none'

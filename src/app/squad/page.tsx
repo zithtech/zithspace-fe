@@ -196,8 +196,16 @@ export default function SquadManagement() {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
-          <LoadingSpinner message="Authenticating..." />
+        <div style={{ 
+          margin: "0 -24px", 
+          padding: "24px 32px", 
+          background: "var(--bg-pure-white)", 
+          minHeight: "calc(100vh - 64px)",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <LoadingSpinner message="Authenticating system entrance..." />
         </div>
       </MainLayout>
     );
@@ -205,7 +213,12 @@ export default function SquadManagement() {
 
   return (
     <MainLayout>
-      <div style={{ padding: '24px', background: 'var(--bg-pure-white)', minHeight: '100%' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         {/* Top Header Section */}
         <div style={{ marginBottom: '16px' }}>
           <Row justify="space-between" align="middle">

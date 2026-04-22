@@ -52,6 +52,7 @@ import {
 } from "@/services/attendanceService";
 import { usePerformance } from "@/hooks/userPerformance";
 import { usePositions } from "@/hooks/usePositions";
+import { useTheme } from "@/context/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
 import { EscalationServiceV2 } from "@/services/escalationServiceV2";
 import {
@@ -93,16 +94,17 @@ const StatCard = ({ label, value, icon: Icon, color, suffix }: any) => (
     styles={{ body: { padding: "16px 20px" } }}
     style={{
       borderRadius: 12,
-      border: "1px solid #f1f5f9",
+      border: "1px solid var(--border-color)",
       boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-      height: "100%"
+      height: "100%",
+      background: 'var(--bg-pure-white)'
     }}
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div>
-        <Text style={{ color: "#64748b", fontSize: 13, fontWeight: 500 }}>{label}</Text>
+        <Text style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 500 }}>{label}</Text>
         <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 4 }}>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1e293b" }}>{value}</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)" }}>{value}</div>
           {suffix && <Text type="secondary" style={{ fontSize: 14 }}>{suffix}</Text>}
         </div>
       </div>
@@ -121,6 +123,8 @@ export default function PerformanceManagePage() {
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [loadingPercent, setLoadingPercent] = useState<number>(0);
 
   // State for selected user's full details including position
@@ -640,7 +644,7 @@ export default function PerformanceManagePage() {
       <div style={{
         margin: "0 -24px",
         padding: "24px 32px",
-        background: "#ffffff",
+        background: "var(--bg-pure-white)",
         minHeight: "calc(100vh - 64px)"
       }}>
         {/* Header Section */}
@@ -657,8 +661,8 @@ export default function PerformanceManagePage() {
                 <TrendingUp size={24} />
               </div>
               <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "#1e293b" }}>Performance Management</Title>
-                <Text style={{ color: "#64748b", fontSize: 15 }}>Comprehensive tracking of employee efficiency and engagement metrics.</Text>
+                <Title level={2} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)" }}>Performance Management</Title>
+                <Text style={{ color: "var(--text-secondary)", fontSize: 15 }}>Comprehensive tracking of employee efficiency and engagement metrics.</Text>
               </div>
             </Space>
           </div>
@@ -681,8 +685,8 @@ export default function PerformanceManagePage() {
                 {members.map((member) => (
                   <Option key={member.value} value={member.value} label={member.label}>
                     <Space>
-                      <Avatar 
-                        size="small" 
+                      <Avatar
+                        size="small"
                         src={member.avatarUrl}
                         style={{ backgroundColor: "#2563eb", fontSize: 10 }}
                       >
@@ -745,7 +749,7 @@ export default function PerformanceManagePage() {
           </div>
         </div>
 
-        <Divider style={{ margin: "0 0 20px 0", borderColor: "#f1f5f9" }} />
+        <Divider style={{ margin: "0 0 20px 0", borderColor: "var(--border-color)" }} />
 
 
 
@@ -757,9 +761,9 @@ export default function PerformanceManagePage() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background: "#f8fafc",
+            background: "var(--bg-secondary)",
             borderRadius: 24,
-            border: "2px dashed #e2e8f0",
+            border: "2px dashed var(--border-color)",
             margin: "0 10px",
             textAlign: "center",
             padding: "40px"
@@ -767,7 +771,7 @@ export default function PerformanceManagePage() {
             <div style={{
               width: 120,
               height: 120,
-              background: "#ffffff",
+              background: "var(--bg-pure-white)",
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
@@ -775,7 +779,7 @@ export default function PerformanceManagePage() {
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
               marginBottom: 24,
               position: "relative",
-              border: "1px solid #f1f5f9"
+              border: "1px solid var(--border-color)"
             }}>
               <div style={{
                 position: "absolute",
@@ -796,14 +800,14 @@ export default function PerformanceManagePage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "4px solid #ffffff",
+                border: "4px solid var(--bg-pure-white)",
                 boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
               }}>
                 <Search size={14} color="white" strokeWidth={3} />
               </div>
             </div>
-            <Title level={3} style={{ marginBottom: 8, color: "#0f172a", fontWeight: 700 }}>Select an Employee</Title>
-            <Text style={{ color: "#64748b", fontSize: 16, maxWidth: 400, display: "block", marginBottom: 24 }}>
+            <Title level={3} style={{ marginBottom: 8, color: "var(--text-primary)", fontWeight: 700 }}>Select an Employee</Title>
+            <Text style={{ color: "var(--text-secondary)", fontSize: 16, maxWidth: 400, display: "block", marginBottom: 24 }}>
               Choose a team member from the dropdown above to view their detailed performance insights.
             </Text>
             <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 16px", background: "#eff6ff", borderRadius: 30, color: "#2563eb", fontWeight: 600, fontSize: 13 }}>
@@ -818,9 +822,9 @@ export default function PerformanceManagePage() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background: "#ffffff",
+            background: "var(--bg-pure-white)",
             borderRadius: 24,
-            border: "1px solid #f1f5f9",
+            border: "1px solid var(--border-color)",
             margin: "0 10px",
             textAlign: "center",
             padding: "40px",
@@ -840,8 +844,8 @@ export default function PerformanceManagePage() {
             }}>
               <TrendingUp size={32} color="#0ea5e9" />
             </div>
-            <Title level={4} style={{ marginBottom: 8, color: "#0f172a", fontWeight: 700 }}>Ready to Analyze</Title>
-            <Text style={{ color: "#64748b", fontSize: 14, maxWidth: 320, display: "block", marginBottom: 24 }}>
+            <Title level={4} style={{ marginBottom: 8, color: "var(--text-primary)", fontWeight: 700 }}>Ready to Analyze</Title>
+            <Text style={{ color: "var(--text-secondary)", fontSize: 14, maxWidth: 320, display: "block", marginBottom: 24 }}>
               The profile for <b>{selectedUserDetails?.label}</b> is selected. Click the <b>Generate</b> button to load performance insights.
             </Text>
             <Button
@@ -861,9 +865,9 @@ export default function PerformanceManagePage() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background: "#ffffff",
+            background: "var(--bg-pure-white)",
             borderRadius: 24,
-            border: "1px solid #f1f5f9",
+            border: "1px solid var(--border-color)",
             margin: "0 10px",
             textAlign: "center",
             padding: "40px"
@@ -880,8 +884,8 @@ export default function PerformanceManagePage() {
                 }}
                 format={(percent) => (
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <span style={{ fontSize: 42, fontWeight: 900, color: "#1e293b", lineHeight: 1 }}>{percent}%</span>
-                    <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>Analyzing</span>
+                    <span style={{ fontSize: 42, fontWeight: 900, color: "var(--text-primary)", lineHeight: 1 }}>{percent}%</span>
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em" }}>Analyzing</span>
                   </div>
                 )}
               />
@@ -938,9 +942,9 @@ export default function PerformanceManagePage() {
                           size={72}
                           src={selectedUserDetails.avatarUrl}
                           style={{
-                            backgroundColor: "#f8fafc",
+                            backgroundColor: "var(--bg-secondary)",
                             color: "#3b82f6",
-                            border: "1px solid #e2e8f0",
+                            border: "1px solid var(--border-color)",
                           }}
                         >
                           {selectedUserDetails.label?.charAt(0)}
@@ -953,11 +957,11 @@ export default function PerformanceManagePage() {
                           height: 14,
                           borderRadius: "50%",
                           background: "#22c55e",
-                          border: "2px solid #ffffff"
+                          border: "2px solid var(--bg-pure-white)"
                         }} />
                       </div>
 
-                      <Title level={4} style={{ margin: "0 0 4px 0", color: "#0f172a", fontSize: 18, fontWeight: 800 }}>
+                      <Title level={4} style={{ margin: "0 0 4px 0", color: "var(--text-primary)", fontSize: 18, fontWeight: 800 }}>
                         {selectedUserDetails.label}
                       </Title>
 
@@ -965,7 +969,7 @@ export default function PerformanceManagePage() {
                         const samplePos = positions[0] || {};
                         return (
                           <div style={{ marginBottom: 20 }}>
-                            {/* <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>
+                            {/* <Text type="secondary" style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>
                               {samplePos.title || "Employee"}
                             </Text> */}
 
@@ -980,9 +984,9 @@ export default function PerformanceManagePage() {
                                   <Col span={12} key={idx}>
                                     <div style={{
                                       padding: "8px 10px",
-                                      background: "#f8fafc",
+                                      background: "var(--bg-secondary)",
                                       borderRadius: 10,
-                                      border: "1px solid #f1f5f9",
+                                      border: "1px solid var(--border-color)",
                                       textAlign: "left",
                                       height: "100%",
                                       display: "flex",
@@ -1003,9 +1007,9 @@ export default function PerformanceManagePage() {
                                         {React.cloneElement(item.icon as any, { style: { fontSize: 11 } })}
                                       </div>
                                       <div style={{ overflow: "hidden" }}>
-                                        <Text strong style={{ fontSize: 8, color: "#94a3b8", display: "block", textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1 }}>{item.label}</Text>
+                                        <Text strong style={{ fontSize: 8, color: "var(--text-secondary)", display: "block", textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: 1 }}>{item.label}</Text>
                                         <Tooltip title={item.value || "N/A"}>
-                                          <Text strong style={{ fontSize: 10, color: "#1e293b", display: "block", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                          <Text strong style={{ fontSize: 10, color: "var(--text-primary)", display: "block", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                             {item.value || "N/A"}
                                           </Text>
                                         </Tooltip>
@@ -1021,8 +1025,8 @@ export default function PerformanceManagePage() {
                     </div>
 
                     {/* Performance Gauge Section (Now at top of details) */}
-                    <div style={{ textAlign: "center", paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
-                      <Text strong style={{ fontSize: "10px", color: "#64748b", display: "block", marginBottom: 16, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    <div style={{ textAlign: "center", paddingTop: 16, borderTop: "1px solid var(--border-color)" }}>
+                      <Text strong style={{ fontSize: "10px", color: "var(--text-secondary)", display: "block", marginBottom: 16, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                         Performance Gauge
                       </Text>
 
@@ -1037,13 +1041,13 @@ export default function PerformanceManagePage() {
                         }}
                         format={(percent) => (
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                            <span style={{ fontSize: 24, fontWeight: 900, color: "#1e293b", lineHeight: 1 }}>{percent}%</span>
-                            <span style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, fontWeight: 700 }}>OVERALL</span>
+                            <span style={{ fontSize: 24, fontWeight: 900, color: "var(--text-primary)", lineHeight: 1 }}>{percent}%</span>
+                            <span style={{ fontSize: 9, color: "var(--text-secondary)", marginTop: 2, fontWeight: 700 }}>OVERALL</span>
                           </div>
                         )}
                       />
 
-                      <div style={{ marginTop: 20, padding: "10px", background: "#f8fafc", borderRadius: 12, border: "1px solid #f1f5f9" }}>
+                      <div style={{ marginTop: 20, padding: "10px", background: "var(--bg-secondary)", borderRadius: 12, border: "1px solid var(--border-color)" }}>
                         <Row gutter={[4, 4]}>
                           <Col span={8}>
                             <div style={{ textAlign: "center" }}>
@@ -1067,7 +1071,7 @@ export default function PerformanceManagePage() {
                       </div>
                     </div>
 
-                    <Divider style={{ margin: "20px 0", borderColor: "#f1f5f9" }} />
+                    <Divider style={{ margin: "20px 0", borderColor: "var(--border-color)" }} />
 
                     {/* Active Projects Section (Now below gauge) */}
                     {(() => {
@@ -1085,7 +1089,7 @@ export default function PerformanceManagePage() {
                       return (
                         <div style={{ textAlign: "left" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-                            <Text strong style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            <Text strong style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                               Active Projects
                             </Text>
                             {allProjects.length > 2 && (
@@ -1114,23 +1118,23 @@ export default function PerformanceManagePage() {
                                       width: 22,
                                       height: 22,
                                       borderRadius: 6,
-                                      background: project.isAssigned ? `${color}10` : "#f8fafc",
+                                      background: project.isAssigned ? `${color}10` : "var(--bg-secondary)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
-                                      color: project.isAssigned ? color : "#94a3b8",
+                                      color: project.isAssigned ? color : "var(--text-secondary)",
                                       fontSize: 10,
                                       fontWeight: 700,
-                                      border: project.isAssigned ? "none" : "1px dashed #e2e8f0"
+                                      border: project.isAssigned ? "none" : "1px dashed var(--border-color)"
                                     }}>
                                       {project.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                      <Text strong style={{ fontSize: 12, color: project.isAssigned ? "#1e293b" : "#64748b", display: "block", lineHeight: 1 }}>{project.name}</Text>
+                                      <Text strong style={{ fontSize: 12, color: project.isAssigned ? "var(--text-primary)" : "var(--text-secondary)", display: "block", lineHeight: 1 }}>{project.name}</Text>
                                       <Text type="secondary" style={{ fontSize: 10, display: "block", marginTop: 2 }}>{project.role || (project.isAssigned ? "Member" : "Contributor")}</Text>
                                     </div>
                                   </Space>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: project.isAssigned ? "#94a3b8" : "#cbd5e1" }}>{count}</div>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: project.isAssigned ? "var(--text-secondary)" : "#cbd5e1" }}>{count}</div>
                                 </div>
                               );
                             })}
@@ -1171,9 +1175,9 @@ export default function PerformanceManagePage() {
                     gap: "16px",
                     marginBottom: 24,
                     padding: "12px 20px",
-                    background: "#f8fafc",
+                    background: "var(--bg-secondary)",
                     borderRadius: 16,
-                    border: "1px solid #f1f5f9",
+                    border: "1px solid var(--border-color)",
                     justifyContent: "space-between",
                     alignItems: "center"
                   }}>
@@ -1198,11 +1202,11 @@ export default function PerformanceManagePage() {
                             {item.label}
                           </Text>
                           <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                            <Text strong style={{ fontSize: 16, color: "#1e293b", lineHeight: 1.1 }}>{item.value}</Text>
+                            <Text strong style={{ fontSize: 16, color: "var(--text-primary)", lineHeight: 1.1 }}>{item.value}</Text>
                             {item.suffix && <Text type="secondary" style={{ fontSize: 10, fontWeight: 600 }}>{item.suffix}</Text>}
                           </div>
                         </div>
-                        {idx < 3 && <Divider type="vertical" style={{ height: 24, margin: "0 12px", borderColor: "#e2e8f0" }} />}
+                        {idx < 3 && <Divider type="vertical" style={{ height: 24, margin: "0 12px", borderColor: "var(--border-color)" }} />}
                       </div>
                     ))}
                   </div>
@@ -1212,13 +1216,14 @@ export default function PerformanceManagePage() {
                   /* Unified Ticket Performance Card */
                   <Card
                     size="small"
-                    style={{ borderRadius: "16px", border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", marginBottom: 24 }}
+                    // size="small"
+                    style={{ borderRadius: "16px", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", marginBottom: 24, background: 'var(--bg-pure-white)' }}
                     title={
                       <Space size={8}>
-                        <div style={{ background: "#f0f9ff", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                        <div style={{ background: "var(--bg-secondary)", padding: "6px", borderRadius: "8px", display: "flex" }}>
                           <Layers style={{ color: "#0ea5e9", width: 16, height: 16 }} />
                         </div>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Ticket Performance Details</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Ticket Performance Details</span>
                       </Space>
                     }
                     extra={
@@ -1232,7 +1237,7 @@ export default function PerformanceManagePage() {
                         >
                           Breakdown
                         </Button>
-                        <Tag style={{ borderRadius: "4px", border: "none", background: "#f1f5f9", color: "#64748b" }}>Total: {ticketSummary.total}</Tag>
+                        <Tag style={{ borderRadius: "4px", border: "none", background: "var(--border-color)", color: "var(--text-secondary)" }}>Total: {ticketSummary.total}</Tag>
                       </Space>
                     }
                   >
@@ -1244,14 +1249,14 @@ export default function PerformanceManagePage() {
                           { label: "Pending", value: ticketSummary.pending, color: "#ef4444", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.pending / ticketSummary.total) * 100) : 0, icon: <InfoCircleOutlined /> },
                           { label: "On Time", value: ticketSummary.onTime || 0, color: "#10b981", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.onTime / ticketSummary.total) * 100) : 0, icon: <SafetyCertificateOutlined /> },
                           { label: "Delayed", value: ticketSummary.late || 0, color: "#ef4444", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.late / ticketSummary.total) * 100) : 0, icon: <WarningOutlined /> },
-                          { label: "Not Tracked", value: ticketSummary.untracked || 0, color: "#64748b", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.untracked / ticketSummary.total) * 100) : 0, icon: <CloseSquareOutlined /> },
+                          { label: "Not Tracked", value: ticketSummary.untracked || 0, color: "var(--text-secondary)", percent: ticketSummary.total > 0 ? Math.round((ticketSummary.untracked / ticketSummary.total) * 100) : 0, icon: <CloseSquareOutlined /> },
                         ].map((item, idx) => (
                           <Col key={idx} xs={24} sm={12} lg={8}>
                             <div style={{
-                              background: "#f8fafc",
+                              background: "var(--bg-secondary)",
                               borderRadius: "12px",
                               padding: "14px",
-                              border: "1px solid #f1f5f9",
+                              border: "1px solid var(--border-color)",
                               height: "100%",
                               display: "flex",
                               flexDirection: "column",
@@ -1260,20 +1265,20 @@ export default function PerformanceManagePage() {
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                                 <Space size={8}>
                                   <div style={{ color: item.color, display: "flex", fontSize: 16 }}>{item.icon}</div>
-                                  <Text style={{ fontSize: 12, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.025em" }}>{item.label}</Text>
+                                  <Text style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.025em" }}>{item.label}</Text>
                                 </Space>
-                                <Text style={{ fontSize: 24, fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>{item.value}</Text>
+                                <Text style={{ fontSize: 24, fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>{item.value}</Text>
                               </div>
                               <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                  <Text style={{ fontSize: 10, color: "#94a3b8", fontWeight: 500 }}>{item.percent}% Ratio</Text>
+                                  <Text style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 500 }}>{item.percent}% Ratio</Text>
                                 </div>
                                 <Progress
                                   percent={item.percent}
                                   size="small"
                                   showInfo={false}
                                   strokeColor={item.color}
-                                  trailColor="#e2e8f0"
+                                  trailColor="var(--border-color)"
                                   strokeWidth={4}
                                   style={{ margin: 0 }}
                                 />
@@ -1307,7 +1312,7 @@ export default function PerformanceManagePage() {
                           key: "estimatedHours",
                           width: 100,
                           align: "center",
-                          render: (hours: number) => <Text style={{ color: "#64748b" }}>{hours || 0}h</Text>
+                          render: (hours: number) => <Text style={{ color: "var(--text-secondary)" }}>{hours || 0}h</Text>
                         },
                         {
                           title: "Tracked",
@@ -1376,13 +1381,13 @@ export default function PerformanceManagePage() {
                 {selectedMember && (
                   <Card
                     size="small"
-                    style={{ borderRadius: "16px", border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)" }}
+                    style={{ borderRadius: "16px", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", background: 'var(--bg-pure-white)' }}
                     title={
                       <Space size={8}>
-                        <div style={{ background: "#f8fafc", padding: "6px", borderRadius: "8px", display: "flex" }}>
-                          <FileTextOutlined style={{ color: "#64748b" }} />
+                        <div style={{ background: "var(--bg-secondary)", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                          <FileTextOutlined style={{ color: "var(--text-secondary)" }} />
                         </div>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Daily Updates Log</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Daily Updates Log</span>
                       </Space>
                     }
                     extra={
@@ -1405,39 +1410,39 @@ export default function PerformanceManagePage() {
                             size="small"
                             style={{
                               borderRadius: "12px",
-                              border: "1px solid #f0fdf4",
-                              background: "#f0fdf4",
+                              border: "1px solid rgba(16, 185, 129, 0.2)",
+                              background: "rgba(16, 185, 129, 0.05)",
                               boxShadow: "none"
                             }}
                           >
                             <Statistic
-                              title={<span style={{ fontSize: 12, fontWeight: 600, color: "#166534" }}>BOD COMPLIANCE</span>}
+                              title={<span style={{ fontSize: 12, fontWeight: 600, color: "#10b981" }}>BOD COMPLIANCE</span>}
                               value={performanceData?.dailyUpdates?.summary?.bod || 0}
                               suffix={`/ ${performanceData?.dailyUpdates?.summary?.total || 0}`}
                               valueStyle={{ color: "#10b981", fontWeight: 800, fontSize: 24 }}
                             />
-                            <div style={{ fontSize: 11, color: "#15803d", marginTop: 4 }}>Total Beginning of Day updates</div>
+                            <div style={{ fontSize: 11, color: "#10b981", opacity: 0.8, marginTop: 4 }}>Total Beginning of Day updates</div>
                           </Card>
 
                           <Card
                             size="small"
                             style={{
                               borderRadius: "12px",
-                              border: "1px solid #fffbeb",
-                              background: "#fffbeb",
+                              border: "1px solid rgba(245, 158, 11, 0.2)",
+                              background: "rgba(245, 158, 11, 0.05)",
                               boxShadow: "none"
                             }}
                           >
                             <Statistic
-                              title={<span style={{ fontSize: 12, fontWeight: 600, color: "#92400e" }}>EOD COMPLIANCE</span>}
+                              title={<span style={{ fontSize: 12, fontWeight: 600, color: "#f59e0b" }}>EOD COMPLIANCE</span>}
                               value={performanceData?.dailyUpdates?.summary?.eod || 0}
                               suffix={`/ ${performanceData?.dailyUpdates?.summary?.total || 0}`}
                               valueStyle={{ color: "#f59e0b", fontWeight: 800, fontSize: 24 }}
                             />
-                            <div style={{ fontSize: 11, color: "#b45309", marginTop: 4 }}>Total End of Day updates</div>
+                            <div style={{ fontSize: 11, color: "#f59e0b", opacity: 0.8, marginTop: 4 }}>Total End of Day updates</div>
                           </Card>
 
-                          <div style={{ padding: "8px", background: "#f8fafc", borderRadius: "10px", border: "1px dashed #e2e8f0" }}>
+                          <div style={{ padding: "8px", background: "var(--bg-secondary)", borderRadius: "10px", border: "1px dashed var(--border-color)" }}>
                             <Text type="secondary" style={{ fontSize: 10 }}>
                               Showing missed updates for working days in the selected period.
                             </Text>
@@ -1513,13 +1518,13 @@ export default function PerformanceManagePage() {
                 {selectedMember && (
                   <Card
                     size="small"
-                    style={{ borderRadius: "16px", border: "1px solid #f1f5f9", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", marginTop: 24 }}
+                    style={{ borderRadius: "16px", border: "1px solid var(--border-color)", boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)", marginTop: 24, background: 'var(--bg-pure-white)' }}
                     title={
                       <Space size={8}>
-                        <div style={{ background: "#fff1f2", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                        <div style={{ background: "rgba(225, 29, 72, 0.05)", padding: "6px", borderRadius: "8px", display: "flex" }}>
                           <AlertTriangle style={{ color: "#e11d48", width: 16, height: 16 }} />
                         </div>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>Escalations Log</span>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Escalations Log</span>
                       </Space>
                     }
                     extra={
@@ -1539,15 +1544,15 @@ export default function PerformanceManagePage() {
                       <div style={{
                         padding: "40px 20px",
                         textAlign: "center",
-                        background: "#f0fdf4",
+                        background: "rgba(16, 185, 129, 0.05)",
                         borderRadius: "12px",
-                        border: "1px dashed #bcf0da",
+                        border: "1px dashed rgba(16, 185, 129, 0.3)",
                         margin: "12px"
                       }}>
                         <div style={{
                           width: 48,
                           height: 48,
-                          background: "#ffffff",
+                          background: "var(--bg-pure-white)",
                           borderRadius: "50%",
                           display: "flex",
                           alignItems: "center",
@@ -1557,8 +1562,8 @@ export default function PerformanceManagePage() {
                         }}>
                           <CheckCircleOutlined style={{ color: "#10b981", fontSize: 24 }} />
                         </div>
-                        <Title level={5} style={{ margin: "0 0 10px", color: "#064e3b", fontWeight: 700 }}>Excellent Progress!</Title>
-                        <Text style={{ color: "#065f46" }}>No escalations have been recorded for <b>{selectedUserDetails?.label}</b> in this period. Keep up the great work.</Text>
+                        <Title level={5} style={{ margin: "0 0 10px", color: "#10b981", fontWeight: 700 }}>Excellent Progress!</Title>
+                        <Text style={{ color: "var(--text-secondary)" }}>No escalations have been recorded for <b>{selectedUserDetails?.label}</b> in this period. Keep up the great work.</Text>
                       </div>
                     ) : (
                       <Row gutter={24} style={{ padding: "12px" }}>
@@ -1614,7 +1619,7 @@ export default function PerformanceManagePage() {
                                 ellipsis: true,
                                 render: (text: string, record: any) => (
                                   <Space direction="vertical" size={0}>
-                                    <Text strong style={{ color: "#1e293b", fontSize: 13 }}>{text}</Text>
+                                    <Text strong style={{ color: "var(--text-primary)", fontSize: 13 }}>{text}</Text>
                                     <Text type="secondary" style={{ fontSize: 11 }}>{record.category || 'General Issue'}</Text>
                                   </Space>
                                 )
@@ -1626,8 +1631,8 @@ export default function PerformanceManagePage() {
                                 width: 110,
                                 align: 'center',
                                 render: (priority) => {
-                                  let color = "#94a3b8";
-                                  let bg = "#f1f5f9";
+                                  let color = "var(--text-secondary)";
+                                  let bg = "var(--border-color)";
                                   if (priority === "HIGH" || priority === "URGENT") { color = "#e11d48"; bg = "#fff1f2"; }
                                   if (priority === "MEDIUM") { color = "#d97706"; bg = "#fffbeb"; }
                                   return (
@@ -1654,12 +1659,12 @@ export default function PerformanceManagePage() {
                                 align: 'right',
                                 render: (status) => {
                                   const config: any = {
-                                    OPEN: { color: "#e11d48", label: "ACTIVE", dot: "#e11d48" },
-                                    IN_PROGRESS: { color: "#2563eb", label: "PROGRESS", dot: "#2563eb" },
-                                    RESOLVED: { color: "#16a34a", label: "RESOLVED", dot: "#16a34a" },
-                                    CLOSED: { color: "#16a34a", label: "CLOSED", dot: "#16a34a" }
+                                    OPEN: { color: "var(--color-error)", label: "ACTIVE", dot: "var(--color-error)" },
+                                    IN_PROGRESS: { color: "var(--color-info)", label: "PROGRESS", dot: "var(--color-info)" },
+                                    RESOLVED: { color: "var(--color-success)", label: "RESOLVED", dot: "var(--color-success)" },
+                                    CLOSED: { color: "var(--color-success)", label: "CLOSED", dot: "var(--color-success)" }
                                   };
-                                  const s = config[status] || { color: "#64748b", label: status, dot: "#64748b" };
+                                  const s = config[status] || { color: "var(--text-secondary)", label: status, dot: "var(--text-secondary)" };
                                   return (
                                     <Space size={6}>
                                       <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }} />
@@ -1693,7 +1698,7 @@ export default function PerformanceManagePage() {
           title={
             <Space direction="vertical" size={2}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <AlertOutlined style={{ color: "#2563eb" }} />
+                <AlertOutlined style={{ color: "var(--color-info)" }} />
                 <Title level={4} style={{ margin: 0 }}>Escalation Details</Title>
               </div>
               {fullEscalation && (
@@ -1708,9 +1713,9 @@ export default function PerformanceManagePage() {
           open={drawerVisible}
           width={600}
           styles={{
-            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
-            body: { padding: 0 },
-            footer: { borderTop: '1px solid #f1f5f9', padding: '12px 24px' }
+            header: { borderBottom: '1px solid var(--border-color)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+            body: { padding: 0, background: 'var(--bg-secondary)' },
+            footer: { borderTop: '1px solid var(--border-color)', padding: '12px 24px', background: 'var(--bg-pure-white)' }
           }}
           footer={
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -1723,11 +1728,11 @@ export default function PerformanceManagePage() {
           ) : fullEscalation && (
             <div style={{ padding: '24px' }}>
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <Card styles={{ body: { padding: '12px 18px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 } }}>
+                <Card styles={{ body: { padding: '12px 18px', background: 'var(--bg-pure-white)', border: '1px solid var(--border-color)', borderRadius: 12 } }}>
                   <Space direction="vertical" size={12} style={{ width: '100%' }}>
                     <div>
                       <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</Text>
-                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700 }}>{fullEscalation?.subject}</Title>
+                      <Title level={4} style={{ margin: '2px 0 0 0', fontWeight: 700, color: 'var(--text-primary)' }}>{fullEscalation?.subject}</Title>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ flex: 1 }}>
@@ -1752,7 +1757,7 @@ export default function PerformanceManagePage() {
                       <Text type="secondary" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
                         <ProjectOutlined /> Category
                       </Text>
-                      <Tag color="blue" style={{ borderRadius: 4, background: '#f1f5f9', color: '#475569' }}>{fullEscalation?.category?.name || 'General'}</Tag>
+                      <Tag color="blue" style={{ borderRadius: 4, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{fullEscalation?.category?.name || 'General'}</Tag>
                     </Space>
                   </Col>
                   <Col span={12}>
@@ -1769,17 +1774,17 @@ export default function PerformanceManagePage() {
 
                 <div>
                   <Space align="center" style={{ marginBottom: 8 }}>
-                    <FileTextOutlined style={{ color: "#2563eb", fontSize: 14 }} />
+                    <FileTextOutlined style={{ color: "var(--color-info)", fontSize: 14 }} />
                     <Text strong style={{ fontSize: 14 }}>Detailed Description</Text>
                   </Space>
                   <div style={{
                     padding: '16px',
-                    background: '#fff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--bg-pure-white)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: 10,
                     fontSize: 13,
                     lineHeight: '1.5',
-                    color: '#334155',
+                    color: 'var(--text-primary)',
                     whiteSpace: 'pre-wrap'
                   }}>
                     {fullEscalation?.description}
@@ -1789,7 +1794,7 @@ export default function PerformanceManagePage() {
                 {fullEscalation.tickets && fullEscalation.tickets.length > 0 && (
                   <div>
                     <Space align="center" style={{ marginBottom: 10 }}>
-                      <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Linked Development Tickets</Text>
+                      <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Linked Development Tickets</Text>
                     </Space>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {fullEscalation.tickets.map((t: any, idx: any) => (
@@ -1806,14 +1811,14 @@ export default function PerformanceManagePage() {
 
                 <div>
                   <Space align="center" style={{ marginBottom: 10 }}>
-                    <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Target Team Members</Text>
+                    <Text strong style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Target Team Members</Text>
                   </Space>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {fullEscalation.targetMembers?.map((m: any, idx: any) => (
                       <div key={idx} style={{
                         padding: '4px 10px 4px 4px',
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
+                        background: 'var(--bg-pure-white)',
+                        border: '1px solid var(--border-color)',
                         borderRadius: 20,
                         display: 'flex',
                         alignItems: 'center',
@@ -1828,7 +1833,7 @@ export default function PerformanceManagePage() {
                           {m.user?.name?.charAt(0)}
                         </Avatar>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Text strong style={{ fontSize: 12, color: '#334155' }}>{m.user?.name}</Text>
+                          <Text strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>{m.user?.name}</Text>
                         </div>
                       </div>
                     ))}
@@ -1837,7 +1842,7 @@ export default function PerformanceManagePage() {
 
                 <Divider style={{ margin: 0 }} />
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f1f5f9', borderRadius: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-color)' }}>
                   <Space size={10}>
                     <Avatar
                       size="small"
@@ -1848,11 +1853,11 @@ export default function PerformanceManagePage() {
                     </Avatar>
                     <div>
                       <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Raised By</Text>
-                      <Text strong style={{ fontSize: 12 }}>{fullEscalation?.createdBy?.name}</Text>
+                      <Text strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>{fullEscalation?.createdBy?.name}</Text>
                     </div>
                   </Space>
                   <Space size={10}>
-                    <HistoryOutlined style={{ color: '#94a3b8', fontSize: 14 }} />
+                    <HistoryOutlined style={{ color: 'var(--text-secondary)', fontSize: 14 }} />
                     <div>
                       <Text type="secondary" style={{ fontSize: 10, display: 'block' }}>Last Updated</Text>
                       <Text strong style={{ fontSize: 12 }}>{dayjs(fullEscalation?.updatedAt).fromNow()}</Text>
@@ -1879,16 +1884,26 @@ export default function PerformanceManagePage() {
           onClose={() => setBreakdownVisible(false)}
           open={breakdownVisible}
           styles={{
-            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
-            body: { padding: '24px' }
+            header: { borderBottom: '1px solid var(--border-color)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+            body: { padding: '24px', background: 'var(--bg-secondary)' }
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Header Summary */}
-            <div style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)", padding: "12px 20px", borderRadius: "16px", border: "1px solid #bae6fd" }}>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Weighted Ticket Score</Text>
-              <div style={{ fontSize: 36, fontWeight: 900, color: "#0ea5e9", marginTop: 2, lineHeight: 1 }}>{ticketScore}</div>
-              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block" }}>Calculated from completion, timeliness, and tracking.</Text>
+            <div style={{
+              background: "var(--bg-secondary)",
+              padding: "12px 20px",
+              borderRadius: "16px",
+              border: "1px solid var(--border-color)",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+            }}>
+              <Text strong style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
+                Weighted Ticket Score
+              </Text>
+              <div style={{ fontSize: 36, fontWeight: 900, color: "#0ea5e9", lineHeight: 1 }}>{ticketScore}</div>
+              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block", color: "var(--text-secondary)" }}>
+                Calculated from completion, timeliness, and tracking.
+              </Text>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -1896,13 +1911,13 @@ export default function PerformanceManagePage() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Completion Score</Text>
-                    <Text type="secondary" style={{ fontSize: 11 }}>Weight: 50%</Text>
+                    <Text strong style={{ fontSize: 14, color: "var(--text-primary)", display: "block" }}>Completion Score</Text>
+                    <Text type="secondary" style={{ fontSize: 11, color: "var(--text-secondary)" }}>Weight: 50%</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#10b981" }}>{perf.completionScore}%</Text>
                 </div>
                 <Progress percent={perf.completionScore} strokeColor="#10b981" showInfo={false} strokeWidth={8} style={{ marginBottom: 4 }} />
-                <div style={{ fontSize: 12, background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid #f1f5f9" }}>
+                <div style={{ fontSize: 12, background: "var(--bg-secondary)", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid var(--border-color)" }}>
                   <div style={{ marginBottom: 4 }}>
                     <Text strong style={{ color: "#10b981", fontSize: 13 }}>{ticketSummary.completed}</Text> of <Text strong style={{ fontSize: 13 }}>{ticketSummary.total}</Text> tickets completed.
                   </div>
@@ -1928,13 +1943,13 @@ export default function PerformanceManagePage() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Timeliness Score</Text>
-                    <Text type="secondary" style={{ fontSize: 11 }}>Weight: 40%</Text>
+                    <Text strong style={{ fontSize: 14, color: "var(--text-primary)", display: "block" }}>Timeliness Score</Text>
+                    <Text type="secondary" style={{ fontSize: 11, color: "var(--text-secondary)" }}>Weight: 40%</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#f59e0b" }}>{perf.timelinessScore}%</Text>
                 </div>
                 <Progress percent={perf.timelinessScore} strokeColor="#f59e0b" showInfo={false} strokeWidth={8} style={{ marginBottom: 4 }} />
-                <div style={{ fontSize: 12, background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid #f1f5f9" }}>
+                <div style={{ fontSize: 12, background: "var(--bg-secondary)", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid var(--border-color)" }}>
                   <div style={{ marginBottom: 4 }}>
                     <Text strong style={{ color: "#10b981", fontSize: 13 }}>{ticketSummary.onTime}</Text> out of <Text strong style={{ fontSize: 13 }}>{ticketSummary.total}</Text> total tickets were on time (Dev Complete).
                   </div>
@@ -1951,13 +1966,13 @@ export default function PerformanceManagePage() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Tracking Quality</Text>
-                    <Text type="secondary" style={{ fontSize: 11 }}>Weight: 10%</Text>
+                    <Text strong style={{ fontSize: 14, color: "var(--text-primary)", display: "block" }}>Tracking Quality</Text>
+                    <Text type="secondary" style={{ fontSize: 11, color: "var(--text-secondary)" }}>Weight: 10%</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#3b82f6" }}>{perf.trackingScore}%</Text>
                 </div>
                 <Progress percent={perf.trackingScore} strokeColor="#3b82f6" showInfo={false} strokeWidth={8} style={{ marginBottom: 4 }} />
-                <div style={{ fontSize: 12, background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid #f1f5f9" }}>
+                <div style={{ fontSize: 12, background: "var(--bg-secondary)", padding: "10px 14px", borderRadius: "10px", color: "#475569", border: "1px solid var(--border-color)" }}>
                   <div style={{ marginBottom: 4 }}>
                     <Text strong style={{ color: "#10b981", fontSize: 13 }}>{ticketSummary.total - ticketSummary.untracked}</Text> out of <Text strong style={{ fontSize: 13 }}>{ticketSummary.total}</Text> total tickets had time logs.
                   </div>
@@ -1988,8 +2003,8 @@ export default function PerformanceManagePage() {
         <Drawer
           title={
             <Space>
-              <div style={{ background: "#f8fafc", padding: "6px", borderRadius: "8px", display: "flex" }}>
-                <FileTextOutlined style={{ color: "#64748b" }} />
+              <div style={{ background: "var(--bg-secondary)", padding: "6px", borderRadius: "8px", display: "flex" }}>
+                <FileTextOutlined style={{ color: "var(--text-secondary)" }} />
               </div>
               <span style={{ fontWeight: 700 }}>Daily Updates Breakdown</span>
             </Space>
@@ -1999,16 +2014,16 @@ export default function PerformanceManagePage() {
           onClose={() => setDailyBreakdownVisible(false)}
           open={dailyBreakdownVisible}
           styles={{
-            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
+            header: { borderBottom: '1px solid var(--border-color)', padding: '16px 24px' },
             body: { padding: '24px' }
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Header Summary */}
-            <div style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)", padding: "16px 20px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total EOD Penalty</Text>
+            <div style={{ background: isDark ? "var(--bg-secondary)" : "linear-gradient(135deg, var(--bg-secondary) 0%, var(--border-color) 100%)", padding: "16px 20px", borderRadius: "16px", border: "1px solid var(--border-color)" }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)" }}>Total EOD Penalty</Text>
               <div style={{ fontSize: 36, fontWeight: 900, color: "#f59e0b", marginTop: 2, lineHeight: 1 }}>-{perf.eodPenalty}</div>
-              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block" }}>Subtracted from the final performance score.</Text>
+              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block", color: "var(--text-secondary)" }}>Subtracted from the final performance score.</Text>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -2016,15 +2031,15 @@ export default function PerformanceManagePage() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>BOD Compliance</Text>
+                    <Text strong style={{ fontSize: 14, color: "var(--text-primary)", display: "block" }}>BOD Compliance</Text>
                     <Text type="secondary" style={{ fontSize: 11 }}>Beginning of Day Updates</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#10b981" }}>
                     {performanceData?.dailyUpdates?.summary?.total ? Math.round(((performanceData?.dailyUpdates?.summary?.bod ?? 0) / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
                   </Text>
                 </div>
-                <div style={{ fontSize: 12, background: "#f0fdf4", padding: "12px", borderRadius: "10px", color: "#166534", border: "1px solid #dcfce7" }}>
-                  <Text strong style={{ color: "#15803d" }}>{(performanceData?.dailyUpdates?.summary as any)?.bod ?? 0}</Text> out of <Text strong>{(performanceData?.dailyUpdates?.summary as any)?.total ?? 0}</Text> BODs submitted.
+                <div style={{ fontSize: 12, background: isDark ? "rgba(16, 185, 129, 0.1)" : "#f0fdf4", padding: "12px", borderRadius: "10px", color: isDark ? "#34d399" : "#166534", border: `1px solid ${isDark ? "rgba(16, 185, 129, 0.2)" : "#dcfce7"}` }}>
+                  <Text strong style={{ color: isDark ? "#34d399" : "#15803d" }}>{(performanceData?.dailyUpdates?.summary as any)?.bod ?? 0}</Text> out of <Text strong style={{ color: "inherit" }}>{(performanceData?.dailyUpdates?.summary as any)?.total ?? 0}</Text> BODs submitted.
                 </div>
               </div>
 
@@ -2032,19 +2047,19 @@ export default function PerformanceManagePage() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>EOD Compliance</Text>
+                    <Text strong style={{ fontSize: 14, color: "var(--text-primary)", display: "block" }}>EOD Compliance</Text>
                     <Text type="secondary" style={{ fontSize: 11 }}>End of Day Updates</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#f59e0b" }}>
                     {performanceData?.dailyUpdates?.summary?.total ? Math.round(((performanceData?.dailyUpdates?.summary?.eod ?? 0) / performanceData?.dailyUpdates?.summary?.total) * 100) : 0}%
                   </Text>
                 </div>
-                <div style={{ fontSize: 12, background: "#fffbeb", padding: "12px", borderRadius: "10px", color: "#92400e", border: "1px solid #fef3c7" }}>
+                <div style={{ fontSize: 12, background: isDark ? "rgba(245, 158, 11, 0.1)" : "#fffbeb", padding: "12px", borderRadius: "10px", color: isDark ? "#fbbf24" : "#92400e", border: `1px solid ${isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7"}` }}>
                   <div style={{ marginBottom: 4 }}>
-                    <Text strong style={{ color: "#b45309" }}>{(performanceData?.dailyUpdates?.summary as any)?.eod ?? 0}</Text> out of <Text strong>{(performanceData?.dailyUpdates?.summary as any)?.total ?? 0}</Text> EODs submitted.
+                    <Text strong style={{ color: isDark ? "#fbbf24" : "#b45309" }}>{(performanceData?.dailyUpdates?.summary as any)?.eod ?? 0}</Text> out of <Text strong style={{ color: "inherit" }}>{(performanceData?.dailyUpdates?.summary as any)?.total ?? 0}</Text> EODs submitted.
                   </div>
                   {(performanceData?.dailyUpdates?.summary?.missedEOD ?? 0) > 0 && (
-                    <div style={{ color: "#ef4444", fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: "1px dashed #fcd34d" }}>
+                    <div style={{ color: isDark ? "#f87171" : "#ef4444", fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${isDark ? "rgba(245, 158, 11, 0.3)" : "#fcd34d"}` }}>
                       • {performanceData?.dailyUpdates?.summary?.missedEOD} missed EODs
                       <div style={{ fontSize: 13, marginTop: 2 }}>
                         {performanceData?.dailyUpdates?.summary?.missedEOD ?? 0} × 0.75 = {perf.eodPenalty} point reduction
@@ -2057,7 +2072,7 @@ export default function PerformanceManagePage() {
               {/* List of Missed Updates */}
               {((performanceData?.dailyUpdates?.missedBOD?.length ?? 0) > 0 || (performanceData?.dailyUpdates?.missedEOD?.length ?? 0) > 0) && (
                 <div>
-                  <Text strong style={{ fontSize: 13, color: "#64748b", display: "block", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.025em" }}>
+                  <Text strong style={{ fontSize: 13, color: "var(--text-secondary)", display: "block", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.025em" }}>
                     Missed Updates Details
                   </Text>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -2065,7 +2080,7 @@ export default function PerformanceManagePage() {
                       ...(performanceData?.dailyUpdates?.missedBOD || []).map((m: any) => ({ ...m, type: 'BOD' })),
                       ...(performanceData?.dailyUpdates?.missedEOD || []).map((m: any) => ({ ...m, type: 'EOD' }))
                     ].sort((a, b) => dayjs(b.date).unix() - dayjs(a.date).unix()).map((missed, idx) => (
-                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #f1f5f9" }}>
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "var(--bg-secondary)", borderRadius: "10px", border: "1px solid var(--border-color)" }}>
                         <Space size={8}>
                           <Tag color={missed.type === 'BOD' ? "cyan" : "orange"} style={{ borderRadius: 4, fontSize: 10, margin: 0 }}>{missed.type}</Tag>
                           <Text strong style={{ fontSize: 12 }}>{dayjs(missed.date).format('MMM DD, YYYY')}</Text>
@@ -2095,16 +2110,16 @@ export default function PerformanceManagePage() {
           onClose={() => setEscalationBreakdownVisible(false)}
           open={escalationBreakdownVisible}
           styles={{
-            header: { borderBottom: '1px solid #f1f5f9', padding: '16px 24px' },
+            header: { borderBottom: '1px solid var(--border-color)', padding: '16px 24px' },
             body: { padding: '24px' }
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Header Summary */}
-            <div style={{ background: "linear-gradient(135deg, #fff1f2 0%, #fff5f5 100%)", padding: "16px 20px", borderRadius: "16px", border: "1px solid #fecdd3" }}>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Escalation Penalty</Text>
+            <div style={{ background: isDark ? "rgba(225, 29, 72, 0.15)" : "linear-gradient(135deg, #fff1f2 0%, #fff5f5 100%)", padding: "16px 20px", borderRadius: "16px", border: `1px solid ${isDark ? "#9f1239" : "#fecdd3"}` }}>
+              <Text strong style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: isDark ? "#fb7185" : "var(--text-secondary)" }}>Total Escalation Penalty</Text>
               <div style={{ fontSize: 36, fontWeight: 900, color: "#e11d48", marginTop: 2, lineHeight: 1 }}>-{perf.escalationPenalty}</div>
-              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block" }}>Subtracted from the final performance score (Max -25).</Text>
+              <Text type="secondary" style={{ fontSize: 10, marginTop: 4, display: "block", color: isDark ? "#fda4af" : "var(--text-secondary)" }}>Subtracted from the final performance score (Max -25).</Text>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -2112,7 +2127,7 @@ export default function PerformanceManagePage() {
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8 }}>
                   <div>
-                    <Text strong style={{ fontSize: 14, color: "#0f172a", display: "block" }}>Escalation Count</Text>
+                    <Text strong style={{ fontSize: 14, color: "var(--text-primary)", display: "block" }}>Escalation Count</Text>
                     <Text type="secondary" style={{ fontSize: 11 }}>Total weighted impact</Text>
                   </div>
                   <Text strong style={{ fontSize: 18, color: "#e11d48" }}>
@@ -2141,9 +2156,9 @@ export default function PerformanceManagePage() {
 
               <Divider style={{ margin: "8px 0" }} />
 
-              <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #f1f5f9" }}>
+              <div style={{ background: "var(--bg-secondary)", padding: "16px", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
                 <Text strong style={{ fontSize: 13, color: "#475569", display: "block", marginBottom: 8 }}>Impact on Professionalism</Text>
-                <Text style={{ fontSize: 11, color: "#64748b", display: "block", lineHeight: "1.6" }}>
+                <Text style={{ fontSize: 11, color: "var(--text-secondary)", display: "block", lineHeight: "1.6" }}>
                   Escalations represent missed expectations or process deviations.
                   Each escalation negatively impacts the weighted performance score
                   to ensure high quality of ticket execution and collaboration.
@@ -2157,24 +2172,26 @@ export default function PerformanceManagePage() {
           __html: `
           .header-select .ant-select-selector {
             border-radius: 10px !important;
-            border-color: #e2e8f0 !important;
+            border-color: var(--border-color) !important;
+            background: var(--bg-pure-white) !important;
           }
           .header-select .ant-select-selection-placeholder {
-            color: #94a3b8 !important;
+            color: var(--text-secondary) !important;
           }
           .ant-table-thead > tr > th {
-            background: #f8fafc !important;
-            color: #64748b !important;
+            background: var(--bg-secondary) !important;
+            color: var(--text-secondary) !important;
             font-weight: 600 !important;
             text-transform: uppercase !important;
             font-size: 11px !important;
             letter-spacing: 0.05em !important;
           }
           .ant-table-row:hover > td {
-            background: #f8fafc !important;
+            background: var(--bg-secondary) !important;
           }
           .ant-card {
             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+            background: var(--bg-pure-white) !important;
           }
         `}} />
       </div>

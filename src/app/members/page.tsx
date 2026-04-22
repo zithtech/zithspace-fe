@@ -493,7 +493,12 @@ export default function MembersPage() {
 
   return (
     <MainLayout>
-      <div style={{ backgroundColor: 'var(--bg-pure-white)', minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
+      <div style={{ 
+        margin: "0 -24px", 
+        padding: "24px 32px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <Space

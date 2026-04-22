@@ -552,7 +552,12 @@ const ProjectsManagePage: React.FC = () => {
 
   return (
     <MainLayout>
-      <div style={{ padding: "16px", background: "transparent", minHeight: "100vh" }}>
+      <div style={{ 
+        margin: "-16px -16px 0 -16px", 
+        padding: "16px 24px", 
+        background: "var(--bg-pure-white)", 
+        minHeight: "calc(100vh - 64px)" 
+      }}>
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
           <Space
@@ -741,7 +746,7 @@ const ProjectsManagePage: React.FC = () => {
           {/* All Projects Text - Left Aligned */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 4, height: 18, background: "#1677ff", borderRadius: 2 }} />
-            <Text strong style={{ fontSize: 16, color: "#1f1f1f", whiteSpace: "nowrap" }}>
+            <Text strong style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
               All Projects
             </Text>
             <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
@@ -910,13 +915,24 @@ const ProjectsManagePage: React.FC = () => {
 
                         {/* Priority and Date - Row style */}
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <div style={{
-                              width: 6, height: 6, borderRadius: "50%",
-                              background: getPriorityColor(project.defaultPriority) === 'red' ? '#ff4d4f' :
-                                getPriorityColor(project.defaultPriority) === 'orange' ? '#faad14' : '#52c41a',
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: project.defaultPriority === 'high' ? '#1677ff' : 
+                                         project.defaultPriority === 'medium' ? '#faad14' : '#52c41a',
+                              boxShadow: `0 0 0 2px ${project.defaultPriority === 'high' ? 'rgba(22, 119, 255, 0.1)' : 
+                                         project.defaultPriority === 'medium' ? 'rgba(250, 173, 20, 0.1)' : 'rgba(82, 196, 26, 0.1)'}`
                             }} />
-                            <Text style={{ fontSize: 11, textTransform: "capitalize", color: "#595959" }}>
+                            <Text 
+                              style={{ 
+                                fontSize: 13, 
+                                fontWeight: 700, 
+                                color: "var(--text-primary)",
+                                textTransform: "capitalize"
+                              }}
+                            >
                               {project.defaultPriority} Priority
                             </Text>
                           </div>

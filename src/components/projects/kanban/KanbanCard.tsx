@@ -40,7 +40,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     opacity: isDragging ? 0.6 : 1,
     cursor: 'grab',
     marginBottom: 12,
-    backgroundColor: 'white',
+    backgroundColor: 'var(--bg-pure-white)',
     borderRadius: 12,
     ...shadowStyle,
   };

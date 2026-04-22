@@ -20,12 +20,14 @@ interface DocumentHubDashboardProps {
     documentHubs: DocumentHub[];
     isLoading: boolean;
     onHubClick: (hubId: string) => void;
+    onShareHub: (e: React.MouseEvent, hub: DocumentHub) => void;
 }
 
 const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     documentHubs,
     isLoading,
     onHubClick,
+    onShareHub,
 }) => {
     // Compute stats from the data
     const totalHubs = documentHubs.length;
@@ -198,7 +200,29 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                             {hub.name}
                                         </Text>
                                     </div>
-                                    <ArrowRightOutlined style={{ color: '#bfbfbf', fontSize: 12, marginTop: 4 }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                        <Tooltip title="Share Hub">
+                                            <div
+                                                onClick={(e) => onShareHub(e, hub)}
+                                                style={{
+                                                    width: 28,
+                                                    height: 28,
+                                                    borderRadius: 8,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'var(--text-blue-500)',
+                                                    transition: 'all 0.2s',
+                                                    cursor: 'pointer'
+                                                }}
+                                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-blue-50)')}
+                                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                            >
+                                                <ShareAltOutlined style={{ fontSize: 14 }} />
+                                            </div>
+                                        </Tooltip>
+                                        <ArrowRightOutlined style={{ color: '#bfbfbf', fontSize: 12 }} />
+                                    </div>
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>

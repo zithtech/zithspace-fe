@@ -630,7 +630,11 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         <MainLayout>
             {contextHolder}
             {modalContextHolder}
-            <div className="flex h-[calc(100vh-64px)] w-full bg-white" style={{ background: 'var(--bg-pure-white)' }}>
+            <div className="flex w-full" style={{ 
+                margin: "0 -24px", 
+                background: "var(--bg-pure-white)", 
+                height: "calc(100vh - 64px)" 
+            }}>
                 {/* Sidebar */}
                 {!isFullScreen && (
                     <aside
@@ -920,8 +924,9 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             <ShareModal
                 open={isShareOpen}
                 onClose={() => setIsShareOpen(false)}
-                documentId={selectedDoc}
-                documentTitle={documentContent?.title || ''}
+                entityId={selectedDoc}
+                entityTitle={documentContent?.title || ''}
+                entityType="document"
                 currentVisibility={documentContent?.visibility || 'private'}
                 currentShareToken={documentContent?.shareToken || null}
             />

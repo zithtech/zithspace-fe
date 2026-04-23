@@ -113,7 +113,7 @@ class DocumentHubService {
 
   static async updateDocumentHub(
     id: string,
-    data: { name: string }
+    data: UpdateDocumentHubData
   ): Promise<DocumentHub> {
     try {
       const response = await apiClient.patch(`/api/documenthub/${id}`, data);

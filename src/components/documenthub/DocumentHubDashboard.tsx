@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Typography, Tag, Tooltip, Empty, Skeleton } from 'antd';
+import { Card, Typography, Tag, Tooltip, Empty, Skeleton, Space } from 'antd';
 import {
     FileTextOutlined,
     FolderOutlined,
@@ -40,7 +40,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
     // Recent hubs (last 5, sorted by updatedAt)
     const recentHubs = [...documentHubs]
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        .slice(0, 6);
+        .slice(0, 4);
 
     // Unique contributors
     const uniqueCreators = new Set(documentHubs.map((h) => h.createdById)).size;
@@ -149,12 +149,45 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 ))}
             </div>
 
-            {/* Recent Document Hubs */}
-            <div style={{ marginBottom: 6 }}>
-                <Text strong style={{ fontSize: 15 }}>
-                    <ClockCircleOutlined style={{ marginRight: 6 }} />
-                    Recently Updated
-                </Text>
+            {/* Recent Document Hubs Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+                marginTop: 8
+            }}>
+                <Space size={10}>
+                    <div style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 10,
+                        backgroundColor: 'var(--bg-blue-50)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#1677ff',
+                        boxShadow: '0 2px 4px rgba(22, 119, 255, 0.05)'
+                    }}>
+                        <ClockCircleOutlined style={{ fontSize: 16 }} />
+                    </div>
+                    <Text strong style={{ fontSize: 16, color: 'var(--text-slate-900)', letterSpacing: '-0.3px' }}>
+                        Recently Updated
+                    </Text>
+                </Space>
+
+                <div style={{
+                    flex: 1,
+                    height: '1px',
+                    background: 'linear-gradient(to right, var(--border-slate-100), transparent)',
+                    margin: '0 16px'
+                }} />
+
+                <Space size={16} style={{ color: 'var(--text-slate-400)', fontSize: 14 }}>
+                    <Tooltip title="Directory"><FolderOutlined /></Tooltip>
+                    <Tooltip title="Documents"><FileTextOutlined /></Tooltip>
+                    <Tooltip title="Timeline"><ClockCircleOutlined /></Tooltip>
+                </Space>
             </div>
 
             {recentHubs.length === 0 ? (
@@ -167,7 +200,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gridTemplateColumns: 'repeat(4, 1fr)',
                         gap: 12,
                     }}
                 >

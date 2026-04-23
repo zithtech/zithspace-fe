@@ -167,8 +167,10 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onClose }) => {
             onClose={onClose}
             open={open}
             className="premium-drawer"
-            headerStyle={{ borderBottom: '1px solid var(--border-slate-200)', padding: '16px 24px', background: 'var(--bg-pure-white)' }}
-            bodyStyle={{ padding: '20px', background: 'var(--bg-pure-white)' }}
+            styles={{
+                header: { borderBottom: '1px solid var(--border-slate-200)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+                body: { padding: '20px', background: 'var(--bg-pure-white)' }
+            }}
         >
             {contextHolder}
 

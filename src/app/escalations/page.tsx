@@ -497,8 +497,11 @@ export default function EscalationListPage() {
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
           width={600}
-          headerStyle={{ borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' }}
-          bodyStyle={{ padding: 0, background: 'var(--bg-pure-white)' }}
+          styles={{
+            header: { borderBottom: '1px solid var(--border-slate-100)', padding: '16px 24px', background: 'var(--bg-pure-white)' },
+            body: { padding: 0, background: 'var(--bg-pure-white)' },
+            footer: { borderTop: '1px solid var(--border-slate-100)', padding: '12px 24px', background: 'var(--bg-pure-white)' }
+          }}
           footer={
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               {isEditing ? (
@@ -527,7 +530,6 @@ export default function EscalationListPage() {
               )}
             </div>
           }
-          footerStyle={{ borderTop: '1px solid var(--border-slate-100)', padding: '12px 24px', background: 'var(--bg-pure-white)' }}
         >
           {selectedEscalation && (
             <div style={{ padding: '24px' }}>

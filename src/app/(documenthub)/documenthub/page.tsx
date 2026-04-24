@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/usePermission";
 import { useRouter } from "next/navigation";
-import Header from "@/components/common/Header";
+// import Header from "@/components/common/Header";
 import MainLayout from "@/components/layout/MainLayout";
 import {
   useUserProjects,
@@ -26,6 +26,9 @@ import {
   FileTextOutlined,
   GlobalOutlined,
   EyeOutlined,
+  UserOutlined,
+  ReloadOutlined,
+  FolderOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import {
@@ -43,6 +46,8 @@ import {
   Space,
   message,
   Spin,
+  Divider,
+  Avatar,
 } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnsType } from "antd/es/table";
@@ -55,8 +60,207 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 type Props = {};
+const InlineTicketSelector = ({
+  record,
+  updateHub,
+  user
+}: any) => {
+  const [searchValue, setSearchValue] = React.useState("");
+  const [isEditing, setIsEditing] = React.useState(false);
+  const isOwner = user?.id === record.createdById;
+
+  // Use the hook locally for each row to avoid state conflicts
+  const { data: rowTickets = [], isLoading: rowTicketsLoading } =
+    useUserTicketsByProjects(record.projectId);
+
+  const getOptions = () => {
+    const sortedTickets = [...(rowTickets || [])].sort((a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    let filtered = sortedTickets;
+
+    if (searchValue) {
+      const search = searchValue.toLowerCase();
+      filtered = sortedTickets.filter((t: any) =>
+        t.ticketNumber?.toLowerCase().includes(search) ||
+        t.title?.toLowerCase().includes(search)
+      );
+    }
+
+    let limited = filtered.slice(0, 10);
+
+    if (record.ticketId && !limited.find(t => t.id === record.ticketId)) {
+      const currentTicket = sortedTickets.find(t => t.id === record.ticketId);
+      if (currentTicket) {
+        limited.push(currentTicket);
+      }
+    }
+
+    return limited.map((t: any) => ({
+      label: (
+        <div className="flex flex-col py-1">
+          <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{t.ticketNumber}</span>
+          <span className="text-slate-400 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}>{t.title}</span>
+        </div>
+      ),
+      value: t.id
+    }));
+  };
+
+  if (record.ticketId && !isEditing) {
+    return (
+      <div
+        onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+        className="flex flex-col py-0.5 px-2 hover:bg-sky-50 rounded-md cursor-pointer transition-colors group"
+        style={{ width: 'fit-content', maxWidth: '100%' }}
+      >
+        <span className="font-semibold text-sky-500 group-hover:text-sky-600" style={{ fontSize: '11px', lineHeight: '1.2' }}>
+          {record.ticket?.ticketNumber}
+        </span>
+        <span className="text-slate-400 truncate group-hover:text-slate-500" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '160px' }}>
+          {record.ticket?.title}
+        </span>
+      </div>
+    );
+  }
+
+  if (!record.ticketId && !isEditing) {
+    return (
+      <div onClick={(e) => {
+        e.stopPropagation();
+        setIsEditing(true);
+      }}>
+        <Button
+          type="text"
+          size="small"
+          icon={<PlusOutlined style={{ fontSize: '10px' }} />}
+          className="text-slate-400 hover:text-blue-500 hover:bg-blue-50 flex items-center gap-1 p-0 px-2 h-7 rounded-md"
+          style={{ fontSize: '11px', fontWeight: 500 }}
+          disabled={!isOwner}
+        >
+          Add Ticket
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Select
+        placeholder={<span className="text-slate-400">Search...</span>}
+        value={record.ticketId || undefined}
+        disabled={!isOwner}
+        loading={rowTicketsLoading}
+        className="w-full premium-inline-select"
+        variant="borderless"
+        showSearch
+        allowClear
+        autoFocus
+        defaultOpen
+        onSearch={setSearchValue}
+        searchValue={searchValue}
+        onBlur={() => setIsEditing(false)}
+        onChange={(value) => {
+          updateHub(record.id, { ticketId: value, name: record.name });
+          setSearchValue("");
+          setIsEditing(false);
+        }}
+        options={getOptions()}
+        filterOption={false}
+        style={{ minWidth: 220 }}
+      />
+    </div>
+  );
+};
+
+const InlineProjectSelector = ({
+  record,
+  projects,
+  projectsLoading,
+  updateHub,
+  user
+}: any) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const isOwner = user?.id === record.createdById;
+
+  const getOptions = () => {
+    return (projects || []).map((p: any) => ({
+      label: (
+        <div className="flex flex-col py-1">
+          <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{p.label}</span>
+          {p.code && (
+            <span className="text-slate-400" style={{ fontSize: '9px', lineHeight: '1.2' }}>{p.code}</span>
+          )}
+        </div>
+      ),
+      value: p.value
+    }));
+  };
+
+  if (record.projectId && !isEditing) {
+    return (
+      <div
+        onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+        className="flex flex-col py-0.5 px-2 hover:bg-sky-50 rounded-md cursor-pointer transition-colors group"
+        style={{ width: 'fit-content', maxWidth: '100%' }}
+      >
+        <span className="font-semibold text-sky-600 group-hover:text-sky-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>
+          {record.project?.name}
+        </span>
+        {record.project?.code && (
+          <span className="text-slate-400 group-hover:text-slate-500 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '130px' }}>
+            {record.project.code}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (!record.projectId && !isEditing) {
+    return (
+      <div onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+        <Button
+          type="text"
+          size="small"
+          icon={<PlusOutlined style={{ fontSize: '10px' }} />}
+          className="text-slate-400 hover:text-blue-500 hover:bg-blue-50 flex items-center gap-1 p-0 px-2 h-7 rounded-md"
+          style={{ fontSize: '11px', fontWeight: 500 }}
+          disabled={!isOwner}
+        >
+          Add Project
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Select
+        placeholder={<span className="text-slate-400">Search project...</span>}
+        value={record.projectId || undefined}
+        disabled={!isOwner}
+        loading={projectsLoading}
+        className="w-full premium-inline-select"
+        variant="borderless"
+        showSearch
+        autoFocus
+        defaultOpen
+        onBlur={() => setIsEditing(false)}
+        onChange={(value) => {
+          updateHub(record.id, { projectId: value, name: record.name });
+          setIsEditing(false);
+        }}
+        options={getOptions()}
+        style={{ minWidth: 220 }}
+      />
+    </div>
+  );
+};
+
 const DocumentHubPage = (props: Props) => {
   const router = useRouter();
+  // ... rest of state ...
   const { user, isLoading: authLoading } = useAuth();
   const { canReadDocument, canCreateDocument, canUpdateDocument, canDeleteDocument } = usePermission();
 
@@ -82,6 +286,7 @@ const DocumentHubPage = (props: Props) => {
   const [dateRange, setDateRange] = useState<
     [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
   >(null);
+  const [filterTicketId, setFilterTicketId] = useState<string | undefined>(undefined);
   const [isCreating, setIsCreating] = useState(false);
   const [trashVisible, setTrashVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -99,6 +304,8 @@ const DocumentHubPage = (props: Props) => {
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
   const { data: tickets = [], isLoading: ticketsLoading } =
     useUserTicketsByProjects(selectedProjectId);
+  const { data: filterTickets = [], isLoading: filterTicketsLoading } =
+    useUserTicketsByProjects(filterProjectId);
   const { data: members = [], isLoading: membersLoading } = useMembers();
 
   const queryClient = useQueryClient();
@@ -106,11 +313,24 @@ const DocumentHubPage = (props: Props) => {
   const {
     data: documentHubs = [],
     isLoading: hubsLoading,
+    isFetching: hubsFetching,
     refetch,
   } = useQuery({
     queryKey: ["documentHubs"],
     queryFn: DocumentHubService.getAllDocumentHubs,
   });
+
+  const updateHub = async (id: string, data: any) => {
+    try {
+      const response = await DocumentHubService.updateDocumentHub(id, data);
+      console.log("UpdateHub Response:", response);
+      messageApi.success("Hub updated successfully");
+      refetch();
+    } catch (error) {
+      console.error(error);
+      messageApi.error("Update failed");
+    }
+  };
 
   const handleAddDocument = async (values: any) => {
     try {
@@ -168,31 +388,36 @@ const DocumentHubPage = (props: Props) => {
       .includes(searchText.toLowerCase());
     const matchesUser = selectedUser ? hub.createdById === selectedUser : true;
     const matchesProject = filterProjectId
-      ? hub.projectId === filterProjectId
+      ? (hub.projectId === filterProjectId || hub.project?.id === filterProjectId)
+      : true;
+    const matchesTicket = filterTicketId
+      ? (hub.ticketId === filterTicketId || hub.ticket?.id === filterTicketId)
       : true;
 
     let matchesDate = true;
     if (dateRange && dateRange[0] && dateRange[1]) {
       const startDate = startOfDay(dateRange[0].toDate());
       const endDate = endOfDay(dateRange[1].toDate());
-      const hubDate = new Date(hub.createdAt);
-      matchesDate = isWithinInterval(hubDate, {
-        start: startDate,
-        end: endDate,
-      });
+      const createdAt = new Date(hub.createdAt);
+      const updatedAt = new Date(hub.updatedAt);
+
+      const createdInRange = isWithinInterval(createdAt, { start: startDate, end: endDate });
+      const updatedInRange = isWithinInterval(updatedAt, { start: startDate, end: endDate });
+
+      matchesDate = createdInRange || updatedInRange;
     }
 
-    return matchesSearch && matchesUser && matchesProject && matchesDate;
+    return matchesSearch && matchesUser && matchesProject && matchesTicket && matchesDate;
   });
 
   // Loading & permission check
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "var(--bg-pure-white)", 
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
           display: 'flex',
           justifyContent: 'center',
@@ -210,11 +435,15 @@ const DocumentHubPage = (props: Props) => {
 
   const columns: ColumnsType<DocumentHub> = [
     {
-      title: "Name",
+      title: "Doc Name",
       dataIndex: "name",
       key: "name",
+      width: 300,
       render: (text) => (
-        <span className="font-medium text-blue-600">{text}</span>
+        <Space size={8}>
+          <FolderOutlined className="text-blue-500" />
+          <span className="font-semibold text-blue-600 hover:text-blue-700 cursor-pointer">{text}</span>
+        </Space>
       ),
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
@@ -222,64 +451,70 @@ const DocumentHubPage = (props: Props) => {
       title: "Project",
       dataIndex: ["project", "name"],
       key: "project",
-      render: (text, record) =>
-        record.project ? (
-          <Tooltip title={record.project.code}>
-            <Tag color="blue">{text}</Tag>
-          </Tooltip>
-        ) : (
-          <span className="text-slate-400" style={{ color: 'var(--text-slate-400)' }}>-</span>
-        ),
+      width: 150,
+      render: (text, record) => (
+        <InlineProjectSelector
+          record={record}
+          projects={projects}
+          projectsLoading={projectsLoading}
+          updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+          user={user}
+        />
+      )
     },
     {
       title: "Ticket",
-      dataIndex: ["ticket", "title"],
+      dataIndex: ["ticket", "ticketNumber"],
       key: "ticket",
-      render: (text, record) =>
-        record.ticket ? (
-          <Tooltip title={record.ticket.status}>
-            <Tag color="orange">
-              {record.ticket.ticketNumber || record.ticket.id}
-            </Tag>
-          </Tooltip>
-        ) : (
-          <span className="text-slate-400" style={{ color: 'var(--text-slate-400)' }}>-</span>
-        ),
+      width: 160,
+      render: (text, record) => (
+        <InlineTicketSelector
+          record={record}
+          updateHub={(id: string, updateData: any) => updateHub(id, updateData)}
+          user={user}
+        />
+      )
     },
     {
       title: "Created By",
       dataIndex: ["createdBy", "name"],
       key: "createdBy",
+      render: (text, record) => (
+        <Space>
+          <Avatar size={24} style={{ backgroundColor: 'var(--bg-blue-50)', color: 'var(--text-blue-500)', fontSize: '10px' }}>
+            {text?.charAt(0).toUpperCase()}
+          </Avatar>
+          <span className="text-slate-600" style={{ color: 'var(--text-slate-700)' }}>{text}</span>
+        </Space>
+      )
     },
     {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date) => (
-        <span className="text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
-          {format(new Date(date), "MMM d, yyyy")}
+        <span className="text-[11px] font-medium text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
+          {format(new Date(date), "MMM d, yyyy h:mm a")}
         </span>
       ),
-      sorter: (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: "Updated At",
       dataIndex: "updatedAt",
       key: "updatedAt",
       render: (date) => (
-        <span className="text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
-          {format(new Date(date), "MMM d, yyyy")}
+        <span className="text-[11px] font-medium text-slate-500" style={{ color: 'var(--text-slate-600)' }}>
+          {format(new Date(date), "MMM d, yyyy h:mm a")}
         </span>
       ),
-      sorter: (a, b) =>
-        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      sorter: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
     },
     {
       title: "Visibility",
       dataIndex: "visibility",
       key: "visibility",
-      width: 130,
+      width: 120,
       render: (visibility, record) => {
         const isOwner = user?.id === record.createdById;
         return (
@@ -290,7 +525,8 @@ const DocumentHubPage = (props: Props) => {
               disabled={!isOwner}
               style={{ width: 100 }}
               bordered={false}
-              className="visibility-select"
+              className="visibility-select font-medium"
+              suffixIcon={null}
               onChange={async (value) => {
                 try {
                   if (value === 'public') {
@@ -306,8 +542,8 @@ const DocumentHubPage = (props: Props) => {
                 }
               }}
               options={[
-                { value: 'private', label: <Space><LockOutlined /> Private</Space> },
-                { value: 'public', label: <Space><GlobalOutlined /> Public</Space> },
+                { value: 'private', label: <Space size={6} style={{ color: 'var(--text-slate-500)' }}><LockOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Private</span></Space> },
+                { value: 'public', label: <Space size={6} style={{ color: 'var(--text-blue-500)' }}><GlobalOutlined style={{ fontSize: 10 }} /> <span style={{ fontSize: 11 }}>Public</span></Space> },
               ]}
             />
           </div>
@@ -315,52 +551,83 @@ const DocumentHubPage = (props: Props) => {
       }
     },
     {
-      title: "Actions",
+      title: "Action",
       key: "actions",
+      width: 80,
       render: (text, record) => (
-        <Space onClick={(e) => e.stopPropagation()}>
-          <Button
-            type="text"
-            icon={<ShareAltOutlined className="text-blue-500" />}
-            onClick={(e) => handleShareHub(e, record)}
-          />
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={(e) => handleDeleteHub(e, record.id, record.name)}
-          />
+        <Space size={0} onClick={(e) => e.stopPropagation()}>
+          <Tooltip title="View Knowledge Base">
+            <Button
+              type="text"
+              icon={<EyeOutlined style={{ fontSize: '14px' }} className="text-slate-400 hover:text-blue-500" />}
+              onClick={() => router.push(`/documenthub/${record.id}`)}
+              className="flex items-center justify-center p-0 w-7 h-7 rounded-lg hover:bg-slate-50"
+            />
+          </Tooltip>
+          <Tooltip title="Share Hub">
+            <Button
+              type="text"
+              icon={<ShareAltOutlined style={{ fontSize: '14px' }} className="text-slate-400 hover:text-blue-500" />}
+              onClick={(e) => handleShareHub(e, record)}
+              className="flex items-center justify-center p-0 w-7 h-7 rounded-lg hover:bg-slate-50"
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined style={{ fontSize: '14px' }} />}
+              onClick={(e) => handleDeleteHub(e, record.id, record.name)}
+              className="flex items-center justify-center p-0 w-7 h-7 rounded-lg hover:bg-red-50"
+            />
+          </Tooltip>
         </Space>
       ),
     },
   ];
 
+  const handleReload = () => {
+    setSearchText("");
+    setFilterProjectId(undefined);
+    setFilterTicketId(undefined);
+    setSelectedUser(undefined);
+    setDateRange(null);
+    refetch();
+  };
+
   return (
     <MainLayout>
       {contextHolder}
       {modalContextHolder}
-      <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px 16px 32px", 
-          background: "var(--bg-pure-white)", 
-          minHeight: "calc(100vh - 64px)",
-          display: "flex",
-          flexDirection: "column"
+      <div style={{
+        margin: "0 -16px",
+        padding: "0 24px 16px 24px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column"
       }}>
-        <div className="flex justify-between items-center mb-3 flex-shrink-0">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-800 flex items-center gap-2" style={{ color: 'var(--text-slate-900)' }}>
+        <div className="flex flex-wrap justify-between items-center flex-shrink-0 py-3 gap-4" style={{
+          minHeight: '58px',
+          borderBottom: '1px solid var(--border-color)',
+          margin: '0 -24px 24px -24px',
+          padding: '0 24px'
+        }}>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2 m-0" style={{ color: 'var(--text-slate-900)' }}>
               <FileZipOutlined className="text-blue-500" />
               Document Hub
             </h1>
-            <p className="text-slate-500 mt-1" style={{ color: 'var(--text-slate-400)' }}>
+            <Divider type="vertical" className="hidden sm:block" style={{ height: '20px', backgroundColor: 'var(--border-color)' }} />
+            <p className="text-slate-500 m-0 hidden sm:block" style={{ color: 'var(--text-slate-400)', fontSize: '13px' }}>
               Manage all your documentation in one place
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               icon={<RestOutlined />}
               onClick={() => setTrashVisible(true)}
+              className="border-none shadow-none hover:bg-slate-50"
             >
               Trash
             </Button>
@@ -368,6 +635,7 @@ const DocumentHubPage = (props: Props) => {
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => setModalVisible(true)}
+              className="shadow-sm font-medium"
             >
               Create Document
             </Button>
@@ -379,83 +647,165 @@ const DocumentHubPage = (props: Props) => {
         // className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-y-auto" style={{marginBottom:20}}
         >
           {/* Dashboard Cards */}
-          <div className="pt-4 pb-2">
+          <div className="pb-2">
             <DocumentHubDashboard
               documentHubs={documentHubs}
-              isLoading={hubsLoading}
+              isLoading={hubsLoading || hubsFetching}
               onHubClick={(id) => router.push(`/documenthub/${id}`)}
               onShareHub={handleShareHub}
             />
           </div>
 
           {/* Filters Section - Sticky inside the card */}
-          <div className="sticky top-0  bg-white z-20" style={{ background: 'var(--bg-pure-white)' }}>
-            <div className="px-4 py-2 flex items-center gap-2 justify-between">
-              <div className="flex items-center gap-2 w-full">
-                <Input
-                  placeholder="Search..."
-                  prefix={<SearchOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
-                  style={{ width: "40%" }}
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                />
+          <div className="sticky top-0 bg-white z-20" style={{ background: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', zIndex: 100 }}>
+            <div className="px-4 py-3 flex flex-wrap items-center gap-4 justify-between">
+              <div className="flex flex-wrap items-center gap-4 flex-1">
+                <div className="relative w-full max-w-sm min-w-[200px]">
+                  <Input
+                    placeholder="Search hubs..."
+                    prefix={<SearchOutlined className="text-slate-400" style={{ color: 'var(--text-blue-500)' }} />}
+                    className="premium-search-input h-10 rounded-xl border-slate-200 hover:border-blue-400 focus:border-blue-500 transition-all shadow-sm"
+                    style={{ background: 'var(--bg-pure-white)' }}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    allowClear
+                  />
+                </div>
+                <div className="h-6 w-[1px] bg-slate-200 hidden md:block" />
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select
+                    placeholder={<Space><ProjectOutlined style={{ fontSize: '10px' }} /> <span style={{ fontSize: '11px' }}>Project</span></Space>}
+                    className="premium-select min-w-[140px]"
+                    style={{ height: 40 }}
+                    allowClear
+                    showSearch
+                    value={filterProjectId}
+                    onChange={setFilterProjectId}
+                    loading={projectsLoading}
+                    filterOption={(input, option: any) => {
+                      const project = projects.find(p => p.value === option.value);
+                      if (!project) return false;
+                      return (
+                        project.label?.toLowerCase().includes(input.toLowerCase()) ||
+                        project.code?.toLowerCase().includes(input.toLowerCase())
+                      );
+                    }}
+                    options={projects.map((p: any) => ({
+                      label: (
+                        <div className="flex flex-col py-1">
+                          <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{p.label}</span>
+                          {p.code && <span className="text-slate-400" style={{ fontSize: '9px', lineHeight: '1.2' }}>{p.code}</span>}
+                        </div>
+                      ),
+                      value: p.value
+                    }))}
+                  />
+                  <Select
+                    placeholder={<Space><TagOutlined style={{ fontSize: '10px' }} /> <span style={{ fontSize: '11px' }}>Ticket</span></Space>}
+                    className="premium-select min-w-[200px]"
+                    style={{ height: 40 }}
+                    allowClear
+                    showSearch
+                    value={filterTicketId}
+                    onChange={setFilterTicketId}
+                    loading={filterTicketsLoading}
+                    filterOption={(input, option: any) => {
+                      // Support searching by ticket number or title
+                      const options = filterProjectId ? filterTickets : Array.from(new Map(documentHubs.filter(h => h.ticket).map(h => [h.ticket!.id, h.ticket])).values());
+                      const ticket: any = options.find((t: any) => t.id === option.value);
+                      if (!ticket) return false;
+                      return (
+                        ticket.ticketNumber?.toLowerCase().includes(input.toLowerCase()) ||
+                        ticket.title?.toLowerCase().includes(input.toLowerCase())
+                      );
+                    }}
+                    options={(() => {
+                      // If a project is selected, show tickets for that project
+                      if (filterProjectId) {
+                        return filterTickets.map((t: any) => ({
+                          label: (
+                            <div className="flex flex-col py-1">
+                              <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{t.ticketNumber}</span>
+                              <span className="text-slate-400 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '180px' }}>{t.title}</span>
+                            </div>
+                          ),
+                          value: t.id
+                        }));
+                      }
+
+                      // Otherwise, show all tickets currently linked to any Document Hub in the list
+                      const uniqueTickets = Array.from(
+                        new Map(
+                          documentHubs
+                            .filter(hub => hub.ticket)
+                            .map(hub => [hub.ticket!.id, hub.ticket])
+                        ).values()
+                      );
+
+                      return uniqueTickets.map((t: any) => ({
+                        label: (
+                          <div className="flex flex-col py-1">
+                            <span className="font-semibold text-slate-700" style={{ fontSize: '11px', lineHeight: '1.2' }}>{t.ticketNumber}</span>
+                            <span className="text-slate-400 truncate" style={{ fontSize: '9px', lineHeight: '1.2', maxWidth: '180px' }}>{t.title}</span>
+                          </div>
+                        ),
+                        value: t.id
+                      }));
+                    })()}
+                  />
+                  <Select
+                    placeholder={<Space><UserOutlined className="text-xs" /> <span>Created By</span></Space>}
+                    className="premium-select min-w-[150px]"
+                    style={{ height: 40 }}
+                    showSearch
+                    allowClear
+                    optionFilterProp="label"
+                    value={selectedUser}
+                    onChange={setSelectedUser}
+                    loading={membersLoading}
+                    options={members.map((m: any) => ({
+                      label: m.label,
+                      value: m.value,
+                    }))}
+                  />
+                  <RangePicker
+                    className="premium-range-picker rounded-xl border-slate-200 h-10 shadow-sm"
+                    style={{ width: 240, background: 'var(--bg-pure-white)' }}
+                    value={dateRange}
+                    onChange={(dates) => setDateRange(dates as any)}
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2">
-                <Select
-                  placeholder="Project"
-                  style={{ width: 150 }}
-                  allowClear
-                  showSearch
-                  optionFilterProp="label"
-                  value={filterProjectId}
-                  onChange={setFilterProjectId}
-                  loading={projectsLoading}
-                  options={projects}
-                />
-                <Select
-                  placeholder="Created By"
-                  showSearch
-                  style={{ width: 150 }}
-                  allowClear
-                  optionFilterProp="label"
-                  value={selectedUser}
-                  onChange={setSelectedUser}
-                  loading={membersLoading}
-                  options={members.map((m: any) => ({
-                    label: m.label,
-                    value: m.value,
-                  }))}
-                />
-                <RangePicker
-                  style={{ width: 240 }}
-                  value={dateRange}
-                  onChange={(dates) => setDateRange(dates as any)}
-                />
+                <Tooltip title="Reload Docs">
+                  <Button
+                    icon={<ReloadOutlined spin={hubsFetching} />}
+                    onClick={handleReload}
+                    className="flex items-center justify-center rounded-xl h-10 w-10 border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200"
+                  />
+                </Tooltip>
               </div>
             </div>
           </div>
 
 
-          <div className="p-2">
+          <div className="p-2 overflow-x-auto">
             <Table
               columns={columns}
               dataSource={filteredHubs}
               rowKey="id"
-              loading={hubsLoading}
-              pagination={{ pageSize: 20, showSizeChanger: true }}
+              loading={hubsLoading || hubsFetching}
+              pagination={{ pageSize: 15, showSizeChanger: true }}
               size="small"
+              className="premium-table"
+              scroll={{ x: 1300 }}
               sticky={{
-                offsetHeader: 80,
-              }}
-              scroll={{
-                y: "calc(100vh - 380px)",
+                offsetHeader: 0,
               }}
               onRow={(record) => ({
                 onClick: () => router.push(`/documenthub/${record.id}`),
                 className: "cursor-pointer",
               })}
-              className="[&_.ant-table-body]:!scrollbar-hide [&_.ant-table-body]:![-ms-overflow-style:none] [&_.ant-table-body]:![scrollbar-width:none] [&_.ant-table-body::-webkit-scrollbar]:!hidden"
             />
           </div>
         </div>
@@ -605,6 +955,41 @@ const DocumentHubPage = (props: Props) => {
       )}
 
       <TrashDrawer open={trashVisible} onClose={() => setTrashVisible(false)} />
+      <style jsx global>{`
+        .premium-table .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 11px;
+          letter-spacing: 0.05em;
+          border-bottom: 2px solid #f1f5f9 !important;
+        }
+        .premium-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid #f1f5f9;
+          padding: 8px 16px !important;
+        }
+        .premium-table .ant-table-row:hover > td {
+          background: #fdfdfd !important;
+        }
+        .visibility-select .ant-select-selection-item {
+          display: flex;
+          align-items: center;
+        }
+        .premium-inline-select .ant-select-selector {
+          padding: 0 !important;
+          font-size: 11px !important;
+          font-weight: 500 !important;
+        }
+        .premium-inline-select .ant-select-selection-placeholder {
+          font-size: 11px !important;
+          font-style: italic;
+        }
+        .premium-inline-select:hover .ant-select-selector {
+          background: rgba(22, 119, 255, 0.05) !important;
+          border-radius: 4px;
+        }
+      `}</style>
     </MainLayout>
   );
 };

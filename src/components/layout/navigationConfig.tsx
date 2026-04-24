@@ -707,7 +707,7 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
     label: "FINANCE",
     icon: <WalletOutlined />,
     pathPrefixes: ["/accounts", "/invoice", "/reimbursement", "/salary"],
-    defaultPath: "/accounts",
+    defaultPath: "/accounts/accounts-dashboard",
     requiredAnyPermission: [
       Permissions.TRANSACTION_READ,
       Permissions.INVOICE_READ,
@@ -717,8 +717,21 @@ export const NAVIGATION_CONFIG: ModuleConfig[] = [
       {
         key: "/accounts",
         label: "Accounts",
-        icon: <WalletOutlined />,
-        path: "/accounts",
+        icon:<WalletOutlined/>,
+        children: [
+          {
+            key: "/accounts",
+            label: "Dashboard",
+            icon: <BarChartOutlined />,
+            path: "/accounts/accounts-dashboard",
+          },
+          {
+            key: "/accounts/settings",
+            label: "Settings",
+            icon: <FileSyncOutlined />,
+            path: "/accounts/settings",
+          },
+        ]
       },
       {
         key: "invoice",

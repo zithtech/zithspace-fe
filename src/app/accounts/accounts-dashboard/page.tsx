@@ -27,6 +27,7 @@ import {
   Avatar,
   Divider,
   Empty,
+  Drawer,
 } from 'antd';
 import {
   PlusOutlined,
@@ -44,9 +45,11 @@ import {
   WalletOutlined,
   CreditCardOutlined,
   FileTextOutlined,
+  PieChartOutlined,
 } from '@ant-design/icons';
 import { TransactionsService, Transaction, CreateTransactionData, UpdateTransactionData, TransactionSummary } from '@/services/transactionsService';
 import { MembersService, Member } from '@/services/membersService';
+import { useExpenseCategories } from '@/hooks/useExpenseCategories';
 import { ApiError } from '@/lib/axios';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -66,6 +69,44 @@ interface TransactionFormData {
   notes?: string;
   date: dayjs.Dayjs;
 }
+
+/* ================= ATTRACTIVE METRIC CARDS ================= */
+const StatCard = ({ label, value, icon: Icon, color, subValue }: any) => (
+  <Card
+    styles={{ body: { padding: "10px 14px" } }}
+    style={{
+      borderRadius: 16,
+      border: "1px solid var(--accounts-stat-border)",
+      boxShadow: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      height: "100%",
+      backgroundColor: "var(--accounts-stat-bg)"
+    }}
+  >
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ color: "var(--accounts-stat-label)", fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>{label}</Text>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--accounts-stat-value)", marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+        {subValue && (
+          <div style={{ fontSize: 10, color: "var(--accounts-stat-sub)", marginTop: 2 }}>{subValue}</div>
+        )}
+      </div>
+      <div style={{
+        color,
+        background: `${color}15`,
+        padding: 8,
+        borderRadius: 10,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        marginLeft: 8,
+        boxShadow: `0 0 12px ${color}08`
+      }}>
+        <Icon size={18} />
+      </div>
+    </div>
+  </Card>
+);
 
 export default function AccountsPage() {
   const { user, isLoading } = useAuth();
@@ -108,6 +149,10 @@ export default function AccountsPage() {
   const [modalType, setModalType] = useState<'add' | 'edit' | 'delete'>('add');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [breakdownDrawerVisible, setBreakdownDrawerVisible] = useState(false);
+
+  // Expense categories
+  const { data: expenseCategories = [], isLoading: categoriesLoading } = useExpenseCategories();
 
   // Fetch transactions
   const fetchTransactions = async () => {
@@ -367,7 +412,7 @@ export default function AccountsPage() {
           strong
           style={{
             fontSize: 13,
-            color: record.type === 'credit' ? '#52c41a' : '#ff4d4f',
+            color: record.type === 'credit' ? 'var(--accounts-emerald-text)' : 'var(--accounts-rose-text)',
           }}
         >
           {record.type === 'credit' ? '+' : '-'}{formatCurrency(amount)}
@@ -426,15 +471,30 @@ export default function AccountsPage() {
       key: 'description',
       ellipsis: true,
       render: (text: string, record: Transaction) => (
-        <div>
-          <Text style={{ fontSize: 12 }}>{text}</Text>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Text style={{ fontSize: 12 }}>{text}</Text>
+            {record.metadata?.invoiceId && (
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded-md"
+                style={{
+                  border: '1px solid var(--accounts-invoice-border)',
+                  backgroundColor: 'var(--accounts-invoice-bg)',
+                  color: 'var(--accounts-invoice-text)',
+                  fontWeight: 500
+                }}
+              >
+                Invoice
+              </span>
+            )}
+            {record.metadata?.source === 'invoice_module' && (
+              <Tag color="geekblue" bordered={false} style={{ fontSize: 10, borderRadius: 4, margin: 0 }}>INVOICE</Tag>
+            )}
+          </div>
           {record.notes && (
-            <>
-              <br />
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {record.notes}
-              </Text>
-            </>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {record.notes}
+            </Text>
           )}
         </div>
       ),
@@ -496,28 +556,49 @@ export default function AccountsPage() {
 
   return (
     <MainLayout>
-      <div style={{ padding: 20, background: '#fff', minHeight: '100vh' }}>
+      <div style={{
+        margin: "0 -24px",
+        padding: "8px 32px 24px 32px",
+        background: "var(--customers-page-bg)",
+        minHeight: "calc(100vh - 64px)"
+      }}>
         {/* Header */}
-        <div style={{ marginBottom: 20 }}>
-          <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Space align="center">
-              <BankOutlined style={{ fontSize: 24, color: '#1677ff' }} />
-              <Title level={3} style={{ margin: 0 }}>
-                Accounts Management
-              </Title>
+        <div style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 24 }}>
+          <div style={{ flex: 1 }}>
+            <Space size={8} align="center">
+              <div style={{ background: "var(--bg-blue-50)", padding: "6px 8px", borderRadius: 8, color: "var(--text-sky-500)", display: "flex" }}>
+                <BankOutlined style={{ fontSize: 18 }} />
+              </div>
+              <div>
+                <Title level={5} style={{ margin: 0, fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>Accounts Management</Title>
+                <Text style={{ color: "var(--text-secondary)", fontSize: "11px" }}>Track company income, expenses, and transaction lifecycle.</Text>
+              </div>
             </Space>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              size="middle"
+              icon={<PieChartOutlined size={16} />}
+              onClick={() => setBreakdownDrawerVisible(true)}
+              style={{ borderRadius: 8, height: 38, color: "var(--text-secondary)" }}
+            >
+              Breakdown
+            </Button>
             {canManage && (
               <Button
                 type="primary"
-                icon={<PlusOutlined />}
-                onClick={showAddModal}
                 size="middle"
+                icon={<PlusOutlined />}
+                style={{ borderRadius: 8, height: 38, padding: "0 16px", fontWeight: 600 }}
+                onClick={showAddModal}
               >
                 Add Transaction
               </Button>
             )}
-          </Space>
+          </div>
         </div>
+
+        <Divider style={{ margin: "4px -32px 12px -32px", width: "calc(100% + 64px)", borderColor: 'var(--border-color)' }} />
 
         {/* Alerts */}
         {error && (
@@ -542,140 +623,154 @@ export default function AccountsPage() {
         )}
 
         {/* Summary Cards */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={12} lg={6}>
-            <Card size="small" style={{ borderLeft: '4px solid #52c41a' }}>
-              <Statistic
-                title="Total Credits"
-                value={summary?.balance?.credits || 0}
-                formatter={(value) => formatCurrency(Number(value))}
-                prefix={<ArrowUpOutlined style={{ color: '#52c41a' }} />}
-                valueStyle={{ color: '#52c41a', fontSize: 20 }}
-              />
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {summary?.balance?.creditCount || 0} transactions
-              </Text>
-            </Card>
+            <StatCard
+              label="Total Credits"
+              value={formatCurrency(summary?.balance?.credits || 0)}
+              icon={ArrowUpOutlined}
+              color="#10b981"
+              subValue={`${summary?.balance?.creditCount || 0} transactions`}
+            />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card size="small" style={{ borderLeft: '4px solid #ff4d4f' }}>
-              <Statistic
-                title="Total Debits"
-                value={summary?.balance?.debits || 0}
-                formatter={(value) => formatCurrency(Number(value))}
-                prefix={<ArrowDownOutlined style={{ color: '#ff4d4f' }} />}
-                valueStyle={{ color: '#ff4d4f', fontSize: 20 }}
-              />
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {summary?.balance?.debitCount || 0} transactions
-              </Text>
-            </Card>
+            <StatCard
+              label="Total Debits"
+              value={formatCurrency(summary?.balance?.debits || 0)}
+              icon={ArrowDownOutlined}
+              color="#ef4444"
+              subValue={`${summary?.balance?.debitCount || 0} transactions`}
+            />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card size="small" style={{ borderLeft: '4px solid #1677ff' }}>
-              <Statistic
-                title="Net Balance"
-                value={summary?.balance?.net || 0}
-                formatter={(value) => formatCurrency(Number(value))}
-                prefix={<WalletOutlined style={{ color: '#1677ff' }} />}
-                valueStyle={{
-                  color: (summary?.balance?.net || 0) >= 0 ? '#52c41a' : '#ff4d4f',
-                  fontSize: 20
-                }}
-              />
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {summary?.balance?.totalCount || 0} total transactions
-              </Text>
-            </Card>
+            <StatCard
+              label="Net Balance"
+              value={formatCurrency(summary?.balance?.net || 0)}
+              icon={WalletOutlined}
+              color="#3b82f6"
+              subValue={`${summary?.balance?.totalCount || 0} total activity`}
+            />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card size="small" style={{ borderLeft: '4px solid #722ed1' }}>
-              <Statistic
-                title="This Month"
-                value={summary?.monthlyTrend?.[summary.monthlyTrend.length - 1]?.net || 0}
-                formatter={(value) => formatCurrency(Number(value))}
-                prefix={<CalendarOutlined style={{ color: '#722ed1' }} />}
-                valueStyle={{ color: '#722ed1', fontSize: 20 }}
-              />
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                Current month activity
-              </Text>
-            </Card>
+            <StatCard
+              label="This Month"
+              value={formatCurrency(summary?.monthlyTrend?.[summary.monthlyTrend.length - 1]?.net || 0)}
+              icon={CalendarOutlined}
+              color="#8b5cf6"
+              subValue="Current month performance"
+            />
           </Col>
         </Row>
 
-        <Row gutter={[16, 16]}>
+        {/* Enhanced Single-Line Filter Bar */}
+        <div style={{
+          marginBottom: 16,
+          padding: "8px 16px",
+          background: "var(--bg-slate-50)",
+          borderRadius: 12,
+          border: "1px solid var(--border-slate-200)",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "nowrap"
+        }}>
+          <div className="flex items-center gap-1.5 text-slate-400 mr-1">
+            <FilterOutlined style={{ fontSize: 14 }} />
+            <span className="text-[11px] font-semibold uppercase tracking-tight">Filters</span>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 150 }}>
+            <Input
+              placeholder="Search..."
+              prefix={<SearchOutlined className="text-slate-400" />}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              variant="borderless"
+              className="bg-white rounded-lg border-slate-200 hover:border-blue-400 transition-colors h-[34px] px-3 w-full border text-xs"
+              allowClear
+            />
+          </div>
+
+          <div style={{ width: 120 }}>
+            <Select
+              placeholder="Type"
+              value={typeFilter}
+              onChange={setTypeFilter}
+              className="w-full h-[34px]"
+              allowClear
+              variant="borderless"
+              style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
+            >
+              <Option value="credit">Credit</Option>
+              <Option value="debit">Debit</Option>
+            </Select>
+          </div>
+
+          <div style={{ width: 140 }}>
+            <Select
+              placeholder="Category"
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              className="w-full h-[34px]"
+              allowClear
+              variant="borderless"
+              style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
+            >
+              {!categoriesLoading && expenseCategories.length > 0 ? (
+                expenseCategories.map((category) => (
+                  <Option key={category.id} value={category.name}>
+                    {category.name}
+                  </Option>
+                ))
+              ) : (
+                <Option disabled>No categories available</Option>
+              )}
+            </Select>
+          </div>
+
+          {canManage && (
+            <div style={{ width: 140 }}>
+              <Select
+                placeholder="Member"
+                value={memberFilter}
+                onChange={setMemberFilter}
+                className="w-full h-[34px]"
+                allowClear
+                showSearch
+                optionFilterProp="children"
+                variant="borderless"
+                style={{ background: 'var(--bg-pure-white)', borderRadius: 8, border: '1px solid var(--border-slate-200)', fontSize: '12px' }}
+              >
+                {members.map((member) => (
+                  <Option key={member.id} value={member.id}>
+                    {member.name}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+          )}
+
+          <div style={{ width: 240 }}>
+            <RangePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              className="w-full h-[34px] rounded-lg text-xs"
+              style={{ background: 'var(--bg-pure-white)', border: '1px solid var(--border-slate-200)' }}
+              variant="borderless"
+            />
+          </div>
+        </div>
+
+        <Row gutter={[20, 20]}>
           {/* Main Transactions Table */}
-          <Col xs={24} lg={16}>
-            {/* Filters */}
-            <Card size="small" style={{ marginBottom: 16 }}>
-              <Space wrap size={12}>
-                <Input
-                  placeholder="Search transactions..."
-                  prefix={<SearchOutlined />}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ width: 200 }}
-                  allowClear
-                />
-
-                <Select
-                  placeholder="Type"
-                  value={typeFilter}
-                  onChange={setTypeFilter}
-                  style={{ width: 100 }}
-                  allowClear
-                >
-                  <Option value="credit">Credit</Option>
-                  <Option value="debit">Debit</Option>
-                </Select>
-
-                <Select
-                  placeholder="Category"
-                  value={categoryFilter}
-                  onChange={setCategoryFilter}
-                  style={{ width: 140 }}
-                  allowClear
-                >
-                  <Option value="salary">Salary</Option>
-                  <Option value="bonus">Bonus</Option>
-                  <Option value="client_payment">Client Payment</Option>
-                  <Option value="expense">Expense</Option>
-                  <Option value="office_expense">Office Expense</Option>
-                  <Option value="investment">Investment</Option>
-                  <Option value="refund">Refund</Option>
-                  <Option value="other">Other</Option>
-                </Select>
-
-                {canManage && (
-                  <Select
-                    placeholder="Member"
-                    value={memberFilter}
-                    onChange={setMemberFilter}
-                    style={{ width: 150 }}
-                    allowClear
-                    showSearch
-                    optionFilterProp="children"
-                  >
-                    {members.map((member) => (
-                      <Option key={member.id} value={member.id}>
-                        {member.name}
-                      </Option>
-                    ))}
-                  </Select>
-                )}
-
-                <RangePicker
-                  value={dateRange}
-                  onChange={handleDateRangeChange}
-                  style={{ width: 240 }}
-                  size="middle"
-                />
-              </Space>
-            </Card>
-
+          <Col xs={24} lg={18}>
             {/* Transactions Table */}
-            <Card size="small" styles={{ body: { padding: 0 } }} className="compact-table">
+            <Card
+              size="small"
+              styles={{ body: { padding: 0 } }}
+              className="compact-table"
+              style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border-slate-200)' }}
+            >
               <Table
                 columns={columns}
                 dataSource={transactions}
@@ -704,63 +799,21 @@ export default function AccountsPage() {
             </Card>
           </Col>
 
-          {/* Sidebar - Category Breakdown & Recent Activity */}
-          <Col xs={24} lg={8}>
-            {/* Category Breakdown */}
-            <Card
-              title={
-                <Space>
-                  <CreditCardOutlined style={{ color: '#1677ff' }} />
-                  <span>Category Breakdown</span>
-                </Space>
-              }
-              size="small"
-              style={{ marginBottom: 16 }}
-              styles={{ body: { padding: 16 } }}
-            >
-              {summary?.categoryBreakdown?.length > 0 ? (
-                <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                  {summary.categoryBreakdown.slice(0, 6).map((item: any, index: number) => (
-                    <div key={index}>
-                      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Tag
-                          color={getCategoryColor(item.category)}
-                          style={{ fontSize: 10, margin: 0 }}
-                        >
-                          {item.category.replace('_', ' ').toUpperCase()}
-                        </Tag>
-                        <Text strong style={{ fontSize: 12 }}>
-                          {formatCurrency(Math.abs(item.total))}
-                        </Text>
-                      </Space>
-                      <Progress
-                        percent={Math.min(100, (Math.abs(item.total) / Math.max(...summary.categoryBreakdown.map((c: any) => Math.abs(c.total)))) * 100)}
-                        strokeColor={getCategoryColor(item.category)}
-                        size="small"
-                        showInfo={false}
-                      />
-                    </div>
-                  ))}
-                </Space>
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No data available"
-                  style={{ margin: '20px 0' }}
-                />
-              )}
-            </Card>
+          {/* Sidebar - Recent Activity */}
+          <Col xs={24} lg={6}>
 
             {/* Recent Transactions */}
             <Card
               title={
-                <Space>
-                  <FileTextOutlined style={{ color: '#52c41a' }} />
-                  <span>Recent Activity</span>
+                <Space size={8}>
+                  <FileTextOutlined style={{ fontSize: 15, color: 'var(--accounts-emerald-text)' }} />
+                  <span className="text-[13px] font-bold" style={{ color: 'var(--accounts-stat-value)' }}>Recent Activity</span>
                 </Space>
               }
               size="small"
-              styles={{ body: { padding: 0 } }}
+              style={{ borderRadius: 16, border: '1px solid var(--accounts-card-border)', backgroundColor: 'var(--accounts-card-bg)', height: '100%' }}
+              styles={{ body: { padding: 0, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' } }}
+              className="hide-scrollbar"
             >
               {summary?.recentTransactions?.length > 0 ? (
                 <List
@@ -773,40 +826,55 @@ export default function AccountsPage() {
                         <List.Item.Meta
                           avatar={
                             <Avatar
-                              size={32}
+                              size={24}
                               style={{
-                                backgroundColor: item.type === 'credit' ? '#52c41a' : '#ff4d4f',
-                                fontSize: 12,
-                                fontWeight: 600,
+                                backgroundColor: item.type === 'credit' ? 'var(--accounts-emerald-bg)' : 'var(--accounts-rose-bg)',
+                                color: item.type === 'credit' ? 'var(--accounts-emerald-text)' : 'var(--accounts-rose-text)',
+                                fontSize: 11,
+                                fontWeight: 800
                               }}
                             >
                               {item.type === 'credit' ? '+' : '-'}
                             </Avatar>
                           }
                           title={
-                            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                              <Text style={{ fontSize: 12 }}>{item.description}</Text>
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              <Text className="text-[11px] font-semibold truncate" style={{ color: 'var(--accounts-stat-value)' }}>{item.description}</Text>
+                              {item.metadata?.invoiceId && (
+                                <span
+                                  className="text-[9px] px-1.5 py-0.5 rounded-md inline"
+                                  style={{
+                                    border: '1px solid var(--accounts-invoice-border)',
+                                    backgroundColor: 'var(--accounts-invoice-bg)',
+                                    color: 'var(--accounts-invoice-text)',
+                                    fontWeight: 500,
+                                    width: 'fit-content',
+                                    maxWidth: '60px'
+                                  }}
+                                >
+                                  Invoice
+                                </span>
+                              )}
+                              <div className="flex items-center gap-1.5 overflow-hidden">
+                                <span className="text-[10px] font-medium truncate max-w-[50px]" style={{ color: 'var(--accounts-stat-sub)' }}>{member?.name || 'Unknown'}</span>
+                                <div className="w-0.5 h-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--accounts-stat-sub)' }} />
+                                <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--accounts-stat-sub)' }}>{dayjs(item.date).format('MMM DD')}</span>
+                              </div>
+                            </div>
+                          }
+                          description={
+                            <div className="mt-1">
                               <Text
                                 strong
+                                className="text-[11px] px-1.5 py-0.5 rounded-md"
                                 style={{
-                                  fontSize: 12,
-                                  color: item.type === 'credit' ? '#52c41a' : '#ff4d4f',
+                                  backgroundColor: item.type === 'credit' ? 'var(--accounts-emerald-bg)' : 'var(--accounts-rose-bg)',
+                                  color: item.type === 'credit' ? 'var(--accounts-emerald-text)' : 'var(--accounts-rose-text)'
                                 }}
                               >
                                 {formatCurrency(item.amount)}
                               </Text>
-                            </Space>
-                          }
-                          description={
-                            <Space>
-                              <Text type="secondary" style={{ fontSize: 10 }}>
-                                {member?.name || 'Unknown'}
-                              </Text>
-                              <Divider type="vertical" style={{ margin: '0 4px' }} />
-                              <Text type="secondary" style={{ fontSize: 10 }}>
-                                {dayjs(item.date).format('MMM DD')}
-                              </Text>
-                            </Space>
+                            </div>
                           }
                         />
                       </List.Item>
@@ -884,13 +952,13 @@ export default function AccountsPage() {
                   >
                     <Option value="credit" label="Credit (Money In)">
                       <Space>
-                        <ArrowUpOutlined style={{ color: '#52c41a' }} />
+                        <ArrowUpOutlined style={{ color: 'var(--accounts-emerald-text)' }} />
                         Credit (Money In)
                       </Space>
                     </Option>
                     <Option value="debit" label="Debit (Money Out)">
                       <Space>
-                        <ArrowDownOutlined style={{ color: '#ff4d4f' }} />
+                        <ArrowDownOutlined style={{ color: 'var(--accounts-rose-text)' }} />
                         Debit (Money Out)
                       </Space>
                     </Option>
@@ -957,14 +1025,15 @@ export default function AccountsPage() {
                       String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
                     }
                   >
-                    <Option value="salary">Salary</Option>
-                    <Option value="bonus">Bonus</Option>
-                    <Option value="client_payment">Client Payment</Option>
-                    <Option value="expense">Expense</Option>
-                    <Option value="office_expense">Office Expense</Option>
-                    <Option value="investment">Investment</Option>
-                    <Option value="refund">Refund</Option>
-                    <Option value="other">Other</Option>
+                    {!categoriesLoading && expenseCategories.length > 0 ? (
+                      expenseCategories.map((category) => (
+                        <Option key={category.id} value={category.name}>
+                          {category.name}
+                        </Option>
+                      ))
+                    ) : (
+                      <Option disabled>No categories available</Option>
+                    )}
                   </Select>
                 </Form.Item>
               </div>
@@ -1014,7 +1083,70 @@ export default function AccountsPage() {
             </Form>
           )}
         </Modal>
+
+        {/* Category Breakdown Drawer */}
+        <Drawer
+          title={
+            <Space size={12}>
+              <div style={{ background: 'var(--bg-blue-50)', padding: 8, borderRadius: 10, color: 'var(--text-blue-700)', display: 'flex' }}>
+                <PieChartOutlined style={{ fontSize: 18 }} />
+              </div>
+              <div style={{ lineHeight: 1.1 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Category Breakdown</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 400 }}>Detailed analysis of transactions by category</div>
+              </div>
+            </Space>
+          }
+          placement="right"
+          width={450}
+          onClose={() => setBreakdownDrawerVisible(false)}
+          open={breakdownDrawerVisible}
+          styles={{
+            header: { borderBottom: '1px solid var(--border-slate-200)', padding: '20px 24px' },
+            body: { padding: '24px' }
+          }}
+        >
+          {summary?.categoryBreakdown?.length > 0 ? (
+            <div className="flex flex-col gap-6">
+              {summary.categoryBreakdown.map((item: any, index: number) => (
+                <div key={index} className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 hover:border-blue-100 hover:bg-blue-50/10 transition-all duration-300">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ background: getCategoryColor(item.category) }} />
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{item.category.replace('_', ' ')}</span>
+                    </div>
+                    <div className="text-sm font-bold text-slate-900">{formatCurrency(Math.abs(item.total))}</div>
+                  </div>
+                  <Progress
+                    percent={Math.min(100, (Math.abs(item.total) / Math.max(...summary.categoryBreakdown.map((c: any) => Math.abs(c.total)))) * 100)}
+                    strokeColor={getCategoryColor(item.category)}
+                    size="small"
+                    showInfo={false}
+                    strokeWidth={8}
+                    className="m-0"
+                  />
+                  <div className="mt-2 flex justify-between items-center text-[10px] text-slate-400 font-medium">
+                    <span>{item.count} Transactions</span>
+                    <span>{((Math.abs(item.total) / (summary.balance.credits + summary.balance.debits)) * 100).toFixed(1)}% of total</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty description="No breakdown data available" />
+          )}
+        </Drawer>
       </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .hide-scrollbar .ant-card-body::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar .ant-card-body {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}} />
     </MainLayout>
   );
 }

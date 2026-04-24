@@ -13,6 +13,7 @@ export interface Transaction {
   description: string;
   notes?: string;
   date: string;
+  metadata?: any;
   createdAt: string;
   updatedAt: string;
 }

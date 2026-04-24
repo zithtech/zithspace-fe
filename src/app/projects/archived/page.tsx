@@ -224,7 +224,13 @@ export default function ArchivedTicketsPage() {
         if (!name) return <Text type="secondary" italic style={{ fontSize: 13 }}>Unassigned</Text>;
         return (
           <Space>
-            <Avatar size="small" style={{ backgroundColor: '#1677ff', fontSize: 10 }}>{name.charAt(0)}</Avatar>
+            <Avatar 
+              size="small" 
+              src={record.assignee?.avatarUrl}
+              style={{ backgroundColor: '#1677ff', fontSize: 10 }}
+            >
+              {name.charAt(0)}
+            </Avatar>
             <Text style={{ fontSize: 13 }}>{name}</Text>
           </Space>
         );

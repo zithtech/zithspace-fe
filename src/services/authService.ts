@@ -15,6 +15,7 @@ export interface LoginResponse {
     role: string; // Flexible string instead of enum
     position: { id: string; title: string } | null;
     phone: string;
+    avatarUrl?: string | null;
     reportsTo?: string | null;
     isActive: boolean;
     tenantId: string; // Add tenant context
@@ -28,6 +29,7 @@ export interface UserProfile {
   id: string;
   name: string;
   phone: string;
+  //avatarUrl?: string | null;
   personalEmail: string;
   workEmail: string;
   role: string;
@@ -49,6 +51,7 @@ export interface UserProfile {
   dateOfBirth?: string;
   createdAt: string;
   updatedAt: string;
+  avatarUrl?: string | null;
   isActive: boolean;
   department?: string;
   employee_code?: string | null;
@@ -61,6 +64,7 @@ export interface UpdateProfileData {
   phone: string;
   personalEmail: string;
   workEmail: string;
+  avatarUrl?: string | null;
   dateOfBirth?: string | null;
 }
 

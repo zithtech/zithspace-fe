@@ -51,6 +51,7 @@ interface DashboardSummary {
 interface PresentEmployee {
   id: string;
   name: string;
+  avatarUrl?: string;
   position: string | { id: string; title: string; code: string; } | null;
   status: string;
   clockInTime: string;
@@ -248,6 +249,7 @@ export default function AttendanceDashboardPage() {
                       avatar={
                         <Avatar
                           size={48}
+                          src={employee.avatarUrl}
                           style={{
                             backgroundColor: getStatusColor(employee.status),
                             fontSize: '18px',

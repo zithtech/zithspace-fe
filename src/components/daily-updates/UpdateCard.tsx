@@ -114,6 +114,7 @@ export default function UpdateCard({
               <Space size={10}>
                 <Avatar
                   size={32}
+                  src={update.user?.avatarUrl}
                   style={{
                     backgroundColor: update.updateType === "BOD" ? "var(--bg-holiday)" : "var(--bg-blue-50)",
                     color: update.updateType === "BOD" ? "var(--text-holiday)" : "var(--text-blue-700)",

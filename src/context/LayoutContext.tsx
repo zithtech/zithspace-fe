@@ -62,7 +62,11 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
 
     return (
-        <LayoutContext.Provider value={{ collapsed, setCollapsed, toggleCollapsed }}>
+        <LayoutContext.Provider value={{ 
+            collapsed, 
+            setCollapsed, 
+            toggleCollapsed
+        }}>
             {children}
         </LayoutContext.Provider>
     );

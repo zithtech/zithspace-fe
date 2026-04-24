@@ -22,7 +22,7 @@ import DocumentEditor, { ViewMode } from '@/components/common/DocumentEditor'
 import MainLayout from '@/components/layout/MainLayout'
 import { useDocumentHub, globalDataKeys } from '@/hooks/useGlobalData'
 import { DocumentTreeNode } from '@/services/documentHub'
-import { Modal, Form, Input, Dropdown, MenuProps, Button, message, Segmented, Drawer, Tooltip } from 'antd'
+import { Modal, Form, Input, Dropdown, MenuProps, Button, message, Segmented, Drawer, Tooltip, Tabs, Typography } from 'antd'
 import { documentHubService as DocumentHubService } from '@/services/documentHub'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCreateBlockNote } from "@blocknote/react";
@@ -31,6 +31,8 @@ import "@blocknote/mantine/style.css";
 import { EditOutlined, EyeOutlined, SaveOutlined, SplitCellsOutlined, FullscreenOutlined, FullscreenExitOutlined, ExportOutlined } from '@ant-design/icons'
 import DocumentHistory from '@/components/common/DocumentHistory'
 import ShareModal from '@/components/documenthub/ShareModal'
+import { RobotOutlined } from '@ant-design/icons'
+import { aiService } from '@/services/ai'
 
 interface TreeItem extends DocumentTreeNode {
     children?: TreeItem[]
@@ -113,16 +115,23 @@ function TreeNode({
     return (
         <div>
             <div
-                className={`group flex items-center gap-2 px-3 py-2 cursor-pointer rounded-md text-sm transition-colors ${isSelected
-                    ? 'bg-slate-200 text-slate-900'
-                    : 'text-slate-700 hover:bg-slate-100'
-                    }`}
                 style={{
-                    backgroundColor: isSelected ? 'var(--border-slate-200)' : 'transparent',
-                    color: isSelected ? 'var(--text-slate-900)' : 'var(--text-slate-700)',
+                    backgroundColor: isSelected ? 'var(--bg-slate-50)' : 'transparent',
+                    color: isSelected ? 'var(--text-slate-900)' : 'var(--text-slate-600)',
+                    border: isSelected ? '1px solid var(--border-slate-200)' : '1px solid transparent'
                 }}
-                onMouseEnter={(e) => !isSelected && (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
-                onMouseLeave={(e) => !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')}
+                onMouseEnter={(e) => {
+                    if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)';
+                        e.currentTarget.style.borderColor = 'var(--border-slate-100)';
+                    }
+                }}
+                onMouseLeave={(e) => {
+                    if (!isSelected) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.borderColor = 'transparent';
+                    }
+                }}
                 onClick={(e) => {
                     if (hasChildren) {
                         onToggleExpand(item.id)
@@ -137,16 +146,19 @@ function TreeNode({
                 <div className="flex items-center gap-2 flex-1 overflow-hidden">
                     {hasChildren ? (
                         <button
-                            className="p-0.5 hover:bg-gray-200 rounded"
+                            className="p-0.5 rounded transition-colors"
+                            style={{ backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--border-slate-200)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={(e) => {
                                 e.stopPropagation()
                                 onToggleExpand(item.id)
                             }}
                         >
                             {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                                <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-slate-400)' }} />
                             ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-500" />
+                                <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-slate-400)' }} />
                             )}
                         </button>
                     ) : (
@@ -174,7 +186,8 @@ function TreeNode({
                         />
                     ) : (
                         <Tooltip title={item.title} placement="right" mouseEnterDelay={0.5}>
-                            <span className={`truncate min-w-0 ${item.type === 'section' ? 'text-xs font-semibold text-gray-500 uppercase tracking-wider' : ''}`}>
+                            <span className={`truncate min-w-0 ${item.type === 'section' ? 'text-xs font-semibold uppercase tracking-wider' : ''}`}
+                                  style={{ color: item.type === 'section' ? 'var(--text-slate-400)' : 'inherit' }}>
                                 {item.title}
                             </span>
                         </Tooltip>
@@ -184,10 +197,13 @@ function TreeNode({
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                     <Dropdown menu={{ items: menuItems }} trigger={['click']}>
                         <div
-                            className="p-1 hover:bg-gray-300 rounded flex items-center justify-center"
+                            className="p-1 rounded flex items-center justify-center transition-colors"
+                            style={{ backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--border-slate-200)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <Plus className="w-4 h-4 text-gray-500 shrink-0" />
+                            <Plus className="w-4 h-4 shrink-0" style={{ color: 'var(--text-slate-400)' }} />
                         </div>
                     </Dropdown>
                 </div>
@@ -242,10 +258,16 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const queryClient = useQueryClient();
     const [messageApi, contextHolder] = message.useMessage();
     const [modal, modalContextHolder] = Modal.useModal();
+    const [isAIGenerating, setIsAIGenerating] = useState(false);
 
     // Hub Rename State
     const [isEditingHubName, setIsEditingHubName] = useState(false);
     const [hubName, setHubName] = useState('');
+
+    // AI Modal State for existing documents
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiTabKey, setAiTabKey] = useState<'manual' | 'ai'>('manual');
 
     const { data: documentHub, isLoading: documentHubLoading, refetch: refetchHub } = useDocumentHub(documentId)
 
@@ -400,12 +422,27 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
     const handleCreateNode = async (values: any) => {
         try {
             setIsCreatingNode(true);
-            await DocumentHubService.createTreeNode({
+
+            // If AI mode is active, we might need to handle it differently
+            const node = await DocumentHubService.createTreeNode({
                 documentHubId: documentId,
                 parentId: addNodeParentId,
                 type: addNodeType,
                 title: values.name
             });
+
+            // If it's a file and AI mode was selected, generate content
+            if (addNodeType === 'file' && aiTabKey === 'ai' && values.prompt) {
+                try {
+                    const content = await aiService.generateContent(values.name, values.prompt);
+                    if (node.documentId) {
+                        await DocumentHubService.updateDocument(node.documentId, { content });
+                    }
+                } catch (aiError) {
+                    console.error('AI content generation failed after node creation:', aiError);
+                    messageApi.warning('Node created, but AI content generation failed');
+                }
+            }
 
             // Add a small delay to ensure the loader is visible and prevent double clicks
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -413,11 +450,11 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             messageApi.success(`${addNodeType === 'folder' ? 'Folder' : 'File'} created successfully`);
             setIsAddModalOpen(false);
             form.resetFields();
+            setAiTabKey('manual'); // Reset tab
 
             // Invalidate query to refetch tree
             const ticketsKey = [...globalDataKeys.tickets, documentId];
             const hubKey = [...globalDataKeys.documentHub, documentId];
-            console.log('Invalidating and refetching Document Hub tree with keys:', { ticketsKey, hubKey });
 
             queryClient.invalidateQueries({ queryKey: ticketsKey });
             queryClient.refetchQueries({ queryKey: ticketsKey });
@@ -427,6 +464,12 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             // If we added to a parent, ensure it's expanded
             if (addNodeParentId) {
                 setExpandedIds(prev => new Set(prev).add(addNodeParentId));
+            }
+
+            // If it's a file, select it
+            if (addNodeType === 'file' && node.documentId) {
+                setSelectedDoc(node.documentId);
+                setSelectedTreeNodeId(node.id);
             }
 
         } catch (error) {
@@ -455,6 +498,50 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
             messageApi.error('Failed to save document');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleAIGenerateContent = () => {
+        if (!selectedDoc || selectedDoc === 'api-ref') {
+            messageApi.warning('Please select a document first');
+            return;
+        }
+        setAiPrompt('');
+        setIsAIModalOpen(true);
+    };
+
+    const handleExecuteAIGeneration = async () => {
+        if (!aiPrompt.trim()) {
+            messageApi.warning('Please enter a prompt');
+            return;
+        }
+
+        setIsAIGenerating(true);
+        try {
+            const content = await aiService.generateContent(
+                documentContent?.title || 'Document',
+                aiPrompt
+            );
+
+            if (editor && content && content.length > 0) {
+                const selectedBlocks = editor.getSelection()?.blocks || editor.getSelectedBlocks();
+
+                if (selectedBlocks && selectedBlocks.length > 0) {
+                    editor.replaceBlocks(selectedBlocks, content);
+                    messageApi.success('AI content inserted into selection!');
+                } else {
+                    editor.replaceBlocks(editor.document, content);
+                    messageApi.success('AI content generated successfully!');
+                }
+
+                setIsDirty(true);
+                setIsAIModalOpen(false);
+            }
+        } catch (error: any) {
+            console.error('AI Content Generation Error:', error);
+            messageApi.error(error.message || 'Failed to generate AI content');
+        } finally {
+            setIsAIGenerating(false);
         }
     };
 
@@ -498,7 +585,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         confirmAction(() => {
             const node = documentHub?.treeNodes?.find((n: DocumentTreeNode) => n.id === treeNodeId);
             setSelectedTreeNodeId(treeNodeId);
-            if (node && node.type === 'file' && node.documentId) {
+            if (node && node.documentId) {
                 setSelectedDoc(node.documentId);
                 setPreviewVersion(null); // Reset preview when switching docs
             }
@@ -629,10 +716,10 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
         <MainLayout>
             {contextHolder}
             {modalContextHolder}
-            <div className="flex w-full" style={{ 
-                margin: "0 -24px", 
-                background: "var(--bg-pure-white)", 
-                height: "calc(100vh - 64px)" 
+            <div className="flex w-full" style={{
+                margin: "0 -24px",
+                background: "var(--bg-pure-white)",
+                height: "calc(100vh - 64px)"
             }}>
                 {/* Sidebar */}
                 {!isFullScreen && (
@@ -656,13 +743,13 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             ) : (
                                 <div className="flex items-center justify-between w-full min-w-0 overflow-hidden">
                                     <Tooltip title={documentHub?.name} placement="right" mouseEnterDelay={0.5}>
-                                        <h1 className="text-sm font-semibold text-gray-900 truncate flex-1 min-w-0">
+                                        <h1 className="text-sm font-semibold truncate flex-1 min-w-0" style={{ color: 'var(--text-slate-900)' }}>
                                             {documentHub?.name}
                                         </h1>
                                     </Tooltip>
                                     <EditOutlined
-                                        className="text-gray-400 hover:text-gray-600 cursor-pointer opacity-0 group-hover/header:opacity-100 transition-opacity ml-2 shrink-0"
-                                        style={{ fontSize: 16 }}
+                                        className="cursor-pointer opacity-0 group-hover/header:opacity-100 transition-opacity ml-2 shrink-0"
+                                        style={{ fontSize: 16, color: 'var(--text-slate-400)' }}
                                         onClick={() => setIsEditingHubName(true)}
                                     />
                                 </div>
@@ -814,19 +901,11 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             onClick={() => setIsShareOpen(true)}
                                         />
                                     </Tooltip>
-                                    <Tooltip title={`Delete ${selectedNode?.type || 'item'}`}>
+                                    <Tooltip title="AI Generate Content">
                                         <Button
-                                            danger
-                                            icon={<Trash className="w-4 h-4" />}
-                                            onClick={() => {
-                                                if (selectedNode) {
-                                                    handleDeleteDocument(
-                                                        selectedNode.id,
-                                                        selectedNode.type as any,
-                                                        selectedNode.documentId || undefined
-                                                    );
-                                                }
-                                            }}
+                                            icon={<RobotOutlined style={{ color: '#1890ff' }} />}
+                                            loading={isAIGenerating}
+                                            onClick={handleAIGenerateContent}
                                         />
                                     </Tooltip>
                                     <div className="h-6 w-px bg-slate-200 mx-2" style={{ backgroundColor: 'var(--border-slate-200)' }} />
@@ -926,36 +1005,161 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 currentShareToken={documentContent?.shareToken || null}
             />
 
+            {/* AI Assistant Modal for Existing Documents */}
+            <Modal
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <RobotOutlined style={{ color: '#1677ff' }} />
+                        <span>AI Assistant</span>
+                    </div>
+                }
+                open={isAIModalOpen}
+                onCancel={() => setIsAIModalOpen(false)}
+                footer={[
+                    <Button key="cancel" onClick={() => setIsAIModalOpen(false)}>
+                        Cancel
+                    </Button>,
+                    <Button
+                        key="generate"
+                        type="primary"
+                        icon={<RobotOutlined />}
+                        loading={isAIGenerating}
+                        onClick={handleExecuteAIGeneration}
+                    >
+                        Generate Content
+                    </Button>
+                ]}
+                width={600}
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <Typography.Text type="secondary">
+                        Describe what you want to generate for "<strong>{documentContent?.title}</strong>".
+                        The AI will generate professional technical documentation based on your prompt.
+                    </Typography.Text>
+                </div>
+                <Input.TextArea
+                    rows={6}
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="e.g., Write a detailed guide on how to integrate our payment gateway, including code examples for Node.js and error handling..."
+                    style={{ borderRadius: 8 }}
+                />
+            </Modal>
+
             <Modal
                 title={`Create New ${addNodeType === 'folder' ? 'Folder' : 'File'}`}
                 open={isAddModalOpen}
                 onCancel={() => {
                     setIsAddModalOpen(false);
                     form.resetFields();
+                    setAiTabKey('manual');
                 }}
                 footer={null}
+                width={addNodeType === 'file' ? 600 : 400}
             >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleCreateNode}
-                >
-                    <Form.Item
-                        name="name"
-                        label="Name"
-                        rules={[{ required: true, message: 'Please enter a name' }]}
+                {addNodeType === 'file' ? (
+                    <Tabs
+                        activeKey={aiTabKey}
+                        onChange={(key) => setAiTabKey(key as 'manual' | 'ai')}
+                        items={[
+                            {
+                                key: 'manual',
+                                label: 'Manual Creation',
+                                children: (
+                                    <Form
+                                        form={form}
+                                        layout="vertical"
+                                        onFinish={handleCreateNode}
+                                    >
+                                        <Form.Item
+                                            name="name"
+                                            label="Document Name"
+                                            rules={[{ required: true, message: 'Please enter a name' }]}
+                                        >
+                                            <Input placeholder="Enter document name" autoFocus />
+                                        </Form.Item>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <Button onClick={() => setIsAddModalOpen(false)}>
+                                                Cancel
+                                            </Button>
+                                            <Button type="primary" htmlType="submit" loading={isCreatingNode}>
+                                                Create Document
+                                            </Button>
+                                        </div>
+                                    </Form>
+                                )
+                            },
+                            {
+                                key: 'ai',
+                                label: (
+                                    <span>
+                                        <RobotOutlined /> AI Assistant
+                                    </span>
+                                ),
+                                children: (
+                                    <Form
+                                        form={form}
+                                        layout="vertical"
+                                        onFinish={handleCreateNode}
+                                    >
+                                        <Form.Item
+                                            name="name"
+                                            label="Document Name"
+                                            rules={[{ required: true, message: 'Please enter a name' }]}
+                                        >
+                                            <Input placeholder="Enter document name" />
+                                        </Form.Item>
+                                        <Form.Item
+                                            name="prompt"
+                                            label="What should be in this document?"
+                                            rules={[{ required: true, message: 'Please enter a prompt' }]}
+                                        >
+                                            <Input.TextArea
+                                                rows={5}
+                                                placeholder="e.g., A comprehensive overview of our database schema, focusing on the user and order tables..."
+                                            />
+                                        </Form.Item>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <Button onClick={() => setIsAddModalOpen(false)}>
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                type="primary"
+                                                htmlType="submit"
+                                                loading={isCreatingNode}
+                                                icon={<RobotOutlined />}
+                                            >
+                                                Generate & Create
+                                            </Button>
+                                        </div>
+                                    </Form>
+                                )
+                            }
+                        ]}
+                    />
+                ) : (
+                    <Form
+                        form={form}
+                        layout="vertical"
+                        onFinish={handleCreateNode}
                     >
-                        <Input placeholder={`Enter ${addNodeType} name`} autoFocus />
-                    </Form.Item>
-                    <div className="flex justify-end gap-2">
-                        <Button onClick={() => setIsAddModalOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button type="primary" htmlType="submit" loading={isCreatingNode}>
-                            Create
-                        </Button>
-                    </div>
-                </Form>
+                        <Form.Item
+                            name="name"
+                            label="Folder Name"
+                            rules={[{ required: true, message: 'Please enter a name' }]}
+                        >
+                            <Input placeholder="Enter folder name" autoFocus />
+                        </Form.Item>
+                        <div className="flex justify-end gap-2 mt-4">
+                            <Button onClick={() => setIsAddModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="primary" htmlType="submit" loading={isCreatingNode}>
+                                Create Folder
+                            </Button>
+                        </div>
+                    </Form>
+                )}
             </Modal>
         </MainLayout>
     )

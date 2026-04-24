@@ -192,13 +192,15 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                                         <FolderOutlined style={{ color: '#1677ff', fontSize: 16, flexShrink: 0 }} />
-                                        <Text
-                                            strong
-                                            ellipsis
-                                            style={{ fontSize: 14 }}
-                                        >
-                                            {hub.name}
-                                        </Text>
+                                        <Tooltip title={hub.name} mouseEnterDelay={0.5}>
+                                            <Text
+                                                strong
+                                                ellipsis
+                                                style={{ fontSize: 14, maxWidth: '180px' }}
+                                            >
+                                                {hub.name}
+                                            </Text>
+                                        </Tooltip>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                         <Tooltip title="Share Hub">

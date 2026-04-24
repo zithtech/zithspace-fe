@@ -11,6 +11,7 @@ import {
   useMembers,
 } from "@/hooks/useGlobalData";
 import DocumentHubService, { DocumentHub } from "@/services/documentHub";
+import { aiService } from "@/services/ai";
 import { TicketDetails } from "@/types/ticket";
 import {
   FileZipOutlined,
@@ -24,8 +25,10 @@ import {
   ShareAltOutlined,
   LockOutlined,
   FileTextOutlined,
+  FolderOutlined,
   GlobalOutlined,
   EyeOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import ShareModal from "@/components/documenthub/ShareModal";
 import {
@@ -38,11 +41,14 @@ import {
   Select,
   Table,
   Tag,
+  Card,
   Tooltip,
   DatePicker,
   Space,
   message,
   Spin,
+  Tabs,
+  Typography,
 } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnsType } from "antd/es/table";
@@ -96,6 +102,20 @@ const DocumentHubPage = (props: Props) => {
     shareToken: string | null;
   } | null>(null);
 
+  // AI Hub State
+  const [hubTabKey, setHubTabKey] = useState<'manual' | 'ai'>('manual');
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGeneratingStructure, setIsGeneratingStructure] = useState(false);
+  const [suggestedStructure, setSuggestedStructure] = useState<any[]>([]);
+  const [suggestedTitle, setSuggestedTitle] = useState('');
+  const [currentStep, setCurrentStep] = useState(0); // 0: Prompt, 1: Review
+
+  // Content Generation Progress State
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationTotal, setGenerationTotal] = useState(0);
+  const [isProcessingContent, setIsProcessingContent] = useState(false);
+  const [currentProcessingTitle, setCurrentProcessingTitle] = useState('');
+
   const { data: projects = [], isLoading: projectsLoading } = useUserProjects();
   const { data: tickets = [], isLoading: ticketsLoading } =
     useUserTicketsByProjects(selectedProjectId);
@@ -120,15 +140,86 @@ const DocumentHubPage = (props: Props) => {
       };
 
       const data = await DocumentHubService.createDocumentHub(documentDetails);
+
+      // If AI mode was used, execute the structure and content creation
+      if (hubTabKey === 'ai' && suggestedStructure.length > 0) {
+        try {
+          setIsProcessingContent(true);
+          setGenerationProgress(0);
+
+          // Step 1: Create the structure (Skeleton)
+          const createdNodes = await aiService.createHubStructure(data.id, suggestedStructure);
+          const filesToProcess = createdNodes; // We process all nodes (folders/files) as requested
+
+          setGenerationTotal(filesToProcess.length);
+
+          // Step 2: Progressively generate content for each node
+          for (let i = 0; i < filesToProcess.length; i++) {
+            const node = filesToProcess[i];
+            setCurrentProcessingTitle(node.title);
+            setGenerationProgress(i + 1);
+
+            // Retry logic (3 times) as requested
+            let retryCount = 0;
+            let success = false;
+            while (retryCount < 3 && !success) {
+              try {
+                await aiService.generateAndSaveContent(node.documentId);
+                success = true;
+              } catch (err) {
+                retryCount++;
+                console.error(`Retry ${retryCount} failed for ${node.title}:`, err);
+                if (retryCount < 3) await new Promise(r => setTimeout(r, 1000));
+              }
+            }
+          }
+        } catch (aiError) {
+          console.error("AI structure or content creation failed:", aiError);
+          messageApi.warning("Hub created, but AI content generation was incomplete.");
+        } finally {
+          setIsProcessingContent(false);
+        }
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["documentHubs"] });
       setModalVisible(false);
+      resetAIState();
       form.resetFields();
+
       router.push(`/documenthub/${data?.id}`);
     } catch (error) {
       console.error("Failed to create document hub", error);
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleGenerateStructure = async () => {
+    if (!aiPrompt.trim()) {
+      messageApi.warning("Please enter a description for your hub.");
+      return;
+    }
+
+    setIsGeneratingStructure(true);
+    try {
+      const result = await aiService.suggestStructure(aiPrompt);
+      setSuggestedStructure(result.structure);
+      setSuggestedTitle(result.suggestedTitle);
+      setCurrentStep(1);
+    } catch (error: any) {
+      messageApi.error(error.message || "Failed to generate structure.");
+    } finally {
+      setIsGeneratingStructure(false);
+    }
+  };
+
+  const resetAIState = () => {
+    setHubTabKey('manual');
+    setAiPrompt('');
+    setSuggestedStructure([]);
+    setSuggestedTitle('');
+    setCurrentStep(0);
+    setIsGeneratingStructure(false);
   };
 
   const handleDeleteHub = (e: React.MouseEvent, id: string, name: string) => {
@@ -189,10 +280,10 @@ const DocumentHubPage = (props: Props) => {
   if (authLoading) {
     return (
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "var(--bg-pure-white)", 
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
           display: 'flex',
           justifyContent: 'center',
@@ -214,7 +305,11 @@ const DocumentHubPage = (props: Props) => {
       dataIndex: "name",
       key: "name",
       render: (text) => (
-        <span className="font-medium text-blue-600">{text}</span>
+        <Tooltip title={text} mouseEnterDelay={0.5}>
+          <span className="font-medium text-blue-600 truncate block max-w-[300px]">
+            {text}
+          </span>
+        </Tooltip>
       ),
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
@@ -286,7 +381,7 @@ const DocumentHubPage = (props: Props) => {
           <div onClick={(e) => e.stopPropagation()}>
             <Select
               size="small"
-              value={visibility || 'private'}
+              value={visibility || 'public'}
               disabled={!isOwner}
               style={{ width: 100 }}
               bordered={false}
@@ -339,13 +434,13 @@ const DocumentHubPage = (props: Props) => {
     <MainLayout>
       {contextHolder}
       {modalContextHolder}
-      <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px 16px 32px", 
-          background: "var(--bg-pure-white)", 
-          minHeight: "calc(100vh - 64px)",
-          display: "flex",
-          flexDirection: "column"
+      <div style={{
+        margin: "0 -24px",
+        padding: "24px 32px 16px 32px",
+        background: "var(--bg-pure-white)",
+        minHeight: "calc(100vh - 64px)",
+        display: "flex",
+        flexDirection: "column"
       }}>
         <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div>
@@ -369,7 +464,7 @@ const DocumentHubPage = (props: Props) => {
               icon={<PlusOutlined />}
               onClick={() => setModalVisible(true)}
             >
-              Create Document
+              Create Hub
             </Button>
           </div>
         </div>
@@ -487,105 +582,231 @@ const DocumentHubPage = (props: Props) => {
           content: { borderRadius: '16px', padding: '24px' }
         }}
       >
-        <Form form={form} layout="vertical" onFinish={handleAddDocument}>
-          <Row gutter={[16, 16]}>
-            <Col span={24}>
-              <Form.Item
-                name="name"
-                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Hub Name</span>}
-                rules={[
-                  { required: true, message: "Please enter hub name" },
-                  { min: 2, message: "Name must be at least 2 characters" },
-                ]}
-              >
-                <Input
-                  size="large"
-                  placeholder="e.g., API Documentation"
-                  prefix={<FileTextOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
-                  className="rounded-lg border-slate-200 hover:border-blue-400 focus:border-blue-500"
-                  style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
-                />
-              </Form.Item>
-            </Col>
+        <Tabs
+          activeKey={hubTabKey}
+          onChange={(key) => {
+            setHubTabKey(key as 'manual' | 'ai');
+            if (key === 'manual') resetAIState();
+          }}
+          items={[
+            {
+              key: 'manual',
+              label: 'Manual Setup',
+              children: (
+                <Form form={form} layout="vertical" onFinish={handleAddDocument}>
+                  <Row gutter={[16, 16]}>
+                    <Col span={24}>
+                      <Form.Item
+                        name="name"
+                        label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Hub Name</span>}
+                        rules={[
+                          { required: true, message: "Please enter hub name" },
+                          { min: 2, message: "Name must be at least 2 characters" },
+                        ]}
+                      >
+                        <Input
+                          size="large"
+                          placeholder="e.g., API Documentation"
+                          prefix={<FileTextOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
+                          className="rounded-lg border-slate-200 hover:border-blue-400 focus:border-blue-500"
+                          style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
+                        />
+                      </Form.Item>
+                    </Col>
 
-            <Col span={24}>
-              <Form.Item
-                name="projectId"
-                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Project <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
-              >
-                <Select
-                  size="large"
-                  placeholder="Select project"
-                  loading={projectsLoading}
-                  className="rounded-lg"
-                  suffixIcon={<ProjectOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
-                  onChange={(value) => {
-                    setSelectedProjectId(value);
-                    form.setFieldsValue({ projectId: value });
-                  }}
-                  allowClear
-                >
-                  {projects.map((project) => (
-                    <Option key={project.value} value={project.value}>
-                      {project.label} ({project.code})
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={24}>
-              <Form.Item
-                name="ticketId"
-                label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Ticket <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
-              >
-                <Select
-                  size="large"
-                  showSearch
-                  placeholder="Select ticket"
-                  loading={ticketsLoading}
-                  className="rounded-lg"
-                  suffixIcon={<TagOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
-                  allowClear
-                  disabled={!selectedProjectId}
-                  optionFilterProp="label"
-                  options={tickets.map((ticket: any) => ({
-                    value: ticket.id,
-                    label: `${ticket.ticketNumber} (${ticket.title})`,
-                  }))}
-                  filterOption={(input, option) =>
-                    String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                  }
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-          <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100" style={{ borderTopColor: 'var(--border-slate-100)' }}>
-            <Button
-              size="large"
-              className="px-6 rounded-lg font-medium text-slate-500 border-none hover:bg-slate-100"
-              style={{ color: 'var(--text-slate-600)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              onClick={() => {
-                setModalVisible(false);
-                setSelectedProjectId(undefined);
-                form.resetFields();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              size="large"
-              htmlType="submit"
-              loading={isCreating}
-              className="px-8 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100 border-none outline-none"
-              style={{ display: 'flex', alignItems: 'center', height: '40px' }}
-            >
-              Create Hub
-            </Button>
-          </div>
-        </Form>
+                    <Col span={24}>
+                      <Form.Item
+                        name="projectId"
+                        label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Project <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
+                      >
+                        <Select
+                          size="large"
+                          placeholder="Select project"
+                          loading={projectsLoading}
+                          className="rounded-lg"
+                          suffixIcon={<ProjectOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
+                          onChange={(value) => {
+                            setSelectedProjectId(value);
+                            form.setFieldsValue({ projectId: value });
+                          }}
+                          allowClear
+                        >
+                          {projects.map((project) => (
+                            <Option key={project.value} value={project.value}>
+                              {project.label} ({project.code})
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="ticketId"
+                        label={<span className="font-medium text-slate-700" style={{ color: 'var(--text-slate-700)' }}>Ticket <span className="text-slate-400 font-normal" style={{ color: 'var(--text-slate-400)' }}>(Optional)</span></span>}
+                      >
+                        <Select
+                          size="large"
+                          showSearch
+                          placeholder="Select ticket"
+                          loading={ticketsLoading}
+                          className="rounded-lg"
+                          suffixIcon={<TagOutlined className="text-slate-400" style={{ color: 'var(--text-slate-400)' }} />}
+                          allowClear
+                          disabled={!selectedProjectId}
+                          optionFilterProp="label"
+                          options={tickets.map((ticket: any) => ({
+                            value: ticket.id,
+                            label: `${ticket.ticketNumber} (${ticket.title})`,
+                          }))}
+                          filterOption={(input, option) =>
+                            String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                          }
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-100" style={{ borderTopColor: 'var(--border-slate-100)' }}>
+                    <Button
+                      size="large"
+                      className="px-6 rounded-lg font-medium text-slate-500 border-none hover:bg-slate-100"
+                      style={{ color: 'var(--text-slate-600)' }}
+                      onClick={() => {
+                        setModalVisible(false);
+                        setSelectedProjectId(undefined);
+                        form.resetFields();
+                        resetAIState();
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="primary"
+                      size="large"
+                      htmlType="submit"
+                      loading={isCreating}
+                      className="px-8 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100 border-none"
+                    >
+                      Create Hub
+                    </Button>
+                  </div>
+                </Form>
+              )
+            },
+            {
+              key: 'ai',
+              label: (
+                <span>
+                  <RobotOutlined /> AI Hub Architect
+                </span>
+              ),
+              children: (
+                <div className="py-2">
+                  {currentStep === 0 ? (
+                    <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                      <div>
+                        <Typography.Title level={5} style={{ margin: 0 }}>What's the goal?</Typography.Title>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                          Provide a detailed description of the documentation hub you want the AI to architect.
+                        </Typography.Paragraph>
+                      </div>
+                      <Input.TextArea
+                        rows={6}
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="e.g., A comprehensive documentation hub for a Fintech SaaS project, including API specs, user guides, and legal compliance..."
+                        style={{ borderRadius: 12 }}
+                      />
+                      <Button
+                        type="primary"
+                        block
+                        size="large"
+                        icon={<RobotOutlined />}
+                        onClick={handleGenerateStructure}
+                        loading={isGeneratingStructure}
+                        style={{ height: 48, borderRadius: 12, marginTop: 8 }}
+                      >
+                        Architect Hub Structure
+                      </Button>
+                    </Space>
+                  ) : (
+                    <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                      <div>
+                        <Typography.Title level={5} style={{ margin: 0 }}>Review Suggested Structure</Typography.Title>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                          The AI has suggested this folder and file hierarchy.
+                        </Typography.Paragraph>
+                      </div>
+                      <Card
+                        size="small"
+                        style={{
+                          borderRadius: 12,
+                          background: '#f8fafc',
+                          maxHeight: 300,
+                          overflowY: 'auto',
+                          border: '1px solid #e2e8f0'
+                        }}
+                      >
+                        <div style={{ padding: '8px' }}>
+                          {suggestedStructure.map((node, i) => (
+                            <div key={i} style={{ marginBottom: 4 }}>
+                              <Space>
+                                {node.type === 'folder' ? <FolderOutlined style={{ color: '#faad14' }} /> : <FileTextOutlined style={{ color: '#1890ff' }} />}
+                                <Typography.Text strong={node.type === 'folder'}>{node.title}</Typography.Text>
+                              </Space>
+                              {node.children && node.children.map((child: any, j: number) => (
+                                <div key={j} style={{ marginLeft: 24, marginTop: 4 }}>
+                                  <Space>
+                                    {child.type === 'folder' ? <FolderOutlined style={{ color: '#faad14' }} /> : <FileTextOutlined style={{ color: '#1890ff' }} />}
+                                    <Typography.Text>{child.title}</Typography.Text>
+                                  </Space>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                      {isProcessingContent ? (
+                        <Card size="small" style={{ borderRadius: 12, border: '1px solid #bae7ff', background: '#f0f7ff', marginTop: 12 }}>
+                          <Space direction="vertical" style={{ width: '100%' }} align="center" size={12}>
+                            <Spin indicator={<RobotOutlined spin style={{ fontSize: 24 }} />} />
+                            <div style={{ textAlign: 'center' }}>
+                              <Typography.Text strong style={{ display: 'block' }}>
+                                Generating content for: {currentProcessingTitle}
+                              </Typography.Text>
+                              <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                                Step {generationProgress} of {generationTotal}
+                              </Typography.Text>
+                            </div>
+                            <div style={{ width: '100%', height: 8, background: '#e6f7ff', borderRadius: 4, overflow: 'hidden', border: '1px solid #91d5ff' }}>
+                              <div style={{
+                                width: `${(generationProgress / generationTotal) * 100}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #1890ff 0%, #69c0ff 100%)',
+                                transition: 'width 0.5s ease'
+                              }} />
+                            </div>
+                          </Space>
+                        </Card>
+                      ) : (
+                        <div className="flex gap-3 mt-4">
+                          <Button style={{ flex: 1 }} onClick={() => setCurrentStep(0)}>Back</Button>
+                          <Button
+                            type="primary"
+                            style={{ flex: 2 }}
+                            loading={isCreating}
+                            onClick={() => handleAddDocument({ name: suggestedTitle || "AI Generated Hub" })}
+                          >
+                            Confirm & Build Hub
+                          </Button>
+                        </div>
+                      )}
+                    </Space>
+                  )}
+                </div>
+              )
+            }
+          ]}
+        />
       </Modal>
 
       {selectedHubForShare && (

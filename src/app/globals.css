@@ -130,6 +130,9 @@ body {
   --bg-green-50: #f0fdf4;
   --bg-purple-50: #f5f3ff;
   --bg-orange-50: #fff7ed;
+  --bg-amber-50: #fffbeb;
+  --bg-amber-100: #fef3c7;
+  --text-amber-600: #d97706;
   --border-green-200: #bbf7d0;
 }
 
@@ -164,6 +167,9 @@ body {
   --bg-green-50: rgba(16, 185, 129, 0.15);
   --bg-purple-50: rgba(139, 92, 246, 0.15);
   --bg-orange-50: rgba(249, 115, 22, 0.15);
+  --bg-amber-50: rgba(245, 158, 11, 0.15);
+  --bg-amber-100: rgba(245, 158, 11, 0.25);
+  --text-amber-600: #fbbf24;
   --border-green-200: rgba(16, 185, 129, 0.2);
 }
 

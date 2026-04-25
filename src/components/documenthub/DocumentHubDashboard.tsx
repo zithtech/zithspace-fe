@@ -196,7 +196,7 @@ const DocumentHubDashboard: React.FC<DocumentHubDashboardProps> = ({
                                             <Text
                                                 strong
                                                 ellipsis
-                                                style={{ fontSize: 14, maxWidth: '180px' }}
+                                                style={{ fontSize: 14, maxWidth: '180px', color: 'var(--text-slate-900)' }}
                                             >
                                                 {hub.name}
                                             </Text>

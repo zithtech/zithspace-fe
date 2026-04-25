@@ -729,7 +729,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                         style={{ borderRightColor: 'var(--border-slate-200)', background: 'var(--bg-secondary)' }}
                     >
                         {/* Sidebar Header */}
-                        <div className="flex items-center justify-between py-[4px] px-[8px] border-b border-gray-200 h-[40px] group/header">
+                        <div className="flex items-center justify-between py-[4px] px-[8px] border-b h-[40px] group/header" style={{ borderBottomColor: 'var(--border-slate-200)' }}>
                             {isEditingHubName ? (
                                 <Input
                                     size="small"
@@ -767,7 +767,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             placeholder="Search documents..."
                                             value={searchValue}
                                             onChange={(e) => setSearchValue(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent"
+                                            className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent"
                                             style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
                                         />
                                     </div>
@@ -825,7 +825,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Header */}
-                    <header className="flex items-center justify-between py-[4px] px-[8px] border-b border-slate-200 bg-white" style={{ background: 'var(--bg-pure-white)', borderBottomColor: 'var(--border-slate-200)' }}>
+                    <header className="flex items-center justify-between py-[4px] px-[8px] border-b" style={{ background: 'var(--bg-pure-white)', borderBottomColor: 'var(--border-slate-200)' }}>
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => confirmAction(() => router.push('/documenthub'))}
@@ -852,7 +852,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 )}
                             </button>
                             <Tooltip title={documentContent?.title} mouseEnterDelay={0.5}>
-                                <h2 className="text-xl font-semibold text-gray-900 truncate max-w-[400px]">
+                                <h2 className="text-xl font-semibold truncate max-w-[400px]" style={{ color: 'var(--text-slate-900)' }}>
                                     {documentContent?.title || 'Select a document'}
                                 </h2>
                             </Tooltip>
@@ -940,7 +940,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                     </header>
 
                     {/* Editor Content */}
-                    <main className="flex-1 overflow-auto px-4 pt-4 pb-2 bg-white flex flex-col" style={{ background: 'var(--bg-pure-white)' }}>
+                    <main className="flex-1 overflow-auto px-4 pt-4 pb-2 flex flex-col" style={{ background: 'var(--bg-pure-white)' }}>
                         {previewVersion && (
                             <div className="bg-blue-50 border-b border-blue-100 p-3 flex items-center justify-between mb-4 rounded-lg" style={{ background: 'var(--bg-blue-50)', borderColor: 'var(--border-blue-200)' }}>
                                 <div className="flex items-center gap-2 text-blue-700" style={{ color: 'var(--text-blue-700)' }}>

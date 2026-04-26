@@ -57,7 +57,9 @@ type NotificationPlacement = NotificationArgsProps["placement"];
 export default function ReleasePlanComponent() {
   const router = useRouter();
   const [form] = Form.useForm();
-  const [api, contextHolder] = notification.useNotification();
+  const [api, contextHolder] = notification.useNotification({
+    placement: 'top',
+  });
 
   // State management
   const [releasePlans, setReleasePlans] = useState<ReleasePlan[]>([]);
@@ -129,7 +131,7 @@ export default function ReleasePlanComponent() {
         api.success({
           message: "Refreshed",
           description: "Plans updated successfully",
-          placement: "bottomRight",
+          
           duration: 3,
         });
       }
@@ -138,7 +140,7 @@ export default function ReleasePlanComponent() {
       api.error({
         message: "Error",
         description: "Failed to load release plans",
-        placement: "bottomRight",
+        
         duration: 4,
       });
     } finally {
@@ -181,7 +183,7 @@ export default function ReleasePlanComponent() {
         api.error({
           message: "Error",
           description: "Failed to load tickets",
-          placement: "bottomRight",
+          
           duration: 4,
         });
         setAvailableTickets([]);
@@ -266,7 +268,7 @@ export default function ReleasePlanComponent() {
         api.success({
           message: "Success",
           description: "Plans updated successfully",
-          placement: "bottomRight",
+          
           duration: 3,
         });
       } else {
@@ -274,7 +276,7 @@ export default function ReleasePlanComponent() {
         api.success({
           message: "Success",
           description: "Plans created successfully",
-          placement: "bottomRight",
+          
           duration: 3,
         });
       }
@@ -287,7 +289,7 @@ export default function ReleasePlanComponent() {
       api.error({
         message: "Error",
         description: errorMessage,
-        placement: "bottomRight",
+        
         duration: 4,
       });
     } finally {
@@ -334,7 +336,7 @@ export default function ReleasePlanComponent() {
       api.success({
         message: "Success",
         description: "Plans deleted successfully",
-        placement: "bottomRight",
+        
         duration: 3,
       });
       loadData();
@@ -343,7 +345,7 @@ export default function ReleasePlanComponent() {
       api.error({
         message: "Error",
         description: "Failed to delete Plans",
-        placement: "bottomRight",
+        
         duration: 4,
       });
     }
@@ -355,14 +357,14 @@ export default function ReleasePlanComponent() {
       api.success({
         message: "Success",
         description: "Sprint started successfully",
-        placement: "bottomRight",
+        
       });
       loadData();
     } catch (error: any) {
       api.error({
         message: "Error",
         description: error.message || "Failed to start sprint",
-        placement: "bottomRight",
+        
       });
     }
   };
@@ -379,7 +381,7 @@ export default function ReleasePlanComponent() {
     api.success({
       message: "Success",
       description: "Sprint completed successfully",
-      placement: "bottomRight",
+      
     });
   };
 

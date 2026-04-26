@@ -39,11 +39,12 @@ export const useKanbanTickets = (params: any, options?: any) => {
   });
 };
 
-export const useTickets = (params: any) => {
-  return useQuery({
+export const useTickets = (params: any, options?: any) => {
+  return useQuery<TicketListResponse>({
     queryKey: ticketKeys.list(params),
     queryFn: () => TicketService.getTickets(params),
     placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
+    ...options
   });
 };
 

@@ -362,6 +362,44 @@ class BucketService {
   static canDeleteBucket(bucket: Bucket): boolean {
     return bucket.userRole === 'owner';
   }
+
+  /**
+   * Move all tickets in a bucket to a specific sprint
+   * 
+   * @param bucketId - Bucket ID
+   * @param sprintId - Sprint ID to move tickets to
+   */
+  static async moveBucketToSprint(bucketId: string, sprintId: string): Promise<{ movedCount: number }> {
+    try {
+      const response = await apiClient.post<{ success: boolean; data: { movedCount: number } }>(
+        `/api/buckets/${bucketId}/move-to-sprint`,
+        { sprintId }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error moving bucket to sprint:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to move bucket to sprint';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Move all tickets in a bucket back to backlog
+   * 
+   * @param bucketId - Bucket ID
+   */
+  static async moveBucketToBacklog(bucketId: string): Promise<{ movedCount: number }> {
+    try {
+      const response = await apiClient.post<{ success: boolean; data: { movedCount: number } }>(
+        `/api/buckets/${bucketId}/move-to-backlog`
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error moving bucket to backlog:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to move bucket to backlog';
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 export default BucketService;

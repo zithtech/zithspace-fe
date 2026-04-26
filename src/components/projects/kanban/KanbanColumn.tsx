@@ -27,10 +27,14 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
 
   const getStatusBadgeColor = (statusId: string) => {
        const color = getStatusColor(statusId);
-       if (color === 'success') return '#52c41a';
-       if (color === 'processing') return '#1677ff';
-       if (color === 'warning') return '#faad14';
-       return '#d9d9d9';
+       if (color === 'success') return '#10b981';
+       if (color === 'processing') return 'var(--premium-blue)';
+       if (color === 'warning') return '#f59e0b';
+       if (color === 'purple') return '#8b5cf6';
+       if (color === 'cyan') return '#06b6d4';
+       if (color === 'geekblue') return '#4f46e5';
+       if (color === 'orange') return '#f59e0b';
+       return 'var(--text-slate-400)';
   };
 
   return (
@@ -59,7 +63,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, tickets, 
               height: 10, 
               borderRadius: '50%', 
               backgroundColor: getStatusBadgeColor(id),
-              boxShadow: `0 0 0 2px ${getStatusBadgeColor(id)}20`
+              boxShadow: `0 0 0 2px ${getStatusColor(id) === 'processing' ? 'rgba(59, 130, 246, 0.2)' : 'transparent'}`
             }} />
             <Text strong style={{ 
               textTransform: 'uppercase', 

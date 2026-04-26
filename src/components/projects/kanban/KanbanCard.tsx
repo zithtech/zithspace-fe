@@ -30,9 +30,9 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
     isDragging,
   } = useSortable({ id: ticket.id });
 
-  const shadowStyle = isDragging
-    ? { boxShadow: '0 8px 16px rgba(0,0,0,0.12)' }
-    : { boxShadow: '0 1px 2px rgba(0,0,0,0.02)' };
+  const shadowStyle = isDragging 
+    ? { boxShadow: 'var(--premium-shadow-lg)' } 
+    : { boxShadow: 'var(--premium-shadow)' };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -335,24 +335,24 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
                   </div>
                 )}
 
-                {/* Extra Actions Trigger */}
-                {menuItems && menuItems.length > 0 && (
-                  <div onPointerDown={stopPropagation} onClick={(e) => e.stopPropagation()}>
-                    <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<MoreOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />}
-                        style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      />
-                    </Dropdown>
-                  </div>
-                )}
-              </div>
+                 {/* Extra Actions Trigger */}
+                 {menuItems && menuItems.length > 0 && (
+                     <div onPointerDown={stopPropagation} onClick={(e) => e.stopPropagation()}>
+                        <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+                            <Button 
+                              type="text" 
+                              size="small" 
+                              icon={<MoreOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16 }} />} 
+                              style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                            />
+                        </Dropdown>
+                     </div>
+                 )}
             </div>
-
-            {/* Title Edit */}
-            {renderTitle()}
+          </div>
+          
+          {/* Title Edit */}
+          {renderTitle()}
 
             <Divider style={{ margin: '8px 0', opacity: 0.6 }} />
 

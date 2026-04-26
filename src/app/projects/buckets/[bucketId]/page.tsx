@@ -23,6 +23,7 @@ import {
   Row,
   Col,
   Tooltip,
+  Divider,
 } from 'antd';
 import {
   FolderOutlined,
@@ -74,7 +75,8 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   const queryClient = useQueryClient();
   const { isLoading: authLoading } = useAuth();
   const { canReadProject } = usePermission();
-  
+  const [messageApi, contextHolder] = antdMessage.useMessage();
+
   // Unwrap the params promise using React's use() hook
   const { bucketId } = use(params);
 
@@ -121,7 +123,7 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
       queryClient.invalidateQueries({ queryKey: bucketKeys.all });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      
+
       antdMessage.success(`${selectedRowKeys.length} ticket(s) moved to sprint`);
       setSelectedRowKeys([]);
       setSelectedSprint(null);
@@ -140,15 +142,15 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
       setSelectedRowKeys([]);
       refetchTickets();
-    } catch (error: any) {}
+    } catch (error: any) { }
   };
 
   const tickets = useMemo(() => {
     const all = ticketsData?.tickets || [];
     if (!searchText) return all;
     const lower = searchText.toLowerCase();
-    return all.filter((t: BucketTicket) => 
-      t.title.toLowerCase().includes(lower) || 
+    return all.filter((t: BucketTicket) =>
+      t.title.toLowerCase().includes(lower) ||
       t.ticketNumber.toLowerCase().includes(lower)
     );
   }, [ticketsData, searchText]);
@@ -211,10 +213,10 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
       width: 90,
       align: 'center',
       render: (points) => (
-        <Badge 
-          count={points || 0} 
-          showZero 
-          style={{ backgroundColor: points ? '#52c41a' : '#d9d9d9', boxShadow: 'none' }} 
+        <Badge
+          count={points || 0}
+          showZero
+          style={{ backgroundColor: points ? '#52c41a' : '#d9d9d9', boxShadow: 'none' }}
         />
       ),
     },
@@ -252,10 +254,10 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
   if (authLoading || bucketLoading) {
     return (
       <MainLayout>
-        <div style={{ 
-          margin: "0 -24px", 
-          padding: "24px 32px", 
-          background: "var(--bg-pure-white)", 
+        <div style={{
+          margin: "0 -24px",
+          padding: "24px 32px",
+          background: "var(--bg-pure-white)",
           minHeight: "calc(100vh - 64px)",
           display: 'flex',
           justifyContent: 'center',
@@ -269,254 +271,385 @@ export default function BucketDetailPage({ params }: { params: Promise<{ bucketI
 
   return (
     <MainLayout>
-      <div style={{ 
-        margin: "0 -24px", 
-        padding: "0 24px 24px 24px", 
-        background: "var(--bg-pure-white)", 
-        minHeight: "calc(100vh - 64px)" 
-      }}>
-        
-        {/* Breadcrumbs & Simple Navigation */}
-        <div style={{ padding: '20px 0 0' }}>
-          <Breadcrumb 
-            separator={<span style={{ color: 'var(--border-color)' }}>/</span>}
-            items={[
-              { title: <Link href="/projects/buckets" style={{ color: 'var(--text-secondary)' }}>Buckets</Link> },
-              { title: <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{bucket?.name}</span> },
-            ]}
-          />
+      <div style={{ background: "var(--bg-pure-white)", minHeight: "100vh" }}>
+        {contextHolder}
+
+        {/* 1. Global Workstation Header */}
+        <div className="saas-header-container" style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          background: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '10.5px 48px',
+          margin: '0 -24px 24px',
+          marginBottom: 24
+        }}>
+          <Row justify="space-between" align="middle" gutter={[16, 16]}>
+            <Col>
+              <Space size={16}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  background: `${bucket?.color || '#8b5cf6'}15`,
+                  borderRadius: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: `1px solid ${bucket?.color || '#8b5cf6'}30`
+                }}>
+                  <FolderOutlined style={{ fontSize: 18, color: bucket?.color || '#8b5cf6' }} />
+                </div>
+                <Space split={<Divider type="vertical" style={{ height: 18, borderLeft: '1.5px solid #cbd5e1' }} />} size={16}>
+                  <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em' }}>
+                    {bucket?.name} Details
+                  </Title>
+                  <Text style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                    Tickets inspection and inventory auditing terminal
+                  </Text>
+                </Space>
+              </Space>
+            </Col>
+            <Col>
+              <Space size={12}>
+                <Button
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => router.back()}
+                  className="saas-button-item"
+                  style={{ height: 36, fontWeight: 600 }}
+                >
+                  Return to Hub
+                </Button>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+                    refetchTickets();
+                  }}
+                  loading={ticketsLoading || bucketLoading}
+                  className="saas-button-item"
+                  style={{ height: 36, fontWeight: 600 }}
+                />
+              </Space>
+            </Col>
+          </Row>
         </div>
 
-        {/* Header Section */}
-        <div style={{ 
-          padding: '24px 0', 
-          marginBottom: 32, 
-          borderBottom: '1px solid var(--border-color)' 
-        }}>
-          <Row justify="space-between" align="bottom" gutter={[24, 24]}>
-            <Col>
-              <Space size="large" align="start">
-                <div style={{ 
-                  width: 56, 
-                  height: 56, 
-                  borderRadius: 16, 
-                  background: `${bucket?.color || '#1677ff'}15`,
+        <div style={{ padding: "0 32px 32px" }}>
+          {/* 2. Analytical Metrics Group */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 20,
+            marginBottom: 24
+          }}>
+            {/* Scoped Issues */}
+            <div style={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16
+            }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 8,
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid #f1f5f9'
+              }}>
+                <FileTextOutlined style={{ fontSize: 18, color: '#64748b' }} />
+              </div>
+              <div>
+                <Text style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>{tickets.length}</Text>
+                <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>TOTAL TICKETS</Text>
+              </div>
+            </div>
+
+            {/* Total Velocity Points */}
+            <div style={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16
+            }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 8,
+                background: '#f0fdf4',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid #dcfce7'
+              }}>
+                <RocketOutlined style={{ fontSize: 18, color: '#10b981' }} />
+              </div>
+              <div>
+                <Text style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', display: 'block', lineHeight: 1.2 }}>
+                  {tickets.reduce((acc, t) => acc + (t.storyPoint || 0), 0)}
+                </Text>
+                <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>RESOURCE LOAD</Text>
+              </div>
+            </div>
+
+            {/* Project Context */}
+            <div style={{
+              background: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              gridColumn: 'span 2'
+            }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 8,
+                background: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid #dbeafe'
+              }}>
+                <ProjectOutlined style={{ fontSize: 18, color: '#3b82f6' }} />
+              </div>
+              <div>
+                <Text style={{ fontSize: 16, fontWeight: 700, color: '#1e293b', display: 'block', lineHeight: 1.2 }}>
+                  {bucket?.project?.name || 'Cross-Project Scope'}
+                </Text>
+                <Space size={4} style={{ marginTop: 2 }}>
+                  <Tag color="blue" style={{ borderRadius: 4, height: 16, fontSize: 9, fontWeight: 800, border: 'none', lineHeight: '16px' }}>
+                    {bucket?.project?.code || 'SYSTEM'}
+                  </Tag>
+                  <Text style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>PRIMARY PROJECT ORIGIN</Text>
+                </Space>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. High-Density Unified Control Bar */}
+          <div style={{
+            background: '#fff',
+            border: '1px solid #e2e8f0',
+            borderRadius: 8,
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 28,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+            marginBottom: 24
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1 }}>
+              {/* Batch Actions Group */}
+              {selectedRowKeys.length > 0 ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  background: '#f8fafc',
+                  padding: '4px 16px',
+                  borderRadius: 6,
+                  border: '1.5px solid #3b82f6'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderRight: '1.5px solid #e2e8f0', paddingRight: 16 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6' }} />
+                    <Text style={{ fontSize: 12, fontWeight: 800, color: '#1e293b' }}>{selectedRowKeys.length} SELECTED</Text>
+                  </div>
+
+                  <Space size={12}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ fontSize: 10, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Ship to:</Text>
+                      <Select
+                        placeholder="Select Phase"
+                        variant="borderless"
+                        style={{ width: 140, fontSize: 12, fontWeight: 700, background: '#fff', borderRadius: 4, height: 32, border: '1px solid #e2e8f0' }}
+                        value={selectedSprint}
+                        onChange={setSelectedSprint}
+                      >
+                        {sprints?.map((sprint: any) => (
+                          <Option key={sprint.id} value={sprint.id}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <RocketOutlined style={{ fontSize: 10, color: '#3b82f6' }} />
+                              <span>{sprint.version}</span>
+                            </div>
+                          </Option>
+                        ))}
+                      </Select>
+                      <Button
+                        type="primary"
+                        size="small"
+                        onClick={handleMoveToSprint}
+                        loading={isMovingToSprint}
+                        disabled={!selectedSprint}
+                        style={{ borderRadius: 4, fontWeight: 700, height: 32 }}
+                      >
+                        Execute Move
+                      </Button>
+                    </div>
+
+                    <Popconfirm
+                      title="Purge Selection"
+                      description={`Purge ${selectedRowKeys.length} items to trash?`}
+                      onConfirm={handleMoveToTrash}
+                    >
+                      <Button
+                        danger
+                        type="text"
+                        icon={<DeleteOutlined />}
+                        loading={isDeleting}
+                        style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase' }}
+                      >
+                        Purge
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                </div>
+              ) : (
+                /* Static Description when no selection */
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 4, height: 24, borderRadius: 2, background: bucket?.color || '#8b5cf6' }} />
+                  <Text type="secondary" style={{ fontSize: 13, fontWeight: 500, fontStyle: 'italic', color: '#64748b' }}>
+                    {bucket?.description || 'Strategic categorization node active. Deep scan for inventory specifics.'}
+                  </Text>
+                </div>
+              )}
+            </div>
+
+            {/* Deep Scan Search Module */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              background: '#f8fafc',
+              padding: '2px 6px 2px 16px',
+              borderRadius: 8,
+              border: searchText ? '1px solid #3b82f6' : '1px solid #f1f5f9',
+              width: 320,
+              transition: 'all 0.2s ease',
+              boxShadow: searchText ? '0 0 0 3px rgba(59, 130, 246, 0.05)' : 'none'
+            }}>
+              <SearchOutlined style={{ color: searchText ? '#3b82f6' : '#94a3b8', fontSize: 13 }} />
+              <Input
+                placeholder="Deep scan inventory..."
+                variant="borderless"
+                style={{ fontSize: 12, fontWeight: 700, padding: '8px 0', flex: 1 }}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                allowClear
+              />
+              {searchText ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#eff6ff',
+                  padding: '4px 10px',
+                  borderRadius: 4,
+                  border: '1px solid #dbeafe',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#3b82f6' }} />
+                  <Text style={{ fontSize: 9, fontWeight: 900, color: '#1d4ed8', letterSpacing: '0.04em' }}>ACTIVE</Text>
+                </div>
+              ) : (
+                <div style={{
+                  background: '#fff',
+                  border: '1px solid #e2e8f0',
+                  padding: '2px 6px',
+                  borderRadius: 4,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <FolderOutlined style={{ fontSize: 28, color: bucket?.color || '#1677ff' }} />
+                  <Text style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8' }}>⌘K</Text>
                 </div>
-                <div style={{ marginTop: -4 }}>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                    {bucket?.name}
-                  </Title>
-                  <Space size="middle" style={{ marginTop: 4 }}>
-                    {bucket?.project ? (
-                      <Space size={6}>
-                        <ProjectOutlined style={{ color: 'var(--text-secondary)' }} />
-                        <Text type="secondary" strong style={{ color: 'var(--text-secondary)' }}>{bucket.project.name}</Text>
-                        <Tag color="blue" style={{ borderRadius: 4, fontSize: 10, marginLeft: 4 }}>
-                          {bucket.project.code}
-                        </Tag>
-                      </Space>
-                    ) : (
-                      <Tag color="purple">CROSS-PROJECT BUCKET</Tag>
-                    )}
-                    <span style={{ color: 'var(--border-color)' }}>|</span>
-                    <Space size={6}>
-                      <FileTextOutlined style={{ color: 'var(--text-secondary)' }} />
-                      <Text type="secondary" style={{ color: 'var(--text-secondary)' }}>{tickets.length} Tickets</Text>
-                    </Space>
-                  </Space>
-                </div>
-              </Space>
-            </Col>
-            <Col>
-              <Button 
-                icon={<ArrowLeftOutlined />} 
-                onClick={() => router.back()}
-                style={{ borderRadius: 8, height: 40 }}
-              >
-                Back to Buckets
-              </Button>
-            </Col>
-          </Row>
-          {bucket?.description && (
-            <div style={{ marginTop: 20, maxWidth: 800 }}>
-              <Text type="secondary" style={{ fontSize: 14, lineHeight: 1.6 }}>
-                {bucket.description}
-              </Text>
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Action Bar */}
-        <div style={{ marginBottom: 24 }}>
-          <Row justify="space-between" align="middle" gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <Input
-                placeholder="Search by ticket ID or title..."
-                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  maxWidth: 400, 
-                  height: 44, 
-                  borderRadius: 10,
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)' 
-                }}
-                allowClear
-              />
-            </Col>
-            <Col xs={24} md={12} style={{ textAlign: 'right' }}>
-              <Space size="middle">
-                {selectedRowKeys.length > 0 && (
-                  <div style={{ 
-                    background: 'var(--bg-pure-white)', 
-                    padding: '4px 8px 4px 16px', 
-                    borderRadius: 12, 
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}>
-                    <Text strong style={{ color: '#0050b3', marginRight: 16 }}>
-                      {selectedRowKeys.length} Selected
-                    </Text>
-                    <Space size="small">
-                      <Select
-                        placeholder="Select Sprint"
-                        style={{ width: 160 }}
-                        value={selectedSprint}
-                        onChange={setSelectedSprint}
-                        variant="borderless"
-                        popupClassName="premium-select-popup"
-                        styles={{ popup: { root: { borderRadius: 12 } } }}
-                      >
-                        {sprints?.map((sprint: any) => (
-                          <Option key={sprint.id} value={sprint.id}>
-                            {sprint.version}
-                          </Option>
-                        ))}
-                      </Select>
-                      <Tooltip title="Move to Sprint">
-                        <Button
-                          type="primary"
-                          icon={<RocketOutlined />}
-                          onClick={handleMoveToSprint}
-                          loading={isMovingToSprint}
-                          disabled={!selectedSprint}
-                          style={{ borderRadius: 8 }}
-                        >
-                          Move
-                        </Button>
-                      </Tooltip>
-                      <Popconfirm
-                        title="Delete Tickets"
-                        description={`Move ${selectedRowKeys.length} selected tickets to trash?`}
-                        onConfirm={handleMoveToTrash}
-                        okText="Delete"
-                        cancelText="Cancel"
-                        okButtonProps={{ danger: true }}
-                      >
-                        <Button
-                          danger
-                          type="text"
-                          icon={<DeleteOutlined />}
-                          loading={isDeleting}
-                          style={{ borderRadius: 8 }}
-                        />
-                      </Popconfirm>
-                    </Space>
-                  </div>
-                )}
-                <Button 
-                  icon={<ReloadOutlined />} 
-                  onClick={() => {
-                    queryClient.invalidateQueries({ queryKey: bucketKeys.all });
-                    queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-                    refetchTickets();
-                    antdMessage.info("Refreshing bucket tickets...");
-                  }}
-                  loading={ticketsLoading || bucketLoading}
-                  style={{ height: 44, width: 44, borderRadius: 10 }}
-                />
-              </Space>
-            </Col>
-          </Row>
+          {/* 4. Results Table Terminal */}
+          <Card
+            bodyStyle={{ padding: 0 }}
+            style={{
+              borderRadius: 16,
+              overflow: 'hidden',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-pure-white)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+            }}
+          >
+            <Table
+              columns={columns}
+              dataSource={tickets}
+              rowKey="id"
+              loading={ticketsLoading}
+              rowSelection={{
+                selectedRowKeys,
+                onChange: setSelectedRowKeys,
+              }}
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                showTotal: (total) => (
+                  <Text type="secondary" style={{ fontSize: 13 }}>Total <b>{total}</b> technical nodes</Text>
+                ),
+                style: { padding: '16px 24px' }
+              }}
+              scroll={{ x: 1200 }}
+              className="premium-table"
+              locale={{
+                emptyText: (
+                  <Empty
+                    image={<FolderOutlined style={{ fontSize: 48, color: '#f1f5f9' }} />}
+                    description={
+                      <div style={{ padding: '20px 0' }}>
+                        <Text type="secondary" style={{ display: 'block', fontSize: 16, fontWeight: 500 }}>No technical nodes found</Text>
+                        {searchText && <Text type="secondary" style={{ fontSize: 12 }}>Adjusting filter parameters for broader scan...</Text>}
+                      </div>
+                    }
+                  />
+                )
+              }}
+            />
+          </Card>
         </div>
-
-        {/* Results Table */}
-        <Card 
-          bodyStyle={{ padding: 0 }} 
-          style={{ 
-            borderRadius: 16, 
-            overflow: 'hidden', 
-            border: '1px solid var(--border-color)',
-            backgroundColor: 'var(--bg-pure-white)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-          }}
-        >
-          <Table
-            columns={columns}
-            dataSource={tickets}
-            rowKey="id"
-            loading={ticketsLoading}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: setSelectedRowKeys,
-            }}
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              showTotal: (total) => (
-                <Text type="secondary" style={{ fontSize: 13 }}>Total <b>{total}</b> tickets</Text>
-              ),
-              style: { padding: '16px 24px' }
-            }}
-            scroll={{ x: 1200 }}
-            className="premium-table"
-            locale={{
-              emptyText: (
-                <Empty
-                  image={<FolderOutlined style={{ fontSize: 48, color: '#f0f0f0' }} />}
-                  description={
-                    <div style={{ padding: '20px 0' }}>
-                      <Text type="secondary" style={{ display: 'block' }}>No tickets found in this bucket</Text>
-                      {searchText && <Text type="secondary" style={{ fontSize: 12 }}>Try adjusting your search criteria</Text>}
-                    </div>
-                  }
-                />
-              )
-            }}
-          />
-        </Card>
       </div>
 
       <style jsx global>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
         .premium-table .ant-table-thead > tr > th {
-          background: var(--bg-pure-white);
-          font-weight: 600;
-          color: var(--text-secondary);
-          font-size: 11px;
+          background: #f8fafc;
+          font-weight: 800;
+          color: #64748b;
+          font-size: 10px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          padding: 16px;
-          border-bottom: 1px solid var(--border-color);
+          padding: 14px 16px;
+          border-bottom: 1px solid #e2e8f0;
         }
         .premium-table .ant-table-tbody > tr > td {
-          padding: 16px;
-          background: var(--bg-pure-white);
-          border-bottom: 1px solid var(--border-color);
+          padding: 14px 16px;
+          border-bottom: 1px solid #f1f5f9;
         }
         .premium-table .ant-table-tbody > tr:hover > td {
-          background: var(--bg-pure-white) !important;
-          filter: brightness(0.98);
-        }
-        .premium-select-popup .ant-select-item {
-          border-radius: 6px;
-          margin: 4px;
+          background: #f8fafc !important;
         }
       `}</style>
     </MainLayout>

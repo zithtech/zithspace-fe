@@ -57,14 +57,16 @@ export const EditableSelect: React.FC<EditableSelectProps> = ({
         }
     };
 
-    const selectedOption = options.find(opt => opt.value?.toLowerCase() === value?.toLowerCase());
+    const normalize = (val: string | undefined) => val?.toLowerCase().replace(/ /g, '_');
+    const selectedOption = options.find(opt => normalize(opt.value) === normalize(value));
     const hasValue = !!value;
+    const internalValue = selectedOption ? selectedOption.value : value;
 
     if (isEditing) {
         return (
             <Select
                 ref={selectRef}
-                value={value}
+                value={internalValue}
                 onChange={handleChange}
                 onBlur={() => setIsEditing(false)}
                 style={{ width: '100%' }}

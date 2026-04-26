@@ -95,8 +95,8 @@ export const useCreateBucket = () => {
       await queryClient.cancelQueries({ queryKey: bucketKeys.all });
 
       // Snapshot previous values
-      const previousBucketLists = queryClient.getQueriesData({ 
-        queryKey: bucketKeys.lists() 
+      const previousBucketLists = queryClient.getQueriesData({
+        queryKey: bucketKeys.lists()
       });
 
       // Create optimistic bucket
@@ -127,7 +127,7 @@ export const useCreateBucket = () => {
       // Optimistically update cache
       previousBucketLists.forEach(([queryKey, oldData]: [any, any]) => {
         const params = queryKey[2] || {};
-        
+
         // Filter: only add to matching project lists
         if (params.projectId && params.projectId !== newBucketData.projectId) {
           return;
@@ -181,8 +181,8 @@ export const useUpdateBucket = () => {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: bucketKeys.all });
 
-      const previousBucketLists = queryClient.getQueriesData({ 
-        queryKey: bucketKeys.lists() 
+      const previousBucketLists = queryClient.getQueriesData({
+        queryKey: bucketKeys.lists()
       });
       const previousBucket = queryClient.getQueryData<Bucket>(bucketKeys.detail(id));
 
@@ -242,8 +242,8 @@ export const useDeleteBucket = () => {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: bucketKeys.all });
 
-      const previousBucketLists = queryClient.getQueriesData({ 
-        queryKey: bucketKeys.lists() 
+      const previousBucketLists = queryClient.getQueriesData({
+        queryKey: bucketKeys.lists()
       });
 
       // Optimistically remove bucket
@@ -277,10 +277,10 @@ export const useAddBucketMember = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ bucketId, userId, role }: { 
-      bucketId: string; 
-      userId: string; 
-      role: 'editor' | 'viewer' 
+    mutationFn: ({ bucketId, userId, role }: {
+      bucketId: string;
+      userId: string;
+      role: 'editor' | 'viewer'
     }) => BucketService.addBucketMember(bucketId, userId, role),
     onSuccess: (updatedBucket) => {
       queryClient.setQueryData(bucketKeys.detail(updatedBucket.id), updatedBucket);
@@ -326,10 +326,10 @@ export const useAssignTicketsToBucket = () => {
       // Invalidate bucket detail and tickets
       queryClient.invalidateQueries({ queryKey: bucketKeys.detail(variables.bucketId) });
       queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(variables.bucketId, 1) });
-      
+
       // Invalidate ticket queries as bucketId has changed
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      
+
       message.success(`${result.assignedCount} ticket(s) assigned to bucket`);
     },
     onError: () => {
@@ -351,11 +351,56 @@ export const useUnassignTicketsFromBucket = () => {
       queryClient.invalidateQueries({ queryKey: bucketKeys.detail(variables.bucketId) });
       queryClient.invalidateQueries({ queryKey: bucketKeys.tickets(variables.bucketId, 1) });
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
-      
+
       message.success(`${result.unassignedCount} ticket(s) removed from bucket`);
     },
     onError: () => {
       message.error("Failed to unassign tickets");
+    },
+  });
+};
+
+/**
+ * Move all tickets in bucket to specific sprint
+ */
+export const useMoveBucketToSprint = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ bucketId, sprintId }: { bucketId: string; sprintId: string }) =>
+      BucketService.moveBucketToSprint(bucketId, sprintId),
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+      message.success(result.movedCount > 0 
+        ? `${result.movedCount} ticket(s) moved to sprint`
+        : "No tickets found to move"
+      );
+    },
+    onError: (error: any) => {
+      message.error(error.message || "Failed to move bucket to sprint");
+    },
+  });
+};
+
+/**
+ * Move all tickets in bucket back to backlog
+ */
+export const useMoveBucketToBacklog = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bucketId: string) => BucketService.moveBucketToBacklog(bucketId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: bucketKeys.all });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+      message.success(result.movedCount > 0 
+        ? `${result.movedCount} ticket(s) moved to backlog`
+        : "No tickets found to move"
+      );
+    },
+    onError: (error: any) => {
+      message.error(error.message || "Failed to move bucket to backlog");
     },
   });
 };

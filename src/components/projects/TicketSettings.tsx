@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, Typography, Button, Space, Row, Col, List, Tabs, Divider, Tag, Badge } from 'antd';
+import { Card, Typography, Button, Space, Row, Col, List, Tabs, Divider, Tag, Badge, Switch } from 'antd';
 import {
   ControlOutlined,
   SettingOutlined,
@@ -14,10 +14,16 @@ import {
   RobotOutlined,
   ExportOutlined,
   ArrowRightOutlined,
-  HeartOutlined,
-  PlusOutlined,
-  SafetyCertificateOutlined,
-  DeploymentUnitOutlined
+  CloudSyncOutlined,
+  LinkOutlined,
+  SearchOutlined,
+  SlackOutlined,
+  DiscordOutlined,
+  BranchesOutlined,
+  PullRequestOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
+  ShareAltOutlined
 } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { globalDataKeys } from '@/hooks/useGlobalData';
@@ -26,7 +32,7 @@ import DropdownManager from './DropdownManager';
 const { Title, Paragraph, Text } = Typography;
 
 export default function TicketSettings() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('integration');
   const queryClient = useQueryClient();
 
   // Handle data changes from DropdownManager
@@ -45,237 +51,276 @@ export default function TicketSettings() {
     { title: 'AI Automation', icon: <RobotOutlined />, color: '#2f54eb' }
   ];
 
-  const renderOverviewTab = () => (
-    <div className="no-scrollbar" style={{ padding: '0', height: '100%', overflow: 'hidden' }}>
-      <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
-        <Col xs={24} lg={16} style={{ display: 'flex' }}>
-          {/* Main Hero Card */}
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 20,
-              background: 'var(--bg-pure-white)',
-              border: '1px solid var(--border-color)',
-              boxShadow: '0 10px 30px rgba(22, 119, 255, 0.05)',
+  const renderIntegrationTab = () => (
+    <div style={{ padding: '0 48px 32px', flex: 1, overflowY: 'auto' }} className="no-scrollbar">
+      <Row gutter={[24, 24]}>
+        {/* Main Integration Hero */}
+        <Col span={24}>
+          <Card 
+            bordered={false} 
+            className="premium-card" 
+            style={{ 
+              borderRadius: 16,
               overflow: 'hidden',
-              flex: 1
+              boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+              border: 'none'
             }}
-            bodyStyle={{ padding: '24px', height: '100%', display: 'flex', alignItems: 'center' }}
+            styles={{ body: { padding: '40px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' } }}
           >
-            <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>
-              <Space align="start" size={24}>
-                <div style={{
-                  width: 64,
-                  height: 64,
-                  background: '#1677ff',
-                  borderRadius: 18,
-                  display: 'flex',
-                  alignItems: 'center',
+            <div style={{ position: 'absolute', top: -50, right: -50, width: 250, height: 250, background: 'rgba(59, 130, 246, 0.1)', borderRadius: '50%', filter: 'blur(60px)' }} />
+            <Row align="middle" gutter={48}>
+              <Col flex="0 0 100px">
+                <div style={{ 
+                  width: 90, 
+                  height: 90, 
+                  background: 'rgba(255, 255, 255, 0.08)', 
+                  borderRadius: 24, 
+                  display: 'flex', 
+                  alignItems: 'center', 
                   justifyContent: 'center',
-                  boxShadow: '0 8px 20px rgba(22, 119, 255, 0.25)'
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
                 }}>
-                  <SettingOutlined style={{ fontSize: 32, color: 'white' }} />
+                  <GithubOutlined style={{ fontSize: 48, color: '#fff' }} />
                 </div>
-                <div>
-                  <Title level={2} style={{ marginBottom: 8, fontWeight: 800 }}>
-                    System Orchestration
-                  </Title>
-                  <Paragraph style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 550, marginBottom: 24 }}>
-                    Master your workspace architecture. Configure global taxonomies, optimize workflow lifecycles, and synchronize with external dev ecosystems from a single pane of glass.
-                  </Paragraph>
-                  <Space size="middle">
-                    <Button
-                      type="primary"
-                      onClick={() => setActiveTab('dropdown-management')}
-                      style={{ borderRadius: 10, height: 40, padding: '0 20px', fontWeight: 600 }}
-                    >
-                      Lookup Management
-                    </Button>
-                    <Button
-                      icon={<GithubOutlined />}
-                      style={{ borderRadius: 10, height: 40, padding: '0 20px', fontWeight: 600 }}
-                    >
-                      Connect Repository
-                    </Button>
-                  </Space>
+              </Col>
+              <Col flex="1">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <Tag color="blue" style={{ borderRadius: 6, fontSize: 10, fontWeight: 800, background: 'rgba(59, 130, 246, 0.2)', border: 'none', color: '#60a5fa' }}>SYSTEM_CORE</Tag>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>AUTO_SYNC_ENABLED</Text>
                 </div>
-              </Space>
-            </div>
+                <Title level={2} style={{ color: '#fff', margin: 0, fontWeight: 900, letterSpacing: '-1px' }}>GitHub Production Node</Title>
+                <Paragraph style={{ color: 'rgba(255, 255, 255, 0.65)', fontSize: 15, margin: '12px 0 28px', maxWidth: 650, lineHeight: 1.6 }}>
+                  Bridge your development velocity with project orchestration. Monitor PR cycles, automate ticket lifecycles, and synchronize delivery telemetry in real-time.
+                </Paragraph>
+                <Space size={16}>
+                  <Button type="primary" size="large" style={{ borderRadius: 8, fontWeight: 700, padding: '0 32px', height: 48, background: '#3b82f6' }}>
+                    Reconnect Node
+                  </Button>
+                  <Button ghost size="large" style={{ borderRadius: 8, fontWeight: 700, padding: '0 32px', height: 48, borderColor: 'rgba(255,255,255,0.2)' }}>
+                    Diagnostics
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
           </Card>
         </Col>
 
-        <Col xs={24} lg={8} style={{ display: 'flex' }}>
-          <Card
-            title={<Text strong style={{ fontSize: 16 }}>Core Infrastructure</Text>}
-            bordered={false}
-            style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}
-            bodyStyle={{ padding: '0 20px' }}
-          >
-            <List
-              dataSource={settingsFeatures}
-              renderItem={(item) => (
-                <List.Item style={{ padding: '10px 0', borderBottom: '1px solid var(--border-color)' }}>
-                  <List.Item.Meta
-                    avatar={
-                      <div style={{
-                        width: 30,
-                        height: 30,
-                        background: `${item.color}12`,
-                        borderRadius: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: item.color,
-                        fontSize: 14
-                      }}>
-                        {item.icon}
+        {/* Telemetry & Synchronization */}
+        <Col xs={24} lg={16}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <Card 
+              title={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <CloudSyncOutlined style={{ color: '#3b82f6' }} />
+                  <span style={{ fontWeight: 800 }}>Synchronization Telemetry</span>
+                </div>
+              }
+              bordered={false}
+              className="saas-card"
+              styles={{ body: { padding: '0 24px' } }}
+              extra={<Tag color="processing">REAL-TIME</Tag>}
+            >
+              <List
+                itemLayout="horizontal"
+                dataSource={[
+                  { title: 'Bi-directional Issue Sync', description: 'Real-time state synchronization between GitHub and ZithSpace.', icon: <LinkOutlined />, status: 'active', meta: 'Last sync: 2m ago' },
+                  { title: 'Automated Pull Requests', description: 'Automatic ticket linking and status transition on PR updates.', icon: <PullRequestOutlined />, status: 'active', meta: '12 events/hr' },
+                  { title: 'Source Code Mapping', description: 'Trace commit authorship and link to specific task definitions.', icon: <BranchesOutlined />, status: 'inactive', meta: 'Setup required' },
+                  { title: 'Deployment Triggers', description: 'Update ticket lifecycles based on CI/CD deployment status.', icon: <ThunderboltOutlined />, status: 'inactive', meta: 'Beta' }
+                ]}
+                renderItem={(item) => (
+                  <List.Item
+                    actions={[
+                      <Switch size="small" checked={item.status === 'active'} />,
+                      <Button type="text" icon={<SettingOutlined />} />
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <div className={`ts-sync-icon ${item.status === 'active' ? 'active' : 'inactive'}`}>
+                          {item.icon}
+                        </div>
+                      }
+                      title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Text strong style={{ fontSize: 14 }}>{item.title}</Text>
+                          <Text className="ts-meta-badge">{item.meta}</Text>
+                        </div>
+                      }
+                      description={<Text type="secondary" style={{ fontSize: 12 }}>{item.description}</Text>}
+                    />
+                  </List.Item>
+                )}
+              />
+            </Card>
+
+            <Row gutter={[24, 24]}>
+              <Col span={12}>
+                <Card bordered={false} className="saas-card" styles={{ body: { padding: 24 } }}>
+                  <Space align="start" size={16}>
+                    <div className="ts-status-icon-box green">
+                      <CheckCircleOutlined style={{ color: '#16a34a', fontSize: 22 }} />
+                    </div>
+                    <div>
+                      <Title level={5} style={{ margin: 0 }}>Webhook Health</Title>
+                      <Text type="secondary" style={{ fontSize: 12 }}>All integration hooks are operational.</Text>
+                      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="ts-progress-bar-track green">
+                          <div className="ts-progress-bar-fill green" />
+                        </div>
+                        <Text strong style={{ fontSize: 11, color: '#16a34a' }}>99.9% Up</Text>
                       </div>
-                    }
-                    title={<Text strong style={{ fontSize: 13 }}>{item.title}</Text>}
-                  />
-                  <Tag color="success" style={{ borderRadius: 10, fontSize: 10, margin: 0 }}>Active</Tag>
-                </List.Item>
-              )}
-            />
-          </Card>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+              <Col span={12}>
+                <Card bordered={false} className="saas-card" styles={{ body: { padding: 24 } }}>
+                  <Space align="start" size={16}>
+                    <div className="ts-status-icon-box orange">
+                      <HistoryOutlined style={{ color: '#ea580c', fontSize: 22 }} />
+                    </div>
+                    <div>
+                      <Title level={5} style={{ margin: 0 }}>Sync History</Title>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Total 1,284 operations this month.</Text>
+                      <Button type="link" size="small" style={{ padding: 0, marginTop: 4, fontSize: 11 }}>View detailed logs</Button>
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
+          </div>
         </Col>
-      </Row>
 
-      <Row gutter={[20, 20]}>
-        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
-            <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(82, 196, 26, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <HeartOutlined style={{ color: '#52c41a', fontSize: 20 }} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0 }}>System Health</Title>
-                <Text type="secondary" style={{ fontSize: 12 }}>Configurations are optimized and synchronized.</Text>
-              </div>
-              <Divider style={{ margin: 0 }} />
-              <Space>
-                <Badge status="processing" color="#52c41a" />
-                <Text strong style={{ fontSize: 12 }}>All Services Online</Text>
+        {/* Integration Marketplace / Secondary */}
+        <Col xs={24} lg={8}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <Card 
+              title={<span style={{ fontWeight: 800 }}>Ecosystem Hub</span>}
+              bordered={false}
+              className="saas-card"
+            >
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <div className="ts-ecosystem-item">
+                  <div className="ts-ecosystem-icon-box">
+                    <SlackOutlined style={{ fontSize: 24, color: '#4A154B' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Text strong style={{ fontSize: 13 }}>Slack Notifications</Text>
+                    <div className="ts-ecosystem-subtitle">Push updates to channels</div>
+                  </div>
+                  <Button size="small" type="primary" ghost style={{ borderRadius: 6, fontSize: 11 }}>Connect</Button>
+                </div>
+
+                <div className="ts-ecosystem-item">
+                  <div className="ts-ecosystem-icon-box">
+                    <DiscordOutlined style={{ fontSize: 24, color: '#5865F2' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Text strong style={{ fontSize: 13 }}>Discord Webhooks</Text>
+                    <div className="ts-ecosystem-subtitle">Developer event streams</div>
+                  </div>
+                  <Button size="small" type="primary" ghost style={{ borderRadius: 6, fontSize: 11 }}>Connect</Button>
+                </div>
+
+                <div className="ts-ecosystem-item active">
+                  <div className="ts-ecosystem-icon-box">
+                    <CloudSyncOutlined style={{ fontSize: 24, color: '#3b82f6' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Text strong style={{ fontSize: 13 }}>REST API Access</Text>
+                    <div className="ts-ecosystem-subtitle active">Direct system integration</div>
+                  </div>
+                  <Button size="small" type="primary" style={{ borderRadius: 6, fontSize: 11 }}>Manage</Button>
+                </div>
               </Space>
-            </Space>
-          </Card>
-        </Col>
+            </Card>
 
-        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
-            <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(22, 119, 255, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <SafetyCertificateOutlined style={{ color: '#1677ff', fontSize: 20 }} />
+            <Card bordered={false} className="saas-card ts-dev-utilities-card">
+              <div style={{ textAlign: 'center' }}>
+                <div className="ts-dev-utilities-label">Developer Utilities</div>
+                <Paragraph className="ts-dev-utilities-desc">
+                  Access documentation and API reference for building custom integrations.
+                </Paragraph>
+                <Button block style={{ borderRadius: 8, fontWeight: 600 }}>API Explorer</Button>
               </div>
-              <div>
-                <Title level={5} style={{ margin: 0 }}>RBAC Status</Title>
-                <Text type="secondary" style={{ fontSize: 12 }}>Role-based access controls are strictly enforced.</Text>
-              </div>
-              <Divider style={{ margin: 0 }} />
-              <Button size="small" type="link" style={{ padding: 0 }}>Manage Permissions</Button>
-            </Space>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
-            <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(250, 173, 20, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <DeploymentUnitOutlined style={{ color: '#faad14', fontSize: 20 }} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0 }}>Workflow Stage</Title>
-                <Text type="secondary" style={{ fontSize: 12 }}>11-step project lifecycle defined for all tickets.</Text>
-              </div>
-              <Divider style={{ margin: 0 }} />
-              <Tag color="orange" style={{ borderRadius: 10 }}>Standard Default</Tag>
-            </Space>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} lg={6} style={{ display: 'flex' }}>
-          <Card bordered={false} style={{ borderRadius: 20, flex: 1, border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-pure-white)' }} bodyStyle={{ padding: 24 }}>
-            <Space direction="vertical" size={16}>
-              <div style={{ width: 44, height: 44, backgroundColor: 'rgba(255, 77, 79, 0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ExportOutlined style={{ color: '#ff4d4f', fontSize: 20 }} />
-              </div>
-              <div>
-                <Title level={5} style={{ margin: 0 }}>Data IO</Title>
-                <Text type="secondary" style={{ fontSize: 12 }}>Bulk sync and mapping export available.</Text>
-              </div>
-              <Divider style={{ margin: 0 }} />
-              <Space>
-                <Button size="small" icon={<PlusOutlined style={{ fontSize: 10 }} />}>Import</Button>
-                <Button size="small">Export</Button>
-              </Space>
-            </Space>
-          </Card>
+            </Card>
+          </div>
         </Col>
       </Row>
     </div>
   );
 
   return (
-    <div className="no-scrollbar" style={{
+    <div className="no-scrollbar ts-root" style={{
       margin: '0',
       height: 'calc(100vh - 104px)',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: 'var(--bg-pure-white)'
     }}>
-      {/* Sticky Header and Tabs Container */}
-      <div style={{
+      {/* Workstation Header */}
+      <div className="saas-header-container ts-header" style={{
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        paddingTop: 0,
-        paddingBottom: 0,
-        margin: '0 -20px 20px -20px',
-        paddingLeft: 20,
-        paddingRight: 20,
         backdropFilter: 'blur(12px)',
-        backgroundColor: 'var(--bg-pure-white)',
-        borderBottom: '1px solid var(--border-color)'
+        padding: '0 48px',
+        margin: '-24px -24px 20px',
+        height: 58,
+        display: 'flex',
+        alignItems: 'center'
       }}>
-        <div style={{ padding: '12px 0' }}>
-          <Space align="center" size={12}>
-            <ControlOutlined style={{ fontSize: 20, color: '#1677ff' }} />
-            <Title level={3} style={{ margin: 0, fontWeight: 700 }}>Ticket Settings</Title>
-          </Space>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="ts-header-icon-box">
+              <ControlOutlined style={{ fontSize: 20, color: '#8b5cf6' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <Title level={4} style={{ margin: 0, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.01em', lineHeight: 'normal' }}>
+                System Architecture
+              </Title>
+              <div className="ts-divider" />
+              <Text className="ts-header-subtitle">
+                Strategic task organization and cross-project categorization
+              </Text>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              className="premium-nav-tabs"
+              style={{ marginBottom: 0 }}
+              items={[
+                {
+                  key: 'integration',
+                  label: (
+                    <Space size={8}>
+                      <ShareAltOutlined />
+                      <span>Integration</span>
+                    </Space>
+                  ),
+                },
+                {
+                  key: 'dropdown-management',
+                  label: (
+                    <Space size={8}>
+                      <DatabaseOutlined />
+                      <span>Configuration</span>
+                    </Space>
+                  ),
+                }
+              ]}
+            />
+          </div>
         </div>
-
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          type="card"
-          className="settings-tabs"
-          style={{ marginBottom: 0 }}
-          items={[
-            {
-              key: 'overview',
-              label: (
-                <Space>
-                  <SettingOutlined />
-                  Overview
-                </Space>
-              ),
-            },
-            {
-              key: 'dropdown-management',
-              label: (
-                <Space>
-                  <DatabaseOutlined />
-                  Lookup Values
-                </Space>
-              ),
-            }
-          ]}
-        />
       </div>
 
       {/* Content Area */}
       <div className="no-scrollbar" style={{ marginTop: 0, flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {activeTab === 'overview' ? renderOverviewTab() : <DropdownManager onDataChange={handleDataChange} />}
+        {activeTab === 'integration' ? renderIntegrationTab() : <DropdownManager onDataChange={handleDataChange} />}
       </div>
 
       <style jsx global>{`
@@ -286,24 +331,252 @@ export default function TicketSettings() {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
-        .settings-tabs .ant-tabs-nav {
+
+        /* ── Root container ──────────────────────────────────────── */
+        .ts-root {
+          background-color: var(--bg-pure-white);
+        }
+
+        /* ── Header ──────────────────────────────────────────────── */
+        .ts-header {
+          background: rgba(255, 255, 255, 0.8);
+          border-bottom: 1px solid var(--border-slate-200);
+        }
+        [data-theme='dark'] .ts-header {
+          background: rgba(11, 15, 26, 0.85) !important;
+          border-bottom-color: #1f2937 !important;
+        }
+
+        .ts-header-icon-box {
+          width: 38px;
+          height: 38px;
+          background: var(--bg-purple-50);
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(139, 92, 246, 0.2);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .ts-header-icon-box {
+          background: rgba(139, 92, 246, 0.15) !important;
+          border-color: rgba(139, 92, 246, 0.25) !important;
+        }
+
+        .ts-divider {
+          width: 1.5px;
+          height: 24px;
+          background: var(--border-slate-200);
+          border-radius: 1px;
+        }
+        [data-theme='dark'] .ts-divider {
+          background: #374151 !important;
+        }
+
+        .ts-header-subtitle {
+          font-size: 13px;
+          color: var(--text-slate-600);
+          font-weight: 600;
+          margin-top: 1px;
+        }
+
+        /* ── Nav Tabs ─────────────────────────────────────────────── */
+        .premium-nav-tabs .ant-tabs-nav {
           margin-bottom: 0 !important;
         }
-        .settings-tabs .ant-tabs-nav-list {
-          gap: 8px;
+        .premium-nav-tabs .ant-tabs-nav::before {
+          display: none !important;
         }
-        .settings-tabs .ant-tabs-tab {
-          border-radius: 12px 12px 0 0 !important;
-          background: transparent !important;
-          border: none !important;
-          transition: all 0.3s;
+        .premium-nav-tabs .ant-tabs-tab {
+          padding: 8px 16px !important;
+          margin: 0 4px !important;
+          border-radius: 8px !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          color: var(--text-secondary) !important;
+          font-weight: 600 !important;
         }
-        .settings-tabs .ant-tabs-tab-active {
-          background: var(--bg-pure-white) !important;
-          box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+        .premium-nav-tabs .ant-tabs-tab:hover {
+          color: #3B82F6 !important;
+          background: rgba(59, 130, 246, 0.05) !important;
         }
-        .settings-tabs .ant-tabs-tab:hover {
-          color: #1677ff !important;
+        .premium-nav-tabs .ant-tabs-tab-active {
+          background: var(--bg-secondary) !important;
+          color: #3B82F6 !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1) !important;
+          border: 1px solid rgba(59, 130, 246, 0.1) !important;
+        }
+        [data-theme='dark'] .premium-nav-tabs .ant-tabs-tab-active {
+          background: #1f2937 !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
+        }
+        .premium-nav-tabs .ant-tabs-ink-bar {
+          display: none !important;
+        }
+
+        /* ── Sync icon badges ─────────────────────────────────────── */
+        .ts-sync-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .ts-sync-icon.active {
+          background: var(--bg-blue-50);
+          color: #3b82f6;
+        }
+        .ts-sync-icon.inactive {
+          background: var(--bg-slate-50);
+          color: var(--text-slate-400);
+        }
+        [data-theme='dark'] .ts-sync-icon.active {
+          background: rgba(59, 130, 246, 0.15) !important;
+        }
+        [data-theme='dark'] .ts-sync-icon.inactive {
+          background: #1f2937 !important;
+        }
+
+        /* ── Meta badge ───────────────────────────────────────────── */
+        .ts-meta-badge {
+          font-size: 10px;
+          color: var(--text-slate-400);
+          background: var(--bg-slate-50);
+          padding: 2px 6px;
+          border-radius: 4px;
+          border: 1px solid var(--border-slate-100);
+        }
+        [data-theme='dark'] .ts-meta-badge {
+          background: #1f2937 !important;
+          border-color: #374151 !important;
+        }
+
+        /* ── Status icon boxes ────────────────────────────────────── */
+        .ts-status-icon-box {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .ts-status-icon-box.green {
+          background: var(--bg-green-50);
+        }
+        .ts-status-icon-box.orange {
+          background: var(--bg-orange-50);
+        }
+        [data-theme='dark'] .ts-status-icon-box.green {
+          background: rgba(16, 185, 129, 0.15) !important;
+        }
+        [data-theme='dark'] .ts-status-icon-box.orange {
+          background: rgba(249, 115, 22, 0.15) !important;
+        }
+
+        /* ── Progress bar ─────────────────────────────────────────── */
+        .ts-progress-bar-track {
+          flex: 1;
+          height: 4px;
+          border-radius: 2px;
+          overflow: hidden;
+        }
+        .ts-progress-bar-track.green {
+          background: var(--bg-green-50);
+        }
+        [data-theme='dark'] .ts-progress-bar-track.green {
+          background: rgba(16, 185, 129, 0.15) !important;
+        }
+        .ts-progress-bar-fill {
+          width: 100%;
+          height: 100%;
+        }
+        .ts-progress-bar-fill.green {
+          background: #16a34a;
+        }
+        [data-theme='dark'] .ts-progress-bar-fill.green {
+          background: #34d399 !important;
+        }
+
+        /* ── Ecosystem Hub items ──────────────────────────────────── */
+        .ts-ecosystem-item {
+          padding: 12px;
+          border-radius: 12px;
+          background: var(--bg-slate-50);
+          border: 1px solid var(--border-slate-100);
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .ts-ecosystem-item.active {
+          background: var(--bg-blue-50);
+          border-color: var(--border-blue-200);
+        }
+        [data-theme='dark'] .ts-ecosystem-item {
+          background: #1a2035 !important;
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .ts-ecosystem-item.active {
+          background: rgba(59, 130, 246, 0.1) !important;
+          border-color: rgba(59, 130, 246, 0.2) !important;
+        }
+
+        .ts-ecosystem-icon-box {
+          width: 40px;
+          height: 40px;
+          background: var(--bg-pure-white);
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          flex-shrink: 0;
+        }
+        [data-theme='dark'] .ts-ecosystem-icon-box {
+          background: #0b0f1a !important;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+        }
+
+        .ts-ecosystem-subtitle {
+          font-size: 11px;
+          color: var(--text-slate-400);
+        }
+        .ts-ecosystem-subtitle.active {
+          color: #3b82f6;
+        }
+        [data-theme='dark'] .ts-ecosystem-subtitle.active {
+          color: #60a5fa !important;
+        }
+
+        /* ── Developer Utilities card ─────────────────────────────── */
+        .ts-dev-utilities-card {
+          background: var(--bg-slate-50) !important;
+        }
+        [data-theme='dark'] .ts-dev-utilities-card {
+          background: #161b22 !important;
+        }
+
+        .ts-dev-utilities-label {
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--text-slate-600);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 12px;
+        }
+
+        .ts-dev-utilities-desc {
+          font-size: 12px;
+          color: var(--text-slate-400);
+          margin-bottom: 16px;
+        }
+
+        /* ── Ant Design List dark overrides ──────────────────────── */
+        [data-theme='dark'] .ant-list-item {
+          border-color: #1f2937 !important;
+        }
+        [data-theme='dark'] .ant-list-item-meta-title {
+          color: var(--text-slate-900) !important;
         }
       `}</style>
     </div>

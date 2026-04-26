@@ -65,12 +65,12 @@ export const TicketKanban: React.FC<TicketKanbanProps> = ({
 
   // Group tickets by status
   const columns = useMemo(() => {
-    const grouped: Record<string, Ticket[]> = {
-      not_started: [],
-      in_progress: [],
-      in_testing: [],
-      completed: [],
-    };
+    const grouped: Record<string, Ticket[]> = {};
+    
+    // Initialize groups from STATUS_OPTIONS
+    STATUS_OPTIONS.forEach(option => {
+      grouped[option.value] = [];
+    });
 
     tickets.forEach((ticket) => {
       if (grouped[ticket.status]) {

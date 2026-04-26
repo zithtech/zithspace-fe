@@ -31,8 +31,8 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
   } = useSortable({ id: ticket.id });
 
   const shadowStyle = isDragging 
-    ? { boxShadow: '0 8px 16px rgba(0,0,0,0.12)' } 
-    : { boxShadow: '0 1px 2px rgba(0,0,0,0.02)' };
+    ? { boxShadow: 'var(--premium-shadow-lg)' } 
+    : { boxShadow: 'var(--premium-shadow)' };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -242,7 +242,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
             onMouseDown={stopPropagation}
         >
             {ticket.assignee ? (
-              <Avatar size="small" style={{ backgroundColor: '#1677ff', fontSize: 12 }}>{ticket.assignee.name?.[0]?.toUpperCase()}</Avatar>
+              <Avatar size="small" style={{ backgroundColor: 'var(--premium-blue)', fontSize: 12 }}>{ticket.assignee.name?.[0]?.toUpperCase()}</Avatar>
             ) : (
                <Avatar size="small" style={{ backgroundColor: 'var(--bg-secondary)', fontSize: 12, border: '1px dashed var(--border-color)' }} >+</Avatar>
             )}
@@ -336,7 +336,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, projects, member
                             <Button 
                               type="text" 
                               size="small" 
-                              icon={<MoreOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />} 
+                              icon={<MoreOutlined style={{ color: 'var(--text-slate-400)', fontSize: 16 }} />} 
                               style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
                             />
                         </Dropdown>

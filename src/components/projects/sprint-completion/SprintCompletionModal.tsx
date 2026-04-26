@@ -11,6 +11,7 @@ import {
   Spin,
   Tag,
   App,
+  Divider,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -120,50 +121,86 @@ const SprintCompletionModalContent: React.FC<SprintCompletionModalProps> = ({
       title={
         <div
           style={{
-            padding: "16px 24px",
+            padding: "12px 24px",
             borderBottom: "1px solid var(--border-color)",
-            background: "var(--bg-secondary)",
+            background: "var(--bg-pure-white)",
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Space size={12}>
+            <Space size={16}>
               <div
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: 'rgba(24, 144, 255, 0.1)',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.2)'
                 }}
               >
-                <RocketOutlined style={{ fontSize: 22, color: "#1890ff" }} />
+                <RocketOutlined style={{ fontSize: 18, color: "#fff" }} />
               </div>
-              <Space direction="vertical" size={0}>
-                <Title level={4} style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div>
+                <Title level={4} style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--text-slate-900)', letterSpacing: '-0.02em' }}>
                   Sprint Completion
                 </Title>
-                <Text type="secondary" style={{ fontSize: 13 }}>
-                  Finalize and review sprint activities
-                </Text>
-              </Space>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+                  <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Final Review & Cleanup
+                  </Text>
+                </div>
+              </div>
             </Space>
+
             {summary && (
-              <Space size={12}>
-                <Tag color="blue" style={{ borderRadius: 6, padding: '2px 10px', fontWeight: 500 }}>
-                  {summary.sprint.project.code}
-                </Tag>
-                <Tag color="blue" style={{ borderRadius: 6, padding: '2px 10px', fontWeight: 500 }}>
-                  {summary.sprint.project.name}
-                </Tag>
-                <Tag
-                  color={summary.sprint.status === "active" ? "processing" : "default"}
-                  style={{ borderRadius: 6, padding: '2px 10px', textTransform: 'capitalize' }}
-                >
-                  {summary.sprint.status}
-                </Tag>
-              </Space>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <Divider type="vertical" style={{ height: 32, margin: 0, borderColor: 'var(--border-color)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      padding: '0 8px',
+                      height: 24,
+                      borderRadius: 4,
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      color: 'var(--premium-blue)',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {summary.sprint.project.code}
+                    </div>
+                    <Text style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-slate-700)' }}>
+                      {summary.sprint.project.name}
+                    </Text>
+                  </div>
+                  
+                  <Divider type="vertical" style={{ height: 16, margin: 0, opacity: 0.5 }} />
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-500)' }}>{summary.sprint.name}</Text>
+                    <Tag 
+                      bordered={false}
+                      style={{ 
+                        margin: 0, 
+                        borderRadius: 4, 
+                        fontSize: 10, 
+                        fontWeight: 800, 
+                        textTransform: 'uppercase',
+                        background: summary.sprint.status === 'active' ? '#f0fdf4' : '#f1f5f9',
+                        color: summary.sprint.status === 'active' ? '#10b981' : '#64748b',
+                        padding: '0 8px'
+                      }}
+                    >
+                      {summary.sprint.status}
+                    </Tag>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

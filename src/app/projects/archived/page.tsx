@@ -237,15 +237,16 @@ export default function ArchivedTicketsPage() {
       render: (_: any, record: Ticket) => {
         const name = record.assignee?.name;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Space>
             <Avatar 
-              size={24} 
-              style={{ backgroundColor: '#6366f1', fontSize: 10, fontWeight: 700, boxShadow: '0 2px 4px rgba(99, 102, 241, 0.2)' }}
+              size="small" 
+              src={record.assignee?.avatarUrl}
+              style={{ backgroundColor: '#1677ff', fontSize: 10 }}
             >
-              {name ? name.charAt(0) : '?'}
+              {name.charAt(0)}
             </Avatar>
-            <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-slate-700)' }}>{name || 'Unassigned'}</Text>
-          </div>
+            <Text style={{ fontSize: 13 }}>{name}</Text>
+          </Space>
         );
       },
     },

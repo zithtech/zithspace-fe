@@ -113,13 +113,11 @@ function TreeNode({
     return (
         <div>
             <div
-                className={`group flex items-center gap-2 px-3 py-2 cursor-pointer rounded-md text-sm transition-colors ${isSelected
-                    ? 'bg-slate-200 text-slate-900'
-                    : 'text-slate-700 hover:bg-slate-100'
-                    }`}
+                className={`group flex items-center gap-2 px-3 py-2 cursor-pointer rounded-md text-sm transition-colors`}
                 style={{
-                    backgroundColor: isSelected ? 'var(--border-slate-200)' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--bg-slate-50)' : 'transparent',
                     color: isSelected ? 'var(--text-slate-900)' : 'var(--text-slate-700)',
+                    border: isSelected ? '1px solid var(--border-slate-200)' : '1px solid transparent'
                 }}
                 onMouseEnter={(e) => !isSelected && (e.currentTarget.style.backgroundColor = 'var(--bg-slate-50)')}
                 onMouseLeave={(e) => !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -174,7 +172,10 @@ function TreeNode({
                         />
                     ) : (
                         <Tooltip title={item.title} placement="right" mouseEnterDelay={0.5}>
-                            <span className={`truncate min-w-0 ${item.type === 'section' ? 'text-xs font-semibold text-gray-500 uppercase tracking-wider' : ''}`}>
+                            <span 
+                                className={`truncate min-w-0 ${item.type === 'section' ? 'text-xs font-semibold uppercase tracking-wider' : ''}`}
+                                style={{ color: item.type === 'section' ? 'var(--text-slate-400)' : 'inherit' }}
+                            >
                                 {item.title}
                             </span>
                         </Tooltip>
@@ -637,7 +638,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Sidebar */}
                 {!isFullScreen && (
                     <aside
-                        className={`flex flex-col border-r border-slate-200 bg-[#f5f5f5] transition-all duration-300 overflow-hidden ${collapsed ? 'w-0 border-none' : 'w-64'
+                        className={`flex flex-col border-r border-slate-200 transition-all duration-300 overflow-hidden ${collapsed ? 'w-0 border-none' : 'w-64'
                             }`}
                         style={{ borderRightColor: 'var(--border-slate-200)', background: 'var(--bg-secondary)' }}
                     >
@@ -656,7 +657,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                             ) : (
                                 <div className="flex items-center justify-between w-full min-w-0 overflow-hidden">
                                     <Tooltip title={documentHub?.name} placement="right" mouseEnterDelay={0.5}>
-                                        <h1 className="text-sm font-semibold text-gray-900 truncate flex-1 min-w-0">
+                                        <h1 className="text-sm font-semibold truncate flex-1 min-w-0" style={{ color: 'var(--text-slate-900)' }}>
                                             {documentHub?.name}
                                         </h1>
                                     </Tooltip>
@@ -680,8 +681,12 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                             placeholder="Search documents..."
                                             value={searchValue}
                                             onChange={(e) => setSearchValue(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent"
-                                            style={{ background: 'var(--bg-pure-white)', borderColor: 'var(--border-slate-200)', color: 'var(--text-slate-900)' }}
+                                            className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent"
+                                            style={{ 
+                                                background: 'var(--bg-pure-white)', 
+                                                borderColor: 'var(--border-slate-200)', 
+                                                color: 'var(--text-slate-900)' 
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -738,7 +743,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Header */}
-                    <header className="flex items-center justify-between py-[4px] px-[8px] border-b border-slate-200 bg-white" style={{ background: 'var(--bg-pure-white)', borderBottomColor: 'var(--border-slate-200)' }}>
+                    <header className="flex items-center justify-between py-[4px] px-[8px] border-b border-slate-200" style={{ background: 'var(--bg-pure-white)', borderBottomColor: 'var(--border-slate-200)' }}>
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => confirmAction(() => router.push('/documenthub'))}
@@ -765,7 +770,7 @@ export default function DocumentWorkspace({ documentId }: DocumentWorkspaceProps
                                 )}
                             </button>
                             <Tooltip title={documentContent?.title} mouseEnterDelay={0.5}>
-                                <h2 className="text-xl font-semibold text-gray-900 truncate max-w-[400px]">
+                                <h2 className="text-xl font-semibold truncate max-w-[400px]" style={{ color: 'var(--text-slate-900)' }}>
                                     {documentContent?.title || 'Select a document'}
                                 </h2>
                             </Tooltip>

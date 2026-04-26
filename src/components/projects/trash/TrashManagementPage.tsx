@@ -236,7 +236,7 @@ export default function TrashManagementPage() {
             <Text strong style={{ fontSize: 12, display: "block", color: 'var(--text-slate-700)' }}>{record.deletedBy?.name || "System"}</Text>
             <Text style={{ fontSize: 10, color: 'var(--text-slate-400)', fontWeight: 600 }}>{dayjs(record.deletedAt || record.createdAt).fromNow().toUpperCase()}</Text>
           </div>
-        </div>
+        </Space>
       ),
     },
     {
